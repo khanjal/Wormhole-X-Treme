@@ -46,6 +46,15 @@ public final class StandIns
     /** How long a spawn something refused is left before it is tried again. */
     static final long REFUSED_MILLIS = 5000L;
 
+    /** How much deeper than the room a stand-in already shown may stand before it is taken away. */
+    static final int HELD_SLACK = 1;
+
+    /** How far below a creature's feet its floor is looked for, for a creature standing on a block's top face. */
+    private static final double FLOOR_BELOW = 0.05;
+
+    /** How far either side of a creature's middle its floor may be, for one standing over a block's edge. */
+    private static final double FLOOR_ASIDE = 0.3;
+
     /** Least movement, squared, worth a teleport. */
     private static final double LEAST_MOVE = 1.0e-4;
 
@@ -237,7 +246,7 @@ public final class StandIns
             return null;
         }
         final Location at = FarCreatures.hereOf(here, standIn.window.shape, far);
-        return inRoom(standIn.window, at) ? at : null;
+        return inRoom(standIn.window, at, true) ? at : null;
     }
 
     /**
@@ -252,14 +261,65 @@ public final class StandIns
      */
     static boolean inRoom(final WindowState window, final Location at)
     {
+        return inRoom(window, at, false);
+    }
+
+    /**
+     * The same, a block deeper for a stand-in already shown, so one at the room's far edge is not
+     * taken away and spawned again as its creature wanders across it.
+     *
+     * @param window
+     *            the window
+     * @param at
+     *            where the stand-in would stand
+     * @param held
+     *            true for a stand-in already shown
+     * @return true if it may stand there
+     */
+    static boolean inRoom(final WindowState window, final Location at, final boolean held)
+    {
         final int x = at.getBlockX();
         final int y = at.getBlockY();
         final int z = at.getBlockZ();
         final World here = at.getWorld();
         // Skipped rather than clamped: a stand-in moved to the world's edge stands somewhere its creature is not.
-        return Windows.insideFixed(window, x, y, z, window.depth()) && (y >= here.getMinHeight())
+        return Windows.insideFixed(window, x, y, z, window.depth() + (held ? HELD_SLACK : 0)) && (y >= here.getMinHeight())
             && (y < here.getMaxHeight()) && here.isChunkLoaded(x >> 4, z >> 4)
             && here.getChunkAt(x >> 4, z >> 4).isEntitiesLoaded();
+    }
+
+    /**
+     * Whether a creature standing on the ground stands on something this viewer has been drawn: a
+     * block of the captured room under its feet, sent to them. A capture is old and a clipped view
+     * draws only what is seen, so a creature can stand where the drawn room has nothing, and its
+     * stand-in would stand on air (#296).
+     *
+     * @param view
+     *            the viewer's drawing, as last sent
+     * @param window
+     *            the window it is seen through
+     * @param far
+     *            where the creature stands, in the far world
+     * @return true if a drawn, captured block is under its feet or under an edge of it
+     */
+    static boolean onDrawnFloor(final ViewerDrawing view, final WindowState window, final Location far)
+    {
+        final int y = (int) Math.floor(far.getY() - FLOOR_BELOW);
+        for (final double[] aside : new double[][] { { 0.0, 0.0 }, { -FLOOR_ASIDE, -FLOOR_ASIDE },
+            { FLOOR_ASIDE, -FLOOR_ASIDE }, { -FLOOR_ASIDE, FLOOR_ASIDE }, { FLOOR_ASIDE, FLOOR_ASIDE } })
+        {
+            final int x = (int) Math.floor(far.getX() + aside[0]);
+            final int z = (int) Math.floor(far.getZ() + aside[1]);
+            if (!window.capture.isAir(x, y, z))
+            {
+                final WindowShape.Spot here = window.shape.hereOf(x, y, z);
+                if (view.drawn.containsKey(Windows.key(here.x(), here.y(), here.z())))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

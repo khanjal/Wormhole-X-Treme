@@ -408,6 +408,63 @@ class FarCreaturesTest
         assertFalse(FarCreatures.copied(creature(Shulker.class, here, 0, 0, 0)), "a shulker teleports itself");
     }
 
+    /**
+     * A creature standing on a block's top face stands on the top face of the block drawn for it,
+     * for every way a banner faces, every way the far side faces, a reflection, a gate's opening,
+     * and an opening lower or higher than the far side's floor.
+     *
+     * <p>Asked after stand-ins were seen on air in game (#296): the creature's mapping and the
+     * blocks' mapping must agree to the block, and to the fraction.
+     */
+    @Test
+    void aCreatureOnABlocksTopStandsOnTheTopOfTheBlockDrawnForIt()
+    {
+        final List<WindowShape> shapes = new ArrayList<>();
+        for (final BlockFace facing : new BlockFace[] { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST })
+        {
+            for (final float yaw : new float[] { 0.0f, 90.0f, 180.0f, -90.0f })
+            {
+                for (final int bannerY : new int[] { 40, 64, 90 })
+                {
+                    for (final boolean reflection : new boolean[] { false, true })
+                    {
+                        shapes.add(WindowShape.of(new BlockPlace("world", 3, bannerY, -7), facing, far(yaw), reflection, 2));
+                    }
+                }
+            }
+        }
+        for (final Spot into : new Spot[] { new Spot(0, 0, -1), new Spot(1, 0, 0), new Spot(0, 0, 1), new Spot(-1, 0, 0) })
+        {
+            for (final float yaw : new float[] { 0.0f, 90.0f, 180.0f, -90.0f })
+            {
+                // A gate whose arrival is above its pad, as a traveller is set down: 70.6.
+                shapes.add(WindowShape.through(new Spot(10, 64, 20), into, new Place("far", 100.5, 70.6, -20.5, yaw, 0.0f), 5, 5));
+            }
+        }
+        for (final WindowShape shape : shapes)
+        {
+            feetOnTheDrawnBlock(shape);
+        }
+        assertEquals(112, shapes.size(), "every case was tried");
+    }
+
+    private static void feetOnTheDrawnBlock(final WindowShape shape)
+    {
+        // Standing on (104, 69, -17), its feet at y 70, anywhere over the block, and on a slab's top at 70.5.
+        for (final double feet : new double[] { 70.0, 70.5 })
+        {
+            final int under = (feet == 70.0) ? 69 : 70;
+            final Spot floor = shape.hereOf(104, under, -17);
+            for (final double across : new double[] { 0.01, 0.5, 0.99 })
+            {
+                final double[] at = shape.hereOf(104 + across, feet, -17 + (1.0 - across));
+                assertEquals(floor.y() + (feet - under), at[1], 1.0e-9, "feet on the drawn floor's top, for " + shape);
+                assertEquals(floor.x(), (int) Math.floor(at[0]), "over the drawn floor block, for " + shape);
+                assertEquals(floor.z(), (int) Math.floor(at[2]), "over the drawn floor block, for " + shape);
+            }
+        }
+    }
+
     private static <T extends Entity> T creature(final Class<T> type, final World world, final double x, final double y,
         final double z)
     {

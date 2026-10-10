@@ -629,6 +629,162 @@ class StandInsTest
         assertFalse(StandIns.shownThrough(view, "gallery"));
     }
 
+    /**
+     * A creature on the ground is offered only where the viewer has been drawn a captured block
+     * under its feet, or under an edge of it.
+     *
+     * <p>The stand-ins seen on air in game (#296): a capture is old and a clipped view draws only
+     * what is seen, so a creature can stand where the drawn room has nothing under it.
+     */
+    @Test
+    void aCreatureOnTheGroundNeedsADrawnCapturedBlockUnderItsFeet()
+    {
+        final WindowState floored = windowWithFloorAt(100, 69, -19);
+        final Location onIt = new Location(far, 100.5, 70.0, -18.5);
+        assertFalse(StandIns.onDrawnFloor(view, floored, onIt), "the floor is captured but not yet drawn for this viewer");
+
+        final Spot drawn = floored.shape.hereOf(100, 69, -19);
+        view.drawn.put(Windows.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
+        assertTrue(StandIns.onDrawnFloor(view, floored, onIt), "captured and drawn under its feet");
+        assertTrue(StandIns.onDrawnFloor(view, floored, new Location(far, 101.2, 70.0, -18.5)),
+            "standing over the block's edge, its side still on it");
+        assertFalse(StandIns.onDrawnFloor(view, floored, new Location(far, 102.5, 70.0, -18.5)),
+            "two blocks along, where the capture has air");
+        assertFalse(StandIns.onDrawnFloor(view, floored, new Location(far, 100.5, 71.0, -18.5)),
+            "a block up, over the air above the floor");
+    }
+
+    /**
+     * The add and keep decisions differ, so a creature at an edge is not spawned and removed again
+     * and again: one already shown keeps its window while that window is still seen, may stand a
+     * block deeper, and needs no drawn floor; a new one needs all three.
+     */
+    @Test
+    void aShownCreatureIsJudgedMoreLooselyThanANewOne()
+    {
+        when(viewer.canSee(any(Entity.class))).thenReturn(true);
+        final WindowState other = new WindowState(new MirrorSource(new QuantumMirror("gallery",
+            new BlockPlace("world", 10, 64, 10), ARRIVAL), mock(Block.class), window.shape, window.open, 16), window.capture);
+        final Zombie walker = creature(Zombie.class, 100.5, 70.0, -18.5);
+        when(walker.isOnGround()).thenReturn(true);
+        final Set<String> both = Set.of("museum", "gallery");
+
+        assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, window, both, walker),
+            "new, on ground with no drawn floor: not offered");
+        nextCopy = copy(Zombie.class);
+        StandIns.show(viewer, view, List.of(wanted(walker)), 0L);
+        assertNull(Windows.whyNot(viewer, view, window, both, walker), "shown already: kept without a drawn floor");
+        assertEquals(CreatureTally.Skip.OTHER_WINDOW, Windows.whyNot(viewer, view, other, both, walker),
+            "not handed to the other window while its own is still seen");
+        assertNull(Windows.whyNot(viewer, view, other, Set.of("gallery"), walker),
+            "handed over once its own window is no longer seen");
+
+        // Seventeen blocks in from the opening's middle: past the depth of 16, inside it with the slack.
+        when(walker.getLocation()).thenReturn(new Location(far, 100.5, 70.5, -5.5));
+        assertNull(Windows.whyNot(viewer, view, window, both, walker), "a held one a block past the room stays");
+        StandIns.removeAll(view);
+        assertEquals(CreatureTally.Skip.OUT_OF_ROOM, Windows.whyNot(viewer, view, window, both, walker),
+            "a new one there is not offered");
+    }
+
+    /**
+     * A creature standing still for many redraws and follows is spawned once, never removed, and
+     * never teleported: nothing is resent to a client for a stand-in that has not moved.
+     */
+    @Test
+    void aCreatureStandingStillIsSpawnedOnceAndNeverMovedOrRemoved()
+    {
+        final Zombie still = creature(Zombie.class, 100.5, 70.0, -18.5);
+        final Zombie copy = followsItsTeleports(copy(Zombie.class));
+        nextCopy = copy;
+
+        for (int round = 0; round < 50; round++)
+        {
+            StandIns.show(viewer, view, List.of(wanted(still)), round * 100L);
+            StandIns.follow(view);
+            StandIns.follow(view);
+        }
+
+        assertEquals(1, made.size(), "spawned once");
+        verify(copy, never()).remove();
+        verify(copy, never()).teleport(any(Location.class));
+        assertTrue(StandIns.isStandIn(copy));
+    }
+
+    /**
+     * A creature walking along the edge of the view, in and out of the strict view test every redraw
+     * while the loose one holds, is spawned once and never removed, and each step is one teleport.
+     */
+    @Test
+    void aCreatureWalkingAlongTheEdgeOfTheViewIsSpawnedOnceAndNeverRemoved()
+    {
+        final Zombie walker = creature(Zombie.class, 100.5, 70.0, -18.5);
+        final Zombie copy = followsItsTeleports(copy(Zombie.class));
+        nextCopy = copy;
+        final Location eye = new Location(here, 10.5, 65.62, 7.5);
+        int steps = 0;
+        for (int round = 0; round < 40; round++)
+        {
+            if ((round % 4) == 3)
+            {
+                // A step along the edge, a block at a time.
+                steps++;
+                when(walker.getLocation()).thenReturn(new Location(far, 100.5 + steps, 70.0, -18.5));
+            }
+            final boolean inStrictView = (round % 2) == 0;
+            final List<FarCreatures.Wanted> chosen = FarCreatures.choose(List.of(wanted(walker)), eye,
+                FarCreatures.MOST_PER_VIEWER, FarCreatures.keepOrShow(view.standIns.keySet(), w -> true, w -> inStrictView));
+            StandIns.show(viewer, view, chosen, round * 100L);
+            StandIns.follow(view);
+        }
+
+        assertEquals(1, made.size(), "spawned once");
+        verify(copy, never()).remove();
+        verify(copy, times(steps)).teleport(any(Location.class));
+    }
+
+    /** A copy whose place is where it was last teleported, as a real entity's is. */
+    private Zombie followsItsTeleports(final Zombie copy)
+    {
+        final Location[] at = { null };
+        when(copy.getLocation()).thenAnswer(call -> at[0]);
+        when(copy.teleport(any(Location.class))).thenAnswer(call ->
+        {
+            at[0] = call.getArgument(0);
+            return true;
+        });
+        made.clear();
+        HiddenEntities.creationWith(new HiddenEntities.Creation()
+        {
+            @Override
+            public <T extends Entity> T create(final World world, final Location where, final Class<T> type)
+            {
+                made.add(copy);
+                at[0] = where;
+                return type.cast(copy);
+            }
+
+            @Override
+            public <T extends Entity> T add(final World world, final T entity)
+            {
+                return entity;
+            }
+        });
+        return copy;
+    }
+
+    /** The test window, drawn from a capture holding one solid block. */
+    private WindowState windowWithFloorAt(final int x, final int y, final int z)
+    {
+        final BlockData air = mock(BlockData.class);
+        when(air.getAsString()).thenReturn("minecraft:air");
+        final BlockData stone = mock(BlockData.class);
+        when(stone.getAsString()).thenReturn("minecraft:stone");
+        final Capture.Builder builder = new Capture.Builder("far", true, new Capture.Box(60, 54, -61, 81, 81, 81), air);
+        builder.put(x, y, z, stone);
+        return new WindowState(window.source, builder.build());
+    }
+
     private FarCreatures.Wanted wanted(final Entity original)
     {
         return new FarCreatures.Wanted(original, FarCreatures.hereOf(here, window.shape, original.getLocation()), window);

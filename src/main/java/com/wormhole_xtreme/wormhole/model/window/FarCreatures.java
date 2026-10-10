@@ -115,6 +115,22 @@ public final class FarCreatures
      */
     static List<Entity> inRoom(final World far, final int[] box)
     {
+        return inRoom(far, box, new int[3]);
+    }
+
+    /**
+     * The same, counting what was passed over.
+     *
+     * @param far
+     *            the far world
+     * @param box
+     *            {@code {minX, minY, minZ, maxX, maxY, maxZ}}
+     * @param tally
+     *            filled with chunks not loaded, chunks whose entities had not loaded, and entities not copied
+     * @return the creatures to copy; empty when nothing there is loaded
+     */
+    static List<Entity> inRoom(final World far, final int[] box, final int[] tally)
+    {
         final Set<Long> ready = new HashSet<>();
         for (int cx = box[0] >> 4; cx <= (box[3] >> 4); cx++)
         {
@@ -122,9 +138,17 @@ public final class FarCreatures
             {
                 // isChunkLoaded first: getChunkAt loads a chunk that is not, and Chunk.getEntities
                 // would load its entities, so neither is asked of one the server does not have.
-                if (far.isChunkLoaded(cx, cz) && far.getChunkAt(cx, cz).isEntitiesLoaded())
+                if (!far.isChunkLoaded(cx, cz))
+                {
+                    tally[0]++;
+                }
+                else if (far.getChunkAt(cx, cz).isEntitiesLoaded())
                 {
                     ready.add(Windows.chunkKey(cx, cz));
+                }
+                else
+                {
+                    tally[1]++;
                 }
             }
         }
@@ -136,12 +160,16 @@ public final class FarCreatures
         final BoundingBox bounds = new BoundingBox(box[0], box[1], box[2], box[3] + 1.0, box[4] + 1.0, box[5] + 1.0);
         for (final Entity entity : far.getNearbyEntities(bounds))
         {
-            if (copied(entity))
+            final Location at = entity.getLocation();
+            if (ready.contains(Windows.chunkKey(at.getBlockX() >> 4, at.getBlockZ() >> 4)))
             {
-                final Location at = entity.getLocation();
-                if (ready.contains(Windows.chunkKey(at.getBlockX() >> 4, at.getBlockZ() >> 4)))
+                if (copied(entity))
                 {
                     found.add(entity);
+                }
+                else
+                {
+                    tally[2]++;
                 }
             }
         }

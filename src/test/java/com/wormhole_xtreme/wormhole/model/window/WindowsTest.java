@@ -2638,6 +2638,8 @@ class WindowsTest
         standIn = mock(Zombie.class);
         when(standIn.getUniqueId()).thenReturn(UUID.randomUUID());
         when(standIn.isValid()).thenReturn(true);
+        // Far off until it is spawned: every real entity has a place, and the veil asks it.
+        when(standIn.getLocation()).thenReturn(new Location(world, 0.5, -200.0, 0.5));
         farSetup = far ->
         {
             final Chunk chunk = mock(Chunk.class);
@@ -2835,6 +2837,42 @@ class WindowsTest
 
         verify(standIn).remove();
         assertFalse(StandIns.isStandIn(standIn));
+    }
+
+    /**
+     * A zombie on the ground is shown where the drawn room has a floor under it, and not where the
+     * capture has air there, and {@code mirror debug} says which.
+     *
+     * <p>Reported in game as stand-ins sitting on air (#296): the captured room is old, and a clipped
+     * view draws only what it sees, so a creature can stand where nothing is drawn under it.
+     */
+    @Test
+    void aZombieOnTheGroundIsShownOnlyOverADrawnFloorAndDebugSaysWhy()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        when(farZombie.isOnGround()).thenReturn(true);
+
+        withServer(WindowSweep::tick);
+        assertEquals(1, standInsMade, "the solid room has a floor under it, drawn");
+        Windows.clear();
+
+        // The ground ten blocks below the zombie: the capture has air under its feet.
+        Captures.install(arrival, groundBelow(arrival, 60, farOneBlock));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 10, 64, 10), arrival));
+        final List<String> said = new ArrayList<>();
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            said.addAll(Windows.describe(viewer));
+        });
+
+        assertEquals(1, standInsMade, "not shown standing on air");
+        assertTrue(said.stream().anyMatch(line -> line.contains("museum creatures") && line.contains("1 found")
+            && line.contains("1 no drawn floor under it") && line.contains("0 shown")),
+            "mirror debug says it was found and why it is not shown: " + said);
     }
 
     /** A far creature hidden from this viewer, by another plugin or a vanish, is not shown to them. */

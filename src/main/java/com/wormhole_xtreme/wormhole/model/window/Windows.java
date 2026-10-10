@@ -448,6 +448,11 @@ public final class Windows
                 + " (full " + Captures.gateFillDepth(window.source.destination(), ConfigManager.getGateViewDepth())
                 + "), " + window.capture.secondsOld() + "s old"));
         }
+        final CreatureTally tally = view.tallies.get(name);
+        if (ConfigManager.isMirrorShowEntities() && (tally != null))
+        {
+            lines.add(MirrorText.field(name + " creatures", tally.line(window)));
+        }
         if (!fixedForViewer)
         {
             final Far far = view.far.get(name);
@@ -1085,12 +1090,12 @@ public final class Windows
         // Made only of windows drawn whole, the view is the same from wherever the eye is.
         final boolean eyeMatters = wholes.whole().size() < seeing.size();
         final String stamp = stampOf(seeing, wholes);
-        // Before the view may be kept as drawn: a creature moves, or walks in, while the viewer stands still.
-        showStandIns(player, view, eye, seeing, wholes.whole(), now);
         if (!crossed && (fromSweep || !eyeMatters)
             && unchanged(view, seeing, eyeMatters ? eyeKey(eye) : view.eye, stamp, now))
         {
             keepAsDrawn(player, view, eye, now, eyeMatters, fromSweep);
+            // Kept as drawn, so judged against what is drawn: a creature moves, or walks in, while the viewer stands still.
+            showStandIns(player, view, eye, seeing, wholes, now);
             return;
         }
         if (!mayWork)
@@ -1098,6 +1103,8 @@ public final class Windows
             // The server's share for this second is spent: this viewer keeps what they see a
             // moment longer, and a move is caught up once there is room.
             waitForRoom(player, view, eye, fromSweep);
+            // Its rooms may not be held this time, so nothing is added or taken away on their word.
+            followStandIns(view);
             return;
         }
         final List<Entity> inside = new ArrayList<>();
@@ -1106,6 +1113,8 @@ public final class Windows
         workSpent += budget.projected;
         send(player, view, wanted, eye, now, (now - view.fullAt) >= RESEND_MILLIS, freshChunks(player, view.chunk, chunk));
         veil(player, view, inside);
+        // After the send, so a stand-in's floor is judged by what the viewer has just been drawn.
+        showStandIns(player, view, eye, seeing, wholes, now);
         final long took = now() - now;
         view.lastRedraw = new Redraw(budget.projected, budget.near, budget.fixed, budget.fixedDepth,
             new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), took);
@@ -1211,18 +1220,7 @@ public final class Windows
     {
         for (final ViewerDrawing view : VIEWS.values())
         {
-            if (!view.standIns.isEmpty())
-            {
-                try
-                {
-                    StandIns.follow(view);
-                }
-                catch (final Exception | LinkageError failed)
-                {
-                    StandIns.failedOnce("Could not move the stand-ins shown through a view", failed);
-                    dropQuietly(view);
-                }
-            }
+            followStandIns(view);
         }
         if (StandIns.count() == 0)
         {
@@ -1234,8 +1232,26 @@ public final class Windows
      * Shows a viewer the creatures in the far rooms they are looking into, as stand-ins, when the
      * setting is on; takes away any they have otherwise.
      */
+    /** Moves one viewer's stand-ins after their creatures, and drops them if that fails. */
+    private static void followStandIns(final ViewerDrawing view)
+    {
+        if (view.standIns.isEmpty())
+        {
+            return;
+        }
+        try
+        {
+            StandIns.follow(view);
+        }
+        catch (final Exception | LinkageError failed)
+        {
+            StandIns.failedOnce("Could not move the stand-ins shown through a view", failed);
+            dropQuietly(view);
+        }
+    }
+
     private static void showStandIns(final Player player, final ViewerDrawing view, final Location eye,
-        final List<WindowState> seeing, final Map<WindowState, Whole> fixed, final long now)
+        final List<WindowState> seeing, final Wholes wholes, final long now)
     {
         try
         {
@@ -1247,7 +1263,7 @@ public final class Windows
                 }
                 return;
             }
-            StandIns.show(player, view, standInsFor(player, view, eye, seeing, fixed), now);
+            StandIns.show(player, view, standInsFor(player, view, eye, seeing, wholes), now);
         }
         catch (final Exception | LinkageError failed)
         {
@@ -1276,40 +1292,89 @@ public final class Windows
      * most {@link FarCreatures#MOST_PER_VIEWER}, nearest first.
      */
     private static List<FarCreatures.Wanted> standInsFor(final Player player, final ViewerDrawing view,
-        final Location eye, final List<WindowState> seeing, final Map<WindowState, Whole> fixed)
+        final Location eye, final List<WindowState> seeing, final Wholes wholes)
     {
+        final Map<WindowState, Whole> fixed = wholes.whole();
         final Set<Long> allOpen = new HashSet<>();
         seeing.forEach(window -> allOpen.addAll(window.openKeys));
+        final Set<String> names = names(seeing);
         final List<FarCreatures.Wanted> inRoom = new ArrayList<>();
+        view.tallies.clear();
         for (final WindowState window : nearestFirst(seeing, eye))
         {
             // A reflection's room is the viewer's own, which is a later step of #296.
             if (!window.shape.mirrored())
             {
-                inRoomThrough(player, view, window, inRoom);
+                final CreatureTally tally = new CreatureTally();
+                view.tallies.put(window.name(), tally);
+                inRoomThrough(player, view, window, names, inRoom, tally);
             }
         }
+        // A window whose room is not held this redraw draws nothing new: its stand-ins stay as they are, and none are added.
+        final Set<WindowState> drawn = new HashSet<>(fixed.keySet());
+        drawn.addAll(wholes.clipped().keySet());
         // The costly view test runs nearest first and stops at the cap: a farm far off costs a sort, not a projection each.
-        return FarCreatures.choose(inRoom, eye, FarCreatures.MOST_PER_VIEWER,
-            FarCreatures.keepOrShow(view.standIns.keySet(), wanted -> stillSeen(eye, wanted.here(), seeing, fixed),
-                wanted -> inAnyView(eye, wanted.here(), seeing, fixed, allOpen)));
+        final List<FarCreatures.Wanted> chosen = FarCreatures.choose(inRoom, eye, FarCreatures.MOST_PER_VIEWER,
+            FarCreatures.keepOrShow(view.standIns.keySet(),
+                wanted -> !drawn.contains(wanted.window()) || stillSeen(eye, wanted.here(), seeing, fixed),
+                wanted -> drawn.contains(wanted.window()) && inAnyView(eye, wanted.here(), seeing, fixed, allOpen)));
+        chosen.forEach(wanted -> view.tallies.get(wanted.window().name()).shown++);
+        return chosen;
     }
 
-    /** Adds the far creatures this viewer may see that stand inside one window's room as drawn. */
+    /**
+     * Adds the far creatures this viewer may see that stand inside one window's room as drawn.
+     *
+     * <p>A creature already shown stays with the window it was shown through while that window is
+     * still seen, so two windows that both see it do not hand it back and forth; and only a new one
+     * must stand on drawn floor, so one stepping over a gap is not taken away and shown again.
+     */
     private static void inRoomThrough(final Player player, final ViewerDrawing view, final WindowState window,
-        final List<FarCreatures.Wanted> inRoom)
+        final Set<String> seeing, final List<FarCreatures.Wanted> inRoom, final CreatureTally tally)
     {
         for (final Entity creature : farCreatures(window))
         {
-            if (creature.isValid() && visibleTo(player, view, creature))
+            if (creature.isValid())
             {
-                final Location at = FarCreatures.hereOf(view.world, window.shape, creature.getLocation());
-                if (StandIns.inRoom(window, at))
+                tally.found++;
+                final CreatureTally.Skip why = whyNot(player, view, window, seeing, creature);
+                if (why == null)
                 {
-                    inRoom.add(new FarCreatures.Wanted(creature, at, window));
+                    inRoom.add(new FarCreatures.Wanted(creature, FarCreatures.hereOf(view.world, window.shape,
+                        creature.getLocation()), window));
+                }
+                else
+                {
+                    tally.skip(why);
                 }
             }
         }
+    }
+
+    /** Why a far creature is not offered through this window, or null if it is. */
+    static CreatureTally.Skip whyNot(final Player player, final ViewerDrawing view, final WindowState window,
+        final Set<String> seeing, final Entity creature)
+    {
+        if (!visibleTo(player, view, creature))
+        {
+            return CreatureTally.Skip.HIDDEN;
+        }
+        final StandIns.StandIn held = view.standIns.get(creature.getUniqueId());
+        if ((held != null) && !held.window.name().equals(window.name()) && seeing.contains(held.window.name()))
+        {
+            return CreatureTally.Skip.OTHER_WINDOW;
+        }
+        final Location far = creature.getLocation();
+        if (!StandIns.inRoom(window, FarCreatures.hereOf(view.world, window.shape, far), held != null))
+        {
+            return CreatureTally.Skip.OUT_OF_ROOM;
+        }
+        // A flying, swimming or climbing creature has no floor to stand on, and is shown floating, as it is.
+        if ((held == null) && creature.isOnGround() && !StandIns.onDrawnFloor(view, window, far))
+        {
+            return CreatureTally.Skip.NO_FLOOR;
+        }
+        return null;
     }
 
     /**
@@ -1331,7 +1396,11 @@ public final class Windows
             final World far = Bukkit.getWorld(window.capture.worldName());
             final int[] box = (far == null) ? FarCreatures.NOWHERE
                 : FarCreatures.roomBox(window.shape, window.depth(), window.capture.bounds());
-            window.creatures = (box.length == 0) ? List.of() : FarCreatures.inRoom(far, box);
+            final int[] tally = new int[3];
+            window.creatures = (box.length == 0) ? List.of() : FarCreatures.inRoom(far, box, tally);
+            window.notLoaded = tally[0];
+            window.entitiesNotLoaded = tally[1];
+            window.notCopied = tally[2];
         }
         return window.creatures;
     }

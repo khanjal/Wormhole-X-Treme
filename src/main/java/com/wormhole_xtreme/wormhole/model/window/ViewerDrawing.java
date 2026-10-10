@@ -36,6 +36,8 @@ final class ViewerDrawing
     final Map<UUID, StandIns.StandIn> standIns = new HashMap<>();
     /** When a stand-in's spawn was last refused, by the creature's id. */
     final Map<UUID, Long> refused = new HashMap<>();
+    /** Why each window's far creatures were or were not shown, by window name, as last judged. */
+    final Map<String, CreatureTally> tallies = new HashMap<>();
     long fullAt;
     long composedAt;
     int generation;

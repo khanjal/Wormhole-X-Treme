@@ -59,6 +59,10 @@ final class WindowState
     Capture fullFrom;
     /** The creatures in its far room, read once a sweep while somebody looks; null until then (#296). */
     List<Entity> creatures;
+    /** What reading its far room passed over: chunks not loaded, chunks whose creatures had not, entities not copied. */
+    int notLoaded;
+    int entitiesNotLoaded;
+    int notCopied;
 
     WindowState(final WindowSource source, final Capture capture)
     {

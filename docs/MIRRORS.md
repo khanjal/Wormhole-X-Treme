@@ -768,7 +768,14 @@ that one viewer (`HiddenEntities`).
   any, by a task that only runs while one exists. One that walks out of the room, dies, unloads
   or falls past the twenty is taken away. One already shown is kept while it is still seen through
   the opening at all; a new one must be properly in view, so a creature at the edge of the view is
-  not spawned and removed with every step. A failure in any of this costs that viewer their
+  not spawned and removed with every step; it also stays with the window it was shown through while
+  that window is seen, and may stand a block past the room's depth. A creature on the ground is
+  shown only where the viewer has been drawn a captured block under its feet: the capture is old and
+  a clipped view draws only what it sees, so without this a stand-in could stand on air. Flying,
+  swimming and climbing creatures are not on the ground and are shown as they are. Placing, keeping
+  and following all go by the creature's live position through one mapping, and nothing is decided
+  on a redraw whose rooms the server had no time to hold. `mirror debug` says, per window, how many
+  far creatures were found and why each was not shown. A failure in any of this costs that viewer their
   stand-ins, logged once, and never the view's blocks or the sweep.
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
