@@ -20,6 +20,7 @@ import com.wormhole_xtreme.wormhole.RiddenTeleport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.RingTravelEvent;
+import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
@@ -195,7 +196,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         // columns and asking the world about each of them separately would be the same
         // answer several dozen times over.
         return world.getNearbyEntities(boundsOf(blocks)).stream()
-            .filter(entity -> standsInAny(entity, blocks))
+            .filter(entity -> standsInAny(entity, blocks) && !StandIns.isStandIn(entity))
             .<RingPassenger>map(BukkitRingPassenger::new)
             .collect(Collectors.toCollection(ArrayList::new));
     }

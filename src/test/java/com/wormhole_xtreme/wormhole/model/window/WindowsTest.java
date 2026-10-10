@@ -38,9 +38,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -56,10 +58,17 @@ import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Zombie;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.util.BoundingBox;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,6 +90,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
+import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 
 /**
  * The sweep that draws what is on the other side of window mirrors.
@@ -122,6 +132,11 @@ class WindowsTest
     private final BlockData farTwoBlock = named("far:two");
     private final Place arrival = new Place("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
     private final Place arrivalTwo = new Place("far2", 300.5, 70.0, -20.5, 0.0f, 0.0f);
+
+    /** What each server's far world is set up with, before the test body runs. */
+    private Consumer<World> farSetup = far ->
+    {
+    };
 
     /** How far {@link #pause()} has moved the redraw clock past the real one. */
     private static long paused;
@@ -181,6 +196,9 @@ class WindowsTest
         MirrorManager.clear();
         WindowSweep.clear();
         ViewFog.sendDistanceWith(null);
+        HiddenEntities.creationWith(null);
+        // A failed hold test leaves nothing for the next: clear() let go of the chunks above.
+        FarChunkHolds.loaderWith(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -2739,6 +2757,457 @@ class WindowsTest
             .map(call -> (BlockData) call.getArgument(0));
     }
 
+
+    /** A zombie standing three blocks into the museum's far room, and the stand-in it is given. */
+    private Zombie farZombie;
+    private Zombie standIn;
+    private int standInsMade;
+
+    /**
+     * Puts a zombie in the far room, in a chunk loaded with its entities, and hands out one stand-in.
+     *
+     * <p>Through {@link HiddenEntities#creationWith}, not MockBukkit, which cannot show an entity to one player.
+     */
+    private void zombieInTheFarRoom()
+    {
+        farZombie = mock(Zombie.class);
+        when(farZombie.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(farZombie.isValid()).thenReturn(true);
+        when(farZombie.isVisibleByDefault()).thenReturn(true);
+        when(farZombie.getType()).thenReturn(EntityType.ZOMBIE);
+        standIn = mock(Zombie.class);
+        when(standIn.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(standIn.isValid()).thenReturn(true);
+        // Far off until it is spawned: every real entity has a place, and the veil asks it.
+        when(standIn.getLocation()).thenReturn(new Location(world, 0.5, -200.0, 0.5));
+        farSetup = far ->
+        {
+            final Chunk chunk = mock(Chunk.class);
+            when(chunk.isEntitiesLoaded()).thenReturn(true);
+            when(far.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+            when(world.getChunkAt(anyInt(), anyInt())).thenReturn(chunk);
+            when(far.getChunkAt(anyInt(), anyInt())).thenReturn(chunk);
+            when(farZombie.getLocation()).thenReturn(new Location(far, 100.5, 70.0, -18.5, 0.0f, 0.0f));
+            when(far.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.of(farZombie));
+        };
+        HiddenEntities.creationWith(new HiddenEntities.Creation()
+        {
+            @Override
+            public <T extends Entity> T create(final World in, final Location at, final Class<T> type)
+            {
+                standInsMade++;
+                when(standIn.getLocation()).thenReturn(at);
+                return type.cast(standIn);
+            }
+
+            @Override
+            public <T extends Entity> T add(final World in, final T entity)
+            {
+                return entity;
+            }
+        });
+    }
+
+    /**
+     * Off by default, the far room is not even looked in: no chunk asked about, no creature
+     * spawned. Turned on, the same room gives its zombie a stand-in.
+     */
+    @Test
+    void withTheSettingOffTheFarRoomIsNeverLookedInAndOnItIs()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        final List<World> fars = new ArrayList<>();
+        final Consumer<World> stubs = farSetup;
+        farSetup = far ->
+        {
+            stubs.accept(far);
+            fars.add(far);
+        };
+
+        withServer(WindowSweep::tick);
+
+        verify(fars.get(0), never()).isChunkLoaded(anyInt(), anyInt());
+        verify(fars.get(0), never()).getNearbyEntities(any(BoundingBox.class));
+        assertEquals(0, standInsMade, "nothing spawned with the setting off");
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        withServer(WindowSweep::tick);
+
+        assertEquals(1, standInsMade, "the same room, turned on, shows its zombie");
+    }
+
+    /**
+     * A mob in the far room is shown to the viewer as a stand-in, standing where the room it
+     * stands in is drawn, and the drawing never veils it as a creature of this world.
+     *
+     * <p>A stand-in veiled by its own view vanishes as it appears; veiled by another viewer's, it
+     * is shown to that viewer when they look away.
+     */
+    @Test
+    void aMobInTheFarRoomIsShownAsAStandInWhereItsRoomIsDrawnAndNeverVeiled()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        final Entity stand = mock(ArmorStand.class);
+        when(stand.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(stand.getLocation()).thenReturn(new Location(world, 10.5, 63.0, 13.5));
+        when(world.getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble()))
+            .thenAnswer(invocation -> List.of(stand, standIn));
+
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            stand(viewer, 10.8, 7.5);
+            WindowSweep.tick();
+        });
+
+        final Location at = standIn.getLocation();
+        assertSame(world, at.getWorld(), "in the viewer's world");
+        assertEquals(10.5, at.getX(), 1.0e-9);
+        assertEquals(63.0, at.getY(), 1.0e-9, "on the floor of the room as drawn");
+        assertEquals(14.5, at.getZ(), 1.0e-9, "three blocks behind the opening, as it stands three into the far room");
+        verify(viewer).showEntity(any(), ArgumentMatchers.eq(standIn));
+        verify(viewer).hideEntity(any(), ArgumentMatchers.eq(stand));
+        verify(viewer, never()).hideEntity(any(), ArgumentMatchers.eq(standIn));
+        assertEquals(1, standInsMade, "kept across the redraw, not spawned again");
+    }
+
+    /** Walking away from the mirror takes its stand-ins away with the view. */
+    @Test
+    void walkingAwayTakesTheStandInsAway()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            verify(standIn, never()).remove();
+            stand(viewer, 10.5, -40.0);
+            WindowSweep.tick();
+        });
+
+        verify(standIn).remove();
+        assertFalse(StandIns.isStandIn(standIn));
+    }
+
+    /**
+     * A viewer who quits, dies, respawns or changes world loses their stand-ins straight away, and
+     * is given them afresh when they look again.
+     */
+    @Test
+    void aViewerWhoQuitsDiesRespawnsOrChangesWorldLosesTheirStandIns()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        final StandInListener listener = new StandInListener();
+        final PlayerQuitEvent quit = mock(PlayerQuitEvent.class);
+        when(quit.getPlayer()).thenReturn(viewer);
+        final PlayerDeathEvent death = mock(PlayerDeathEvent.class);
+        when(death.getEntity()).thenReturn(viewer);
+        final PlayerRespawnEvent respawn = mock(PlayerRespawnEvent.class);
+        when(respawn.getPlayer()).thenReturn(viewer);
+        final PlayerChangedWorldEvent changed = mock(PlayerChangedWorldEvent.class);
+        when(changed.getPlayer()).thenReturn(viewer);
+        final List<Runnable> leavings = List.of(() -> listener.onQuit(quit), () -> listener.onViewerDeath(death),
+            () -> listener.onRespawn(respawn), () -> listener.onChangedWorld(changed));
+
+        withServer(() ->
+        {
+            int times = 0;
+            for (final Runnable leaving : leavings)
+            {
+                WindowSweep.tick();
+                assertEquals(times + 1, standInsMade, "shown again after the last time it was taken away");
+                leaving.run();
+                times++;
+                verify(standIn, times(times)).remove();
+                assertFalse(StandIns.isStandIn(standIn));
+            }
+        });
+    }
+
+    /** Stopping the plugin takes every stand-in out of the world. */
+    @Test
+    void stoppingTakesEveryStandInAway()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            assertTrue(StandIns.isStandIn(standIn));
+            Windows.restoreAll();
+        });
+
+        verify(standIn).remove();
+        assertFalse(StandIns.isStandIn(standIn));
+    }
+
+    /**
+     * A view ended with no sweep to follow, for a viewer the server no longer has, still takes its
+     * stand-ins away: every ending goes through one place.
+     */
+    @Test
+    void aViewEndedForAViewerWhoHasGoneTakesItsStandInsAway()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        withServer(WindowSweep::tick);
+        assertTrue(StandIns.isStandIn(standIn));
+
+        // A server that no longer knows the viewer: the mirror's release ends their view outright.
+        try (MockedStatic<Bukkit> gone = mockStatic(Bukkit.class))
+        {
+            Windows.release("museum");
+        }
+
+        verify(standIn).remove();
+        assertFalse(StandIns.isStandIn(standIn));
+    }
+
+    /**
+     * A zombie on the ground is shown where the drawn room has a floor under it, and not where the
+     * capture has air there, and {@code mirror debug} says which.
+     *
+     * <p>Reported in game as stand-ins sitting on air (#296): the captured room is old, and a clipped
+     * view draws only what it sees, so a creature can stand where nothing is drawn under it.
+     */
+    @Test
+    void aZombieOnTheGroundIsShownOnlyOverADrawnFloorAndDebugSaysWhy()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        when(farZombie.isOnGround()).thenReturn(true);
+        when(farZombie.hasGravity()).thenReturn(true);
+
+        withServer(WindowSweep::tick);
+        assertEquals(1, standInsMade, "the solid room has a floor under it, drawn");
+        Windows.clear();
+
+        // The ground ten blocks below the zombie: the capture has air under its feet.
+        Captures.install(arrival, groundBelow(arrival, 60, farOneBlock));
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 10, 64, 10), arrival));
+        final List<String> said = new ArrayList<>();
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            said.addAll(Windows.describe(viewer));
+        });
+
+        assertEquals(1, standInsMade, "not shown standing on air");
+        assertTrue(said.stream().anyMatch(line -> line.contains("museum creatures") && line.contains("1 found")
+            && line.contains("1 no drawn floor under it") && line.contains("0 shown")),
+            "mirror debug says it was found and why it is not shown: " + said);
+    }
+
+    /**
+     * A watched window holds the fifteen chunks in front of its far side, and lets them go the grace
+     * after its last viewer walks away; a reset lets go at once (#296).
+     *
+     * <p>On a first dial nobody is at the far side, so nothing there is loaded and no creature shows;
+     * a ticket left behind would keep those chunks loaded for as long as the server ran.
+     */
+    @Test
+    void aWatchedWindowHoldsTheChunksInFrontOfItsFarSideAndLetsThemGo()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final List<Chunk> held = new ArrayList<>();
+        FarChunkHolds.loaderWith((in, x, z, loaded, failed) ->
+        {
+            final Chunk chunk = mock(Chunk.class);
+            when(chunk.getWorld()).thenReturn(in);
+            when(chunk.getX()).thenReturn(x);
+            when(chunk.getZ()).thenReturn(z);
+            held.add(chunk);
+            loaded.accept(chunk);
+        });
+        farSetup = far -> when(far.getUID()).thenReturn(UUID.nameUUIDFromBytes("far".getBytes()));
+        try
+        {
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                for (int tick = 0; tick < 10; tick++)
+                {
+                    FarChunkHolds.step();
+                }
+            });
+            assertArrayEquals(new int[] { 15, 15 }, FarChunkHolds.heldFor("museum"), "all fifteen held while watched");
+            verify(held.get(0)).addPluginChunkTicket(any(Plugin.class));
+
+            stand(viewer, 10.5, -40.0);
+            withServer(WindowSweep::tick);
+            assertArrayEquals(new int[] { 15, 15 }, FarChunkHolds.heldFor("museum"), "kept through the grace");
+            paused += FarChunkHolds.GRACE_MILLIS;
+            withServer(WindowSweep::tick);
+            withServer(WindowSweep::tick);
+            verify(held.get(0)).removePluginChunkTicket(any(Plugin.class));
+            assertEquals(0, FarChunkHolds.heldCount(), "let go after it");
+
+            stand(viewer, 10.5, 7.5);
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                for (int tick = 0; tick < 10; tick++)
+                {
+                    FarChunkHolds.step();
+                }
+            });
+            assertEquals(15, FarChunkHolds.heldCount(), "held again once watched again");
+            Windows.clear();
+            assertEquals(0, FarChunkHolds.heldCount(), "and let go at once by a reset");
+        }
+        finally
+        {
+            FarChunkHolds.loaderWith(null);
+        }
+    }
+
+    /**
+     * A window that goes away with its last viewer, as a gate closing does, still lets its chunks go
+     * after the grace, though no window or viewer is left to prompt a sweep's work.
+     */
+    @Test
+    void aWindowGoneWithItsLastViewerStillLetsItsChunksGo()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        FarChunkHolds.loaderWith((in, x, z, loaded, failed) ->
+        {
+            final Chunk chunk = mock(Chunk.class);
+            when(chunk.getWorld()).thenReturn(in);
+            when(chunk.getX()).thenReturn(x);
+            when(chunk.getZ()).thenReturn(z);
+            loaded.accept(chunk);
+        });
+        farSetup = far -> when(far.getUID()).thenReturn(UUID.nameUUIDFromBytes("far".getBytes()));
+        try
+        {
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                for (int tick = 0; tick < 10; tick++)
+                {
+                    FarChunkHolds.step();
+                }
+            });
+            assertEquals(15, FarChunkHolds.heldCount());
+
+            MirrorManager.clear();
+            stand(viewer, 10.5, -40.0);
+            withServer(WindowSweep::tick);
+            withServer(WindowSweep::tick);
+            paused += FarChunkHolds.GRACE_MILLIS;
+            withServer(WindowSweep::tick);
+
+            assertEquals(0, FarChunkHolds.heldCount(), "no window and no viewer left, and still let go");
+        }
+        finally
+        {
+            FarChunkHolds.loaderWith(null);
+        }
+    }
+
+    /** With creatures not shown, or the radius 0, a watched window holds nothing. */
+    @Test
+    void withCreaturesOffOrRadiusZeroNothingIsHeld()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        withServer(WindowSweep::tick);
+        assertArrayEquals(new int[] { 0, 0 }, FarChunkHolds.heldFor("museum"), "creatures off");
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        ConfigTestSupport.set(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 0);
+        withServer(WindowSweep::tick);
+        assertArrayEquals(new int[] { 0, 0 }, FarChunkHolds.heldFor("museum"), "radius 0");
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 1);
+        withServer(WindowSweep::tick);
+        assertArrayEquals(new int[] { 0, 6 }, FarChunkHolds.heldFor("museum"), "radius 1 claims six, three across and two deep");
+    }
+
+    /** A far creature hidden from this viewer, by another plugin or a vanish, is not shown to them. */
+    @Test
+    void aFarCreatureHiddenFromTheViewerIsNotShownToThem()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        when(viewer.canSee(farZombie)).thenReturn(false);
+
+        withServer(WindowSweep::tick);
+        assertEquals(0, standInsMade, "hidden from them there, so not shown to them here");
+
+        when(viewer.canSee(farZombie)).thenReturn(true);
+        withServer(WindowSweep::tick);
+        assertEquals(1, standInsMade, "shown once they may see it");
+    }
+
+    /**
+     * A failure in the stand-ins costs the viewer their stand-ins and nothing else: the view's blocks
+     * are still drawn, and the sweep goes on.
+     *
+     * <p>The sweep and every move run this; a throw escaping it froze every mirror's view.
+     */
+    @Test
+    void aStandInFailureLeavesTheViewDrawn()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        final Consumer<World> stubs = farSetup;
+        farSetup = far ->
+        {
+            stubs.accept(far);
+            when(farZombie.getLocation()).thenThrow(new NoSuchMethodError("a server without it"));
+        };
+
+        withServer(WindowSweep::tick);
+
+        assertFalse(changesTo(viewer, 1).get(0).isEmpty(), "the room is still drawn");
+        assertEquals(0, standInsMade);
+    }
+
+    /** A failure following stand-ins takes that viewer's away, rather than leaving them stuck or the task dead. */
+    @Test
+    void aFailureFollowingStandInsTakesThemAway()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        withServer(WindowSweep::tick);
+        assertTrue(StandIns.isStandIn(standIn));
+        when(farZombie.getLocation()).thenThrow(new IllegalStateException("gone wrong"));
+
+        Windows.followStandIns();
+
+        verify(standIn).remove();
+        assertFalse(StandIns.isStandIn(standIn));
+    }
+
     /** A capture of one block everywhere, 40 around the arrival point and 16 below to 64 above. */
     private Capture solidCapture(final Place at, final BlockData everywhere)
     {
@@ -2981,6 +3450,7 @@ class WindowsTest
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.getWorld()).thenReturn(world);
         when(player.getEyeHeight()).thenReturn(1.62);
+        when(player.canSee(any(Entity.class))).thenReturn(true);
         stand(player, x, z);
         return player;
     }
@@ -3003,6 +3473,7 @@ class WindowsTest
     {
         final World far = named(mock(World.class), "far");
         when(far.getEnvironment()).thenReturn(World.Environment.NORMAL);
+        farSetup.accept(far);
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);

@@ -41,6 +41,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
+import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
@@ -2774,7 +2775,7 @@ class StargateBlockSetup
             {
                 // Only a living thing can suffocate, and only one standing where the iris
                 // is about to be is in the way.
-                if (!(entity instanceof LivingEntity)
+                if (!(entity instanceof LivingEntity) || StandIns.isStandIn(entity)
                     || !isInIrisPath(gate, entity.getLocation()))
                 {
                     continue;

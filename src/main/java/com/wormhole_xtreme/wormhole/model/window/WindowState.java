@@ -10,6 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
+import org.bukkit.entity.Entity;
 
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
@@ -56,6 +57,12 @@ final class WindowState
     /** The whole capture through this window, for an admin who asked; null until then. */
     Windows.Whole full;
     Capture fullFrom;
+    /** The creatures in its far room, read once a sweep while somebody looks; null until then (#296). */
+    List<Entity> creatures;
+    /** What reading its far room passed over: chunks not loaded, chunks whose creatures had not, entities not copied. */
+    int notLoaded;
+    int entitiesNotLoaded;
+    int notCopied;
 
     WindowState(final WindowSource source, final Capture capture)
     {
