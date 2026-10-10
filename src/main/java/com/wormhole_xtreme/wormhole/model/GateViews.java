@@ -147,14 +147,7 @@ public final class GateViews
         {
             return;
         }
-        final Set<String> now = new HashSet<>();
-        for (final String window : windows)
-        {
-            if (window.startsWith(PREFIX) && CLEARED.contains(window.substring(PREFIX.length())))
-            {
-                now.add(window.substring(PREFIX.length()));
-            }
-        }
+        final Set<String> now = clearedAmong(windows);
         if (now.equals(was))
         {
             return;
@@ -170,9 +163,7 @@ public final class GateViews
         }
         for (final String name : was)
         {
-            final Redrawn redrawn = now.contains(name) ? null : resend(player, name, false);
-            // A gate that is not showing draws its own opening, so nothing of this is left on the client.
-            if ((redrawn == Redrawn.SENT) || (redrawn == Redrawn.NOT_SHOWING))
+            if (!now.contains(name) && goneFromClient(resend(player, name, false)))
             {
                 through.remove(name);
             }
@@ -185,6 +176,26 @@ public final class GateViews
         {
             SEES_THROUGH.put(viewer, through);
         }
+    }
+
+    /** The cleared gates among some windows' names, by gate name. */
+    private static Set<String> clearedAmong(final Set<String> windows)
+    {
+        final Set<String> cleared = new HashSet<>();
+        for (final String window : windows)
+        {
+            if (window.startsWith(PREFIX) && CLEARED.contains(window.substring(PREFIX.length())))
+            {
+                cleared.add(window.substring(PREFIX.length()));
+            }
+        }
+        return cleared;
+    }
+
+    /** Whether a gate's cleared opening is off a client after this: sent the horizon, or the gate draws its own. */
+    private static boolean goneFromClient(final Redrawn redrawn)
+    {
+        return (redrawn == Redrawn.SENT) || (redrawn == Redrawn.NOT_SHOWING);
     }
 
     /**
