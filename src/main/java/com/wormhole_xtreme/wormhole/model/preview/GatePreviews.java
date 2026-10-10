@@ -1475,15 +1475,20 @@ public final class GatePreviews
      */
     private static boolean stacks(final GatePreview preview)
     {
-        final BlockFace facing = preview.grid().facing();
         // Not while a sweep is crossing. The sweep covers the wormhole ring by ring, so the
         // wormhole has to stay in the ring for it to be seen covering anything; moving it
         // behind the gate at the first ring empties the opening for the length of the sweep,
         // which is what "the water vanished a beat before the iris arrived" looked like. The
         // gate settles its layers after the sweep too.
-        return preview.open() && preview.isGateIrisActive() && (facing != null)
-            && (facing != BlockFace.UP) && (facing != BlockFace.DOWN)
+        return preview.open() && preview.isGateIrisActive() && upright(preview)
             && !preview.opening().isEmpty() && !preview.sweeping();
+    }
+
+    /** Whether a preview has an in front and a behind to stack its layers along. */
+    private static boolean upright(final GatePreview preview)
+    {
+        final BlockFace facing = preview.grid().facing();
+        return (facing != null) && (facing != BlockFace.UP) && (facing != BlockFace.DOWN);
     }
 
     /**
@@ -2116,10 +2121,13 @@ public final class GatePreviews
         }
     }
 
-    /** Whether a sweep stands the wormhole off the ring: behind an iris that hides real water, with a facing. */
+    /**
+     * Whether a sweep stands the wormhole off the ring: behind an iris that hides real water, on a
+     * preview the settle will stack, which is what hands it back.
+     */
     private static boolean movesOffTheRing(final GatePreview preview)
     {
-        return (preview.grid().facing() != null) && DrawnHorizon.standsIn(preview.palette().iris());
+        return upright(preview) && DrawnHorizon.standsIn(preview.palette().iris());
     }
 
     /**

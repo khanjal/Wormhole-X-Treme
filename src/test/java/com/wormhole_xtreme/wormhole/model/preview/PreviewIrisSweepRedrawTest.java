@@ -43,6 +43,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
+import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
@@ -191,12 +192,17 @@ class PreviewIrisSweepRedrawTest
     /** A viewer shared the preview, standing so many blocks along its facing, whose client is recorded. */
     private Player viewerAlong(final String name, final int steps)
     {
+        return viewerAt(name, standingAlong(steps));
+    }
+
+    /** A viewer shared the preview, standing at a place, whose client is recorded. */
+    private Player viewerAt(final String name, final Location at)
+    {
         final Player viewer = mock(Player.class);
         when(viewer.getUniqueId()).thenReturn(UUID.randomUUID());
         when(viewer.getName()).thenReturn(name);
         when(viewer.getWorld()).thenReturn(world);
         when(viewer.isOnline()).thenReturn(true);
-        final Location at = standingAlong(steps);
         when(viewer.getLocation()).thenReturn(at);
         when(viewer.getEyeLocation()).thenReturn(at);
         others.put(viewer.getUniqueId(), viewer);
@@ -461,6 +467,50 @@ class PreviewIrisSweepRedrawTest
         assertBehindPicture(back, "first step of the sweep that took over");
         finishTheSweep();
         assertFrontPicture(front, "settled open");
+    }
+
+    /**
+     * A preview standing on a button that faces up or down never stacks its layers, so its sweep
+     * stands nothing off the ring either: nothing after the sweep would hand it back.
+     *
+     * <p>No command makes one today -- a build preview takes a wall button's facing or the
+     * player's -- but {@code showOn} accepts any facing, and the leak would be solid ice beside
+     * the preview for good.
+     */
+    @Test
+    void aPreviewFacingUpLeavesNoIceAfterItsSweep()
+    {
+        final Block dhd = mock(Block.class);
+        when(dhd.getX()).thenReturn(0);
+        when(dhd.getY()).thenReturn(64);
+        when(dhd.getZ()).thenReturn(0);
+        when(dhd.getWorld()).thenReturn(world);
+        final List<Cell> cells = GateBlueprint.openingOf(standard, GateGrid.fromActivationHolder(standard, 0, 64, 0,
+            BlockFace.UP));
+        final Cell first = cells.get(0);
+        final Location above = new Location(world, first.x() + 0.5, first.y() + 4.0, first.z() + 0.5, 0f, 90f);
+        when(owner.getEyeLocation()).thenReturn(above);
+        assertEquals(GatePreviews.Shown.SHOWN, GatePreviews.showOn(owner, standard, null, dhd, BlockFace.UP));
+        assertEquals(BlockFace.UP, preview().grid().facing(), "the fixture stands a preview facing up");
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        assertTrue(preview().open(), "the preview opened");
+        final Player viewer = viewerAt("Uma", above);
+        GatePreviews.iris(owner);
+        stepTheSweep();
+        finishTheSweep();
+
+        final Set<List<Integer>> ring = new HashSet<>();
+        cells.forEach(cell -> ring.add(List.of(cell.x(), cell.y(), cell.z())));
+        pictures.get(viewer).forEach((at, sent) -> assertTrue(ring.contains(at) || !"ice".equals(shown(sent)),
+            "ice left at " + at + ", off a preview that never stacks"));
+        GatePreviews.activate(owner);
+        pictures.get(viewer).forEach((at, sent) -> assertTrue(Set.of("air", "other").contains(shown(sent)),
+            "shut, and still showing " + shown(sent) + " at " + at));
     }
 
     /**
