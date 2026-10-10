@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -465,6 +467,63 @@ class IrisSweepCrossingTest
         assertEquals(List.of(), iced(plane), "back behind the gate, no ice on their side");
         assertTrue(plane.showing(truth).containsAll(rings.get(0)),
             "the ring covered before they left was handed back: " + plane.showing(truth));
+    }
+
+    /**
+     * A viewer back from out of range mid-open is drawn no layer behind cells uncovered while they were away.
+     *
+     * <p>The other half of keeping what an absent viewer holds: the cells that opened while they were
+     * gone are no longer covered, so coming back round to the front must not bring the wormhole in
+     * behind them. Behind the gate when it began, they never had a far layer there to keep.
+     */
+    @Test
+    void aViewerBackFromOutOfRangeMidOpenIsDrawnNoLayerBehindCellsThatOpenedWhileTheyWereAway()
+    {
+        final Player viewer = viewerAt(BEHIND);
+        watching(viewer);
+        final FarPlane plane = new FarPlane(viewer);
+        final List<List<String>> rings = rings(false);
+        startSweep(false);
+        assertEquals(List.of(), iced(plane), "behind, nothing is drawn a block behind the ring");
+        stand(viewer, -200.5);
+        step();
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+
+        stand(viewer, FRONT);
+        step();
+
+        verify(viewer, atLeastOnce()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), any(BlockData.class));
+        assertEquals(List.of(), iced(plane),
+            "drawn the last ring opening, in range again, and every ring is open, so nothing behind any of them: "
+                + rings.get(1));
+    }
+
+    /**
+     * A viewer restacked between the iris shutting and opening starts the opening from what they were restacked to.
+     *
+     * <p>Shut while they stood in front, then walked round with the iris settled, then opened: what
+     * the opening starts from is the picture their walk drew them, not what the closing sweep had left.
+     * Coming back round mid-open then brings the wormhole in behind the cells still covered.
+     */
+    @Test
+    void aViewerRestackedBetweenSweepsStartsTheOpeningFromWhatTheyWereRestackedTo()
+    {
+        final Player viewer = viewerAt(FRONT);
+        watching(viewer);
+        final FarPlane plane = new FarPlane(viewer);
+        final List<List<String>> rings = rings(false);
+        StargateManager.addStargate(gate);
+        gate.toggleIrisActive(false);
+        finishSweep();
+        stand(viewer, BEHIND);
+        StargateManager.relayerFor(viewer, new Location(world, 0.5, 64, BEHIND));
+        assertEquals(List.of(), iced(plane), "restacked from behind, nothing is drawn a block behind the ring");
+
+        gate.toggleIrisActive(false);
+        stand(viewer, FRONT);
+        step();
+
+        assertEquals(cellsOf(rings.get(2)), iced(plane), "back in front, the wormhole behind the ring still covered");
     }
 
     /**

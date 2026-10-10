@@ -113,6 +113,7 @@ public final class StargateIrisAnimator
     {
         final List<List<Location>> rings =
             IrisSweepDriver.rings(gate.getGatePortalBlocks(), gate.getEffectiveIrisAnimation(), true);
+        StargateBlockSetup.startHorizonSweep(gate, true);
         // Everything is hidden first, so the client sees the opening as it was a moment ago
         // rather than the finished iris the server has just told it about.
         for (final List<Location> ring : rings)
@@ -154,6 +155,7 @@ public final class StargateIrisAnimator
         // Drawn as the bare opening rather than as the truth: the iris blocks are still there
         // and stay there until the sweep ends, so sending what is really in the cell would
         // paint the iris back over itself and the open would not be seen to happen at all.
+        StargateBlockSetup.startHorizonSweep(gate, false);
         new IrisSweepDriver<>(IrisSweepDriver.rings(gate.getGatePortalBlocks(), gate.getEffectiveIrisAnimation(), false),
             new GateCanvas(gate, under, false, afterwards)).start();
     }
