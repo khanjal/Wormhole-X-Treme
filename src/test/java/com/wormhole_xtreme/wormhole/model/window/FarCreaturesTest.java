@@ -128,6 +128,21 @@ class FarCreaturesTest
         assertEquals(90.0f, window(0.0f, true).hereYaw(-90.0f), 1.0e-3f, "east, reflected, is west");
     }
 
+    /** A stand-in goes in the viewer's world, where the window shows its creature, facing as it is shown. */
+    @Test
+    void aStandInStandsAndFacesWhereTheWindowShowsItsCreature()
+    {
+        final World far = mock(World.class);
+        final Location at = FarCreatures.hereOf(here, window(90.0f, false), new Location(far, 100.5, 70.0, -20.5, 90.0f, 12.0f));
+
+        assertEquals(here, at.getWorld(), "in the viewer's world, not the far one");
+        assertEquals(0.5, at.getX(), 1.0e-9);
+        assertEquals(63.0, at.getY(), 1.0e-9, "on the floor of the layer behind the opening");
+        assertEquals(2.5, at.getZ(), 1.0e-9, "in the middle of the block behind the opening's bottom");
+        assertEquals(0.0f, at.getYaw(), 1.0e-3f, "facing away from the viewer, as it faces away from the far opening");
+        assertEquals(12.0f, at.getPitch(), 1.0e-3f, "looking as far up or down as it does");
+    }
+
     /**
      * The far room looked in is exactly what a view this deep could show: from the arrival block's
      * layer to the depth, and as far each side and up and down.
@@ -286,8 +301,8 @@ class FarCreaturesTest
             originals.add(0, original);
             candidates.add(new FarCreatures.Wanted(original, new Location(here, 0.5, 65.0, -3.0 + i), null));
         }
-        // The nearest creature again, through another window and further off.
-        candidates.add(new FarCreatures.Wanted(originals.get(0), new Location(here, 0.5, 65.0, 30.0), null));
+        // The nearest creature again, through another window, nearer than the second.
+        candidates.add(new FarCreatures.Wanted(originals.get(0), new Location(here, 0.5, 65.0, -1.5), null));
 
         final List<FarCreatures.Wanted> chosen = FarCreatures.nearest(candidates, eye, FarCreatures.MOST_PER_VIEWER);
 
