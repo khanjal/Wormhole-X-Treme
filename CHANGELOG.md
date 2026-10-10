@@ -36,9 +36,10 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   with `mirror-show-entities` on; [#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)):
   it tells a viewer who is at the destination. A mannequin in their skin and pose from 1.21.9, an
   armour stand wearing their head and armour before, named, within the same twenty. Never the
-  viewer, nor anyone the viewer cannot see (vanished, invisible, spectating), an NPC or a rider.
-  The skin is the real one, not a disguise plugin's: a server that hides identities should leave it
-  off. Stand-ins, mobs' too, wear only what shows of an item, never its contents, pages or lore.
+  viewer, an invisible or spectating player, an NPC, a rider, or anyone hidden with `hidePlayer`
+  (a plugin that hides players by rewriting packets is not seen). The skin is the real one, not a
+  disguise plugin's: a server that hides identities should leave it off. The account's name and id
+  are not sent with the skin. Stand-ins, mobs' too, wear only what shows of an item, never its contents, pages or lore.
 
 ### Stargates
 

@@ -130,10 +130,11 @@ through the mirror, which is the price.
 **Blocks, and creatures if the server turns them on.** With `mirror-show-entities` on, the mobs
 standing in the room show through the mirror (or an open gate) as copies only you see; it is off by
 default. With `mirror-show-players` on as well, so do the players there, by name: a mannequin in
-their skin from Minecraft 1.21.9, an armour stand wearing their head before. Never yourself, and
-never anyone you could not see standing beside them (vanished, invisible, spectating), nor anyone
-riding something. The skin is the player's real one, not a disguise plugin's, so a server that
-hides who its players are should leave it off. While you look, a small area in front of the
+their skin from Minecraft 1.21.9, an armour stand wearing their head before. Never yourself, nor
+anyone invisible, spectating or riding something, nor anyone a vanish plugin hides from you with
+`hidePlayer`; a plugin that hides players by rewriting packets is not seen by this check, and its
+players do show. The skin is the player's real one, not a disguise plugin's, so a server that
+hides who its players are should leave it off; the account's name and id are not sent with it. While you look, a small area in front of the
 far side is kept loaded so its creatures show on the first look (`mirror-entity-load-radius`). Your own world's creatures inside the view are hidden while
 you look. The room is lit by this world, so a room behind a wall is
 dark except for what makes its own light. Lava hides what is behind it and water is seen through

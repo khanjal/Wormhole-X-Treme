@@ -814,16 +814,25 @@ that one viewer (`HiddenEntities`).
   view, on drawn floor unless flying or swimming) and shares their twenty, nearest first. Never the
   viewer themselves, through a mirror or a gate (one condition, `FarPlayers.showsTheViewer`, which a
   gate facing back at its viewer will turn on later); never one the viewer cannot see
-  (`canSee`, which is what vanish plugins change with `hidePlayer`), nor an invisible player, a
+  (`canSee`, which is what vanish plugins change with `hidePlayer`; a plugin that hides players by
+  rewriting packets, through ProtocolLib or the like, leaves `canSee` true and is not seen by this
+  check, so its hidden players do show), nor an invisible player, a
   spectator, one hidden by default, a dead one, an NPC (a player with `NPC` metadata, as Citizens
-  sets, or not online), or a rider, since a seated figure cannot be copied yet. Each follow asks
-  again, so a player who vanishes, drinks invisibility, goes into spectator, mounts something or
-  leaves loses their stand-in within two ticks. From 1.21.9 the stand-in is a **Mannequin** wearing
-  the player's skin (their profile), its own "Mannequin" label hidden, immovable, in their main
+  sets, or not online), or a rider, since a seated figure cannot be copied yet. The far room is read
+  once a sweep, but every redraw and every follow asks all of this again, so a player who vanishes,
+  drinks invisibility, goes into spectator, dies, mounts something or leaves is never spawned after
+  it and loses a stand-in already shown within two ticks. From 1.21.9 the stand-in is a **Mannequin** wearing
+  the player's skin, its own "Mannequin" label hidden, immovable, in their main
   hand, pose (standing, sneaking, swimming, sleeping, gliding; any other shows standing) and, on
   Spigot, skin layers; what they wear and hold shows too. **The skin is the player's real one:** a
   disguise plugin's look is not copied, so a server that hides who its players are (disguises,
-  nicknames meant to hide an account) should leave `mirror-show-players` off. The name above a
+  nicknames meant to hide an account) should leave `mirror-show-players` off. The skin travels,
+  but not the account: the figure's profile, and the profile of any head it wears, is a fresh one
+  with a random id and no name carrying only the skin and cape (`VisibleItems.skinOnly`, through
+  `Bukkit.createPlayerProfile`, which Paper keeps though it deprecates it), so a client logging
+  packets sees neither the player's name nor their id there. Being unsigned, it relies on the
+  client accepting an unsigned skin, as it does for custom heads; where a skin cannot be copied
+  this way the figure wears the default skin rather than the player's profile. The name above a
   stand-in is the player's display name without its colours, so a nickname shows as the nickname,
   and it is left off where the player's team on the viewer's scoreboard hides name tags from that
   viewer (`never`, or hidden from the viewer's side), as the real player's would be; both are read
