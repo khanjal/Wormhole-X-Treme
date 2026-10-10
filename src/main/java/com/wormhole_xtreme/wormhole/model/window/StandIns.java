@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -22,7 +23,6 @@ import org.bukkit.entity.Bee;
 import org.bukkit.entity.Blaze;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Flying;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
@@ -67,11 +67,17 @@ public final class StandIns
     static final double FALL_BELOW = 2.0;
 
     /**
-     * Types newer than the 1.20 compile path that hover or swim without being a {@link Flying} or a
-     * {@link WaterMob}, by their {@code EntityType} name: the happy ghast, its ghastling a baby of the
-     * same type, and the nautili of 26.x. Settable for a test.
+     * Types that fly or swim with no class to tell them by on every version, by their
+     * {@code EntityType} name: the ghast and the phantom (Paper 26.x deprecates {@code Flying} for
+     * removal), the happy ghast, its ghastling a baby of the same type, and the nautili of 26.x.
+     * Settable for a test.
      */
-    static Set<String> hovering = Set.of("HAPPY_GHAST", "NAUTILUS", "ZOMBIE_NAUTILUS");
+    static Set<String> hovering = Set.of("GHAST", "PHANTOM", "HAPPY_GHAST", "NAUTILUS", "ZOMBIE_NAUTILUS");
+
+    /** {@code isSheared} and {@code setSheared} on a sheep, looked up by name: Paper 26.x deprecates them for removal on {@code Shearable}. */
+    private static final Method IS_SHEARED = sheepMethod("isSheared");
+
+    private static final Method SET_SHEARED = sheepMethod("setSheared", boolean.class);
 
     /** How far either side of a creature's middle its floor may be, for one standing over a block's edge. */
     private static final double FLOOR_ASIDE = 0.3;
@@ -384,7 +390,7 @@ public final class StandIns
     static boolean floats(final Entity creature)
     {
         return !creature.hasGravity() || hovering.contains(String.valueOf(creature.getType()))
-            || (creature instanceof Flying) || (creature instanceof Bat) || (creature instanceof Bee)
+            || (creature instanceof Bat) || (creature instanceof Bee)
             || (creature instanceof Parrot) || (creature instanceof Allay) || (creature instanceof Vex)
             || (creature instanceof Blaze) || (creature instanceof WaterMob) || creature.isInWater()
             || ((creature instanceof LivingEntity living) && (living.isClimbing() || living.isSwimming() || living.isGliding()));
@@ -478,10 +484,9 @@ public final class StandIns
         {
             dyed.setColor(source.getColor());
         }
-        // Declared on Sheep up to 1.20.4 and on its Shearable from 1.21; called through Sheep, it links on both.
-        if ((copy instanceof Sheep shorn) && (original instanceof Sheep source))
+        if ((copy instanceof Sheep) && (original instanceof Sheep))
         {
-            shorn.setSheared(source.isSheared());
+            shear(copy, original);
         }
         age(copy, original);
     }
@@ -573,6 +578,36 @@ public final class StandIns
             {
                 plugin.prettyLog(Level.WARNING, what, failure);
             }
+        }
+    }
+
+    /** Shears a sheep's stand-in if its sheep is shorn, by the methods looked up by name; left woolly where there are none. */
+    private static void shear(final Entity copy, final Entity original)
+    {
+        if ((IS_SHEARED == null) || (SET_SHEARED == null))
+        {
+            return;
+        }
+        try
+        {
+            SET_SHEARED.invoke(copy, IS_SHEARED.invoke(original));
+        }
+        catch (final ReflectiveOperationException | RuntimeException | LinkageError notShorn)
+        {
+            // Shown woolly: a look, not worth more than the try.
+        }
+    }
+
+    /** A sheep's method by name, or null on a server without it. */
+    private static Method sheepMethod(final String name, final Class<?>... parameters)
+    {
+        try
+        {
+            return Sheep.class.getMethod(name, parameters);
+        }
+        catch (final NoSuchMethodException | RuntimeException | LinkageError absent)
+        {
+            return null;
         }
     }
 

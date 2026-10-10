@@ -29,6 +29,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Slime;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventException;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -39,11 +40,11 @@ import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityDropItemEvent;
+import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.entity.EntityInteractEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
-import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.ItemStack;
@@ -100,18 +101,6 @@ class StandInListenerTest
         check("being hunted", EntityTargetEvent.class, EntityTargetEvent::getTarget, StandInListener::onTarget);
         check("pressing a plate", EntityInteractEvent.class, EntityInteractEvent::getEntity, StandInListener::onPress);
         check("going through a portal", EntityPortalEvent.class, EntityPortalEvent::getEntity, StandInListener::onPortal);
-        final Slime slime = mock(Slime.class);
-        when(slime.getUniqueId()).thenReturn(UUID.randomUUID());
-        StandIns.track(slime);
-        try
-        {
-            check("splitting", SlimeSplitEvent.class, SlimeSplitEvent::getEntity, StandInListenerTest::refuseSplit, slime,
-                mock(Slime.class));
-        }
-        finally
-        {
-            StandIns.untrack(slime);
-        }
         check("dropping something", EntityDropItemEvent.class, EntityDropItemEvent::getEntity, StandInListener::onDrop);
         check("changing a block", EntityChangeBlockEvent.class, EntityChangeBlockEvent::getEntity,
             StandInListener::onChangeBlock);
@@ -215,17 +204,48 @@ class StandInListenerTest
     }
 
     /**
+     * A split of a stand-in slime is refused, and a real one's is not, through whichever split event
+     * this server fires, found by name as the listener finds it: never named in source, since Spigot
+     * 26.x deprecates the slimes' own.
+     */
+    @Test
+    void aStandInSlimesSplitIsRefusedAndARealOnesIsNot() throws EventException
+    {
+        final Class<? extends Event> split = StandInListener.splitEvent(StandInListenerTest::classNamed);
+        final Slime slime = mock(Slime.class);
+        when(slime.getUniqueId()).thenReturn(UUID.randomUUID());
+        final Event onStandIn = mock(split);
+        final Event onReal = mock(split);
+        when(((EntityEvent) onStandIn).getEntity()).thenReturn(slime);
+        when(((EntityEvent) onReal).getEntity()).thenReturn(mock(Slime.class));
+        StandIns.track(slime);
+        try
+        {
+            StandInListener.REFUSE_SPLIT.execute(listener, onStandIn);
+            StandInListener.REFUSE_SPLIT.execute(listener, onReal);
+        }
+        finally
+        {
+            StandIns.untrack(slime);
+        }
+
+        verify((Cancellable) onStandIn).setCancelled(true);
+        verify((Cancellable) onReal, never()).setCancelled(anyBoolean());
+    }
+
+    /**
      * The split refusal is registered for CubeMobSplitEvent where the server has it, and for
      * SlimeSplitEvent where it does not, at the lowest priority and only for an event not cancelled.
      */
     @Test
     void theSplitRefusalIsRegisteredForTheSplitEventThisServerHas()
     {
+        // Two events of the same shape standing in for the two split events, by name.
         assertEquals(EntityDamageEvent.class, StandInListener.splitEvent(
-            name -> StandInListener.CUBE_SPLIT.equals(name) ? EntityDamageEvent.class : SlimeSplitEvent.class),
+            name -> StandInListener.CUBE_SPLIT.equals(name) ? EntityDamageEvent.class : EntityCombustEvent.class),
             "the cube mobs' split event, where the server has it, ahead of the slimes'");
-        assertEquals(SlimeSplitEvent.class, StandInListener.splitEvent(
-            name -> StandInListener.SLIME_SPLIT.equals(name) ? SlimeSplitEvent.class : null), "SlimeSplitEvent where it has no other");
+        assertEquals(EntityCombustEvent.class, StandInListener.splitEvent(
+            name -> StandInListener.SLIME_SPLIT.equals(name) ? EntityCombustEvent.class : null), "the slimes' where it has no other");
         assertNull(StandInListener.splitEvent(name -> String.class), "nothing where the names are no events");
 
         final PluginManager manager = mock(PluginManager.class);
@@ -246,18 +266,6 @@ class StandInListenerTest
         catch (final ClassNotFoundException absent)
         {
             return null;
-        }
-    }
-
-    private static void refuseSplit(final StandInListener listener, final SlimeSplitEvent event)
-    {
-        try
-        {
-            StandInListener.REFUSE_SPLIT.execute(listener, event);
-        }
-        catch (final EventException failed)
-        {
-            throw new IllegalStateException(failed);
         }
     }
 

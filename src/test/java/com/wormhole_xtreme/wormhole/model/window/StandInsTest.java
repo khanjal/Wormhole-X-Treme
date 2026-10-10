@@ -17,6 +17,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,8 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Ghast;
+import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Zombie;
@@ -192,21 +195,27 @@ class StandInsTest
         verify(copy).setColor(DyeColor.RED);
     }
 
-    /** A shorn sheep's stand-in is shorn, and a woolly one's is not, whatever a fresh one would be. */
+    /**
+     * A shorn sheep's stand-in is shorn, and a woolly one's is not, whatever a fresh one would be.
+     *
+     * <p>Through the methods by name, as the plugin calls them: Paper 26.x deprecates them for removal.
+     */
     @Test
-    void aSheepsStandInIsShornOnlyIfItsSheepIs()
+    void aSheepsStandInIsShornOnlyIfItsSheepIs() throws ReflectiveOperationException
     {
+        final Method isSheared = Sheep.class.getMethod("isSheared");
+        final Method setSheared = Sheep.class.getMethod("setSheared", boolean.class);
         for (final boolean shorn : new boolean[] { true, false })
         {
             final Sheep original = creature(Sheep.class, 100.5, 70.0, -18.5);
             when(original.getType()).thenReturn(EntityType.SHEEP);
-            when(original.isSheared()).thenReturn(shorn);
+            when(isSheared.invoke(original)).thenReturn(shorn);
             final Sheep copy = copy(Sheep.class);
-            when(copy.isSheared()).thenReturn(!shorn);
+            when(isSheared.invoke(copy)).thenReturn(!shorn);
 
             StandIns.dress(copy, original);
 
-            verify(copy).setSheared(shorn);
+            setSheared.invoke(verify(copy), shorn);
         }
     }
 
@@ -858,6 +867,21 @@ class StandInsTest
         {
             StandIns.hovering = before;
         }
+    }
+
+    /** A ghast and a phantom fly, known by their type's name now Paper deprecates the Flying they share. */
+    @Test
+    void aGhastAndAPhantomNeedNoFloor()
+    {
+        final Ghast ghast = creature(Ghast.class, 100.5, 70.0, -18.5);
+        when(ghast.getType()).thenReturn(EntityType.GHAST);
+        when(ghast.hasGravity()).thenReturn(true);
+        final Phantom phantom = creature(Phantom.class, 100.5, 70.0, -18.5);
+        when(phantom.getType()).thenReturn(EntityType.PHANTOM);
+        when(phantom.hasGravity()).thenReturn(true);
+
+        assertTrue(StandIns.floats(ghast), "a ghast flies");
+        assertTrue(StandIns.floats(phantom), "a phantom flies");
     }
 
     private FarCreatures.Wanted wanted(final Entity original)
