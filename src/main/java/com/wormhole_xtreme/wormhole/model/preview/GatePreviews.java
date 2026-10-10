@@ -1512,6 +1512,8 @@ public final class GatePreviews
      * @param from
      *            where it is being looked at from
      */
+    // Runs on every tick of the iris sweep, so it stays a plain loop.
+    @SuppressWarnings("java:S9391")
     private static List<IrisLayering.Placement> layersFor(final GatePreview preview, final Location from)
     {
         final IrisLayering.Eye eye = new IrisLayering.Eye(from.getX(), from.getY(), from.getZ());

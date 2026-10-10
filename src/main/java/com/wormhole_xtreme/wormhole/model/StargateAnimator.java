@@ -248,8 +248,9 @@ class StargateAnimator
      * @return the wave's locations, or null if the shape authored this index as empty
      */
     // S1168 asks for an empty list. Null means "the shape authored this index as empty",
-    // which an empty list cannot say, and both callers branch on it.
-    @SuppressWarnings("java:S1168")
+    // which an empty list cannot say, and both callers branch on it. S9391: it is built on every
+    // frame of the woosh, so the loop stays a loop.
+    @SuppressWarnings({ "java:S1168", "java:S9391" })
     static List<Location> wooshWave(final Stargate gate, final int index)
     {
         if ((gate.getGateWooshBlocks() != null) && !gate.getGateWooshBlocks().isEmpty())
@@ -534,13 +535,9 @@ class StargateAnimator
         final DialSpinPattern pattern = gate.getEffectiveDialSpin();
         final int interval = Math.max(1, gate.getEffectiveLightTicks());
         final boolean arrived = turning.tick >= spin.frames(pattern, glyph, interval);
-        final List<Location> now = new ArrayList<>();
         // On arriving, what rests on the ring stays lit through the lock; the next turn takes it back.
-        for (final GateBlueprint.Cell cell : arrived ? spin.rest(pattern, glyph, lastWave(gate, waves))
-            : spin.frame(pattern, glyph, turning.tick, interval))
-        {
-            now.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
-        }
+        final List<Location> now = locationsOf(gate, arrived ? spin.rest(pattern, glyph, lastWave(gate, waves))
+            : spin.frame(pattern, glyph, turning.tick, interval));
         takeBackLight(gate, turning.cells, now,
             (pattern == DialSpinPattern.UNIVERSE) ? Set.of() : lockedCells(waves, glyph - 1));
         StargateBlockSetup.drawLights(gate, now);
@@ -560,7 +557,22 @@ class StargateAnimator
         return true;
     }
 
+    /** The cells of one frame as locations in the gate's world. */
+    // Runs on every tick of the spin, so it stays a plain loop.
+    @SuppressWarnings("java:S9391")
+    private static List<Location> locationsOf(final Stargate gate, final Iterable<GateBlueprint.Cell> cells)
+    {
+        final List<Location> out = new ArrayList<>();
+        for (final GateBlueprint.Cell cell : cells)
+        {
+            out.add(new Location(gate.getGateWorld(), cell.x(), cell.y(), cell.z()));
+        }
+        return out;
+    }
+
     /** Puts back the cells the light has left, except chevrons already locked, which stay lit. */
+    // Runs on every tick of the spin, so it stays a plain loop.
+    @SuppressWarnings("java:S9391")
     private static void takeBackLight(final Stargate gate, final List<Location> was, final List<Location> now,
         final Set<String> locked)
     {

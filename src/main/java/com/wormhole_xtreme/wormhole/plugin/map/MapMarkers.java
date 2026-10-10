@@ -77,6 +77,7 @@ public final class MapMarkers
      * Every map plugin this one can draw on. Lambdas, not constructor references: a reference is
      * linked when this class loads, which would load the provider and the map plugin with it.
      */
+    @SuppressWarnings("java:S1612")
     private static final List<Backend> BACKENDS = List.of(
         new Backend("Dynmap", "dynmap-enabled", "dynmap", "org.dynmap.DynmapCommonAPIListener",
             ConfigManager::isDynmapEnabled, (chosen, ready) -> new DynmapMapProvider(chosen, ready)),
