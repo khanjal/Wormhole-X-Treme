@@ -17,6 +17,12 @@ final class CreatureTally
     {
         /** Hidden from this viewer by something other than this view's own veil. */
         HIDDEN("hidden from you"),
+        /** The viewer themselves, standing in the far room. */
+        YOU("you"),
+        /** A player this viewer cannot see, as a vanish plugin hides one. */
+        PLAYER_HIDDEN("player(s) hidden from you"),
+        /** A player gone invisible, spectating, riding, dead or offline since the room was read. */
+        PLAYER_UNSHOWN("player(s) no longer to be shown"),
         /** Already shown through another window. */
         OTHER_WINDOW("shown through another window"),
         /** Outside the room as drawn, or where this world has nowhere to put it. */
@@ -34,6 +40,8 @@ final class CreatureTally
 
     /** In the far room, read from loaded chunks, of a type that is copied. */
     int found;
+    /** Of those, players. */
+    int players;
     /** Given a stand-in. */
     int shown;
     final Map<Skip, Integer> skipped = new EnumMap<>(Skip.class);
@@ -48,6 +56,10 @@ final class CreatureTally
     {
         final StringBuilder said = new StringBuilder();
         said.append(found).append(" found");
+        if (players > 0)
+        {
+            said.append(" (").append(players).append(" player(s))");
+        }
         if (window.notLoaded > 0)
         {
             said.append(", ").append(window.notLoaded).append(" chunk(s) not loaded");
@@ -58,7 +70,7 @@ final class CreatureTally
         }
         if (window.notCopied > 0)
         {
-            said.append(", ").append(window.notCopied).append(" not copied (players, items, excluded kinds)");
+            said.append(", ").append(window.notCopied).append(" not copied (items, excluded kinds, players unless shown and seen)");
         }
         int passed = 0;
         for (final Map.Entry<Skip, Integer> skip : skipped.entrySet())

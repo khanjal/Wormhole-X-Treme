@@ -58,7 +58,7 @@ public final class FarCreatures
     }
 
     /**
-     * Whether a creature in a far room is shown: a mob, not a player, not scenery, and not
+     * Whether a creature in a far room is shown: a mob, not a player ({@link FarPlayers}), not scenery, and not
      * somebody's companion or one of the stand-ins themselves, and nothing another plugin hides by
      * default or a boss whose copy would bring its bar or its parts with it. Nor a snow golem, which
      * lays snow, or a shulker, which teleports, with no AI at all.
@@ -131,6 +131,24 @@ public final class FarCreatures
      */
     static List<Entity> inRoom(final World far, final int[] box, final int[] tally)
     {
+        return inRoom(far, box, tally, false);
+    }
+
+    /**
+     * The same, with the players there too when they are shown.
+     *
+     * @param far
+     *            the far world
+     * @param box
+     *            {@code {minX, minY, minZ, maxX, maxY, maxZ}}
+     * @param tally
+     *            filled with chunks not loaded, chunks whose entities had not loaded, and entities not copied
+     * @param players
+     *            true to take the players {@link FarPlayers#copied} lets through, with {@code mirror-show-players} on
+     * @return the creatures to copy; empty when nothing there is loaded
+     */
+    static List<Entity> inRoom(final World far, final int[] box, final int[] tally, final boolean players)
+    {
         final Set<Long> ready = readyChunks(far, box, tally);
         if (ready.isEmpty())
         {
@@ -143,7 +161,7 @@ public final class FarCreatures
             final Location at = entity.getLocation();
             if (ready.contains(Windows.chunkKey(at.getBlockX() >> 4, at.getBlockZ() >> 4)))
             {
-                if (copied(entity))
+                if (copied(entity) || (players && FarPlayers.copied(entity)))
                 {
                     found.add(entity);
                 }

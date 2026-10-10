@@ -30,8 +30,16 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   loads on the main thread, one a tick). A
   copy shows its mob as it looked when the copy appeared: its name, what it wears and holds, and a
   sheep's wool colour and whether it is shorn; only baby or grown is kept in step. The copies
-  are real entities, so other plugins count them. Players are not shown yet. See
+  are real entities, so other plugins count them. See
   [Seeing creatures](docs/MIRRORS.md#seeing-creatures).
+- **The players in that far room can show too** (`mirror-show-players`, off by default, and only
+  with `mirror-show-entities` on; [#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)):
+  it tells a viewer who is at the destination. A mannequin in their skin and pose from 1.21.9, an
+  armour stand wearing their head and armour before, named, within the same twenty. Never the
+  viewer, an invisible or spectating player, an NPC, a rider, or anyone hidden with `hidePlayer`
+  (a plugin that hides players by rewriting packets is not seen). The skin is the real one, not a
+  disguise plugin's: a server that hides identities should leave it off. The account's name and id
+  are not sent with the skin. Stand-ins, mobs' too, wear only what shows of an item, never its contents, pages or lore.
 
 ### Stargates
 
