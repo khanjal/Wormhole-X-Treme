@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -29,7 +30,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Vex;
 import org.bukkit.entity.WaterMob;
-import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.material.Colorable;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -94,8 +94,11 @@ public final class StandIns
     /** The task following them, or -1 for none. */
     private static int followTask = -1;
 
-    /** Whether a failure has been logged yet: stand-ins are cosmetic, and one log line is enough. */
-    private static boolean warned;
+    /** The failures logged yet, by what failed: stand-ins are cosmetic, and one line for each is enough. */
+    private static final Set<String> WARNED = ConcurrentHashMap.newKeySet();
+
+    /** What a player's stand-in is spawned as; replaceable for a test of a lookup that fails. */
+    static Supplier<Class<? extends Entity>> playerKind = PlayerFigures::kind;
 
     /** One far creature's stand-in, shown to one viewer through one window. */
     static final class StandIn
@@ -111,16 +114,17 @@ public final class StandIns
 
         StandIn(final Entity original, final Entity copy, final WindowState window)
         {
-            this(original, copy, window, null);
+            this(original, copy, window, null, null);
         }
 
-        StandIn(final Entity original, final Entity copy, final WindowState window, final Player viewer)
+        StandIn(final Entity original, final Entity copy, final WindowState window, final Player viewer,
+            final PlayerFigures.Look look)
         {
             this.original = original;
             this.copy = copy;
             this.window = window;
             this.viewer = viewer;
-            this.look = (original instanceof Player player) ? PlayerFigures.Look.of(player) : null;
+            this.look = look;
         }
     }
 
@@ -450,7 +454,7 @@ public final class StandIns
         ALL.clear();
         stopFollowing();
         // Once per enable, not once per JVM: a reload that fixed nothing says so again.
-        warned = false;
+        WARNED.clear();
     }
 
     /**
@@ -482,6 +486,12 @@ public final class StandIns
     /** Makes a stand-in look like its creature at a glance, and leaves it inert. */
     static void dress(final Entity copy, final Entity original)
     {
+        dress(copy, original, null);
+    }
+
+    /** The same, for the viewer it is shown to, whose view of a player's name tag it follows. */
+    static void dress(final Entity copy, final Entity original, final Player viewer)
+    {
         copy.addScoreboardTag(TAG);
         copy.setSilent(true);
         copy.setInvulnerable(true);
@@ -494,12 +504,12 @@ public final class StandIns
             living.setRemoveWhenFarAway(false);
             if (original instanceof LivingEntity source)
             {
-                wear(living, source);
+                VisibleItems.putOn(living, VisibleItems.wornBy(source), false);
             }
         }
         if (original instanceof Player player)
         {
-            PlayerFigures.dress(copy, player);
+            PlayerFigures.dress(copy, player, viewer);
             return;
         }
         copy.setCustomName(original.getCustomName());
@@ -530,20 +540,20 @@ public final class StandIns
         {
             return false;
         }
-        final Entity copy = spawn(viewer, one);
-        if (copy == null)
+        final StandIn made = spawn(viewer, one);
+        if (made == null)
         {
             // A protection plugin that refuses mob spawns would otherwise be asked every redraw.
             view.refused.put(id, now);
             return false;
         }
         view.refused.remove(id);
-        view.standIns.put(id, new StandIn(one.original(), copy, one.window(), viewer));
+        view.standIns.put(id, made);
         return true;
     }
 
-    /** The stand-in itself, or null if it could not be made or something refused it. */
-    private static Entity spawn(final Player viewer, final FarCreatures.Wanted one)
+    /** The stand-in, held with its viewer and a player's look, or null if it could not be made or something refused it. */
+    private static StandIn spawn(final Player viewer, final FarCreatures.Wanted one)
     {
         final Entity original = one.original();
         final Class<? extends Entity> kind = kindOf(original);
@@ -553,6 +563,7 @@ public final class StandIns
         }
         // Tracked before it is dressed, so a throw anywhere after the entity exists still finds it to remove.
         final Entity[] made = new Entity[1];
+        final PlayerFigures.Look[] look = new PlayerFigures.Look[1];
         try
         {
             final Entity copy = HiddenEntities.spawnFor(WormholeXTreme.getThisPlugin(), viewer, one.here(), kind,
@@ -560,14 +571,22 @@ public final class StandIns
                 {
                     made[0] = entity;
                     track(entity);
-                    dress(entity, original);
+                    dress(entity, original, viewer);
+                    if (original instanceof Player player)
+                    {
+                        look[0] = PlayerFigures.Look.of(player, Windows.now());
+                    }
                 });
-            if ((copy == null) && (made[0] != null))
+            if (copy == null)
             {
-                // Refused after it was made: never added, or added and taken out again.
-                remove(made[0]);
+                if (made[0] != null)
+                {
+                    // Refused after it was made: never added, or added and taken out again.
+                    remove(made[0]);
+                }
+                return null;
             }
-            return copy;
+            return new StandIn(original, copy, one.window(), viewer, look[0]);
         }
         catch (final RuntimeException | LinkageError failed)
         {
@@ -593,26 +612,39 @@ public final class StandIns
     {
         if (original instanceof Player)
         {
-            return PlayerFigures.kind();
+            return playerKind();
         }
         final EntityType type = original.getType();
         return (type == null) ? null : type.getEntityClass();
     }
 
+    /** A player's stand-in type, or null if looking it up failed: the players go unshown, the mobs do not. */
+    private static Class<? extends Entity> playerKind()
+    {
+        try
+        {
+            return playerKind.get();
+        }
+        catch (final RuntimeException | LinkageError failed)
+        {
+            failedOnce("Could not choose what a far player's stand-in is", failed);
+            return null;
+        }
+    }
+
     /**
-     * Logs a stand-in failure, the first time only, so a broken server is told once rather than
-     * every redraw of every viewer.
+     * Logs a stand-in failure, the first time for each thing that fails, so a broken server is told
+     * once rather than every redraw of every viewer, and a harmless failure does not hide a later one.
      *
      * @param what
-     *            what failed
+     *            what failed, one of a few fixed messages
      * @param failure
      *            why
      */
     static void failedOnce(final String what, final Throwable failure)
     {
-        if (!warned)
+        if (WARNED.add(what))
         {
-            warned = true;
             final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
             if (plugin != null)
             {
@@ -651,19 +683,6 @@ public final class StandIns
         }
     }
 
-    /** Puts on a stand-in what its creature wears and holds. */
-    private static void wear(final LivingEntity copy, final LivingEntity original)
-    {
-        final EntityEquipment from = original.getEquipment();
-        final EntityEquipment to = copy.getEquipment();
-        if ((from != null) && (to != null))
-        {
-            to.setArmorContents(from.getArmorContents());
-            to.setItemInMainHand(from.getItemInMainHand());
-            to.setItemInOffHand(from.getItemInOffHand());
-        }
-    }
-
     /** A baby stand-in for a baby, and a grown one for one that has grown up since. */
     private static void age(final Entity copy, final Entity original)
     {
@@ -692,11 +711,24 @@ public final class StandIns
         }
         if ((standIn.look != null) && (standIn.original instanceof Player player))
         {
-            PlayerFigures.keepInStep(standIn.copy, player, standIn.look);
+            keepInStep(standIn, player);
         }
         else
         {
             age(standIn.copy, standIn.original);
+        }
+    }
+
+    /** Keeps a player's stand-in in step with them; a failure leaves it as it was, logged once. */
+    private static void keepInStep(final StandIn standIn, final Player player)
+    {
+        try
+        {
+            PlayerFigures.keepInStep(standIn.copy, player, standIn.look, Windows.now());
+        }
+        catch (final RuntimeException | LinkageError failed)
+        {
+            failedOnce("Could not keep a far player's stand-in in step", failed);
         }
     }
 

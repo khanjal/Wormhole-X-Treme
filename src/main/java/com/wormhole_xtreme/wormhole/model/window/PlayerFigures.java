@@ -4,8 +4,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Set;
-import java.util.function.Function;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -14,8 +14,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.MainHand;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 /**
  * What a far player's stand-in is, and how it is dressed (#296, step 2): a Mannequin wearing their
@@ -25,38 +27,46 @@ import org.bukkit.inventory.meta.SkullMeta;
  * Spigot and Paper name them differently: Spigot takes a {@code PlayerProfile} and hides the label
  * with {@code setHideDescription}, Paper takes a {@code ResolvableProfile} and hides it with a null
  * description. Whichever this server has is used; one it has neither of is left as it comes.
+ *
+ * <p>The skin is the player's own: a disguise plugin's look is not copied.
  */
 final class PlayerFigures
 {
     /** The Mannequin's class name, which a server before 1.21.9 does not have. */
     static final String MANNEQUIN = "org.bukkit.entity.Mannequin";
 
-    /** How many follows pass between looks at what a player wears and holds: once a second. */
-    static final int WORN_EVERY = 10;
+    /** How long between looks at what a player wears and holds, however often the stand-in is placed. */
+    static final long WORN_MILLIS = 1000L;
 
     /** The poses a mannequin is given; a player in any other shows standing. */
     private static final Set<Pose> HELD_POSES = Set.of(Pose.STANDING, Pose.SNEAKING, Pose.SWIMMING, Pose.SLEEPING,
         Pose.FALL_FLYING);
 
-    /** Makes a player's head to wear; replaceable for a test, which has no item factory. */
-    static Function<Player, ItemStack> heads = PlayerFigures::headOf;
-
     /** The server's Mannequin and its methods, or whatever a test installed; null where there is none. */
-    private static Mannequins mannequins = Mannequins.of(classNamed(MANNEQUIN));
+    private static Mannequins mannequins = serversOwn();
 
     /** What a player's stand-in last showed, so it is changed only when the player has. */
     static final class Look
     {
         Pose pose;
-        ItemStack[] worn;
-        int sinceWorn;
+        VisibleItems.Visible[] worn;
+        long wornAt;
 
-        /** What a player shows now, as their stand-in was just dressed. */
-        static Look of(final Player player)
+        /**
+         * What a player shows now, as their stand-in is dressed.
+         *
+         * @param player
+         *            the player
+         * @param now
+         *            the drawing's clock
+         * @return their look
+         */
+        static Look of(final Player player, final long now)
         {
             final Look look = new Look();
             look.pose = figurePose(player.getPose());
-            look.worn = wornBy(player);
+            look.worn = VisibleItems.wornBy(player);
+            look.wornAt = now;
             return look;
         }
     }
@@ -78,27 +88,28 @@ final class PlayerFigures
         final Method hideDescription;
         final Method description;
         final Method mainHand;
-        /** Spigot's {@code setModelPartShown}, and the player's own {@code isModelPartShown}. */
+        /** Spigot's {@code setModelPartShown(PlayerModelPart, boolean)}. */
         final Method modelPart;
-        final Method partShown;
 
         private Mannequins(final Class<? extends LivingEntity> type)
         {
             this.type = type;
-            playerProfile = method(type, "setPlayerProfile", 1);
+            playerProfile = exactly(type, "setPlayerProfile", PlayerProfile.class);
             profile = (playerProfile == null) ? method(type, "setProfile", 1) : null;
             resolve = (profile == null) ? null : factory(profile.getParameterTypes()[0], "resolvableProfile");
             // Spigot's Mannequin declares setPose(Pose); Paper's inherits one from Entity that its own ticking may undo.
             pose = Arrays.stream(type.getDeclaredMethods())
-                .filter(found -> "setPose".equals(found.getName()) && (found.getParameterCount() == 1))
+                .filter(found -> "setPose".equals(found.getName())
+                    && Arrays.equals(found.getParameterTypes(), new Class<?>[] { Pose.class }))
                 .findFirst().orElse(null);
-            fixedPose = (pose == null) ? method(type, "setPose", 2) : null;
-            immovable = method(type, "setImmovable", 1);
-            hideDescription = method(type, "setHideDescription", 1);
+            fixedPose = (pose == null) ? exactly(type, "setPose", Pose.class, boolean.class) : null;
+            immovable = exactly(type, "setImmovable", boolean.class);
+            hideDescription = exactly(type, "setHideDescription", boolean.class);
             description = (hideDescription == null) ? method(type, "setDescription", 1) : null;
-            mainHand = method(type, "setMainHand", 1);
-            modelPart = method(type, "setModelPartShown", 2);
-            partShown = method(Player.class, "isModelPartShown", 1);
+            mainHand = exactly(type, "setMainHand", MainHand.class);
+            final Method part = method(type, "setModelPartShown", 2);
+            modelPart = ((part != null) && part.getParameterTypes()[0].isEnum()
+                && (part.getParameterTypes()[1] == boolean.class)) ? part : null;
         }
 
         /** The methods of a Mannequin type, or null for no type or one that is not a living entity. */
@@ -140,23 +151,28 @@ final class PlayerFigures
     /** Goes back to the server's own Mannequin, after a test. */
     static void mannequinFromServer()
     {
-        mannequins = Mannequins.of(classNamed(MANNEQUIN));
+        mannequins = serversOwn();
     }
 
     /**
-     * Makes a player's stand-in look like them: their name above it always, and on a Mannequin their
-     * skin, pose and main hand with its label hidden, or on an armour stand their head, arms and no
-     * base plate. What they wear and hold is already on it.
+     * Makes a player's stand-in look like them: on a Mannequin their skin, pose and main hand with its
+     * label hidden, on an armour stand their head, arms and no base plate; and their name above it,
+     * as the viewer would see it over the player. What they wear and hold is already on it.
      *
      * @param copy
      *            the stand-in, not yet in the world
      * @param original
      *            the player
+     * @param viewer
+     *            who is shown it; null to name it regardless
      */
-    static void dress(final Entity copy, final Player original)
+    static void dress(final Entity copy, final Player original, final Player viewer)
     {
-        copy.setCustomName(original.getName());
-        copy.setCustomNameVisible(true);
+        if (nameTagShown(viewer, original))
+        {
+            copy.setCustomName(shownName(original));
+            copy.setCustomNameVisible(true);
+        }
         if (copy instanceof ArmorStand stand)
         {
             standUp(stand, original);
@@ -168,8 +184,70 @@ final class PlayerFigures
     }
 
     /**
-     * Keeps a player's stand-in in step as it follows them: the pose whenever it changes, and what they
-     * wear and hold once every {@link #WORN_EVERY} follows, only when that has changed.
+     * The name shown over a player's stand-in: their display name without its colours, so a nickname
+     * shows as the nickname; their name where that is empty.
+     *
+     * @param player
+     *            the player
+     * @return the name to show
+     */
+    static String shownName(final Player player)
+    {
+        final String display = player.getDisplayName();
+        final String plain = (display == null) ? null : ChatColor.stripColor(display).trim();
+        return ((plain == null) || plain.isEmpty()) ? player.getName() : plain;
+    }
+
+    /**
+     * Whether a viewer would see this player's name tag, by the player's team on the viewer's
+     * scoreboard: hidden where the team hides it from everyone, or from this viewer's side.
+     *
+     * @param viewer
+     *            who looks; null for no one in particular
+     * @param player
+     *            whose name it is
+     * @return true if the stand-in may carry the name
+     */
+    static boolean nameTagShown(final Player viewer, final Player player)
+    {
+        if (viewer == null)
+        {
+            return true;
+        }
+        try
+        {
+            final Scoreboard board = viewer.getScoreboard();
+            if (board == null)
+            {
+                return true;
+            }
+            final Team team = board.getEntryTeam(player.getName());
+            if (team == null)
+            {
+                return true;
+            }
+            final Team.OptionStatus status = team.getOption(Team.Option.NAME_TAG_VISIBILITY);
+            if (status == Team.OptionStatus.NEVER)
+            {
+                return false;
+            }
+            if ((status == Team.OptionStatus.FOR_OWN_TEAM) || (status == Team.OptionStatus.FOR_OTHER_TEAMS))
+            {
+                final boolean sameTeam = team.equals(board.getEntryTeam(viewer.getName()));
+                return (status == Team.OptionStatus.FOR_OWN_TEAM) == sameTeam;
+            }
+            return true;
+        }
+        catch (final RuntimeException | LinkageError unknown)
+        {
+            // Left nameless rather than named against a rule that could not be read.
+            return false;
+        }
+    }
+
+    /**
+     * Keeps a player's stand-in in step as it is placed: the pose whenever it changes, and what they
+     * wear and hold once every {@link #WORN_MILLIS}, put on only when what shows of it has changed.
      *
      * @param copy
      *            the stand-in
@@ -177,8 +255,10 @@ final class PlayerFigures
      *            the player
      * @param look
      *            what it shows now, updated
+     * @param now
+     *            the drawing's clock
      */
-    static void keepInStep(final Entity copy, final Player original, final Look look)
+    static void keepInStep(final Entity copy, final Player original, final Look look, final long now)
     {
         final Pose pose = figurePose(original.getPose());
         if (pose != look.pose)
@@ -189,15 +269,17 @@ final class PlayerFigures
                 pose(mannequins, copy, pose);
             }
         }
-        look.sinceWorn++;
-        if (look.sinceWorn >= WORN_EVERY)
+        if ((now - look.wornAt) >= WORN_MILLIS)
         {
-            look.sinceWorn = 0;
-            final ItemStack[] worn = wornBy(original);
+            look.wornAt = now;
+            final VisibleItems.Visible[] worn = VisibleItems.wornBy(original);
             if (!Arrays.equals(worn, look.worn))
             {
                 look.worn = worn;
-                putOn(copy, worn);
+                if (copy instanceof LivingEntity living)
+                {
+                    VisibleItems.putOn(living, worn, copy instanceof ArmorStand);
+                }
             }
         }
     }
@@ -214,43 +296,6 @@ final class PlayerFigures
         return ((pose != null) && HELD_POSES.contains(pose)) ? pose : Pose.STANDING;
     }
 
-    /**
-     * What a player wears and holds.
-     *
-     * @param original
-     *            the player
-     * @return helmet, chestplate, leggings, boots, main hand and off hand; empty where there is no equipment
-     */
-    static ItemStack[] wornBy(final LivingEntity original)
-    {
-        final EntityEquipment from = original.getEquipment();
-        if (from == null)
-        {
-            return new ItemStack[0];
-        }
-        return new ItemStack[] { from.getHelmet(), from.getChestplate(), from.getLeggings(), from.getBoots(),
-            from.getItemInMainHand(), from.getItemInOffHand() };
-    }
-
-    /** Puts on a stand-in what its player now wears and holds; an armour stand keeps the head it wears. */
-    private static void putOn(final Entity copy, final ItemStack[] worn)
-    {
-        final EntityEquipment to = (copy instanceof LivingEntity living) ? living.getEquipment() : null;
-        if ((to == null) || (worn.length < 6))
-        {
-            return;
-        }
-        if (!(copy instanceof ArmorStand))
-        {
-            to.setHelmet(worn[0]);
-        }
-        to.setChestplate(worn[1]);
-        to.setLeggings(worn[2]);
-        to.setBoots(worn[3]);
-        to.setItemInMainHand(worn[4]);
-        to.setItemInOffHand(worn[5]);
-    }
-
     /** An armour stand standing as a person: seen, with arms and no base plate, full size, solid, wearing the head. */
     private static void standUp(final ArmorStand stand, final Player original)
     {
@@ -260,37 +305,12 @@ final class PlayerFigures
         stand.setSmall(false);
         stand.setMarker(false);
         final EntityEquipment worn = stand.getEquipment();
-        final ItemStack head = headFor(original);
+        final ItemStack head = VisibleItems.itemFor(
+            new VisibleItems.Visible(Material.PLAYER_HEAD, false, null, null, original.getPlayerProfile()));
         if ((worn != null) && (head != null))
         {
             worn.setHelmet(head);
         }
-    }
-
-    /** The player's head, or null if it could not be made: the stand-in is shown without it. */
-    private static ItemStack headFor(final Player original)
-    {
-        try
-        {
-            return heads.apply(original);
-        }
-        catch (final RuntimeException | LinkageError noHead)
-        {
-            return null;
-        }
-    }
-
-    /** A player head wearing this player's skin, which an online player's profile carries. */
-    private static ItemStack headOf(final Player player)
-    {
-        final ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-        final ItemMeta meta = head.getItemMeta();
-        if (meta instanceof SkullMeta skull)
-        {
-            skull.setOwnerProfile(player.getPlayerProfile());
-            head.setItemMeta(skull);
-        }
-        return head;
     }
 
     /** Whether a stand-in is this server's Mannequin. */
@@ -324,25 +344,31 @@ final class PlayerFigures
         skinLayers(with, copy, original);
     }
 
-    /** Shows the skin's layers (hat, jacket, sleeves, trousers, cape) as the player shows them, where the server can say. */
+    /**
+     * Shows the skin's layers (hat, jacket, sleeves, trousers, cape) as the player shows them, where
+     * the server can say: Spigot's player answers {@code isModelPartShown}, which is looked up on the
+     * player itself.
+     */
     private static void skinLayers(final Mannequins with, final Entity copy, final Player original)
     {
-        if ((with.modelPart == null) || (with.partShown == null))
+        if (with.modelPart == null)
         {
             return;
         }
-        final Object[] parts = with.modelPart.getParameterTypes()[0].getEnumConstants();
-        if (parts != null)
+        final Class<?> partType = with.modelPart.getParameterTypes()[0];
+        final Method shown = exactly(original.getClass(), "isModelPartShown", partType);
+        if ((shown == null) || (shown.getReturnType() != boolean.class))
         {
-            Arrays.stream(parts).forEach(part ->
-            {
-                final Object shown = answer(with.partShown, original, part);
-                if (shown instanceof Boolean)
-                {
-                    call(with.modelPart, copy, part, shown);
-                }
-            });
+            return;
         }
+        Arrays.stream(partType.getEnumConstants()).forEach(part ->
+        {
+            final Object on = answer(shown, original, part);
+            if (on instanceof Boolean)
+            {
+                call(with.modelPart, copy, part, on);
+            }
+        });
     }
 
     /** Sets a Mannequin's pose, kept where the server can keep it. */
@@ -381,7 +407,20 @@ final class PlayerFigures
         }
     }
 
-    /** A public method by name and number of parameters, or null where there is none. */
+    /** A public method by name and exact parameter types, or null where there is none. */
+    private static Method exactly(final Class<?> on, final String name, final Class<?>... parameters)
+    {
+        try
+        {
+            return on.getMethod(name, parameters);
+        }
+        catch (final NoSuchMethodException | RuntimeException | LinkageError absent)
+        {
+            return null;
+        }
+    }
+
+    /** A public method by name and number of parameters, for a type this API cannot name; null where there is none. */
     private static Method method(final Class<?> on, final String name, final int parameters)
     {
         return Arrays.stream(on.getMethods())
@@ -398,14 +437,14 @@ final class PlayerFigures
             .findFirst().orElse(null);
     }
 
-    /** A class by name, or null where this server has none. */
-    private static Class<?> classNamed(final String name)
+    /** The server's own Mannequin, or null where it has none or its methods cannot be read. */
+    private static Mannequins serversOwn()
     {
         try
         {
-            return Class.forName(name);
+            return Mannequins.of(Class.forName(MANNEQUIN));
         }
-        catch (final ClassNotFoundException | LinkageError absent)
+        catch (final ClassNotFoundException | RuntimeException | LinkageError absent)
         {
             return null;
         }

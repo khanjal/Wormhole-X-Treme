@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,18 +20,22 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
 import org.bukkit.DyeColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -86,10 +91,15 @@ class StandInsTest
     private ViewerDrawing view;
     private WindowState window;
     private BukkitScheduler scheduler;
+    /** The fresh item handed out for each kind a stand-in is given to wear. */
+    private final Map<Material, ItemStack> itemsMade = new HashMap<>();
+    private Function<VisibleItems.Visible, ItemStack> items;
 
     @BeforeEach
     void setUp() throws Exception
     {
+        items = VisibleItems.items;
+        VisibleItems.items = seen -> itemsMade.computeIfAbsent(seen.type(), type -> mock(ItemStack.class));
         plugin = PluginTestSupport.install();
         scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncRepeatingTask(any(Plugin.class), any(Runnable.class), anyLong(), anyLong()))
@@ -140,6 +150,7 @@ class StandInsTest
     void tearDown() throws Exception
     {
         StandIns.removeEverything();
+        VisibleItems.items = items;
         HiddenEntities.creationWith(null);
         PluginTestSupport.scheduler(null);
         PluginTestSupport.remove();
@@ -575,16 +586,19 @@ class StandInsTest
         verify(plugin, times(1)).prettyLog(eq(Level.WARNING), any(String.class), any(Throwable.class));
     }
 
-    /** A stand-in wears and holds what its creature does, not what a fresh spawn rolled. */
+    /**
+     * A stand-in wears and holds what its creature does, not what a fresh spawn rolled: fresh items of
+     * the same kinds, never the creature's own stacks.
+     */
     @Test
     void aStandInWearsAndHoldsWhatItsCreatureDoes()
     {
         final Zombie original = creature(Zombie.class, 100.5, 70.0, -18.5);
         final EntityEquipment worn = mock(EntityEquipment.class);
-        final ItemStack[] armour = { mock(ItemStack.class), mock(ItemStack.class), mock(ItemStack.class), mock(ItemStack.class) };
-        final ItemStack sword = mock(ItemStack.class);
-        final ItemStack shield = mock(ItemStack.class);
-        when(worn.getArmorContents()).thenReturn(armour);
+        final ItemStack helmet = stack(Material.GOLDEN_HELMET);
+        final ItemStack sword = stack(Material.IRON_SWORD);
+        final ItemStack shield = stack(Material.SHIELD);
+        when(worn.getHelmet()).thenReturn(helmet);
         when(worn.getItemInMainHand()).thenReturn(sword);
         when(worn.getItemInOffHand()).thenReturn(shield);
         when(original.getEquipment()).thenReturn(worn);
@@ -594,9 +608,137 @@ class StandInsTest
 
         StandIns.dress(copy, original);
 
-        verify(copied).setArmorContents(armour);
-        verify(copied).setItemInMainHand(sword);
-        verify(copied).setItemInOffHand(shield);
+        verify(copied).setHelmet(itemsMade.get(Material.GOLDEN_HELMET));
+        verify(copied).setItemInMainHand(itemsMade.get(Material.IRON_SWORD));
+        verify(copied).setItemInOffHand(itemsMade.get(Material.SHIELD));
+        verify(copied, never()).setItemInMainHand(sword);
+    }
+
+    /**
+     * Failures of different kinds are each logged once: a harmless first one must not use up the only
+     * warning and leave a later, real one silent.
+     */
+    @Test
+    void failuresOfDifferentKindsAreEachLoggedOnce()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            StandIns.failedOnce("one thing", new IllegalStateException("first"));
+            StandIns.failedOnce("another", new IllegalStateException("second"));
+        }
+
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), eq("one thing"), any(Throwable.class));
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), eq("another"), any(Throwable.class));
+    }
+
+    /**
+     * Choosing what a player's stand-in is can fail, as a class that cannot load would: the players go
+     * unshown, logged once, and the mobs beside them are still shown.
+     *
+     * <p>Thrown before the spawn's own guard, it once took every stand-in that viewer had away on every
+     * redraw.
+     */
+    @Test
+    void aFailureChoosingThePlayersFigureLeavesTheMobsShown()
+    {
+        final Supplier<Class<? extends Entity>> before = StandIns.playerKind;
+        StandIns.playerKind = () ->
+        {
+            throw new NoClassDefFoundError("PlayerFigures");
+        };
+        try
+        {
+            final Zombie mob = creature(Zombie.class, 100.5, 70.0, -18.5);
+            final Zombie copy = copy(Zombie.class);
+            nextCopy = copy;
+
+            StandIns.show(viewer, view, List.of(wanted(farPlayer("Alex")), wanted(mob)), 0L);
+
+            assertEquals(List.of(copy), made, "the mob's stand-in, and nothing for the player");
+            assertSame(copy, view.standIns.get(mob.getUniqueId()).copy);
+            verify(plugin).prettyLog(eq(Level.WARNING), eq("Could not choose what a far player's stand-in is"),
+                any(Throwable.class));
+        }
+        finally
+        {
+            StandIns.playerKind = before;
+        }
+    }
+
+    /**
+     * A player whose look cannot be read as their stand-in appears leaves nothing behind: the entity,
+     * already made and known for a stand-in, is taken away again, not left shown and held by no one.
+     */
+    @Test
+    void aPlayerWhoseLookCannotBeReadLeavesNoStandInBehind()
+    {
+        PlayerFigures.mannequinWith(null);
+        try
+        {
+            final ArmorStand copy = copy(ArmorStand.class);
+            nextCopy = copy;
+            final Player player = farPlayer("Alex");
+            when(player.getPose()).thenThrow(new IllegalStateException("no pose"));
+
+            StandIns.show(viewer, view, List.of(wanted(player)), 0L);
+
+            verify(copy).remove();
+            assertEquals(0, StandIns.count(), "nothing known for a stand-in");
+            assertTrue(view.standIns.isEmpty(), "nothing held");
+        }
+        finally
+        {
+            PlayerFigures.mannequinFromServer();
+        }
+    }
+
+    /**
+     * A Mannequin whose skin call throws is still shown and held, dressed as far as it got, and taken
+     * away cleanly with the rest.
+     */
+    @Test
+    void aMannequinWhoseSkinCallThrowsIsStillHeldAndRemovedCleanly() throws ReflectiveOperationException
+    {
+        PlayerFigures.mannequinWith(PlayerFiguresTest.SpigotMannequin.class);
+        try
+        {
+            final PlayerFiguresTest.SpigotMannequin copy = copy(PlayerFiguresTest.SpigotMannequin.class);
+            doThrow(new IllegalStateException("bad profile")).when(copy).setPlayerProfile(any());
+            nextCopy = copy;
+            final Player player = farPlayer("Alex");
+            final Object profile = mock(Player.class.getMethod("getPlayerProfile").getReturnType());
+            doReturn(profile).when(player).getPlayerProfile();
+
+            StandIns.show(viewer, view, List.of(wanted(player)), 0L);
+
+            assertSame(copy, view.standIns.get(player.getUniqueId()).copy, "shown and held");
+            verify(viewer).showEntity(plugin, copy);
+            verify(copy).setImmovable(true);
+
+            StandIns.removeAll(view);
+            verify(copy).remove();
+            assertEquals(0, StandIns.count());
+        }
+        finally
+        {
+            PlayerFigures.mannequinFromServer();
+        }
+    }
+
+    /**
+     * A stand-in that is not an armour stand, as a Mannequin is not, is never copied in its turn: only
+     * the registry tells it from a real creature.
+     */
+    @Test
+    void aMannequinStandInIsNeverCopiedInItsTurn()
+    {
+        final Zombie standIn = copy(Zombie.class);
+        when(standIn.isVisibleByDefault()).thenReturn(true);
+        assertTrue(FarCreatures.copied(standIn), "a zombie like it, not a stand-in, is copied");
+
+        StandIns.track(standIn);
+
+        assertFalse(FarCreatures.copied(standIn), "known for a stand-in by the registry alone");
     }
 
     /** A grown creature's stand-in is grown, though the copy came out a baby. */
@@ -1051,6 +1193,13 @@ class StandInsTest
         when(entity.getType()).thenReturn(EntityType.ZOMBIE);
         when(entity.getLocation()).thenReturn(new Location(far, x, y, z, 0.0f, 0.0f));
         return entity;
+    }
+
+    private static ItemStack stack(final Material type)
+    {
+        final ItemStack stack = mock(ItemStack.class);
+        when(stack.getType()).thenReturn(type);
+        return stack;
     }
 
     private static <T extends Entity> T copy(final Class<T> type)

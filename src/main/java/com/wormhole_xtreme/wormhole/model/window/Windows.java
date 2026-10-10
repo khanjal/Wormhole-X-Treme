@@ -3219,7 +3219,8 @@ public final class Windows
         return names;
     }
 
-    private static long now()
+    /** @return the drawing's clock, which a test can set */
+    static long now()
     {
         return clock.getAsLong();
     }
