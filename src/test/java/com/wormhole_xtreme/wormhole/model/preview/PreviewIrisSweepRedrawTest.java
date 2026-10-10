@@ -269,8 +269,8 @@ class PreviewIrisSweepRedrawTest
     }
 
     /**
-     * Each viewer's picture of the opening for a viewer in front: covered cells show air in the ring
-     * with the ice behind it, uncovered ones the wormhole in the ring and nothing behind.
+     * The picture for a viewer in front: covered cells show air in the ring, or were never sent it,
+     * with the ice behind; uncovered ones the wormhole in the ring and nothing behind.
      */
     private void assertFrontPicture(final Player viewer, final String when)
     {
@@ -281,8 +281,8 @@ class PreviewIrisSweepRedrawTest
             final String behind = shownAt(viewer, i, -1);
             if (covered)
             {
-                assertEquals("air", ring, when + ": covered cell " + i + " has the wormhole out of the ring, "
-                    + "where the iris would hide real water");
+                assertTrue(ring.equals("air") || ring.equals("nothing sent"), when + ": covered cell " + i
+                    + " has the wormhole out of the ring, where the iris would hide real water, not " + ring);
                 assertEquals("ice", behind, when + ": covered cell " + i + " has its stand-in behind the ring");
             }
             else
@@ -304,7 +304,7 @@ class PreviewIrisSweepRedrawTest
             {
                 final String there = shownAt(viewer, i, off);
                 assertTrue(there.equals("air") || there.equals("nothing sent"),
-                    when + ": cell " + i + " has " + there + " a block off the ring, where nothing belongs from behind");
+                    when + ": cell " + i + " has " + there + " a block off the ring, where nothing belongs");
             }
         }
     }
@@ -464,6 +464,27 @@ class PreviewIrisSweepRedrawTest
     }
 
     /**
+     * A sweep called off by an instant one, as a reload of {@code gate-iris-animation} can make the
+     * next, hands back the ice it stood: the instant draw only knows the ring.
+     */
+    @Test
+    void aSweepCalledOffByAnInstantOneLeavesNoIceBehind()
+    {
+        openAGlassIrisPreview();
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepTheSweep();
+        assertFrontPicture(front, "mid-sweep");
+
+        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+        GatePreviews.iris(owner);
+
+        assertTrue(irisPending.isEmpty(), "the iris opened at once");
+        assertTrue(preview().irisShown().isEmpty(), "all of it");
+        assertFrontPicture(front, "opened at once");
+    }
+
+    /**
      * A preview that opens while its iris is still sweeping shut is drawn there and then.
      *
      * <p>The kawoosh settles behind an iris that is part way across: the cells it covers take the
@@ -487,6 +508,62 @@ class PreviewIrisSweepRedrawTest
         assertTrue(preview().open(), "the preview opened");
         assertFalse(irisPending.isEmpty(), "with the sweep still crossing");
         assertFrontPicture(front, "opened mid-sweep");
+
+        // And shutting it again takes all of that back, the ring cells included.
+        GatePreviews.activate(owner);
+        for (int i = 0; i < opening().size(); i++)
+        {
+            for (final int off : new int[] {-1, 0})
+            {
+                final String there = shownAt(front, i, off);
+                assertTrue(there.equals("air") || there.equals("nothing sent"),
+                    "shut again: cell " + i + " still shows " + there + " " + off + " along the facing");
+            }
+        }
+    }
+
+    /**
+     * A viewer shared the preview mid-sweep is drawn by the next step like everybody else.
+     *
+     * <p>They are caught up with the wormhole in every ring cell, and the step after takes it back
+     * out of the rings already covered.
+     */
+    @Test
+    void aViewerSharedMidSweepIsDrawnByTheNextStep()
+    {
+        openAGlassIrisPreview();
+        GatePreviews.iris(owner);
+        stepTheSweep();
+        final Player late = viewerAlong("Lou", 4);
+
+        stepTheSweep();
+
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        assertFrontPicture(late, "the step after they arrived");
+    }
+
+    /**
+     * A sweep starts from where each viewer stands now, not where the last sweep left them.
+     *
+     * <p>A viewer who walks round behind a settled iris has the wormhole in the ring; the opening
+     * sweep has nothing of theirs to move, and sends them nothing.
+     */
+    @Test
+    void aViewerWhoWalkedRoundAfterASweepIsDrawnFromThereByTheNext()
+    {
+        openAGlassIrisPreview();
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishTheSweep();
+        walkTo(walker, -4);
+        sends.get(walker).clear();
+
+        GatePreviews.iris(owner);
+        stepTheSweep();
+
+        assertFalse(preview().irisShown().isEmpty(), "still sweeping open");
+        assertEquals(List.of(), sends.get(walker), "nothing of theirs to move");
+        assertBehindPicture(walker, "two steps into the opening sweep");
     }
 
     /**

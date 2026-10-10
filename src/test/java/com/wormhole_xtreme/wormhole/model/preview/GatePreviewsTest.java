@@ -1682,7 +1682,8 @@ class GatePreviewsTest
      *
      * <p>Nothing to move: the display stands in the cell the water is in and hides it, which is
      * what a preview has always done. Moving it would be work for a picture nobody can tell
-     * apart, and the sweep runs on every cell of every ring.
+     * apart, and the sweep runs on every cell of every ring. Nor is the ring sent again (#432):
+     * the wormhole is already there.
      */
     @Test
     void anOpaqueIrisSweepLeavesTheWormholeInTheRing()
@@ -1694,8 +1695,7 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
 
         assertFalse(irisPending.isEmpty(), "the sweep is still running");
-        assertEquals(0, wormholeSendsAlong(front, -1),
-            "no wormhole is moved off the ring while an opaque iris sweeps");
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
 
     /**
@@ -1943,7 +1943,8 @@ class GatePreviewsTest
      *
      * <p>The assertion the one above cannot make by counting: that the water is there *during*
      * the sweep, which is the whole of what was reported. Taken at the moment the first ring
-     * lands, before the sweep has finished and before anything else has had a chance to redraw.
+     * lands, before the sweep has finished and before anything else has had a chance to redraw:
+     * the last block the owner was sent in every ring cell is still the wormhole.
      */
     @Test
     void theWormholeIsStillDrawnWhileTheIrisSweepsAcrossIt()
@@ -1954,12 +1955,14 @@ class GatePreviewsTest
         {
             dialStep.run();
         }
-        clearInvocations(owner);
 
         GatePreviews.iris(owner);
 
-        verify(owner, atLeastOnce()).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
-        verify(owner, never()).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        assertFalse(irisPending.isEmpty(), "the sweep is still running");
+        final Map<List<Integer>, BlockData> inRing = lastSentPerCellAlong(owner, 0);
+        assertEquals(openingCells().size(), inRing.size(), "every ring cell was sent the wormhole when it opened");
+        assertTrue(inRing.values().stream().allMatch(d -> d == data.get(Material.WATER)),
+            "and none of it was taken away as the iris began to cover it: " + inRing.values());
     }
 
     /** Obsidian frames are one a gate can be found by, as a server's Standard group makes them. */
@@ -2885,7 +2888,6 @@ class GatePreviewsTest
             irisPending.remove(id).run();
         }
         assertFalse(irisPending.isEmpty(), "still sweeping");
-        clearInvocations(walker);
 
         final Cell first = openingCells().get(0);
         final Location front = new Location(world, first.x() + (4 * facing.getModX()) + 0.5,
@@ -2894,10 +2896,11 @@ class GatePreviewsTest
         when(walker.getEyeLocation()).thenReturn(front);
         GatePreviews.moved(walker, front);
 
+        // What they are left looking at, over everything they were ever sent.
         final Map<List<Integer>, BlockData> inRing = lastSentPerCellAlong(walker, 0);
-        assertFalse(inRing.isEmpty(), "the crossing was acted on: the covered rings were sent their wormhole");
+        assertEquals(openingCells().size(), inRing.size(), "every ring cell has been sent something");
         assertTrue(inRing.values().stream().allMatch(d -> d == portalData()),
-            "every ring cell sent is the wormhole, never the bare opening: " + inRing.values());
+            "and every one is left showing the wormhole, never the bare opening: " + inRing.values());
         assertTrue(lastSentPerCellAlong(walker, 1).values().stream().noneMatch(d -> (d == data.get(Material.BLUE_ICE))
             || (d == data.get(Material.PACKED_ICE))), "and no ice on their new near side");
     }

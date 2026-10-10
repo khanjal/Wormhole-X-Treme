@@ -64,6 +64,8 @@ final class GatePreview implements GateIris
     private boolean sweeping;
     /** Where each viewer's layers were drawn by the sweep crossing now; empty between sweeps (#442). */
     private final Map<UUID, List<IrisLayering.Placement>> sweepSides = new HashMap<>();
+    /** Where each viewer's wormhole stands, by opening index, while sweeps run; kept across a call-off (#432). */
+    private final Map<UUID, Map<Integer, IrisLayering.At>> sweepDrawn = new HashMap<>();
     private final int lastWave;
     /** The shape layers something is built in, front to back as the shape numbers them. */
     private final List<Integer> builtLayers;
@@ -284,6 +286,12 @@ final class GatePreview implements GateIris
     Map<UUID, List<IrisLayering.Placement>> sweepSides()
     {
         return sweepSides;
+    }
+
+    /** @return where each viewer's wormhole stands, cell by cell, while a sweep draws it */
+    Map<UUID, Map<Integer, IrisLayering.At>> sweepDrawn()
+    {
+        return sweepDrawn;
     }
 
     Map<UUID, String> sharedWith()
