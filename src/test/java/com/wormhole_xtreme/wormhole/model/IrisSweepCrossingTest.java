@@ -579,6 +579,29 @@ class IrisSweepCrossingTest
             "the cells the opening had left covered were handed back: " + plane.showing(truth));
     }
 
+    /**
+     * An opening called off by shutting starts the closing from nothing covered, for a viewer who stayed in front too.
+     *
+     * <p>The closing sweep paints the whole opening bare before its first ring, so the ice the opening
+     * had left behind its covered cells is behind bare cells now. It goes as the closing starts and
+     * comes back with each ring, rather than hanging behind the wormhole until the rings reach it.
+     */
+    @Test
+    void anOpeningCalledOffByShuttingStartsTheClosingWithNothingCovered()
+    {
+        final Player viewer = viewerAt(FRONT);
+        watching(viewer);
+        final FarPlane plane = new FarPlane(viewer);
+        final List<List<String>> opening = rings(false);
+        final List<List<String>> closing = rings(true);
+        startSweep(false);
+        assertEquals(cellsOf(opening.get(1), opening.get(2)), iced(plane), "the first ring uncovered");
+
+        gate.toggleIrisActive(false);
+
+        assertEquals(cellsOf(closing.get(0)), iced(plane), "only the closing's first ring has the wormhole behind it");
+    }
+
     /** The cells covered after this step: closing, the rings so far; opening, the rings still to go. */
     private static List<String> covered(final List<List<String>> rings, final boolean closing, final int step)
     {
