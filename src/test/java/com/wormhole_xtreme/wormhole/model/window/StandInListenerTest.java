@@ -16,6 +16,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -151,7 +152,8 @@ class StandInListenerTest
                 handlers++;
                 final EventHandler handler = method.getAnnotation(EventHandler.class);
                 assertNotNull(handler, method.getName() + " is never called without @EventHandler");
-                if (Cancellable.class.isAssignableFrom(method.getParameterTypes()[0]))
+                // By name: Paper makes the death events cancellable too, and those are not refusals.
+                if (REFUSALS.contains(method.getName()))
                 {
                     refusals++;
                     assertEquals(EventPriority.LOWEST, handler.priority(), method.getName() + " should refuse first");
@@ -162,6 +164,10 @@ class StandInListenerTest
         assertEquals(16, handlers, "every handler counted, so a renamed one is not skipped");
         assertEquals(11, refusals, "the eleven that cancel");
     }
+
+    /** The handlers that cancel an event about a stand-in. */
+    private static final Set<String> REFUSALS = Set.of("onDamage", "onInteract", "onInteractAt", "onCombust", "onTransform",
+        "onTarget", "onPress", "onPortal", "onSplit", "onDrop", "onChangeBlock");
 
     /** The plugin registers the listener with the others, or none of it runs. */
     @Test
