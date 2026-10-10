@@ -58,9 +58,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ### Internals
 
-- **The shaded jar no longer overwrites the jar it reads.** The build failed at random on newer JDKs with a
-  corrupt-zip error once the jar grew; it now writes the shaded jar beside the original, which
-  becomes `original-WormholeXTreme-<version>.jar`.
+- **The shaded jar no longer overwrites the jar it reads.** The build failed at a random entry
+  on newer JDKs with a corrupt-zip error once the jar grew; it now writes the shaded jar beside
+  the original, which becomes `original-WormholeXTreme-<version>.jar`.
 - **The code that draws a far side through an opening has its own package, `model/window`**,
   and is no longer named for mirrors: `Windows`, `WindowShape`, `Capture`, `Captures` and nine
   more. Nothing changes for players or operators; the next users of it are gates (#516) and
