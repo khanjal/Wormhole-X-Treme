@@ -55,6 +55,8 @@ final class GateDismount
      * @param unseat
      *            the dismounts to allow
      */
+    // The add is the test and the side effect at once: a stream's filter would have to mutate the set.
+    @SuppressWarnings("java:S9391")
     static void allowWhile(final Collection<? extends Entity> riders, final Runnable unseat)
     {
         final List<Entity> added = new ArrayList<>();

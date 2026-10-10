@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.ring;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -98,15 +99,9 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         {
             return audience;
         }
-        final List<Player> found = new ArrayList<>();
-        for (final Player player : world.getPlayers())
-        {
-            if (inRangeOf(player, pair.getEndA()) || inRangeOf(player, pair.getEndB()))
-            {
-                found.add(player);
-            }
-        }
-        audience = found;
+        audience = world.getPlayers().stream()
+            .filter(player -> inRangeOf(player, pair.getEndA()) || inRangeOf(player, pair.getEndB()))
+            .toList();
         audienceComputedAt = now;
         return audience;
     }
@@ -193,22 +188,17 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     @Override
     public List<RingPassenger> passengersIn(final List<int[]> blocks)
     {
-        final List<RingPassenger> out = new ArrayList<>();
         if (blocks.isEmpty())
         {
-            return out;
+            return new ArrayList<>();
         }
         // One region query rather than one per block: a ring interior is a handful of
         // columns and asking the world about each of them separately would be the same
         // answer several dozen times over.
-        for (final Entity entity : world.getNearbyEntities(boundsOf(blocks)))
-        {
-            if (standsInAny(entity, blocks) && !StandIns.isStandIn(entity))
-            {
-                out.add(new BukkitRingPassenger(entity));
-            }
-        }
-        return out;
+        return world.getNearbyEntities(boundsOf(blocks)).stream()
+            .filter(entity -> standsInAny(entity, blocks) && !StandIns.isStandIn(entity))
+            .<RingPassenger>map(BukkitRingPassenger::new)
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
