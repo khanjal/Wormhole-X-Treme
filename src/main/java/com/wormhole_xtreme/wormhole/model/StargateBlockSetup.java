@@ -2039,17 +2039,25 @@ class StargateBlockSetup
             final boolean covered = (before != null) ? (show || !stepped) : (show && stepped);
             final IrisLayering.Placement after = covered ? layers.get(i) : null;
             moveLayers(player, gate, cell, before, after);
-            if (after == null)
-            {
-                if (before != null)
-                {
-                    held.remove(i);
-                }
-            }
-            else if (!after.equals(before))
-            {
-                held.put(i, after);
-            }
+            remember(held, i, before, after);
+        }
+    }
+
+    /** Files one cell's new placement in a viewer's sweep record, touching it only if it changed. */
+    private static void remember(final Map<Integer, IrisLayering.Placement> held, final int index,
+        final IrisLayering.Placement before, final IrisLayering.Placement after)
+    {
+        if (Objects.equals(before, after))
+        {
+            return;
+        }
+        if (after == null)
+        {
+            held.remove(index);
+        }
+        else
+        {
+            held.put(index, after);
         }
     }
 
