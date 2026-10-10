@@ -147,22 +147,7 @@ public final class FarChunkHolds
             claim.areas = window.getValue();
             claim.releaseAt = Long.MAX_VALUE;
         }
-        final Iterator<Map.Entry<String, Claim>> claims = CLAIMS.entrySet().iterator();
-        while (claims.hasNext())
-        {
-            final Map.Entry<String, Claim> claim = claims.next();
-            if (!watched.containsKey(claim.getKey()))
-            {
-                if (claim.getValue().releaseAt == Long.MAX_VALUE)
-                {
-                    claim.getValue().releaseAt = now + GRACE_MILLIS;
-                }
-                else if (now >= claim.getValue().releaseAt)
-                {
-                    claims.remove();
-                }
-            }
-        }
+        expire(watched, now);
         wanted = capped(watched);
         for (final Area area : new ArrayList<>(HELD.keySet()))
         {
@@ -183,6 +168,27 @@ public final class FarChunkHolds
         if (!QUEUE.isEmpty())
         {
             pace();
+        }
+    }
+
+    /** Starts the grace of each window no longer watched, and drops the claims whose grace is up. */
+    private static void expire(final Map<String, List<Area>> watched, final long now)
+    {
+        final Iterator<Map.Entry<String, Claim>> claims = CLAIMS.entrySet().iterator();
+        while (claims.hasNext())
+        {
+            final Map.Entry<String, Claim> claim = claims.next();
+            if (!watched.containsKey(claim.getKey()))
+            {
+                if (claim.getValue().releaseAt == Long.MAX_VALUE)
+                {
+                    claim.getValue().releaseAt = now + GRACE_MILLIS;
+                }
+                else if (now >= claim.getValue().releaseAt)
+                {
+                    claims.remove();
+                }
+            }
         }
     }
 
