@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -22,7 +24,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -115,6 +120,37 @@ class WindowsGateTest
     private static String key()
     {
         return Captures.gateKey("Chulak", Captures.GATE_OPENING, Captures.GATE_OPENING);
+    }
+
+    /**
+     * A listener that throws is said and stepped past, and with no plugin to say it to, stepped past.
+     *
+     * <p>The catch asked the plugin to log it without asking whether there was one, so with none -- in
+     * a test, or at the edges of a reload -- it threw from inside the catch, out of the drawing.
+     */
+    @Test
+    void aFailingDrawnListenerIsLoggedAndNeverStopsTheDrawing() throws ReflectiveOperationException
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        Windows.onDrawn((viewer, player, windows) ->
+        {
+            throw new IllegalStateException("listener broke");
+        });
+        try
+        {
+            Windows.tellDrawn(UUID.randomUUID(), null, Set.of());
+            verify(plugin).prettyLog(eq(Level.WARNING), eq("Could not follow a viewer's windows"),
+                any(IllegalStateException.class));
+
+            PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
+            assertDoesNotThrow(() -> Windows.tellDrawn(UUID.randomUUID(), null, Set.of()),
+                "no plugin to say it to: stepped past, not thrown out of the catch");
+        }
+        finally
+        {
+            PrivateStatics.set(WormholeXTreme.class, "thisPlugin", plugin);
+            Windows.onDrawn(null);
+        }
     }
 
     @Test

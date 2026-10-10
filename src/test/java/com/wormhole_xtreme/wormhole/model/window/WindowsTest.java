@@ -35,6 +35,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -2491,6 +2492,143 @@ class WindowsTest
         assertNotSame(barrier, drawn.get(new Spot(10, 64, 11)), "the opening is the gate's to walk into");
         assertNotSame(barrier, drawn.get(new Spot(10, 63, 11)), "all of it");
         assertNull(Windows.clicked(viewer, blockAt(10, 63, 11, true)), "and a click into it travels no mirror");
+    }
+
+    /** What the drawing told of each viewer after each redraw: their windows, or null for a drawing gone with them. */
+    private record Told(UUID viewer, Player player, Set<String> windows) {}
+
+    /** Runs some sweeps and moves with a gate's window offered, keeping what the drawing told. */
+    private List<Told> withAGate(final Runnable body)
+    {
+        MirrorManager.clear();
+        final WindowShape shape = WindowShape.of(new BlockPlace("world", 10, 64, 10), BlockFace.NORTH, arrival);
+        final List<Spot> open = new ArrayList<>();
+        shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
+        final GateSource gate = new GateSource("gate:Abydos", banner, shape, open, arrival, "Chulak", 16);
+        final Capture held = Captures.get(Captures.keyOf(arrival));
+        final List<Told> told = new ArrayList<>();
+        WindowSweep.alsoOffer(() -> Windows.offer(gate, held));
+        Windows.onDrawn((viewer, player, windows) -> told.add(new Told(viewer, player, windows)));
+        try
+        {
+            body.run();
+        }
+        finally
+        {
+            WindowSweep.alsoOffer(null);
+            Windows.onDrawn(null);
+        }
+        return told;
+    }
+
+    /** The last thing told of one viewer. */
+    private static Told lastTold(final List<Told> told, final Player viewer)
+    {
+        Told last = null;
+        for (final Told one : told)
+        {
+            if (one.viewer().equals(viewer.getUniqueId()))
+            {
+                last = one;
+            }
+        }
+        assertNotNull(last, "nothing told of the viewer at all");
+        return last;
+    }
+
+    /**
+     * Whoever is drawn a gate's view is told so after the redraw, and somebody behind the gate is told
+     * they are drawn none (#516).
+     *
+     * <p>An open gate's cleared horizon follows this: cleared for whoever is drawn the view, the horizon
+     * for everybody else. Untold, somebody behind the gate kept an empty ring onto this world.
+     */
+    @Test
+    void aViewerInFrontOfAGateIsToldTheyAreDrawnItAndOneBehindItThatTheyAreNot()
+    {
+        final Player front = playerAt(10.5, 7.5);
+        final Player behind = playerAt(10.5, 12.5);
+        when(world.getPlayers()).thenReturn(List.of(front, behind));
+
+        final List<Told> told = withAGate(() -> withServer(WindowSweep::tick));
+
+        assertEquals(Set.of("gate:Abydos"), lastTold(told, front).windows(), "in front: drawn the gate's view");
+        assertSame(front, lastTold(told, front).player());
+        assertEquals(Set.of(), lastTold(told, behind).windows(), "behind the gate: told, and drawn none");
+        assertSame(behind, lastTold(told, behind).player(), "told as still here, so the horizon is sent them");
+    }
+
+    /** A sweep that changes nothing still says what the viewer is drawn: a horizon may have cleared under it. */
+    @Test
+    void aSweepThatChangesNothingStillSaysWhatTheViewerIsDrawn()
+    {
+        final Player front = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(front));
+
+        final List<Told> told = withAGate(() -> withServer(() ->
+        {
+            WindowSweep.tick();
+            WindowSweep.tick();
+        }));
+
+        assertEquals(2, told.stream().filter(one -> Set.of("gate:Abydos").equals(one.windows())).count(),
+            "told on both sweeps, not only the one that drew: " + told);
+    }
+
+    /** Walking behind the gate is told at once, on the move, not at the next sweep. */
+    @Test
+    void walkingBehindAGateIsToldOnTheMove()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        final List<Told> told = withAGate(() -> withServer(() ->
+        {
+            WindowSweep.tick();
+            pause();
+            stand(viewer, 10.5, 12.5);
+            Windows.moved(viewer, viewer.getLocation());
+        }));
+
+        assertEquals(Set.of(), lastTold(told, viewer).windows(), "behind the gate now: drawn none");
+        assertSame(viewer, lastTold(told, viewer).player());
+    }
+
+    /** A viewer who has left the world is told gone, so nothing is sent to where they were. */
+    @Test
+    void aViewerWhoLeftTheWorldIsToldGone()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final World nether = named(mock(World.class), "nether");
+
+        final List<Told> told = withAGate(() -> withServer(() ->
+        {
+            WindowSweep.tick();
+            when(viewer.getWorld()).thenReturn(nether);
+            WindowSweep.tick();
+        }));
+
+        assertTrue(told.stream().anyMatch(one -> one.viewer().equals(viewer.getUniqueId()) && (one.player() == null)),
+            "in another world: the drawing is gone, and said so: " + told);
+        assertEquals(Set.of(), lastTold(told, viewer).windows(), "and drawn nothing there");
+    }
+
+    /** A viewer who has left the server is told gone too. */
+    @Test
+    void aViewerWhoLeftTheServerIsToldGone()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        final List<Told> told = withAGate(() ->
+        {
+            withServer(WindowSweep::tick);
+            when(world.getPlayers()).thenReturn(List.of());
+            withServer(WindowSweep::tick);
+        });
+
+        assertNull(lastTold(told, viewer).player(), "gone: the drawing went with them");
     }
 
     /**

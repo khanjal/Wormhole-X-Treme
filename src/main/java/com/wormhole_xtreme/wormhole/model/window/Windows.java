@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -236,6 +237,28 @@ public final class Windows
 
     /** Players who asked for one mirror drawn whole and unlimited, by the mirror's name. */
     private static final Map<UUID, String> FULL = new ConcurrentHashMap<>();
+
+    /**
+     * Told which windows a viewer is drawn after a redraw (#516).
+     */
+    @FunctionalInterface
+    public interface DrawnListener
+    {
+        /**
+         * @param viewer
+         *            whose drawing it is
+         * @param player
+         *            that player, or null when their drawing went with them: gone, or into another world
+         * @param windows
+         *            the names of the windows they are drawn now; empty for none
+         */
+        void drawn(UUID viewer, Player player, Set<String> windows);
+    }
+
+    /** Told after each redraw which windows the viewer is drawn: an open gate's horizon follows it. */
+    private static DrawnListener drawnListener = (viewer, player, windows) ->
+    {
+    };
 
     /** A window's far side drawn whole: the blocks, and the depth they reach from the opening. */
     record Whole(Map<Long, BlockData> blocks, int depth)
@@ -646,6 +669,36 @@ public final class Windows
     public static boolean holdsWindow(final String name)
     {
         return ACTIVE.containsKey(name) || OFFERED.containsKey(name);
+    }
+
+    /**
+     * Sets who is told which windows each viewer is drawn after a redraw.
+     *
+     * @param listener
+     *            told once a redraw has settled, and as a drawing is forgotten; null for nobody
+     */
+    public static void onDrawn(final DrawnListener listener)
+    {
+        drawnListener = (listener == null) ? (viewer, player, windows) ->
+        {
+        } : listener;
+    }
+
+    /** Tells the listener what a viewer is drawn, without letting its failure stop the drawing. */
+    static void tellDrawn(final UUID viewer, final Player player, final Set<String> windows)
+    {
+        try
+        {
+            drawnListener.drawn(viewer, player, windows);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not follow a viewer's windows", e);
+            }
+        }
     }
 
     /** Ends a sweep: the windows offered become the windows there are, and every view follows. */
@@ -1080,6 +1133,7 @@ public final class Windows
         {
             if (seeing.isEmpty())
             {
+                tellDrawn(id, player, Set.of());
                 return;
             }
             view = new ViewerDrawing(player.getWorld());
@@ -1103,6 +1157,8 @@ public final class Windows
             keepAsDrawn(player, view, eye, now, eyeMatters, fromSweep);
             // Kept as drawn, so judged against what is drawn: a creature moves, or walks in, while the viewer stands still.
             showStandIns(player, view, eye, seeing, wholes, now);
+            // Still told: a gate's horizon may have cleared under a view that has not changed.
+            tellDrawn(id, player, view.mirrors);
             return;
         }
         if (!mayWork)
@@ -1134,6 +1190,7 @@ public final class Windows
         view.generation = Captures.generation();
         // From when the redraw finished, not when it began, so a slow one still leaves a gap.
         view.composedAt = now();
+        tellDrawn(id, player, view.mirrors);
         if (wanted.isEmpty() && view.pending.isEmpty())
         {
             endView(id, player);
@@ -1204,6 +1261,11 @@ public final class Windows
             StandIns.removeAll(view);
         }
         ViewFog.restore(id, player);
+        // In the same world the last redraw already said what they are drawn; elsewhere it is all gone.
+        if ((player == null) || ((view != null) && !view.world.equals(player.getWorld())))
+        {
+            tellDrawn(id, null, Set.of());
+        }
     }
 
     /**
