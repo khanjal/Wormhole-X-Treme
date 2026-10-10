@@ -336,6 +336,8 @@ public class RingCommand implements SubCommand
      *            one end
      * @return the distance in whole blocks
      */
+    // S9395 wants a cast and S1905 calls it redundant; the widening is what Math.sqrt means here.
+    @SuppressWarnings("java:S9395")
     private static long apart(final Ring one, final Ring other)
     {
         return Math.round(Math.sqrt(one.anchorDistanceSquared(other)));
