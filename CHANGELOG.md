@@ -23,9 +23,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   `/map reload`. Off until `pl3xmap-enabled` is set. See [the guide](docs/guide/SERVER.md#pl3xmap).
 - **Mobs in a mirror's or an open gate's far room can show through it** (`mirror-show-entities`, off
   by default; [#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)), as copies only the
-  viewer sees, up to twenty, and only where that part of the far world is already loaded. A copy is
-  a baby or grown as its mob is, carries its name and what it wears and holds, and a sheep's has its
-  wool colour and is shorn if the sheep is. The copies
+  viewer sees, up to twenty each, and only where that part of the far world is already loaded. A
+  copy shows its mob as it looked when the copy appeared: its name, what it wears and holds, and a
+  sheep's wool colour and whether it is shorn; only baby or grown is kept in step. The copies
   are real entities, so other plugins count them. Players are not shown yet. See
   [Seeing creatures](docs/MIRRORS.md#seeing-creatures).
 

@@ -5,13 +5,17 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityDropItemEvent;
 import org.bukkit.event.entity.EntityInteractEvent;
+import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -31,7 +35,7 @@ public class StandInListener implements Listener
      * @param event
      *            the damage
      */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onDamage(final EntityDamageEvent event)
     {
         refuse(event, event.getEntity());
@@ -43,7 +47,7 @@ public class StandInListener implements Listener
      * @param event
      *            the click
      */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInteract(final PlayerInteractEntityEvent event)
     {
         refuse(event, event.getRightClicked());
@@ -55,7 +59,7 @@ public class StandInListener implements Listener
      * @param event
      *            the click
      */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInteractAt(final PlayerInteractAtEntityEvent event)
     {
         refuse(event, event.getRightClicked());
@@ -67,7 +71,7 @@ public class StandInListener implements Listener
      * @param event
      *            the fire
      */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onCombust(final EntityCombustEvent event)
     {
         refuse(event, event.getEntity());
@@ -79,7 +83,7 @@ public class StandInListener implements Listener
      * @param event
      *            the change
      */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onTransform(final EntityTransformEvent event)
     {
         refuse(event, event.getEntity());
@@ -91,7 +95,7 @@ public class StandInListener implements Listener
      * @param event
      *            the targeting
      */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onTarget(final EntityTargetEvent event)
     {
         refuse(event, event.getTarget());
@@ -103,8 +107,57 @@ public class StandInListener implements Listener
      * @param event
      *            the press
      */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onPress(final EntityInteractEvent event)
+    {
+        refuse(event, event.getEntity());
+    }
+
+    /**
+     * A stand-in that reaches a nether or end portal stays: through it, it would be a real, inert
+     * copy in another world, which nobody holds.
+     *
+     * @param event
+     *            the trip
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPortal(final EntityPortalEvent event)
+    {
+        refuse(event, event.getEntity());
+    }
+
+    /**
+     * A slime stand-in killed anyway would split into small slimes nobody holds, shown to everybody.
+     *
+     * @param event
+     *            the split
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSplit(final SlimeSplitEvent event)
+    {
+        refuse(event, event.getEntity());
+    }
+
+    /**
+     * A chicken stand-in lays no eggs, and no other drops what its creature did not.
+     *
+     * @param event
+     *            the drop
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onDrop(final EntityDropItemEvent event)
+    {
+        refuse(event, event.getEntity());
+    }
+
+    /**
+     * A stand-in changes no block: no trampled farmland, no eaten grass, nothing picked up.
+     *
+     * @param event
+     *            the change
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onChangeBlock(final EntityChangeBlockEvent event)
     {
         refuse(event, event.getEntity());
     }
@@ -115,7 +168,7 @@ public class StandInListener implements Listener
      * @param event
      *            the death
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onDeath(final EntityDeathEvent event)
     {
         if (StandIns.isStandIn(event.getEntity()))

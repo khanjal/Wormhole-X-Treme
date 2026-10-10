@@ -19,6 +19,7 @@ import com.wormhole_xtreme.wormhole.RiddenTeleport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.RingTravelEvent;
+import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
@@ -202,7 +203,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         // answer several dozen times over.
         for (final Entity entity : world.getNearbyEntities(boundsOf(blocks)))
         {
-            if (standsInAny(entity, blocks))
+            if (standsInAny(entity, blocks) && !StandIns.isStandIn(entity))
             {
                 out.add(new BukkitRingPassenger(entity));
             }

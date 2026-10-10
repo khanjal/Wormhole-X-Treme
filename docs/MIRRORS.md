@@ -741,19 +741,30 @@ that one viewer (`HiddenEntities`).
   that is not loaded, and nothing takes a ticket. Nobody on the far side means nothing loaded
   there and nothing shown. The test is `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities`.
 - **What is copied.** Mobs: not players (a later step, as Mannequins), not armour stands,
-  displays, interactions, the companion, invisible mobs or another stand-in. Baby or adult, the
-  custom name, a sheep's colour and whether it is shorn, and what it wears and holds. Other
-  per-type looks are left for later: villager type and cat breed change from enums to registry
-  types inside the supported range, wolf variants do not exist on 1.20, and slime size moves to a
-  new super-interface in 26.x, so each wants its own cross-version care. At most twenty a viewer, nearest the eye first.
+  displays, interactions, the companion, invisible mobs, anything hidden by default or hidden from
+  this viewer, the dragon or the wither (a boss bar, and the dragon's parts), or another stand-in.
+  A copy shows what its creature looked like when it appeared: the custom name, a sheep's colour
+  and whether it is shorn, and what it wears and holds. Only baby or adult is kept in step after
+  that; the rest is not re-copied, so a mob that picks up a sword shows it the next time it is
+  spawned for the viewer. Other per-type looks are left for later: villager type and cat breed
+  change from enums to registry types inside the supported range, wolf variants do not exist on
+  1.20, and slime size moves to a new super-interface in 26.x, so each wants its own cross-version
+  care. At most twenty a viewer, nearest the eye first; only the nearest are tested against the
+  view, so a mob farm on the far side costs a sort, not a projection each.
 - **Inert.** No AI, silent, invulnerable, no gravity, not collidable, picks nothing up, never
-  saved. Damage, interaction, catching fire and turning into something else are cancelled, and
-  nothing it drops is dropped. The drawing never veils a stand-in, and the gates' entity sweep
-  never sends one through.
+  saved. Damage, interaction, catching fire, turning into something else, being targeted, pressing
+  a plate, going through a nether or end portal, a slime splitting, dropping an item and changing a
+  block are cancelled first, at the lowest priority, so other plugins see them cancelled; one
+  killed anyway drops nothing. The drawing never veils a stand-in, and neither the gates' entity
+  sweep, a closing iris nor a ring moves one. A stand-in is placed only in a chunk whose entities
+  have loaded and inside the world's height.
 - **How it keeps up.** The far room is read once a sweep, so a mob walking in shows within a
   second. Stand-ins are placed on every redraw and followed every two ticks while a viewer has
   any, by a task that only runs while one exists. One that walks out of the room, dies, unloads
-  or falls past the twenty is taken away.
+  or falls past the twenty is taken away. One already shown is kept while it is still seen through
+  the opening at all; a new one must be properly in view, so a creature at the edge of the view is
+  not spawned and removed with every step. A failure in any of this costs that viewer their
+  stand-ins, logged once, and never the view's blocks or the sweep.
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
   has lost track of is removed at the next sweep.
@@ -763,7 +774,8 @@ that one viewer (`HiddenEntities`).
 **What it costs.** A stand-in is a real entity, so other plugins see it: a spawn event, a body in
 an entity counter, one more mob near a mob cap, and a protection plugin that refuses mob spawns
 in a region refuses the stand-in too, which then simply is not shown. They are short-lived and
-never saved, but anything that reacts to every spawn will react to them. A gate's stand-ins sit
+never saved, but anything that reacts to every spawn will react to them. Each viewer has copies
+of their own, so ten players at one window onto a busy room is up to two hundred of them. A gate's stand-ins sit
 behind its plane, where a traveller is sent on before reaching them; a mirror's sit behind the
 wall it hangs on.
 
