@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -312,11 +313,61 @@ class GateHorizonPerViewerTest
         drawsTheView(front, true);
 
         verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        // Not remembered as sent: back within reach, the next redraw sends it.
+        when(front.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 25.0));
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 1, "within reach now, and still drawn the view");
     }
 
-    /** A crossing paints the opening itself, so a viewer walking about under it is left to the crossing. */
+    /**
+     * Somebody who walks out of the horizon's reach after being sent the cleared opening is sent the
+     * horizon once they are back, though they stopped being drawn the view while out of it.
+     *
+     * <p>Forgotten while out of reach, nothing was owed them on their return, and the client kept the
+     * empty ring it was last sent.
+     */
     @Test
-    void aViewerMovingDuringACrossingIsLeftToTheCrossing() throws ReflectiveOperationException
+    void somebodySentTheClearedOpeningWhoLeavesTheReachIsSentTheHorizonOnReturn()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+        when(front.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 200.0));
+        drawsTheView(front, false);
+        sentTheOpeningAs(front, water, 0, "too far off to be sent anything");
+
+        when(front.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 25.0));
+        drawsTheView(front, false);
+
+        sentTheOpeningAs(front, water, 1, "back in reach: the horizon they were owed");
+    }
+
+    /**
+     * A send that fails is tried again on the next redraw, and does not stop the next gate's.
+     *
+     * <p>Remembered as sent before the send was made, a throw left the viewer recorded as seeing
+     * through a gate whose opening never reached them, and the gates after it unsent.
+     */
+    @Test
+    void aSendThatFailsIsTriedAgainAndDoesNotStopTheNextGates()
+    {
+        final Stargate byblos = byblos();
+        manager.when(StargateManager::getOpenGates).thenReturn(Set.of(gate, byblos));
+        clearedForTheView();
+        doThrow(new IllegalStateException("connection closing")).doNothing()
+            .when(front).sendBlockChange(argThat(at -> (at != null) && (at.getBlockX() < 20)), eq(air));
+
+        drawsTheView(front, Set.of(WINDOW, "gate:Byblos"));
+
+        verify(front, times(CELLS).description("the second gate is sent though the first threw"))
+            .sendBlockChange(argThat(at -> (at != null) && (at.getBlockX() >= 20)), eq(air));
+        drawsTheView(front, Set.of(WINDOW, "gate:Byblos"));
+        verify(front, times(1 + CELLS).description("the one that threw is sent whole on the next redraw"))
+            .sendBlockChange(argThat(at -> (at != null) && (at.getBlockX() < 20)), eq(air));
+    }
+
+    /** A crossing paints the opening itself, so a viewer walking about under it is left to the crossing until it is over. */
+    @Test
+    void aViewerMovingDuringACrossingIsLeftToTheCrossingUntilItIsOver() throws ReflectiveOperationException
     {
         clearedForTheView();
         final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
@@ -331,6 +382,8 @@ class GateHorizonPerViewerTest
         }
 
         verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 1, "the crossing over, the next redraw sends the cleared opening");
     }
 
     /**
@@ -343,18 +396,8 @@ class GateHorizonPerViewerTest
     @Test
     void aViewDrawnBeforeItsHorizonClearsIsSentClearedWhenItDoes() throws ReflectiveOperationException
     {
-        final Stargate byblos = mock(Stargate.class);
-        when(byblos.getGateName()).thenReturn("Byblos");
-        when(byblos.isGateActive()).thenReturn(true);
-        when(byblos.isGatePortalOpen()).thenReturn(true);
-        when(byblos.getGateWorld()).thenReturn(world);
-        final Stargate target = gate.getGateTarget();
-        when(byblos.getGateTarget()).thenReturn(target);
-        when(byblos.getGateFacing()).thenReturn(BlockFace.SOUTH);
-        when(byblos.getEffectivePortalMaterial()).thenReturn(Material.WATER);
-        opening(byblos, 20);
+        final Stargate byblos = byblos();
         manager.when(StargateManager::getOpenGates).thenReturn(Set.of(gate, byblos));
-        manager.when(() -> StargateManager.getStargate("Byblos")).thenReturn(byblos);
         final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
         running.put("Byblos", 1);
         try
@@ -375,6 +418,23 @@ class GateHorizonPerViewerTest
             .sendBlockChange(argThat(at -> at.getBlockX() >= 20), eq(air));
     }
 
+    /** A second gate, Byblos, open beside the first at x = 20, dialled to the same place. */
+    private Stargate byblos()
+    {
+        final Stargate byblos = mock(Stargate.class);
+        when(byblos.getGateName()).thenReturn("Byblos");
+        when(byblos.isGateActive()).thenReturn(true);
+        when(byblos.isGatePortalOpen()).thenReturn(true);
+        when(byblos.getGateWorld()).thenReturn(world);
+        final Stargate target = gate.getGateTarget();
+        when(byblos.getGateTarget()).thenReturn(target);
+        when(byblos.getGateFacing()).thenReturn(BlockFace.SOUTH);
+        when(byblos.getEffectivePortalMaterial()).thenReturn(Material.WATER);
+        opening(byblos, 20);
+        manager.when(() -> StargateManager.getStargate("Byblos")).thenReturn(byblos);
+        return byblos;
+    }
+
     /** A shut iris draws its own opening, which a viewer's horizon must not be sent over. */
     @Test
     void aShutIrisIsNotDrawnOverForAViewer()
@@ -385,6 +445,9 @@ class GateHorizonPerViewerTest
         drawsTheView(front, true);
 
         verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        when(gate.isGateIrisActive()).thenReturn(false);
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 1, "the iris open, the next redraw sends the cleared opening");
     }
 
     @Test
@@ -429,6 +492,9 @@ class GateHorizonPerViewerTest
 
         verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
         assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front));
+        clearedForTheView();
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 1, "the same viewer at open is sent the cleared opening");
     }
 
     @Test
@@ -440,30 +506,8 @@ class GateHorizonPerViewerTest
 
         verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
         assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front));
-    }
-
-    /**
-     * An iris crossing paints the opening alike for everybody, a cleared one as nothing, so the sweep
-     * it ends on sends each their own again.
-     */
-    @Test
-    void theSweepAfterACrossingSendsEachTheirOwnOpeningAgain() throws ReflectiveOperationException
-    {
         clearedForTheView();
         drawsTheView(front, true);
-        final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
-        running.put("Abydos", 1);
-        try
-        {
-            GateViews.offerAll();
-        }
-        finally
-        {
-            running.remove("Abydos");
-        }
-        GateViews.offerAll();
-
-        sentTheOpeningAs(front, air, 2, "still drawn the view: cleared again, once when first drawn and once now");
-        sentTheOpeningAs(behind, water, 1, "behind the gate: the horizon the crossing painted over");
+        sentTheOpeningAs(front, air, 1, "the same viewer at open is sent the cleared opening");
     }
 }

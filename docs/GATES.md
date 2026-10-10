@@ -633,8 +633,11 @@ middle and with a clear line into it; the horizon for everybody else, as the gat
 view. Behind the gate, too far off, with the lines of sight blocked, before the gate's capture is in,
 standing in the opening's plane or stepping into it, a gate is its horizon, not an empty ring onto
 this world. The drawing says after each redraw, on a move or a sweep, which windows a viewer is drawn,
-and the opening is sent again only to somebody whose answer changed; the horizon reaches 64 blocks,
-as it always has.
+and the opening is sent again only to somebody whose answer changed, and remembered only once it has
+gone: one that could not be sent, to somebody past the horizon's reach or under an iris crossing, is
+tried again on their next redraw. The horizon reaches 64 blocks, as it always has, so with
+`mirror-proximity-distance` above that a viewer further off is drawn the view with the opening as
+their client last had it. A player who changes world is forgotten.
 
 **A gate is a window that is walked through.** It is never barred, since travellers have to get
 into it, and a punch at its view goes nowhere: the gate's own rules decide who crosses. The
@@ -766,9 +769,9 @@ is given back. "What the server sends" is the world's view distance; on Paper a 
   they are first drawn the view, while its far side streams in a tick's worth at a time, so for a
   tick or two this world shows through the ring. An iris crossing paints the opening alike for
   everybody: a closing one paints the rings it has not reached as nothing, behind the gate too,
-  until the iris is shut, and an opening one over a horizon still cleared is sent to each again on
-  the sweep after it ends. And the horizon comes back for everybody when the last
-  player near enough to be drawn it walks away.
+  until the iris is shut. An opening iris ends the clearing first, so it opens onto the horizon for
+  everybody and the next sweep clears it again for whoever is drawn the view. And the horizon comes
+  back for everybody when the last player near enough to be drawn it walks away.
 - **A gate's captures show only in `mirror debug -views`**, which lists every window a player is
   drawn and says how far each gate's capture reaches, whether it was cut, how deep it is drawn and
   how old it is; the capture's box and kept blocks are not listed. A gate renamed leaves its old

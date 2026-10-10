@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import org.bukkit.Location;
@@ -16,7 +17,9 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.StargateBlockSetup.Redrawn;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape;
@@ -53,9 +56,6 @@ public final class GateViews
     /** The cleared gates each player has been sent with nothing in the opening: those they are drawn the view of. */
     private static final Map<UUID, Set<String>> SEES_THROUGH = new HashMap<>();
 
-    /** Gates whose iris was crossing last sweep, so the sweep it ends on is known. */
-    private static final Set<String> CROSSING = new HashSet<>();
-
     /** Gates that could show a view last sweep, so the first sweep after opening is known. */
     private static final Set<String> OPEN = new HashSet<>();
 
@@ -77,7 +77,6 @@ public final class GateViews
     {
         CLEARED.clear();
         SEES_THROUGH.clear();
-        CROSSING.clear();
         OPEN.clear();
         LOOKED.clear();
     }
@@ -160,18 +159,54 @@ public final class GateViews
         {
             return;
         }
-        if (now.isEmpty())
+        // Each gate only once its send is done, so one skipped or failed is tried again on the next redraw.
+        final Set<String> through = new HashSet<>(was);
+        for (final String name : now)
+        {
+            if (!was.contains(name) && (resend(player, name, true) == Redrawn.SENT))
+            {
+                through.add(name);
+            }
+        }
+        for (final String name : was)
+        {
+            final Redrawn redrawn = now.contains(name) ? null : resend(player, name, false);
+            // A gate that is not showing draws its own opening, so nothing of this is left on the client.
+            if ((redrawn == Redrawn.SENT) || (redrawn == Redrawn.NOT_SHOWING))
+            {
+                through.remove(name);
+            }
+        }
+        if (through.isEmpty())
         {
             SEES_THROUGH.remove(viewer);
         }
         else
         {
-            SEES_THROUGH.put(viewer, now);
+            SEES_THROUGH.put(viewer, through);
         }
-        final Set<String> changed = new HashSet<>(was);
-        changed.addAll(now);
-        changed.removeIf(name -> was.contains(name) && now.contains(name));
-        changed.forEach(name -> StargateBlockSetup.redrawHorizonFor(player, StargateManager.getStargate(name)));
+    }
+
+    /**
+     * Sends one player one gate's opening again, cleared or as its horizon.
+     *
+     * @return what became of it; null if it failed, which leaves it to be tried again
+     */
+    private static Redrawn resend(final Player player, final String name, final boolean cleared)
+    {
+        try
+        {
+            return StargateBlockSetup.redrawHorizonFor(player, StargateManager.getStargate(name), cleared);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if ((plugin != null) && plugin.isLoggable(Level.FINE))
+            {
+                plugin.prettyLog(Level.FINE, "Could not send " + name + "'s opening to " + player.getName(), e);
+            }
+            return null;
+        }
     }
 
     /**
@@ -183,6 +218,24 @@ public final class GateViews
     public static void forgetViewer(final UUID viewer)
     {
         SEES_THROUGH.remove(viewer);
+    }
+
+    /**
+     * Forgets a gate's cleared horizon as its iris opens, before the opening is drawn for everybody.
+     *
+     * <p>The opening iris paints the opening alike for everybody, behind the gate too; still cleared, it
+     * painted nothing for them all, and a crossing over between two sweeps left it so. Cleared again by
+     * the next sweep, each viewer drawn the view is sent the cleared opening then.
+     *
+     * @param gate
+     *            the gate whose iris is opening
+     */
+    public static void irisOpening(final Stargate gate)
+    {
+        if ((gate != null) && (gate.getGateName() != null))
+        {
+            unclear(gate.getGateName());
+        }
     }
 
     /** Forgets everybody's being drawn one gate's view, as its horizon stops being cleared. */
@@ -209,7 +262,6 @@ public final class GateViews
             return;
         }
         unclear(gate.getGateName());
-        CROSSING.remove(gate.getGateName());
         OPEN.remove(gate.getGateName());
         Windows.release(PREFIX + gate.getGateName());
     }
@@ -454,23 +506,10 @@ public final class GateViews
         }
         for (final String name : clear)
         {
-            final Stargate gate = StargateManager.getStargate(name);
-            // A crossing over a cleared horizon paints it as nothing for everybody, so its end is drawn again for each.
-            if ((gate != null) && !CLEARED.add(name) && CROSSING.contains(name))
+            if (StargateManager.getStargate(name) != null)
             {
-                redrawFor(gate);
+                CLEARED.add(name);
             }
-        }
-        CROSSING.clear();
-        CROSSING.addAll(busy);
-    }
-
-    /** Sends everybody near a gate its opening as they are to see it, each by {@link #horizonFor}. */
-    private static void redrawFor(final Stargate gate)
-    {
-        for (final Player player : gate.getGateWorld().getPlayers())
-        {
-            StargateBlockSetup.redrawHorizonFor(player, gate);
         }
     }
 
