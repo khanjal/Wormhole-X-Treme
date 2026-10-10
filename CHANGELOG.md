@@ -75,6 +75,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   the next. A gate, group or `gate-dial-spin` set to either one dials the other way after the
   upgrade; set it to the other name to keep the old look.
 
+**Fixed**
+
+- **A build preview's see-through iris no longer shows empty cells part way through a sweep**
+  ([#432](https://github.com/khanjal/Wormhole-X-Treme/issues/432)). Turned back mid-sweep, or
+  dialled open behind an iris still sweeping shut, the cells it covered read as empty until the
+  sweep ended. Each step also stopped sending the whole wormhole again to everybody watching.
+
 ### Internals
 
 - **The code that draws a far side through an opening has its own package, `model/window`**,

@@ -532,7 +532,8 @@ entity standing in the wormhole's own cell rather than a block replacing it, so 
 hides the water by covering it and needs nothing, while a see-through one hides it without
 replacing it and leaves the cell reading as empty. Only an iris that would hide the liquid pays
 for the move; a sweep runs on every cell of every ring, and a picture nobody can tell apart is
-not worth the packets. Drawn all at once before the sweep, a gate shows the wormhole twice over
+not worth the packets. A preview's sweep keeps where each viewer's wormhole stands, cell by cell,
+and a step or a crossing sends only the cells that have moved (#432). Drawn all at once before the sweep, a gate shows the wormhole twice over
 for the length of its animation; drawn after it, every ring of a see-through iris arrives with
 the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
 two ways of being wrong, in reverse. `StargateIrisAnimator.step` takes a per-ring hook for it,
