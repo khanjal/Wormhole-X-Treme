@@ -176,6 +176,18 @@ public final class GateViews
             }
         }
         // Not to somebody drawn the view again, who is sent the cleared opening instead.
+        pay(player, owed, now, stillOwed);
+        keep(SEES_THROUGH, viewer, through);
+        keep(OWED, viewer, stillOwed);
+    }
+
+    /**
+     * Sends one player the portal material of each gate they are owed it for, unless they are drawn its
+     * view again, and strikes off each that is now off their client.
+     */
+    private static void pay(final Player player, final Set<String> owed, final Set<String> now,
+        final Set<String> stillOwed)
+    {
         for (final String name : owed)
         {
             if (!now.contains(name) && goneFromClient(resend(player, name, false)))
@@ -183,8 +195,6 @@ public final class GateViews
                 stillOwed.remove(name);
             }
         }
-        keep(SEES_THROUGH, viewer, through);
-        keep(OWED, viewer, stillOwed);
     }
 
     /**
