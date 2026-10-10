@@ -1233,12 +1233,14 @@ public final class GatePreviews
 
     /**
      * Whether a viewer may have been drawn a wormhole off the ring: settled stacked, or by a sweep,
-     * which draws it there with no side recorded in {@code sides()} (#442).
+     * which draws it there with no side recorded in {@code sides()} (#442). A sweep records every
+     * watcher, so only one holding a cell somewhere other than its ring counts.
      */
     private static boolean drewOffsetsFor(final GatePreview preview, final Player viewer)
     {
         return preview.sides().containsKey(viewer.getUniqueId())
-            || preview.sweepDrawn().containsKey(viewer.getUniqueId());
+            || preview.sweepDrawn().getOrDefault(viewer.getUniqueId(), Map.of()).entrySet().stream()
+                .anyMatch(held -> !held.getValue().equals(at(preview.opening().get(held.getKey()))));
     }
 
     /** The cells a fake block stands at now. */
