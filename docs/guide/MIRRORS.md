@@ -127,9 +127,14 @@ default, does nothing on Spigot, and does nothing at the default depth of 160: l
 `mirror-view-depth` first, then turn it on. It pulls the fog in every way you look, not only
 through the mirror, which is the price.
 
-**Blocks, and creatures if the server turns them on.** No players from the room are shown. With
-`mirror-show-entities` on, the mobs standing in the room show through the mirror (or an open
-gate) as copies only you see; it is off by default. While you look, a small area in front of the
+**Blocks, and creatures if the server turns them on.** With `mirror-show-entities` on, the mobs
+standing in the room show through the mirror (or an open gate) as copies only you see; it is off by
+default. With `mirror-show-players` on as well, so do the players there, by name: a mannequin in
+their skin from Minecraft 1.21.9, an armour stand wearing their head before. Never yourself, nor
+anyone invisible, spectating or riding something, nor anyone a vanish plugin hides from you with
+`hidePlayer`; a plugin that hides players by rewriting packets is not seen by this check, and its
+players do show. The skin is the player's real one, not a disguise plugin's, so a server that
+hides who its players are should leave it off; the account's name and id are not sent with it. While you look, a small area in front of the
 far side is kept loaded so its creatures show on the first look (`mirror-entity-load-radius`). Your own world's creatures inside the view are hidden while
 you look. The room is lit by this world, so a room behind a wall is
 dark except for what makes its own light. Lava hides what is behind it and water is seen through
@@ -193,5 +198,6 @@ It stays while you keep looking, and only the mirror under your crosshair speaks
 | `mirror-view-depth` | 160 | How far from the opening the room is drawn, 4 to 160. |
 | `mirror-fog-at-depth` | `false` | Pull a viewer's fog in to where the room ends. Paper only. |
 | `mirror-show-entities` | `false` | Show the mobs standing in a mirror's or an open gate's far room, as copies only the viewer sees. |
+| `mirror-show-players` | `false` | With `mirror-show-entities` on too, show the players there as well. It tells a viewer who is at the destination. |
 | `mirror-entity-load-radius` | 2 | With creatures shown, how many chunks in front of a watched far side are held, as `/forceload` holds them: 15 at 2, each with a two-chunk ring kept loaded round it, about 63 chunks loaded in all. 0 for none, at most 4. The ring can generate terrain at the edge of explored land. |
 | `mirror-approach-message` | `true` | Whether a mirror names itself above the hotbar to whoever looks at it. |

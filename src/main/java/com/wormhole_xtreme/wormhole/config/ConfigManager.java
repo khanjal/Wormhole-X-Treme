@@ -289,6 +289,12 @@ public class ConfigManager
         MIRROR_SHOW_ENTITIES,
 
         /**
+         * Whether the players standing in a far room are shown too (#296, step 2), with
+         * {@link #MIRROR_SHOW_ENTITIES} on. Off by default: it shows who is in the destination room.
+         */
+        MIRROR_SHOW_PLAYERS,
+
+        /**
          * How many chunks in front of a watched window's far side are held loaded, so its creatures
          * show on the first look (#296). 0 holds nothing; read up to {@link ConfigManager#MOST_ENTITY_LOAD_RADIUS}.
          */
@@ -1801,6 +1807,21 @@ public class ConfigManager
     public static boolean isMirrorShowEntities()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_SHOW_ENTITIES);
+        return (s != null) && s.getBooleanValue();
+    }
+
+    /**
+     * Whether the players in a far room are shown as well as its mobs; asked only where
+     * {@link #isMirrorShowEntities()} is on.
+     *
+     * <p>False when the setting is missing, as on an upgraded server's config.yml: it shows who is in
+     * the destination room, which is for an admin to turn on.
+     *
+     * @return true if a view shows the players standing in its far room
+     */
+    public static boolean isMirrorShowPlayers()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_SHOW_PLAYERS);
         return (s != null) && s.getBooleanValue();
     }
 

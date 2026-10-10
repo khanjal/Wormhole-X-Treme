@@ -43,6 +43,7 @@ import java.util.stream.Stream;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.GameMode;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -3206,6 +3207,98 @@ class WindowsTest
 
         verify(standIn).remove();
         assertFalse(StandIns.isStandIn(standIn));
+    }
+
+    /**
+     * A player standing in the far room shows only with {@code mirror-show-players} on as well as
+     * {@code mirror-show-entities}, as a figure, and {@code mirror debug} counts them; quitting takes
+     * the figure away as it takes a mob's (#296, step 2).
+     *
+     * <p>Off by default, because it tells the viewer who is at the destination.
+     */
+    @Test
+    void aFarPlayerShowsOnlyWithPlayersOnAndGoesWhenTheViewerQuits()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        PlayerFigures.mannequinWith(null);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        zombieInTheFarRoom();
+        final Player farPlayer = mock(Player.class);
+        when(farPlayer.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(farPlayer.getName()).thenReturn("Alex");
+        when(farPlayer.isValid()).thenReturn(true);
+        when(farPlayer.isOnline()).thenReturn(true);
+        when(farPlayer.isVisibleByDefault()).thenReturn(true);
+        when(farPlayer.getGameMode()).thenReturn(GameMode.SURVIVAL);
+        when(viewer.canSee(farPlayer)).thenReturn(true);
+        final ArmorStand figure = mock(ArmorStand.class);
+        when(figure.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(figure.isValid()).thenReturn(true);
+        when(figure.getLocation()).thenReturn(new Location(world, 0.5, -200.0, 0.5));
+        final List<Class<?>> spawned = new ArrayList<>();
+        HiddenEntities.creationWith(new HiddenEntities.Creation()
+        {
+            @Override
+            public <T extends Entity> T create(final World in, final Location at, final Class<T> type)
+            {
+                spawned.add(type);
+                when(figure.getLocation()).thenReturn(at);
+                return type.cast(figure);
+            }
+
+            @Override
+            public <T extends Entity> T add(final World in, final T entity)
+            {
+                return entity;
+            }
+        });
+        final Consumer<World> stubs = farSetup;
+        farSetup = far ->
+        {
+            stubs.accept(far);
+            when(farPlayer.getLocation()).thenReturn(new Location(far, 100.5, 70.0, -18.5, 0.0f, 0.0f));
+            when(far.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.of(farPlayer));
+        };
+        final PlayerQuitEvent quit = mock(PlayerQuitEvent.class);
+        when(quit.getPlayer()).thenReturn(viewer);
+        final List<String> said = new ArrayList<>();
+        try
+        {
+            withServer(WindowSweep::tick);
+            assertEquals(List.of(), spawned, "players off: nobody shown");
+
+            ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_PLAYERS, true);
+            when(viewer.canSee(farPlayer)).thenReturn(false);
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                said.addAll(Windows.describe(viewer));
+            });
+            assertEquals(List.of(), spawned, "a player hidden from the viewer, as vanish hides one, is not shown");
+            assertTrue(said.stream().anyMatch(line -> line.contains("1 player(s) hidden from you")),
+                "mirror debug says why: " + said);
+
+            said.clear();
+            when(viewer.canSee(farPlayer)).thenReturn(true);
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                said.addAll(Windows.describe(viewer));
+            });
+            assertEquals(List.of(ArmorStand.class), spawned, "players on: the player, as a figure");
+            assertTrue(StandIns.isStandIn(figure));
+            assertTrue(said.stream().anyMatch(line -> line.contains("museum creatures")
+                && line.contains("1 found (1 player(s))") && line.contains("1 shown")), "mirror debug counts them: " + said);
+
+            new StandInListener().onQuit(quit);
+            verify(figure).remove();
+            assertFalse(StandIns.isStandIn(figure));
+        }
+        finally
+        {
+            PlayerFigures.mannequinFromServer();
+        }
     }
 
     /** A capture of one block everywhere, 40 around the arrival point and 16 below to 64 above. */
