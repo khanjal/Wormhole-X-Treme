@@ -1286,23 +1286,30 @@ public final class Windows
             // A reflection's room is the viewer's own, which is a later step of #296.
             if (!window.shape.mirrored())
             {
-                for (final Entity creature : farCreatures(window))
-                {
-                    if (creature.isValid() && player.canSee(creature))
-                    {
-                        final Location at = FarCreatures.hereOf(view.world, window.shape, creature.getLocation());
-                        if (StandIns.inRoom(window, at))
-                        {
-                            inRoom.add(new FarCreatures.Wanted(creature, at, window));
-                        }
-                    }
-                }
+                inRoomThrough(player, view.world, window, inRoom);
             }
         }
         // The costly view test runs nearest first and stops at the cap: a farm far off costs a sort, not a projection each.
         return FarCreatures.choose(inRoom, eye, FarCreatures.MOST_PER_VIEWER,
             FarCreatures.keepOrShow(view.standIns.keySet(), wanted -> stillSeen(eye, wanted.here(), seeing, fixed),
                 wanted -> inAnyView(eye, wanted.here(), seeing, fixed, allOpen)));
+    }
+
+    /** Adds the far creatures this viewer may see that stand inside one window's room as drawn. */
+    private static void inRoomThrough(final Player player, final World here, final WindowState window,
+        final List<FarCreatures.Wanted> inRoom)
+    {
+        for (final Entity creature : farCreatures(window))
+        {
+            if (creature.isValid() && player.canSee(creature))
+            {
+                final Location at = FarCreatures.hereOf(here, window.shape, creature.getLocation());
+                if (StandIns.inRoom(window, at))
+                {
+                    inRoom.add(new FarCreatures.Wanted(creature, at, window));
+                }
+            }
+        }
     }
 
     /** The creatures in a window's far room, read once for the window as this sweep offered it. */
