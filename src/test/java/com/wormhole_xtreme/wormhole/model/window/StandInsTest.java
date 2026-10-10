@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -648,8 +649,10 @@ class StandInsTest
         assertTrue(StandIns.onDrawnFloor(view, floored, onIt), "captured and drawn under its feet");
         assertTrue(StandIns.onDrawnFloor(view, floored, new Location(far, 101.2, 70.0, -18.5)),
             "standing over the block's edge, its side still on it");
+        final Spot drawnAir = floored.shape.hereOf(102, 69, -19);
+        view.drawn.put(Windows.key(drawnAir.x(), drawnAir.y(), drawnAir.z()), mock(BlockData.class));
         assertFalse(StandIns.onDrawnFloor(view, floored, new Location(far, 102.5, 70.0, -18.5)),
-            "two blocks along, where the capture has air");
+            "two blocks along, where the capture has air, drawn as air");
         assertFalse(StandIns.onDrawnFloor(view, floored, new Location(far, 100.5, 71.0, -18.5)),
             "a block up, over the air above the floor");
     }
@@ -671,6 +674,8 @@ class StandInsTest
 
         assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, window, both, walker),
             "new, on ground with no drawn floor: not offered");
+        final Zombie flying = creature(Zombie.class, 100.5, 72.0, -18.5);
+        assertNull(Windows.whyNot(viewer, view, window, both, flying), "off the ground, it needs no floor and floats as it does");
         nextCopy = copy(Zombie.class);
         StandIns.show(viewer, view, List.of(wanted(walker)), 0L);
         assertNull(Windows.whyNot(viewer, view, window, both, walker), "shown already: kept without a drawn floor");
@@ -682,6 +687,7 @@ class StandInsTest
         // Seventeen blocks in from the opening's middle: past the depth of 16, inside it with the slack.
         when(walker.getLocation()).thenReturn(new Location(far, 100.5, 70.5, -5.5));
         assertNull(Windows.whyNot(viewer, view, window, both, walker), "a held one a block past the room stays");
+        assertNotNull(StandIns.whereNow(here, view.standIns.get(walker.getUniqueId())), "and is followed there");
         StandIns.removeAll(view);
         assertEquals(CreatureTally.Skip.OUT_OF_ROOM, Windows.whyNot(viewer, view, window, both, walker),
             "a new one there is not offered");
