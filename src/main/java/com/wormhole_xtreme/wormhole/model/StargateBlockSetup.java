@@ -1744,7 +1744,9 @@ class StargateBlockSetup
     {
         for (final Stargate gate : StargateManager.getOpenGates())
         {
-            if (isLayered(gate) && (gate.getGateWorld() != null)
+            // Not mid-sweep: the sweep moves the stand-in a ring at a time, and what this redraws from is
+            // the picture from before it began.
+            if (isLayered(gate) && (gate.getGateWorld() != null) && !StargateIrisAnimator.isSweeping(gate)
                 && DrawnHorizon.standsIn(gate.getEffectiveIrisMaterial()))
             {
                 shimmerHorizon(gate);
@@ -1998,11 +2000,14 @@ class StargateBlockSetup
      * flag already cleared -- setIrisState writes it before it draws -- so asking would have refused
      * the hand-back on every ring of every open.
      *
+     * <p>And a name, which what each viewer was drawn is filed under.
+     *
      * @return the world, or null if there is nothing to move
      */
     private static World sweptWorld(final Stargate gate)
     {
-        return ((gate != null) && gate.isGatePortalOpen() && irisIsDrawn(gate)) ? gate.getGateWorld() : null;
+        return ((gate != null) && (gate.getGateName() != null) && gate.isGatePortalOpen() && irisIsDrawn(gate))
+            ? gate.getGateWorld() : null;
     }
 
     /**
@@ -2016,8 +2021,13 @@ class StargateBlockSetup
     private static void horizonBehindFor(final Player player, final Stargate gate,
         final Set<IrisLayering.At> wanted, final boolean show)
     {
-        final List<IrisLayering.Placement> layers = layersFor(gate, player.getLocation());
         final Map<Integer, IrisLayering.Placement> held = sweptFor(player, gate);
+        // Opening with nothing covered for them: nothing to move, and nothing to work out.
+        if (!show && held.isEmpty())
+        {
+            return;
+        }
+        final List<IrisLayering.Placement> layers = layersFor(gate, player.getLocation());
         final List<Location> ring = gate.getGatePortalBlocks();
         for (int i = 0; i < layers.size(); i++)
         {
@@ -2028,12 +2038,15 @@ class StargateBlockSetup
             // what was and is not this step's.
             final boolean covered = (before != null) ? (show || !stepped) : (show && stepped);
             final IrisLayering.Placement after = covered ? layers.get(i) : null;
-            moveFarLayer(player, gate, cell, farLayerOf(before, cell), farLayerOf(after, cell));
+            moveLayers(player, gate, cell, before, after);
             if (after == null)
             {
-                held.remove(i);
+                if (before != null)
+                {
+                    held.remove(i);
+                }
             }
-            else
+            else if (!after.equals(before))
             {
                 held.put(i, after);
             }
@@ -2041,7 +2054,56 @@ class StargateBlockSetup
     }
 
     /**
-     * Moves one cell's far layer for one viewer, sending nothing if it stays where it was.
+     * Moves one cell's layers off the ring for one viewer, from one placement to the next.
+     *
+     * <p>The far horizon is handed back and drawn again where it now belongs. An iris held off the ring
+     * -- a block in front, from behind the gate -- is only handed back: the sweep paints the iris in the
+     * ring for everybody, so a viewer walking round to the back keeps it there rather than being drawn a
+     * second one beyond it.
+     *
+     * @param cell
+     *            the ring cell they belong to
+     * @param before
+     *            what they hold, or null for a cell not covered
+     * @param after
+     *            what they are to hold, or null for a cell not covered
+     */
+    private static void moveLayers(final Player player, final Stargate gate, final IrisLayering.At cell,
+        final IrisLayering.Placement before, final IrisLayering.Placement after)
+    {
+        final IrisLayering.At strayIris = strayIrisOf(before, after, cell);
+        if (strayIris != null)
+        {
+            sendTruthIfFree(player, located(gate, strayIris));
+        }
+        moveFarLayer(player, gate, cell, farLayerOf(before, cell), farLayerOf(after, cell));
+    }
+
+    /**
+     * Where a viewer holds the iris off the ring that their next placement no longer uses.
+     *
+     * @param before
+     *            what they hold, or null
+     * @param after
+     *            what they are to hold, or null
+     * @return the position to hand back, or null if there is none
+     */
+    private static IrisLayering.At strayIrisOf(final IrisLayering.Placement before,
+        final IrisLayering.Placement after, final IrisLayering.At cell)
+    {
+        if ((before == null) || (before.iris() == null) || before.iris().equals(cell))
+        {
+            return null;
+        }
+        if ((after != null) && (before.iris().equals(after.iris()) || before.iris().equals(after.horizon())))
+        {
+            return null;
+        }
+        return before.iris();
+    }
+
+    /**
+     * Moves one cell's far horizon for one viewer, sending nothing if it stays where it was.
      *
      * @param cell
      *            the ring cell it belongs to
@@ -2090,8 +2152,8 @@ class StargateBlockSetup
     /**
      * Sets each viewer near a gate up for a sweep that is starting (#447).
      *
-     * <p>Closing, no cell is covered yet, so a far layer left by an opening called off part way is
-     * handed back. Opening, every cell is, each with the layer the viewer was last drawn. Anybody out
+     * <p>Closing, no cell is covered yet, so any layer left by an opening called off part way is
+     * handed back. Opening, every cell is, each with the layers the viewer was last drawn. Anybody out
      * of range is forgotten, as one who arrives mid-sweep is never known.
      *
      * @param closing
@@ -2125,7 +2187,7 @@ class StargateBlockSetup
     }
 
     /**
-     * Hands back every far layer a sweep drew one viewer.
+     * Hands back every layer off the ring a sweep knows one viewer holds.
      *
      * @param held
      *            what it drew them, or null for nothing
@@ -2143,7 +2205,7 @@ class StargateBlockSetup
             if (i < ring.size())
             {
                 final IrisLayering.At cell = positionOf(ring.get(i));
-                moveFarLayer(player, gate, cell, farLayerOf(placed, cell), null);
+                moveLayers(player, gate, cell, placed, null);
             }
         });
     }
@@ -2191,7 +2253,11 @@ class StargateBlockSetup
     private static void forgetStep(final Player player, final Stargate gate, final Set<IrisLayering.At> wanted)
     {
         final Map<String, Map<Integer, IrisLayering.Placement>> byGate = SWEPT.get(player.getUniqueId());
-        final Map<Integer, IrisLayering.Placement> held = (byGate == null) ? null : byGate.get(gate.getGateName());
+        if (byGate == null)
+        {
+            return;
+        }
+        final Map<Integer, IrisLayering.Placement> held = byGate.get(gate.getGateName());
         if (held == null)
         {
             return;
@@ -2201,7 +2267,7 @@ class StargateBlockSetup
             (wanted == null) || ((i < ring.size()) && wanted.contains(positionOf(ring.get(i)))));
     }
 
-    /** One viewer's sweep record for a gate, created empty if there is none. */
+    /** One viewer's sweep record for a gate, which has a name, created empty if there is none. */
     private static Map<Integer, IrisLayering.Placement> sweptFor(final Player player, final Stargate gate)
     {
         return sweptOf(player).computeIfAbsent(gate.getGateName(), key -> new ConcurrentHashMap<>());
@@ -2217,10 +2283,38 @@ class StargateBlockSetup
     private static void dropSwept(final Player player, final Stargate gate)
     {
         final Map<String, Map<Integer, IrisLayering.Placement>> byGate = SWEPT.get(player.getUniqueId());
-        if (byGate != null)
+        if ((byGate != null) && (gate.getGateName() != null))
         {
             byGate.remove(gate.getGateName());
         }
+    }
+
+    /**
+     * Forgets what any sweep drew anybody for a gate: its sweep has ended, or the gate has gone.
+     *
+     * <p>Everybody, out of range too. A gate registered again under the same name may have another
+     * shape, and an old record would be read against cells it does not have.
+     *
+     * @param name
+     *            the gate's name, or null for none
+     */
+    static void forgetSwept(final String name)
+    {
+        if (name != null)
+        {
+            SWEPT.values().forEach(byGate -> byGate.remove(name));
+        }
+    }
+
+    /**
+     * Forgets what any sweep drew one player, whose client has dropped those chunks.
+     *
+     * @param uuid
+     *            the player
+     */
+    static void forgetSwept(final UUID uuid)
+    {
+        SWEPT.remove(uuid);
     }
 
     /** A block location as plain coordinates. */

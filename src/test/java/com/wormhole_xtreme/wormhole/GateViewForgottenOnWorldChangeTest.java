@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -8,6 +9,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -65,5 +67,23 @@ class GateViewForgottenOnWorldChangeTest
 
         assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, player),
             "back in the gate's world, not drawn the view: the horizon");
+    }
+
+    /**
+     * What an iris sweep drew them is forgotten too (#447): their client has dropped those chunks, and a
+     * record kept would be read against a picture they no longer hold.
+     */
+    @Test
+    void whatASweepDrewAViewerWhoChangesWorldIsForgotten() throws ReflectiveOperationException
+    {
+        final Map<UUID, Map<String, Map<Integer, Object>>> swept =
+            PrivateStatics.of(Class.forName("com.wormhole_xtreme.wormhole.model.StargateBlockSetup"), "SWEPT");
+        swept.put(player.getUniqueId(), new ConcurrentHashMap<>(Map.of("Abydos", new ConcurrentHashMap<>())));
+        final PlayerChangedWorldEvent event = mock(PlayerChangedWorldEvent.class);
+        when(event.getPlayer()).thenReturn(player);
+
+        new WormholeXTremePlayerListener().onPlayerChangedWorld(event);
+
+        assertFalse(swept.containsKey(player.getUniqueId()), "forgotten on the way to the other world");
     }
 }

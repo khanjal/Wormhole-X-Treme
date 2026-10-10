@@ -835,6 +835,17 @@ public class StargateManager
     }
 
     /**
+     * Forgets what any iris sweep drew a player who has changed world, whose client has dropped those chunks (#447).
+     *
+     * @param uuid
+     *            the player
+     */
+    public static void forgetSweptLayers(final UUID uuid)
+    {
+        StargateBlockSetup.forgetSwept(uuid);
+    }
+
+    /**
      * Redraws every open gate's portal for one player, and takes back any they are still
      * being shown for a gate that has since closed.
      *
@@ -1393,6 +1404,7 @@ public class StargateManager
         // A sweep still running would go on drawing over a gate that has gone, or over the one a
         // refresh registers in its place, and finish by filling it with what it started with (#434).
         StargateIrisAnimator.cancel(s);
+        StargateBlockSetup.forgetSwept(s.getGateName());
         StargateDBManager.removeStargate(s);
         detachFromNetwork(s);
         unindexGateBlocks(s);

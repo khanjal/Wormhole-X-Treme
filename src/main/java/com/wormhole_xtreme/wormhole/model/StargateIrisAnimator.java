@@ -216,6 +216,8 @@ public final class StargateIrisAnimator
         public void unregister()
         {
             running.remove(key(gate));
+            // Ended, not called off: a call-off keeps what it drew for the sweep that replaces it.
+            StargateBlockSetup.forgetSwept(gate.getGateName());
         }
 
         @Override
