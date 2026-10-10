@@ -289,7 +289,7 @@ public final class FarChunkHolds
         }
     }
 
-    /** Holds a chunk once it is in, if it is still wanted; rests one never generated. */
+    /** Holds a chunk once it is in; rests one not on disk. */
     static void loaded(final Area area, final Chunk chunk)
     {
         if (LOADING.remove(area) == null)
@@ -301,8 +301,9 @@ public final class FarChunkHolds
         {
             RESTING.put(area, Windows.clock.getAsLong() + RETRY_MILLIS);
         }
-        else if (wanted.contains(area))
+        else
         {
+            // Only a wanted chunk is still on its way: settle forgets the rest.
             HELD.computeIfAbsent(area, held ->
             {
                 ChunkTickets.hold(chunk);

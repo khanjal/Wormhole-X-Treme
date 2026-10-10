@@ -221,8 +221,9 @@ class StandInListenerTest
     @Test
     void theSplitRefusalIsRegisteredForTheSplitEventThisServerHas()
     {
-        assertEquals(EntityDamageEvent.class, StandInListener.splitEvent(name -> EntityDamageEvent.class),
-            "a split event of the server's own, where it has one");
+        assertEquals(EntityDamageEvent.class, StandInListener.splitEvent(
+            name -> StandInListener.CUBE_SPLIT.equals(name) ? EntityDamageEvent.class : SlimeSplitEvent.class),
+            "the cube mobs' split event, where the server has it, ahead of the slimes'");
         assertEquals(SlimeSplitEvent.class, StandInListener.splitEvent(
             name -> StandInListener.SLIME_SPLIT.equals(name) ? SlimeSplitEvent.class : null), "SlimeSplitEvent where it has no other");
         assertNull(StandInListener.splitEvent(name -> String.class), "nothing where the names are no events");
