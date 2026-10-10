@@ -1435,7 +1435,7 @@ public final class Capture
     }
 
     /** @return how long ago this capture was taken, in whole seconds */
-    long secondsOld()
+    public long secondsOld()
     {
         return (System.currentTimeMillis() - takenAt) / 1000L;
     }

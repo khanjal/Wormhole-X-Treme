@@ -33,7 +33,6 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.mirror.GateWindow;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
@@ -55,6 +54,7 @@ class GateViewsSweepTest
     private Stargate gate;
     private MockedStatic<StargateManager> manager;
     private MockedStatic<Windows> windows;
+    private MockedStatic<GateSource> sources;
 
     @BeforeEach
     void setUp() throws Exception
@@ -92,11 +92,13 @@ class GateViewsSweepTest
         manager.when(StargateManager::getOpenGates).thenReturn(Set.of(gate));
         manager.when(() -> StargateManager.getStargate("Abydos")).thenReturn(gate);
         windows = mockStatic(Windows.class);
+        sources = mockStatic(GateSource.class);
     }
 
     @AfterEach
     void tearDown() throws Exception
     {
+        sources.close();
         windows.close();
         manager.close();
         GateViews.clear();
@@ -144,12 +146,12 @@ class GateViewsSweepTest
     /** What the mirror sweep answers when the gate is offered: whether its view is drawn. */
     private void drawn(final boolean drawn)
     {
-        windows.when(() -> Windows.offerGate(any(GateWindow.class), anyBoolean())).thenReturn(drawn);
+        sources.when(() -> GateSource.offer(any(GateSource.class), anyBoolean())).thenReturn(drawn);
     }
 
     private void offeredTimes(final int times)
     {
-        windows.verify(() -> Windows.offerGate(argThat(window -> "gate:Abydos".equals(window.name())), anyBoolean()), times(times));
+        sources.verify(() -> GateSource.offer(argThat(window -> "gate:Abydos".equals(window.name())), anyBoolean()), times(times));
     }
 
     @Test
@@ -186,7 +188,7 @@ class GateViewsSweepTest
 
         GateViews.offerAll();
 
-        windows.verify(() -> Windows.offerGate(argThat(window -> (window.open().size() == (18 * 17))
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.open().size() == (18 * 17))
             && (window.shape().width() == 18) && (window.shape().height() == 17)), anyBoolean()));
         verify(gate).fillGateInterior(Material.AIR);
         assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "the whole opening, not a window in it");
@@ -234,7 +236,7 @@ class GateViewsSweepTest
         GateViews.dialled(gate);
 
         offeredTimes(0);
-        windows.verify(() -> Windows.prepareGate(any(GateWindow.class)), never());
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)), never());
         verify(gate, never()).fillGateInterior(Material.AIR);
     }
 
@@ -261,7 +263,7 @@ class GateViewsSweepTest
         GateViews.dialled(gate);
 
         offeredTimes(0);
-        windows.verify(() -> Windows.prepareGate(any(GateWindow.class)), never());
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)), never());
     }
 
     /** Somebody six blocks in front of a tall gate's foot is ten from its middle, and watches it. */
@@ -336,8 +338,8 @@ class GateViewsSweepTest
         GateViews.offerAll();
         GateViews.offerAll();
 
-        windows.verify(() -> Windows.offerGate(any(GateWindow.class), eq(true)), times(1));
-        windows.verify(() -> Windows.offerGate(any(GateWindow.class), eq(false)), times(1));
+        sources.verify(() -> GateSource.offer(any(GateSource.class), eq(true)), times(1));
+        sources.verify(() -> GateSource.offer(any(GateSource.class), eq(false)), times(1));
     }
 
     /**
@@ -427,8 +429,8 @@ class GateViewsSweepTest
         near(true);
         GateViews.offerAll();
 
-        windows.verify(() -> Windows.offerGate(any(GateWindow.class), eq(true)), times(1));
-        windows.verify(() -> Windows.offerGate(any(GateWindow.class), eq(false)), times(1));
+        sources.verify(() -> GateSource.offer(any(GateSource.class), eq(true)), times(1));
+        sources.verify(() -> GateSource.offer(any(GateSource.class), eq(false)), times(1));
     }
 
     /**
@@ -474,8 +476,8 @@ class GateViewsSweepTest
 
         GateViews.dialled(gate);
 
-        windows.verify(() -> Windows.prepareGate(argThat(window -> "gate:Abydos".equals(window.name())
-            && "Chulak".equals(window.target()) && (window.depth() == 32))), times(1));
+        sources.verify(() -> GateSource.prepare(argThat(window -> "gate:Abydos".equals(window.name())
+            && "Chulak".equals(window.target()) && (window.step() == 32))), times(1));
     }
 
     @Test
@@ -486,7 +488,7 @@ class GateViewsSweepTest
         near(false);
         GateViews.dialled(gate);
 
-        windows.verify(() -> Windows.prepareGate(any(GateWindow.class)), never());
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)), never());
     }
 
     /**
