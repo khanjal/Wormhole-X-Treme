@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -80,7 +82,8 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * <li>The far side is read from the capture, in memory, never from the live world.</li>
  * </ul>
  *
- * <p>Blocks only, no entities, and lit and tinted by this world.
+ * <p>Blocks, lit and tinted by this world; with {@code mirror-show-entities} on, the far room's
+ * creatures too, as {@link StandIns}.
  */
 public final class Windows
 {
@@ -470,6 +473,13 @@ public final class Windows
                 + " (full " + Captures.gateFillDepth(window.source.destination(), ConfigManager.getGateViewDepth())
                 + "), " + window.capture.secondsOld() + "s old"));
         }
+        final CreatureTally tally = view.tallies.get(name);
+        if (ConfigManager.isMirrorShowEntities() && (tally != null))
+        {
+            final int[] held = FarChunkHolds.heldFor(name);
+            lines.add(MirrorText.field(name + " creatures", tally.line(window) + ", chunks held " + held[0] + " of "
+                + held[1] + " (mirror-entity-load-radius " + ConfigManager.getMirrorEntityLoadRadius() + ")"));
+        }
         if (!fixedForViewer)
         {
             final Far far = view.far.get(name);
@@ -573,6 +583,8 @@ public final class Windows
     /** Forgets every view without sending anything, for a test or a reload. */
     public static void clear()
     {
+        StandIns.removeEverything();
+        FarChunkHolds.releaseAll();
         ACTIVE.clear();
         OFFERED.clear();
         VIEWS.clear();
@@ -693,7 +705,8 @@ public final class Windows
     static void finish()
     {
         Captures.step(0);
-        if (OFFERED.isEmpty() && ACTIVE.isEmpty() && VIEWS.isEmpty())
+        // Not while chunks are held: the grace of a gate that closed on its last viewer runs out here.
+        if (OFFERED.isEmpty() && ACTIVE.isEmpty() && VIEWS.isEmpty() && !FarChunkHolds.holdsAny())
         {
             return;
         }
@@ -728,6 +741,8 @@ public final class Windows
                 }
             }
         }
+        StandIns.sweepStrays(VIEWS.values());
+        holdFarAreas(now);
         trimStates(now);
         Captures.unloadIdle();
     }
@@ -799,7 +814,8 @@ public final class Windows
         final long now = now();
         for (final Map.Entry<UUID, ViewerDrawing> entry : new ArrayList<>(VIEWS.entrySet()))
         {
-            if (entry.getValue().mirrors.contains(name))
+            // Stand-ins too: a first redraw that spawned them may have stopped before naming its windows.
+            if (entry.getValue().mirrors.contains(name) || StandIns.shownThrough(entry.getValue(), name))
             {
                 final Player player = Bukkit.getPlayer(entry.getKey());
                 if (player == null)
@@ -1004,6 +1020,8 @@ public final class Windows
     /** Takes every view back, as the plugin stops. */
     public static void restoreAll()
     {
+        // First, so a send that throws below cannot leave a stand-in in the world.
+        StandIns.removeEverything();
         final long now = now();
         for (final Map.Entry<UUID, ViewerDrawing> entry : VIEWS.entrySet())
         {
@@ -1137,6 +1155,8 @@ public final class Windows
             && unchanged(view, seeing, eyeMatters ? eyeKey(eye) : view.eye, stamp, now))
         {
             keepAsDrawn(player, view, eye, now, eyeMatters, fromSweep);
+            // Kept as drawn, so judged against what is drawn: a creature moves, or walks in, while the viewer stands still.
+            showStandIns(player, view, eye, seeing, wholes, now);
             // Still told: a gate's horizon may have cleared under a view that has not changed.
             tellDrawn(id, player, view.mirrors);
             return;
@@ -1146,6 +1166,8 @@ public final class Windows
             // The server's share for this second is spent: this viewer keeps what they see a
             // moment longer, and a move is caught up once there is room.
             waitForRoom(player, view, eye, fromSweep);
+            // Its rooms may not be held this time, so nothing is added or taken away on their word.
+            followStandIns(view);
             return;
         }
         final List<Entity> inside = new ArrayList<>();
@@ -1154,6 +1176,8 @@ public final class Windows
         workSpent += budget.projected;
         send(player, view, wanted, eye, now, (now - view.fullAt) >= RESEND_MILLIS, freshChunks(player, view.chunk, chunk));
         veil(player, view, inside);
+        // After the send, so a stand-in's floor is judged by what the viewer has just been drawn.
+        showStandIns(player, view, eye, seeing, wholes, now);
         final long took = now() - now;
         view.lastRedraw = new Redraw(budget.projected, budget.near, budget.fixed, budget.fixedDepth,
             new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), took);
@@ -1232,12 +1256,310 @@ public final class Windows
     private static void endView(final UUID id, final Player player)
     {
         final ViewerDrawing view = VIEWS.remove(id);
+        if (view != null)
+        {
+            StandIns.removeAll(view);
+        }
         ViewFog.restore(id, player);
         // In the same world the last redraw already said what they are drawn; elsewhere it is all gone.
         if ((player == null) || ((view != null) && !view.world.equals(player.getWorld())))
         {
             tellDrawn(id, null, Set.of());
         }
+    }
+
+    /**
+     * Takes away the stand-ins one viewer is shown (#296), for one who has quit, died, respawned or
+     * changed world; a viewer still looking is given them again on their next redraw.
+     *
+     * @param id
+     *            the viewer
+     */
+    public static void dropStandIns(final UUID id)
+    {
+        final ViewerDrawing view = (id == null) ? null : VIEWS.get(id);
+        if (view != null)
+        {
+            StandIns.removeAll(view);
+        }
+    }
+
+    /** Moves every viewer's stand-ins after their creatures: the follow task's pass, while any are shown. */
+    static void followStandIns()
+    {
+        for (final ViewerDrawing view : VIEWS.values())
+        {
+            followStandIns(view);
+        }
+        if (StandIns.count() == 0)
+        {
+            StandIns.stopFollowing();
+        }
+    }
+
+    /**
+     * Holds the area in front of each watched window's far side loaded, so its creatures show on the
+     * first look (#296): every window being drawn for a viewer, nearest its viewers first, while
+     * creatures are shown and {@code mirror-entity-load-radius} is above 0.
+     */
+    private static void holdFarAreas(final long now)
+    {
+        final int radius = ConfigManager.isMirrorShowEntities() ? ConfigManager.getMirrorEntityLoadRadius() : 0;
+        final Map<String, Double> nearest = (radius > 0) ? watchedWindows() : Map.of();
+        final List<String> order = new ArrayList<>(nearest.keySet());
+        order.sort(Comparator.<String>comparingDouble(nearest::get).thenComparing(Comparator.naturalOrder()));
+        final Map<String, List<FarChunkHolds.Area>> watched = new LinkedHashMap<>();
+        for (final String name : order)
+        {
+            final Place destination = ACTIVE.get(name).source.destination();
+            // A far world not loaded has nothing to hold, and nothing is asked of it.
+            if (Bukkit.getWorld(destination.worldName()) != null)
+            {
+                watched.put(name, FarChunkHolds.ahead(destination, radius));
+            }
+        }
+        try
+        {
+            FarChunkHolds.settle(watched, now);
+        }
+        catch (final Exception | LinkageError failed)
+        {
+            StandIns.failedOnce("Could not hold the chunks in front of a view's far side", failed);
+        }
+    }
+
+    /** Every window being drawn for a viewer, with how near its nearest viewer's eye was, squared. */
+    private static Map<String, Double> watchedWindows()
+    {
+        final Map<String, Double> nearest = new HashMap<>();
+        for (final ViewerDrawing view : VIEWS.values())
+        {
+            for (final String name : view.mirrors)
+            {
+                final WindowState window = ACTIVE.get(name);
+                if ((window != null) && !window.shape.mirrored())
+                {
+                    nearest.merge(name, apartFrom(window, view), Math::min);
+                }
+            }
+        }
+        return nearest;
+    }
+
+    /** How far a viewer's last drawn eye was from a window, squared; far off for one never drawn. */
+    private static double apartFrom(final WindowState window, final ViewerDrawing view)
+    {
+        if (view.lastRedraw == null)
+        {
+            return Double.MAX_VALUE;
+        }
+        final Spot eye = view.lastRedraw.eye();
+        return fromBanner(window.anchor(), eye.x(), eye.y(), eye.z());
+    }
+
+    /** Moves one viewer's stand-ins after their creatures, and drops them if that fails. */
+    private static void followStandIns(final ViewerDrawing view)
+    {
+        if (view.standIns.isEmpty())
+        {
+            return;
+        }
+        try
+        {
+            StandIns.follow(view);
+        }
+        catch (final Exception | LinkageError failed)
+        {
+            StandIns.failedOnce("Could not move the stand-ins shown through a view", failed);
+            dropQuietly(view);
+        }
+    }
+
+    /**
+     * Shows a viewer the creatures in the far rooms they are looking into, as stand-ins, when the
+     * setting is on; takes away any they have otherwise.
+     */
+    private static void showStandIns(final Player player, final ViewerDrawing view, final Location eye,
+        final List<WindowState> seeing, final Wholes wholes, final long now)
+    {
+        try
+        {
+            if (!ConfigManager.isMirrorShowEntities() || player.isDead())
+            {
+                if (!view.standIns.isEmpty())
+                {
+                    StandIns.removeAll(view);
+                }
+                return;
+            }
+            StandIns.show(player, view, standInsFor(player, view, eye, seeing, wholes), now);
+        }
+        catch (final Exception | LinkageError failed)
+        {
+            // Cosmetic: the blocks of the view, and every other viewer, must still be drawn.
+            StandIns.failedOnce("Could not show the creatures in a view's far room", failed);
+            dropQuietly(view);
+        }
+    }
+
+    /** Takes a viewer's stand-ins away after a failure, without letting a second one escape. */
+    private static void dropQuietly(final ViewerDrawing view)
+    {
+        try
+        {
+            StandIns.removeAll(view);
+        }
+        catch (final Exception | LinkageError alsoFailed)
+        {
+            // Already logged once; the stray sweep tries again.
+            view.standIns.clear();
+        }
+    }
+
+    /**
+     * The far creatures a viewer sees through these windows, and where: inside a room as drawn, at
+     * most {@link FarCreatures#MOST_PER_VIEWER}, nearest first.
+     */
+    private static List<FarCreatures.Wanted> standInsFor(final Player player, final ViewerDrawing view,
+        final Location eye, final List<WindowState> seeing, final Wholes wholes)
+    {
+        final Map<WindowState, Whole> fixed = wholes.whole();
+        final Set<Long> allOpen = new HashSet<>();
+        seeing.forEach(window -> allOpen.addAll(window.openKeys));
+        final Map<String, WindowState> byName = new HashMap<>();
+        seeing.forEach(window -> byName.put(window.name(), window));
+        // A window whose room is not held this redraw draws nothing new: its stand-ins stay as they are, and none are added.
+        final Set<WindowState> drawn = new HashSet<>(fixed.keySet());
+        drawn.addAll(wholes.clipped().keySet());
+        final Predicate<FarCreatures.Wanted> kept =
+            wanted -> !drawn.contains(wanted.window()) || stillSeen(eye, wanted.here(), seeing, fixed);
+        final List<FarCreatures.Wanted> inRoom = new ArrayList<>();
+        view.tallies.clear();
+        for (final WindowState window : nearestFirst(seeing, eye))
+        {
+            // A reflection's room is the viewer's own, which is a later step of #296.
+            if (!window.shape.mirrored())
+            {
+                final CreatureTally tally = new CreatureTally();
+                view.tallies.put(window.name(), tally);
+                inRoomThrough(player, view, window, byName, kept, inRoom, tally);
+            }
+        }
+        // The costly view test runs nearest first and stops at the cap: a farm far off costs a sort, not a projection each.
+        final List<FarCreatures.Wanted> chosen = FarCreatures.choose(inRoom, eye, FarCreatures.MOST_PER_VIEWER,
+            FarCreatures.keepOrShow(view.standIns.keySet(), kept,
+                wanted -> drawn.contains(wanted.window()) && inAnyView(eye, wanted.here(), seeing, fixed, allOpen)));
+        chosen.forEach(wanted -> view.tallies.get(wanted.window().name()).shown++);
+        return chosen;
+    }
+
+    /**
+     * Adds the far creatures this viewer may see that stand inside one window's room as drawn.
+     *
+     * <p>A creature already shown stays with the window it was shown through while that window is
+     * still seen, so two windows that both see it do not hand it back and forth; and only a new one
+     * must stand on drawn floor, so one stepping over a gap is not taken away and shown again.
+     */
+    private static void inRoomThrough(final Player player, final ViewerDrawing view, final WindowState window,
+        final Map<String, WindowState> seeing, final Predicate<FarCreatures.Wanted> kept,
+        final List<FarCreatures.Wanted> inRoom, final CreatureTally tally)
+    {
+        for (final Entity creature : farCreatures(window))
+        {
+            if (creature.isValid())
+            {
+                tally.found++;
+                final CreatureTally.Skip why = whyNot(player, view, window, seeing, kept, creature);
+                if (why == null)
+                {
+                    inRoom.add(new FarCreatures.Wanted(creature, FarCreatures.hereOf(view.world, window.shape,
+                        creature.getLocation()), window));
+                }
+                else
+                {
+                    tally.skip(why);
+                }
+            }
+        }
+    }
+
+    /**
+     * Why a far creature is not offered through this window, or null if it is.
+     *
+     * @param seeing
+     *            the windows the viewer sees, by name
+     * @param kept
+     *            whether a creature already shown is kept where it would stand
+     */
+    static CreatureTally.Skip whyNot(final Player player, final ViewerDrawing view, final WindowState window,
+        final Map<String, WindowState> seeing, final Predicate<FarCreatures.Wanted> kept, final Entity creature)
+    {
+        if (!visibleTo(player, view, creature))
+        {
+            return CreatureTally.Skip.HIDDEN;
+        }
+        final StandIns.StandIn held = view.standIns.get(creature.getUniqueId());
+        final Location far = creature.getLocation();
+        if ((held != null) && keptThroughAnother(view, held, window, seeing, kept, far))
+        {
+            return CreatureTally.Skip.OTHER_WINDOW;
+        }
+        if (!StandIns.inRoom(window, FarCreatures.hereOf(view.world, window.shape, far), held != null))
+        {
+            return CreatureTally.Skip.OUT_OF_ROOM;
+        }
+        // A flying, swimming or climbing creature has no floor to stand on, and is shown floating, as it is.
+        if ((held == null) && !StandIns.floats(creature)
+            && !StandIns.onDrawnFloor(view, window, far, StandIns.floorReach(creature)))
+        {
+            return CreatureTally.Skip.NO_FLOOR;
+        }
+        return null;
+    }
+
+    /**
+     * Whether a shown creature is still kept through the window it was shown through, so it is not
+     * also offered through this one; if that window would let it go, this one may take it over at once.
+     */
+    private static boolean keptThroughAnother(final ViewerDrawing view, final StandIns.StandIn held,
+        final WindowState window, final Map<String, WindowState> seeing, final Predicate<FarCreatures.Wanted> kept,
+        final Location far)
+    {
+        final WindowState holding = seeing.get(held.window.name());
+        if ((holding == null) || holding.name().equals(window.name()))
+        {
+            return false;
+        }
+        final Location there = FarCreatures.hereOf(view.world, holding.shape, far);
+        return StandIns.inRoom(holding, there, true) && kept.test(new FarCreatures.Wanted(held.original, there, holding));
+    }
+
+    /**
+     * Whether a viewer may see a far creature: not hidden from them, unless the hiding is this view's
+     * own veil, which a mirror onto the room behind its own wall would otherwise show empty.
+     *
+     * @return true if it may be shown to them
+     */
+    static boolean visibleTo(final Player player, final ViewerDrawing view, final Entity creature)
+    {
+        return player.canSee(creature) || view.veiled.containsKey(creature.getUniqueId());
+    }
+
+    /** The creatures in a window's far room, read once for the window as this sweep offered it. */
+    private static List<Entity> farCreatures(final WindowState window)
+    {
+        if (window.creatures == null)
+        {
+            final World far = Bukkit.getWorld(window.capture.worldName());
+            final int[] box = (far == null) ? FarCreatures.NOWHERE
+                : FarCreatures.roomBox(window.shape, window.depth(), window.capture.bounds());
+            final int[] tally = new int[3];
+            window.creatures = (box.length == 0) ? List.of() : FarCreatures.inRoom(far, box, tally);
+            window.notLoaded = tally[0];
+            window.entitiesNotLoaded = tally[1];
+            window.notCopied = tally[2];
+        }
+        return window.creatures;
     }
 
     /**
@@ -2200,7 +2522,7 @@ public final class Windows
     }
 
     /** Whether a block is inside a walled window's fixed view: behind its wall, within its depth. */
-    private static boolean insideFixed(final WindowState window, final int x, final int y, final int z,
+    static boolean insideFixed(final WindowState window, final int x, final int y, final int z,
         final int depth)
     {
         final WindowShape shape = window.shape;
@@ -2256,7 +2578,8 @@ public final class Windows
         return !(entity instanceof Player)
             && !(entity instanceof Display)
             && !(entity instanceof Interaction)
-            && !FreyaCompanion.isCompanion(entity);
+            && !FreyaCompanion.isCompanion(entity)
+            && !StandIns.isStandIn(entity);
     }
 
     /** Whether a place is inside the view through any of these windows, as {@link #creaturesInside} judges it. */
@@ -2272,6 +2595,29 @@ public final class Windows
             final boolean inView = (whole != null) ? insideFixed(window, x, y, z, whole.depth())
                 : seenAndCovered(eye, window, x, y, z, seeing, allOpen);
             if (inView)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The looser test a stand-in already shown is kept by: seen through an opening at all, the wall
+     * hiding its outline or not, so one at the edge of the view is not spawned and removed each step.
+     */
+    private static boolean stillSeen(final Location eye, final Location at, final List<WindowState> seeing,
+        final Map<WindowState, Whole> fixed)
+    {
+        final int x = at.getBlockX();
+        final int y = at.getBlockY();
+        final int z = at.getBlockZ();
+        for (final WindowState window : seeing)
+        {
+            final Whole whole = fixed.get(window);
+            final boolean seen = (whole != null) ? insideFixed(window, x, y, z, whole.depth())
+                : (seenThrough(eye, window, x, y, z, seeing, 0.0) != WindowShape.UNSEEN);
+            if (seen)
             {
                 return true;
             }

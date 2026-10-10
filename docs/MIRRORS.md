@@ -21,6 +21,7 @@ dial — which is why a door in every world is practical in a way a gate in ever
 - [Arriving, and the bounce that cost](#arriving-and-the-bounce-that-cost)
 - [When another plugin refuses the trip](#when-another-plugin-refuses-the-trip)
 - [The far edge of the room](#the-far-edge-of-the-room) · [Built: the fat eye](#built-the-fat-eye) · [Built: streaming](#built-streaming) · [What is left to try](#what-is-left-to-try)
+- [Seeing creatures](#seeing-creatures)
 - [What was considered and not done](#what-was-considered-and-not-done)
 
 ## The network
@@ -725,6 +726,106 @@ Each of these is a real lever, and none is free. The first is the one to build n
 What is not on the list: another shell, wall or painting past the depth. Three have been tried
 and each drew the eye to the very edge it was there to hide.
 
+## Seeing creatures
+
+`mirror-show-entities`, off by default, and it governs gate views as much as mirrors
+([#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)). With it on, the mobs standing in
+a window's far room show through it. Bukkit has no call for a fake entity, so each is a
+**stand-in**: a real entity of the same type, spawned in the viewer's world where the far side's
+blocks for that spot are drawn, turned or flipped as they are, hidden from everybody and shown to
+that one viewer (`HiddenEntities`).
+
+- **A small area in front of the far side is held loaded.** On a first dial nobody is at the far
+  side, so nothing there was loaded and no creature showed until somebody had been over. So while a
+  window is being drawn for at least one viewer, `mirror-entity-load-radius` (2 by default, 0 for
+  none, read up to 4) holds the arrival's chunk and that many chunks ahead of it and to either side
+  with the plugin's chunk ticket: 15 held chunks at 2, nothing behind the arrival, which no view
+  shows. A plugin ticket holds its chunk the way `/forceload` does, and the server keeps a ring two
+  chunks wide loaded round every held chunk: the 3 by 5 block of 15 keeps about 7 by 9, some 63
+  chunks, loaded, about 35 of them ticking blocks (hoppers, furnaces, redstone) as well as entities.
+  That ring can generate terrain at the edge of explored land, on Paper and Spigot alike. Two windows
+  onto one place share one ticket a chunk (through `ChunkTickets`, which rings and pets use too). The
+  held chunks are asked for nearest the arrival first. On Paper, two a tick with
+  `getChunkAtAsync(x, z, false)`, off the main thread, which asks for the held chunk itself not to be
+  generated. On Spigot, which has no asynchronous load, one a tick on the main thread: by `getChunkAt`
+  once `isChunkGenerated` says the chunk is on disk. That check is itself a read of the region file
+  that waits for the disk, and it is true for any chunk saved at all, including the half-made chunks
+  the game leaves round the edge of explored land, which loading then finishes generating, tens to
+  hundreds of milliseconds each, on the main thread. A load that fails or does not answer in 30
+  seconds is given up on, logged once, and not asked again for a minute. They are let go ten seconds after the window's last viewer stops
+  being drawn it (a view ending, a quit, a death, a world change, the window released, a gate closing,
+  the setting turned off; a lower radius lets the outer chunks go at once), and at once on a reset,
+  on shutdown and when the far world unloads. No more than 400 are held across every window (held:
+  the rings round them come on top, so far-apart windows at the cap keep up to about 1,900 chunks
+  loaded): the chunks already held keep their place, a window's in its grace too, then the nearest
+  windows' come, so viewers moving about do not swap which window is cut. Reaching it is logged once. A window onto a world that is not loaded
+  holds nothing. `mirror debug -all` says how many of a
+  window's chunks are held.
+- **Read only where loaded.** The far room is the capture's box, cut to what the view's depth could
+  show. A chunk there is read only if `isChunkLoaded` says so and its entities have loaded
+  (`Chunk.isEntitiesLoaded`, since 1.17 a separate step); the reading never loads one itself. So a
+  held chunk's creatures show at the next sweep once its entities are in. The tests are
+  `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities` and `FarChunkHoldsTest`.
+- **What is copied.** Mobs: not players (a later step, as Mannequins), not armour stands,
+  displays, interactions, the companion, invisible mobs, anything hidden by default or hidden from
+  this viewer by anything but this view's own veil, the dragon or the wither (a boss bar, and the
+  dragon's parts), a snow golem or a shulker (with no AI at all, one still lays snow and the other
+  still teleports itself), or another stand-in, which is known by the plugin's own list or by the
+  `wormhole_stand_in` scoreboard tag. Nothing is ever removed that is not on the list.
+  A copy shows what its creature looked like when it appeared: the custom name, a sheep's colour
+  and whether it is shorn, and what it wears and holds. Only baby or adult is kept in step after
+  that; the rest is not re-copied, so a mob that picks up a sword shows it the next time it is
+  spawned for the viewer. Other per-type looks are left for later: villager type and cat breed
+  change from enums to registry types inside the supported range, wolf variants do not exist on
+  1.20, and slime size moves to a new super-interface in 26.x, so each wants its own cross-version
+  care. At most twenty a viewer, nearest the eye first; only the nearest are tested against the
+  view, so a mob farm on the far side costs a sort, not a projection each.
+- **Inert.** No AI, silent, invulnerable, no gravity, not collidable, picks nothing up, never
+  saved. Damage, interaction, catching fire, turning into something else, being targeted, pressing
+  a plate, going through a nether or end portal, a slime splitting, dropping an item, changing a
+  block and forming one are cancelled first, at the lowest priority, so other plugins see them
+  cancelled; damage and targeting are cancelled again at the highest, past any plugin that uncancels
+  them; one
+  killed anyway drops nothing. The drawing never veils a stand-in, and neither the gates' entity
+  sweep, a closing iris nor a ring moves one. A stand-in is placed only in a chunk whose entities
+  have loaded and inside the world's height.
+- **How it keeps up.** The far room is read once a sweep, so a mob walking in shows within a
+  second. Stand-ins are placed on every redraw and followed every two ticks while a viewer has
+  any, by a task that only runs while one exists. One that walks out of the room, dies, unloads
+  or falls past the twenty is taken away. One already shown is kept while it is still seen through
+  the opening at all; a new one must be properly in view, so a creature at the edge of the view is
+  not spawned and removed with every step; it also stays with the window it was shown through while
+  that window is seen, and hands over to another window at once if its own would let it go; it may
+  stand a block past the room's depth. A creature with gravity is shown only where the viewer has
+  been drawn a captured block under its feet (within half a block and a little standing, which finds
+  a fence or a wall, and within two blocks mid-jump or falling): the capture is old and a clipped
+  view draws only what it sees, so without this a stand-in could stand on air. Flyers (bats, bees,
+  parrots, allays, vexes, blazes, ghasts, phantoms), water creatures, and anything in water, swimming,
+  gliding, climbing or without gravity need no floor and are shown as they are. Placing, keeping
+  and following all go by the creature's live position through one mapping, and nothing is decided
+  on a redraw whose rooms the server had no time to hold. `mirror debug` says, per window, how many
+  far creatures were found and why each was not shown. A failure in any of this costs that viewer their
+  stand-ins, logged once, and never the view's blocks or the sweep.
+- **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
+  all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
+  has lost track of is removed at the next sweep.
+- **Not yet in a reflection.** A mirror showing its own room shows no creatures: drawing the room
+  in front of it is a later step, with the rule that a viewer never sees themselves.
+
+**What it costs.** A watched window holds 15 chunks at the default radius (45 at 4), and with the
+ring the server keeps round each, about 63 chunks loaded (about 135 at 4), some 35 of them ticking
+blocks; the entities in them are simulated as any loaded chunk's are, and the ring can generate
+terrain at the edge of explored land. On Spigot each held chunk is loaded on the main thread, one a
+tick. Other plugins that list chunk tickets see the plugin's. Simulated means despawning too: a mob that may despawn, with no player
+within 128 blocks, can go almost at once, as in any loaded chunk, so a first dial may show none of
+those. That is the server's own rule; nothing here changes a real mob's. A stand-in is a real entity, so other plugins see it: a spawn event, a body in
+an entity counter, one more mob near a mob cap, and a protection plugin that refuses mob spawns
+in a region refuses the stand-in too, which then simply is not shown. They are short-lived and
+never saved, but anything that reacts to every spawn will react to them. Each viewer has copies
+of their own, so ten players at one window onto a busy room is up to two hundred of them. A gate's stand-ins sit
+behind its plane, where a traveller is sent on before reaching them; a mirror's sit behind the
+wall it hangs on.
+
 ## What was considered and not done
 
 **A map in an item frame**, rendered from the far side, was the first idea for a window. It was
@@ -741,8 +842,8 @@ the other, and the second banner's name was one nobody chose. The network replac
 mirror, and the choice of where to open made at the mirror.
 
 **Seeing yourself in a reflection.** A reflection shows an empty room. Drawing the players in front
-of it, flipped, would need a copy of each that moves with them — entities, sent per viewer — and is
-its own piece of work, alongside showing the players and creatures in another mirror's room.
+of it, flipped, needs the stand-ins of [Seeing creatures](#seeing-creatures) for players, and is
+a later step of #296, with the rule that the viewer never sees themselves.
 
 **Groups, hidden mirrors and a sign to choose with** — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280).
 **Mirrors on other servers** — [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257).

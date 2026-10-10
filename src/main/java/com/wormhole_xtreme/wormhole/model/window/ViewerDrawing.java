@@ -32,6 +32,12 @@ final class ViewerDrawing
     Set<String> mirrors = Set.of();
     Set<String> fixedNames = Set.of();
     final Map<UUID, Entity> veiled = new HashMap<>();
+    /** The stand-ins shown for far creatures, by the creature's id (#296). */
+    final Map<UUID, StandIns.StandIn> standIns = new HashMap<>();
+    /** When a stand-in's spawn was last refused, by the creature's id. */
+    final Map<UUID, Long> refused = new HashMap<>();
+    /** Why each window's far creatures were or were not shown, by window name, as last judged. */
+    final Map<String, CreatureTally> tallies = new HashMap<>();
     long fullAt;
     long composedAt;
     int generation;
