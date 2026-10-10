@@ -42,6 +42,8 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaListener;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
+import com.wormhole_xtreme.wormhole.model.window.StandInListener;
+import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
@@ -155,6 +157,7 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(itemTracker, tp);
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
+        pm.registerEvents(new StandInListener(), tp);
         registerDismountListener(pm, tp);
     }
 
@@ -310,6 +313,15 @@ public class WormholeXTreme extends JavaPlugin
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
+            // restoreAll removes the views' stand-ins first, but they are real entities: try again if it threw.
+            try
+            {
+                StandIns.removeEverything();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.WARNING, "Failed to remove the stand-ins shown through views", e);
             }
             // restoreAll clears the captures on its way, but not if it throws first: a gate capture's
             // sift runs for up to a minute and a half off the main thread, and must stop either way.

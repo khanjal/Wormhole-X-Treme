@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -29,6 +30,8 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.entity.Zombie;
 import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.model.window.StandIns;
 
 /**
  * Pins which listener owns an entity's movement through a gate.
@@ -123,6 +126,34 @@ class GateMovementOwnershipTest
             TextDisplay.class, ItemDisplay.class, Interaction.class))
         {
             assertFalse(GateEntityScanner.shouldSendThrough(mockOf(type)), type.getSimpleName() + " stays put");
+        }
+    }
+
+    /**
+     * A view's stand-in (#296) stays where it is shown, though the same zombie, not a stand-in, is sent.
+     *
+     * <p>Stand-ins sit behind a gate's plane, and one sent through would arrive in the far world as a
+     * real, inert copy nobody holds.
+     */
+    @Test
+    void aViewsStandInIsNeverSweptThoughTheSameMobOtherwiseIs() throws ReflectiveOperationException
+    {
+        final Entity zombie = mockOf(Zombie.class);
+        when(zombie.getUniqueId()).thenReturn(UUID.randomUUID());
+        assertTrue(GateEntityScanner.shouldSendThrough(zombie), "a zombie in an open gate is sent through");
+
+        final Method track = StandIns.class.getDeclaredMethod("track", Entity.class);
+        final Method untrack = StandIns.class.getDeclaredMethod("untrack", Entity.class);
+        track.setAccessible(true);
+        untrack.setAccessible(true);
+        track.invoke(null, zombie);
+        try
+        {
+            assertFalse(GateEntityScanner.shouldSendThrough(zombie), "a stand-in stays put");
+        }
+        finally
+        {
+            untrack.invoke(null, zombie);
         }
     }
 

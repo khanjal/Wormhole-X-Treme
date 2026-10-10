@@ -39,6 +39,7 @@ import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -400,6 +401,30 @@ class StandInsTest
         assertFalse(StandIns.inRoom(window, new Location(unloaded, 10.5, 63.0, 14.5)), "in a chunk not loaded");
         assertNull(StandIns.whereNow(here, new StandIns.StandIn(creature(Zombie.class, 100.5, 70.0, 0.0),
             copy(Zombie.class), window)), "past the view's depth");
+    }
+
+    /**
+     * Through a gate, a creature in front of the far gate stands behind this one's plane, in the
+     * middle of its opening when it stands in front of the far gate's middle.
+     */
+    @Test
+    void throughAGateAStandInStandsBehindItsPlane()
+    {
+        final Place arrival = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
+        final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), arrival, 5, 5);
+        final List<Spot> open = new ArrayList<>();
+        shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
+        final GateSource gate = new GateSource("gate:Abydos", mock(Block.class), shape, open, arrival, "Chulak", 16);
+        final Capture capture = new Capture.Builder("far", true, new Capture.Box(80, 60, 199, 41, 20, 34), mock(BlockData.class))
+            .build();
+        final WindowState gateWindow = new WindowState(gate, capture);
+
+        final Location at = StandIns.whereNow(here, new StandIns.StandIn(creature(Zombie.class, 100.5, 70.0, 203.5),
+            copy(Zombie.class), gateWindow));
+
+        assertEquals(12.5, at.getX(), 1.0e-9, "the middle of a five-wide opening from 10 to 14");
+        assertEquals(64.0, at.getY(), 1.0e-9, "level with the opening's bottom, as the arrival is");
+        assertEquals(16.5, at.getZ(), 1.0e-9, "four behind the plane, as it stands three past the arrival");
     }
 
     private FarCreatures.Wanted wanted(final Entity original)
