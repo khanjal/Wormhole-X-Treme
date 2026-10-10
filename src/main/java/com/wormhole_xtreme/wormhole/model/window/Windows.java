@@ -1247,21 +1247,7 @@ public final class Windows
     private static void holdFarAreas(final long now)
     {
         final int radius = ConfigManager.isMirrorShowEntities() ? ConfigManager.getMirrorEntityLoadRadius() : 0;
-        final Map<String, Double> nearest = new HashMap<>();
-        if (radius > 0)
-        {
-            for (final ViewerDrawing view : VIEWS.values())
-            {
-                for (final String name : view.mirrors)
-                {
-                    final WindowState window = ACTIVE.get(name);
-                    if ((window != null) && !window.shape.mirrored())
-                    {
-                        nearest.merge(name, apartFrom(window, view), Math::min);
-                    }
-                }
-            }
-        }
+        final Map<String, Double> nearest = (radius > 0) ? watchedWindows() : Map.of();
         final List<String> order = new ArrayList<>(nearest.keySet());
         order.sort(Comparator.comparingDouble((String name) -> nearest.get(name)).thenComparing(name -> name));
         final Map<String, List<FarChunkHolds.Area>> watched = new LinkedHashMap<>();
@@ -1282,6 +1268,24 @@ public final class Windows
         {
             StandIns.failedOnce("Could not hold the chunks in front of a view's far side", failed);
         }
+    }
+
+    /** Every window being drawn for a viewer, with how near its nearest viewer's eye was, squared. */
+    private static Map<String, Double> watchedWindows()
+    {
+        final Map<String, Double> nearest = new HashMap<>();
+        for (final ViewerDrawing view : VIEWS.values())
+        {
+            for (final String name : view.mirrors)
+            {
+                final WindowState window = ACTIVE.get(name);
+                if ((window != null) && !window.shape.mirrored())
+                {
+                    nearest.merge(name, apartFrom(window, view), Math::min);
+                }
+            }
+        }
+        return nearest;
     }
 
     /** How far a viewer's last drawn eye was from a window, squared; far off for one never drawn. */
