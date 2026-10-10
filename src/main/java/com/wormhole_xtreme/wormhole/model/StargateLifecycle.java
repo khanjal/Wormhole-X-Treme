@@ -368,6 +368,11 @@ class StargateLifecycle
         // Called off before the flag moves, so it finishes as the iris it was heading to --
         // after, a closing sweep on a drawn iris was finished as the air behind it.
         StargateIrisAnimator.cancel(gate);
+        if (!irisActive)
+        {
+            // Before the opening is drawn below, so it is drawn with the horizon for everybody.
+            GateViews.irisOpening(gate);
+        }
         gate.setGateIrisActive(irisActive);
         if (moved)
         {

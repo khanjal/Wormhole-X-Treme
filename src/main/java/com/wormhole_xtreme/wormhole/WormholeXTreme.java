@@ -43,6 +43,7 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
+import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
@@ -749,6 +750,8 @@ public class WormholeXTreme extends JavaPlugin
             ItemGateTracker.createTicker(), 20L, 1L);
         // Open gates join the mirror sweep when gate-view asks them to (#516).
         WindowSweep.alsoOffer(GateViews::offerAll);
+        // And a cleared horizon is cleared only for whoever is drawn the view.
+        Windows.onDrawn(GateViews::drawn);
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             GatePreviews::tick, 100L, 100L);

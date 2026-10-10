@@ -1340,7 +1340,24 @@ class StargateBlockSetup
      */
     private static void sendPortalTo(final Player player, final Stargate gate)
     {
-        final Material horizon = GateViews.horizonOf(gate, gate.getEffectivePortalMaterial());
+        sendHorizonTo(player, gate);
+        // The chevrons are a drawing too now, so somebody who arrives after the gate
+        // dialled would otherwise find a lit wormhole in an unlit frame.
+        if (gate.isGateLightsActive())
+        {
+            sendLights(player, gate, true);
+        }
+    }
+
+    /** Sends one player an open gate's horizon as they are to see it: cleared only if they are drawn its view. */
+    private static void sendHorizonTo(final Player player, final Stargate gate)
+    {
+        sendHorizonTo(player, gate, GateViews.horizonFor(gate, gate.getEffectivePortalMaterial(), player));
+    }
+
+    /** Sends one player a gate's opening as this. */
+    private static void sendHorizonTo(final Player player, final Stargate gate, final Material horizon)
+    {
         final BlockData blockData = MaterialUtils.drawnAcross(horizon, gate.getGateFacing());
         for (final Location bc : gate.getGatePortalBlocks())
         {
@@ -1348,12 +1365,48 @@ class StargateBlockSetup
                 new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
                 blockData);
         }
-        // The chevrons are a drawing too now, so somebody who arrives after the gate
-        // dialled would otherwise find a lit wormhole in an unlit frame.
-        if (gate.isGateLightsActive())
+    }
+
+    /** What became of a horizon sent again for one player. */
+    enum Redrawn
+    {
+        /** Sent. */
+        SENT,
+        /** Not a wormhole showing with its iris open and not crossing: the gate draws its own opening. */
+        NOT_SHOWING,
+        /** Showing, but they are too far off to be sent it now. */
+        OUT_OF_REACH
+    }
+
+    /**
+     * Sends one player an open gate's horizon again, after whether they are drawn its view changed (#516).
+     *
+     * <p>Only a wormhole showing with its iris open and not crossing, near enough to be drawn: anything
+     * else draws its own opening.
+     *
+     * @param player
+     *            the player to draw for
+     * @param gate
+     *            the gate, or null for one gone since
+     * @param cleared
+     *            true to send the opening as cleared for the view, false as the horizon
+     * @return whether it was sent, and why not
+     */
+    static Redrawn redrawHorizonFor(final Player player, final Stargate gate, final boolean cleared)
+    {
+        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || gate.isGateIrisActive()
+            || StargateIrisAnimator.isSweeping(gate))
         {
-            sendLights(player, gate, true);
+            return Redrawn.NOT_SHOWING;
         }
+        if (!isNearEnoughToRedraw(gate, player.getLocation()))
+        {
+            return Redrawn.OUT_OF_REACH;
+        }
+        final Material portal = gate.getEffectivePortalMaterial();
+        sendHorizonTo(player, gate, cleared ? GateViews.horizonOf(gate, portal) : portal);
+        drawnFor(player).add(gate.getGateName());
+        return Redrawn.SENT;
     }
 
     /**

@@ -831,6 +831,7 @@ public class StargateManager
     public static void forgetPortalVisuals(final UUID uuid)
     {
         StargateBlockSetup.forgetDrawn(uuid);
+        GateViews.forgetViewer(uuid);
     }
 
     /**
