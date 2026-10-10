@@ -217,7 +217,8 @@ class StandInListenerTest
         final Event onStandIn = mock(split);
         final Event onReal = mock(split);
         when(((EntityEvent) onStandIn).getEntity()).thenReturn(slime);
-        when(((EntityEvent) onReal).getEntity()).thenReturn(mock(Slime.class));
+        final Slime realSlime = mock(Slime.class);
+        when(((EntityEvent) onReal).getEntity()).thenReturn(realSlime);
         StandIns.track(slime);
         try
         {
