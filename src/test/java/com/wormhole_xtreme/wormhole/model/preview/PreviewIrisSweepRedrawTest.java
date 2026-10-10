@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.preview;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -549,7 +550,7 @@ class PreviewIrisSweepRedrawTest
         {
             if (!preview().irisShown().contains(i))
             {
-                assertTrue(pictures.get(front).get(along(i, 0)) == portal,
+                assertSame(portal, pictures.get(front).get(along(i, 0)),
                     "uncovered cell " + i + " shows the new portal material: " + shownAt(front, i, 0));
             }
         }
@@ -566,7 +567,8 @@ class PreviewIrisSweepRedrawTest
         final Player traveller = viewerAlong("Tia", 4);
         toggleIris();
         stepTheSweep();
-        when(traveller.getWorld()).thenReturn(mock(World.class));
+        final World elsewhere = mock(World.class);
+        when(traveller.getWorld()).thenReturn(elsewhere);
         GatePreviews.tick();
         stepTheSweep();
         when(traveller.getWorld()).thenReturn(world);
@@ -791,7 +793,8 @@ class PreviewIrisSweepRedrawTest
         final Player front = viewerAlong("Fran", 4);
         final Player gone = viewerAlong("Gus", 4);
         toggleIris();
-        when(gone.getWorld()).thenReturn(mock(World.class));
+        final World faraway = mock(World.class);
+        when(gone.getWorld()).thenReturn(faraway);
         sends.get(gone).clear();
 
         stepTheSweep();
