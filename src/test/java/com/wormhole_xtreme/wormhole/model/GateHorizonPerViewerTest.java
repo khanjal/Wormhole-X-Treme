@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
@@ -135,18 +136,24 @@ class GateHorizonPerViewerTest
     /** Gives the gate a three by three opening in the plane z = 20 and a frame round it. */
     private void opening()
     {
+        opening(gate, 10);
+    }
+
+    /** Gives a gate a three by three opening from {@code fromX} in the plane z = 20 and a frame round it. */
+    private void opening(final Stargate which, final int fromX)
+    {
         final List<Location> portal = new ArrayList<>();
         final List<Location> ring = new ArrayList<>();
-        for (int x = 9; x <= 13; x++)
+        for (int x = fromX - 1; x <= (fromX + 3); x++)
         {
             for (int y = 63; y <= 67; y++)
             {
-                final boolean inside = (x >= 10) && (x <= 12) && (y >= 64) && (y <= 66);
+                final boolean inside = (x >= fromX) && (x <= (fromX + 2)) && (y >= 64) && (y <= 66);
                 (inside ? portal : ring).add(new Location(world, x, y, 20));
             }
         }
-        when(gate.getGatePortalBlocks()).thenReturn(portal);
-        when(gate.getGateStructureBlocks()).thenReturn(ring);
+        when(which.getGatePortalBlocks()).thenReturn(portal);
+        when(which.getGateStructureBlocks()).thenReturn(ring);
     }
 
     /** One sweep at {@code open}, which clears the horizon: the view is drawn. */
@@ -161,6 +168,12 @@ class GateHorizonPerViewerTest
     private static void drawsTheView(final Player player, final boolean drawn)
     {
         GateViews.drawn(player.getUniqueId(), player, drawn ? Set.of(WINDOW) : Set.of());
+    }
+
+    /** The drawing's word that this player is drawn these windows. */
+    private static void drawsTheView(final Player player, final Set<String> windows)
+    {
+        GateViews.drawn(player.getUniqueId(), player, windows);
     }
 
     /** How many of the opening's cells a player was sent as this. */
@@ -318,6 +331,48 @@ class GateHorizonPerViewerTest
         }
 
         verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * A gate whose view is drawn before its horizon has cleared is sent cleared once it does.
+     *
+     * <p>Beside another gate already cleared, one whose iris was still opening was remembered as sent
+     * the cleared opening while it still showed its horizon; when it cleared, nothing was sent, and the
+     * viewer saw the horizon standing over its view.
+     */
+    @Test
+    void aViewDrawnBeforeItsHorizonClearsIsSentClearedWhenItDoes() throws ReflectiveOperationException
+    {
+        final Stargate byblos = mock(Stargate.class);
+        when(byblos.getGateName()).thenReturn("Byblos");
+        when(byblos.isGateActive()).thenReturn(true);
+        when(byblos.isGatePortalOpen()).thenReturn(true);
+        when(byblos.getGateWorld()).thenReturn(world);
+        final Stargate target = gate.getGateTarget();
+        when(byblos.getGateTarget()).thenReturn(target);
+        when(byblos.getGateFacing()).thenReturn(BlockFace.SOUTH);
+        when(byblos.getEffectivePortalMaterial()).thenReturn(Material.WATER);
+        opening(byblos, 20);
+        manager.when(StargateManager::getOpenGates).thenReturn(Set.of(gate, byblos));
+        manager.when(() -> StargateManager.getStargate("Byblos")).thenReturn(byblos);
+        final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
+        running.put("Byblos", 1);
+        try
+        {
+            clearedForTheView();
+            drawsTheView(front, Set.of(WINDOW, "gate:Byblos"));
+        }
+        finally
+        {
+            running.remove("Byblos");
+        }
+        assertEquals(Material.WATER, GateViews.horizonOf(byblos, Material.WATER), "its iris still crossing: not cleared");
+
+        GateViews.offerAll();
+        drawsTheView(front, Set.of(WINDOW, "gate:Byblos"));
+
+        verify(front, times(CELLS).description("cleared now, so its opening is sent cleared"))
+            .sendBlockChange(argThat(at -> at.getBlockX() >= 20), eq(air));
     }
 
     /** A shut iris draws its own opening, which a viewer's horizon must not be sent over. */
