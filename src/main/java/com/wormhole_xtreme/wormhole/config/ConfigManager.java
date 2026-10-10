@@ -288,6 +288,12 @@ public class ConfigManager
          */
         MIRROR_SHOW_ENTITIES,
 
+        /**
+         * How many chunks in front of a watched window's far side are held loaded, so its creatures
+         * show on the first look (#296). 0 holds nothing; read up to {@link ConfigManager#MOST_ENTITY_LOAD_RADIUS}.
+         */
+        MIRROR_ENTITY_LOAD_RADIUS,
+
         MIRROR_APPROACH_MESSAGE
     }
 
@@ -1796,6 +1802,24 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_SHOW_ENTITIES);
         return (s != null) && s.getBooleanValue();
+    }
+
+    /** The most chunks ahead a watched window's far side is held to: 4 is 45 chunks a window. */
+    public static final int MOST_ENTITY_LOAD_RADIUS = 4;
+
+    /** What {@code mirror-entity-load-radius} is when the setting is missing, as on an upgraded config.yml. */
+    static final int DEFAULT_ENTITY_LOAD_RADIUS = 2;
+
+    /**
+     * How many chunks in front of a watched window's far side are held loaded for its creatures.
+     *
+     * @return 0 to {@link #MOST_ENTITY_LOAD_RADIUS}; 2 when the setting is missing
+     */
+    public static int getMirrorEntityLoadRadius()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS);
+        final int radius = (s == null) ? DEFAULT_ENTITY_LOAD_RADIUS : s.getIntValue();
+        return Math.max(0, Math.min(MOST_ENTITY_LOAD_RADIUS, radius));
     }
 
     /**

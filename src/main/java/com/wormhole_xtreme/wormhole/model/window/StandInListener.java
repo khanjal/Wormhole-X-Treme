@@ -22,6 +22,7 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 
 /**
  * Keeps a view's stand-ins (#296) out of the game: they are real entities, so without this they
@@ -260,6 +261,18 @@ public class StandInListener implements Listener
     public void onChangedWorld(final PlayerChangedWorldEvent event)
     {
         Windows.dropStandIns(event.getPlayer().getUniqueId());
+    }
+
+    /**
+     * A world unloading takes the chunks held in it for a view with it, and nothing keeps counting them.
+     *
+     * @param event
+     *            the unload
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onWorldUnload(final WorldUnloadEvent event)
+    {
+        FarChunkHolds.forgetWorld(event.getWorld().getName());
     }
 
     /** Cancels an event about a stand-in. */

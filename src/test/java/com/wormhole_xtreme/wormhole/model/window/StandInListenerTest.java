@@ -175,7 +175,7 @@ class StandInListenerTest
                 }
             }
         }
-        assertEquals(19, handlers, "every handler counted, so a renamed one is not skipped");
+        assertEquals(20, handlers, "every handler counted, so a renamed one is not skipped");
         assertEquals(12, refusals, "the twelve that cancel first");
         assertEquals(2, again, "the two that cancel again last");
     }

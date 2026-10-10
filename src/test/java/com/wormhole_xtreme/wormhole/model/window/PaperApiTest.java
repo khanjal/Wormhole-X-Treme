@@ -3,6 +3,9 @@ package com.wormhole_xtreme.wormhole.model.window;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.concurrent.CompletableFuture;
+
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +36,15 @@ class PaperApiTest
 
         assertTrue(ViewFog.available(), "mirror-fog-at-depth would do nothing on Paper");
         assertEquals(int.class, Player.class.getMethod("getSendViewDistance").getReturnType());
+    }
+
+    /** Paper loads the chunks held for a view's creatures off the main thread, without generating them. */
+    @Test
+    void theChunkHoldsFindPapersAsyncChunkLoad() throws NoSuchMethodException
+    {
+        assertTrue(FarChunkHolds.loadsAsync(), "held chunks would load on the main thread on Paper");
+        assertEquals(CompletableFuture.class,
+            World.class.getMethod("getChunkAtAsync", int.class, int.class, boolean.class).getReturnType());
     }
 
     /** Not on 1.20, which has no such method and where a window rightly goes without. */

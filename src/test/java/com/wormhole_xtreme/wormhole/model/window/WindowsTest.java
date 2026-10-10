@@ -2875,6 +2875,136 @@ class WindowsTest
             "mirror debug says it was found and why it is not shown: " + said);
     }
 
+    /**
+     * A watched window holds the fifteen chunks in front of its far side, and lets them go the grace
+     * after its last viewer walks away; a reset lets go at once (#296).
+     *
+     * <p>On a first dial nobody is at the far side, so nothing there is loaded and no creature shows;
+     * a ticket left behind would keep those chunks loaded for as long as the server ran.
+     */
+    @Test
+    void aWatchedWindowHoldsTheChunksInFrontOfItsFarSideAndLetsThemGo()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final List<Chunk> held = new ArrayList<>();
+        FarChunkHolds.loaderWith((in, x, z, loaded) ->
+        {
+            final Chunk chunk = mock(Chunk.class);
+            when(chunk.getWorld()).thenReturn(in);
+            when(chunk.getX()).thenReturn(x);
+            when(chunk.getZ()).thenReturn(z);
+            held.add(chunk);
+            loaded.accept(chunk);
+        });
+        farSetup = far -> when(far.getUID()).thenReturn(UUID.nameUUIDFromBytes("far".getBytes()));
+        try
+        {
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                for (int tick = 0; tick < 10; tick++)
+                {
+                    FarChunkHolds.step();
+                }
+            });
+            assertArrayEquals(new int[] { 15, 15 }, FarChunkHolds.heldFor("museum"), "all fifteen held while watched");
+            verify(held.get(0)).addPluginChunkTicket(any(Plugin.class));
+
+            stand(viewer, 10.5, -40.0);
+            withServer(WindowSweep::tick);
+            assertArrayEquals(new int[] { 15, 15 }, FarChunkHolds.heldFor("museum"), "kept through the grace");
+            paused += FarChunkHolds.GRACE_MILLIS;
+            withServer(WindowSweep::tick);
+            withServer(WindowSweep::tick);
+            verify(held.get(0)).removePluginChunkTicket(any(Plugin.class));
+            assertEquals(0, FarChunkHolds.heldCount(), "let go after it");
+
+            stand(viewer, 10.5, 7.5);
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                for (int tick = 0; tick < 10; tick++)
+                {
+                    FarChunkHolds.step();
+                }
+            });
+            assertEquals(15, FarChunkHolds.heldCount(), "held again once watched again");
+            Windows.clear();
+            assertEquals(0, FarChunkHolds.heldCount(), "and let go at once by a reset");
+        }
+        finally
+        {
+            FarChunkHolds.loaderWith(null);
+        }
+    }
+
+    /**
+     * A window that goes away with its last viewer, as a gate closing does, still lets its chunks go
+     * after the grace, though no window or viewer is left to prompt a sweep's work.
+     */
+    @Test
+    void aWindowGoneWithItsLastViewerStillLetsItsChunksGo()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        FarChunkHolds.loaderWith((in, x, z, loaded) ->
+        {
+            final Chunk chunk = mock(Chunk.class);
+            when(chunk.getWorld()).thenReturn(in);
+            when(chunk.getX()).thenReturn(x);
+            when(chunk.getZ()).thenReturn(z);
+            loaded.accept(chunk);
+        });
+        farSetup = far -> when(far.getUID()).thenReturn(UUID.nameUUIDFromBytes("far".getBytes()));
+        try
+        {
+            withServer(() ->
+            {
+                WindowSweep.tick();
+                for (int tick = 0; tick < 10; tick++)
+                {
+                    FarChunkHolds.step();
+                }
+            });
+            assertEquals(15, FarChunkHolds.heldCount());
+
+            MirrorManager.clear();
+            stand(viewer, 10.5, -40.0);
+            withServer(WindowSweep::tick);
+            withServer(WindowSweep::tick);
+            paused += FarChunkHolds.GRACE_MILLIS;
+            withServer(WindowSweep::tick);
+
+            assertEquals(0, FarChunkHolds.heldCount(), "no window and no viewer left, and still let go");
+        }
+        finally
+        {
+            FarChunkHolds.loaderWith(null);
+        }
+    }
+
+    /** With creatures not shown, or the radius 0, a watched window holds nothing. */
+    @Test
+    void withCreaturesOffOrRadiusZeroNothingIsHeld()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        withServer(WindowSweep::tick);
+        assertArrayEquals(new int[] { 0, 0 }, FarChunkHolds.heldFor("museum"), "creatures off");
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
+        ConfigTestSupport.set(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 0);
+        withServer(WindowSweep::tick);
+        assertArrayEquals(new int[] { 0, 0 }, FarChunkHolds.heldFor("museum"), "radius 0");
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 1);
+        withServer(WindowSweep::tick);
+        assertArrayEquals(new int[] { 0, 6 }, FarChunkHolds.heldFor("museum"), "radius 1 claims six, three across and two deep");
+    }
+
     /** A far creature hidden from this viewer, by another plugin or a vanish, is not shown to them. */
     @Test
     void aFarCreatureHiddenFromTheViewerIsNotShownToThem()

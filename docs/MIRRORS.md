@@ -735,11 +735,26 @@ a window's far room show through it. Bukkit has no call for a fake entity, so ea
 blocks for that spot are drawn, turned or flipped as they are, hidden from everybody and shown to
 that one viewer (`HiddenEntities`).
 
-- **Only what is already loaded.** The far room is the capture's box, cut to what the view's depth
-  could show. A chunk there is read only if `isChunkLoaded` says so and its entities have loaded
-  (`Chunk.isEntitiesLoaded`, since 1.17 a separate step); `getChunkAt` is never asked of a chunk
-  that is not loaded, and nothing takes a ticket. Nobody on the far side means nothing loaded
-  there and nothing shown. The test is `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities`.
+- **A small area in front of the far side is held loaded.** On a first dial nobody is at the far
+  side, so nothing there was loaded and no creature showed until somebody had been over. So while a
+  window is being drawn for at least one viewer, `mirror-entity-load-radius` (2 by default, 0 for
+  none, read up to 4) holds the arrival's chunk and that many chunks ahead of it and to either side
+  with the plugin's chunk ticket: 15 chunks at 2, nothing behind the arrival, which no view shows.
+  Two windows onto one place share one ticket a chunk (through `ChunkTickets`, which rings and pets
+  use too). The chunks are asked for two a tick, the arrival's own first: on Paper with
+  `getChunkAtAsync(x, z, false)`, off the main thread; on Spigot, which has no asynchronous load, by
+  `getChunkAt` after `isChunkGenerated`, so on the main thread but paced. Neither generates a chunk:
+  one never generated is skipped. They are let go ten seconds after the window's last viewer stops
+  being drawn it (a view ending, a quit, a death, a world change, the window released, a gate closing,
+  the setting turned off; a lower radius lets the outer chunks go at once), and at once on a reset,
+  on shutdown and when the far world unloads. No more than 400 are held across every window, the
+  nearest windows' first, and reaching that is logged once. `mirror debug -all` says how many of a
+  window's chunks are held.
+- **Read only where loaded.** The far room is the capture's box, cut to what the view's depth could
+  show. A chunk there is read only if `isChunkLoaded` says so and its entities have loaded
+  (`Chunk.isEntitiesLoaded`, since 1.17 a separate step); the reading never loads one itself. So a
+  held chunk's creatures show at the next sweep once its entities are in. The tests are
+  `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities` and `FarChunkHoldsTest`.
 - **What is copied.** Mobs: not players (a later step, as Mannequins), not armour stands,
   displays, interactions, the companion, invisible mobs, anything hidden by default or hidden from
   this viewer by anything but this view's own veil, the dragon or the wither (a boss bar, and the
@@ -783,7 +798,9 @@ that one viewer (`HiddenEntities`).
 - **Not yet in a reflection.** A mirror showing its own room shows no creatures: drawing the room
   in front of it is a later step, with the rule that a viewer never sees themselves.
 
-**What it costs.** A stand-in is a real entity, so other plugins see it: a spawn event, a body in
+**What it costs.** A watched window holds up to 15 chunks loaded at the default radius, 45 at 4,
+and the entities in them are simulated as any loaded chunk's are; other plugins that list chunk
+tickets see the plugin's. A stand-in is a real entity, so other plugins see it: a spawn event, a body in
 an entity counter, one more mob near a mob cap, and a protection plugin that refuses mob spawns
 in a region refuses the stand-in too, which then simply is not shown. They are short-lived and
 never saved, but anything that reacts to every spawn will react to them. Each viewer has copies

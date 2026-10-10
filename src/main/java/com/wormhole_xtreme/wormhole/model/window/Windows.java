@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -451,7 +452,9 @@ public final class Windows
         final CreatureTally tally = view.tallies.get(name);
         if (ConfigManager.isMirrorShowEntities() && (tally != null))
         {
-            lines.add(MirrorText.field(name + " creatures", tally.line(window)));
+            final int[] held = FarChunkHolds.heldFor(name);
+            lines.add(MirrorText.field(name + " creatures", tally.line(window) + ", chunks held " + held[0] + " of "
+                + held[1] + " (mirror-entity-load-radius " + ConfigManager.getMirrorEntityLoadRadius() + ")"));
         }
         if (!fixedForViewer)
         {
@@ -557,6 +560,7 @@ public final class Windows
     public static void clear()
     {
         StandIns.removeEverything();
+        FarChunkHolds.releaseAll();
         ACTIVE.clear();
         OFFERED.clear();
         VIEWS.clear();
@@ -647,7 +651,8 @@ public final class Windows
     static void finish()
     {
         Captures.step(0);
-        if (OFFERED.isEmpty() && ACTIVE.isEmpty() && VIEWS.isEmpty())
+        // Not while chunks are held: the grace of a gate that closed on its last viewer runs out here.
+        if (OFFERED.isEmpty() && ACTIVE.isEmpty() && VIEWS.isEmpty() && !FarChunkHolds.holdsAny())
         {
             return;
         }
@@ -683,6 +688,7 @@ public final class Windows
             }
         }
         StandIns.sweepStrays(VIEWS.values());
+        holdFarAreas(now);
         trimStates(now);
         Captures.unloadIdle();
     }
@@ -1232,6 +1238,57 @@ public final class Windows
      * Shows a viewer the creatures in the far rooms they are looking into, as stand-ins, when the
      * setting is on; takes away any they have otherwise.
      */
+    /**
+     * Holds the area in front of each watched window's far side loaded, so its creatures show on the
+     * first look (#296): every window being drawn for a viewer, nearest its viewers first, while
+     * creatures are shown and {@code mirror-entity-load-radius} is above 0.
+     */
+    private static void holdFarAreas(final long now)
+    {
+        final int radius = ConfigManager.isMirrorShowEntities() ? ConfigManager.getMirrorEntityLoadRadius() : 0;
+        final Map<String, Double> nearest = new HashMap<>();
+        if (radius > 0)
+        {
+            for (final ViewerDrawing view : VIEWS.values())
+            {
+                for (final String name : view.mirrors)
+                {
+                    final WindowState window = ACTIVE.get(name);
+                    if ((window != null) && !window.shape.mirrored())
+                    {
+                        nearest.merge(name, apartFrom(window, view), Math::min);
+                    }
+                }
+            }
+        }
+        final List<String> order = new ArrayList<>(nearest.keySet());
+        order.sort(Comparator.comparingDouble((String name) -> nearest.get(name)).thenComparing(name -> name));
+        final Map<String, List<FarChunkHolds.Area>> watched = new LinkedHashMap<>();
+        for (final String name : order)
+        {
+            watched.put(name, FarChunkHolds.ahead(ACTIVE.get(name).source.destination(), radius));
+        }
+        try
+        {
+            FarChunkHolds.settle(watched, now);
+        }
+        catch (final Exception | LinkageError failed)
+        {
+            StandIns.failedOnce("Could not hold the chunks in front of a view's far side", failed);
+        }
+    }
+
+    /** How far a viewer's last drawn eye was from a window, squared; far off for one never drawn. */
+    private static double apartFrom(final WindowState window, final ViewerDrawing view)
+    {
+        if (view.lastRedraw == null)
+        {
+            return Double.MAX_VALUE;
+        }
+        final Spot eye = view.lastRedraw.eye();
+        return fromBanner(window.anchor(), eye.x(), eye.y(), eye.z());
+    }
+
     /** Moves one viewer's stand-ins after their creatures, and drops them if that fails. */
     private static void followStandIns(final ViewerDrawing view)
     {
