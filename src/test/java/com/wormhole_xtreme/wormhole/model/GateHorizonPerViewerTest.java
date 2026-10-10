@@ -349,6 +349,24 @@ class GateHorizonPerViewerTest
     }
 
     /**
+     * What is owed is paid even once no gate is cleared any more.
+     *
+     * <p>Turning the view off puts the portal material back for whoever is within reach at that moment;
+     * somebody out of reach then, still holding the empty ring, is owed it whatever the level is now.
+     */
+    @Test
+    void whatIsOwedIsPaidAfterTheViewIsTurnedOff()
+    {
+        sentTheClearedOpeningThenOutOfReach();
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        GateViews.offerAll();
+
+        drawsTheView(front, false);
+
+        sentTheOpeningAs(front, water, 1, "back in reach: the portal material they were owed");
+    }
+
+    /**
      * Somebody who comes back into reach by a chunk crossing is drawn the portal material by it, not
      * the empty ring.
      *
