@@ -37,8 +37,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
   there after a restart, and is taken again as gates are dialled and while somebody is at them.
 - **At `gate-view: open` the horizon clears only for whoever is drawn the view** (#516): from behind
-  the gate, from too far off, or with no clear line into it, a gate shows its horizon as usual
-  rather than an empty ring.
+  the gate, from too far off, or with no clear line into it, a gate shows its own portal material
+  as usual rather than an empty ring.
 - **Gate preview actions can be clicked**: after `gate build`, each one is a button, `[Clear]`
   to `[Place]`, that says what it does when pointed at. `[Material]` fills the chat box in rather
   than running, since it needs a group or a block after it, and a refusal that names a command

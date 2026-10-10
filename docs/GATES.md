@@ -629,10 +629,11 @@ nothing in the world changes.
 **At `open` the horizon follows the drawing.** The opening is a drawing either way, the server
 keeping air in it, so each player is sent their own: nothing for whoever the drawing draws the view
 for, which is somebody in front of the opening's face, within `mirror-proximity-distance` of its
-middle and with a clear line into it; the horizon for everybody else, as the gate shows it with no
-view. Behind the gate, too far off, with the lines of sight blocked, before the gate's capture is in,
-standing in the opening's plane or stepping into it, a gate is its horizon, not an empty ring onto
-this world. The drawing says after each redraw, on a move or a sweep, which windows a viewer is drawn,
+middle and with a clear line into it; for everybody else, the horizon in the gate's own portal
+material (water, lava, a nether portal or whatever its shape or palette names, laid across the
+opening as it always is), as the gate shows it with no view. Behind the gate, too far off, with the lines of sight blocked, before the gate's capture is in,
+standing in the opening's plane or stepping into it, a gate shows its own portal material, not an
+empty ring onto this world. The drawing says after each redraw, on a move or a sweep, which windows a viewer is drawn,
 and the opening is sent again only to somebody whose answer changed, and remembered only once it has
 gone: one that could not be sent, to somebody past the horizon's reach or under an iris crossing, is
 tried again on their next redraw. The horizon reaches 64 blocks, as it always has, so with
