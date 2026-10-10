@@ -636,7 +636,10 @@ standing in the opening's plane or stepping into it, a gate shows its own portal
 empty ring onto this world. The drawing says after each redraw, on a move or a sweep, which windows a viewer is drawn,
 and the opening is sent again only to somebody whose answer changed, and remembered only once it has
 gone: one that could not be sent, to somebody past the horizon's reach or under an iris crossing, is
-tried again on their next redraw. The horizon reaches 64 blocks, as it always has, so with
+tried again on their next redraw. Somebody who stops being drawn the view while past that reach is
+owed the gate's own portal material rather than remembered as seeing through: a chunk crossing back
+into reach draws it, and their next redraw sends it whether or not they crossed one, since a step
+back over the reach inside one chunk runs no crossing. The horizon reaches 64 blocks, as it always has, so with
 `mirror-proximity-distance` above that a viewer further off is drawn the view with the opening as
 their client last had it. A player who changes world is forgotten.
 

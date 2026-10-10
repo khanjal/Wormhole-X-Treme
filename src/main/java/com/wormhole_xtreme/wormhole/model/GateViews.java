@@ -56,6 +56,9 @@ public final class GateViews
     /** The cleared gates each player has been sent with nothing in the opening: those they are drawn the view of. */
     private static final Map<UUID, Set<String>> SEES_THROUGH = new HashMap<>();
 
+    /** Gates each player stopped being drawn the view of while out of the horizon's reach: owed it once back. */
+    private static final Map<UUID, Set<String>> OWED = new HashMap<>();
+
     /** Gates that could show a view last sweep, so the first sweep after opening is known. */
     private static final Set<String> OPEN = new HashSet<>();
 
@@ -77,6 +80,7 @@ public final class GateViews
     {
         CLEARED.clear();
         SEES_THROUGH.clear();
+        OWED.clear();
         OPEN.clear();
         LOOKED.clear();
     }
@@ -136,45 +140,84 @@ public final class GateViews
      */
     public static void drawn(final UUID viewer, final Player player, final Set<String> windows)
     {
-        final Set<String> was = SEES_THROUGH.getOrDefault(viewer, Set.of());
         if (player == null)
         {
-            SEES_THROUGH.remove(viewer);
+            forgetViewer(viewer);
             return;
         }
+        final Set<String> was = SEES_THROUGH.getOrDefault(viewer, Set.of());
+        final Set<String> owed = OWED.getOrDefault(viewer, Set.of());
         // On every redraw of everybody near a window, so a server with no cleared gate stops here.
-        if (was.isEmpty() && CLEARED.isEmpty())
+        if (was.isEmpty() && owed.isEmpty() && CLEARED.isEmpty())
         {
             return;
         }
         final Set<String> now = clearedAmong(windows);
-        if (now.equals(was))
+        if (now.equals(was) && owed.isEmpty())
         {
             return;
         }
         // Each gate only once its send is done, so one skipped or failed is tried again on the next redraw.
         final Set<String> through = new HashSet<>(was);
+        final Set<String> stillOwed = new HashSet<>(owed);
         for (final String name : now)
         {
             if (!was.contains(name) && (resend(player, name, true) == Redrawn.SENT))
             {
                 through.add(name);
+                stillOwed.remove(name);
             }
         }
         for (final String name : was)
         {
-            if (!now.contains(name) && goneFromClient(resend(player, name, false)))
+            if (!now.contains(name))
             {
-                through.remove(name);
+                lose(player, name, through, stillOwed);
             }
         }
-        if (through.isEmpty())
+        // Not to somebody drawn the view again, who is sent the cleared opening instead.
+        for (final String name : owed)
         {
-            SEES_THROUGH.remove(viewer);
+            if (!now.contains(name) && goneFromClient(resend(player, name, false)))
+            {
+                stillOwed.remove(name);
+            }
+        }
+        keep(SEES_THROUGH, viewer, through);
+        keep(OWED, viewer, stillOwed);
+    }
+
+    /**
+     * Sends one player a gate's horizon as they stop being drawn its view.
+     *
+     * <p>Out of the horizon's reach it is owed rather than remembered as cleared, so a chunk crossing
+     * back into reach draws them the horizon, and the next redraw sends it whatever they crossed.
+     */
+    private static void lose(final Player player, final String name, final Set<String> through,
+        final Set<String> owed)
+    {
+        final Redrawn redrawn = resend(player, name, false);
+        if (redrawn == Redrawn.OUT_OF_REACH)
+        {
+            through.remove(name);
+            owed.add(name);
+        }
+        else if (goneFromClient(redrawn))
+        {
+            through.remove(name);
+        }
+    }
+
+    /** Files a player's set of gates, or forgets them for an empty one. */
+    private static void keep(final Map<UUID, Set<String>> map, final UUID viewer, final Set<String> gates)
+    {
+        if (gates.isEmpty())
+        {
+            map.remove(viewer);
         }
         else
         {
-            SEES_THROUGH.put(viewer, through);
+            map.put(viewer, gates);
         }
     }
 
@@ -229,6 +272,7 @@ public final class GateViews
     public static void forgetViewer(final UUID viewer)
     {
         SEES_THROUGH.remove(viewer);
+        OWED.remove(viewer);
     }
 
     /**

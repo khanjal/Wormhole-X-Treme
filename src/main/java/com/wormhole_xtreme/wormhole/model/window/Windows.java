@@ -673,7 +673,7 @@ public final class Windows
     }
 
     /** Tells the listener what a viewer is drawn, without letting its failure stop the drawing. */
-    private static void tellDrawn(final UUID viewer, final Player player, final Set<String> windows)
+    static void tellDrawn(final UUID viewer, final Player player, final Set<String> windows)
     {
         try
         {
@@ -681,7 +681,11 @@ public final class Windows
         }
         catch (final Exception | LinkageError e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not follow a viewer's windows", e);
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not follow a viewer's windows", e);
+            }
         }
     }
 

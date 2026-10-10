@@ -319,26 +319,51 @@ class GateHorizonPerViewerTest
         sentTheOpeningAs(front, air, 1, "within reach now, and still drawn the view");
     }
 
-    /**
-     * Somebody who walks out of the horizon's reach after being sent the cleared opening is sent the
-     * horizon once they are back, though they stopped being drawn the view while out of it.
-     *
-     * <p>Forgotten while out of reach, nothing was owed them on their return, and the client kept the
-     * empty ring it was last sent.
-     */
-    @Test
-    void somebodySentTheClearedOpeningWhoLeavesTheReachIsSentTheHorizonOnReturn()
+    /** Steps somebody sent the cleared opening out of the horizon's reach, no longer drawn the view. */
+    private void sentTheClearedOpeningThenOutOfReach()
     {
         clearedForTheView();
         drawsTheView(front, true);
         when(front.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 200.0));
         drawsTheView(front, false);
         sentTheOpeningAs(front, water, 0, "too far off to be sent anything");
-
         when(front.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 25.0));
-        drawsTheView(front, false);
+    }
 
-        sentTheOpeningAs(front, water, 1, "back in reach: the horizon they were owed");
+    /**
+     * Somebody who steps out of the horizon's reach after being sent the cleared opening, and back in
+     * without crossing a chunk, is sent the portal material on their next redraw, once.
+     *
+     * <p>Stepping across the reach inside one chunk runs no chunk-crossing redraw, so dropped while out
+     * of reach, nothing would ever send them the horizon over the empty ring they were last sent.
+     */
+    @Test
+    void somebodyWhoStepsBackIntoReachIsSentThePortalMaterialOnTheNextRedraw()
+    {
+        sentTheClearedOpeningThenOutOfReach();
+
+        drawsTheView(front, false);
+        sentTheOpeningAs(front, water, 1, "back in reach: the portal material they were owed");
+        drawsTheView(front, false);
+        sentTheOpeningAs(front, water, 1, "and owed nothing after that");
+    }
+
+    /**
+     * Somebody who comes back into reach by a chunk crossing is drawn the portal material by it, not
+     * the empty ring.
+     *
+     * <p>Kept as sent the cleared opening while out of reach, the crossing's redraw sent them the empty
+     * ring from behind the gate until the next sweep.
+     */
+    @Test
+    void somebodyWhoCrossesBackIntoReachIsDrawnThePortalMaterialByTheCrossing()
+    {
+        sentTheClearedOpeningThenOutOfReach();
+
+        StargateBlockSetup.refreshPortalVisuals(front);
+
+        sentTheOpeningAs(front, water, 1, "the crossing draws the portal material");
+        sentTheOpeningAs(front, air, 1, "never the empty ring again, only the first time, drawn the view");
     }
 
     /**
