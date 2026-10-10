@@ -1582,6 +1582,7 @@ class WormholeXTremePlayerListener implements Listener
     {
         // Their client has the new world's chunks, so no gate's opening is cleared for them any more.
         GateViews.forgetViewer(event.getPlayer().getUniqueId());
+        StargateManager.forgetSweptLayers(event.getPlayer().getUniqueId());
         refreshPortalVisualsFor(event.getPlayer());
         GatePreviews.forget(event.getPlayer().getUniqueId());
     }

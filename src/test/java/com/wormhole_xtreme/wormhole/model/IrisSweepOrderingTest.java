@@ -1431,7 +1431,7 @@ class IrisSweepOrderingTest
      *
      * <p>Not asserted here: what the player behind is drawn in the ring itself, which the first
      * step settles for them at once, and what a player who crosses the plane mid-sweep is left
-     * with on their near side (#447).
+     * with on their near side, which {@link IrisSweepCrossingTest} covers (#447).
      */
     @Test
     void theFarLayerArrivesWithTheRingThatCoversItAndLeavesWithTheOneThatUncoversIt()

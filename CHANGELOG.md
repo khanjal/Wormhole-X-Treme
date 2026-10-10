@@ -75,6 +75,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   the next. A gate, group or `gate-dial-spin` set to either one dials the other way after the
   upgrade; set it to the other name to keep the old look.
 
+**Fixed**
+
+- **Walking round a gate while its iris opens or closes no longer leaves a block on your side of
+  it that is not there** ([#447](https://github.com/khanjal/Wormhole-X-Treme/issues/447)). Behind
+  a see-through iris the wormhole's stand-in ice, and from behind any drawn iris the iris a block
+  in front of the ring, stayed where they were until the sweep ended, solid to you and not to the
+  server; walking round to the front left the rings already covered with nothing behind them.
+
 ### Internals
 
 - **The code that draws a far side through an opening has its own package, `model/window`**,
