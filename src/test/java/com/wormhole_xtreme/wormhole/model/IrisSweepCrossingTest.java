@@ -519,18 +519,19 @@ class IrisSweepCrossingTest
         StargateManager.relayerFor(viewer, new Location(world, 0.5, 64, BEHIND));
         assertEquals(List.of(), iced(plane), "restacked from behind, nothing is drawn a block behind the ring");
 
-        gate.toggleIrisActive(false);
         stand(viewer, FRONT);
-        step();
+        gate.toggleIrisActive(false);
 
-        assertEquals(cellsOf(rings.get(2)), iced(plane), "back in front, the wormhole behind the ring still covered");
+        assertEquals(cellsOf(rings.get(1), rings.get(2)), iced(plane),
+            "back in front as it opens, the wormhole behind the rings still covered");
     }
 
     /**
-     * A closing sweep called off by opening the iris leaves no ice behind for a viewer who then walks round.
+     * A closing sweep called off by opening the iris leaves no ice on the near side of a viewer who has walked round.
      *
-     * <p>The opening sweep starts from the rings the closing one covered, so what the viewer holds
-     * from the closing is still known to be theirs and is handed back as they cross.
+     * <p>They walked round between two steps of the closing, which never ran the second. The opening
+     * starts from the rings the closing covered, so what the viewer holds from it is still known to
+     * be theirs and is handed back at the opening's first step.
      */
     @Test
     void aClosingCalledOffByOpeningLeavesNoIceOnTheNearSideOfAViewerWhoWalksRound()
@@ -543,11 +544,10 @@ class IrisSweepCrossingTest
         step();
         assertEquals(cellsOf(closingRings.get(0), closingRings.get(1)), iced(plane), "two rings closed");
 
-        gate.toggleIrisActive(false);
-        assertTrue(StargateIrisAnimator.isSweeping(gate), "the closing was called off and an opening started");
         stand(viewer, BEHIND);
-        step();
+        gate.toggleIrisActive(false);
 
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the closing was called off and an opening started");
         assertEquals(List.of(), iced(plane), "behind the gate now, no ice on their side");
         assertTrue(plane.showing(truth).containsAll(cellsOf(closingRings.get(0), closingRings.get(1))),
             "what they held from the closing was handed back: " + plane.showing(truth));
