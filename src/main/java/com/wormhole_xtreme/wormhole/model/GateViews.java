@@ -378,6 +378,7 @@ public final class GateViews
         }
         catch (final Exception | LinkageError e)
         {
+            // Not open this sweep, so the next that offers it treats it as newly opened: one retake at most.
             open.remove(gate.getGateName());
             clear.remove(gate.getGateName());
             failedOnce("Could not offer " + gate.getGateName() + "'s view to the mirror sweep", e);

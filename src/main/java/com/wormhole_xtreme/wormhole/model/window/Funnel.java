@@ -53,7 +53,7 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /** How many blocks thick the tunnel's wall is. */
-    static final int WALL = 2;
+    static final int WALL_BLOCKS = 2;
 
     /** Handed each cell of a funnel's wall. */
     @FunctionalInterface
@@ -190,17 +190,22 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
 
     /**
      * Whether a cell past the tunnel lies on a line through the near opening and the far one, in block
-     * edges. Each is a block deep and walled round, so a line must be inside both at both faces: the
-     * widest runs from the near opening's front face through the far plane's back face, and is
-     * widest at the cell's far side.
+     * edges. Each is a block deep and walled round, so a line must be inside both at both faces. The
+     * widest leaves the far opening's back face at one edge: it spreads a layer at a time as far as
+     * the near opening's front face allows, and no more than the far opening is wide, or it would
+     * leave the far opening's front face past the other edge. It is widest at the cell's far side.
      */
     private boolean seenThrough(final int layer, final int across, final int up, final double slack, final int plane)
     {
-        final double past = (layer - plane) / (plane + 1.0);
-        final double left = (((far.left() - 0.5) * (1.0 + past)) - (past * (width - 0.5))) - slack;
-        final double right = ((far.right() + 0.5) * (1.0 + past)) + (past * 0.5) + slack;
-        final double bottom = (((far.bottom() - 0.5) * (1.0 + past)) - (past * (height - 0.5))) - slack;
-        final double top = ((far.top() + 0.5) * (1.0 + past)) + (past * 0.5) + slack;
+        final double layers = layer - plane;
+        final double reach = plane + 1.0;
+        final double wide = (far.right() - far.left()) + 1.0;
+        final double tall = (far.top() - far.bottom()) + 1.0;
+        final double left = (far.left() - 0.5) - (layers * Math.min(((width - 0.5) - (far.left() - 0.5)) / reach, wide)) - slack;
+        final double right = (far.right() + 0.5) + (layers * Math.min((far.right() + 1.0) / reach, wide)) + slack;
+        final double bottom = (far.bottom() - 0.5) - (layers * Math.min(((height - 0.5) - (far.bottom() - 0.5)) / reach, tall))
+            - slack;
+        final double top = (far.top() + 0.5) + (layers * Math.min((far.top() + 1.0) / reach, tall)) + slack;
         return ((across + 0.5) > left) && ((across - 0.5) < right) && ((up + 0.5) > bottom) && ((up - 0.5) < top);
     }
 
@@ -279,9 +284,9 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     /** Whether a cell is within two blocks of the tunnel on its own layer, corners included. */
     private boolean besideOnLayer(final int layer, final int across, final int up)
     {
-        for (int sideways = -WALL; sideways <= WALL; sideways++)
+        for (int sideways = -WALL_BLOCKS; sideways <= WALL_BLOCKS; sideways++)
         {
-            for (int upwards = -WALL; upwards <= WALL; upwards++)
+            for (int upwards = -WALL_BLOCKS; upwards <= WALL_BLOCKS; upwards++)
             {
                 if (holds(layer, across + sideways, up + upwards))
                 {
@@ -311,9 +316,9 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     /** Visits the wall's cells on one layer: within two blocks of the near opening, which the tunnel never leaves. */
     private void wallOfLayer(final int layer, final Cell cell)
     {
-        for (int across = -WALL; across < (width + WALL); across++)
+        for (int across = -WALL_BLOCKS; across < (width + WALL_BLOCKS); across++)
         {
-            for (int up = -WALL; up < (height + WALL); up++)
+            for (int up = -WALL_BLOCKS; up < (height + WALL_BLOCKS); up++)
             {
                 if (wall(layer, across, up))
                 {

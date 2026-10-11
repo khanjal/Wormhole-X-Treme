@@ -251,6 +251,86 @@ class FunnelTest
         return 1;
     }
 
+    /**
+     * A short tunnel for how much it narrows, Massive to Standard at a length of two, shows past the far
+     * gate's plane exactly the cells some line through both openings reaches, and none other.
+     *
+     * <p>The far opening is a block deep: a line leaving its back face at one edge cannot have entered
+     * its front face past the other. Spread only as the near opening allowed, the room past a short
+     * tunnel was wider than the far opening can show.
+     */
+    @Test
+    void aShortTunnelShowsExactlyWhatSomeLineThroughBothOpeningsReaches()
+    {
+        final Funnel funnel = Funnel.of(opening(17, 17), farOpening(5, 5), 2, Material.WATER);
+
+        assertEquals(new Funnel.Opening(6, 10, 0, 4), funnel.far());
+        assertEquals(2, funnel.taper());
+        assertTrue(funnel.holds(2, 1, 2), "five a layer at most, the far opening's width: from 5.5 to 0.5");
+        assertFalse(funnel.holds(2, 0, 2), "not the five and a half the near opening alone would allow");
+        assertEquals(seenByLines(-0.5, 16.5, 5.5, 10.5), heldAlong(funnel, true), "across");
+        assertEquals(seenByLines(-0.5, 16.5, -0.5, 4.5), heldAlong(funnel, false), "up");
+    }
+
+    /** The cells of layers 2 to 10, each as layer times a thousand plus index, that the room holds along one axis. */
+    private static Set<Integer> heldAlong(final Funnel funnel, final boolean across)
+    {
+        final Set<Integer> held = new HashSet<>();
+        for (int layer = 2; layer <= 10; layer++)
+        {
+            for (int index = -80; index <= 100; index++)
+            {
+                if (across ? funnel.holds(layer, index, 2) : funnel.holds(layer, 8, index))
+                {
+                    held.add((layer * 1000) + index);
+                }
+            }
+        }
+        return held;
+    }
+
+    /**
+     * The cells of layers 2 to 10 crossed by lines inside a near opening at both its faces, -0.5 and
+     * 0.5, and inside a far one a block deep at both of its, 0.5 and 1.5, sampled every quarter block.
+     */
+    private static Set<Integer> seenByLines(final double nearLow, final double nearHigh, final double farLow,
+        final double farHigh)
+    {
+        final Set<Integer> seen = new HashSet<>();
+        for (double front = nearLow; front <= nearHigh; front += 0.25)
+        {
+            for (double back = farLow; back <= farHigh; back += 0.25)
+            {
+                final double slope = (back - front) / 2.0;
+                final double between = front + slope;
+                if ((between >= Math.max(nearLow, farLow)) && (between <= Math.min(nearHigh, farHigh)))
+                {
+                    markCrossed(seen, back, slope);
+                }
+            }
+        }
+        return seen;
+    }
+
+    /** Marks the cells a line crosses in layers 2 to 10, given where it leaves the far opening's back face. */
+    private static void markCrossed(final Set<Integer> seen, final double back, final double slope)
+    {
+        for (int layer = 2; layer <= 10; layer++)
+        {
+            final double one = back + (slope * (layer - 2.0));
+            final double other = back + (slope * (layer - 1.0));
+            final double low = Math.min(one, other);
+            final double high = Math.max(one, other);
+            for (int index = (int) Math.floor(low - 1.0); index <= (int) Math.ceil(high + 1.0); index++)
+            {
+                if (((index + 0.5) > low) && ((index - 0.5) < high))
+                {
+                    seen.add((layer * 1000) + index);
+                }
+            }
+        }
+    }
+
     @Test
     void theWallIsTwoBlocksThickRoundTheTunnelCornersIncludedAndEndsWithIt()
     {
