@@ -247,6 +247,17 @@ class HorizonRippleTest
     }
 
     @Test
+    void aSmallRippleShowsEachRingLongerAndABigOneNoSlowerThanTheFloor()
+    {
+        assertEquals(8L, HorizonRipple.stepTicks(1));
+        assertEquals(6L, HorizonRipple.stepTicks(2));
+        assertEquals(3L, HorizonRipple.stepTicks(4));
+        assertEquals(2L, HorizonRipple.stepTicks(6));
+        assertEquals(2L, HorizonRipple.stepTicks(40));
+        assertEquals(2L, HorizonRipple.stepTicks(0));
+    }
+
+    @Test
     void aFlatWaterGateRipplesInIceFromTheCentreOutEachRingPutBackAsTheNextIsDrawn()
     {
         assertTrue(HorizonRipple.start(gate));
@@ -267,7 +278,7 @@ class HorizonRippleTest
             "the ripple over: the corners back to water, and nothing left as ice");
         assertTrue(pending.isEmpty(), "nothing more booked");
         assertFalse(HorizonRipple.isRippling(gate));
-        assertEquals(List.of(2L, 2L, 2L, 2L), delays, "a ring every two ticks");
+        assertEquals(List.of(3L, 3L, 3L, 3L), delays, "four rings, so a ring every three ticks");
     }
 
     private static Set<String> filter(final Set<String> sends, final String what)
@@ -554,7 +565,7 @@ class HorizonRippleTest
         for (int i = 0; i < 2_000; i++)
         {
             final long wait = DEFAULT_WAIT.getAsLong();
-            assertTrue((wait >= 6_000L) && (wait <= 20_000L), wait + " is outside six to twenty seconds");
+            assertTrue((wait >= 3_000L) && (wait <= 6_000L), wait + " is outside three to six seconds");
         }
     }
 

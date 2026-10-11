@@ -817,7 +817,7 @@ each shown for one step and put back as the next is drawn. Off by default until 
 in a world.
 
 **When.** As something goes into a gate, a player, a mount, a minecart, a mob, an item or an arrow,
-at that gate and at the one it comes out of; and on its own every 6 to 20 seconds, at random, while
+at that gate and at the one it comes out of; and on its own every 3 to 6 seconds, at random, while
 the gate is open and somebody is within the horizon's reach, 64 blocks. Always from the centre. One
 ripple at a time on a gate, and none within two seconds of the last one starting, so a line of
 minecarts does not set one off each (`HorizonRipple`, the timings its constants). The random wait

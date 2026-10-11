@@ -435,7 +435,7 @@ do about it.
 ## The ripple
 
 With `gate-ripple: true` an open gate's event horizon ripples, in rings from its middle out to the
-rim: as something goes through it, at both ends, and every 6 to 20 seconds while somebody is near.
+rim: as something goes through it, at both ends, and every 3 to 6 seconds while somebody is near.
 It is off by default while it is new.
 
 | Gate | What ripples |

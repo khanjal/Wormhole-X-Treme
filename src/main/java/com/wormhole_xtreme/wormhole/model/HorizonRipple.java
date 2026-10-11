@@ -52,17 +52,23 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  */
 public final class HorizonRipple
 {
-    /** Ticks a ring shows before the next. */
+    /** Ticks a ring shows before the next on a gate of many rings; a gate of few shows each longer. */
     static final long STEP_TICKS = 2L;
+
+    /** Ticks a whole ripple takes on a small gate, spread over its rings, capped per ring by {@link #SLOWEST_STEP_TICKS}. */
+    static final long SMALL_RIPPLE_TICKS = 12L;
+
+    /** The longest a single ring shows. */
+    static final long SLOWEST_STEP_TICKS = 8L;
 
     /** The least time between the starts of two ripples on one gate, so a minecart line does not set one off every tick. */
     static final long MIN_GAP_MILLIS = 2_000L;
 
     /** The shortest wait for a ripple of its own, while a gate is open and somebody is near. */
-    static final long RANDOM_LOW_MILLIS = 6_000L;
+    static final long RANDOM_LOW_MILLIS = 3_000L;
 
     /** The longest. */
-    static final long RANDOM_HIGH_MILLIS = 20_000L;
+    static final long RANDOM_HIGH_MILLIS = 6_000L;
 
     /** A flat water gate needs more cells than a two by two has before its horizon ripples in ice. */
     static final int FLAT_MORE_THAN = 4;
@@ -156,8 +162,24 @@ public final class HorizonRipple
         NEXT.put(name, now + nextWait.getAsLong());
         final List<List<Location>> rings = ringsOf(gate);
         logStart(gate, rings.size(), deep, icy);
-        new IrisSweepDriver<>(rings, new Ripple(gate, deep, icy), () -> STEP_TICKS).start();
+        new IrisSweepDriver<>(rings, new Ripple(gate, deep, icy), () -> stepTicks(rings.size())).start();
         return true;
+    }
+
+    /**
+     * Ticks one ring shows: a small gate has few rings, so each stays longer or the ripple is too quick to see.
+     *
+     * @param rings
+     *            how many rings the ripple has
+     * @return ticks, from {@link #STEP_TICKS} to {@link #SLOWEST_STEP_TICKS}
+     */
+    static long stepTicks(final int rings)
+    {
+        if (rings <= 0)
+        {
+            return STEP_TICKS;
+        }
+        return Math.max(STEP_TICKS, Math.min(SLOWEST_STEP_TICKS, SMALL_RIPPLE_TICKS / rings));
     }
 
     /** Whether the plugin can still book a step: Bukkit refuses one from a plugin being disabled. */

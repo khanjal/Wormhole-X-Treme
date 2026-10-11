@@ -46,7 +46,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 **Added**
 
 - **An open gate's event horizon can ripple** ([#579](https://github.com/khanjal/Wormhole-X-Treme/issues/579)),
-  in rings from its middle out, as something goes through it, at both ends, and every 6 to 20
+  in rings from its middle out, as something goes through it, at both ends, and every 3 to 6
   seconds while somebody is near. Off until `gate-ripple` is set. Grand and Massive ripple their own
   portal material a block in front of the horizon, a flat water gate bigger than two by two ripples
   in ice, and at `gate-view: open` a viewer who sees through the gate sees its portal material cross
