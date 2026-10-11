@@ -9,6 +9,7 @@ import org.bukkit.scheduler.BukkitTask;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost;
@@ -67,6 +68,9 @@ public final class RepeatingSweeps
         // The ice behind a see-through iris, moved for it; at 0 there is no task at all.
         sweeps.add(new Sweep(ConfigKeys.GATE_IRIS_HORIZON_TICKS, 20L, StargateManager::tickIrisHorizon,
             ConfigManager::getGateIrisHorizonTicks));
+        // A ripple now and then on each open gate somebody is near; off, there is no task at all.
+        sweeps.add(new Sweep(ConfigKeys.GATE_RIPPLE, 20L, HorizonRipple::tick,
+            () -> ConfigManager.isGateRipple() ? 20L : 0L));
         for (final Sweep sweep : sweeps)
         {
             sweep.task = start(sweep, sweep.firstDelay);

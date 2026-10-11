@@ -1390,6 +1390,8 @@ public class StargateManager
                     "Could not forget the view of gate '" + s.getGateName() + "'", e);
             }
         }
+        // While the gate still shows its wormhole, so what a ripple drew is put back to it.
+        HorizonRipple.forget(s);
         getStargateList().remove(normalizeGateName(s.getGateName()));
         // A gate deleted while its wormhole was open would otherwise stay in the open set
         // for the life of the server: nothing on the removal path cleared it, and the set is

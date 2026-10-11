@@ -96,6 +96,7 @@ class StargateLifecycle
         // shut by default never reaches: an opening sweep left running went on painting the
         // wormhole it started with into the idle gate, and its last step filled it in (#434).
         StargateIrisAnimator.cancel(gate);
+        HorizonRipple.forget(gate);
         // Before the interior is filled below, so a cleared horizon is not what a redial settles into.
         GateViews.closed(gate);
         if (gate.isGateIrisDefaultActive())
@@ -368,6 +369,8 @@ class StargateLifecycle
         // Called off before the flag moves, so it finishes as the iris it was heading to --
         // after, a closing sweep on a drawn iris was finished as the air behind it.
         StargateIrisAnimator.cancel(gate);
+        // A ripple too, while its rings can still be put back to the horizon they were drawn over.
+        HorizonRipple.cancel(gate);
         if (!irisActive)
         {
             // Before the opening is drawn below, so it is drawn with the horizon for everybody.

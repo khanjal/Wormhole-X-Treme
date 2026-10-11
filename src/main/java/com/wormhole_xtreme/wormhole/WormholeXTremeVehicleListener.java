@@ -29,6 +29,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 import com.wormhole_xtreme.wormhole.events.StargateMinecartTeleportEvent;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
@@ -732,6 +733,7 @@ class WormholeXTremeVehicleListener implements Listener
         }
         applyTravelRestrictions(st, pendingRestrictions);
         greetRiders(passengers, arrivedAt);
+        HorizonRipple.crossed(st, arrivedAt);
         return true;
     }
 

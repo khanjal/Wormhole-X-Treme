@@ -1556,7 +1556,7 @@ class StargateBlockSetup
      *            the cell
      * @return true if the horizon may be shown there
      */
-    private static boolean backdropIsFree(final Location at)
+    static boolean backdropIsFree(final Location at)
     {
         final Block block = at.getWorld().getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ());
         if (!MaterialUtils.isAirMaterial(block.getType()))

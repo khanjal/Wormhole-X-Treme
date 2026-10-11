@@ -825,13 +825,13 @@ eight, and Grand, eighteen by seventeen, from four by three in nine.
 
 **What a ring is made of** depends on the gate, and on who is looking:
 
-- **A gate with its frame in front of its horizon**, the plane a block in front of the opening closed
-  in by the gate's own blocks, is drawn its own portal material in that plane, whatever the
+- **A gate with its frame in front of its horizon**, its own blocks on all four sides of the opening
+  in the plane a block in front of it, is drawn its own portal material in that plane, whatever the
   material: water, lava, a nether portal or anything a shape names. Of the shipped shapes that is
-  Grand and Massive, whose opening sits a layer back inside their ring; Standard, Large and Minimal
-  have nothing in front of their horizon but the DHD. It is read from the gate's own blocks
-  (`HorizonRipple.isDeep`, the test `GateViews.framed` makes of an opening), not its shape's name, so
-  a custom shape with a ring in front of its opening counts. A cell in front that is not air, or is
+  Grand and Massive, whose opening sits a layer back inside their ring, Massive's with gaps in it;
+  Standard, Large and Minimal have nothing in front of their horizon but the DHD, which stands to one
+  side. It is read from the gate's own blocks (`HorizonRipple.isDeep`), not its shape's name, so a
+  custom shape with a ring in front of its opening counts. A cell in front that is not air, or is
   another gate's opening, is skipped.
 - **A flat water gate bigger than two by two** ripples in ice in the horizon itself: translucent,
   like the water, and a block on every version from 1.20.

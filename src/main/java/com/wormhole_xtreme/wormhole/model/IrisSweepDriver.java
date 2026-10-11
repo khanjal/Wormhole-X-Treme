@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.function.LongSupplier;
 
 import org.bukkit.Location;
 
@@ -73,6 +74,7 @@ public final class IrisSweepDriver<C>
 
     private final List<List<C>> rings;
     private final Canvas<C> canvas;
+    private final LongSupplier pace;
     private Booking booked;
 
     /**
@@ -81,8 +83,20 @@ public final class IrisSweepDriver<C>
      */
     public IrisSweepDriver(final List<List<C>> rings, final Canvas<C> canvas)
     {
+        this(rings, canvas, ConfigManager::getGateIrisStepTicks);
+    }
+
+    /**
+     * @param rings
+     *            the rings, in the order they are drawn
+     * @param pace
+     *            the ticks between one ring and the next, asked at each step
+     */
+    public IrisSweepDriver(final List<List<C>> rings, final Canvas<C> canvas, final LongSupplier pace)
+    {
         this.rings = rings;
         this.canvas = canvas;
+        this.pace = pace;
     }
 
     /** Draws the first ring now and books the rest. */
@@ -126,7 +140,7 @@ public final class IrisSweepDriver<C>
         canvas.moveHorizon(rings.get(index));
         // The index is carried by the step booked rather than kept here, so each booking runs its
         // own ring however late it fires.
-        booked = canvas.later(ConfigManager.getGateIrisStepTicks(), () -> step(index + 1));
+        booked = canvas.later(pace.getAsLong(), () -> step(index + 1));
         // Booked before registered: the registry holds this sweep for its latest booking, which a call-off drops.
         canvas.register(this);
     }

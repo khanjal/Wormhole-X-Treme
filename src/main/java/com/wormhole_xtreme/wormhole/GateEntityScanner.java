@@ -31,6 +31,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionType;
 import org.bukkit.util.BoundingBox;
 
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.window.StandIns;
@@ -212,7 +213,10 @@ public final class GateEntityScanner implements Runnable
                 splatOnIris(entity);
                 return;
             }
-            sendThrough(entity, arrival, gate.getGateFacing(), facing, null);
+            if (sendThrough(entity, arrival, gate.getGateFacing(), facing, null))
+            {
+                HorizonRipple.crossed(gate, gate.getGateTarget());
+            }
         }
         catch (final RuntimeException t)
         {
@@ -678,7 +682,10 @@ public final class GateEntityScanner implements Runnable
         {
             return false;
         }
-        sendThrough(projectile, arrival, gate.getGateFacing(), target.getGateFacing(), target);
+        if (sendThrough(projectile, arrival, gate.getGateFacing(), target.getGateFacing(), target))
+        {
+            HorizonRipple.crossed(gate, target);
+        }
         return true;
     }
 
@@ -708,8 +715,13 @@ public final class GateEntityScanner implements Runnable
         }
         final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
             target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
-        return (arrival != null) && !StargateRestrictions.isCrossWorldRefused(item.getWorld(), arrival)
-            && sendThrough(item, arrival, gate.getGateFacing(), target.getGateFacing(), target);
+        if ((arrival == null) || StargateRestrictions.isCrossWorldRefused(item.getWorld(), arrival)
+            || !sendThrough(item, arrival, gate.getGateFacing(), target.getGateFacing(), target))
+        {
+            return false;
+        }
+        HorizonRipple.crossed(gate, target);
+        return true;
     }
 
     /**
