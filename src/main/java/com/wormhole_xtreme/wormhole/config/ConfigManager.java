@@ -144,6 +144,9 @@ public class ConfigManager
         /** How far a gate's view is filled in, behind its first step. */
         GATE_VIEW_FULL_DEPTH,
 
+        /** Whether an open gate's horizon ripples (#579). */
+        GATE_RIPPLE,
+
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
 
@@ -1060,6 +1063,13 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
         return (s == null) ? 20L : Math.max(0L, s.getIntValue());
+    }
+
+    /** Returns true if an open gate's horizon ripples (#579); off when the setting is missing, as it ships. */
+    public static boolean isGateRipple()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_RIPPLE);
+        return (s != null) && s.getBooleanValue();
     }
 
     /** Returns true if a player arriving through a gate is told its name; off when the setting is missing, as it ships. */

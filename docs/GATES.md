@@ -21,6 +21,7 @@ cannot ask about.
 - [Dialling](#dialling) · [Why no shipped shape carries an `[RS]`](#why-no-shipped-shape-carries-an-rs)
 - [Timers, and what may extend them](#timers-and-what-may-extend-them)
 - [The iris](#the-iris) · [The portal is drawn, not built](#the-portal-is-drawn-not-built)
+- [Seeing through a gate](#seeing-through-a-gate-experimental) · [The ripple](#the-ripple-experimental)
 - [Animation](#animation) · [Sound](#sound)
 - [Travelling](#travelling) · [Everything that is not a player](#everything-that-is-not-a-player)
 - [Permissions](#permissions) · [Commands and config](#commands-and-config)
@@ -798,6 +799,63 @@ is given back. "What the server sends" is the world's view distance; on Paper a 
 - **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
   point draws its old capture until its next retake, at most a minute after it is next dialled.
 - **No setting per gate**, no horizontal gates, and no creatures on the far side.
+
+## The ripple (experimental)
+
+`gate-ripple` ([#579](https://github.com/khanjal/Wormhole-X-Treme/issues/579)) ripples an open
+gate's event horizon: rings from the centre of the opening out to its rim, a ring every two ticks,
+each shown for one step and put back as the next is drawn. Off by default until it has been seen
+in a world.
+
+**When.** As something goes into a gate, a player, a mount, a minecart, a mob, an item or an arrow,
+at that gate and at the one it comes out of; and on its own every 6 to 20 seconds, at random, while
+the gate is open and somebody is within the horizon's reach, 64 blocks. Always from the centre. One
+ripple at a time on a gate, and none within two seconds of the last one starting, so a line of
+minecarts does not set one off each (`HorizonRipple`, the timings its constants). The random wait
+starts when somebody comes near an open gate, and again whenever it ripples for any reason.
+
+**The rings** (`RippleRings`) are cut in the opening's own grid, out from a patch at its middle: one
+cell across an odd side and two across an even one, so an odd opening starts from one cell, an even
+one from a two by two and an odd by even one from the pair in its middle. An opening nine or more
+each way, both, starts two cells wider each way: three by three, four by four, or three by four. A
+cell's ring is its distance from the patch rounded to a whole block, so the rings are round, and an
+opening that is a circle or a diamond rings the same way with the cells it has. Standard starts from
+one cell and ripples in three steps, Large from two by two in four, Massive from three by three in
+eight, and Grand, eighteen by seventeen, from four by three in nine.
+
+**What a ring is made of** depends on the gate, and on who is looking:
+
+- **A gate with its frame in front of its horizon**, the plane a block in front of the opening closed
+  in by the gate's own blocks, is drawn its own portal material in that plane, whatever the
+  material: water, lava, a nether portal or anything a shape names. Of the shipped shapes that is
+  Grand and Massive, whose opening sits a layer back inside their ring; Standard, Large and Minimal
+  have nothing in front of their horizon but the DHD. It is read from the gate's own blocks
+  (`HorizonRipple.isDeep`, the test `GateViews.framed` makes of an opening), not its shape's name, so
+  a custom shape with a ring in front of its opening counts. A cell in front that is not air, or is
+  another gate's opening, is skipped.
+- **A flat water gate bigger than two by two** ripples in ice in the horizon itself: translucent,
+  like the water, and a block on every version from 1.20.
+- **A flat gate of any other material**, lava, a nether portal or anything else, does not ripple for
+  now, nor does Minimal. A ring material for each needs a look in a world first.
+- **At `gate-view: open`, a viewer drawn the view**, whose opening is clear, is drawn the gate's own
+  portal material in the opening instead, any material, so the horizon crosses the view as a ring
+  and clears. That is per viewer, on the record the cleared horizon keeps of who sees through.
+
+**Nothing is left behind.** A ring is put back as the next is drawn: in the opening, to what
+`GateViews.horizonFor` says that viewer sees there now, the horizon or, drawn the view, nothing; in
+front, to the real block. Nothing is drawn on a block an entity's box reaches into, so a ring of
+ice, or of a portal material that is solid, never stands in anybody's way. A ripple is called off,
+and what it drew put back, as the gate closes, as its iris closes, as its horizon is cleared for a
+view or stops being, as the gate is removed or refreshed, and as the plugin stops; a viewer who
+leaves or changes world is forgotten. It runs only on an upright gate whose wormhole is showing,
+its kawoosh settled and its iris open and not crossing, and whose chunk is loaded; it loads no
+chunk, and is drawn only to players within the horizon's reach.
+
+**Not per gate or per shape.** A shape file has no setting for how a gate looks beyond its material
+keys and timings, so an override would be a new key in the format, left for later.
+
+**Not yet seen in a world:** how a ring looks, whether ice reads as a ripple on water, the forward
+ring on Grand and Massive, and whether two ticks a step is the right pace.
 
 ## Animation
 
