@@ -117,7 +117,20 @@ final class WindowState
     /** @return true if a block behind the opening is inside its funnel, or it has none (#583) */
     boolean inFunnel(final int x, final int y, final int z)
     {
+        return inFunnel(x, y, z, 0.0);
+    }
+
+    /**
+     * The same, the funnel's edges moved out by some blocks.
+     *
+     * @param slack
+     *            how far out each edge is moved
+     * @return true if the block is inside the widened funnel, or it has none
+     */
+    boolean inFunnel(final int x, final int y, final int z, final double slack)
+    {
         final Funnel funnel = source.funnel();
-        return (funnel == null) || funnel.holds(shape.layerOf(x, z), shape.acrossOf(x, z), y - shape.base().y());
+        return (funnel == null)
+            || funnel.holds(shape.layerOf(x, z), shape.acrossOf(x, z), y - shape.base().y(), slack);
     }
 }

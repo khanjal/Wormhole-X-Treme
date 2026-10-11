@@ -20,22 +20,31 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  *            the near opening's width
  * @param height
  *            the near opening's height
- * @param farLeft
- *            the far opening's left column, through the window
- * @param farRight
- *            its right column
- * @param farBottom
- *            its bottom row
- * @param farTop
- *            its top row
+ * @param far
+ *            the far opening, through the window
  * @param taper
  *            how many layers the funnel narrows over
  * @param wall
  *            what is drawn round it: the near gate's portal material
  */
-public record Funnel(int width, int height, int farLeft, int farRight, int farBottom, int farTop, int taper,
-    Material wall)
+public record Funnel(int width, int height, Opening far, int taper, Material wall)
 {
+    /**
+     * An opening's columns and rows, inclusive, in the window's terms.
+     *
+     * @param left
+     *            its left column
+     * @param right
+     *            its right column
+     * @param bottom
+     *            its bottom row
+     * @param top
+     *            its top row
+     */
+    public record Opening(int left, int right, int bottom, int top)
+    {
+    }
+
     /** Handed each cell of a funnel's wall. */
     @FunctionalInterface
     public interface Cell
@@ -71,6 +80,30 @@ public record Funnel(int width, int height, int farLeft, int farRight, int farBo
         {
             return null;
         }
+        final Opening seen = seenThrough(shape, farCells);
+        if (seen == null)
+        {
+            return null;
+        }
+        // Only ever narrower: a side where the far gate is as big or bigger keeps the near one's.
+        final Opening far = new Opening(Math.max(0, seen.left()), Math.min(shape.width() - 1, seen.right()),
+            Math.max(0, seen.bottom()), Math.min(shape.height() - 1, seen.top()));
+        if ((far.left() > far.right()) || (far.bottom() > far.top())
+            || far.equals(new Opening(0, shape.width() - 1, 0, shape.height() - 1)))
+        {
+            return null;
+        }
+        return new Funnel(shape.width(), shape.height(), far, taper, wall);
+    }
+
+    /**
+     * Where a far gate's cells show through a window, as columns and rows of it.
+     *
+     * @return the box round them; or null where they are not all on one layer, as a gate lying flat,
+     *         or turned from its arrival, is not a hole across the view
+     */
+    private static Opening seenThrough(final WindowShape shape, final List<Spot> farCells)
+    {
         final Spot first = shape.hereOf(farCells.get(0).x(), farCells.get(0).y(), farCells.get(0).z());
         final int layer = shape.layerOf(first.x(), first.z());
         int left = Integer.MAX_VALUE;
@@ -80,7 +113,6 @@ public record Funnel(int width, int height, int farLeft, int farRight, int farBo
         for (final Spot cell : farCells)
         {
             final Spot here = shape.hereOf(cell.x(), cell.y(), cell.z());
-            // A gate lying flat, or turned from its arrival, is not a hole across the view.
             if (shape.layerOf(here.x(), here.z()) != layer)
             {
                 return null;
@@ -92,17 +124,7 @@ public record Funnel(int width, int height, int farLeft, int farRight, int farBo
             bottom = Math.min(bottom, up);
             top = Math.max(top, up);
         }
-        // Only ever narrower: a side where the far gate is as big or bigger keeps the near one's.
-        left = Math.max(0, left);
-        right = Math.min(shape.width() - 1, right);
-        bottom = Math.max(0, bottom);
-        top = Math.min(shape.height() - 1, top);
-        if ((left > right) || (bottom > top)
-            || ((left == 0) && (right == (shape.width() - 1)) && (bottom == 0) && (top == (shape.height() - 1))))
-        {
-            return null;
-        }
-        return new Funnel(shape.width(), shape.height(), left, right, bottom, top, taper, wall);
+        return new Opening(left, right, bottom, top);
     }
 
     /**
@@ -121,11 +143,24 @@ public record Funnel(int width, int height, int farLeft, int farRight, int farBo
      */
     public boolean holds(final int layer, final int across, final int up)
     {
+        return holds(layer, across, up, 0.0);
+    }
+
+    /**
+     * The same, with every edge moved out by some blocks: for a stand-in already shown, so one on the
+     * edge is not taken away and shown again as it steps across it.
+     *
+     * @param slack
+     *            how far out each edge is moved
+     * @return true if the cell is inside the widened funnel
+     */
+    public boolean holds(final int layer, final int across, final int up, final double slack)
+    {
         final double part = Math.min(1.0, Math.max(0, layer) / (double) taper);
-        final double left = farLeft * part;
-        final double right = (width - 1) + ((farRight - (width - 1)) * part);
-        final double bottom = farBottom * part;
-        final double top = (height - 1) + ((farTop - (height - 1)) * part);
+        final double left = (far.left() * part) - slack;
+        final double right = (width - 1) + ((far.right() - (width - 1)) * part) + slack;
+        final double bottom = (far.bottom() * part) - slack;
+        final double top = (height - 1) + ((far.top() - (height - 1)) * part) + slack;
         return ((across + 0.5) >= left) && ((across - 0.5) <= right) && ((up + 0.5) >= bottom) && ((up - 0.5) <= top);
     }
 
@@ -153,14 +188,20 @@ public record Funnel(int width, int height, int farLeft, int farRight, int farBo
     {
         for (int layer = 1; layer < depth; layer++)
         {
-            for (int across = -1; across <= width; across++)
+            wallOfLayer(layer, cell);
+        }
+    }
+
+    /** Visits the wall's cells on one layer: they lie within a block of the near opening. */
+    private void wallOfLayer(final int layer, final Cell cell)
+    {
+        for (int across = -1; across <= width; across++)
+        {
+            for (int up = -1; up <= height; up++)
             {
-                for (int up = -1; up <= height; up++)
+                if (wall(layer, across, up))
                 {
-                    if (wall(layer, across, up))
-                    {
-                        cell.at(layer, across, up);
-                    }
+                    cell.at(layer, across, up);
                 }
             }
         }

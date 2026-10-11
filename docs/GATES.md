@@ -688,14 +688,16 @@ of a Standard gate ran past the small gate's walls and ceiling into whatever lay
 dialled gate's opening is smaller than this one's, the view narrows over `gate-view-funnel` blocks, 8
 by default, from this gate's whole opening at the horizon to the far opening's size, and stays that
 size beyond. Round it, a wall one block thick is drawn in this gate's own portal material, so it reads
-as a tunnel of water, lava or whatever the gate's horizon is; every line of sight that leaves the
-funnel meets the wall first, so nothing outside it is drawn or sent. The far opening is placed where
+as a tunnel of water, lava or whatever the gate's horizon is. Every line of sight that leaves the
+funnel meets the wall first, so the far side outside it is left out of what is drawn and sent; the
+capture, its block budget and the far chunks held for it are the same as without a funnel. The far opening is placed where
 the far gate's own portal cells show through the window (`Funnel.of`): on the column travellers land
 on and standing on the row they land on, so a short far gate's tunnel sits on the floor, not halfway
 up the big opening. Only narrower, never wider: a side where the far gate is as big or bigger keeps
 this one's, so same-size and small-to-large views are as they were, and a gate lying flat, a far gate
-turned from its arrival, or a horizon of air leaves the view whole. Mobs and players in the far room
-outside the funnel are not shown. `0` turns it off. The funnel is worked out each sweep from the two
+turned from its arrival, or a horizon of air leaves the view whole. Stand-ins for mobs and players in
+the far room outside the funnel are not shown, and one already shown is kept a block past its edge so
+it does not flicker there. `0` turns it off. The funnel is worked out each sweep from the two
 gates' blocks; the held room is built again when it changes, and nothing is kept per viewer.
 
 **A capture is seen through the largest opening.** A mirror's is taken through a hole three
@@ -824,6 +826,10 @@ is given back. "What the server sends" is the world's view distance; on Paper a 
 - **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
   point draws its old capture until its next retake, at most a minute after it is next dialled.
 - **No setting per gate**, no horizontal gates, and no creatures on the far side.
+- **A funnel's wall is one block thick.** Water, and any other see-through portal material, shows
+  whatever really stands behind it in this world, tinted; only an opaque one such as lava hides it.
+  A thicker wall would cost a layer of blocks per block of depth, so it is left at one until it has
+  been seen in a world. How the taper looks from the near window has not been seen either.
 
 ## The ripple (experimental)
 

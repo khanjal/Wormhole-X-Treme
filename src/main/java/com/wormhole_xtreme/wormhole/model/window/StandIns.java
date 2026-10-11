@@ -54,7 +54,7 @@ public final class StandIns
     /** How long a spawn something refused is left before it is tried again. */
     static final long REFUSED_MILLIS = 5000L;
 
-    /** How much deeper than the room a stand-in already shown may stand before it is taken away. */
+    /** How much deeper than the room, or past a funnel's edge, a stand-in already shown may stand before it is taken away. */
     static final int HELD_SLACK = 1;
 
     /** How far below a creature's feet its floor starts to be looked for: just under a block's top face. */
@@ -316,8 +316,8 @@ public final class StandIns
     }
 
     /**
-     * The same, a block deeper for a stand-in already shown, so one at the room's far edge is not
-     * taken away and spawned again as its creature wanders across it.
+     * The same, a block deeper, and a block wider at a funnel's edge, for a stand-in already shown, so
+     * one at the room's edge is not taken away and spawned again as its creature wanders across it.
      *
      * @param window
      *            the window
@@ -334,7 +334,8 @@ public final class StandIns
         final int z = at.getBlockZ();
         final World here = at.getWorld();
         // Skipped rather than clamped: a stand-in moved to the world's edge stands somewhere its creature is not.
-        return Windows.insideFixed(window, x, y, z, window.depth() + (held ? HELD_SLACK : 0)) && window.inFunnel(x, y, z)
+        return Windows.insideFixed(window, x, y, z, window.depth() + (held ? HELD_SLACK : 0))
+            && window.inFunnel(x, y, z, held ? HELD_SLACK : 0)
             && (y >= here.getMinHeight())
             && (y < here.getMaxHeight()) && here.isChunkLoaded(x >> 4, z >> 4)
             && here.getChunkAt(x >> 4, z >> 4).isEntitiesLoaded();

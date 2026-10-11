@@ -523,6 +523,9 @@ class StandInsTest
         assertFalse(StandIns.inRoom(narrowed, beside), "beside it, behind the funnel's wall: not shown");
         assertFalse(StandIns.inRoom(narrowed, beside, true), "nor kept, once shown");
         assertTrue(StandIns.inRoom(whole, beside), "with no funnel, shown as before");
+        final Location onTheEdge = new Location(here, 13.5, 64.0, 10.5);
+        assertFalse(StandIns.inRoom(narrowed, onTheEdge), "a column outside: not shown to begin with");
+        assertTrue(StandIns.inRoom(narrowed, onTheEdge, true), "but kept once shown, so one on the edge does not flicker");
     }
 
     /**

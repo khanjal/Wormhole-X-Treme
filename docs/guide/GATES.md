@@ -460,8 +460,13 @@ With `gate-view` on, a gate that dials a smaller one, a Massive gate dialling a 
 does not show a Massive-sized slice of the far side running past the small gate's walls and ceiling.
 Its view narrows, over a few blocks behind the horizon, to the small gate's opening, and stays that
 size; round it you see this gate's own portal material, so it looks like a tunnel of water (or lava,
-or whatever the gate's horizon is). Mobs and players beside the tunnel are not shown. Gates of the
-same size, and a small gate dialling a big one, show the whole view as before.
+or whatever the gate's horizon is). Mobs and players on the far side who stand beside the tunnel are
+not shown through it. Gates of the same size, and a small gate dialling a big one, show the whole view
+as before.
+
+The tunnel's wall is one block thick, so through water you can see, faintly, whatever stands behind
+the gate on your side; lava hides it. The far side is still captured whole: the funnel only changes
+what is drawn.
 
 | Setting | Default | What it does |
 |---|---|---|

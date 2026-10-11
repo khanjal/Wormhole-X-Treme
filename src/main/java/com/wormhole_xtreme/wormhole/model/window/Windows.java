@@ -623,6 +623,7 @@ public final class Windows
         final WindowState previous = ACTIVE.get(name);
         if ((previous != null) && previous.shape.equals(window.shape))
         {
+            final boolean sameFunnel = Objects.equals(previous.source.funnel(), source.funnel());
             window.solid = previous.solid;
             window.border = previous.border;
             window.margin = previous.margin;
@@ -632,8 +633,7 @@ public final class Windows
             // nobody has used for a while is let go rather than carried for the life of the chunk.
             // A walked-through window's also goes with the capture it was built from, and its funnel.
             if ((previous.fixed != null) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS)
-                && (!source.walkThrough() || (previous.capture == capture))
-                && Objects.equals(previous.source.funnel(), source.funnel()))
+                && (!source.walkThrough() || (previous.capture == capture)) && sameFunnel)
             {
                 window.fixed = previous.fixed;
                 window.fixedFrom = previous.fixedFrom;
@@ -642,7 +642,7 @@ public final class Windows
                 window.fixedDepth = previous.fixedDepth;
                 window.fixedUsedAt = previous.fixedUsedAt;
             }
-            if (FULL.containsValue(name))
+            if (FULL.containsValue(name) && sameFunnel)
             {
                 window.full = previous.full;
                 window.fullFrom = previous.fullFrom;

@@ -57,10 +57,10 @@ class FunnelTest
         final Funnel funnel = toStandard();
 
         assertNotNull(funnel, "a big gate onto a small one narrows");
-        assertEquals(4, funnel.farLeft(), "centred on the arrival's column, the opening's middle");
-        assertEquals(6, funnel.farRight());
-        assertEquals(0, funnel.farBottom(), "standing on the row travellers land on, not centred up the big opening");
-        assertEquals(3, funnel.farTop());
+        assertEquals(4, funnel.far().left(), "centred on the arrival's column, the opening's middle");
+        assertEquals(6, funnel.far().right());
+        assertEquals(0, funnel.far().bottom(), "standing on the row travellers land on, not centred up the big opening");
+        assertEquals(3, funnel.far().top());
         assertEquals(Material.WATER, funnel.wall());
     }
 
@@ -77,16 +77,16 @@ class FunnelTest
         final Funnel funnel = Funnel.of(BIG, farGate(99, 101, 70, 85), 8, Material.WATER);
 
         assertNotNull(funnel);
-        assertEquals(4, funnel.farLeft());
-        assertEquals(6, funnel.farRight());
-        assertEquals(0, funnel.farBottom());
-        assertEquals(10, funnel.farTop(), "taller than the near gate: the near one's height, never past it");
+        assertEquals(4, funnel.far().left());
+        assertEquals(6, funnel.far().right());
+        assertEquals(0, funnel.far().bottom());
+        assertEquals(10, funnel.far().top(), "taller than the near gate: the near one's height, never past it");
 
         final Funnel lower = Funnel.of(BIG, farGate(95, 105, 70, 73), 8, Material.WATER);
         assertNotNull(lower, "as wide but shorter still narrows");
-        assertEquals(0, lower.farLeft());
-        assertEquals(10, lower.farRight(), "the whole width kept");
-        assertEquals(3, lower.farTop(), "only the height narrowed");
+        assertEquals(0, lower.far().left());
+        assertEquals(10, lower.far().right(), "the whole width kept");
+        assertEquals(3, lower.far().top(), "only the height narrowed");
     }
 
     @Test
@@ -209,5 +209,82 @@ class FunnelTest
         assertTrue(walls.contains(new Spot(19, 3, 0)), "the wall runs on past the taper");
         assertFalse(walls.contains(new Spot(20, 3, 0)), "and stops short of the depth");
         assertTrue(walls.contains(new Spot(1, -1, 0)), "and starts on the first layer, behind the frame");
+    }
+
+    /** A far gate three wide and four tall, a block behind an arrival facing a yaw, across the way it faces. */
+    private static List<Spot> farGateFacing(final Place arrival)
+    {
+        final Spot ahead = WindowShape.aheadOf(arrival.yaw());
+        final Spot across = new Spot(-ahead.z(), 0, ahead.x());
+        final int behindX = (int) Math.floor(arrival.x()) - ahead.x();
+        final int behindZ = (int) Math.floor(arrival.z()) - ahead.z();
+        final List<Spot> cells = new ArrayList<>();
+        for (int step = -1; step <= 1; step++)
+        {
+            for (int y = 70; y <= 73; y++)
+            {
+                cells.add(new Spot(behindX + (step * across.x()), y, behindZ + (step * across.z())));
+            }
+        }
+        return cells;
+    }
+
+    /**
+     * Whichever way the near gate is looked into and whichever way the far gate faces, turned a quarter
+     * from each other or not, the far opening lands on the same middle columns and bottom rows.
+     *
+     * <p>A turn or sign wrong for one facing would put the tunnel off to one side, or leave a gate facing
+     * that way whole.
+     */
+    @Test
+    void everyFacingAndEveryTurnBetweenTheTwoGatesNarrowsToTheSameColumns()
+    {
+        final Spot[] intos = { new Spot(0, 0, -1), new Spot(1, 0, 0), new Spot(0, 0, 1), new Spot(-1, 0, 0) };
+        for (final Spot into : intos)
+        {
+            for (final float yaw : new float[] { 0.0f, 90.0f, 180.0f, 270.0f })
+            {
+                final Place arrival = new Place("far", 100.5, 70.0, 200.5, yaw, 0.0f);
+                final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), into, arrival, 11, 11);
+                final Funnel funnel = Funnel.of(shape, farGateFacing(arrival), 8, Material.WATER);
+                final String pair = "looked into " + into + ", far gate at yaw " + yaw;
+
+                assertNotNull(funnel, pair);
+                assertEquals(new Funnel.Opening(4, 6, 0, 3), funnel.far(), pair);
+            }
+        }
+    }
+
+    /**
+     * A far gate whose opening starts above where travellers land, a step up into it, narrows to its own
+     * rows: the tunnel's floor is a wall, not the arrival's row.
+     */
+    @Test
+    void aFarGateStandingAboveTheArrivalRowNarrowsToItsOwnRows()
+    {
+        final Funnel funnel = Funnel.of(BIG, farGate(99, 101, 72, 75), 8, Material.WATER);
+
+        assertNotNull(funnel);
+        assertEquals(new Funnel.Opening(4, 6, 2, 5), funnel.far());
+        assertTrue(funnel.holds(20, 5, 2), "its bottom row");
+        assertFalse(funnel.holds(20, 5, 0), "the arrival's row, below it");
+        assertTrue(funnel.wall(20, 5, 1), "walled underneath");
+    }
+
+    /** A stand-in already shown may stand a block past the funnel's edge, so one on it does not flicker. */
+    @Test
+    void slackWidensEveryEdgeByThatMuch()
+    {
+        final Funnel funnel = toStandard();
+
+        assertFalse(funnel.holds(20, 3, 1), "a column left of the far opening");
+        assertTrue(funnel.holds(20, 3, 1, 1.0), "held: a block out on the left");
+        assertTrue(funnel.holds(20, 7, 1, 1.0), "on the right");
+        assertTrue(funnel.holds(20, 5, 4, 1.0), "above");
+        assertTrue(funnel.holds(20, 5, -1, 1.0), "below");
+        assertFalse(funnel.holds(20, 2, 1, 1.0), "but not two");
+        assertFalse(funnel.holds(20, 8, 1, 1.0));
+        assertFalse(funnel.holds(20, 5, 5, 1.0));
+        assertFalse(funnel.holds(20, 5, -2, 1.0));
     }
 }

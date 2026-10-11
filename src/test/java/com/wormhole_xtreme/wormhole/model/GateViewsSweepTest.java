@@ -218,7 +218,7 @@ class GateViewsSweepTest
         GateViews.offerAll();
 
         sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() != null)
-            && (window.funnel().farLeft() == 7) && (window.funnel().farRight() == 9) && (window.funnel().farTop() == 3)
+            && (window.funnel().far().left() == 7) && (window.funnel().far().right() == 9) && (window.funnel().far().top() == 3)
             && (window.funnel().taper() == 8) && (window.funnel().wall() == Material.LAVA)), anyBoolean()));
 
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, 0);

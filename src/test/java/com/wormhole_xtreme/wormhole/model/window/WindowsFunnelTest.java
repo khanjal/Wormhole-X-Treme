@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -238,6 +239,28 @@ class WindowsFunnelTest
         assertNull(offered.get("gate:Abydos").fixed, "a new taper: built again");
         Windows.offer(gate(null), capture);
         assertNull(offered.get("gate:Abydos").fixed, "turned off: built again");
+    }
+
+    /** An admin's whole view of a gate is let go with its funnel too, as its held room is. */
+    @Test
+    void anAdminsWholeViewIsLetGoWhenTheFunnelChanges() throws ReflectiveOperationException
+    {
+        final Capture capture = solidEverywhere();
+        final Map<UUID, String> full = PrivateStatics.of(Windows.class, "FULL");
+        full.put(UUID.randomUUID(), "gate:Abydos");
+        Windows.offer(gate(funnel(8)), capture);
+        Windows.finish();
+        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
+        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+        final Windows.Whole whole = new Windows.Whole(new HashMap<>(), 16);
+        active.get("gate:Abydos").full = whole;
+        active.get("gate:Abydos").fullFrom = capture;
+
+        Windows.offer(gate(funnel(8)), capture);
+        assertSame(whole, offered.get("gate:Abydos").full, "the same funnel: kept");
+
+        Windows.offer(gate(funnel(4)), capture);
+        assertNull(offered.get("gate:Abydos").full, "a new taper: drawn again");
     }
 
     @Test
