@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -7,8 +8,11 @@ import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +21,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 
 /**
  * Writing the running configuration back to config.yml.
@@ -47,6 +53,7 @@ class ConfigWriteTest
     @AfterEach
     void tearDown() throws Exception
     {
+        MaterialGroupRegistry.load(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -147,5 +154,41 @@ class ConfigWriteTest
 
         assertTrue(written().contains("permissions-support-disable: true"),
             "the admin's own setting is left alone");
+    }
+
+    /**
+     * A file in another order is read and saved as it stands, not re-sorted into the new one.
+     *
+     * <p>From #586, which reordered the groups a new file is written in. An existing server's
+     * file has every setting, in the order it was first written, with the admin's own values and
+     * notes; a start and a save must keep all of that line for line.
+     */
+    @Test
+    void aFileInAnOlderOrderKeepsItsOrderValuesAndNotes() throws Exception
+    {
+        ConfigurationYAML.writeFile(cfg, DefaultSettings.config);
+        final List<String> keys = new ArrayList<>(Files.readAllLines(cfg.toPath(), StandardCharsets.UTF_8)
+            .stream().filter(line -> !line.isEmpty() && !line.startsWith("#")).toList());
+        Collections.reverse(keys);
+        final Map<String, String> changed = Map.of("timeout-shutdown", "90", "gate-view", "behind",
+            "ring-max-pairs-per-player", "3");
+        final List<String> old = new ArrayList<>(List.of("# --- Integrations ---"));
+        for (final String line : keys)
+        {
+            final String key = line.substring(0, line.indexOf(':'));
+            old.add("# my note on " + key);
+            old.add(changed.containsKey(key) ? (key + ": " + changed.get(key)) : line);
+        }
+        old.addAll(List.of("gate-material-groups:", "  Standard:", "    structure: OBSIDIAN"));
+        Files.write(cfg.toPath(), old);
+        ConfigTestSupport.clear();
+
+        ConfigurationYAML.loadConfiguration(directory);
+        ConfigurationYAML.writeCurrentConfiguration(cfg);
+
+        assertEquals(90, ConfigManager.getConfigurations().get(ConfigKeys.TIMEOUT_SHUTDOWN).getValue());
+        assertEquals("behind", ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW).getValue());
+        assertEquals(old, Files.readAllLines(cfg.toPath(), StandardCharsets.UTF_8),
+            "the file comes back line for line");
     }
 }

@@ -602,29 +602,10 @@ public class ConfigurationYAML
             }
             try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
             {
-                boolean started = false;
+                writeStartHere(writer);
                 for (final Setting s : config)
                 {
-                    // A banner where a group begins, and a blank line above it. Settings inside a
-                    // group run on without one: each starts with its own comment, which separates
-                    // them well enough, and eighty blank lines is a third of the file.
-                    final DefaultSettings.Group group = DefaultSettings.groupAt(s.getName());
-                    if (group != null)
-                    {
-                        if (started)
-                        {
-                            writer.write(System.lineSeparator());
-                        }
-                        writer.write("# --- " + group.heading() + " ---" + System.lineSeparator());
-                        if (!group.intro().isEmpty())
-                        {
-                            writeComment(writer, group.intro());
-                            // A bare comment line, or the group note and the first
-                            // setting description read as one paragraph.
-                            writer.write("#" + System.lineSeparator());
-                        }
-                    }
-                    started = true;
+                    writeBanners(writer, s.getName());
                     writeComment(writer, s.getDescription());
                     writer.write(kebabKeyName(s.getName().name()) + ": "
                         + formatValueForYaml(s.getValue()) + System.lineSeparator());
@@ -634,6 +615,65 @@ public class ConfigurationYAML
         catch (final Exception e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml", e);
+        }
+    }
+
+    /**
+     * Writes the list of most-changed settings that opens a new file, each with its group.
+     *
+     * @param writer
+     *            the file being written
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void writeStartHere(final Writer writer) throws IOException
+    {
+        writer.write("# Start here: the settings most often changed, and the group each is under."
+            + System.lineSeparator());
+        for (final ConfigManager.ConfigKeys key : DefaultSettings.START_HERE)
+        {
+            writer.write(String.format(Locale.ROOT, "#   %-28s%s", kebabKeyName(key.name()),
+                DefaultSettings.groupOf(key).heading()) + System.lineSeparator());
+        }
+    }
+
+    /**
+     * Writes the banner for a group, or the lighter heading for a sub-group, that a setting opens.
+     *
+     * <p>A blank line above each. Settings inside a run follow on without one: each starts with
+     * its own comment, which separates them well enough, and a hundred blank lines is a third of
+     * the file.
+     *
+     * @param writer
+     *            the file being written
+     * @param key
+     *            the setting about to be written
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void writeBanners(final Writer writer, final ConfigManager.ConfigKeys key) throws IOException
+    {
+        final DefaultSettings.Group group = DefaultSettings.groupAt(key);
+        final DefaultSettings.SubGroup subGroup = DefaultSettings.subGroupAt(key);
+        if (group != null)
+        {
+            writer.write(System.lineSeparator());
+            writer.write("# --- " + group.heading() + " ---" + System.lineSeparator());
+            writeComment(writer, group.intro());
+            if (!group.intro().isEmpty() && (subGroup == null))
+            {
+                // A bare comment line, or the group note and the first
+                // setting description read as one paragraph.
+                writer.write("#" + System.lineSeparator());
+            }
+        }
+        if (subGroup != null)
+        {
+            if (group == null)
+            {
+                writer.write(System.lineSeparator());
+            }
+            writer.write("# -- " + subGroup.heading() + " --" + System.lineSeparator());
         }
     }
 
