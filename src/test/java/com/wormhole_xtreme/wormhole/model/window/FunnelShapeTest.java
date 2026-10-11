@@ -203,30 +203,37 @@ class FunnelShapeTest
     private static int checkLayer(final Funnel funnel, final int layer, final String pair)
     {
         int checked = 0;
-        final int[][] steps = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
         for (int across = -1; across <= funnel.width(); across++)
         {
             for (int up = -1; up <= funnel.height(); up++)
             {
-                if (funnel.holds(layer, across, up))
-                {
-                    continue;
-                }
-                final String where = pair + ", layer " + layer + ", column " + across + ", row " + up;
-                if (funnel.holds(layer - 1, across, up))
-                {
-                    assertTrue(funnel.wall(layer, across, up), "behind the tunnel's last layer: " + where);
-                    checked++;
-                }
-                for (final int[] step : steps)
-                {
-                    if (funnel.holds(layer, across - step[0], up - step[1]))
-                    {
-                        assertTrue(funnel.wall(layer, across, up) && funnel.wall(layer, across + step[0], up + step[1]),
-                            "two deep beside the tunnel: " + where);
-                        checked++;
-                    }
-                }
+                checked += checkCell(funnel, layer, across, up, pair);
+            }
+        }
+        return checked;
+    }
+
+    /** Checks the ways out through one cell outside the tunnel, returning how many there were. */
+    private static int checkCell(final Funnel funnel, final int layer, final int across, final int up, final String pair)
+    {
+        if (funnel.holds(layer, across, up))
+        {
+            return 0;
+        }
+        int checked = 0;
+        final String where = pair + ", layer " + layer + ", column " + across + ", row " + up;
+        if (funnel.holds(layer - 1, across, up))
+        {
+            assertTrue(funnel.wall(layer, across, up), "behind the tunnel's last layer: " + where);
+            checked++;
+        }
+        for (final int[] step : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } })
+        {
+            if (funnel.holds(layer, across - step[0], up - step[1]))
+            {
+                assertTrue(funnel.wall(layer, across, up) && funnel.wall(layer, across + step[0], up + step[1]),
+                    "two deep beside the tunnel: " + where);
+                checked++;
             }
         }
         return checked;
