@@ -588,15 +588,15 @@ class PreviewIrisSweepRedrawTest
     void aViewerSharedAgainMidSweepIsDrawnAtTheirFirstStep()
     {
         openAGlassIrisPreview();
-        final Player back = viewerAlong("Rae", 4);
+        final Player front = viewerAlong("Rae", 4);
         toggleIris();
         stepTheSweep();
-        GatePreviews.share(owner, back);
-        GatePreviews.share(owner, back);
+        GatePreviews.share(owner, front);
+        GatePreviews.share(owner, front);
 
-        walkTo(back, 5);
+        walkTo(front, 5);
 
-        assertFrontPicture(back, "a step after being shared again");
+        assertFrontPicture(front, "a step after being shared again");
     }
 
     /**
