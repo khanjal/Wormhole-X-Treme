@@ -81,6 +81,12 @@ class FunnelTest
         assertEquals(6, funnel.farRight());
         assertEquals(0, funnel.farBottom());
         assertEquals(10, funnel.farTop(), "taller than the near gate: the near one's height, never past it");
+
+        final Funnel lower = Funnel.of(BIG, farGate(95, 105, 70, 73), 8, Material.WATER);
+        assertNotNull(lower, "as wide but shorter still narrows");
+        assertEquals(0, lower.farLeft());
+        assertEquals(10, lower.farRight(), "the whole width kept");
+        assertEquals(3, lower.farTop(), "only the height narrowed");
     }
 
     @Test
@@ -101,11 +107,12 @@ class FunnelTest
         {
             for (int x = 99; x <= 101; x++)
             {
-                flat.add(new Spot(x, 69, z));
+                flat.add(new Spot(x, 71, z));
             }
         }
 
-        assertNull(Funnel.of(BIG, flat, 8, Material.WATER), "its cells run along the view, not across it");
+        assertNull(Funnel.of(BIG, flat, 8, Material.WATER),
+            "its cells run along the view, not across it, though they line up with the opening's second row");
     }
 
     @Test
