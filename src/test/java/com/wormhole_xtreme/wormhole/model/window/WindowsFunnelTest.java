@@ -348,6 +348,13 @@ class WindowsFunnelTest
         Windows.offer(gate(funnel(16)), capture);
         assertSame(room, offered.get("gate:Abydos").fixed, "the same funnel: kept");
 
+        final Funnel same = funnel(16);
+        final List<Spot> open = new ArrayList<>();
+        BIG.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
+        final Funnel lava = new Funnel(same.width(), same.height(), same.far(), same.taper(), Material.LAVA);
+        Windows.offer(new GateSource("gate:Abydos", anchor, shapeFor(lava), open, ARRIVAL, "Chulak", 16, lava), capture);
+        assertNull(offered.get("gate:Abydos").fixed, "another funnel on the same shape: built again");
+        active.get("gate:Abydos").fixed = room;
         Windows.offer(gate(funnel(4)), capture);
         assertNull(offered.get("gate:Abydos").fixed, "a shorter tunnel: built again");
         Windows.offer(gate(null), capture);

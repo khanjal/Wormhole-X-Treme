@@ -85,6 +85,9 @@ class FunnelTest
         final Set<Spot> walls = new HashSet<>();
         funnel.forEachWall(20, (layer, across, up) -> walls.add(new Spot(layer, across, up)));
         assertTrue(walls.contains(new Spot(12, 5, 11)), "the ceiling, a row above the near opening's top, is walled");
+        final Set<Spot> hollow = new HashSet<>();
+        funnel.forEachHollow(20, (layer, across, up) -> hollow.add(new Spot(layer, across, up)));
+        assertTrue(hollow.contains(new Spot(3, 5, 10)), "the tunnel's top row is the near opening's, hollow");
 
         final Funnel lower = Funnel.of(BIG, farGate(95, 105, 70, 73), 8, Material.WATER);
         assertNotNull(lower, "as wide but shorter still narrows");
@@ -260,6 +263,8 @@ class FunnelTest
             "Grand to Massive, a block narrower: a tunnel of the opening alone, the view straight behind it");
         assertEquals(8, Funnel.of(opening(17, 17), farOpening(5, 5), 8, Material.WATER).taper(), "no longer than allowed");
         assertNull(Funnel.of(opening(17, 17), farOpening(18, 17), longest, Material.WATER), "Massive to Grand: wider, no tunnel");
+        assertEquals(12, Funnel.of(opening(17, 17), farOpening(17, 5), longest, Material.WATER).taper(),
+            "as wide but twelve shorter: the height decides");
     }
 
     @Test
