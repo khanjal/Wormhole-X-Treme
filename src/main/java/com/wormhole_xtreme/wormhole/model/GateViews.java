@@ -299,7 +299,11 @@ public final class GateViews
     /** Forgets everybody's being drawn one gate's view, as its horizon stops being cleared. */
     private static void unclear(final String name)
     {
-        CLEARED.remove(name);
+        if (CLEARED.remove(name))
+        {
+            // A ring drawn as the view's opening is put back as the horizon, which is drawn next.
+            HorizonRipple.cancel(name);
+        }
         SEES_THROUGH.values().removeIf(through -> through.remove(name) && through.isEmpty());
     }
 
@@ -564,9 +568,9 @@ public final class GateViews
         }
         for (final String name : clear)
         {
-            if (StargateManager.getStargate(name) != null)
+            if ((StargateManager.getStargate(name) != null) && CLEARED.add(name))
             {
-                CLEARED.add(name);
+                HorizonRipple.cancel(name);
             }
         }
     }

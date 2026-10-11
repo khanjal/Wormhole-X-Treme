@@ -47,8 +47,8 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  *
  * <p>A ring is drawn for one step and put back as the next is drawn: in the opening, to what
  * {@link GateViews#horizonFor} says that viewer sees; in front, to the real block. Never on a cell
- * an entity is in, never on an upright gate's opening that is not showing a wormhole, and never
- * past the horizon's reach.
+ * an entity is in, only on an upright gate whose wormhole is showing, and only to players within
+ * the horizon's reach.
  */
 public final class HorizonRipple
 {
@@ -83,7 +83,7 @@ public final class HorizonRipple
     static LongSupplier clock = System::currentTimeMillis;
 
     /** How long until a gate's next ripple of its own; a seam for tests. */
-    static LongSupplier wait = () -> ThreadLocalRandom.current().nextLong(RANDOM_LOW_MILLIS, RANDOM_HIGH_MILLIS + 1);
+    static LongSupplier nextWait = () -> ThreadLocalRandom.current().nextLong(RANDOM_LOW_MILLIS, RANDOM_HIGH_MILLIS + 1);
 
     private HorizonRipple()
     {
@@ -146,13 +146,14 @@ public final class HorizonRipple
         final boolean deep = isDeep(gate);
         final boolean icy = !deep && (gate.getEffectivePortalMaterial() == Material.WATER)
             && (gate.getGatePortalBlocks().size() > FLAT_MORE_THAN);
-        // Nothing to draw for anybody: a flat gate of another material.
-        if ((!deep && !icy) || StargateBlockSetup.playersNear(gate, reference(gate)).isEmpty())
+        // Nothing to draw for anybody: a flat gate of another material whose horizon is not cleared for a view.
+        if ((!deep && !icy && (GateViews.horizonOf(gate, gate.getEffectivePortalMaterial()) != Material.AIR))
+            || StargateBlockSetup.playersNear(gate, reference(gate)).isEmpty())
         {
             return false;
         }
         LAST.put(name, now);
-        NEXT.put(name, now + wait.getAsLong());
+        NEXT.put(name, now + nextWait.getAsLong());
         final List<List<Location>> rings = ringsOf(gate);
         logStart(gate, rings.size(), deep, icy);
         new IrisSweepDriver<>(rings, new Ripple(gate, deep, icy), () -> STEP_TICKS).start();
@@ -203,13 +204,13 @@ public final class HorizonRipple
             final Long next = NEXT.get(name);
             if (next == null)
             {
-                NEXT.put(name, now + wait.getAsLong());
+                NEXT.put(name, now + nextWait.getAsLong());
             }
             else if (now >= next)
             {
                 // Waited again whether or not it starts: refused for a ripple already running, or for
                 // nothing to draw, it would otherwise be asked every second.
-                NEXT.put(name, now + wait.getAsLong());
+                NEXT.put(name, now + nextWait.getAsLong());
                 start(gate);
             }
         }
@@ -490,7 +491,12 @@ public final class HorizonRipple
             List<Location> inFront = null;
             for (final Player player : near)
             {
-                if (deep)
+                // Drawn the view, their opening is clear: the horizon itself is what crosses it.
+                if ((portal != Material.AIR) && (GateViews.horizonFor(gate, portal, player) == Material.AIR))
+                {
+                    send(player, inPlane, portal, true);
+                }
+                else if (deep)
                 {
                     if (inFront == null)
                     {

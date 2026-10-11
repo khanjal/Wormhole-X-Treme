@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,7 +101,7 @@ class HorizonRippleTest
         HorizonRipple.cancelAll();
         now = 100_000L;
         HorizonRipple.clock = () -> now;
-        HorizonRipple.wait = () -> 7_000L;
+        HorizonRipple.nextWait = () -> 7_000L;
 
         world = mock(World.class);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
@@ -129,7 +130,7 @@ class HorizonRippleTest
     {
         HorizonRipple.cancelAll();
         HorizonRipple.clock = System::currentTimeMillis;
-        HorizonRipple.wait = DEFAULT_WAIT;
+        HorizonRipple.nextWait = DEFAULT_WAIT;
         manager.close();
         materials.close();
         GateViews.clear();
@@ -139,7 +140,7 @@ class HorizonRippleTest
     }
 
     /** The random wait as shipped, put back after each test. */
-    private static final LongSupplier DEFAULT_WAIT = HorizonRipple.wait;
+    private static final LongSupplier DEFAULT_WAIT = HorizonRipple.nextWait;
 
     private Player playerAt(final double z)
     {
@@ -535,5 +536,109 @@ class HorizonRippleTest
 
         assertEquals(2, rings.size());
         assertEquals(List.of(new Location(world, 5, 65, 11)), rings.get(0), "the middle of a plane along z");
+    }
+
+    /** Clears the gate's horizon for its view, as the sweep at {@code gate-view: open} does, and draws it for these players. */
+    private void drawnTheView(final Player... viewers) throws ReflectiveOperationException
+    {
+        final Set<String> cleared = PrivateStatics.of(GateViews.class, "CLEARED");
+        cleared.add("Abydos");
+        final Map<UUID, Set<String>> through = PrivateStatics.of(GateViews.class, "SEES_THROUGH");
+        for (final Player viewer : viewers)
+        {
+            through.put(viewer.getUniqueId(), new HashSet<>(Set.of("Abydos")));
+        }
+    }
+
+    /** At {@code gate-view: open}, whoever sees through the gate sees its own portal material cross the clear opening. */
+    @Test
+    void aViewerDrawnTheViewSeesThePortalMaterialCrossTheClearOpening() throws ReflectiveOperationException
+    {
+        final Player beside = playerAt(26.0);
+        when(world.getPlayers()).thenReturn(List.of(front, beside));
+        drawnTheView(front);
+
+        assertTrue(HorizonRipple.start(gate));
+        assertEquals(cells("water", 20, 12, 66), sentTo(front), "drawn the view: the horizon's own water");
+        assertEquals(cells("ice", 20, 12, 66), sentTo(beside), "not drawn it: the ice a flat water gate ripples in");
+        step();
+        assertEquals(union(cells("air", 20, 12, 66), cells("water", 20, FIRST_RING)), sentTo(front),
+            "the middle put back to the clear opening they see, the first ring drawn");
+        assertEquals(union(cells("water", 20, 12, 66), cells("ice", 20, FIRST_RING)), sentTo(beside),
+            "the middle put back to the horizon they see");
+    }
+
+    /** A flat lava gate ripples for nobody but a viewer of its cleared opening, who sees its lava cross it. */
+    @Test
+    void aFlatLavaGateRipplesOnlyForWhoeverSeesThroughIt() throws ReflectiveOperationException
+    {
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        final Player beside = playerAt(26.0);
+        when(world.getPlayers()).thenReturn(List.of(front, beside));
+        drawnTheView(front);
+
+        assertTrue(HorizonRipple.start(gate), "its horizon is cleared for a view");
+        assertEquals(cells("lava", 20, 12, 66), sentTo(front));
+        step();
+        assertEquals(union(cells("air", 20, 12, 66), cells("lava", 20, FIRST_RING)), sentTo(front));
+        assertTrue(sentTo(beside).isEmpty(), "a flat lava gate draws nobody else anything");
+    }
+
+    /** Somebody who stops being drawn the view mid ripple is put back to the horizon, not to a clear opening. */
+    @Test
+    void aViewerWhoStopsSeeingThroughMidRippleIsPutBackToTheHorizon() throws ReflectiveOperationException
+    {
+        drawnTheView(front);
+        assertTrue(HorizonRipple.start(gate));
+        sentTo(front);
+        final Map<UUID, Set<String>> through = PrivateStatics.of(GateViews.class, "SEES_THROUGH");
+        through.remove(front.getUniqueId());
+
+        step();
+
+        assertEquals(union(cells("water", 20, 12, 66), cells("ice", 20, FIRST_RING)), sentTo(front),
+            "what horizonFor says now: the water, and the next ring as anybody else sees it");
+    }
+
+    /** The horizon stopping being cleared calls the ripple off, its ring put back to the horizon drawn next. */
+    @Test
+    void theHorizonNoLongerClearedCallsTheRippleOff() throws ReflectiveOperationException
+    {
+        drawnTheView(front);
+        assertTrue(HorizonRipple.start(gate));
+        sentTo(front);
+
+        GateViews.irisOpening(gate);
+
+        assertEquals(cells("water", 20, 12, 66), sentTo(front));
+        assertTrue(pending.isEmpty(), "its next step dropped");
+        assertFalse(HorizonRipple.isRippling(gate));
+    }
+
+    /** A viewer who leaves, or changes world, has dropped the chunk: nothing is put back for them. */
+    @Test
+    void aViewerWhoLeavesIsForgotten()
+    {
+        manager.when(() -> StargateManager.forgetPortalVisuals(any(UUID.class))).thenCallRealMethod();
+        assertTrue(HorizonRipple.start(gate));
+        sentTo(front);
+
+        StargateManager.forgetPortalVisuals(front.getUniqueId());
+        step();
+
+        assertEquals(cells("ice", 20, FIRST_RING), sentTo(front), "the next ring, and no water put back for the last");
+    }
+
+    @Test
+    void aViewerWhoChangesWorldIsForgotten()
+    {
+        manager.when(() -> StargateManager.forgetSweptLayers(any(UUID.class))).thenCallRealMethod();
+        assertTrue(HorizonRipple.start(gate));
+        sentTo(front);
+
+        StargateManager.forgetSweptLayers(front.getUniqueId());
+        step();
+
+        assertEquals(cells("ice", 20, FIRST_RING), sentTo(front));
     }
 }
