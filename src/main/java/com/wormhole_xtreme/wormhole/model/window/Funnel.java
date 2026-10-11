@@ -8,14 +8,18 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
- * The part of a big gate's view a small far gate could show (#583): the near opening at the
- * window, narrowing over {@code taper} layers to the far opening, then that size on.
+ * A big gate's view of a small far gate, as a tunnel with the view at its end (#583).
+ *
+ * <p>The tunnel runs {@code taper} layers behind the opening, the opening itself its first,
+ * narrowing from the near opening to the far one's size. It is hollow, walled in the near gate's
+ * portal material, and its last layer is the far gate's own plane. The far room is drawn from the
+ * layer after, shifted that much deeper ({@link WindowShape#deeper}), at the far opening's size and
+ * the row of ground beneath it, still walled.
  *
  * <p>Plain numbers, in the window's own terms: a layer behind the opening, a column counted
  * rightwards from its left edge, and a row up from its bottom. The far opening is where the far
- * gate's own cells show through the window, so a funnel lines up with it whatever the two gates'
- * heights, and never reaches outside the near opening but for the row beneath it: the ground a far
- * gate stands on is seen through it, and the wall runs a row below that.
+ * gate's own cells show through the window, so the tunnel lines up with it whatever the two gates'
+ * heights, and never reaches outside the near opening but for that row of ground.
  *
  * @param width
  *            the near opening's width
@@ -24,7 +28,8 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  * @param far
  *            the far opening, through the window
  * @param taper
- *            how many layers the funnel narrows over
+ *            how long the tunnel is, in layers counting the opening's own: as much as the opening
+ *            narrows, at most {@code gate-view-funnel}
  * @param wall
  *            what is drawn round it: the near gate's portal material
  */
@@ -68,16 +73,17 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
      *            the near gate's window
      * @param farCells
      *            the far gate's portal cells, in its own world
-     * @param taper
-     *            how many layers to narrow over; 0 or less for none
+     * @param longest
+     *            the longest tunnel allowed; 0 or less for none
      * @param wall
      *            the near gate's portal material
-     * @return the funnel; or null where the far opening is as big as the near one each way, does not
+     * @return the funnel, as long as the opening narrows each way at the most, up to {@code longest};
+     *         or null where the far opening is as big as the near one each way, does not
      *         face the way travellers leave it, or nothing could be drawn round it
      */
-    public static Funnel of(final WindowShape shape, final List<Spot> farCells, final int taper, final Material wall)
+    public static Funnel of(final WindowShape shape, final List<Spot> farCells, final int longest, final Material wall)
     {
-        if ((taper <= 0) || (farCells == null) || farCells.isEmpty() || (wall == null) || MaterialUtils.isAirMaterial(wall))
+        if ((longest <= 0) || (farCells == null) || farCells.isEmpty() || (wall == null) || MaterialUtils.isAirMaterial(wall))
         {
             return null;
         }
@@ -94,7 +100,10 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return null;
         }
-        return new Funnel(shape.width(), shape.height(), far, taper, wall);
+        // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a Large.
+        final int narrows = Math.max(shape.width() - ((far.right() - far.left()) + 1),
+            shape.height() - ((far.top() - far.bottom()) + 1));
+        return new Funnel(shape.width(), shape.height(), far, Math.min(longest, narrows), wall);
     }
 
     /**
@@ -129,11 +138,11 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /**
-     * Whether a cell behind the window is inside the funnel.
+     * Whether a cell behind the window is inside the tunnel or the room past it.
      *
      * <p>A cell is in while its middle is within half a block of the narrowing edge, so both sides
-     * of a funnel step in on the same layer. The row beneath the opening is in, at either end: it is
-     * the ground travellers land on and walk across, not a wall.
+     * step in on the same layer. Past the tunnel the row beneath the far opening is in too: the
+     * ground travellers land on and walk across, level with the tunnel's floor of wall.
      *
      * @param layer
      *            layers behind the opening; 0 is the opening itself
@@ -161,9 +170,63 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         final double part = Math.min(1.0, Math.max(0, layer) / (double) taper);
         final double left = (far.left() * part) - slack;
         final double right = (width - 1) + ((far.right() - (width - 1)) * part) + slack;
-        final double bottom = ((far.bottom() * part) - 1.0) - slack;
+        final double ground = (layer >= taper) ? 1.0 : 0.0;
+        final double bottom = ((far.bottom() * part) - ground) - slack;
         final double top = (height - 1) + ((far.top() - (height - 1)) * part) + slack;
         return ((across + 0.5) >= left) && ((across - 0.5) <= right) && ((up + 0.5) >= bottom) && ((up - 0.5) <= top);
+    }
+
+    /**
+     * Whether a cell is inside the tunnel, behind the opening: drawn hollow.
+     *
+     * @return true for air there
+     */
+    public boolean hollow(final int layer, final int across, final int up)
+    {
+        return (layer >= 1) && (layer < taper) && holds(layer, across, up);
+    }
+
+    /**
+     * Whether a cell is in the far room past the tunnel, where the far side is drawn.
+     *
+     * @param slack
+     *            how far out each edge, and the tunnel's end, is moved: for a stand-in already shown
+     * @return true if the far side shows there
+     */
+    public boolean shows(final int layer, final int across, final int up, final double slack)
+    {
+        return ((layer + slack) >= taper) && holds(layer, across, up, slack);
+    }
+
+    /**
+     * Visits every hollow cell of the tunnel short of a depth.
+     *
+     * @param depth
+     *            the layer to stop before
+     * @param cell
+     *            handed each one
+     */
+    public void forEachHollow(final int depth, final Cell cell)
+    {
+        for (int layer = 1; layer < Math.min(depth, taper); layer++)
+        {
+            hollowOfLayer(layer, cell);
+        }
+    }
+
+    /** Visits the hollow cells of one layer of the tunnel, all inside the near opening. */
+    private void hollowOfLayer(final int layer, final Cell cell)
+    {
+        for (int across = 0; across < width; across++)
+        {
+            for (int up = 0; up < height; up++)
+            {
+                if (holds(layer, across, up))
+                {
+                    cell.at(layer, across, up);
+                }
+            }
+        }
     }
 
     /**

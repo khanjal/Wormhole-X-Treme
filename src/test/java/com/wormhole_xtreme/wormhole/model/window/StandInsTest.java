@@ -490,8 +490,8 @@ class StandInsTest
     }
 
     /**
-     * Through a big gate onto a small one, a creature outside the funnel the view narrows to is not
-     * shown: it stands behind the funnel's wall, beyond the small gate's walls (#583).
+     * Through a big gate onto a small one, a creature is shown only in the room at the end of the
+     * tunnel: not beside it, behind its wall, beyond the small gate's walls, nor in the tunnel (#583).
      */
     @Test
     void throughAFunnelOnlyACreatureInsideItIsShown()
@@ -512,7 +512,8 @@ class StandInsTest
         final Capture capture = new Capture.Builder("far", true, new Capture.Box(80, 60, 199, 41, 20, 34), mock(BlockData.class))
             .build();
         final WindowState narrowed = new WindowState(
-            new GateSource("gate:Abydos", mock(Block.class), shape, open, arrival, "Chulak", 16, funnel), capture);
+            new GateSource("gate:Abydos", mock(Block.class), shape.deeper(funnel.taper() - 1), open, arrival, "Chulak", 16,
+                funnel), capture);
         final WindowState whole = new WindowState(
             new GateSource("gate:Abydos", mock(Block.class), shape, open, arrival, "Chulak", 16), capture);
         // Ten layers in: the funnel's middle column, and four columns left of it.
@@ -526,6 +527,11 @@ class StandInsTest
         final Location onTheEdge = new Location(here, 13.5, 64.0, 10.5);
         assertFalse(StandIns.inRoom(narrowed, onTheEdge), "a column outside: not shown to begin with");
         assertTrue(StandIns.inRoom(narrowed, onTheEdge, true), "but kept once shown, so one on the edge does not flicker");
+        final Location inTheTunnel = new Location(here, 15.5, 64.0, 16.5);
+        assertFalse(StandIns.inRoom(narrowed, inTheTunnel), "four layers in, in the tunnel: not shown");
+        assertFalse(StandIns.inRoom(narrowed, inTheTunnel, true), "nor kept");
+        assertTrue(StandIns.inRoom(narrowed, new Location(here, 15.5, 64.0, 13.5), true),
+            "kept a layer back, in the far gate's plane, so one stepping into it does not flicker");
     }
 
     /**

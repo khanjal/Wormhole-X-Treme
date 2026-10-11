@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
@@ -10,8 +12,10 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 
 /**
- * {@code gate-view-funnel} narrows a big gate's view over 8 blocks, read so from a {@code config.yml}
- * written before it existed, and 0 turns it off (#583).
+ * {@code gate-view-funnel} ships on, and reads as on from a {@code config.yml} written before it
+ * existed; {@code gate-view-funnel-length}, the longest tunnel, ships at 16 (#583).
+ *
+ * <p>Sixteen so no shipped pair is cut short: Grand to Standard narrows thirteen, the most of them.
  */
 class GateViewFunnelSettingTest
 {
@@ -21,32 +25,47 @@ class GateViewFunnelSettingTest
         ConfigTestSupport.clear();
     }
 
-    @Test
-    void itShipsAtEightBlocks()
+    private static Object shipped(final ConfigKeys key)
     {
-        final Setting shipped = Arrays.stream(DefaultSettings.config).filter(s -> s.getName() == ConfigKeys.GATE_VIEW_FUNNEL)
-            .findFirst().orElseThrow();
-        assertEquals(8, shipped.getValue());
+        return Arrays.stream(DefaultSettings.config).filter(s -> s.getName() == key).findFirst().orElseThrow().getValue();
     }
 
     @Test
-    void aConfigWrittenBeforeItExistedReadsAsEight()
+    void itShipsOnWithTunnelsUpToSixteenBlocks()
     {
-        assertEquals(8, ConfigManager.getGateViewFunnel());
+        assertEquals(Boolean.TRUE, shipped(ConfigKeys.GATE_VIEW_FUNNEL));
+        assertEquals(16, shipped(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH));
     }
 
     @Test
-    void zeroTurnsItOffAndItIsKeptBetweenNothingAndSixtyFour()
+    void aConfigWrittenBeforeItExistedReadsAsOnAtSixteen()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, 0);
-        assertEquals(0, ConfigManager.getGateViewFunnel(), "the whole view, not narrowed");
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, -3);
-        assertEquals(0, ConfigManager.getGateViewFunnel(), "below nothing is off too");
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, 1);
-        assertEquals(1, ConfigManager.getGateViewFunnel(), "one block: a step straight to the far gate's size");
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, 64);
-        assertEquals(64, ConfigManager.getGateViewFunnel());
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, 500);
-        assertEquals(64, ConfigManager.getGateViewFunnel(), "no further than 64");
+        assertTrue(ConfigManager.isGateViewFunnel());
+        assertEquals(16, ConfigManager.getGateViewFunnelLength());
+        assertEquals(16, ConfigManager.getGateViewFunnelLongest());
+    }
+
+    @Test
+    void turnedOffNoTunnelIsAllowedWhateverItsLength()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, false);
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 20);
+
+        assertFalse(ConfigManager.isGateViewFunnel());
+        assertEquals(20, ConfigManager.getGateViewFunnelLength(), "kept for when it is turned on again");
+        assertEquals(0, ConfigManager.getGateViewFunnelLongest(), "the plain view");
+    }
+
+    @Test
+    void theLengthIsKeptBetweenOneAndSixtyFour()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 0);
+        assertEquals(1, ConfigManager.getGateViewFunnelLength(), "at least the opening itself: off is the switch's job");
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 1);
+        assertEquals(1, ConfigManager.getGateViewFunnelLength());
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 64);
+        assertEquals(64, ConfigManager.getGateViewFunnelLength());
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 500);
+        assertEquals(64, ConfigManager.getGateViewFunnelLength(), "no longer than 64");
     }
 }

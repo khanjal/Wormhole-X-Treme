@@ -465,6 +465,20 @@ public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowSh
     }
 
     /**
+     * The same window with its far side moved some layers deeper: the far block that showed on one
+     * layer shows that many layers further back, and every mapping follows (#583).
+     *
+     * @param layers
+     *            how many layers deeper
+     * @return the window
+     */
+    public WindowShape deeper(final int layers)
+    {
+        return new WindowShape(base, into, new Spot(far.x() - (layers * ahead.x()), far.y(), far.z() - (layers * ahead.z())),
+            ahead, mirrored, width, height);
+    }
+
+    /**
      * How many layers behind the opening a block is: 0 in the opening's own, negative in front.
      *
      * @param x

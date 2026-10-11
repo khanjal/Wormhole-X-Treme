@@ -546,7 +546,9 @@ public final class Windows
     static int reachAhead(final WindowState window)
     {
         final int[] box = window.capture.bounds();
-        final Spot far = window.shape.far();
+        // From where travellers land, not the window's far block, which a tunnel moves deeper.
+        final Place destination = window.source.destination();
+        final Spot far = new Spot((int) Math.floor(destination.x()), 0, (int) Math.floor(destination.z()));
         final Spot ahead = window.shape.ahead();
         if (ahead.x() != 0)
         {
@@ -2326,19 +2328,21 @@ public final class Windows
         // A capture that never went through the seen pass keeps nothing for air: walk the volume.
         final Map<Long, BlockData> view = window.capture.complete() ? fixedToByVolume(window, depth, now, most)
             : fixedToByKept(window, depth, now, most);
-        return walledIn(window, view, depth, most);
+        return tunnelled(window, view, depth, now, most);
     }
 
     /**
-     * Draws a funnel's wall into a view in its gate's portal material, out to the depth (#583).
+     * Draws a tunnel into a view, out to the depth (#583): hollow inside, and a wall in its gate's
+     * portal material round it and round the room at its end.
      *
-     * <p>Only the wall, not everything outside the funnel: every line of sight that leaves it meets
-     * the wall first, and the far side outside it was never put in the view.
+     * <p>Only the wall, not everything outside: every line of sight that leaves the tunnel or the
+     * room meets the wall first, and the far side outside them was never put in the view. Hollow as
+     * the far side's seen air is: air only where the real block is not empty.
      *
      * @return the view, or {@link #TOO_MANY} if it now holds more than {@code most}
      */
-    static Map<Long, BlockData> walledIn(final WindowState window, final Map<Long, BlockData> view, final int depth,
-        final int most)
+    static Map<Long, BlockData> tunnelled(final WindowState window, final Map<Long, BlockData> view, final int depth,
+        final long now, final int most)
     {
         final Funnel funnel = window.source.funnel();
         if ((funnel == null) || (view == TOO_MANY))
@@ -2352,18 +2356,34 @@ public final class Windows
         final double[] centre = centreOf(shape);
         final double reach = (double) depth * depth;
         final BlockData wall = Bukkit.createBlockData(funnel.wall());
+        final BlockData air = Bukkit.createBlockData(Material.AIR);
         funnel.forEachWall(depth, (layer, across, up) ->
         {
             final Spot at = shape.behind(layer, across, up);
-            final double dx = (at.x() + 0.5) - centre[0];
-            final double dy = (at.y() + 0.5) - centre[1];
-            final double dz = (at.z() + 0.5) - centre[2];
-            if ((at.y() >= min) && (at.y() < max) && (((dx * dx) + (dy * dy) + (dz * dz)) < reach))
+            if (drawable(at, min, max, centre, reach))
             {
                 view.put(key(at.x(), at.y(), at.z()), wall);
             }
         });
+        funnel.forEachHollow(depth, (layer, across, up) ->
+        {
+            final Spot at = shape.behind(layer, across, up);
+            if (drawable(at, min, max, centre, reach) && !WindowSight.reallyEmpty(here, at.x(), at.y(), at.z(), now))
+            {
+                view.put(key(at.x(), at.y(), at.z()), air);
+            }
+        });
         return (view.size() > most) ? TOO_MANY : view;
+    }
+
+    /** Whether a block is inside the world's height and within a view's depth of its opening's middle. */
+    private static boolean drawable(final Spot at, final int min, final int max, final double[] centre,
+        final double reach)
+    {
+        final double dx = (at.x() + 0.5) - centre[0];
+        final double dy = (at.y() + 0.5) - centre[1];
+        final double dz = (at.z() + 0.5) - centre[2];
+        return (at.y() >= min) && (at.y() < max) && (((dx * dx) + (dy * dy) + (dz * dz)) < reach);
     }
 
     /**
@@ -2399,7 +2419,7 @@ public final class Windows
             final int y = at.y();
             final int z = at.z();
             final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
-            if ((layer < 1) || (y < min) || (y >= max) || !window.inFunnel(x, y, z))
+            if ((layer < 1) || (y < min) || (y >= max) || !window.showsFar(x, y, z))
             {
                 return;
             }
@@ -2516,7 +2536,7 @@ public final class Windows
         {
             final Capture capture = window.capture;
             final Spot at = window.shape.farOf(x, y, z);
-            if (!window.inFunnel(x, y, z) || !capture.contains(at.x(), at.y(), at.z()))
+            if (!window.showsFar(x, y, z) || !capture.contains(at.x(), at.y(), at.z()))
             {
                 return false;
             }

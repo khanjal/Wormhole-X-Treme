@@ -457,20 +457,23 @@ of ice in the moment it shows can be held up by it, and nothing stays once the r
 ## A big gate onto a small one
 
 With `gate-view` on, a gate that dials a smaller one, a Massive gate dialling a Standard one say,
-does not show a Massive-sized slice of the far side running past the small gate's walls and ceiling.
-Its view narrows, over a few blocks behind the horizon, to the small gate's opening, and stays that
-size; its walls and ceiling are this gate's own portal material, so it looks like a tunnel of water
-(or lava, or whatever the gate's horizon is), and its floor is the ground in front of the far gate. Mobs and players on the far side who stand beside the tunnel are
-not shown through it. Gates of the same size, and a small gate dialling a big one, show the whole view
-as before.
+shows the far side at the end of a tunnel rather than a Massive-sized slice of it running past the
+small gate's walls and ceiling. The tunnel narrows from this gate's opening to the small gate's size;
+its walls, ceiling and floor are this gate's own portal material, so it looks like a tunnel of water
+(or lava, or whatever the gate's horizon is), and at its end you see the far side through an opening
+the small gate's size, standing on the ground in front of it. The more the far gate is smaller, the
+longer the tunnel: three blocks from Large to Standard, twelve from Massive to Standard. Mobs and
+players on the far side are shown only in the view at the end, not in the tunnel or beside it. Gates of
+the same size, and a small gate dialling a big one, show the whole view as before.
 
 The tunnel's wall is one block thick, so through water you can see, faintly, whatever stands behind
-the gate on your side; lava hides it. The far side is still captured whole: the funnel only changes
+the gate on your side; lava hides it. The far side is still captured whole: the tunnel only changes
 what is drawn.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `gate-view-funnel` | `8` | How many blocks the view takes to narrow, 1 to 64; `0` shows the whole view |
+| `gate-view-funnel` | `true` | Whether a gate dialling a smaller one shows the view at the end of a tunnel; `false` shows the whole view |
+| `gate-view-funnel-length` | `16` | The longest that tunnel may be, 1 to 64 blocks |
 
 ## Redstone
 

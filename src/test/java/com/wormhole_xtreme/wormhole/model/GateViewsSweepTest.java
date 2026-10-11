@@ -195,8 +195,9 @@ class GateViewsSweepTest
     }
 
     /**
-     * A big gate dialling a small one offers its view narrowed to the small gate's opening, walled in
-     * its own portal material, and whole at {@code gate-view-funnel: 0} (#583).
+     * A big gate dialling a small one offers its view at the end of a tunnel as long as its opening
+     * narrows, its far side shifted that deep, walled in its own portal material; at most
+     * {@code gate-view-funnel-length} long, and whole at {@code gate-view-funnel: false} (#583).
      */
     @Test
     void aBigGateDiallingASmallOneIsOfferedNarrowedToItsOpening()
@@ -217,14 +218,23 @@ class GateViewsSweepTest
 
         GateViews.offerAll();
 
+        // Eighteen by seventeen to three by four narrows fifteen: the far side fourteen layers deeper, the plane its last.
         sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() != null)
             && (window.funnel().far().left() == 7) && (window.funnel().far().right() == 9) && (window.funnel().far().top() == 3)
-            && (window.funnel().taper() == 8) && (window.funnel().wall() == Material.LAVA)), anyBoolean()));
+            && (window.funnel().taper() == 15) && (window.funnel().wall() == Material.LAVA)
+            && (window.shape().far().z() == (200 - 14))), anyBoolean()));
 
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, 0);
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 4);
         GateViews.offerAll();
 
-        sources.verify(() -> GateSource.offer(argThat(window -> window.funnel() == null), anyBoolean()));
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() != null) && (window.funnel().taper() == 4)
+            && (window.shape().far().z() == (200 - 3))), anyBoolean()));
+
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, false);
+        GateViews.offerAll();
+
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() == null) && (window.shape().far().z() == 200)),
+            anyBoolean()));
     }
 
     /**

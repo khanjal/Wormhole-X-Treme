@@ -17,11 +17,12 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
- * A big gate's view narrows to the opening of the small gate it dials (#583).
+ * A big gate's view of the small gate it dials is a tunnel with the view at its end (#583).
  *
  * <p>Seen in a world: a Massive gate dialling a Standard one showed a Massive-sized slice of the far
- * side, past the small gate's ceiling and walls and into the next hallway. The far opening, mapped
- * back through the window, is what the view narrows to, so where it sits is the far gate's own.
+ * side, past the small gate's ceiling and walls and into the next hallway; clipped to a funnel, the far
+ * room's ceiling still hung in the funnel's wide end. The far opening, mapped back through the window,
+ * is what the tunnel narrows to, so where it sits is the far gate's own, and the room starts past it.
  */
 class FunnelTest
 {
@@ -95,7 +96,7 @@ class FunnelTest
     @Test
     void noTaperNoPortalMaterialOrNoFarGateLeavesTheViewWhole()
     {
-        assertNull(Funnel.of(BIG, farGate(99, 101, 70, 73), 0, Material.WATER), "0 turns it off");
+        assertNull(Funnel.of(BIG, farGate(99, 101, 70, 73), 0, Material.WATER), "no length allowed: turned off");
         assertNull(Funnel.of(BIG, farGate(99, 101, 70, 73), 8, Material.AIR), "nothing to draw round it");
         assertNull(Funnel.of(BIG, farGate(99, 101, 70, 73), 8, null));
         assertNull(Funnel.of(BIG, List.of(), 8, Material.WATER));
@@ -133,8 +134,7 @@ class FunnelTest
         assertTrue(funnel.holds(0, 0, 0), "the opening's own corner");
         assertTrue(funnel.holds(0, 10, 10), "and the far one");
         assertFalse(funnel.holds(0, 11, 5), "beside the opening");
-        assertTrue(funnel.holds(0, 5, -1), "the row beneath it, the ground, is seen through it");
-        assertFalse(funnel.holds(0, 5, -2), "but nothing lower");
+        assertFalse(funnel.holds(0, 5, -1), "the row beneath it is the tunnel's floor");
         for (final int layer : new int[] { 8, 9, 40 })
         {
             assertTrue(funnel.holds(layer, 4, 0), "the far opening's corner, layer " + layer);
@@ -217,11 +217,100 @@ class FunnelTest
 
         assertEquals(deep, lastLayer, "past the taper: both sides, the ceiling and under the ground, no corners");
         assertTrue(walls.contains(new Spot(1, -1, 0)), "on the first layer, beside the near opening behind the frame");
-        assertTrue(walls.contains(new Spot(1, 5, -2)), "and under its ground");
+        assertTrue(walls.contains(new Spot(1, 5, -1)), "and the tunnel's floor, level with the near opening's bottom");
+        assertFalse(walls.contains(new Spot(1, 5, -2)), "nothing under the floor of the tunnel");
         assertTrue(walls.contains(new Spot(1, 5, 10)), "and its top row, which the taper has already left");
-        assertFalse(walls.contains(new Spot(1, 5, -1)), "its ground is the view");
+        assertTrue(walls.contains(new Spot(7, 5, -1)), "the tunnel's floor runs to its last layer");
+        assertFalse(walls.contains(new Spot(8, 5, -1)), "where the far ground starts, level with it");
+        assertTrue(walls.contains(new Spot(8, 5, -2)), "with the wall under that");
         assertFalse(walls.contains(new Spot(1, -1, 10)), "nor a corner");
         assertFalse(walls.contains(new Spot(20, 3, 0)), "and none at the depth");
+    }
+
+    /** A window of a rectangular opening, looked into northwards. */
+    private static WindowShape opening(final int wide, final int tall)
+    {
+        return WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, wide, tall);
+    }
+
+    /** A far gate's opening of a size, centred on the arrival's column and standing on its row. */
+    private static List<Spot> farOpening(final int wide, final int tall)
+    {
+        final int low = 100 - ((wide - 1) / 2);
+        return farGate(low, (low + wide) - 1, 70, (70 + tall) - 1);
+    }
+
+    /**
+     * The tunnel is a block longer for each block the far opening is narrower, the more of its width
+     * and height: Standard is further down a Massive gate than down a Large one.
+     *
+     * <p>The shipped openings, by their bounding boxes: Standard five square, Large eight, Massive
+     * seventeen, Grand eighteen by seventeen.
+     */
+    @Test
+    void theTunnelIsAsLongAsTheOpeningNarrowsUpToTheLongestAllowed()
+    {
+        final int longest = 16;
+        assertEquals(3, Funnel.of(opening(8, 8), farOpening(5, 5), longest, Material.WATER).taper(), "Large to Standard");
+        assertEquals(12, Funnel.of(opening(17, 17), farOpening(5, 5), longest, Material.WATER).taper(), "Massive to Standard");
+        assertEquals(13, Funnel.of(opening(18, 17), farOpening(5, 5), longest, Material.WATER).taper(), "Grand to Standard");
+        assertEquals(9, Funnel.of(opening(17, 17), farOpening(8, 8), longest, Material.WATER).taper(), "Massive to Large");
+        assertEquals(10, Funnel.of(opening(18, 17), farOpening(8, 8), longest, Material.WATER).taper(), "Grand to Large");
+        assertEquals(1, Funnel.of(opening(18, 17), farOpening(17, 17), longest, Material.WATER).taper(),
+            "Grand to Massive, a block narrower: a tunnel of the opening alone, the view straight behind it");
+        assertEquals(8, Funnel.of(opening(17, 17), farOpening(5, 5), 8, Material.WATER).taper(), "no longer than allowed");
+        assertNull(Funnel.of(opening(17, 17), farOpening(18, 17), longest, Material.WATER), "Massive to Grand: wider, no tunnel");
+    }
+
+    @Test
+    void theTunnelIsHollowAndTheFarRoomShowsOnlyPastIt()
+    {
+        final Funnel funnel = toStandard();
+
+        assertEquals(8, funnel.taper(), "eleven square to three by four narrows eight");
+        assertTrue(funnel.hollow(1, 0, 0), "the first layer behind the opening, still its whole size");
+        assertTrue(funnel.hollow(7, 5, 3), "the far gate's own plane, the tunnel's last layer");
+        assertFalse(funnel.hollow(8, 5, 1), "past it is the room");
+        assertFalse(funnel.hollow(0, 5, 1), "the opening is the gate's own, never drawn");
+        assertFalse(funnel.hollow(3, 0, 10), "outside the narrowing tunnel");
+        assertFalse(funnel.shows(7, 5, 1, 0.0), "no far side in the tunnel");
+        assertFalse(funnel.shows(1, 5, 1, 0.0));
+        assertTrue(funnel.shows(8, 5, 1, 0.0), "the room starts on the layer after the far gate's plane");
+        assertTrue(funnel.shows(8, 5, -1, 0.0), "with the ground under it");
+        assertFalse(funnel.shows(8, 3, 1, 0.0), "at the far opening's size");
+        assertFalse(funnel.shows(30, 5, 4, 0.0), "however deep");
+        assertTrue(funnel.shows(7, 5, 1, 1.0), "a stand-in already shown may stand a layer back in the far gate's plane");
+        assertFalse(funnel.shows(6, 5, 1, 1.0), "but no further into the tunnel");
+    }
+
+    @Test
+    void theHollowIsEveryCellOfTheTunnelShortOfTheDepth()
+    {
+        final Funnel funnel = toStandard();
+        final Set<Spot> hollow = new HashSet<>();
+        funnel.forEachHollow(20, (layer, across, up) -> hollow.add(new Spot(layer, across, up)));
+        final Set<Spot> shallow = new HashSet<>();
+        funnel.forEachHollow(4, (layer, across, up) -> shallow.add(new Spot(layer, across, up)));
+
+        assertTrue(hollow.contains(new Spot(1, 0, 0)) && hollow.contains(new Spot(1, 10, 9)), "the first layer's corners");
+        assertTrue(hollow.contains(new Spot(7, 4, 0)) && hollow.contains(new Spot(7, 6, 3)), "the last layer's");
+        assertEquals(0, hollow.stream().filter(cell -> cell.x() >= 8).count(), "none in the room");
+        assertEquals(25, hollow.stream().filter(cell -> cell.x() == 7).count(), "five across by five up on the last layer, a step short of the far size");
+        assertTrue(shallow.contains(new Spot(3, 5, 5)), "short of a shallow depth");
+        assertFalse(shallow.contains(new Spot(4, 5, 3)), "and none at it");
+    }
+
+    @Test
+    void aTunnelOfOneLayerIsTheOpeningAloneAndTheRoomStraightBehindIt()
+    {
+        final Funnel funnel = Funnel.of(BIG, farGate(99, 101, 70, 73), 1, Material.WATER);
+        final List<Spot> hollow = new ArrayList<>();
+        funnel.forEachHollow(20, (layer, across, up) -> hollow.add(new Spot(layer, across, up)));
+
+        assertEquals(1, funnel.taper());
+        assertTrue(hollow.isEmpty(), "nothing hollow behind the opening");
+        assertTrue(funnel.shows(1, 5, 1, 0.0), "the room from the first layer");
+        assertFalse(funnel.shows(1, 3, 1, 0.0), "at the far opening's size");
     }
 
     /** A far gate three wide and four tall, a block behind an arrival facing a yaw, across the way it faces. */

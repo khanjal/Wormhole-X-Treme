@@ -445,10 +445,13 @@ public final class GateViews
         final List<Spot> open = cellsOf(gate);
         final Spot middle = middleOf(open);
         final Stargate target = gate.getGateTarget();
+        final Funnel funnel = Funnel.of(shape, cellsOf(target), ConfigManager.getGateViewFunnelLongest(),
+            gate.getEffectivePortalMaterial());
+        // The far gate's plane is the tunnel's last layer, and the room past it starts on the next.
+        final WindowShape drawn = (funnel == null) ? shape : shape.deeper(funnel.taper() - 1);
         return new GateSource(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(middle.x(), middle.y(), middle.z()),
-            shape, open, Place.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
-            ConfigManager.getGateViewDepth(),
-            Funnel.of(shape, cellsOf(target), ConfigManager.getGateViewFunnel(), gate.getEffectivePortalMaterial()));
+            drawn, open, Place.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
+            ConfigManager.getGateViewDepth(), funnel);
     }
 
     /**

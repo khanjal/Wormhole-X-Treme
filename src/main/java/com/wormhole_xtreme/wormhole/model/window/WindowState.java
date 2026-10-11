@@ -114,23 +114,23 @@ final class WindowState
         return source.depth();
     }
 
-    /** @return true if a block behind the opening is inside its funnel, or it has none (#583) */
-    boolean inFunnel(final int x, final int y, final int z)
+    /** @return true if the far side may be drawn at a block behind the opening: past its tunnel, if it has one (#583) */
+    boolean showsFar(final int x, final int y, final int z)
     {
-        return inFunnel(x, y, z, 0.0);
+        return showsFar(x, y, z, 0.0);
     }
 
     /**
-     * The same, the funnel's edges moved out by some blocks.
+     * The same, the edges of the room past the tunnel moved out by some blocks.
      *
      * @param slack
      *            how far out each edge is moved
-     * @return true if the block is inside the widened funnel, or it has none
+     * @return true if the block is inside the widened room, or there is no tunnel
      */
-    boolean inFunnel(final int x, final int y, final int z, final double slack)
+    boolean showsFar(final int x, final int y, final int z, final double slack)
     {
         final Funnel funnel = source.funnel();
         return (funnel == null)
-            || funnel.holds(shape.layerOf(x, z), shape.acrossOf(x, z), y - shape.base().y(), slack);
+            || funnel.shows(shape.layerOf(x, z), shape.acrossOf(x, z), y - shape.base().y(), slack);
     }
 }
