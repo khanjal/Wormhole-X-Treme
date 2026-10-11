@@ -915,6 +915,28 @@ class HorizonRippleTest
         assertEquals(union(rings("water", 1), rings("ice", 0, 2)), sentTo(front), "its own: two waves");
     }
 
+    /**
+     * A gate of one ring lit by three waves back to back stays lit, its cells left as they are rather than put
+     * back and drawn again in the same tick.
+     */
+    @Test
+    void aRingLitAgainNextStepIsLeftAsItIs() throws ReflectiveOperationException
+    {
+        opening(gate, 2, 2, false);
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawnTheView(front);
+        assertEquals(1, HorizonRipple.ringsOf(gate).size());
+
+        assertTrue(HorizonRipple.start(gate, 3));
+        assertEquals(rings("lava", 0), sentTo(front));
+        step();
+        assertEquals(rings("lava", 0), sentTo(front), "drawn again, never put back to the clear opening between");
+        step();
+        assertEquals(rings("lava", 0), sentTo(front), "the third wave");
+        step();
+        assertEquals(rings("air", 0), sentTo(front), "over: the clear opening");
+    }
+
     @Test
     void halfOfOwnRipplesAreOneWaveThreeInTenTwoAndTwoInTenThree()
     {

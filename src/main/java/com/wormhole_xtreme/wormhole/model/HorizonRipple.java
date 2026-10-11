@@ -733,10 +733,10 @@ public final class HorizonRipple
             }
         }
 
-        /** A viewer's last drawing less the cells their next one draws again in the same plane. */
+        /** A viewer's last drawing less the cells their next one draws again; a cell in front is never one in the opening. */
         private static Sent withoutKept(final Sent old, final Sent next)
         {
-            if ((next == null) || (next.inPlane() != old.inPlane()))
+            if (next == null)
             {
                 return old;
             }

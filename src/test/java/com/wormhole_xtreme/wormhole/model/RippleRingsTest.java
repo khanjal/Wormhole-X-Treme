@@ -346,6 +346,16 @@ class RippleRingsTest
             "but four rings is more than one gap of two and one, so two waves overlap");
     }
 
+    /** Exactly enough rings to overlap is still too few: one ring of the next wave would sit against the last. */
+    @Test
+    void wavesOnExactlyTheBoundaryRunBackToBack()
+    {
+        assertEquals(List.of(List.of(0), List.of(1), List.of(2), List.of(0), List.of(1), List.of(2)),
+            RippleRings.waves(3, 2, 2));
+        assertEquals(15, RippleRings.waves(5, 3, 2).size(), "five rings, three waves, back to back");
+        assertEquals(List.of(0, 2), RippleRings.waves(4, 2, 2).get(2), "one more ring, and two waves overlap");
+    }
+
     @Test
     void noRingsNoSteps()
     {
