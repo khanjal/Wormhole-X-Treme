@@ -98,7 +98,8 @@ public class ConfigurationYAML
             }
             final Map<String, Object> map = YamlMaps.asMap(loaded);
 
-            final List<Setting> missing = applySettings(map);
+            final Map<ConfigManager.ConfigKeys, Object> rewritten = new LinkedHashMap<>();
+            final List<Setting> missing = applySettings(map, rewritten);
 
             // Material groups are a nested section, so they are read straight off the parsed
             // YAML rather than through the flat Setting/ConfigKeys mechanism. A file without the
@@ -113,6 +114,11 @@ public class ConfigurationYAML
             if (map.keySet().stream().anyMatch(RENAMED::containsKey))
             {
                 renameOldKeys(cfg);
+            }
+            // A number left under what is now a switch is written back as the switch it was read as.
+            if (!rewritten.isEmpty())
+            {
+                rewriteValues(cfg, rewritten);
             }
             // Appended to the file as well as defaulted in memory, so an admin can see the
             // setting exists and change it.
@@ -136,9 +142,12 @@ public class ConfigurationYAML
      *
      * @param map
      *            the parsed config file
+     * @param rewritten
+     *            filled with each setting whose value is to be written back in its own kind
      * @return the settings the file did not mention, which the caller appends to it
      */
-    private static List<Setting> applySettings(final Map<String, Object> map)
+    private static List<Setting> applySettings(final Map<String, Object> map,
+        final Map<ConfigManager.ConfigKeys, Object> rewritten)
     {
         final List<Setting> missing = new ArrayList<>();
         for (final Setting element : DefaultSettings.config)
@@ -153,6 +162,10 @@ public class ConfigurationYAML
             {
                 final Setting s = settingFrom(element, value);
                 ConfigManager.getConfigurations().put(s.getName(), s);
+                if ((value instanceof Number) && (s.getValue() instanceof Boolean))
+                {
+                    rewritten.put(s.getName(), s.getValue());
+                }
             }
         }
         return missing;
@@ -201,33 +214,192 @@ public class ConfigurationYAML
         Map.of("mirror-proximity-radius", ConfigManager.ConfigKeys.MIRROR_PROXIMITY_DISTANCE);
 
     /**
-     * Builds a setting from whatever type the YAML parser handed back.
+     * Builds a setting from whatever type the YAML parser handed back, in the kind its default is.
      *
-     * <p>Integer is checked before Number, and the order is load-bearing: Integer is a
-     * Number, so folding the two leaves every whole number stored as a Double and the next
-     * getIntValue throws a ClassCastException.
+     * <p>Stored as found, a value of another kind threw ClassCastException from every read: the
+     * {@code gate-view-funnel: 8} an early tunnel build appended, once the setting became a
+     * switch, took down every gate's view each sweep (#583). A value that cannot be read as its
+     * setting's kind is the default, said once at startup.
      *
      * @param element
-     *            the default, for its key and description
+     *            the default, for its key, kind and description
      * @param value
      *            the value read from the file
      * @return the setting to store
      */
     private static Setting settingFrom(final Setting element, final Object value)
     {
-        if (value instanceof Boolean flag)
+        final Object read = asKindOf(element.getValue(), value);
+        final String key = kebabKeyName(element.getName().name());
+        if (read == null)
         {
-            return new Setting(element.getName(), flag, element.getDescription(), SETTING_SECTION);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
+                + ", which is not " + kindOf(element.getValue()) + "; using " + element.getValue() + " until it is put right.");
+            return element;
         }
-        if (value instanceof Integer whole)
+        if ((value instanceof Number) && (read instanceof Boolean))
         {
-            return new Setting(element.getName(), whole, element.getDescription(), SETTING_SECTION);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
+                + ", a number, where it is now true or false; read as " + read + " and written back so.");
+        }
+        return new Setting(element.getName(), read, element.getDescription(), SETTING_SECTION);
+    }
+
+    /**
+     * A value from the file in the kind a setting's default is: a switch from true or false, or
+     * from a number (above 0 is on); a whole number from one written with a point or in quotes; a
+     * number from text. A setting whose default is text keeps what it was given, as before.
+     *
+     * <p>Integer is checked before Number for a text setting, and the order is load-bearing:
+     * Integer is a Number, so folding the two leaves every whole number stored as a Double.
+     *
+     * @param kind
+     *            the setting's default
+     * @param value
+     *            the value read from the file
+     * @return the value to store, or null if it cannot be read as that kind
+     */
+    static Object asKindOf(final Object kind, final Object value)
+    {
+        if (kind instanceof Boolean)
+        {
+            return asSwitch(value);
+        }
+        if (kind instanceof Integer)
+        {
+            return asWhole(value);
+        }
+        if (kind instanceof Double)
+        {
+            return asNumber(value);
+        }
+        if ((value instanceof Boolean) || (value instanceof Integer))
+        {
+            return value;
         }
         if (value instanceof Number number)
         {
-            return new Setting(element.getName(), number.doubleValue(), element.getDescription(), SETTING_SECTION);
+            return number.doubleValue();
         }
-        return new Setting(element.getName(), value.toString(), element.getDescription(), SETTING_SECTION);
+        return value.toString();
+    }
+
+    /** A switch from true or false, as written or in quotes, or from a number: on above 0. */
+    private static Boolean asSwitch(final Object value)
+    {
+        if (value instanceof Boolean flag)
+        {
+            return flag;
+        }
+        if (value instanceof Number number)
+        {
+            return number.doubleValue() > 0.0;
+        }
+        final String text = value.toString().trim();
+        if ("true".equalsIgnoreCase(text) || "false".equalsIgnoreCase(text))
+        {
+            return Boolean.valueOf(text);
+        }
+        return null;
+    }
+
+    /** A whole number, from one or from a number or text that is whole. */
+    private static Integer asWhole(final Object value)
+    {
+        final Double number = asNumber(value);
+        if ((number == null) || (number != Math.rint(number)) || (number < Integer.MIN_VALUE)
+            || (number > Integer.MAX_VALUE))
+        {
+            return null;
+        }
+        return number.intValue();
+    }
+
+    /** A number, from one or from text that is one. */
+    private static Double asNumber(final Object value)
+    {
+        if (value instanceof Number number)
+        {
+            return number.doubleValue();
+        }
+        if (value instanceof Boolean)
+        {
+            return null;
+        }
+        try
+        {
+            final double number = Double.parseDouble(value.toString().trim());
+            return Double.isFinite(number) ? number : null;
+        }
+        catch (final NumberFormatException notANumber)
+        {
+            return null;
+        }
+    }
+
+    /** What kind a setting is, for a warning. */
+    private static String kindOf(final Object kind)
+    {
+        if (kind instanceof Boolean)
+        {
+            return "true or false";
+        }
+        return (kind instanceof Integer) ? "a whole number" : "a number";
+    }
+
+    /**
+     * Writes some settings' values back into the file, each on its own top-level line, under
+     * whichever spelling of its key the file uses.
+     */
+    private static void rewriteValues(final File cfg, final Map<ConfigManager.ConfigKeys, Object> values)
+        throws IOException
+    {
+        final List<String> lines = rewriteValueLines(Files.readAllLines(cfg.toPath()), values);
+        try (final FileWriter writer = new FileWriter(cfg, StandardCharsets.UTF_8))
+        {
+            for (final String line : lines)
+            {
+                writer.write(line + System.lineSeparator());
+            }
+        }
+    }
+
+    /**
+     * The file's lines with each named setting's top-level line given a new value.
+     *
+     * @param lines
+     *            the file as it stands
+     * @param values
+     *            the values to write, by setting
+     * @return the lines to write back
+     */
+    static List<String> rewriteValueLines(final List<String> lines,
+        final Map<ConfigManager.ConfigKeys, Object> values)
+    {
+        final List<String> out = new ArrayList<>(lines.size());
+        for (final String line : lines)
+        {
+            final int colon = line.indexOf(':');
+            final boolean topLevel = (colon > 0) && !Character.isWhitespace(line.charAt(0)) && (line.charAt(0) != '#');
+            final String key = topLevel ? line.substring(0, colon).trim() : null;
+            final ConfigManager.ConfigKeys setting = (key == null) ? null : settingNamed(key);
+            out.add(((setting != null) && values.containsKey(setting))
+                ? (key + ": " + formatValueForYaml(values.get(setting))) : line);
+        }
+        return out;
+    }
+
+    /** The setting a top-level key names, in either spelling, or null. */
+    private static ConfigManager.ConfigKeys settingNamed(final String key)
+    {
+        for (final ConfigManager.ConfigKeys setting : ConfigManager.ConfigKeys.values())
+        {
+            if (setting.name().equals(key) || kebabKeyName(setting.name()).equals(key))
+            {
+                return setting;
+            }
+        }
+        return null;
     }
 
     /**
