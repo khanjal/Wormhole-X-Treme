@@ -356,6 +356,18 @@ class FunnelTest
         assertFalse(funnel.wall(0, -1, 0), "nor in the opening's own layer");
     }
 
+    /** A cell whose edge the narrowing box meets exactly is in, on every side, as half a block always rounded in. */
+    @Test
+    void aCellTheNarrowingEdgeMeetsExactlyIsIn()
+    {
+        // Columns 3 to 7 and rows 0 to 3 at a length of three: layer 1's box runs from 1.5 to 8.5 and up to 6.5.
+        final Funnel funnel = Funnel.of(BIG, farGate(98, 102, 70, 73), 3, Material.WATER);
+
+        assertTrue(funnel.holds(1, 1, 0) && funnel.holds(1, 9, 0), "left and right, met at their outer edge");
+        assertTrue(funnel.holds(1, 5, 7), "the top, met at its upper edge");
+        assertFalse(funnel.holds(1, 0, 0) || funnel.holds(1, 10, 0) || funnel.holds(1, 5, 8), "and nothing past them");
+    }
+
     @Test
     void aStepInOfSeveralColumnsIsWalledAcrossItsWholeFace()
     {

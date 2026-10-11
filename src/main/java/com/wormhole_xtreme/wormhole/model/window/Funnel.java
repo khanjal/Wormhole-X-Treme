@@ -148,9 +148,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
             return null;
         }
         // Only those inside the near opening: a far gate taller or wider than it is cut to it, as its box is.
-        final Set<Integer> farShape = new HashSet<>(cellsIn(shape, farCells, true));
-        farShape.removeIf(key -> !inside(far, key));
-        final Set<Integer> nearShape = cellsIn(shape, nearCells, false);
+        final Set<Integer> farShape = cellsIn(shape, farCells, far);
+        final Set<Integer> nearShape = cellsIn(shape, nearCells, null);
         // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a Large.
         final int narrows = Math.max(shape.width() - ((far.right() - far.left()) + 1),
             shape.height() - ((far.top() - far.bottom()) + 1));
@@ -158,16 +157,16 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /**
-     * Some cells as keys of the window's columns and rows; any outside the box a layer is held to are
-     * never asked about.
+     * Some cells as keys of the window's columns and rows.
      *
      * @param cells
      *            cells of either world; null for every cell of the window
-     * @param far
-     *            true for the far side's, which are mapped through the window
+     * @param box
+     *            for the far side's cells, which are mapped through the window, the box to keep them
+     *            inside; null for the near opening's, which are kept as they are
      * @return their keys
      */
-    private static Set<Integer> cellsIn(final WindowShape shape, final List<Spot> cells, final boolean far)
+    private static Set<Integer> cellsIn(final WindowShape shape, final List<Spot> cells, final Opening box)
     {
         final Set<Integer> keys = new HashSet<>();
         if (cells == null)
@@ -180,18 +179,15 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         }
         for (final Spot cell : cells)
         {
-            final Spot here = far ? shape.hereOf(cell.x(), cell.y(), cell.z()) : cell;
-            keys.add(cellKey(shape.acrossOf(here.x(), here.z()), here.y() - shape.base().y()));
+            final Spot here = (box == null) ? cell : shape.hereOf(cell.x(), cell.y(), cell.z());
+            final int across = shape.acrossOf(here.x(), here.z());
+            final int up = here.y() - shape.base().y();
+            if ((box == null) || ((across >= box.left()) && (across <= box.right()) && (up >= box.bottom()) && (up <= box.top())))
+            {
+                keys.add(cellKey(across, up));
+            }
         }
         return keys;
-    }
-
-    /** Whether a cell's key is inside a box. */
-    private static boolean inside(final Opening box, final int key)
-    {
-        final int across = Math.floorDiv(key + (KEY_STRIDE / 2), KEY_STRIDE);
-        final int up = key - (across * KEY_STRIDE);
-        return (across >= box.left()) && (across <= box.right()) && (up >= box.bottom()) && (up <= box.top());
     }
 
     /** Adds every row of one column. */
@@ -286,7 +282,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         }
         // In whole numbers, every edge times twice the tunnel's length, so a tie is a tie on both sides.
         final long steps = Math.max(1, plane);
-        final long part = (plane == 0) ? 0 : Math.max(0, layer);
+        // A tunnel of the opening alone asks only of its opening, layer 0, so this is 0 there.
+        final long part = Math.max(0, layer);
         final long left = far.left() * part;
         final long right = ((width - 1) * steps) + ((far.right() - (width - 1L)) * part);
         final long bottom = far.bottom() * part;

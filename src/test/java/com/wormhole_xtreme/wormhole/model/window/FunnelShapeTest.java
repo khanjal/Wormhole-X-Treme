@@ -297,7 +297,9 @@ class FunnelShapeTest
         final Funnel funnel = funnel(cross(17), portalOf("Standard"), 3);
 
         assertEquals(3, funnel.taper());
+        assertEquals(keysOf(cross(17), 0), layerOf(funnel, 0), "the opening is the cross alone, not the far cells it lacks");
         assertTrue(funnel.hollow(1, 3, 5), "the end of the left arm, hollow on the first layer");
+        assertTrue(funnel.hollow(1, 6, 1), "a far cell the cross lacks, held from the first layer on");
         assertFalse(funnel.holds(2, 3, 5) || funnel.holds(0, 3, 5), "out of the far opening, and of the cross");
         assertTrue(funnel.wall(2, 3, 5), "so walled from the layer before");
         for (int layer = 1; layer < funnel.taper(); layer++)
