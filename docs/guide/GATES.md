@@ -299,15 +299,17 @@ A gate has up to two signs.
 
 The selection is coloured *and* wrapped in `»` `«`, so it still reads for a colourblind player.
 
+In `config.yml` under `# --- Gate signs ---`, in this order:
+
 | Setting | Default | What it does |
 |---|---|---|
+| `sign-glowing-text` | `false` | Glowing text — reads worse except in a very dark room |
+| `sign-dial-match-material` | `true` | Convert a player's dial sign to the gate's sign material, keeping its text |
 | `sign-color-gate-name` | `DARK_AQUA` | The gate's name, on both signs |
 | `sign-color-network` | `GRAY` | The network line |
 | `sign-color-owner` | `GRAY` | The owner line |
 | `sign-color-selected` | `DARK_GREEN` | The destination a dial will use |
 | `sign-color-neighbour` | `GRAY` | The destinations either side |
-| `sign-glowing-text` | `false` | Glowing text — reads worse except in a very dark room |
-| `sign-dial-match-material` | `true` | Convert a player's dial sign to the gate's sign material, keeping its text |
 
 Colours are the sixteen chat colours: `BLACK`, `DARK_BLUE`, `DARK_GREEN`, `DARK_AQUA`, `DARK_RED`,
 `DARK_PURPLE`, `GOLD`, `GRAY`, `DARK_GRAY`, `BLUE`, `GREEN`, `AQUA`, `RED`, `LIGHT_PURPLE`, `YELLOW`
@@ -656,6 +658,9 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `Standard`, `Horizontal` | 1x | 1x |
 | `Large` | 0.90x | 1.24x |
 | `Grand`, `Massive` | 0.75x (the limit) | 2x (the limit) |
+
+In `config.yml` the sounds are under `# --- Stargate sounds ---`, in this order; the last two rows
+are under `# --- Stargates ---`, `# -- Effects --`.
 
 | Setting | Default | When it plays |
 |---|---|---|
