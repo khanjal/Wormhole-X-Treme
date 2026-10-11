@@ -147,7 +147,9 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return null;
         }
-        final Set<Integer> farShape = cellsIn(shape, farCells, true);
+        // Only those inside the near opening: a far gate taller or wider than it is cut to it, as its box is.
+        final Set<Integer> farShape = new HashSet<>(cellsIn(shape, farCells, true));
+        farShape.removeIf(key -> !inside(far, key));
         final Set<Integer> nearShape = cellsIn(shape, nearCells, false);
         // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a Large.
         final int narrows = Math.max(shape.width() - ((far.right() - far.left()) + 1),
@@ -182,6 +184,14 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
             keys.add(cellKey(shape.acrossOf(here.x(), here.z()), here.y() - shape.base().y()));
         }
         return keys;
+    }
+
+    /** Whether a cell's key is inside a box. */
+    private static boolean inside(final Opening box, final int key)
+    {
+        final int across = Math.floorDiv(key + (KEY_STRIDE / 2), KEY_STRIDE);
+        final int up = key - (across * KEY_STRIDE);
+        return (across >= box.left()) && (across <= box.right()) && (up >= box.bottom()) && (up <= box.top());
     }
 
     /** Adds every row of one column. */
@@ -265,52 +275,73 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
             // A tunnel of the opening alone has no far opening in front of the room: it is the plain view.
             return (plane == 0) || seenThrough(layer, across, up, slack, plane);
         }
-        final double part = (plane == 0) ? 0.0 : Math.min(1.0, Math.max(0, layer) / (double) plane);
+        if ((plane > 0) && (layer >= plane))
+        {
+            // The far gate's plane is its opening, slack or none: its frame is the collar, where nothing stands.
+            return farShape.contains(cellKey(across, up));
+        }
+        if (slack > 0.0)
+        {
+            return inBox(layer, across, up, slack, plane);
+        }
+        // In whole numbers, every edge times twice the tunnel's length, so a tie is a tie on both sides.
+        final long steps = Math.max(1, plane);
+        final long part = (plane == 0) ? 0 : Math.max(0, layer);
+        final long left = far.left() * part;
+        final long right = ((width - 1) * steps) + ((far.right() - (width - 1L)) * part);
+        final long bottom = far.bottom() * part;
+        final long top = ((height - 1) * steps) + ((far.top() - (height - 1L)) * part);
+        if ((((2L * across) + 1) * steps < (2 * left)) || (((2L * across) - 1) * steps > (2 * right))
+            || ((((2L * up) + 1) * steps) < (2 * bottom)) || ((((2L * up) - 1) * steps) > (2 * top)))
+        {
+            return false;
+        }
+        // Never narrower than the far opening it ends on, so no far cell is left in a pocket of wall.
+        return ((layer > 0) && farShape.contains(cellKey(across, up)))
+            || nearShape.contains(cellKey(sample(across * steps, left, right, width), sample(up * steps, bottom, top, height)));
+    }
+
+    /** Whether a cell is inside a tunnel layer's box widened by some blocks, for a stand-in already shown. */
+    private boolean inBox(final int layer, final int across, final int up, final double slack, final int plane)
+    {
+        final double part = (plane == 0) ? 0.0 : Math.max(0, layer) / (double) plane;
         final double left = far.left() * part;
         final double right = (width - 1) + ((far.right() - (width - 1)) * part);
         final double bottom = far.bottom() * part;
         final double top = (height - 1) + ((far.top() - (height - 1)) * part);
-        if (((across + 0.5) < (left - slack)) || ((across - 0.5) > (right + slack)) || ((up + 0.5) < (bottom - slack))
-            || ((up - 0.5) > (top + slack)))
-        {
-            return false;
-        }
-        // A stand-in already shown is let off the shape: the box round it is slack enough.
-        if (slack > 0.0)
-        {
-            return true;
-        }
-        if ((plane > 0) && (layer >= plane))
-        {
-            return farShape.contains(cellKey(across, up));
-        }
-        return nearShape.contains(cellKey(sample(across, left, right, width), sample(up, bottom, top, height)));
+        return ((across + 0.5) >= (left - slack)) && ((across - 0.5) <= (right + slack)) && ((up + 0.5) >= (bottom - slack))
+            && ((up - 0.5) <= (top + slack));
     }
 
     /**
      * The column or row of the near opening a cell of a narrower layer stands for: its place between
-     * the layer's edges, the same share of the way between the near opening's.
+     * the layer's edges, the same share of the way between the near opening's, to the nearest block and
+     * a half to the even one. In whole numbers, all of them times the tunnel's length, so a shape the
+     * same either side keeps a tunnel the same either side.
      *
      * @param at
-     *            the cell's column or row
+     *            the cell's column or row, times the tunnel's length
      * @param low
-     *            the layer's first, as a middle of a block
+     *            the layer's first, as a middle of a block, times the tunnel's length
      * @param high
-     *            the layer's last
+     *            the layer's last, the same
      * @param size
      *            the near opening's width or height
      * @return the near opening's column or row
      */
-    private static int sample(final int at, final double low, final double high, final int size)
+    private static int sample(final long at, final long low, final long high, final int size)
     {
-        if (high <= low)
+        final long span = high - low;
+        if (span <= 0)
         {
             // An opening one block across, onto one as narrow.
             return 0;
         }
-        final double share = Math.max(0.0, Math.min(1.0, (at - low) / (high - low)));
-        // Halves to the even block, so a shape the same either side keeps a tunnel the same either side.
-        return (int) Math.rint(share * (size - 1));
+        final long scaled = Math.max(0, Math.min(span, at - low)) * (size - 1);
+        final long whole = scaled / span;
+        final long twice = 2 * (scaled - (whole * span));
+        final boolean up = (twice > span) || ((twice == span) && ((whole % 2) == 1));
+        return (int) (up ? (whole + 1) : whole);
     }
 
     /**
@@ -389,8 +420,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
 
     /**
      * Whether a cell is the tunnel's wall, two blocks thick: outside the tunnel, within two blocks of
-     * it on its own layer, corners included, or inside it two layers before, which the one before is
-     * inside too while the shape only narrows, as every shipped opening's does. Water ends a
+     * it on its own layer, corners included, or inside it one or two layers before. A shrunk shape does
+     * not only narrow: a cross's arm can be in on one layer and out on the next. Water ends a
      * block short of its top with nothing over it, so one block left the world showing between the
      * steps; and a step in of several columns at once is walled across its whole face. The wall ends
      * with the tunnel, its last layer a collar round the far opening; the room past it has none.
@@ -403,7 +434,7 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return false;
         }
-        return holds(layer - 2, across, up) || besideOnLayer(layer, across, up);
+        return holds(layer - 1, across, up) || holds(layer - 2, across, up) || besideOnLayer(layer, across, up);
     }
 
     /** Whether a cell is within two blocks of the tunnel on its own layer, corners included. */

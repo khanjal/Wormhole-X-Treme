@@ -556,7 +556,8 @@ class FunnelTest
         assertFalse(funnel.holds(8, 9, 0, 1.0));
         assertFalse(funnel.holds(8, 5, 6, 1.0));
         assertFalse(funnel.holds(8, 5, -4, 1.0));
-        assertTrue(funnel.holds(7, 3, 1, 1.0) && !funnel.holds(7, 2, 1, 1.0), "and in the far gate's plane");
-        assertTrue(funnel.holds(7, 5, -1, 1.0) && funnel.holds(7, 5, 4, 1.0) && funnel.holds(7, 7, 1, 1.0));
+        assertTrue(funnel.holds(7, 5, 1, 1.0), "in the far gate's plane, its opening");
+        assertFalse(funnel.holds(7, 3, 1, 1.0) || funnel.holds(7, 5, -1, 1.0) || funnel.holds(7, 5, 4, 1.0),
+            "but never its frame, the collar, held or not");
     }
 }

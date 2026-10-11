@@ -51,7 +51,7 @@ class FunnelShapeTest
         final int top = cells.stream().mapToInt(cell -> cell[1]).max().orElseThrow();
         final List<int[]> placed = new ArrayList<>();
         cells.forEach(cell -> placed.add(new int[] { cell[0] - low, top - cell[1] }));
-        assertTrue(placed.size() > 4, shape + " has a portal");
+        assertTrue(placed.size() > 1, shape + " has a portal");
         return placed;
     }
 
@@ -105,9 +105,48 @@ class FunnelShapeTest
 
     private static Funnel funnel(final String near, final String far) throws IOException
     {
-        final List<int[]> nearShape = portalOf(near);
-        final WindowShape window = windowFor(nearShape);
-        return Funnel.of(window, nearCells(window, nearShape), farCells(portalOf(far)), 16, Material.WATER);
+        return funnel(portalOf(near), portalOf(far), 16);
+    }
+
+    private static Funnel funnel(final List<int[]> near, final List<int[]> far, final int longest)
+    {
+        final WindowShape window = windowFor(near);
+        return Funnel.of(window, nearCells(window, near), farCells(far), longest, Material.WATER);
+    }
+
+    /** A cross the size of a box, its arms three wide through the middle: an opening that is not convex. */
+    private static List<int[]> cross(final int size)
+    {
+        final int middle = size / 2;
+        final List<int[]> cells = new ArrayList<>();
+        for (int across = 0; across < size; across++)
+        {
+            for (int up = 0; up < size; up++)
+            {
+                if ((Math.abs(across - middle) <= 1) || (Math.abs(up - middle) <= 1))
+                {
+                    cells.add(new int[] { across, up });
+                }
+            }
+        }
+        return cells;
+    }
+
+    /** The far opening's cells through the window, as {@code across * 100 + up}. */
+    private static Set<Integer> farKeys(final Funnel funnel)
+    {
+        final Set<Integer> keys = new HashSet<>();
+        for (int across = 0; across < funnel.width(); across++)
+        {
+            for (int up = 0; up < funnel.height(); up++)
+            {
+                if (funnel.holds(funnel.taper() - 1, across, up))
+                {
+                    keys.add((across * 100) + up);
+                }
+            }
+        }
+        return keys;
     }
 
     /** The cells of one layer the tunnel holds, as {@code across * 100 + up}. */
@@ -164,18 +203,134 @@ class FunnelShapeTest
         assertTrue(funnel.hollow(1, 2, 8), "while the middle row runs nearly the width");
     }
 
-    /** A shape the same either side has a tunnel the same either side, on every layer. */
+    /**
+     * Every shipped pair the same either side, a symmetric near opening onto a far one centred in it,
+     * has a tunnel the same either side on every layer.
+     *
+     * <p>Sampled in floating point, a half came out a hair over on one side and a hair under on the
+     * other, and Massive onto Minimal was lopsided by two or three cells on two layers.
+     */
     @Test
-    void aSymmetricGatesTunnelStaysSymmetric() throws IOException
+    void everySymmetricPairsTunnelStaysSymmetric() throws IOException
     {
-        final Funnel funnel = funnel("Massive", "Standard");
-
-        for (int layer = 0; layer < funnel.taper(); layer++)
+        final String[] shapes = { "Massive", "Grand", "Large", "Standard", "Minimal" };
+        int pairs = 0;
+        for (final String near : shapes)
         {
-            final Set<Integer> held = layerOf(funnel, layer);
-            final Set<Integer> mirrored = new HashSet<>();
-            held.forEach(key -> mirrored.add(((16 - (key / 100)) * 100) + (key % 100)));
-            assertEquals(held, mirrored, "layer " + layer + " mirrored across the middle column");
+            for (final String far : shapes)
+            {
+                final Funnel funnel = near.equals(far) ? null : funnel(near, far);
+                if ((funnel != null) && ((funnel.far().left() + funnel.far().right()) == (funnel.width() - 1))
+                    && mirrored(keysOf(portalOf(near), 0), funnel.width()).equals(keysOf(portalOf(near), 0)))
+                {
+                    pairs++;
+                    for (int layer = 0; layer < funnel.taper(); layer++)
+                    {
+                        final Set<Integer> held = layerOf(funnel, layer);
+                        assertEquals(held, mirrored(held, funnel.width()), near + " to " + far + ", layer " + layer);
+                    }
+                }
+            }
+        }
+        assertTrue(pairs >= 2, pairs + " symmetric pairs: Massive onto Standard and onto Minimal at least");
+    }
+
+    /** Cells as {@code across * 100 + up} mirrored across the middle column of an opening a width wide. */
+    private static Set<Integer> mirrored(final Set<Integer> keys, final int width)
+    {
+        final Set<Integer> mirror = new HashSet<>();
+        keys.forEach(key -> mirror.add((((width - 1) - (key / 100)) * 100) + (key % 100)));
+        return mirror;
+    }
+
+    /**
+     * A tunnel never narrows below the far opening before its end: every far cell is held on every
+     * layer of it, so none sits in a pocket of wall and the tunnel ends in no one-block spike.
+     *
+     * <p>Shrunk from Massive's round opening, the layer before Standard's ended one block wide at top
+     * and bottom, where Standard's rows are three.
+     */
+    @Test
+    void theTunnelIsNeverNarrowerThanTheFarOpeningItEndsOn() throws IOException
+    {
+        for (final String far : new String[] { "Standard", "Large" })
+        {
+            final Funnel funnel = funnel("Massive", far);
+            final Set<Integer> farOpening = farKeys(funnel);
+            for (int layer = 1; layer < funnel.taper(); layer++)
+            {
+                assertTrue(layerOf(funnel, layer).containsAll(farOpening), "Massive to " + far + ", layer " + layer);
+            }
+            assertEquals(keysOf(portalOf(far), funnel.far().left()), farOpening, "and the end is the far opening exactly");
+        }
+    }
+
+    /**
+     * A shrunk shape does not only narrow: a cell can be held on a layer and not the one before. Each
+     * such cell, and every cell around the tunnel, is still walled two deep.
+     */
+    @Test
+    void aShrunkShapeCanWidenALittleAndIsStillWalled() throws IOException
+    {
+        int widened = 0;
+        for (final String[] pair : new String[][] { { "Massive", "Standard" }, { "Massive", "Large" }, { "Grand", "Large" } })
+        {
+            final Funnel funnel = funnel(pair[0], pair[1]);
+            for (int layer = 1; layer < funnel.taper(); layer++)
+            {
+                final Set<Integer> now = layerOf(funnel, layer);
+                now.removeAll(layerOf(funnel, layer - 1));
+                widened += now.size();
+            }
+        }
+        assertTrue(widened > 0, "some cell is held on a layer and not the one before");
+    }
+
+    /**
+     * A cross onto Standard at a length of three: the end of an arm is hollow on the first layer and
+     * out of the far opening on the next, more than two blocks from it, and not in the cross itself.
+     * Only the layer before walls it; without that, this world showed through the end of the arm.
+     */
+    @Test
+    void aCrossesArmIsWalledWhereItEndsAtAShortLength() throws IOException
+    {
+        final Funnel funnel = funnel(cross(17), portalOf("Standard"), 3);
+
+        assertEquals(3, funnel.taper());
+        assertTrue(funnel.hollow(1, 3, 5), "the end of the left arm, hollow on the first layer");
+        assertFalse(funnel.holds(2, 3, 5) || funnel.holds(0, 3, 5), "out of the far opening, and of the cross");
+        assertTrue(funnel.wall(2, 3, 5), "so walled from the layer before");
+        for (int layer = 1; layer < funnel.taper(); layer++)
+        {
+            checkLayer(funnel, layer, "cross to Standard");
+        }
+    }
+
+    /** At every short length the tunnel ends on the far opening and every way out is walled two deep. */
+    @Test
+    void everyShortTunnelEndsOnTheFarOpeningWalledTwoDeep() throws IOException
+    {
+        for (final String[] pair : new String[][] { { "Massive", "Standard" }, { "Grand", "Large" } })
+        {
+            for (int length = 1; length <= 4; length++)
+            {
+                final Funnel funnel = funnel(portalOf(pair[0]), portalOf(pair[1]), length);
+                final String what = pair[0] + " to " + pair[1] + " at " + length;
+                assertEquals(length, funnel.taper(), what);
+                if (length == 1)
+                {
+                    final int[] drawn = { 0 };
+                    funnel.forEachWall(20, (layer, across, up) -> drawn[0]++);
+                    funnel.forEachHollow(20, (layer, across, up) -> drawn[0]++);
+                    assertEquals(0, drawn[0], what + ": the opening alone, nothing behind it");
+                    continue;
+                }
+                assertEquals(keysOf(portalOf(pair[1]), funnel.far().left()), farKeys(funnel), what + ": ends on the far opening");
+                for (int layer = 1; layer < funnel.taper(); layer++)
+                {
+                    checkLayer(funnel, layer, what);
+                }
+            }
         }
     }
 
@@ -225,14 +380,19 @@ class FunnelShapeTest
         if (funnel.holds(layer - 1, across, up))
         {
             assertTrue(funnel.wall(layer, across, up), "behind the tunnel's last layer: " + where);
+            if (((layer + 1) < funnel.taper()) && !funnel.holds(layer + 1, across, up))
+            {
+                assertTrue(funnel.wall(layer + 1, across, up), "and a layer further: " + where);
+            }
             checked++;
         }
         for (final int[] step : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } })
         {
             if (funnel.holds(layer, across - step[0], up - step[1]))
             {
-                assertTrue(funnel.wall(layer, across, up) && funnel.wall(layer, across + step[0], up + step[1]),
-                    "two deep beside the tunnel: " + where);
+                // Two deep, unless the next is the tunnel again, across a notch of a shape that is not convex.
+                assertTrue(funnel.wall(layer, across, up) && (funnel.wall(layer, across + step[0], up + step[1])
+                    || funnel.holds(layer, across + step[0], up + step[1])), "two deep beside the tunnel: " + where);
                 checked++;
             }
         }

@@ -690,9 +690,13 @@ hung in the funnel's wide end, the tunnel and the view sharing the same blocks. 
 gate's opening is smaller than this one's (`gate-view-funnel`, on by default), the far side is drawn at
 the end of a tunnel. The tunnel starts at this gate's opening and narrows to the far opening's size,
 in this gate's own shape: each layer is the near opening shrunk to the layer's box, a cell in where
-the near opening has the cell the same share of the way across and up it (`Funnel.sample`), and its
-last layer is the far opening's own cells. So a round Massive gate's tunnel is round, its floor
-curving up at the sides, and a rectangular gate's is the box it always was. It
+the near opening has the cell the same share of the way across and up it (`Funnel.sample`, in whole
+numbers so a gate the same either side keeps a tunnel the same either side). Every layer holds the
+far opening's cells as well, so the tunnel is never narrower than the far opening it ends on, and no
+far cell sits in a pocket of wall; its last layer is the far opening's own cells exactly. So a round
+Massive gate's tunnel is round, its floor curving up at the sides, and a rectangular gate's is the
+box it always was. A shrunk shape does not only narrow (a cross's arm can be in on one layer and out
+on the next), so the wall takes in every cell the tunnel held on either of the two layers before. It
 is hollow, air sent wherever this world has a block, and walled two blocks thick in this gate's own
 portal material, so it reads as a tunnel of water, lava or whatever the gate's horizon is. Two,
 because water stops an eighth of a block short of its top with nothing over it: one block thick, the
@@ -727,8 +731,9 @@ are as they were, and a gate lying flat, a far gate turned from its arrival, or 
 leaves the view whole, as `gate-view-funnel: false` does, and so does a tunnel of one layer, the
 opening alone, with no far opening in front of the room. Nothing of the far side is drawn in the
 tunnel, in the opening or outside what the far opening shows. Stand-ins for mobs and players in the far room are
-shown only in the room, and one already shown is kept a block past its edges, a layer back into the
-far gate's plane included, so it does not flicker there. The capture, its block budget and the far
+shown only in the room, and one already shown is kept a block past its edges, so it does not
+flicker there, and a layer back into the far gate's plane, but only in its opening: its frame is the
+collar, where nothing stands. The capture, its block budget and the far
 chunks held for it are the same as without a tunnel; the tunnel's air and wall count towards the most
 a view may hold. The tunnel is worked out each sweep from the two gates' blocks; the held room is built
 again when it changes, and nothing is kept per viewer.
