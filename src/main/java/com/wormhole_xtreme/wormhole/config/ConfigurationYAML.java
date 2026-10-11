@@ -284,8 +284,8 @@ public class ConfigurationYAML
         return value.toString();
     }
 
-    /** A switch from true or false, as written or in quotes, or from a number: on above 0. */
-    private static Boolean asSwitch(final Object value)
+    /** A switch from true or false, as written or in quotes, or from a number: on above 0; null if neither. */
+    private static Object asSwitch(final Object value)
     {
         if (value instanceof Boolean flag)
         {
