@@ -550,6 +550,15 @@ round to the back keeps it there and is not drawn a second one beyond it until t
 The iris beyond the ring for a viewer behind now leaves with the ring that uncovers it, and the
 stand-in's shimmer waits for the sweep to finish.
 
+**A preview's sweep keeps a record per viewer** (#432) of where each cell's wormhole stands for
+them, and a step or a crossing sends only the cells that have moved. It used to send the whole
+wormhole into the ring at every step, which put water back under the glass over every ring
+already covered. The periodic redraw and a palette change send the whole record again, which is
+what puts right a client that lost the blocks. Behind an opaque iris the wormhole stays in the
+ring for the length of a sweep, so an opening sweep takes back the copy a shut preview drew
+behind the ring at its first ring rather than at its end; the iris covers both, and nothing looks
+different.
+
 **And it has to move.** Water animates itself and ice does not, so a single ice sheet reads as
 a frozen gate. Blue and packed ice are laid in a checkerboard and swap places on a timer
 (`gate-iris-horizon-ticks`, ten by default, `0` to leave it still), which gives the surface

@@ -89,6 +89,13 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   a see-through iris the wormhole's stand-in ice, and from behind any drawn iris the iris a block
   in front of the ring, stayed where they were until the sweep ended, solid to you and not to the
   server; walking round to the front left the rings already covered with nothing behind them.
+- **A build preview's see-through iris no longer shows empty cells part way through a sweep**
+  ([#432](https://github.com/khanjal/Wormhole-X-Treme/issues/432)). Turned back mid-sweep, or
+  dialled open behind an iris still sweeping shut, the covered cells read as empty until the sweep
+  ended. Every step also sent the whole wormhole back into the ring, under glass that hides it, to
+  everybody watching; now it sends only the ring it moves. A sweep that turns instant after a reload
+  part way through takes back the wormhole the animated one stood behind the ring, and somebody
+  shown the preview mid-sweep is drawn the sweep from the next step rather than at its end.
 
 ### Internals
 
