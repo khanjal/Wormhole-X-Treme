@@ -197,7 +197,7 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
      */
     private boolean seenThrough(final int layer, final int across, final int up, final double slack, final int plane)
     {
-        final double layers = layer - plane;
+        final double layers = (double) layer - plane;
         final double reach = plane + 1.0;
         final double wide = (far.right() - far.left()) + 1.0;
         final double tall = (far.top() - far.bottom()) + 1.0;
