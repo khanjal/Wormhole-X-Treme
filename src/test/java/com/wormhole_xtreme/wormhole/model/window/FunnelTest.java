@@ -184,6 +184,10 @@ class FunnelTest
         assertTrue(funnel.holds(1, 10, 0));
         assertFalse(funnel.holds(2, 10, 0));
         assertTrue(funnel.wall(2, 10, 0), "the cell the funnel stepped in from, seen from the layer before");
+        // Both edges step in at layer 2, so this corner has nothing inside beside it on its own layer.
+        assertTrue(funnel.holds(1, 10, 9));
+        assertFalse(funnel.holds(2, 9, 9) || funnel.holds(2, 10, 8));
+        assertTrue(funnel.wall(2, 10, 9), "a corner left on both sides at once, reached only from the layer before");
     }
 
     /**
