@@ -174,6 +174,9 @@ class FunnelTest
         assertTrue(funnel.holds(12, 11, 0));
         assertFalse(funnel.holds(12, -2, 0));
         assertFalse(funnel.holds(12, 12, 0));
+        // At layer 15 the widest line reaches exactly -3.5, the edge between columns -4 and -3.
+        assertTrue(funnel.holds(15, -3, 0));
+        assertFalse(funnel.holds(15, -4, 0), "a line that only grazes a cell's edge does not draw it");
     }
 
     /**

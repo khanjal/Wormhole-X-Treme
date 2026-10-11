@@ -259,7 +259,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
 
     /**
      * Whether a cell is the tunnel's wall, two blocks thick: outside the tunnel, within two blocks of
-     * it on its own layer, corners included, or inside it one or two layers before. Water ends a
+     * it on its own layer, corners included, or inside it two layers before, and so the one before too,
+     * since it only narrows. Water ends a
      * block short of its top with nothing over it, so one block left the world showing between the
      * steps; and a step in of several columns at once is walled across its whole face. The wall ends
      * with the tunnel, its last layer a collar round the far opening; the room past it has none.
@@ -272,7 +273,7 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return false;
         }
-        return holds(layer - 1, across, up) || holds(layer - 2, across, up) || besideOnLayer(layer, across, up);
+        return holds(layer - 2, across, up) || besideOnLayer(layer, across, up);
     }
 
     /** Whether a cell is within two blocks of the tunnel on its own layer, corners included. */
