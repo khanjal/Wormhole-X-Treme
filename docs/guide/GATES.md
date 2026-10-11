@@ -445,7 +445,8 @@ It is off by default while it is new.
 | A flat lava or nether portal gate, Minimal, or a horizontal gate | Nothing, for now |
 
 At `gate-view: open` a player who sees through a gate sees its portal material cross the view as a
-ring. Nothing is drawn where anybody is standing, and nothing stays once the ripple has passed.
+ring. A ring is not drawn where anybody stands as it appears, though somebody who steps into one
+of ice in the moment it shows can be held up by it, and nothing stays once the ripple has passed.
 
 | Setting | Default | What it does |
 |---|---|---|

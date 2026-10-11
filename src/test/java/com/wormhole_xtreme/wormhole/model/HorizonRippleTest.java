@@ -73,6 +73,8 @@ class HorizonRippleTest
     private final List<Long> delays = new ArrayList<>();
     private final List<Entity> standing = new ArrayList<>();
     private long now;
+    /** Set to make every send of ice throw, as a closing connection does. */
+    private boolean refuseIce;
 
     private static BlockData named(final String name)
     {
@@ -156,6 +158,10 @@ class HorizonRippleTest
         {
             final Location at = call.getArgument(0);
             final BlockData data = call.getArgument(1);
+            if (refuseIce && (data == ice))
+            {
+                throw new IllegalStateException("connection closing");
+            }
             log.add(at.getBlockX() + "," + at.getBlockY() + "," + at.getBlockZ() + " " + data.getAsString());
             return null;
         }).when(player).sendBlockChange(any(Location.class), any(BlockData.class));
@@ -691,5 +697,80 @@ class HorizonRippleTest
         step();
 
         assertEquals(cells("ice", 20, FIRST_RING), sentTo(front));
+    }
+
+    /** A throw while a ring is drawn calls the ripple off: what was sent goes back, and nothing is left registered. */
+    @Test
+    void aThrowWhileDrawingCallsTheRippleOffAndPutsItsRingBack()
+    {
+        assertTrue(HorizonRipple.start(gate));
+        sentTo(front);
+        when(world.getNearbyEntities(any(BoundingBox.class))).thenThrow(new IllegalStateException("chunk unloading"));
+
+        step();
+
+        assertEquals(cells("water", 20, 12, 66), sentTo(front), "the middle back to water, and no ice drawn");
+        assertTrue(pending.isEmpty(), "nothing more booked");
+        assertFalse(HorizonRipple.isRippling(gate), "not left registered, so the gate can ripple again");
+        when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(standing);
+        now += HorizonRipple.MIN_GAP_MILLIS;
+        assertTrue(HorizonRipple.start(gate));
+    }
+
+    /** A send that throws part way through a ring still has that ring put back, cells sent before it included. */
+    @Test
+    void aSendThatThrowsPartWayStillHasItsRingPutBack()
+    {
+        assertTrue(HorizonRipple.start(gate));
+        sentTo(front);
+        refuseIce = true;
+
+        step();
+
+        assertEquals(union(cells("water", 20, 12, 66), cells("water", 20, FIRST_RING)), sentTo(front),
+            "the middle back, and the first ring put back to water rather than left half drawn");
+        assertTrue(pending.isEmpty());
+        assertFalse(HorizonRipple.isRippling(gate));
+    }
+
+    /** A throw on the very first ring leaves nothing registered or booked. */
+    @Test
+    void aThrowOnTheFirstRingLeavesNothingBehind()
+    {
+        when(world.getNearbyEntities(any(BoundingBox.class))).thenThrow(new IllegalStateException("chunk unloading"));
+
+        assertFalse(HorizonRipple.start(gate));
+
+        assertTrue(pending.isEmpty());
+        assertFalse(HorizonRipple.isRippling(gate));
+    }
+
+    /** A booked step that throws outside the drawing is caught too, and the ripple dropped. */
+    @Test
+    void aBookedStepThatThrowsIsCaughtAndTheRippleDropped()
+    {
+        assertTrue(HorizonRipple.start(gate));
+        when(gate.isGateIrisActive()).thenThrow(new IllegalStateException("gate half unloaded"));
+
+        step();
+
+        assertTrue(pending.isEmpty());
+        assertFalse(HorizonRipple.isRippling(gate));
+    }
+
+    /** Turned off and on again, every wait starts afresh rather than firing at once on every gate. */
+    @Test
+    void forgettingEveryRippleForgetsTheWaitsToo()
+    {
+        HorizonRipple.tick();
+        now += 60_000L;
+
+        HorizonRipple.cancelAll();
+        HorizonRipple.tick();
+
+        assertFalse(HorizonRipple.isRippling(gate), "a fresh wait, not the one left from before");
+        now += 7_000L;
+        HorizonRipple.tick();
+        assertTrue(HorizonRipple.isRippling(gate));
     }
 }

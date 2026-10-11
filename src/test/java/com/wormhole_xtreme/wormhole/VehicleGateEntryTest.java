@@ -46,6 +46,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
@@ -945,5 +946,17 @@ class VehicleGateEntryTest
         }
 
         assertEquals(101.5, whereItLanded().getX(), 1.0e-9, "it went through to the far gate");
+    }
+
+    /** A cart rolling through ripples both ends (#579). */
+    @Test
+    void aCartRollingThroughRipplesBothEnds()
+    {
+        try (MockedStatic<HorizonRipple> ripple = mockStatic(HorizonRipple.class))
+        {
+            rollIn();
+
+            ripple.verify(() -> HorizonRipple.crossed(src, dst));
+        }
     }
 }

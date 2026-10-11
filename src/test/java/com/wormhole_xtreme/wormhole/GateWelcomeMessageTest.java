@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,11 +30,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
@@ -178,5 +181,18 @@ class GateWelcomeMessageTest
         verify(wolf).teleport(any(Location.class));
         verify(player, times(1)).sendMessage(contains("Arrived at Abydos"));
         verify(wolf, never()).sendMessage(anyString());
+    }
+
+    /** A player walking through ripples both ends (#579). */
+    @Test
+    void aPlayerWalkingThroughRipplesBothEnds()
+    {
+        final Stargate far = origin.getGateTarget();
+        try (MockedStatic<HorizonRipple> ripple = mockStatic(HorizonRipple.class))
+        {
+            walkIn();
+
+            ripple.verify(() -> HorizonRipple.crossed(origin, far));
+        }
     }
 }

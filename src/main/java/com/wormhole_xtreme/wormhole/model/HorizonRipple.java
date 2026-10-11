@@ -149,12 +149,16 @@ public final class HorizonRipple
         {
             return false;
         }
+        // Before isDeep, which walks every frame block: nobody near is the usual answer.
+        if (StargateBlockSetup.playersNear(gate, reference(gate)).isEmpty())
+        {
+            return false;
+        }
         final boolean deep = isDeep(gate);
         final boolean icy = !deep && (gate.getEffectivePortalMaterial() == Material.WATER)
             && (gate.getGatePortalBlocks().size() > FLAT_MORE_THAN);
         // Nothing to draw for anybody: a flat gate of another material whose horizon is not cleared for a view.
-        if ((!deep && !icy && (GateViews.horizonOf(gate, gate.getEffectivePortalMaterial()) != Material.AIR))
-            || StargateBlockSetup.playersNear(gate, reference(gate)).isEmpty())
+        if (!deep && !icy && (GateViews.horizonOf(gate, gate.getEffectivePortalMaterial()) != Material.AIR))
         {
             return false;
         }
@@ -162,8 +166,21 @@ public final class HorizonRipple
         NEXT.put(name, now + nextWait.getAsLong());
         final List<List<Location>> rings = ringsOf(gate);
         logStart(gate, rings.size(), deep, icy);
-        new IrisSweepDriver<>(rings, new Ripple(gate, deep, icy), () -> stepTicks(rings.size())).start();
-        return true;
+        final Ripple ripple = new Ripple(gate, deep, icy);
+        final IrisSweepDriver<Location> driver = new IrisSweepDriver<>(rings, ripple, () -> stepTicks(rings.size()));
+        // Registered before its first ring, so a throw while drawing it can still call it off.
+        ripple.driver = driver;
+        RUNNING.put(name, ripple);
+        try
+        {
+            driver.start();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            ripple.fail(e);
+        }
+        // False if its first ring threw, which called it off.
+        return RUNNING.get(name) == ripple;
     }
 
     /**
@@ -212,16 +229,12 @@ public final class HorizonRipple
     /**
      * Gives each open gate somebody is near a ripple of its own now and then.
      *
-     * <p>Run once a second while {@code gate-ripple} is on. A gate's first wait starts when somebody
-     * comes near it open, and starts again whenever it ripples for any reason.
+     * <p>Run once a second while {@code gate-ripple} is on, and not at all while it is off; turning it
+     * off forgets every wait ({@link #cancelAll}). A gate's first wait starts when somebody comes near
+     * it open, and starts again whenever it ripples for any reason.
      */
     public static void tick()
     {
-        if (!ConfigManager.isGateRipple())
-        {
-            NEXT.clear();
-            return;
-        }
         final long now = clock.getAsLong();
         final Set<String> watched = new HashSet<>();
         for (final Stargate gate : StargateManager.getOpenGates())
@@ -492,6 +505,8 @@ public final class HorizonRipple
         private final boolean icy;
         private final Map<UUID, Sent> sent = new HashMap<>();
         private IrisSweepDriver<Location> driver;
+        /** Set once a step has thrown: nothing more is booked or registered. */
+        private boolean failed;
 
         Ripple(final Stargate gate, final boolean deep, final boolean icy)
         {
@@ -503,12 +518,47 @@ public final class HorizonRipple
         @Override
         public boolean stillValid()
         {
-            return ConfigManager.isGateRipple() && showing(gate);
+            return !failed && ConfigManager.isGateRipple() && showing(gate);
+        }
+
+        /** Puts the last ring back and draws this one; a throw calls the ripple off rather than leaving its ring up. */
+        @Override
+        public void drawRing(final List<Location> ring)
+        {
+            try
+            {
+                draw(ring);
+            }
+            catch (final Exception | LinkageError e)
+            {
+                fail(e);
+            }
+        }
+
+        /**
+         * Calls this ripple off after a throw: out of the register, its step dropped, what it drew put back.
+         *
+         * @param thrown
+         *            what was thrown, for the log
+         */
+        void fail(final Throwable thrown)
+        {
+            failed = true;
+            RUNNING.remove(gate.getGateName(), this);
+            if (driver != null)
+            {
+                driver.cancel();
+            }
+            putBack();
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if ((plugin != null) && plugin.isLoggable(Level.FINE))
+            {
+                plugin.prettyLog(Level.FINE, "Ripple on " + gate.getGateName() + " stopped", thrown);
+            }
         }
 
         /** Puts the last ring back and draws this one, for each viewer as they see the gate now. */
-        @Override
-        public void drawRing(final List<Location> ring)
+        private void draw(final List<Location> ring)
         {
             putBack();
             final List<Player> near = StargateBlockSetup.playersNear(gate, reference(gate));
@@ -563,12 +613,13 @@ public final class HorizonRipple
             {
                 return;
             }
+            // Noted before it is sent, so a send that throws part way is still put back.
+            sent.put(player.getUniqueId(), new Sent(player, cells, inPlane));
             final BlockData data = MaterialUtils.drawnAcross(material, gate.getGateFacing());
             for (final Location at : cells)
             {
                 player.sendBlockChange(at, data);
             }
-            sent.put(player.getUniqueId(), new Sent(player, cells, inPlane));
         }
 
         /**
@@ -582,33 +633,55 @@ public final class HorizonRipple
             {
                 return;
             }
+            // Forgotten first, so a throw part way never leaves a record to be put back twice.
+            final List<Sent> was = new ArrayList<>(sent.values());
+            sent.clear();
             final World world = gate.getGateWorld();
-            final boolean stillShowing = showing(gate);
             final Material portal = gate.getEffectivePortalMaterial();
-            for (final Sent was : sent.values())
+            boolean stillShowing;
+            try
             {
-                final Player player = was.player();
-                if (!player.isOnline() || (world == null) || !world.equals(player.getWorld()))
+                stillShowing = showing(gate);
+            }
+            catch (final Exception | LinkageError e)
+            {
+                // A gate that cannot say draws its own opening, as one that has stopped showing does.
+                stillShowing = false;
+            }
+            for (final Sent one : was)
+            {
+                try
                 {
-                    continue;
+                    putBack(one, world, stillShowing, portal);
                 }
-                if (was.inPlane())
+                catch (final Exception | LinkageError e)
                 {
-                    if (stillShowing)
-                    {
-                        final BlockData horizon =
-                            MaterialUtils.drawnAcross(GateViews.horizonFor(gate, portal, player), gate.getGateFacing());
-                        was.cells().forEach(at -> player.sendBlockChange(at, horizon));
-                    }
-                }
-                else
-                {
-                    was.cells().stream().filter(at -> world.isChunkLoaded(at.getBlockX() >> 4, at.getBlockZ() >> 4))
-                        .forEach(at -> player.sendBlockChange(at,
-                            world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()).getBlockData()));
+                    // One viewer who cannot be sent to does not keep everybody else's ring up.
                 }
             }
-            sent.clear();
+        }
+
+        /** Puts back one viewer's ring. */
+        private void putBack(final Sent was, final World world, final boolean stillShowing, final Material portal)
+        {
+            final Player player = was.player();
+            if (!player.isOnline() || (world == null) || !world.equals(player.getWorld()))
+            {
+                return;
+            }
+            if (was.inPlane())
+            {
+                if (stillShowing)
+                {
+                    final BlockData horizon =
+                        MaterialUtils.drawnAcross(GateViews.horizonFor(gate, portal, player), gate.getGateFacing());
+                    was.cells().forEach(at -> player.sendBlockChange(at, horizon));
+                }
+                return;
+            }
+            was.cells().stream().filter(at -> world.isChunkLoaded(at.getBlockX() >> 4, at.getBlockZ() >> 4))
+                .forEach(at -> player.sendBlockChange(at,
+                    world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()).getBlockData()));
         }
 
         /** Drops the booked step and puts back the ring showing. */
@@ -630,8 +703,12 @@ public final class HorizonRipple
         @Override
         public IrisSweepDriver.Booking later(final long ticks, final Runnable step)
         {
-            final int task = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), step,
-                ticks);
+            if (failed)
+            {
+                return () -> { };
+            }
+            final int task = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+                () -> runStep(step), ticks);
             return () ->
             {
                 if (WormholeXTreme.getScheduler() != null)
@@ -641,11 +718,27 @@ public final class HorizonRipple
             };
         }
 
+        /** Runs a booked step; a throw calls the ripple off rather than ending the task with its ring up. */
+        private void runStep(final Runnable step)
+        {
+            try
+            {
+                step.run();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                fail(e);
+            }
+        }
+
         @Override
         public void register(final IrisSweepDriver<Location> sweep)
         {
-            driver = sweep;
-            RUNNING.put(gate.getGateName(), this);
+            if (!failed)
+            {
+                driver = sweep;
+                RUNNING.put(gate.getGateName(), this);
+            }
         }
 
         /** Ended or stopped: the last ring goes back. */

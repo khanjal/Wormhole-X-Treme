@@ -852,8 +852,10 @@ eight, and Grand, eighteen by seventeen, from four by three in nine.
 
 **Nothing is left behind.** A ring is put back as the next is drawn: in the opening, to what
 `GateViews.horizonFor` says that viewer sees there now, the horizon or, drawn the view, nothing; in
-front, to the real block. Nothing is drawn on a block an entity's box reaches into, so a ring of
-ice, or of a portal material that is solid, never stands in anybody's way. A ripple is called off,
+front, to the real block. A ring is not drawn on a block an entity's box reaches into as that ring
+is sent; the check is made once a ring, so somebody who walks into a ring of ice, or of a portal
+material that is solid, after it was sent can be held up by it for that step. A throw while a ring
+is drawn calls the ripple off and puts back what it had sent. A ripple is called off,
 and what it drew put back, as the gate closes, as its iris closes, as its horizon is cleared for a
 view or stops being, as the gate is removed or refreshed, and as the plugin stops; a viewer who
 leaves or changes world is forgotten. It runs only on an upright gate whose wormhole is showing,
