@@ -688,7 +688,11 @@ of a Standard gate ran past the small gate's walls and ceiling into whatever lay
 a funnel narrowing from one opening to the other, the far room's ceiling and the halls beside it still
 hung in the funnel's wide end, the tunnel and the view sharing the same blocks. Now, where the dialled
 gate's opening is smaller than this one's (`gate-view-funnel`, on by default), the far side is drawn at
-the end of a tunnel. The tunnel starts at this gate's opening and narrows to the far opening's size; it
+the end of a tunnel. The tunnel starts at this gate's opening and narrows to the far opening's size,
+in this gate's own shape: each layer is the near opening shrunk to the layer's box, a cell in where
+the near opening has the cell the same share of the way across and up it (`Funnel.sample`), and its
+last layer is the far opening's own cells. So a round Massive gate's tunnel is round, its floor
+curving up at the sides, and a rectangular gate's is the box it always was. It
 is hollow, air sent wherever this world has a block, and walled two blocks thick in this gate's own
 portal material, so it reads as a tunnel of water, lava or whatever the gate's horizon is. Two,
 because water stops an eighth of a block short of its top with nothing over it: one block thick, the
@@ -701,7 +705,8 @@ collar round the far opening. The room past it has no wall: it is drawn as far a
 see through the far one, a line through both, each a block deep, and nothing outside that. So it widens
 again from the far opening as it goes, showing the ground travellers land on, the far gate's
 surroundings seen through it, and the room beyond as the small gate's own opening would show them; the
-halls and ceilings round the small gate, which only the big opening could have seen, stay out. The
+halls and ceilings round the small gate, which only the big opening could have seen, stay out. The lines are judged against the far opening's box, not its cells, so a round far gate's room is
+as wide as its square would show; what lies past its corners is seen only through the wall's water. The
 trade-off: a far side out in the open shows more of itself the further it goes, as through any window,
 and the real world round that room, which only the tunnel's water stands in front of, shows through
 the water from inside the tunnel.

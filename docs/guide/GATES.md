@@ -458,7 +458,8 @@ of ice in the moment it shows can be held up by it, and nothing stays once the r
 
 With `gate-view` on, a gate that dials a smaller one, a Massive gate dialling a Standard one say,
 shows the far side at the end of a tunnel rather than a Massive-sized slice of it running past the
-small gate's walls and ceiling. The tunnel narrows from this gate's opening to the small gate's size;
+small gate's walls and ceiling. The tunnel narrows from this gate's opening to the small gate's size,
+keeping this gate's shape, so a round gate's tunnel is round, floor and all;
 its walls, ceiling and floor are this gate's own portal material, two blocks thick, so it looks like
 a tunnel of water (or lava, or whatever the gate's horizon is). The tunnel stops where the small
 gate's opening is, and through that you see the far side as the small gate would show it: the ground

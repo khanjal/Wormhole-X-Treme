@@ -359,7 +359,8 @@ class WindowsFunnelTest
         final Funnel same = funnel(16);
         final List<Spot> open = new ArrayList<>();
         BIG.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        final Funnel lava = new Funnel(same.width(), same.height(), same.far(), same.taper(), Material.LAVA);
+        final Funnel lava = new Funnel(same.width(), same.height(), same.far(), same.taper(), Material.LAVA, same.nearShape(),
+            same.farShape());
         Windows.offer(new GateSource("gate:Abydos", anchor, shapeFor(lava), open, ARRIVAL, "Chulak", 16, lava), capture);
         assertNull(offered.get("gate:Abydos").fixed, "another funnel on the same shape: built again");
         active.get("gate:Abydos").fixed = room;
@@ -378,7 +379,8 @@ class WindowsFunnelTest
         full.put(UUID.randomUUID(), "gate:Abydos");
         // The same shape both ways: only the funnel differs.
         final Funnel longer = funnel(16);
-        final Funnel other = new Funnel(longer.width(), longer.height(), longer.far(), longer.taper(), Material.LAVA);
+        final Funnel other = new Funnel(longer.width(), longer.height(), longer.far(), longer.taper(), Material.LAVA, longer.nearShape(),
+            longer.farShape());
         final List<Spot> open = new ArrayList<>();
         BIG.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
         Windows.offer(gate(longer), capture);

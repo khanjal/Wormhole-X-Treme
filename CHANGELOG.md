@@ -68,8 +68,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   as usual rather than an empty ring.
 - **A big gate dialling a small one shows the view at the end of a tunnel**
   ([#583](https://github.com/khanjal/Wormhole-X-Treme/issues/583)): with `gate-view` on, the far
-  side appears through an opening the small gate's size at the end of a hollow tunnel walled two
-  blocks thick in the gate's own portal material, as the small gate would show it, rather than
+  side appears through an opening the small gate's size at the end of a hollow tunnel in the gate's
+  own shape, shrinking as it goes and walled two blocks thick in its portal material, as the small
+  gate would show it, rather than
   running past the small gate's walls and ceiling; the
   smaller the far gate, the longer the tunnel (three blocks from Large to Standard, twelve from
   Massive to Standard). On by default; `gate-view-funnel: false` shows the whole view, and
