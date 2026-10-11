@@ -659,24 +659,47 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `Large` | 0.90x | 1.24x |
 | `Grand`, `Massive` | 0.75x (the limit) | 2x (the limit) |
 
-In `config.yml` the sounds are under `# --- Stargate sounds ---`, in this order; the last two rows
-are under `# --- Stargates ---`, `# -- Effects --`.
+In `config.yml` the sounds are under `# --- Stargate sounds ---`: the first two settings, then
+three runs, each under its own `# -- ... --` sub-heading.
 
 | Setting | Default | When it plays |
 |---|---|---|
 | `gate-sounds-enabled` | `true` | Everything below is ignored when off |
 | `gate-sound-volume` | 1.5 | Louder than rings — a gate is a landmark |
+
+### Dialling
+
+| Setting | Default | When it plays |
+|---|---|---|
 | `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial |
 | `gate-sound-chevron` | `block.iron_trapdoor.close` | Each chevron, pitch climbing |
 | `gate-sound-lock` | `block.beacon.power_select` | With the last chevron, as it locks in, at pitch 0.8 |
+
+### Open wormhole
+
+| Setting | Default | When it plays |
+|---|---|---|
 | `gate-sound-kawoosh` | `entity.player.splash.high_speed` | As the wormhole forms, at pitch 0.7 |
 | `gate-sound-ambient` | `ambient.underwater.loop` | On repeat while open, at 40% volume |
 | `gate-sound-ambient-ticks` | 70 | How often it repeats; shorter layers it |
 | `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes |
+
+### Iris
+
+| Setting | Default | When it plays |
+|---|---|---|
 | `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals |
 | `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens |
-| `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
+
+### Dial spin and arrival splash
+
+Not sounds, but they go with them. In `config.yml` they are under `# --- Stargates ---`,
+`# -- Effects --`, in this order, before `gate-ripple` ([the ripple](#the-ripple)).
+
+| Setting | Default | What it does |
+|---|---|---|
 | `gate-dial-spin` | `top` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `top`: half the ring to the top chevron, alternating direction, resting there as each chevron locks. `chevron`: from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `lap`: a whole turn clockwise every glyph. `fill`: as `pegasus`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, half the ring, landing on the chevron about to lock, alternating. `chase`: a whole turn anticlockwise to chevron 1, then from each locked chevron to the next, alternating. `universe`: as Destiny's gate dials, about a full turn each glyph, each locked chevron riding round with the ring until the last puts them all back in place. `overshoot`: as `pegasus`, running past and backing onto it. `none`: no ring light. `top` dials slower by resting half a second on the top after each lock, and `universe` a little, by turning about a full turn for each glyph at its own pace; `true` and `false` from older configs mean `top` and `none`. A gate's own `spin`, or its group's `dial-spin`, comes first. |
+| `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
 
 If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
 it. Not far, though — the client believes it is swimming for as long as the water shows, and that

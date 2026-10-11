@@ -3,7 +3,10 @@ package com.wormhole_xtreme.wormhole.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +16,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntSupplier;
+import java.util.logging.Level;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +30,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 /**
  * The shape of the {@code config.yml} the plugin writes, rather than its values.
  *
- * <p>Eighty-two settings is something an operator scrolls, so the file is written in groups
+ * <p>Over a hundred settings is something an operator scrolls, so the file is written in groups
  * under {@code # --- ... ---} banners, with no blank line between the settings inside a group
  * and descriptions of a sentence or two. None of that is load-bearing for the plugin, which is
  * exactly why it needs a test: nothing else would notice it drifting back into one flat list of
@@ -49,10 +53,14 @@ class ConfigFileShapeTest
 
     private File cfg;
 
+    /** Kept so a test can check what was logged. */
+    private WormholeXTreme plugin;
+
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
         ConfigTestSupport.loadDefaults();
         cfg = new File(directory, "config.yml");
     }
@@ -221,6 +229,29 @@ class ConfigFileShapeTest
         assertEquals(expected, headings, "each sub-heading inside its group, in order");
     }
 
+    /**
+     * A start-here name no group holds is left out and logged, and the file is still written whole.
+     *
+     * <p>From the review of #586: the list was looked up while the file was open, so a name with no
+     * group threw there and left a config.yml holding nothing but the first few start-here lines.
+     */
+    @Test
+    void aStartHereNameNoGroupHoldsIsLoggedAndTheFileIsStillWhole() throws Exception
+    {
+        final List<String> startHere = ConfigurationYAML.startHereLines(
+            List.of(ConfigKeys.TIMEOUT_SHUTDOWN, ConfigKeys.LOG_LEVEL),
+            key -> (key == ConfigKeys.LOG_LEVEL) ? null : DefaultSettings.groupOf(key));
+        ConfigurationYAML.writeFile(cfg, DefaultSettings.config, startHere);
+
+        final List<String> lines = Files.readAllLines(cfg.toPath(), StandardCharsets.UTF_8);
+        final Setting last = DefaultSettings.config[DefaultSettings.config.length - 1];
+        assertTrue(lines.stream().anyMatch(l -> l.startsWith("#   timeout-shutdown ")), "the good name is listed");
+        assertFalse(lines.stream().anyMatch(l -> l.startsWith("#   log-level ")), "the bad one is left out");
+        assertTrue(lines.stream().anyMatch(l -> l.startsWith(ConfigurationYAML.kebabKeyName(last.getName().name()) + ": ")),
+            "and the file runs to its last setting");
+        verify(plugin).prettyLog(eq(Level.SEVERE), contains("log-level"));
+    }
+
     /** @return the first line starting with the prefix, or the size of the list if none does */
     private static int indexOf(final List<String> lines, final String prefix)
     {
@@ -283,8 +314,9 @@ class ConfigFileShapeTest
      *
      * <p>Where the third of the file that was blank went. A blank line before each banner is the
      * only one left: one above every group, the first included since the start-here block is
-     * above it, and one above every sub-heading but one straight under its group's banner. That
-     * comes to one per sub-group, counting a group with none as one.
+     * above it, and one above every sub-heading but one straight under a banner with no intro.
+     * That comes to one per sub-group, counting a group with none as one, plus one for each group
+     * whose intro runs into a sub-heading.
      */
     @Test
     void theOnlyBlankLinesAreTheOnesAboveABanner() throws Exception
@@ -305,6 +337,11 @@ class ConfigFileShapeTest
         for (final DefaultSettings.Group group : DefaultSettings.groups)
         {
             expected += group.subGroups().size();
+            // A group intro is followed by a gap before a sub-heading, as Integrations has.
+            if (!group.intro().isEmpty() && !group.subGroups().get(0).heading().isEmpty())
+            {
+                expected++;
+            }
         }
         assertEquals(expected, blanks, "one blank above every banner but a sub-heading opening its group");
     }

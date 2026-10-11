@@ -303,13 +303,13 @@ class DefaultSettings
         ConfigKeys.TIMEOUT_SHUTDOWN,
         ConfigKeys.MAX_OPEN_SECONDS,
         ConfigKeys.USE_COOLDOWN_ENABLED,
+        ConfigKeys.WORMHOLE_USE_IS_TELEPORT,
         ConfigKeys.SAME_WORLD_ONLY,
         ConfigKeys.GATE_DIAL_SPIN,
-        ConfigKeys.GATE_VIEW,
-        ConfigKeys.MIRROR_SHOW_ENTITIES,
         ConfigKeys.RING_MAX_LINK_DISTANCE,
         ConfigKeys.RING_MAX_PAIRS_PER_PLAYER,
         ConfigKeys.ECONOMY_ENABLED,
+        ConfigKeys.GATE_SOUNDS_ENABLED,
         ConfigKeys.GATE_SOUND_VOLUME);
 
     /** The group each heading-opening key starts, so the writer knows where to put a banner. */
@@ -347,9 +347,7 @@ class DefaultSettings
      *
      * @param key
      *            any setting
-     * @return its group
-     * @throws IllegalArgumentException
-     *             if no group lists it
+     * @return its group, or null if no group lists it
      */
     static Group groupOf(final ConfigKeys key)
     {
@@ -363,7 +361,7 @@ class DefaultSettings
                 }
             }
         }
-        throw new IllegalArgumentException("No group lists " + key);
+        return null;
     }
 
     /** @return every setting, in group order */

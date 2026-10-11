@@ -91,16 +91,16 @@ The groups, in the order the file has them, and where each is explained:
 | Group | Sub-groups | Explained in |
 |---|---|---|
 | General | | [below](#pets) |
-| Stargates | Opening and closing, Travel, Effects, Iris, Building, previews and server load | [below](#keeping-gates-from-staying-open) and [GATES.md](GATES.md) |
-| Gate views and mirrors | Gate views, Mirror views, Creatures and players in a view, Quantum mirrors | [GATES.md](GATES.md) and [MIRRORS.md](MIRRORS.md#settings) |
+| Stargates | Opening and closing · Travel · Effects · Iris · Building, previews and server load | [below](#keeping-gates-from-staying-open) and [GATES.md](GATES.md) |
+| Gate views and mirrors | Gate views · Mirror views · Creatures and players in a view · Quantum mirrors | [GATES.md](GATES.md) and [MIRRORS.md](MIRRORS.md#settings) |
 | Gate signs | | [GATES.md](GATES.md#signs) |
-| Transport rings | Timing, Refusal outline, Placement and limits, New ring pairs | [RINGS.md](RINGS.md#ring-settings) |
-| Beaming | Animation, Cooldown and cost | [BEAMS.md](BEAMS.md#settings) |
+| Transport rings | Timing · Refusal outline · Placement and limits · New ring pairs | [RINGS.md](RINGS.md#ring-settings) |
+| Beaming | Animation · Cooldown and cost | [BEAMS.md](BEAMS.md#settings) |
 | Economy | | [Economy](#economy) |
-| Stargate sounds | Dialling, Open wormhole, Iris | [Sounds](#sounds) and [GATES.md](GATES.md#sounds) |
+| Stargate sounds | Dialling · Open wormhole · Iris | [Sounds](#sounds) and [GATES.md](GATES.md#sounds) |
 | Transport ring sounds | | [RINGS.md](RINGS.md#sounds) |
 | Beaming sounds | | [BEAMS.md](BEAMS.md#sounds) |
-| Integrations | Protection and logging, Web maps, Placeholders, metrics and updates | [CoreProtect](#coreprotect) and [WorldGuard](#worldguard); [Dynmap](#dynmap), [BlueMap](#bluemap), [squaremap](#squaremap) and [Pl3xMap](#pl3xmap); [Placeholders](#placeholders) and [Metrics](#metrics) |
+| Integrations | Protection and logging · Web maps · Placeholders, metrics and updates | [CoreProtect](#coreprotect) and [WorldGuard](#worldguard); [Dynmap](#dynmap), [BlueMap](#bluemap), [squaremap](#squaremap) and [Pl3xMap](#pl3xmap); [Placeholders](#placeholders) and [Metrics](#metrics) |
 
 **Change settings in-game** with `/wormhole config`:
 
