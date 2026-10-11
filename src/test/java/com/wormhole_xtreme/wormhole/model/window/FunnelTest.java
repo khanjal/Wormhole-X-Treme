@@ -84,7 +84,8 @@ class FunnelTest
         assertEquals(10, funnel.far().top(), "taller than the near gate: the near one's height, never past it");
         final Set<Spot> walls = new HashSet<>();
         funnel.forEachWall(20, (layer, across, up) -> walls.add(new Spot(layer, across, up)));
-        assertTrue(walls.contains(new Spot(12, 5, 11)), "the ceiling, a row above the near opening's top, is walled");
+        assertTrue(walls.contains(new Spot(7, 5, 11)) && walls.contains(new Spot(7, 5, 12)),
+            "the ceiling, two rows above the near opening's top, is walled");
         final Set<Spot> hollow = new HashSet<>();
         funnel.forEachHollow(20, (layer, across, up) -> hollow.add(new Spot(layer, across, up)));
         assertTrue(hollow.contains(new Spot(3, 5, 10)), "the tunnel's top row is the near opening's, hollow");
@@ -130,104 +131,161 @@ class FunnelTest
     }
 
     @Test
-    void atTheWindowTheFunnelIsTheWholeNearOpeningAndPastTheTaperTheFarOne()
+    void theTunnelNarrowsFromTheOpeningToTheFarOneOnItsLastLayer()
     {
         final Funnel funnel = toStandard();
 
         assertTrue(funnel.holds(0, 0, 0), "the opening's own corner");
         assertTrue(funnel.holds(0, 10, 10), "and the far one");
         assertFalse(funnel.holds(0, 11, 5), "beside the opening");
-        assertFalse(funnel.holds(0, 5, -1), "the row beneath it is the tunnel's floor");
-        for (final int layer : new int[] { 8, 9, 40 })
-        {
-            assertTrue(funnel.holds(layer, 4, 0), "the far opening's corner, layer " + layer);
-            assertTrue(funnel.holds(layer, 6, 3), "and its other, layer " + layer);
-            assertFalse(funnel.holds(layer, 3, 0), "a column left of it, layer " + layer);
-            assertFalse(funnel.holds(layer, 7, 0), "right of it, layer " + layer);
-            assertFalse(funnel.holds(layer, 5, 4), "above its ceiling, layer " + layer);
-            assertTrue(funnel.holds(layer, 5, -1), "the ground it stands on, not a wall, layer " + layer);
-            assertFalse(funnel.holds(layer, 5, -2), "below the ground, layer " + layer);
-        }
-    }
-
-    @Test
-    void halfwayDownTheTaperItIsBetweenTheTwo()
-    {
-        final Funnel funnel = toStandard();
-
-        // At layer 4, half way: left 2, right 8, top 6.5.
-        assertTrue(funnel.holds(4, 2, 6), "the narrowing edge, still in");
-        assertTrue(funnel.holds(4, 8, 7), "half a block over the edge rounds in");
+        assertFalse(funnel.holds(0, 5, -1), "below it");
+        // Layer 4 of a tunnel whose last layer is 7: left 2.3, right 7.7, top 6.
+        assertTrue(funnel.holds(4, 2, 6), "the narrowing edges, still in");
+        assertTrue(funnel.holds(4, 8, 6));
         assertFalse(funnel.holds(4, 1, 0), "past the left edge");
         assertFalse(funnel.holds(4, 9, 0), "past the right edge");
-        assertFalse(funnel.holds(4, 5, 8), "past the ceiling");
-    }
-
-    @Test
-    void theWallIsTheRingOutsideTheFunnelAndNothingFurther()
-    {
-        final Funnel funnel = toStandard();
-
-        assertTrue(funnel.wall(20, 3, 1), "left of the far opening");
-        assertTrue(funnel.wall(20, 7, 1), "right of it");
-        assertTrue(funnel.wall(20, 5, 4), "its ceiling");
-        assertTrue(funnel.wall(20, 5, -2), "under the ground it stands on");
-        assertFalse(funnel.wall(20, 5, -1), "the ground itself is the view: travellers walk across it");
-        assertFalse(funnel.wall(20, 5, 1), "inside is the view");
-        assertFalse(funnel.wall(20, 2, 1), "two out is behind the wall: never seen, never sent");
-        assertFalse(funnel.wall(20, 3, 4), "nor a corner, which no line of sight reaches first");
-    }
-
-    @Test
-    void whereTheFunnelStepsInTheCellsItLeftAreWall()
-    {
-        final Funnel funnel = toStandard();
-
-        // Column 10 is in at layer 1 and out at layer 2.
-        assertTrue(funnel.holds(1, 10, 0));
-        assertFalse(funnel.holds(2, 10, 0));
-        assertTrue(funnel.wall(2, 10, 0), "the cell the funnel stepped in from, seen from the layer before");
-        // Both edges step in at layer 2, so this corner has nothing inside beside it on its own layer.
-        assertTrue(funnel.holds(1, 10, 9));
-        assertFalse(funnel.holds(2, 9, 9) || funnel.holds(2, 10, 8));
-        assertTrue(funnel.wall(2, 10, 9), "a corner left on both sides at once, reached only from the layer before");
+        assertFalse(funnel.holds(4, 5, 7), "past the ceiling");
+        assertTrue(funnel.holds(7, 4, 0), "the far gate's plane is the far opening exactly");
+        assertTrue(funnel.holds(7, 6, 3));
+        assertFalse(funnel.holds(7, 3, 1));
+        assertFalse(funnel.holds(7, 7, 1));
+        assertFalse(funnel.holds(7, 5, 4));
+        assertFalse(funnel.holds(7, 5, -1));
     }
 
     /**
-     * The wall is the ring of cells just outside the funnel, on every layer to the depth: past the
-     * taper, the far opening's sides and ceiling and a row under its ground, and on the first layer,
-     * round the near opening behind the frame.
+     * Past the tunnel the room widens again, as far as the near opening sees through the far one, and
+     * no further: the halls and ceiling round the small gate stay out.
      */
     @Test
-    void theWallIsTheRingRoundTheFunnelOnEveryLayer()
+    void theRoomPastTheTunnelIsWhatTheNearOpeningSeesThroughTheFarOne()
+    {
+        final Funnel funnel = toStandard();
+
+        assertTrue(funnel.holds(8, 3, 0), "the first layer of the room: columns 3 to 7");
+        assertTrue(funnel.holds(8, 7, 0));
+        assertFalse(funnel.holds(8, 2, 0), "a hall beside the small gate");
+        assertFalse(funnel.holds(8, 8, 0));
+        assertTrue(funnel.holds(8, 5, 4), "rows 4 down to -2: what can be seen up and down through it");
+        assertTrue(funnel.holds(8, 5, -2));
+        assertFalse(funnel.holds(8, 5, 5), "above the small gate's ceiling");
+        assertFalse(funnel.holds(8, 5, -3));
+        assertTrue(funnel.holds(12, -1, 0), "wider further in, past the near opening's own edges");
+        assertTrue(funnel.holds(12, 11, 0));
+        assertFalse(funnel.holds(12, -2, 0));
+        assertFalse(funnel.holds(12, 12, 0));
+    }
+
+    /**
+     * Every cell on a line through the near opening and the far one, past the far gate's plane, is in
+     * the room: nothing a viewer could see through the small gate is left out. A line is inside each
+     * opening at both its faces, since each is a block deep with its frame or the tunnel's wall round it.
+     */
+    @Test
+    void everyLineThroughBothOpeningsStaysInTheRoom()
+    {
+        final Funnel funnel = toStandard();
+        int lines = 0;
+        for (double near = -0.5; near <= 10.5; near += 0.5)
+        {
+            for (double far = 3.5; far <= 6.5; far += 0.25)
+            {
+                lines += lineStaysIn(funnel, near, far, 3.5, 6.5, true);
+            }
+            for (double far = -0.5; far <= 3.5; far += 0.25)
+            {
+                lines += lineStaysIn(funnel, near, far, -0.5, 3.5, false);
+            }
+        }
+        assertTrue(lines > 1000, lines + " cells along the lines");
+    }
+
+    /**
+     * Walks the line from a point of the near opening's front face through a point of the far plane's
+     * back face, across or up, if it is inside the far opening at its front face too, and checks every
+     * cell it crosses in the room.
+     *
+     * @return how many cells were checked
+     */
+    private static int lineStaysIn(final Funnel funnel, final double near, final double far, final double low,
+        final double high, final boolean across)
+    {
+        final double slope = (far - near) / 8.0;
+        final double atFrontOfPlane = near + (slope * 7.0);
+        if ((atFrontOfPlane < low) || (atFrontOfPlane > high))
+        {
+            return 0;
+        }
+        int checked = 0;
+        for (int layer = 8; layer <= 24; layer++)
+        {
+            for (final double depth : new double[] { layer - 0.49, layer, layer + 0.49 })
+            {
+                final double at = near + (slope * (depth + 0.5));
+                final double cell = Math.floor(at + 0.5);
+                if (Math.abs((at + 0.5) - cell) > 1.0e-9)
+                {
+                    final int index = (int) cell;
+                    assertTrue(across ? funnel.holds(layer, index, 1) : funnel.holds(layer, 5, index),
+                        "layer " + layer + ", " + (across ? "column " : "row ") + index + ", from " + near + " through " + far);
+                    checked++;
+                }
+            }
+        }
+        return checked;
+    }
+
+    @Test
+    void theWallIsTwoBlocksThickRoundTheTunnelCornersIncludedAndEndsWithIt()
+    {
+        final Funnel funnel = toStandard();
+
+        assertTrue(funnel.wall(7, 3, 1) && funnel.wall(7, 2, 1), "two thick left of the far opening, its collar");
+        assertTrue(funnel.wall(7, 7, 1) && funnel.wall(7, 8, 1), "and right");
+        assertTrue(funnel.wall(7, 5, 4) && funnel.wall(7, 5, 5), "and above");
+        assertTrue(funnel.wall(7, 5, -1) && funnel.wall(7, 5, -2), "and under: the tunnel's floor");
+        assertTrue(funnel.wall(7, 2, -2) && funnel.wall(7, 8, 5), "and its corners, so no step leaves a gap");
+        assertFalse(funnel.wall(7, 1, 1), "three out is behind the wall");
+        assertFalse(funnel.wall(7, 5, 6));
+        assertFalse(funnel.wall(7, 5, -3));
+        assertFalse(funnel.wall(7, 5, 1), "inside is hollow");
+        assertFalse(funnel.wall(8, 1, 0), "no wall round the room past the tunnel");
+        assertFalse(funnel.wall(12, -3, 0));
+        assertFalse(funnel.wall(0, -1, 0), "nor in the opening's own layer");
+    }
+
+    @Test
+    void aStepInOfSeveralColumnsIsWalledAcrossItsWholeFace()
+    {
+        // A tunnel of three: the opening, then columns 2 to 8, then the far opening's 4 to 6.
+        final Funnel funnel = Funnel.of(BIG, farGate(99, 101, 70, 73), 3, Material.WATER);
+
+        assertTrue(funnel.holds(1, 2, 0) && !funnel.holds(1, 1, 0));
+        assertTrue(funnel.wall(2, 2, 0) && funnel.wall(2, 3, 0), "inside the layer before, two columns over");
+        assertTrue(funnel.wall(2, 0, 0), "inside two layers before, four columns over: the wall's second block in depth");
+        assertFalse(funnel.wall(2, -1, 0), "outside the opening and the layers before");
+    }
+
+    @Test
+    void theWallIsWalkedOnEveryLayerOfTheTunnelAndNoFurther()
     {
         final Funnel funnel = toStandard();
         final Set<Spot> walls = new HashSet<>();
         funnel.forEachWall(20, (layer, across, up) -> walls.add(new Spot(layer, across, up)));
-        final Set<Spot> deep = new HashSet<>();
-        for (int up = -1; up <= 3; up++)
-        {
-            deep.add(new Spot(19, 3, up));
-            deep.add(new Spot(19, 7, up));
-        }
-        for (int across = 4; across <= 6; across++)
-        {
-            deep.add(new Spot(19, across, -2));
-            deep.add(new Spot(19, across, 4));
-        }
-        final Set<Spot> lastLayer = new HashSet<>(walls);
-        lastLayer.removeIf(cell -> cell.x() != 19);
+        final Funnel lower = Funnel.of(BIG, farGate(95, 105, 70, 73), 8, Material.WATER);
+        final Set<Spot> wide = new HashSet<>();
+        lower.forEachWall(20, (layer, across, up) -> wide.add(new Spot(layer, across, up)));
 
-        assertEquals(deep, lastLayer, "past the taper: both sides, the ceiling and under the ground, no corners");
-        assertTrue(walls.contains(new Spot(1, -1, 0)), "on the first layer, beside the near opening behind the frame");
-        assertTrue(walls.contains(new Spot(1, 5, -1)), "and the tunnel's floor, level with the near opening's bottom");
-        assertFalse(walls.contains(new Spot(1, 5, -2)), "nothing under the floor of the tunnel");
-        assertTrue(walls.contains(new Spot(1, 5, 10)), "and its top row, which the taper has already left");
-        assertTrue(walls.contains(new Spot(7, 5, -1)), "the tunnel's floor runs to its last layer");
-        assertFalse(walls.contains(new Spot(8, 5, -1)), "where the far ground starts, level with it");
-        assertTrue(walls.contains(new Spot(8, 5, -2)), "with the wall under that");
-        assertFalse(walls.contains(new Spot(1, -1, 10)), "nor a corner");
-        assertFalse(walls.contains(new Spot(20, 3, 0)), "and none at the depth");
+        assertTrue(walls.contains(new Spot(1, 0, 0)) && walls.contains(new Spot(1, -1, 0)), "beside the first layer");
+        assertTrue(walls.contains(new Spot(7, 2, -2)), "a corner of the collar");
+        assertTrue(walls.contains(new Spot(1, 5, 11)), "two above the first layer's top row");
+        assertEquals(0, walls.stream().filter(cell -> (cell.x() < 1) || (cell.x() > 7)).count(), "only in the tunnel");
+        assertEquals(walls.size(), walls.stream().filter(cell -> funnel.wall(cell.x(), cell.y(), cell.z())).count());
+        assertTrue(wide.contains(new Spot(3, -2, 0)) && wide.contains(new Spot(3, 12, 0)),
+            "two out beside a tunnel the near opening's own width");
+        final Set<Spot> shallow = new HashSet<>();
+        funnel.forEachWall(3, (layer, across, up) -> shallow.add(new Spot(layer, across, up)));
+        assertTrue(shallow.contains(new Spot(2, 0, 0)) && !shallow.contains(new Spot(3, 1, 0)), "and short of the depth");
     }
 
     /** A window of a rectangular opening, looked into northwards. */
@@ -273,7 +331,8 @@ class FunnelTest
         final Funnel funnel = toStandard();
 
         assertEquals(8, funnel.taper(), "eleven square to three by four narrows eight");
-        assertTrue(funnel.hollow(1, 0, 0), "the first layer behind the opening, still its whole size");
+        assertTrue(funnel.hollow(1, 1, 0), "the first layer behind the opening");
+        assertFalse(funnel.hollow(1, 0, 0), "a step in from it already");
         assertTrue(funnel.hollow(7, 5, 3), "the far gate's own plane, the tunnel's last layer");
         assertFalse(funnel.hollow(8, 5, 1), "past it is the room");
         assertFalse(funnel.hollow(0, 5, 1), "the opening is the gate's own, never drawn");
@@ -281,9 +340,8 @@ class FunnelTest
         assertFalse(funnel.shows(7, 5, 1, 0.0), "no far side in the tunnel");
         assertFalse(funnel.shows(1, 5, 1, 0.0));
         assertTrue(funnel.shows(8, 5, 1, 0.0), "the room starts on the layer after the far gate's plane");
-        assertTrue(funnel.shows(8, 5, -1, 0.0), "with the ground under it");
-        assertFalse(funnel.shows(8, 3, 1, 0.0), "at the far opening's size");
-        assertFalse(funnel.shows(30, 5, 4, 0.0), "however deep");
+        assertTrue(funnel.shows(8, 5, -1, 0.0), "the ground under it");
+        assertFalse(funnel.shows(8, 1, 1, 0.0), "the hall beside it");
         assertTrue(funnel.shows(7, 5, 1, 1.0), "a stand-in already shown may stand a layer back in the far gate's plane");
         assertFalse(funnel.shows(6, 5, 1, 1.0), "but no further into the tunnel");
     }
@@ -297,25 +355,26 @@ class FunnelTest
         final Set<Spot> shallow = new HashSet<>();
         funnel.forEachHollow(4, (layer, across, up) -> shallow.add(new Spot(layer, across, up)));
 
-        assertTrue(hollow.contains(new Spot(1, 0, 0)) && hollow.contains(new Spot(1, 10, 9)), "the first layer's corners");
+        assertTrue(hollow.contains(new Spot(1, 1, 0)) && hollow.contains(new Spot(1, 9, 9)), "the first layer's corners");
         assertTrue(hollow.contains(new Spot(7, 4, 0)) && hollow.contains(new Spot(7, 6, 3)), "the last layer's");
         assertEquals(0, hollow.stream().filter(cell -> cell.x() >= 8).count(), "none in the room");
-        assertEquals(25, hollow.stream().filter(cell -> cell.x() == 7).count(), "five across by five up on the last layer, a step short of the far size");
-        assertTrue(shallow.contains(new Spot(3, 5, 5)), "short of a shallow depth");
+        assertEquals(12, hollow.stream().filter(cell -> cell.x() == 7).count(), "three by four on the last layer, the far opening");
+        assertTrue(shallow.contains(new Spot(3, 5, 7)), "short of a shallow depth");
         assertFalse(shallow.contains(new Spot(4, 5, 3)), "and none at it");
     }
 
     @Test
-    void aTunnelOfOneLayerIsTheOpeningAloneAndTheRoomStraightBehindIt()
+    void aTunnelOfOneLayerIsThePlainView()
     {
         final Funnel funnel = Funnel.of(BIG, farGate(99, 101, 70, 73), 1, Material.WATER);
-        final List<Spot> hollow = new ArrayList<>();
-        funnel.forEachHollow(20, (layer, across, up) -> hollow.add(new Spot(layer, across, up)));
+        final List<Spot> drawn = new ArrayList<>();
+        funnel.forEachHollow(20, (layer, across, up) -> drawn.add(new Spot(layer, across, up)));
+        funnel.forEachWall(20, (layer, across, up) -> drawn.add(new Spot(layer, across, up)));
 
         assertEquals(1, funnel.taper());
-        assertTrue(hollow.isEmpty(), "nothing hollow behind the opening");
+        assertTrue(drawn.isEmpty(), "nothing hollow or walled behind the opening");
         assertTrue(funnel.shows(1, 5, 1, 0.0), "the room from the first layer");
-        assertFalse(funnel.shows(1, 3, 1, 0.0), "at the far opening's size");
+        assertTrue(funnel.shows(1, -5, 30, 0.0), "all of it: no far opening stands in front of it");
     }
 
     /** A far gate three wide and four tall, a block behind an arrival facing a yaw, across the way it faces. */
@@ -364,7 +423,7 @@ class FunnelTest
 
     /**
      * A far gate whose opening starts above where travellers land, a step up into it, narrows to its own
-     * rows and the block it stands on; the wall runs under that, across the arrival's row.
+     * rows; the wall runs under them, and through it the room shows down to the arrival's row.
      */
     @Test
     void aFarGateStandingAboveTheArrivalRowNarrowsToItsOwnRows()
@@ -373,26 +432,29 @@ class FunnelTest
 
         assertNotNull(funnel);
         assertEquals(new Funnel.Opening(4, 6, 2, 5), funnel.far());
-        assertTrue(funnel.holds(20, 5, 2), "its bottom row");
-        assertTrue(funnel.holds(20, 5, 1), "the block it stands on");
-        assertFalse(funnel.holds(20, 5, 0), "the arrival's row, below that");
-        assertTrue(funnel.wall(20, 5, 0), "walled underneath");
+        assertTrue(funnel.holds(7, 5, 2), "its bottom row");
+        assertFalse(funnel.holds(7, 5, 1), "the block it stands on");
+        assertTrue(funnel.wall(7, 5, 1) && funnel.wall(7, 5, 0), "walled two deep underneath");
+        assertTrue(funnel.holds(8, 5, 0), "looking down through it, the arrival's row in front of it");
+        assertFalse(funnel.holds(8, 5, -1));
     }
 
-    /** A stand-in already shown may stand a block past the funnel's edge, so one on it does not flicker. */
+    /** A stand-in already shown may stand a block past the room's edge, so one on it does not flicker. */
     @Test
     void slackWidensEveryEdgeByThatMuch()
     {
         final Funnel funnel = toStandard();
 
-        assertFalse(funnel.holds(20, 3, 1), "a column left of the far opening");
-        assertTrue(funnel.holds(20, 3, 1, 1.0), "held: a block out on the left");
-        assertTrue(funnel.holds(20, 7, 1, 1.0), "on the right");
-        assertTrue(funnel.holds(20, 5, 4, 1.0), "above");
-        assertTrue(funnel.holds(20, 5, -2, 1.0), "below the ground");
-        assertFalse(funnel.holds(20, 2, 1, 1.0), "but not two");
-        assertFalse(funnel.holds(20, 8, 1, 1.0));
-        assertFalse(funnel.holds(20, 5, 5, 1.0));
-        assertFalse(funnel.holds(20, 5, -3, 1.0));
+        assertFalse(funnel.holds(8, 2, 0), "a column left of the room's first layer");
+        assertTrue(funnel.holds(8, 2, 0, 1.0), "held: a block out on the left");
+        assertTrue(funnel.holds(8, 8, 0, 1.0), "on the right");
+        assertTrue(funnel.holds(8, 5, 5, 1.0), "above");
+        assertTrue(funnel.holds(8, 5, -3, 1.0), "below");
+        assertFalse(funnel.holds(8, 1, 0, 1.0), "but not two");
+        assertFalse(funnel.holds(8, 9, 0, 1.0));
+        assertFalse(funnel.holds(8, 5, 6, 1.0));
+        assertFalse(funnel.holds(8, 5, -4, 1.0));
+        assertTrue(funnel.holds(7, 3, 1, 1.0) && !funnel.holds(7, 2, 1, 1.0), "and in the far gate's plane");
+        assertTrue(funnel.holds(7, 5, -1, 1.0) && funnel.holds(7, 5, 4, 1.0) && funnel.holds(7, 7, 1, 1.0));
     }
 }

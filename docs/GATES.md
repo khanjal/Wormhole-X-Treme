@@ -689,13 +689,22 @@ a funnel narrowing from one opening to the other, the far room's ceiling and the
 hung in the funnel's wide end, the tunnel and the view sharing the same blocks. Now, where the dialled
 gate's opening is smaller than this one's (`gate-view-funnel`, on by default), the far side is drawn at
 the end of a tunnel. The tunnel starts at this gate's opening and narrows to the far opening's size; it
-is hollow, air sent wherever this world has a block, and walled one block thick in this gate's own
-portal material, so it reads as a tunnel of water, lava or whatever the gate's horizon is. Its last
+is hollow, air sent wherever this world has a block, and walled two blocks thick in this gate's own
+portal material, so it reads as a tunnel of water, lava or whatever the gate's horizon is. Two,
+because water stops an eighth of a block short of its top with nothing over it: one block thick, the
+steps of the narrowing ceiling left a slice of this world showing between them. The wall takes in the
+corners, and a step in of several columns at once is walled across its whole face. Its last
 layer is where the far gate's plane stands (for a far gate whose arrival is one block in front of its portal, which is all but Massive; nothing is drawn behind it either way), and the far room starts on the layer after: every far block is drawn
 that much deeper than the plain view draws it (`WindowShape.deeper`, the one place the shift lives, so
-the blocks, the stand-ins and every mapping between the two sides agree). The room is drawn at the far
-opening's size, with the row of ground under it that travellers land on and walk across, level with
-the tunnel's floor of wall, and walled on the other sides as the tunnel is, out to the depth.
+the blocks, the stand-ins and every mapping between the two sides agree). The wall ends there, in a
+collar round the far opening. The room past it has no wall: it is drawn as far as the near opening can
+see through the far one, a line through both, each a block deep, and nothing outside that. So it widens
+again from the far opening as it goes, showing the ground travellers land on, the far gate's
+surroundings seen through it, and the room beyond as the small gate's own opening would show them; the
+halls and ceilings round the small gate, which only the big opening could have seen, stay out. The
+trade-off: a far side out in the open shows more of itself the further it goes, as through any window,
+and the real world round that room, which only the tunnel's water stands in front of, shows through
+the water from inside the tunnel.
 
 **How long the tunnel is.** A block longer for each block the far opening is narrower, by whichever
 of its width and height narrows more: Large to Standard three, Massive to Standard twelve, Grand to
@@ -710,8 +719,9 @@ the window (`Funnel.of`): on the column travellers land on and standing on the r
 short far gate's tunnel sits on the floor, not halfway up the big opening. Only narrower, never wider:
 a side where the far gate is as big or bigger keeps this one's, so same-size and small-to-large views
 are as they were, and a gate lying flat, a far gate turned from its arrival, or a horizon of air
-leaves the view whole, as `gate-view-funnel: false` does. Nothing of the far side is drawn in the
-tunnel, in the opening or outside the room's walls. Stand-ins for mobs and players in the far room are
+leaves the view whole, as `gate-view-funnel: false` does, and so does a tunnel of one layer, the
+opening alone, with no far opening in front of the room. Nothing of the far side is drawn in the
+tunnel, in the opening or outside what the far opening shows. Stand-ins for mobs and players in the far room are
 shown only in the room, and one already shown is kept a block past its edges, a layer back into the
 far gate's plane included, so it does not flicker there. The capture, its block budget and the far
 chunks held for it are the same as without a tunnel; the tunnel's air and wall count towards the most
@@ -844,10 +854,10 @@ is given back. "What the server sends" is the world's view distance; on Paper a 
 - **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
   point draws its old capture until its next retake, at most a minute after it is next dialled.
 - **No setting per gate**, no horizontal gates, and no creatures on the far side.
-- **A tunnel's wall is one block thick.** Water, and any other see-through portal material, shows
-  whatever really stands behind it in this world, tinted; only an opaque one such as lava hides it.
-  A thicker wall would cost a layer of blocks per block of depth, so it is left at one until it has
-  been seen in a world. How the taper looks from the near window has not been seen either.
+- **A tunnel's wall is see-through if its portal material is.** Two blocks of water still show
+  whatever really stands behind them in this world, tinted, and so the far room past the tunnel's
+  end, which nothing walls; only an opaque material such as lava hides it. The wall costs two rings
+  of blocks a layer, only along the tunnel.
 - **The tunnel is judged block by block for each eye, as the rest of the view is.** A hollow or
   wall block whose outline lands mostly beside the opening from where a viewer stands is not sent
   them, so from a steep angle the first layers of the tunnel can show this world's own blocks behind

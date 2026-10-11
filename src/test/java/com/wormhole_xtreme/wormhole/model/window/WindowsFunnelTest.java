@@ -53,11 +53,11 @@ class WindowsFunnelTest
     /** Twelve layers in, on the far opening's middle column: in the room past the eight-layer tunnel. */
     private static final Spot INSIDE = BIG.behind(12, 5, 1);
 
-    /** The same layer, four columns left: outside the room and its wall, inside the depth. */
-    private static final Spot OUTSIDE = BIG.behind(12, 1, 1);
+    /** The same layer, eight columns left: a hall the small gate's opening does not show, inside the depth. */
+    private static final Spot OUTSIDE = BIG.behind(12, -3, 1);
 
-    /** The column just left of the far opening: the wall. */
-    private static final Spot WALL = BIG.behind(12, 3, 1);
+    /** The column just left of the far opening in the far gate's plane: the tunnel's collar. */
+    private static final Spot WALL = BIG.behind(7, 3, 1);
 
     /** Halfway down the tunnel, near the top of the big opening: hollow. */
     private static final Spot TUNNEL = BIG.behind(3, 5, 6);
@@ -171,7 +171,7 @@ class WindowsFunnelTest
     }
 
     @Test
-    void aViewWalkedThroughTheVolumeIsAHollowTunnelThenTheRoomWalledIn()
+    void aViewWalkedThroughTheVolumeIsAHollowWalledTunnelThenTheRoom()
     {
         final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel(16)), solidEverywhere()), 16, 0L,
             Integer.MAX_VALUE);
@@ -180,10 +180,14 @@ class WindowsFunnelTest
         assertSame(air, view.get(key(BIG.behind(7, 5, 1))), "to its last layer, the far gate's own plane");
         assertSame(water, view.get(key(BIG.behind(3, 5, -1))), "its floor is the gate's portal material");
         assertSame(stone, view.get(key(INSIDE)), "the far side in the room past it");
-        assertSame(water, view.get(key(WALL)), "the gate's portal material round the room");
-        assertFalse(view.containsKey(key(OUTSIDE)), "the far side outside it, behind the wall, is never drawn");
-        assertSame(stone, view.get(key(BIG.behind(12, 5, -1))), "the far ground under the room, not a wall of water");
-        assertSame(water, view.get(key(BIG.behind(12, 5, -2))), "the wall a row beneath it");
+        assertSame(water, view.get(key(WALL)), "the gate's portal material round the far gate's plane");
+        assertSame(water, view.get(key(BIG.behind(7, 2, 1))), "two blocks thick");
+        assertFalse(view.containsKey(key(OUTSIDE)), "a hall outside what the far opening shows is never drawn");
+        assertSame(stone, view.get(key(BIG.behind(12, 5, -1))), "the far ground in the room, not a wall of water");
+        assertSame(stone, view.get(key(BIG.behind(12, 1, 1))), "the room widens as far as the far opening lets it be seen");
+        assertFalse(view.entrySet().stream().anyMatch(entry -> (entry.getValue() == water)
+            && (shapeFor(funnel(16)).layerOf(Windows.unpackX(entry.getKey()), Windows.unpackZ(entry.getKey())) >= 8)),
+            "no wall round the room past the tunnel");
     }
 
     /**
@@ -282,10 +286,13 @@ class WindowsFunnelTest
 
         final Map<Long, BlockData> view = Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE);
 
-        assertSame(water, view.get(key(BIG.behind(15, 3, 1))), "the last layer inside the depth");
-        assertNull(view.get(key(BIG.behind(16, 3, 1))), "none at the depth");
-        assertSame(water, view.get(key(BIG.behind(14, 6, -2))), "under the ground at the far opening's corner");
-        assertNull(view.get(key(BIG.behind(15, 6, -2))), "past the depth from the opening's middle, though short of 16 layers");
+        assertSame(water, view.get(key(BIG.behind(7, 2, -2))), "the collar's corner");
+        assertSame(water, view.get(key(BIG.behind(6, 2, 0))), "a layer before it");
+        assertNull(Windows.tunnelled(window, new HashMap<>(), 6, 0L, Integer.MAX_VALUE).get(key(BIG.behind(6, 2, 0))),
+            "none at the depth");
+        final Map<Long, BlockData> nine = Windows.tunnelled(window, new HashMap<>(), 9, 0L, Integer.MAX_VALUE);
+        assertSame(water, nine.get(key(BIG.behind(7, 2, 1))), "inside a depth of nine from the opening's middle");
+        assertNull(nine.get(key(BIG.behind(7, 2, -2))), "past it, though short of nine layers");
         assertSame(water, view.get(key(BIG.behind(5, 5, -1))), "the tunnel's floor, above the world's");
         assertSame(water, view.get(key(BIG.behind(5, 1, 0))), "a side, on the bottom row");
         when(world.getMinHeight()).thenReturn(64);
@@ -398,7 +405,7 @@ class WindowsFunnelTest
         assertTrue(funnelled.showsFar(INSIDE.x(), INSIDE.y(), INSIDE.z()));
         assertFalse(funnelled.showsFar(OUTSIDE.x(), OUTSIDE.y(), OUTSIDE.z()));
         assertFalse(funnelled.showsFar(WALL.x(), WALL.y(), WALL.z()), "a column out: no slack outside a held stand-in");
-        assertFalse(funnelled.showsFar(INSIDE.x(), INSIDE.y() + 4, INSIDE.z()), "above the far gate's ceiling");
+        assertFalse(funnelled.showsFar(INSIDE.x(), INSIDE.y() + 6, INSIDE.z()), "above what the far opening shows");
         assertFalse(funnelled.showsFar(TUNNEL.x(), TUNNEL.y(), TUNNEL.z()), "in the tunnel");
         assertTrue(whole.showsFar(OUTSIDE.x(), OUTSIDE.y(), OUTSIDE.z()));
         assertTrue(whole.showsFar(TUNNEL.x(), TUNNEL.y(), TUNNEL.z()));

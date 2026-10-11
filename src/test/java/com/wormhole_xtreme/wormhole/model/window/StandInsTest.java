@@ -516,15 +516,15 @@ class StandInsTest
                 funnel), capture);
         final WindowState whole = new WindowState(
             new GateSource("gate:Abydos", mock(Block.class), shape, open, arrival, "Chulak", 16), capture);
-        // Ten layers in: the funnel's middle column, and four columns left of it.
+        // Ten layers in: the room's middle column, and seven columns left of it, outside what the far opening shows.
         final Location inside = new Location(here, 15.5, 64.0, 10.5);
-        final Location beside = new Location(here, 11.5, 64.0, 10.5);
+        final Location beside = new Location(here, 8.5, 64.0, 10.5);
 
         assertTrue(StandIns.inRoom(narrowed, inside), "in front of the small gate: shown");
-        assertFalse(StandIns.inRoom(narrowed, beside), "beside it, behind the funnel's wall: not shown");
+        assertFalse(StandIns.inRoom(narrowed, beside), "beside it, where the small gate's walls hide it: not shown");
         assertFalse(StandIns.inRoom(narrowed, beside, true), "nor kept, once shown");
         assertTrue(StandIns.inRoom(whole, beside), "with no funnel, shown as before");
-        final Location onTheEdge = new Location(here, 13.5, 64.0, 10.5);
+        final Location onTheEdge = new Location(here, 10.5, 64.0, 10.5);
         assertFalse(StandIns.inRoom(narrowed, onTheEdge), "a column outside: not shown to begin with");
         assertTrue(StandIns.inRoom(narrowed, onTheEdge, true), "but kept once shown, so one on the edge does not flicker");
         final Location inTheTunnel = new Location(here, 15.5, 64.0, 16.5);

@@ -11,15 +11,16 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  * A big gate's view of a small far gate, as a tunnel with the view at its end (#583).
  *
  * <p>The tunnel runs {@code taper} layers behind the opening, the opening itself its first,
- * narrowing from the near opening to the far one's size. It is hollow, walled in the near gate's
- * portal material, and its last layer is the far gate's own plane. The far room is drawn from the
- * layer after, shifted that much deeper ({@link WindowShape#deeper}), at the far opening's size and
- * the row of ground beneath it, still walled.
+ * narrowing from the near opening to the far one's size. It is hollow, walled two blocks thick in
+ * the near gate's portal material, and its last layer is the far gate's own plane, where the wall
+ * ends in a collar round the far opening. The far room is drawn from the layer after, shifted that
+ * much deeper ({@link WindowShape#deeper}), as much of it as the near opening sees through the far
+ * one, with no wall round it.
  *
  * <p>Plain numbers, in the window's own terms: a layer behind the opening, a column counted
  * rightwards from its left edge, and a row up from its bottom. The far opening is where the far
  * gate's own cells show through the window, so the tunnel lines up with it whatever the two gates'
- * heights, and never reaches outside the near opening but for that row of ground.
+ * heights, and never reaches outside the near opening.
  *
  * @param width
  *            the near opening's width
@@ -50,6 +51,9 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     public record Opening(int left, int right, int bottom, int top)
     {
     }
+
+    /** How many blocks thick the tunnel's wall is. */
+    static final int WALL = 2;
 
     /** Handed each cell of a funnel's wall. */
     @FunctionalInterface
@@ -138,11 +142,14 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /**
-     * Whether a cell behind the window is inside the tunnel or the room past it.
+     * Whether a cell behind the window is inside the tunnel, or in the room past it.
      *
-     * <p>A cell is in while its middle is within half a block of the narrowing edge, so both sides
-     * step in on the same layer. Past the tunnel the row beneath the far opening is in too: the
-     * ground travellers land on and walk across, level with the tunnel's floor of wall.
+     * <p>In the tunnel a cell is in while its middle is within half a block of the narrowing edge, so
+     * both sides step in on the same layer; it reaches the far opening's size on its last layer, the
+     * far gate's plane. Past it, a cell is in if any line through both the near opening and the far
+     * one passes through it: the room widens again from the far opening as far as the near opening
+     * can see through it, so what shows is what the small gate's own opening would show, and the
+     * halls and ceilings round it stay out.
      *
      * @param layer
      *            layers behind the opening; 0 is the opening itself
@@ -163,17 +170,38 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
      *
      * @param slack
      *            how far out each edge is moved
-     * @return true if the cell is inside the widened funnel
+     * @return true if the cell is inside the widened tunnel or room
      */
     public boolean holds(final int layer, final int across, final int up, final double slack)
     {
-        final double part = Math.min(1.0, Math.max(0, layer) / (double) taper);
+        final int plane = taper - 1;
+        if (layer >= taper)
+        {
+            // A tunnel of the opening alone has no far opening in front of the room: it is the plain view.
+            return (plane == 0) || seenThrough(layer, across, up, slack, plane);
+        }
+        final double part = (plane == 0) ? 0.0 : Math.min(1.0, Math.max(0, layer) / (double) plane);
         final double left = (far.left() * part) - slack;
         final double right = (width - 1) + ((far.right() - (width - 1)) * part) + slack;
-        final double ground = (layer >= taper) ? 1.0 : 0.0;
-        final double bottom = ((far.bottom() * part) - ground) - slack;
+        final double bottom = (far.bottom() * part) - slack;
         final double top = (height - 1) + ((far.top() - (height - 1)) * part) + slack;
         return ((across + 0.5) >= left) && ((across - 0.5) <= right) && ((up + 0.5) >= bottom) && ((up - 0.5) <= top);
+    }
+
+    /**
+     * Whether a cell past the tunnel lies on a line through the near opening and the far one, in block
+     * edges. Each is a block deep and walled round, so a line must be inside both at both faces: the
+     * widest runs from the near opening's front face through the far plane's back face, and is
+     * widest at the cell's far side.
+     */
+    private boolean seenThrough(final int layer, final int across, final int up, final double slack, final int plane)
+    {
+        final double past = (layer - plane) / (plane + 1.0);
+        final double left = (((far.left() - 0.5) * (1.0 + past)) - (past * (width - 0.5))) - slack;
+        final double right = ((far.right() + 0.5) * (1.0 + past)) + (past * 0.5) + slack;
+        final double bottom = (((far.bottom() - 0.5) * (1.0 + past)) - (past * (height - 0.5))) - slack;
+        final double top = ((far.top() + 0.5) * (1.0 + past)) + (past * 0.5) + slack;
+        return ((across + 0.5) > left) && ((across - 0.5) < right) && ((up + 0.5) > bottom) && ((up - 0.5) < top);
     }
 
     /**
@@ -230,15 +258,37 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /**
-     * Whether a cell is the funnel's wall: outside it, beside a cell inside it on this layer or the
-     * one before. Every line of sight that leaves the funnel enters one of these first.
+     * Whether a cell is the tunnel's wall, two blocks thick: outside the tunnel, within two blocks of
+     * it on its own layer, corners included, or inside it one or two layers before. Water ends a
+     * block short of its top with nothing over it, so one block left the world showing between the
+     * steps; and a step in of several columns at once is walled across its whole face. The wall ends
+     * with the tunnel, its last layer a collar round the far opening; the room past it has none.
      *
      * @return true if the wall is drawn there
      */
     public boolean wall(final int layer, final int across, final int up)
     {
-        return !holds(layer, across, up) && (holds(layer - 1, across, up) || holds(layer, across - 1, up)
-            || holds(layer, across + 1, up) || holds(layer, across, up - 1) || holds(layer, across, up + 1));
+        if ((layer < 1) || (layer >= taper) || holds(layer, across, up))
+        {
+            return false;
+        }
+        return holds(layer - 1, across, up) || holds(layer - 2, across, up) || besideOnLayer(layer, across, up);
+    }
+
+    /** Whether a cell is within two blocks of the tunnel on its own layer, corners included. */
+    private boolean besideOnLayer(final int layer, final int across, final int up)
+    {
+        for (int sideways = -WALL; sideways <= WALL; sideways++)
+        {
+            for (int upwards = -WALL; upwards <= WALL; upwards++)
+            {
+                if (holds(layer, across + sideways, up + upwards))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -251,18 +301,18 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
      */
     public void forEachWall(final int depth, final Cell cell)
     {
-        for (int layer = 1; layer < depth; layer++)
+        for (int layer = 1; layer < Math.min(depth, taper); layer++)
         {
             wallOfLayer(layer, cell);
         }
     }
 
-    /** Visits the wall's cells on one layer: within a block of the near opening and the ground under it. */
+    /** Visits the wall's cells on one layer: within two blocks of the near opening, which the tunnel never leaves. */
     private void wallOfLayer(final int layer, final Cell cell)
     {
-        for (int across = -1; across <= width; across++)
+        for (int across = -WALL; across < (width + WALL); across++)
         {
-            for (int up = -2; up <= height; up++)
+            for (int up = -WALL; up < (height + WALL); up++)
             {
                 if (wall(layer, across, up))
                 {

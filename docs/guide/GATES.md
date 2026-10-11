@@ -459,15 +459,16 @@ of ice in the moment it shows can be held up by it, and nothing stays once the r
 With `gate-view` on, a gate that dials a smaller one, a Massive gate dialling a Standard one say,
 shows the far side at the end of a tunnel rather than a Massive-sized slice of it running past the
 small gate's walls and ceiling. The tunnel narrows from this gate's opening to the small gate's size;
-its walls, ceiling and floor are this gate's own portal material, so it looks like a tunnel of water
-(or lava, or whatever the gate's horizon is), and at its end you see the far side through an opening
-the small gate's size, standing on the ground in front of it. The more the far gate is smaller, the
+its walls, ceiling and floor are this gate's own portal material, two blocks thick, so it looks like
+a tunnel of water (or lava, or whatever the gate's horizon is). The tunnel stops where the small
+gate's opening is, and through that you see the far side as the small gate would show it: the ground
+in front of it and whatever lies beyond, but not the halls or ceiling round it. The more the far gate is smaller, the
 longer the tunnel: three blocks from Large to Standard, twelve from Massive to Standard. Mobs and
 players on the far side are shown only in the view at the end, not in the tunnel or beside it. Gates of
 the same size, and a small gate dialling a big one, show the whole view as before.
 
-The tunnel's wall is one block thick, so through water you can see, faintly, whatever stands behind
-the gate on your side; lava hides it. The far side is still captured whole: the tunnel only changes
+Water is see-through, so through the tunnel's walls you can see, faintly, whatever stands behind the
+gate on your side; lava hides it. The far side is still captured whole: the tunnel only changes
 what is drawn.
 
 | Setting | Default | What it does |

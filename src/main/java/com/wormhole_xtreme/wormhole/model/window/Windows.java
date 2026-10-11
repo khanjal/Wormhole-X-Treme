@@ -2332,12 +2332,12 @@ public final class Windows
     }
 
     /**
-     * Draws a tunnel into a view, out to the depth (#583): hollow inside, and a wall in its gate's
-     * portal material round it and round the room at its end.
+     * Draws a tunnel into a view, short of the depth (#583): hollow inside, and a wall two blocks
+     * thick in its gate's portal material round it, ending in a collar round the far gate's plane.
      *
-     * <p>Only the wall, not everything outside: every line of sight that leaves the tunnel or the
-     * room meets the wall first, and the far side outside them was never put in the view. Hollow as
-     * the far side's seen air is: air only where the real block is not empty.
+     * <p>Only the wall, not everything outside: every line of sight that leaves the tunnel meets the
+     * wall first, and the far side outside the room past it was never put in the view. Hollow as the
+     * far side's seen air is: air only where the real block is not empty.
      *
      * @return the view, or {@link #TOO_MANY} if it now holds more than {@code most}
      */
