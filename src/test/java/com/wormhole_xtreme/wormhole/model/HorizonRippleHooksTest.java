@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -139,16 +138,19 @@ class HorizonRippleHooksTest
             gate.shutdownStargate(false, StargateShutdownEvent.Reason.TIMEOUT);
         }
 
-        verify(watcher).sendBlockChange(eq(middle), eq(water));
+        verify(watcher).sendBlockChange(middle, water);
         assertFalse(HorizonRipple.isRippling(gate));
     }
 
     @Test
     void closingTheIrisCallsTheRippleOff()
     {
+        // An instant iris, so the only water sent is the ripple's put-back: a sweep paints the old horizon too.
+        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_ANIMATION, "instant");
+
         StargateLifecycle.setIrisState(gate, true);
 
-        // The iris's own sweep paints the opening; what is the ripple's is that it stopped at once.
+        verify(watcher).sendBlockChange(middle, water);
         assertFalse(HorizonRipple.isRippling(gate), "called off, not left to find out at its next ring");
     }
 
@@ -157,7 +159,7 @@ class HorizonRippleHooksTest
     {
         StargateManager.removeStargate(gate, null, false);
 
-        verify(watcher).sendBlockChange(eq(middle), eq(water));
+        verify(watcher).sendBlockChange(middle, water);
         assertFalse(HorizonRipple.isRippling(gate));
     }
 }

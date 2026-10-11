@@ -812,9 +812,11 @@ is given back. "What the server sends" is the world's view distance; on Paper a 
 ## The ripple (experimental)
 
 `gate-ripple` ([#579](https://github.com/khanjal/Wormhole-X-Treme/issues/579)) ripples an open
-gate's event horizon: rings from the centre of the opening out to its rim, a ring every two ticks,
-each shown for one step and put back as the next is drawn. Off by default until it has been seen
-in a world.
+gate's event horizon: rings from the centre of the opening out to its rim, each shown for one step
+and put back as the next is drawn. A small gate's rings show longer, so its ripple is not over
+before it is seen: about twelve ticks a ripple shared among its rings, two ticks a ring at the
+least and eight at the most (`HorizonRipple.stepTicks`), so four ticks a ring on Standard, three
+on Large and two on Grand and Massive. Off by default until it has been seen in a world.
 
 **When.** As something goes into a gate, a player, a mount, a minecart, a mob, an item or an arrow,
 at that gate and at the one it comes out of; and on its own every 3 to 6 seconds, at random, while
@@ -829,8 +831,8 @@ starting two rings after the one before (`RippleRings.waves`), so on a gate of e
 three rings are lit at once, and a ring is put back only once no wave is on it. A gate of too few
 rings for that, no more than two for each wave after the first and one, has its waves back to back
 instead, so they still read as separate: Standard's three rings take even two waves back to back,
-Large's four overlap two and take three back to back, and Grand and Massive overlap all three. The pace counts the rings and the gaps, so a small gate's waves
-still stay long enough to see.
+Large's four overlap two and take three back to back, and Grand and Massive overlap all three.
+Waves do not change the pace: a ring shows as long as it does in a ripple of one wave.
 
 **The rings** (`RippleRings`) are cut in the opening's own grid, out from a patch at its middle: one
 cell across an odd side and two across an even one, so an odd opening starts from one cell, an even
@@ -875,7 +877,7 @@ chunk, and is drawn only to players within the horizon's reach.
 keys and timings, so an override would be a new key in the format, left for later.
 
 **Not yet seen in a world:** how a ring looks, whether ice reads as a ripple on water, the forward
-ring on Grand and Massive, and whether two ticks a step is the right pace.
+ring on Grand and Massive, the waves, and whether two to four ticks a ring is the right pace.
 
 ## Animation
 

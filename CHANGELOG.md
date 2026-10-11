@@ -45,13 +45,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 **Added**
 
-- **An open gate's event horizon can ripple** ([#579](https://github.com/khanjal/Wormhole-X-Treme/issues/579)),
-  in rings from its middle out, as something goes through it, at both ends, and every 3 to 6
-  seconds while somebody is near, then in one, two or three waves following one another. Off until `gate-ripple` is set. Grand and Massive ripple their own
-  portal material a block in front of the horizon, a flat water gate bigger than two by two ripples
-  in ice, and at `gate-view: open` a viewer who sees through the gate sees its portal material cross
-  the view; flat lava and nether portal gates, Minimal and horizontal gates do not ripple yet. See
-  [the guide](docs/guide/GATES.md#the-ripple).
+- **An open gate's event horizon can ripple**
+  ([#579](https://github.com/khanjal/Wormhole-X-Treme/issues/579)), in rings from its middle out,
+  as something goes through it, at both ends, and every 3 to 6 seconds while somebody is near, then
+  in one, two or three waves following one another. Off until `gate-ripple` is set. Grand and
+  Massive ripple their own portal material a block in front of the horizon, a flat water gate bigger
+  than two by two ripples in ice, and at `gate-view: open` a viewer who sees through the gate sees
+  its portal material cross the view; flat lava and nether portal gates, Minimal and horizontal
+  gates do not ripple yet. See [the guide](docs/guide/GATES.md#the-ripple).
 - **An open gate can show where it goes, as an experiment** ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)).
   `gate-view: behind` draws the far side behind the horizon; `open` clears the horizon once the far
   side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate,

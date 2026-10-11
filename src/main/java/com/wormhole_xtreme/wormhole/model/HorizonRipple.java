@@ -214,8 +214,8 @@ public final class HorizonRipple
             .map(lit -> lit.stream().flatMap(ring -> rings.get(ring).stream()).toList()).toList();
         logStart(gate, rings.size(), deep, icy);
         final Ripple ripple = new Ripple(gate, deep, icy);
-        // Paced by the rings and the gaps between waves, so a small gate's ripple stays long enough to see.
-        final long pace = stepTicks(rings.size() + (WAVE_GAP * (Math.max(1, waves) - 1)));
+        // Paced by the rings alone: more waves add steps, never quicken a small gate's slow rings.
+        final long pace = stepTicks(rings.size());
         final IrisSweepDriver<Location> driver = new IrisSweepDriver<>(steps, ripple, () -> pace);
         // Registered before its first ring, so a throw while drawing it can still call it off.
         ripple.driver = driver;
@@ -288,26 +288,48 @@ public final class HorizonRipple
         final Set<String> watched = new HashSet<>();
         for (final Stargate gate : StargateManager.getOpenGates())
         {
-            final String name = gate.getGateName();
-            if ((name == null) || !showing(gate) || StargateBlockSetup.playersNear(gate, reference(gate)).isEmpty())
+            try
             {
-                continue;
+                tickGate(gate, now, watched);
             }
-            watched.add(name);
-            final Long next = NEXT.get(name);
-            if (next == null)
+            catch (final Exception | LinkageError e)
             {
-                NEXT.put(name, now + nextWait.getAsLong());
-            }
-            else if (now >= next)
-            {
-                // Waited again whether or not it starts: refused for a ripple already running, or for
-                // nothing to draw, it would otherwise be asked every second.
-                NEXT.put(name, now + nextWait.getAsLong());
-                startQuietly(gate, waveCount.getAsInt());
+                final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+                if ((plugin != null) && plugin.isLoggable(Level.FINE))
+                {
+                    plugin.prettyLog(Level.FINE, "Could not look at " + gate.getGateName() + " for a ripple", e);
+                }
             }
         }
         NEXT.keySet().retainAll(watched);
+    }
+
+    /**
+     * One gate's turn in the sweep: its wait started, or its ripple begun once the wait is over.
+     *
+     * @param watched
+     *            added to if somebody is near it open
+     */
+    private static void tickGate(final Stargate gate, final long now, final Set<String> watched)
+    {
+        final String name = gate.getGateName();
+        if ((name == null) || !showing(gate) || StargateBlockSetup.playersNear(gate, reference(gate)).isEmpty())
+        {
+            return;
+        }
+        watched.add(name);
+        final Long next = NEXT.get(name);
+        if (next == null)
+        {
+            NEXT.put(name, now + nextWait.getAsLong());
+        }
+        else if (now >= next)
+        {
+            // Waited again whether or not it starts: refused for a ripple already running, or for
+            // nothing to draw, it would otherwise be asked every second.
+            NEXT.put(name, now + nextWait.getAsLong());
+            startQuietly(gate, waveCount.getAsInt());
+        }
     }
 
     /**

@@ -433,17 +433,27 @@ class HorizonRippleTest
         assertFalse(HorizonRipple.isRippling(gate));
     }
 
-    /** An iris that shuts mid ripple paints its own opening: the ring is not put back over it as the horizon. */
+    /**
+     * An iris that shuts mid ripple paints its own opening: a ring in the opening is not put back over it as
+     * the horizon, while one a block in front, which the iris does not draw, is put back to what is there.
+     */
     @Test
-    void anIrisShutMidRippleIsNotPaintedOverWithTheHorizon()
+    void anIrisShutMidRippleIsNotPaintedOverWithTheHorizon() throws ReflectiveOperationException
     {
+        opening(gate, 5, 5, true);
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        final Player beside = playerAt(26.0);
+        when(world.getPlayers()).thenReturn(List.of(front, beside));
+        drawnTheView(beside);
         assertTrue(HorizonRipple.start(gate));
-        assertEquals(cells("ice", 20, 12, 66), sentTo(front));
+        assertEquals(cells("lava", 21, 12, 66), sentTo(front), "in front of the horizon");
+        assertEquals(cells("lava", 20, 12, 66), sentTo(beside), "in the clear opening of a viewer of the view");
         when(gate.isGateIrisActive()).thenReturn(true);
 
         step();
 
-        assertTrue(sentTo(front).isEmpty(), "the iris is the opening's to draw now");
+        assertEquals(cells("truth", 21, 12, 66), sentTo(front), "the cell in front put back to what is there");
+        assertTrue(sentTo(beside).isEmpty(), "the opening is the iris's to draw now");
         assertTrue(pending.isEmpty(), "and the ripple is over");
     }
 
@@ -554,6 +564,21 @@ class HorizonRippleTest
         assertTrue(HorizonRipple.isRippling(gate), "the next gate still has its turn");
     }
 
+    /** A gate that throws while it is looked at does not stop the gates after it having their turn. */
+    @Test
+    void aGateThatThrowsWhileLookedAtDoesNotStopTheNext()
+    {
+        final Stargate broken = gateNamed("Broken");
+        when(broken.isGateIrisActive()).thenThrow(new IllegalStateException("half unloaded"));
+        manager.when(StargateManager::getOpenGates).thenReturn(new LinkedHashSet<>(List.of(broken, gate)));
+        HorizonRipple.tick();
+        now += 7_000L;
+
+        HorizonRipple.tick();
+
+        assertTrue(HorizonRipple.isRippling(gate), "the next gate still has its turn");
+    }
+
     /** Nobody near, nothing waits: coming back starts the wait again rather than rippling at once. */
     @Test
     void walkingAwayFromAGateForgetsItsWait()
@@ -572,7 +597,7 @@ class HorizonRippleTest
     }
 
     @Test
-    void theWaitIsSixToTwentySeconds()
+    void theWaitIsThreeToSixSeconds()
     {
         for (int i = 0; i < 2_000; i++)
         {
@@ -836,7 +861,8 @@ class HorizonRippleTest
         step();
         assertEquals(rings("water", 3), sentTo(front), "nothing left as ice");
         assertTrue(pending.isEmpty());
-        assertEquals(List.of(2L, 2L, 2L, 2L, 2L, 2L), delays, "paced as four rings and one gap of two: six steps");
+        assertEquals(List.of(3L, 3L, 3L, 3L, 3L, 3L), delays,
+            "six steps, each as long as a ring of a ripple of one wave on four rings: waves never quicken it");
     }
 
     /** Three waves on the five by five's four rings are too many to overlap: they run back to back. */
