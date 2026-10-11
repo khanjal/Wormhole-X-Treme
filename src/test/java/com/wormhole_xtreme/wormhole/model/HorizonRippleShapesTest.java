@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -67,6 +68,19 @@ class HorizonRippleShapesTest
             }
             assertEquals(expected, found, "built looking " + looking);
         }
+    }
+
+    /** Pillars either side of an opening, a block in front, are not a ring in front of it: a lintel and a sill as well are. */
+    @Test
+    void pillarsEitherSideAreNotARingInFront()
+    {
+        final List<Spot> opening = List.of(new Spot(0, 64, 0), new Spot(0, 65, 0));
+        final List<Spot> pillars = List.of(new Spot(-1, 64, 1), new Spot(-1, 65, 1), new Spot(1, 64, 1), new Spot(1, 65, 1));
+        assertFalse(HorizonRipple.isDeep(BlockFace.SOUTH, opening, pillars), "nothing above or below");
+        final List<Spot> ring = new ArrayList<>(pillars);
+        ring.add(new Spot(0, 63, 1));
+        ring.add(new Spot(0, 66, 1));
+        assertTrue(HorizonRipple.isDeep(BlockFace.SOUTH, opening, ring), "closed round on all four sides");
     }
 
     /** Frame on four sides of a one-cell opening, which would count on an upright gate, does not on one lying flat. */

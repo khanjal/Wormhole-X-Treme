@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -512,6 +513,22 @@ class HorizonRippleTest
         now += 1L;
         HorizonRipple.tick();
         assertTrue(HorizonRipple.isRippling(gate), "seven seconds on, it ripples");
+    }
+
+    /** One gate that throws on its turn does not stop the gates after it, nor end the sweep's task. */
+    @Test
+    void aGateThatThrowsOnItsTurnDoesNotStopTheNext()
+    {
+        final Stargate broken = gateNamed("Broken");
+        when(broken.getGateStructureBlocks()).thenThrow(new IllegalStateException("half unloaded"));
+        manager.when(StargateManager::getOpenGates).thenReturn(new LinkedHashSet<>(List.of(broken, gate)));
+        HorizonRipple.tick();
+        now += 7_000L;
+
+        HorizonRipple.tick();
+
+        assertFalse(HorizonRipple.isRippling(broken));
+        assertTrue(HorizonRipple.isRippling(gate), "the next gate still has its turn");
     }
 
     /** Nobody near, nothing waits: coming back starts the wait again rather than rippling at once. */

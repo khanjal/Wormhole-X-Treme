@@ -211,7 +211,7 @@ public final class HorizonRipple
                 // Waited again whether or not it starts: refused for a ripple already running, or for
                 // nothing to draw, it would otherwise be asked every second.
                 NEXT.put(name, now + nextWait.getAsLong());
-                start(gate);
+                startQuietly(gate);
             }
         }
         NEXT.keySet().retainAll(watched);
