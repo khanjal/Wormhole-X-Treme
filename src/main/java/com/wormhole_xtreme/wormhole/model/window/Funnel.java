@@ -29,7 +29,7 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  *            the far opening, through the window
  * @param taper
  *            how long the tunnel is, in layers counting the opening's own: as much as the opening
- *            narrows, at most {@code gate-view-funnel}
+ *            narrows, at most {@code gate-view-funnel-length}
  * @param wall
  *            what is drawn round it: the near gate's portal material
  */

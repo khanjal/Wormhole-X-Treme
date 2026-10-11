@@ -691,7 +691,7 @@ gate's opening is smaller than this one's (`gate-view-funnel`, on by default), t
 the end of a tunnel. The tunnel starts at this gate's opening and narrows to the far opening's size; it
 is hollow, air sent wherever this world has a block, and walled one block thick in this gate's own
 portal material, so it reads as a tunnel of water, lava or whatever the gate's horizon is. Its last
-layer is the far gate's own plane, and the far room starts on the layer after: every far block is drawn
+layer is where the far gate's plane stands (for a far gate whose arrival is one block in front of its portal, which is all but Massive; nothing is drawn behind it either way), and the far room starts on the layer after: every far block is drawn
 that much deeper than the plain view draws it (`WindowShape.deeper`, the one place the shift lives, so
 the blocks, the stand-ins and every mapping between the two sides agree). The room is drawn at the far
 opening's size, with the row of ground under it that travellers land on and walk across, level with

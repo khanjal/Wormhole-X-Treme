@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -310,7 +311,7 @@ class WindowsFunnelTest
         when(world.getMaxHeight()).thenReturn(320);
         when(world.getName()).thenReturn("world");
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
-        when(world.getHighestBlockYAt(anyInt(), anyInt(), any())).thenReturn(60);
+        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(60);
         WindowSight.clear();
         assertNull(Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(TUNNEL)),
             "nor where the real world is already empty: nothing to send");
