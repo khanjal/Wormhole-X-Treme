@@ -268,19 +268,25 @@ class FunnelTest
         assertEquals(2, funnel.taper());
         assertTrue(funnel.holds(2, 1, 2), "five a layer at most, the far opening's width: from 5.5 to 0.5");
         assertFalse(funnel.holds(2, 0, 2), "not the five and a half the near opening alone would allow");
-        assertEquals(seenByLines(-0.5, 16.5, 5.5, 10.5), heldAlong(funnel, true), "across");
-        assertEquals(seenByLines(-0.5, 16.5, -0.5, 4.5), heldAlong(funnel, false), "up");
+        assertEquals(seenByLines(-0.5, 16.5, 5.5, 10.5), heldAlong(funnel, true, 2), "across");
+        assertEquals(seenByLines(-0.5, 16.5, -0.5, 4.5), heldAlong(funnel, false, 8), "up");
+
+        // Two tall, ten above the arrival row: looking up through it, only its height bounds the spread.
+        final Funnel raised = Funnel.of(opening(17, 17), farGate(98, 102, 80, 81), 2, Material.WATER);
+        assertEquals(new Funnel.Opening(6, 10, 10, 11), raised.far());
+        assertEquals(seenByLines(-0.5, 16.5, 9.5, 11.5), heldAlong(raised, false, 8), "up through a short, raised far gate");
+        assertEquals(seenByLines(-0.5, 16.5, 5.5, 10.5), heldAlong(raised, true, 10), "across it");
     }
 
     /** The cells of layers 2 to 10, each as layer times a thousand plus index, that the room holds along one axis. */
-    private static Set<Integer> heldAlong(final Funnel funnel, final boolean across)
+    private static Set<Integer> heldAlong(final Funnel funnel, final boolean across, final int other)
     {
         final Set<Integer> held = new HashSet<>();
         for (int layer = 2; layer <= 10; layer++)
         {
             for (int index = -80; index <= 100; index++)
             {
-                if (across ? funnel.holds(layer, index, 2) : funnel.holds(layer, 8, index))
+                if (across ? funnel.holds(layer, index, other) : funnel.holds(layer, other, index))
                 {
                     held.add((layer * 1000) + index);
                 }
