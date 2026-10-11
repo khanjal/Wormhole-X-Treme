@@ -83,14 +83,15 @@ settings most often changed and the group each is under. When an update adds set
 missing keys are appended to your file with their defaults and descriptions; existing values are
 never overwritten, and a file you already have keeps its own layout rather than being reshaped
 under you. To have the current layout, stop the server, move your `config.yml` aside, start it
-once to write a new one, and copy your values across.
+once to write a new one, and copy your values across. Copy the whole `gate-material-groups:`
+block too, and any notes of your own: the new file has only the example groups.
 
 The groups, in the order the file has them, and where each is explained:
 
 | Group | Sub-groups | Explained in |
 |---|---|---|
 | General | | [below](#pets) |
-| Stargates | Opening and closing, Travel, Effects, Iris, Building and previews | [below](#keeping-gates-from-staying-open) and [GATES.md](GATES.md) |
+| Stargates | Opening and closing, Travel, Effects, Iris, Building, previews and server load | [below](#keeping-gates-from-staying-open) and [GATES.md](GATES.md) |
 | Gate views and mirrors | Gate views, Mirror views, Creatures and players in a view, Quantum mirrors | [GATES.md](GATES.md) and [MIRRORS.md](MIRRORS.md#settings) |
 | Gate signs | | [GATES.md](GATES.md#signs) |
 | Transport rings | Timing, Refusal outline, Placement and limits, New ring pairs | [RINGS.md](RINGS.md#ring-settings) |
@@ -99,7 +100,7 @@ The groups, in the order the file has them, and where each is explained:
 | Stargate sounds | Dialling, Open wormhole, Iris | [Sounds](#sounds) and [GATES.md](GATES.md#sounds) |
 | Transport ring sounds | | [RINGS.md](RINGS.md#sounds) |
 | Beaming sounds | | [BEAMS.md](BEAMS.md#sounds) |
-| Integrations | Protection and logging, Web maps, Placeholders, metrics and updates | [Placeholders](#placeholders) to [Metrics](#metrics) |
+| Integrations | Protection and logging, Web maps, Placeholders, metrics and updates | [CoreProtect](#coreprotect) and [WorldGuard](#worldguard); [Dynmap](#dynmap), [BlueMap](#bluemap), [squaremap](#squaremap) and [Pl3xMap](#pl3xmap); [Placeholders](#placeholders) and [Metrics](#metrics) |
 
 **Change settings in-game** with `/wormhole config`:
 

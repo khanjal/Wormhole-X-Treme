@@ -632,7 +632,7 @@ public class ConfigurationYAML
             + System.lineSeparator());
         for (final ConfigManager.ConfigKeys key : DefaultSettings.START_HERE)
         {
-            writer.write(String.format(Locale.ROOT, "#   %-28s%s", kebabKeyName(key.name()),
+            writer.write(String.format(Locale.ROOT, "#   %-26s  %s", kebabKeyName(key.name()),
                 DefaultSettings.groupOf(key).heading()) + System.lineSeparator());
         }
     }

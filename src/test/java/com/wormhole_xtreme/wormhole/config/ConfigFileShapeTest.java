@@ -165,7 +165,8 @@ class ConfigFileShapeTest
      * The start-here block names each setting under the group it really is in.
      *
      * <p>Read off the written file: each line of the block names a setting and a heading, and that
-     * setting's key must sit between that heading's banner and the next one.
+     * setting's key must sit between that heading's banner and the next one. The block lists them
+     * in the order the file does.
      */
     @Test
     void theStartHereBlockNamesEachSettingUnderItsGroup() throws Exception
@@ -177,14 +178,18 @@ class ConfigFileShapeTest
 
         assertEquals(DefaultSettings.START_HERE.size(), block.size(), "a line per listed setting: " + block);
         assertTrue(block.size() >= 8, "about ten settings to start with");
+        int previous = firstBanner;
         for (final String entry : block)
         {
             final String[] parts = entry.substring(4).split(" {2,}", 2);
+            assertEquals(2, parts.length, "no two-space gap between setting and group in: " + entry);
             final int banner = lines.indexOf("# --- " + parts[1] + " ---");
             assertTrue(banner > 0, "no group named " + parts[1]);
             final int next = banner + 1 + indexOf(lines.subList(banner + 1, lines.size()), "# --- ");
-            assertTrue(lines.subList(banner, next).stream().anyMatch(l -> l.startsWith(parts[0] + ": ")),
-                parts[0] + " is not under " + parts[1]);
+            final int at = banner + indexOf(lines.subList(banner, next), parts[0] + ": ");
+            assertTrue(at < next, parts[0] + " is not under " + parts[1]);
+            assertTrue(at > previous, parts[0] + " is listed out of file order");
+            previous = at;
         }
     }
 
