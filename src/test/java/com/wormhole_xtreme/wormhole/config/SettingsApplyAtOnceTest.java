@@ -21,6 +21,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
@@ -225,5 +226,23 @@ class SettingsApplyAtOnceTest
         assertTrue(ConfigManager.isWorldGuardEnabled(), "the value itself was still changed");
         assertEquals("WORLDGUARD_ENABLED is now false.", ConfigManager.applySetting("worldguard-enabled", "false"),
             "turning it off applies at once");
+    }
+
+    /**
+     * Turning gate-ripple off forgets every ripple and wait (#579): otherwise turning it on again rippled every
+     * open gate whose wait had passed while it was off, all at once.
+     */
+    @Test
+    void turningTheRippleOffForgetsEveryWait()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_RIPPLE, true);
+        try (MockedStatic<HorizonRipple> ripple = mockStatic(HorizonRipple.class))
+        {
+            ConfigManager.applySetting("gate-ripple", "true");
+            ripple.verify(HorizonRipple::cancelAll, never());
+
+            ConfigManager.applySetting("gate-ripple", "false");
+            ripple.verify(HorizonRipple::cancelAll);
+        }
     }
 }

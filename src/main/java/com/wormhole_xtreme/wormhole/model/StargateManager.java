@@ -832,10 +832,11 @@ public class StargateManager
     {
         StargateBlockSetup.forgetDrawn(uuid);
         GateViews.forgetViewer(uuid);
+        HorizonRipple.forgetViewer(uuid);
     }
 
     /**
-     * Forgets what any iris sweep drew a player who has changed world, whose client has dropped those chunks (#447).
+     * Forgets what an iris sweep or a ripple drew a player who has changed world, whose client has dropped those chunks (#447).
      *
      * @param uuid
      *            the player
@@ -843,6 +844,7 @@ public class StargateManager
     public static void forgetSweptLayers(final UUID uuid)
     {
         StargateBlockSetup.forgetSwept(uuid);
+        HorizonRipple.forgetViewer(uuid);
     }
 
     /**
@@ -1390,6 +1392,8 @@ public class StargateManager
                     "Could not forget the view of gate '" + s.getGateName() + "'", e);
             }
         }
+        // While the gate still shows its wormhole, so what a ripple drew is put back to it.
+        HorizonRipple.forget(s);
         getStargateList().remove(normalizeGateName(s.getGateName()));
         // A gate deleted while its wormhole was open would otherwise stay in the open set
         // for the life of the server: nothing on the removal path cleared it, and the set is

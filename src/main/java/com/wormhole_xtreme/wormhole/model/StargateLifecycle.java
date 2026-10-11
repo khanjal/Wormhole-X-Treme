@@ -55,6 +55,8 @@ class StargateLifecycle
         // Read before anything clears it: every path below runs whether or not the gate was
         // open, and only one of them is a wormhole actually closing.
         final boolean wasActive = gate.isGateActive();
+        // While the wormhole still shows, so a ripple's rings in the opening are put back to the horizon.
+        HorizonRipple.forget(gate);
         if (gate.getGateShutdownTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
@@ -368,6 +370,9 @@ class StargateLifecycle
         // Called off before the flag moves, so it finishes as the iris it was heading to --
         // after, a closing sweep on a drawn iris was finished as the air behind it.
         StargateIrisAnimator.cancel(gate);
+        // A ripple too, before the flag moves: over an open iris its rings go back to the horizon. A
+        // shutdown calls its ripple off before it gets here.
+        HorizonRipple.cancel(gate);
         if (!irisActive)
         {
             // Before the opening is drawn below, so it is drawn with the horizon for everybody.

@@ -552,6 +552,7 @@ Not changed by any case, and why:
 - `sign-color-selected`, `sign-color-neighbour`, `sign-dial-match-material`: only a sign-dial gate
   shows them, and only a player's build makes one (the console refuses it); G1's and G3's sign
   cells read the dial sign's text, not its colours or wood.
+- `gate-ripple`: off by default, and new; no case films or checks a ripple yet.
 - `ring-reach`: how far up `ring create` looks and how deep a floor ring carries; no case varies it.
 - `ring-sound-refused`: played only when a transport cannot start on entering (a blocked end),
   which no case stages; the other ring and beam sound names and volumes are heard at their

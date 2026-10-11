@@ -11,6 +11,7 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 - [Material groups](#material-groups)
 - [Signs](#signs)
 - [The iris](#the-iris)
+- [The ripple](#the-ripple)
 - [Redstone](#redstone)
 - [What travels through a gate](#what-travels-through-a-gate)
 - [Commands](#commands)
@@ -430,6 +431,27 @@ to stand on. Everything above about it being drawn applies to upright gates only
 Gates saved with an iris shut by an earlier version have those blocks taken out of the world
 the first time the gate loads, or the first time somebody walks up to it. There is nothing to
 do about it.
+
+## The ripple
+
+With `gate-ripple: true` an open gate's event horizon ripples, in rings from its middle out to the
+rim: as something goes through it, at both ends, and every 3 to 6 seconds while somebody is near.
+A ripple of its own comes in one, two or three waves, one following another out from the middle.
+It is off by default while it is new.
+
+| Gate | What ripples |
+|---|---|
+| Grand, Massive, or any gate whose frame stands in front of its horizon | Its own portal material, a block in front of the horizon |
+| A flat water gate bigger than two by two, such as Standard or Large | Ice, in the horizon |
+| A flat lava or nether portal gate, Minimal, or a horizontal gate | Nothing, for now |
+
+At `gate-view: open` a player who sees through a gate sees its portal material cross the view as a
+ring. A ring is not drawn where anybody stands as it appears, though somebody who steps into one
+of ice in the moment it shows can be held up by it, and nothing stays once the ripple has passed.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `gate-ripple` | `false` | Whether open gates ripple |
 
 ## Redstone
 

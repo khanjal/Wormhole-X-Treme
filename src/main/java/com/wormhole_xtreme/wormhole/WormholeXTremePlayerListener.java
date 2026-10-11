@@ -42,6 +42,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.GateViews;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorInteraction;
@@ -772,6 +773,7 @@ class WormholeXTremePlayerListener implements Listener
         GateFare.charge(player, fare);
         PetEscort.follow(pets, player);
         markTripTaken(player, stargate);
+        HorizonRipple.crossed(stargate, stargate.getGateTarget());
         GateWelcome.greet(player, stargate.getGateTarget());
         scheduleArrivalSettle(player, target, vehiclePathUsed);
 

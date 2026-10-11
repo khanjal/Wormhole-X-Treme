@@ -30,6 +30,7 @@ import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
 import com.wormhole_xtreme.wormhole.model.GateViews;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateIrisAnimator;
@@ -377,15 +378,17 @@ public class WormholeXTreme extends JavaPlugin
             {
                 prettyLog(Level.WARNING, "Failed to remove gate build previews", e);
             }
-            // A sweep half-drawn when the server stops would otherwise leave its last ring
-            // showing on clients until something else refreshed those blocks.
+            // A sweep or a ripple half-drawn when the server stops would otherwise leave its last
+            // ring showing on clients until something else refreshed those blocks. Each gate's
+            // shutdown below calls its ripple off as well, should this throw first.
             try
             {
                 StargateIrisAnimator.cancelAll();
+                HorizonRipple.cancelAll();
             }
             catch (final Exception | LinkageError e)
             {
-                prettyLog(Level.FINE, "Failed to stop iris sweeps", e);
+                prettyLog(Level.FINE, "Failed to stop iris sweeps and ripples", e);
             }
             // Bukkit drops the tickets themselves; a reload must not start with stale counts.
             ChunkTickets.clear();

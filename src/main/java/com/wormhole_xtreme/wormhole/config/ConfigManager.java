@@ -15,6 +15,7 @@ import com.wormhole_xtreme.wormhole.RepeatingSweeps;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
@@ -143,6 +144,9 @@ public class ConfigManager
 
         /** How far a gate's view is filled in, behind its first step. */
         GATE_VIEW_FULL_DEPTH,
+
+        /** Whether an open gate's horizon ripples (#579). */
+        GATE_RIPPLE,
 
         /** Ticks between one ring of an iris sweep and the next. */
         GATE_IRIS_STEP_TICKS,
@@ -1060,6 +1064,13 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
         return (s == null) ? 20L : Math.max(0L, s.getIntValue());
+    }
+
+    /** Returns true if an open gate's horizon ripples (#579); off when the setting is missing, as it ships. */
+    public static boolean isGateRipple()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_RIPPLE);
+        return (s != null) && s.getBooleanValue();
     }
 
     /** Returns true if a player arriving through a gate is told its name; off when the setting is missing, as it ships. */
@@ -2034,11 +2045,22 @@ public class ConfigManager
             // Every ring's trigger volume is indexed at load, as deep as these two said then.
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
+            case GATE_RIPPLE -> followRipple();
             case PERMISSIONS_SUPPORT_DISABLE, PERMISSIONS_AUTO_FALLBACK -> PermissionsSupport.detectProvider();
             case DYNMAP_ENABLED, BLUEMAP_ENABLED, SQUAREMAP_ENABLED, PL3XMAP_ENABLED, MAP_SHOW_GATES,
                 MAP_SHOW_RINGS, MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS, MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
             default -> RepeatingSweeps.follow(key);
         }
+    }
+
+    /** Starts or stops the ripple sweep; turned off, every ripple and wait is forgotten, so turning it on again starts afresh. */
+    private static void followRipple()
+    {
+        if (!isGateRipple())
+        {
+            HorizonRipple.cancelAll();
+        }
+        RepeatingSweeps.follow(ConfigKeys.GATE_RIPPLE);
     }
 
     /** Attaches to or lets go of Vault's economy to match {@code economy-enabled}. */

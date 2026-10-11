@@ -49,8 +49,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
@@ -722,5 +724,17 @@ class GateProjectileTest
 
         verify(zombie).teleport(any(Location.class));
         verify(zombie, never()).remove();
+    }
+
+    /** An arrow through a gate ripples both ends (#579). */
+    @Test
+    void anArrowThroughRipplesBothEnds()
+    {
+        try (MockedStatic<HorizonRipple> ripple = mockStatic(HorizonRipple.class))
+        {
+            sendArrowThroughGate();
+
+            ripple.verify(() -> HorizonRipple.crossed(origin, origin.getGateTarget()));
+        }
     }
 }
