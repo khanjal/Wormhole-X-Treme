@@ -224,18 +224,31 @@ class FunnelTest
         {
             for (final double depth : new double[] { layer - 0.49, layer, layer + 0.49 })
             {
-                final double at = near + (slope * (depth + 0.5));
-                final double cell = Math.floor(at + 0.5);
-                if (Math.abs((at + 0.5) - cell) > 1.0e-9)
-                {
-                    final int index = (int) cell;
-                    assertTrue(across ? funnel.holds(layer, index, 1) : funnel.holds(layer, 5, index),
-                        "layer " + layer + ", " + (across ? "column " : "row ") + index + ", from " + near + " through " + far);
-                    checked++;
-                }
+                checked += cellIsIn(funnel, layer, near + (slope * (depth + 0.5)), across,
+                    "from " + near + " through " + far);
             }
         }
         return checked;
+    }
+
+    /**
+     * Checks the cell a line crosses at a point is in the room, unless the point is on the edge
+     * between two cells.
+     *
+     * @return 1 if a cell was checked, 0 if not
+     */
+    private static int cellIsIn(final Funnel funnel, final int layer, final double at, final boolean across,
+        final String line)
+    {
+        final double cell = Math.floor(at + 0.5);
+        if (Math.abs((at + 0.5) - cell) <= 1.0e-9)
+        {
+            return 0;
+        }
+        final int index = (int) cell;
+        assertTrue(across ? funnel.holds(layer, index, 1) : funnel.holds(layer, 5, index),
+            "layer " + layer + ", " + (across ? "column " : "row ") + index + ", " + line);
+        return 1;
     }
 
     @Test
