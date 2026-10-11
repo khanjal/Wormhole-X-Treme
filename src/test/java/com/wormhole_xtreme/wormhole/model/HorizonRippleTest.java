@@ -387,17 +387,40 @@ class HorizonRippleTest
     void oneRippleAtATimeAndNoneWithinTwoSecondsOfTheLast()
     {
         assertTrue(HorizonRipple.start(gate));
-        assertFalse(HorizonRipple.start(gate), "one is running");
-        step();
-        step();
-        step();
-        step();
-        assertFalse(HorizonRipple.isRippling(gate));
+        now += HorizonRipple.MIN_GAP_MILLIS;
+        assertFalse(HorizonRipple.start(gate), "one is running, however long since it began");
+        finish();
+        assertTrue(HorizonRipple.start(gate), "that one over, and two seconds since it began");
+        finish();
 
         now += HorizonRipple.MIN_GAP_MILLIS - 1;
         assertFalse(HorizonRipple.start(gate), "too soon after the last one started");
         now += 1;
         assertTrue(HorizonRipple.start(gate), "two seconds on");
+    }
+
+    /** Runs a five by five's ripple to its end. */
+    private void finish()
+    {
+        step();
+        step();
+        step();
+        step();
+        assertFalse(HorizonRipple.isRippling(gate));
+    }
+
+    /** An iris that shuts mid ripple paints its own opening: the ring is not put back over it as the horizon. */
+    @Test
+    void anIrisShutMidRippleIsNotPaintedOverWithTheHorizon()
+    {
+        assertTrue(HorizonRipple.start(gate));
+        assertEquals(cells("ice", 20, 12, 66), sentTo(front));
+        when(gate.isGateIrisActive()).thenReturn(true);
+
+        step();
+
+        assertTrue(sentTo(front).isEmpty(), "the iris is the opening's to draw now");
+        assertTrue(pending.isEmpty(), "and the ripple is over");
     }
 
     /** A gate that stops showing between two steps puts back what it drew rather than leaving it. */
