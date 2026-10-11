@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -344,7 +345,7 @@ class FunnelShapeTest
     void everyWayOutOfAShapedTunnelIsWalledTwoDeep() throws IOException
     {
         for (final String[] pair : new String[][] { { "Massive", "Standard" }, { "Grand", "Standard" },
-            { "Grand", "Large" }, { "Large", "Standard" } })
+            { "Grand", "Large" }, { "Large", "Standard" }, { "Massive", "Minimal" }, { "Large", "Minimal" } })
         {
             final Funnel funnel = funnel(pair[0], pair[1]);
             int checked = 0;
@@ -437,5 +438,104 @@ class FunnelShapeTest
 
         assertEquals(13, funnel.taper());
         assertTrue((blocks[0] > 1000) && (blocks[0] < 6000), blocks[0] + " blocks of wall and hollow");
+    }
+
+    /** Every cell of a box, as {@code across * 100 + up}. */
+    private static Set<Integer> boxOf(final Funnel.Opening box)
+    {
+        final Set<Integer> keys = new HashSet<>();
+        for (int across = box.left(); across <= box.right(); across++)
+        {
+            for (int up = box.bottom(); up <= box.top(); up++)
+            {
+                keys.add((across * 100) + up);
+            }
+        }
+        return keys;
+    }
+
+    /** How many cells of one row, and of one column, a layer holds. */
+    private static int[] spanOf(final Funnel funnel, final int layer, final int row, final int column)
+    {
+        int across = 0;
+        int up = 0;
+        for (int at = -40; at <= 60; at++)
+        {
+            across += funnel.holds(layer, at, row) ? 1 : 0;
+            up += funnel.holds(layer, column, at) ? 1 : 0;
+        }
+        return new int[] { across, up };
+    }
+
+    /**
+     * A Minimal gate, one block wide and two tall, is taken as the least aperture, three by three: on
+     * its middle column and its bottom row, grown sideways and up. The tunnel ends on all of it, and
+     * the room past it is what a three-by-three opening shows.
+     *
+     * <p>Seen in a world: through one by two the lines through both openings were a sliver, the room
+     * all but invisible at the end of a slot.
+     */
+    @Test
+    void aMinimalGateIsSeenThroughTheLeastAperture() throws IOException
+    {
+        final Funnel massive = funnel("Massive", "Minimal");
+        assertEquals(new Funnel.Opening(7, 9, 0, 2), massive.far(), "three by three about Minimal's column, on its row");
+        assertEquals(14, massive.taper(), "as long as seventeen narrows to three, not to one");
+        assertEquals(boxOf(massive.far()), farKeys(massive), "the tunnel ends on the whole aperture");
+        assertTrue(layerOf(massive, 5).containsAll(boxOf(massive.far())), "and holds it all the way");
+        assertArrayEquals(new int[] { 5, 6 }, spanOf(massive, massive.taper(), 1, 8), "five across and six up on the room's first layer");
+
+        final Funnel large = funnel("Large", "Minimal");
+        assertEquals(new Funnel.Opening(2, 4, 0, 2), large.far());
+        assertEquals(5, large.taper());
+        assertArrayEquals(new int[] { 6, 6 }, spanOf(large, large.taper(), 1, 3), "six across and up through a shorter tunnel");
+    }
+
+    /** A far opening three by three already is its own cells at the tunnel's end, a corner it lacks included. */
+    @Test
+    void aFarOpeningAtTheLeastApertureEndsOnItsOwnCells() throws IOException
+    {
+        final List<int[]> threeByThree = new ArrayList<>();
+        for (int across = 0; across < 3; across++)
+        {
+            for (int up = 0; up < 3; up++)
+            {
+                if ((across != 2) || (up != 2))
+                {
+                    threeByThree.add(new int[] { across, up });
+                }
+            }
+        }
+        final Funnel funnel = funnel(portalOf("Massive"), threeByThree, 16);
+
+        assertEquals(new Funnel.Opening(7, 9, 0, 2), funnel.far(), "not grown");
+        assertEquals(keysOf(threeByThree, 7), farKeys(funnel), "its own eight cells, its top right corner left to the collar");
+    }
+
+    @Test
+    void anOpeningIsGrownToTheLeastApertureSidewaysAboutItsMiddleAndUpFromItsFloor()
+    {
+        assertEquals(new Funnel.Opening(3, 5, 0, 2), Funnel.grown(new Funnel.Opening(4, 4, 0, 1)), "one by two");
+        assertEquals(new Funnel.Opening(4, 6, 2, 4), Funnel.grown(new Funnel.Opening(4, 5, 2, 4)), "two wide: the extra block right");
+        assertEquals(new Funnel.Opening(3, 5, 0, 5), Funnel.grown(new Funnel.Opening(4, 4, 0, 5)), "narrow but tall: only wider");
+        assertEquals(new Funnel.Opening(4, 8, 0, 2), Funnel.grown(new Funnel.Opening(4, 8, 0, 0)), "wide but low: only taller");
+        final Funnel.Opening big = new Funnel.Opening(4, 6, 0, 2);
+        assertEquals(big, Funnel.grown(big), "three by three is left as it is");
+    }
+
+    /** A Minimal gate at every short length ends on the whole aperture, walled two deep. */
+    @Test
+    void aMinimalGateAtEveryShortLengthEndsOnTheAperture() throws IOException
+    {
+        for (int length = 2; length <= 4; length++)
+        {
+            final Funnel funnel = funnel(portalOf("Massive"), portalOf("Minimal"), length);
+            assertEquals(length, funnel.taper());
+            assertEquals(boxOf(funnel.far()), farKeys(funnel), "at " + length);
+            for (int layer = 1; layer < funnel.taper(); layer++)
+            {
+                checkLayer(funnel, layer, "Massive to Minimal at " + length);
+            }
+        }
     }
 }

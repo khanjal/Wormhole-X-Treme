@@ -723,6 +723,16 @@ is the longest allowed, set so no shipped pair is cut short. The depth is still 
 gate's opening, so the far room shows `gate-view-depth` less the tunnel; a depth no longer than the
 tunnel shows the tunnel alone.
 
+**The least aperture.** A far opening narrower or lower than three blocks is taken as three
+(`Funnel.LEAST_APERTURE`, not a setting) for the tunnel's end and for the lines the room past it is
+judged by: grown sideways about its middle column, the extra block of an even growth to the right,
+and upwards from its bottom row, so the ground at the end stays level with where travellers land.
+Through a Minimal gate's one by two the lines through both openings were a sliver and the room all
+but invisible; through three by three, Massive's first layer of room is five across and six up. The
+tunnel ends on the whole aperture, not the far gate's own two cells, and its length is reckoned from
+it: Massive to Minimal fourteen, Large to Minimal five. A far opening already three each way is its
+own cells, as before.
+
 **Where it lines up.** The far opening is placed where the far gate's own portal cells show through
 the window (`Funnel.of`): on the column travellers land on and standing on the row they land on, so a
 short far gate's tunnel sits on the floor, not halfway up the big opening. Only narrower, never wider:

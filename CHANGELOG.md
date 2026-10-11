@@ -73,7 +73,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   blocks thick in its portal material, and showing the far side as the small gate would, rather than
   running past the small gate's walls and ceiling; the
   smaller the far gate, the longer the tunnel (three blocks from Large to Standard, twelve from
-  Massive to Standard). On by default; `gate-view-funnel: false` shows the whole view, and
+  Massive to Standard); a far gate under three blocks each way, such as Minimal, is seen through a
+  three-by-three opening, so its room shows. On by default; `gate-view-funnel: false` shows the whole view, and
   `gate-view-funnel-length` (16) is the longest a tunnel may be. Same-size and small-to-large pairs
   are unchanged.
 - **Gate preview actions can be clicked**: after `gate build`, each one is a button, `[Clear]`

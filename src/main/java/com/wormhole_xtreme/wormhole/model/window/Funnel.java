@@ -84,6 +84,9 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     /** How many blocks thick the tunnel's wall is. */
     static final int WALL_BLOCKS = 2;
 
+    /** The narrowest and lowest a tunnel ends: a far opening smaller is taken as this, so a Minimal gate shows a room. */
+    static final int LEAST_APERTURE = 3;
+
     /** Handed each cell of a funnel's wall. */
     @FunctionalInterface
     public interface Cell
@@ -139,16 +142,18 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return null;
         }
+        final Opening own = grown(seen);
         // Only ever narrower: a side where the far gate is as big or bigger keeps the near one's.
-        final Opening far = new Opening(Math.max(0, seen.left()), Math.min(shape.width() - 1, seen.right()),
-            Math.max(0, seen.bottom()), Math.min(shape.height() - 1, seen.top()));
+        final Opening far = new Opening(Math.max(0, own.left()), Math.min(shape.width() - 1, own.right()),
+            Math.max(0, own.bottom()), Math.min(shape.height() - 1, own.top()));
         if ((far.left() > far.right()) || (far.bottom() > far.top())
             || far.equals(new Opening(0, shape.width() - 1, 0, shape.height() - 1)))
         {
             return null;
         }
         // Only those inside the near opening: a far gate taller or wider than it is cut to it, as its box is.
-        final Set<Integer> farShape = cellsIn(shape, farCells, far);
+        // One grown to the least aperture ends on all of it, not its own few cells.
+        final Set<Integer> farShape = own.equals(seen) ? cellsIn(shape, farCells, far) : cellsIn(shape, null, far);
         final Set<Integer> nearShape = cellsIn(shape, nearCells, null);
         // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a Large.
         final int narrows = Math.max(shape.width() - ((far.right() - far.left()) + 1),
@@ -157,10 +162,30 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /**
+     * A far opening grown to the least aperture where it is smaller: sideways about its middle, the
+     * extra block of an even growth to the right, and upwards from its bottom row, so the ground at
+     * the end of the tunnel stays level with where travellers land.
+     *
+     * @return the opening, or the same one where it is big enough each way
+     */
+    static Opening grown(final Opening far)
+    {
+        final int wide = (far.right() - far.left()) + 1;
+        final int tall = (far.top() - far.bottom()) + 1;
+        if ((wide >= LEAST_APERTURE) && (tall >= LEAST_APERTURE))
+        {
+            return far;
+        }
+        final int extra = Math.max(0, LEAST_APERTURE - wide);
+        return new Opening(far.left() - (extra / 2), far.right() + (extra - (extra / 2)), far.bottom(),
+            Math.max(far.top(), (far.bottom() + LEAST_APERTURE) - 1));
+    }
+
+    /**
      * Some cells as keys of the window's columns and rows.
      *
      * @param cells
-     *            cells of either world; null for every cell of the window
+     *            cells of either world; null for every cell of the box, or of the window for none
      * @param box
      *            for the far side's cells, which are mapped through the window, the box to keep them
      *            inside; null for the near opening's, which are kept as they are
@@ -171,9 +196,10 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         final Set<Integer> keys = new HashSet<>();
         if (cells == null)
         {
-            for (int across = 0; across < shape.width(); across++)
+            final Opening all = (box == null) ? new Opening(0, shape.width() - 1, 0, shape.height() - 1) : box;
+            for (int across = all.left(); across <= all.right(); across++)
             {
-                addColumn(keys, across, shape.height());
+                addColumn(keys, across, all.bottom(), all.top());
             }
             return keys;
         }
@@ -190,10 +216,10 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         return keys;
     }
 
-    /** Adds every row of one column. */
-    private static void addColumn(final Set<Integer> keys, final int across, final int height)
+    /** Adds the rows of one column from one to another, both included. */
+    private static void addColumn(final Set<Integer> keys, final int across, final int bottom, final int top)
     {
-        for (int up = 0; up < height; up++)
+        for (int up = bottom; up <= top; up++)
         {
             keys.add(cellKey(across, up));
         }

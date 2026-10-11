@@ -464,7 +464,9 @@ its walls, ceiling and floor are this gate's own portal material, two blocks thi
 a tunnel of water (or lava, or whatever the gate's horizon is). The tunnel stops where the small
 gate's opening is, and through that you see the far side as the small gate would show it: the ground
 in front of it and whatever lies beyond, but not the halls or ceiling round it. The more the far gate is smaller, the
-longer the tunnel: three blocks from Large to Standard, twelve from Massive to Standard. Mobs and
+longer the tunnel: three blocks from Large to Standard, twelve from Massive to Standard. A gate
+smaller than three blocks each way, such as Minimal, is seen through a three-by-three opening at the
+end, so there is something to see. Mobs and
 players on the far side are shown only in the view at the end, not in the tunnel or beside it. Gates of
 the same size, and a small gate dialling a big one, show the whole view as before.
 

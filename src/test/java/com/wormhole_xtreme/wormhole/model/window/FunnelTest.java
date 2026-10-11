@@ -271,10 +271,11 @@ class FunnelTest
         assertEquals(seenByLines(-0.5, 16.5, 5.5, 10.5), heldAlong(funnel, true, 2), "across");
         assertEquals(seenByLines(-0.5, 16.5, -0.5, 4.5), heldAlong(funnel, false, 8), "up");
 
-        // Two tall, ten above the arrival row: looking up through it, only its height bounds the spread.
+        // Two tall, ten above the arrival row, taken as the least aperture's three: looking up through it,
+        // only its height bounds the spread.
         final Funnel raised = Funnel.of(opening(17, 17), farGate(98, 102, 80, 81), 2, Material.WATER);
-        assertEquals(new Funnel.Opening(6, 10, 10, 11), raised.far());
-        assertEquals(seenByLines(-0.5, 16.5, 9.5, 11.5), heldAlong(raised, false, 8), "up through a short, raised far gate");
+        assertEquals(new Funnel.Opening(6, 10, 10, 12), raised.far());
+        assertEquals(seenByLines(-0.5, 16.5, 9.5, 12.5), heldAlong(raised, false, 8), "up through a short, raised far gate");
         assertEquals(seenByLines(-0.5, 16.5, 5.5, 10.5), heldAlong(raised, true, 10), "across it");
     }
 
