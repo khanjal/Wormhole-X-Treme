@@ -81,6 +81,9 @@ class FunnelTest
         assertEquals(6, funnel.far().right());
         assertEquals(0, funnel.far().bottom());
         assertEquals(10, funnel.far().top(), "taller than the near gate: the near one's height, never past it");
+        final Set<Spot> walls = new HashSet<>();
+        funnel.forEachWall(20, (layer, across, up) -> walls.add(new Spot(layer, across, up)));
+        assertTrue(walls.contains(new Spot(12, 5, 11)), "the ceiling, a row above the near opening's top, is walled");
 
         final Funnel lower = Funnel.of(BIG, farGate(95, 105, 70, 73), 8, Material.WATER);
         assertNotNull(lower, "as wide but shorter still narrows");

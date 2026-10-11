@@ -271,6 +271,7 @@ class WindowsFunnelTest
 
         assertTrue(funnelled.inFunnel(INSIDE.x(), INSIDE.y(), INSIDE.z()));
         assertFalse(funnelled.inFunnel(OUTSIDE.x(), OUTSIDE.y(), OUTSIDE.z()));
+        assertFalse(funnelled.inFunnel(WALL.x(), WALL.y(), WALL.z()), "a column out: no slack outside a held stand-in");
         assertFalse(funnelled.inFunnel(INSIDE.x(), INSIDE.y() + 4, INSIDE.z()), "above the far gate's ceiling");
         assertTrue(whole.inFunnel(OUTSIDE.x(), OUTSIDE.y(), OUTSIDE.z()));
         assertEquals(12, BIG.layerOf(INSIDE.x(), INSIDE.z()), "the shape's own layer and column, the other way");
