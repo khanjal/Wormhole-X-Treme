@@ -521,18 +521,14 @@ public final class HorizonRipple
             return !failed && ConfigManager.isGateRipple() && showing(gate);
         }
 
-        /** Puts the last ring back and draws this one; a throw calls the ripple off rather than leaving its ring up. */
+        /**
+         * Puts the last ring back and draws this one. A throw here reaches the catch round the step that
+         * drew it, in {@link #runStep} or round the first ring in {@code start}, which calls the ripple off.
+         */
         @Override
         public void drawRing(final List<Location> ring)
         {
-            try
-            {
-                draw(ring);
-            }
-            catch (final Exception | LinkageError e)
-            {
-                fail(e);
-            }
+            draw(ring);
         }
 
         /**
