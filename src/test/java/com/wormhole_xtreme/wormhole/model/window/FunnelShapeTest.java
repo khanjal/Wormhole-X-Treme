@@ -164,6 +164,21 @@ class FunnelShapeTest
         assertTrue(funnel.hollow(1, 2, 8), "while the middle row runs nearly the width");
     }
 
+    /** A shape the same either side has a tunnel the same either side, on every layer. */
+    @Test
+    void aSymmetricGatesTunnelStaysSymmetric() throws IOException
+    {
+        final Funnel funnel = funnel("Massive", "Standard");
+
+        for (int layer = 0; layer < funnel.taper(); layer++)
+        {
+            final Set<Integer> held = layerOf(funnel, layer);
+            final Set<Integer> mirrored = new HashSet<>();
+            held.forEach(key -> mirrored.add(((16 - (key / 100)) * 100) + (key % 100)));
+            assertEquals(held, mirrored, "layer " + layer + " mirrored across the middle column");
+        }
+    }
+
     /**
      * Every way out of a shaped tunnel is walled two deep: a cell outside it, beside one inside on its
      * layer or behind one inside on the layer before, is wall, and so is the cell past it.

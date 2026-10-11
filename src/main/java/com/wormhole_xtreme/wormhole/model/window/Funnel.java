@@ -147,12 +147,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return null;
         }
-        final Set<Integer> farShape = cellsIn(shape, farCells, far);
-        final Set<Integer> nearShape = cellsIn(shape, nearCells, null);
-        if (farShape.isEmpty() || nearShape.isEmpty())
-        {
-            return null;
-        }
+        final Set<Integer> farShape = cellsIn(shape, farCells, true);
+        final Set<Integer> nearShape = cellsIn(shape, nearCells, false);
         // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a Large.
         final int narrows = Math.max(shape.width() - ((far.right() - far.left()) + 1),
             shape.height() - ((far.top() - far.bottom()) + 1));
@@ -160,16 +156,16 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /**
-     * Some cells as keys of the window's columns and rows, those inside a box of it.
+     * Some cells as keys of the window's columns and rows; any outside the box a layer is held to are
+     * never asked about.
      *
      * @param cells
-     *            cells of either world, mapped through the window when they are the far side's; null for
-     *            every cell of the window
-     * @param box
-     *            the box to keep them inside, or null for the near opening, which is not mapped
+     *            cells of either world; null for every cell of the window
+     * @param far
+     *            true for the far side's, which are mapped through the window
      * @return their keys
      */
-    private static Set<Integer> cellsIn(final WindowShape shape, final List<Spot> cells, final Opening box)
+    private static Set<Integer> cellsIn(final WindowShape shape, final List<Spot> cells, final boolean far)
     {
         final Set<Integer> keys = new HashSet<>();
         if (cells == null)
@@ -180,16 +176,10 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
             }
             return keys;
         }
-        final Opening inside = (box == null) ? new Opening(0, shape.width() - 1, 0, shape.height() - 1) : box;
         for (final Spot cell : cells)
         {
-            final Spot here = (box == null) ? cell : shape.hereOf(cell.x(), cell.y(), cell.z());
-            final int across = shape.acrossOf(here.x(), here.z());
-            final int up = here.y() - shape.base().y();
-            if ((across >= inside.left()) && (across <= inside.right()) && (up >= inside.bottom()) && (up <= inside.top()))
-            {
-                keys.add(cellKey(across, up));
-            }
+            final Spot here = far ? shape.hereOf(cell.x(), cell.y(), cell.z()) : cell;
+            keys.add(cellKey(shape.acrossOf(here.x(), here.z()), here.y() - shape.base().y()));
         }
         return keys;
     }
@@ -315,10 +305,12 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     {
         if (high <= low)
         {
-            return (size - 1) / 2;
+            // An opening one block across, onto one as narrow.
+            return 0;
         }
         final double share = Math.max(0.0, Math.min(1.0, (at - low) / (high - low)));
-        return (int) Math.round(share * (size - 1));
+        // Halves to the even block, so a shape the same either side keeps a tunnel the same either side.
+        return (int) Math.rint(share * (size - 1));
     }
 
     /**
@@ -397,8 +389,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
 
     /**
      * Whether a cell is the tunnel's wall, two blocks thick: outside the tunnel, within two blocks of
-     * it on its own layer, corners included, or inside it one or two layers before. A shape shrunk
-     * a layer at a time can leave a cell in one layer that was out of the one before, so both are asked. Water ends a
+     * it on its own layer, corners included, or inside it two layers before, which the one before is
+     * inside too while the shape only narrows, as every shipped opening's does. Water ends a
      * block short of its top with nothing over it, so one block left the world showing between the
      * steps; and a step in of several columns at once is walled across its whole face. The wall ends
      * with the tunnel, its last layer a collar round the far opening; the room past it has none.
@@ -411,7 +403,7 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return false;
         }
-        return holds(layer - 1, across, up) || holds(layer - 2, across, up) || besideOnLayer(layer, across, up);
+        return holds(layer - 2, across, up) || besideOnLayer(layer, across, up);
     }
 
     /** Whether a cell is within two blocks of the tunnel on its own layer, corners included. */
