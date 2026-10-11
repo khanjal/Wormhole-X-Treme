@@ -154,6 +154,8 @@ class WindowsFunnelTest
         assertSame(stone, view.get(key(INSIDE)), "the far side inside the funnel");
         assertSame(water, view.get(key(WALL)), "the gate's portal material round it");
         assertFalse(view.containsKey(key(OUTSIDE)), "the far side outside it, behind the wall, is never drawn");
+        assertSame(stone, view.get(key(BIG.behind(12, 5, -1))), "the far ground under the tunnel, not a wall of water");
+        assertSame(water, view.get(key(BIG.behind(12, 5, -2))), "the wall a row beneath it");
     }
 
     @Test
@@ -190,12 +192,13 @@ class WindowsFunnelTest
 
         assertSame(water, view.get(key(BIG.behind(15, 3, 1))), "the last layer inside the depth");
         assertNull(view.get(key(BIG.behind(16, 3, 1))), "none at the depth");
-        assertSame(water, view.get(key(BIG.behind(14, 6, -1))), "the floor under the far opening's corner");
-        assertNull(view.get(key(BIG.behind(15, 6, -1))), "past the depth from the opening's middle, though short of 16 layers");
-        assertSame(water, view.get(key(BIG.behind(5, 5, -1))), "the floor below the bottom row, above the world's");
+        assertSame(water, view.get(key(BIG.behind(14, 6, -2))), "under the ground at the far opening's corner");
+        assertNull(view.get(key(BIG.behind(15, 6, -2))), "past the depth from the opening's middle, though short of 16 layers");
+        assertNull(view.get(key(BIG.behind(5, 5, -1))), "not the ground itself");
+        assertSame(water, view.get(key(BIG.behind(5, 5, -2))), "under the ground, above the world's floor");
         assertSame(water, view.get(key(BIG.behind(5, 1, 0))), "a side, on the bottom row");
-        when(world.getMinHeight()).thenReturn(64);
-        assertNull(Windows.walledIn(window, new HashMap<>(), 16, Integer.MAX_VALUE).get(key(BIG.behind(5, 5, -1))),
+        when(world.getMinHeight()).thenReturn(63);
+        assertNull(Windows.walledIn(window, new HashMap<>(), 16, Integer.MAX_VALUE).get(key(BIG.behind(5, 5, -2))),
             "never below the world's floor");
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getMaxHeight()).thenReturn(64);

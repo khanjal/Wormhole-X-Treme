@@ -133,7 +133,8 @@ class FunnelTest
         assertTrue(funnel.holds(0, 0, 0), "the opening's own corner");
         assertTrue(funnel.holds(0, 10, 10), "and the far one");
         assertFalse(funnel.holds(0, 11, 5), "beside the opening");
-        assertFalse(funnel.holds(0, 5, -1), "below it");
+        assertTrue(funnel.holds(0, 5, -1), "the row beneath it, the ground, is seen through it");
+        assertFalse(funnel.holds(0, 5, -2), "but nothing lower");
         for (final int layer : new int[] { 8, 9, 40 })
         {
             assertTrue(funnel.holds(layer, 4, 0), "the far opening's corner, layer " + layer);
@@ -141,7 +142,8 @@ class FunnelTest
             assertFalse(funnel.holds(layer, 3, 0), "a column left of it, layer " + layer);
             assertFalse(funnel.holds(layer, 7, 0), "right of it, layer " + layer);
             assertFalse(funnel.holds(layer, 5, 4), "above its ceiling, layer " + layer);
-            assertFalse(funnel.holds(layer, 5, -1), "below its floor, layer " + layer);
+            assertTrue(funnel.holds(layer, 5, -1), "the ground it stands on, not a wall, layer " + layer);
+            assertFalse(funnel.holds(layer, 5, -2), "below the ground, layer " + layer);
         }
     }
 
@@ -166,7 +168,8 @@ class FunnelTest
         assertTrue(funnel.wall(20, 3, 1), "left of the far opening");
         assertTrue(funnel.wall(20, 7, 1), "right of it");
         assertTrue(funnel.wall(20, 5, 4), "its ceiling");
-        assertTrue(funnel.wall(20, 5, -1), "its floor");
+        assertTrue(funnel.wall(20, 5, -2), "under the ground it stands on");
+        assertFalse(funnel.wall(20, 5, -1), "the ground itself is the view: travellers walk across it");
         assertFalse(funnel.wall(20, 5, 1), "inside is the view");
         assertFalse(funnel.wall(20, 2, 1), "two out is behind the wall: never seen, never sent");
         assertFalse(funnel.wall(20, 3, 4), "nor a corner, which no line of sight reaches first");
@@ -184,34 +187,37 @@ class FunnelTest
     }
 
     /**
-     * Every line of sight that leaves the funnel enters a wall cell first: each cell outside it that
-     * is beside one inside, on its layer or from the layer before, is wall.
+     * The wall is the ring of cells just outside the funnel, on every layer to the depth: past the
+     * taper, the far opening's sides and ceiling and a row under its ground, and on the first layer,
+     * round the near opening behind the frame.
      */
     @Test
-    void everyWayOutOfTheFunnelIsWalled()
+    void theWallIsTheRingRoundTheFunnelOnEveryLayer()
     {
         final Funnel funnel = toStandard();
         final Set<Spot> walls = new HashSet<>();
         funnel.forEachWall(20, (layer, across, up) -> walls.add(new Spot(layer, across, up)));
-
-        for (int layer = 1; layer < 20; layer++)
+        final Set<Spot> deep = new HashSet<>();
+        for (int up = -1; up <= 3; up++)
         {
-            for (int across = -1; across <= 11; across++)
-            {
-                for (int up = -1; up <= 11; up++)
-                {
-                    final boolean outside = !funnel.holds(layer, across, up);
-                    final boolean beside = funnel.holds(layer - 1, across, up) || funnel.holds(layer, across - 1, up)
-                        || funnel.holds(layer, across + 1, up) || funnel.holds(layer, across, up - 1)
-                        || funnel.holds(layer, across, up + 1);
-                    assertEquals(outside && beside, walls.contains(new Spot(layer, across, up)),
-                        "layer " + layer + ", column " + across + ", row " + up);
-                }
-            }
+            deep.add(new Spot(19, 3, up));
+            deep.add(new Spot(19, 7, up));
         }
-        assertTrue(walls.contains(new Spot(19, 3, 0)), "the wall runs on past the taper");
-        assertFalse(walls.contains(new Spot(20, 3, 0)), "and stops short of the depth");
-        assertTrue(walls.contains(new Spot(1, -1, 0)), "and starts on the first layer, behind the frame");
+        for (int across = 4; across <= 6; across++)
+        {
+            deep.add(new Spot(19, across, -2));
+            deep.add(new Spot(19, across, 4));
+        }
+        final Set<Spot> lastLayer = new HashSet<>(walls);
+        lastLayer.removeIf(cell -> cell.x() != 19);
+
+        assertEquals(deep, lastLayer, "past the taper: both sides, the ceiling and under the ground, no corners");
+        assertTrue(walls.contains(new Spot(1, -1, 0)), "on the first layer, beside the near opening behind the frame");
+        assertTrue(walls.contains(new Spot(1, 5, -2)), "and under its ground");
+        assertTrue(walls.contains(new Spot(1, 5, 10)), "and its top row, which the taper has already left");
+        assertFalse(walls.contains(new Spot(1, 5, -1)), "its ground is the view");
+        assertFalse(walls.contains(new Spot(1, -1, 10)), "nor a corner");
+        assertFalse(walls.contains(new Spot(20, 3, 0)), "and none at the depth");
     }
 
     /** A far gate three wide and four tall, a block behind an arrival facing a yaw, across the way it faces. */
@@ -260,7 +266,7 @@ class FunnelTest
 
     /**
      * A far gate whose opening starts above where travellers land, a step up into it, narrows to its own
-     * rows: the tunnel's floor is a wall, not the arrival's row.
+     * rows and the block it stands on; the wall runs under that, across the arrival's row.
      */
     @Test
     void aFarGateStandingAboveTheArrivalRowNarrowsToItsOwnRows()
@@ -270,8 +276,9 @@ class FunnelTest
         assertNotNull(funnel);
         assertEquals(new Funnel.Opening(4, 6, 2, 5), funnel.far());
         assertTrue(funnel.holds(20, 5, 2), "its bottom row");
-        assertFalse(funnel.holds(20, 5, 0), "the arrival's row, below it");
-        assertTrue(funnel.wall(20, 5, 1), "walled underneath");
+        assertTrue(funnel.holds(20, 5, 1), "the block it stands on");
+        assertFalse(funnel.holds(20, 5, 0), "the arrival's row, below that");
+        assertTrue(funnel.wall(20, 5, 0), "walled underneath");
     }
 
     /** A stand-in already shown may stand a block past the funnel's edge, so one on it does not flicker. */
@@ -284,10 +291,10 @@ class FunnelTest
         assertTrue(funnel.holds(20, 3, 1, 1.0), "held: a block out on the left");
         assertTrue(funnel.holds(20, 7, 1, 1.0), "on the right");
         assertTrue(funnel.holds(20, 5, 4, 1.0), "above");
-        assertTrue(funnel.holds(20, 5, -1, 1.0), "below");
+        assertTrue(funnel.holds(20, 5, -2, 1.0), "below the ground");
         assertFalse(funnel.holds(20, 2, 1, 1.0), "but not two");
         assertFalse(funnel.holds(20, 8, 1, 1.0));
         assertFalse(funnel.holds(20, 5, 5, 1.0));
-        assertFalse(funnel.holds(20, 5, -2, 1.0));
+        assertFalse(funnel.holds(20, 5, -3, 1.0));
     }
 }

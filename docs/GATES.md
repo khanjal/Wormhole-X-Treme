@@ -693,7 +693,8 @@ funnel meets the wall first, so the far side outside it is left out of what is d
 capture, its block budget and the far chunks held for it are the same as without a funnel. The far opening is placed where
 the far gate's own portal cells show through the window (`Funnel.of`): on the column travellers land
 on and standing on the row they land on, so a short far gate's tunnel sits on the floor, not halfway
-up the big opening. Only narrower, never wider: a side where the far gate is as big or bigger keeps
+up the big opening. The row beneath it, the ground the far gate stands on and travellers walk across,
+is part of the tunnel all the way along, so its floor is the far ground and the wall runs a row below. Only narrower, never wider: a side where the far gate is as big or bigger keeps
 this one's, so same-size and small-to-large views are as they were, and a gate lying flat, a far gate
 turned from its arrival, or a horizon of air leaves the view whole. Stand-ins for mobs and players in
 the far room outside the funnel are not shown, and one already shown is kept a block past its edge so

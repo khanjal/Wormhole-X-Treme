@@ -14,7 +14,8 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  * <p>Plain numbers, in the window's own terms: a layer behind the opening, a column counted
  * rightwards from its left edge, and a row up from its bottom. The far opening is where the far
  * gate's own cells show through the window, so a funnel lines up with it whatever the two gates'
- * heights, and never reaches outside the near opening.
+ * heights, and never reaches outside the near opening but for the row beneath it: the ground a far
+ * gate stands on is seen through it, and the wall runs a row below that.
  *
  * @param width
  *            the near opening's width
@@ -131,7 +132,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
      * Whether a cell behind the window is inside the funnel.
      *
      * <p>A cell is in while its middle is within half a block of the narrowing edge, so both sides
-     * of a funnel step in on the same layer.
+     * of a funnel step in on the same layer. The row beneath the opening is in, at either end: it is
+     * the ground travellers land on and walk across, not a wall.
      *
      * @param layer
      *            layers behind the opening; 0 is the opening itself
@@ -159,7 +161,7 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         final double part = Math.min(1.0, Math.max(0, layer) / (double) taper);
         final double left = (far.left() * part) - slack;
         final double right = (width - 1) + ((far.right() - (width - 1)) * part) + slack;
-        final double bottom = (far.bottom() * part) - slack;
+        final double bottom = ((far.bottom() * part) - 1.0) - slack;
         final double top = (height - 1) + ((far.top() - (height - 1)) * part) + slack;
         return ((across + 0.5) >= left) && ((across - 0.5) <= right) && ((up + 0.5) >= bottom) && ((up - 0.5) <= top);
     }
@@ -192,12 +194,12 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         }
     }
 
-    /** Visits the wall's cells on one layer: they lie within a block of the near opening. */
+    /** Visits the wall's cells on one layer: within a block of the near opening and the ground under it. */
     private void wallOfLayer(final int layer, final Cell cell)
     {
         for (int across = -1; across <= width; across++)
         {
-            for (int up = -1; up <= height; up++)
+            for (int up = -2; up <= height; up++)
             {
                 if (wall(layer, across, up))
                 {

@@ -68,8 +68,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   as usual rather than an empty ring.
 - **A big gate dialling a small one shows a tunnel the small gate's size**
   ([#583](https://github.com/khanjal/Wormhole-X-Treme/issues/583)): with `gate-view` on, the view
-  narrows over `gate-view-funnel` blocks (8) to the far opening, walled in the gate's own portal
-  material, rather than running past the small gate's walls and ceiling; mobs and players beside it
+  narrows over `gate-view-funnel` blocks (8) to the far opening, its walls and ceiling the gate's own
+  portal material and its floor the far ground, rather than running past the small gate's walls and ceiling; mobs and players beside it
   are not shown. Same-size and small-to-large pairs are unchanged; `0` shows the whole view.
 - **Gate preview actions can be clicked**: after `gate build`, each one is a button, `[Clear]`
   to `[Place]`, that says what it does when pointed at. `[Material]` fills the chat box in rather
