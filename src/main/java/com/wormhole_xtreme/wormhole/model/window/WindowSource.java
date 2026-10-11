@@ -45,4 +45,10 @@ public interface WindowSource
     {
         return null;
     }
+
+    /** @return the funnel its view is narrowed to, or null for the whole view (#583) */
+    default Funnel funnel()
+    {
+        return null;
+    }
 }

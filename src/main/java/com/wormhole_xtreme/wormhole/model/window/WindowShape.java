@@ -465,6 +465,54 @@ public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowSh
     }
 
     /**
+     * How many layers behind the opening a block is: 0 in the opening's own, negative in front.
+     *
+     * @param x
+     *            block x
+     * @param z
+     *            block z
+     * @return the layer
+     */
+    public int layerOf(final int x, final int z)
+    {
+        return ((x - base.x()) * into.x()) + ((z - base.z()) * into.z());
+    }
+
+    /**
+     * Which column of the opening a block lines up with, counted rightwards from its left edge.
+     *
+     * @param x
+     *            block x
+     * @param z
+     *            block z
+     * @return the column, negative or past the width for one beside the opening
+     */
+    public int acrossOf(final int x, final int z)
+    {
+        final Spot right = rightOf(into);
+        return ((x - base.x()) * right.x()) + ((z - base.z()) * right.z());
+    }
+
+    /**
+     * The block a layer behind the opening, in a column and a row of it: {@link #layerOf} and
+     * {@link #acrossOf} the other way.
+     *
+     * @param layer
+     *            layers behind the opening
+     * @param across
+     *            the column, from the left edge
+     * @param up
+     *            the row, from the bottom
+     * @return the block
+     */
+    public Spot behind(final int layer, final int across, final int up)
+    {
+        final Spot right = rightOf(into);
+        return new Spot(base.x() + (layer * into.x()) + (across * right.x()), base.y() + up,
+            base.z() + (layer * into.z()) + (across * right.z()));
+    }
+
+    /**
      * Whether somebody standing here is on the banner's side of the opening.
      *
      * @param x

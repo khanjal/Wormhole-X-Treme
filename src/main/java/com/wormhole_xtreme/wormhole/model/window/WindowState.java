@@ -113,4 +113,11 @@ final class WindowState
     {
         return source.depth();
     }
+
+    /** @return true if a block behind the opening is inside its funnel, or it has none (#583) */
+    boolean inFunnel(final int x, final int y, final int z)
+    {
+        final Funnel funnel = source.funnel();
+        return (funnel == null) || funnel.holds(shape.layerOf(x, z), shape.acrossOf(x, z), y - shape.base().y());
+    }
 }

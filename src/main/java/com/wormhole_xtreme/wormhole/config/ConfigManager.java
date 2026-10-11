@@ -145,6 +145,9 @@ public class ConfigManager
         /** How far a gate's view is filled in, behind its first step. */
         GATE_VIEW_FULL_DEPTH,
 
+        /** How far a big gate's view narrows to a smaller far gate's opening (#583). */
+        GATE_VIEW_FUNNEL,
+
         /** Whether an open gate's horizon ripples (#579). */
         GATE_RIPPLE,
 
@@ -1179,6 +1182,18 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FULL_DEPTH);
         final int depth = (s == null) ? 160 : s.getIntValue();
         return (depth <= 0) ? 0 : Math.max(4, Math.min(160, depth));
+    }
+
+    /**
+     * How many blocks a big gate's view narrows over to a smaller far gate's opening (#583).
+     *
+     * @return blocks, 1 to 64; or 0 for the whole view, not narrowed
+     */
+    public static int getGateViewFunnel()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL);
+        final int blocks = (s == null) ? 8 : s.getIntValue();
+        return Math.max(0, Math.min(64, blocks));
     }
 
     /**

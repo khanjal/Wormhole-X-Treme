@@ -21,6 +21,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.StargateBlockSetup.Redrawn;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Funnel;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -446,7 +447,8 @@ public final class GateViews
         final Stargate target = gate.getGateTarget();
         return new GateSource(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(middle.x(), middle.y(), middle.z()),
             shape, open, Place.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
-            ConfigManager.getGateViewDepth());
+            ConfigManager.getGateViewDepth(),
+            Funnel.of(shape, cellsOf(target), ConfigManager.getGateViewFunnel(), gate.getEffectivePortalMaterial()));
     }
 
     /**

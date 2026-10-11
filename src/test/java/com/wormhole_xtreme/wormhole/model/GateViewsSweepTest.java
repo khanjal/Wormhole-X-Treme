@@ -195,6 +195,39 @@ class GateViewsSweepTest
     }
 
     /**
+     * A big gate dialling a small one offers its view narrowed to the small gate's opening, walled in
+     * its own portal material, and whole at {@code gate-view-funnel: 0} (#583).
+     */
+    @Test
+    void aBigGateDiallingASmallOneIsOfferedNarrowedToItsOpening()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        opening(10, 18, 64, 17);
+        final List<Location> small = new ArrayList<>();
+        for (int x = 99; x <= 101; x++)
+        {
+            for (int y = 70; y <= 73; y++)
+            {
+                small.add(new Location(far, x, y, 199));
+            }
+        }
+        when(gate.getGateTarget().getGatePortalBlocks()).thenReturn(small);
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() != null)
+            && (window.funnel().farLeft() == 7) && (window.funnel().farRight() == 9) && (window.funnel().farTop() == 3)
+            && (window.funnel().taper() == 8) && (window.funnel().wall() == Material.LAVA)), anyBoolean()));
+
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, 0);
+        GateViews.offerAll();
+
+        sources.verify(() -> GateSource.offer(argThat(window -> window.funnel() == null), anyBoolean()));
+    }
+
+    /**
      * A tall gate's view is measured from the middle of its opening, not its first cell.
      *
      * <p>The drawing draws a window for whoever is within the mirror proximity distance of the block

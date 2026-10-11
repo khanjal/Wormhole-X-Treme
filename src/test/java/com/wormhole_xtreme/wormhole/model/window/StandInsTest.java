@@ -490,6 +490,42 @@ class StandInsTest
     }
 
     /**
+     * Through a big gate onto a small one, a creature outside the funnel the view narrows to is not
+     * shown: it stands behind the funnel's wall, beyond the small gate's walls (#583).
+     */
+    @Test
+    void throughAFunnelOnlyACreatureInsideItIsShown()
+    {
+        final Place arrival = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
+        final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), arrival, 11, 11);
+        final List<Spot> open = new ArrayList<>();
+        shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
+        final List<Spot> small = new ArrayList<>();
+        for (int x = 99; x <= 101; x++)
+        {
+            for (int y = 70; y <= 73; y++)
+            {
+                small.add(new Spot(x, y, 199));
+            }
+        }
+        final Funnel funnel = Funnel.of(shape, small, 8, Material.WATER);
+        final Capture capture = new Capture.Builder("far", true, new Capture.Box(80, 60, 199, 41, 20, 34), mock(BlockData.class))
+            .build();
+        final WindowState narrowed = new WindowState(
+            new GateSource("gate:Abydos", mock(Block.class), shape, open, arrival, "Chulak", 16, funnel), capture);
+        final WindowState whole = new WindowState(
+            new GateSource("gate:Abydos", mock(Block.class), shape, open, arrival, "Chulak", 16), capture);
+        // Ten layers in: the funnel's middle column, and four columns left of it.
+        final Location inside = new Location(here, 15.5, 64.0, 10.5);
+        final Location beside = new Location(here, 11.5, 64.0, 10.5);
+
+        assertTrue(StandIns.inRoom(narrowed, inside), "in front of the small gate: shown");
+        assertFalse(StandIns.inRoom(narrowed, beside), "beside it, behind the funnel's wall: not shown");
+        assertFalse(StandIns.inRoom(narrowed, beside, true), "nor kept, once shown");
+        assertTrue(StandIns.inRoom(whole, beside), "with no funnel, shown as before");
+    }
+
+    /**
      * A throw while a stand-in is being dressed or shown leaves nothing in the world: it was known
      * for a stand-in before anything could throw, so it is found and removed.
      *
