@@ -682,6 +682,22 @@ measure from elsewhere: the drawing from the opening's first cell, a top-row one
 the foot of a Massive gate was never drawn its view; and the capture from the nearest cell, so
 somebody off to one side of that foot had one taken that nobody was drawn.
 
+**A big gate onto a small one shows a tunnel the small one's size**
+([#583](https://github.com/khanjal/Wormhole-X-Treme/issues/583)). Drawn whole, a Massive gate's view
+of a Standard gate ran past the small gate's walls and ceiling into whatever lay beside it. Where the
+dialled gate's opening is smaller than this one's, the view narrows over `gate-view-funnel` blocks, 8
+by default, from this gate's whole opening at the horizon to the far opening's size, and stays that
+size beyond. Round it, a wall one block thick is drawn in this gate's own portal material, so it reads
+as a tunnel of water, lava or whatever the gate's horizon is; every line of sight that leaves the
+funnel meets the wall first, so nothing outside it is drawn or sent. The far opening is placed where
+the far gate's own portal cells show through the window (`Funnel.of`): on the column travellers land
+on and standing on the row they land on, so a short far gate's tunnel sits on the floor, not halfway
+up the big opening. Only narrower, never wider: a side where the far gate is as big or bigger keeps
+this one's, so same-size and small-to-large views are as they were, and a gate lying flat, a far gate
+turned from its arrival, or a horizon of air leaves the view whole. Mobs and players in the far room
+outside the funnel are not shown. `0` turns it off. The funnel is worked out each sweep from the two
+gates' blocks; the held room is built again when it changes, and nothing is kept per viewer.
+
 **A capture is seen through the largest opening.** A mirror's is taken through a hole three
 wide and two tall, and through a gate that lost everything past the mirror's fan. A gate's is
 taken through eighteen by eighteen, room for Grand's eighteen by seventeen and Massive's seventeen

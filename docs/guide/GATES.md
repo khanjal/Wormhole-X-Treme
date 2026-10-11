@@ -12,6 +12,7 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 - [Signs](#signs)
 - [The iris](#the-iris)
 - [The ripple](#the-ripple)
+- [A big gate onto a small one](#a-big-gate-onto-a-small-one)
 - [Redstone](#redstone)
 - [What travels through a gate](#what-travels-through-a-gate)
 - [Commands](#commands)
@@ -452,6 +453,19 @@ of ice in the moment it shows can be held up by it, and nothing stays once the r
 | Setting | Default | What it does |
 |---|---|---|
 | `gate-ripple` | `false` | Whether open gates ripple |
+
+## A big gate onto a small one
+
+With `gate-view` on, a gate that dials a smaller one, a Massive gate dialling a Standard one say,
+does not show a Massive-sized slice of the far side running past the small gate's walls and ceiling.
+Its view narrows, over a few blocks behind the horizon, to the small gate's opening, and stays that
+size; round it you see this gate's own portal material, so it looks like a tunnel of water (or lava,
+or whatever the gate's horizon is). Mobs and players beside the tunnel are not shown. Gates of the
+same size, and a small gate dialling a big one, show the whole view as before.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `gate-view-funnel` | `8` | How many blocks the view takes to narrow, 1 to 64; `0` shows the whole view |
 
 ## Redstone
 
