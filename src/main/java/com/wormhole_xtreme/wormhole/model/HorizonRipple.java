@@ -8,8 +8,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -70,6 +72,9 @@ public final class HorizonRipple
     /** The longest. */
     static final long RANDOM_HIGH_MILLIS = 6_000L;
 
+    /** How many rings one wave of a ripple runs ahead of the next. */
+    static final int WAVE_GAP = 2;
+
     /** A flat water gate needs more cells than a two by two has before its horizon ripples in ice. */
     static final int FLAT_MORE_THAN = 4;
 
@@ -91,6 +96,9 @@ public final class HorizonRipple
     /** How long until a gate's next ripple of its own; a seam for tests. */
     static LongSupplier nextWait = () -> ThreadLocalRandom.current().nextLong(RANDOM_LOW_MILLIS, RANDOM_HIGH_MILLIS + 1);
 
+    /** How many waves a ripple of a gate's own has; a seam for tests. */
+    static IntSupplier waveCount = () -> wavesFor(ThreadLocalRandom.current().nextInt(100));
+
     private HorizonRipple()
     {
     }
@@ -111,12 +119,35 @@ public final class HorizonRipple
         startQuietly(to);
     }
 
-    /** Starts a ripple, logging rather than throwing if it fails. */
+    /**
+     * How many waves a ripple of a gate's own has, for a roll of 0 to 99: one half the time, two
+     * three times in ten, three twice in ten.
+     *
+     * @param roll
+     *            a number from 0 to 99
+     * @return 1, 2 or 3
+     */
+    static int wavesFor(final int roll)
+    {
+        if (roll < 50)
+        {
+            return 1;
+        }
+        return (roll < 80) ? 2 : 3;
+    }
+
+    /** Starts a ripple of one wave, logging rather than throwing if it fails. */
     private static void startQuietly(final Stargate gate)
+    {
+        startQuietly(gate, 1);
+    }
+
+    /** Starts a ripple, logging rather than throwing if it fails. */
+    private static void startQuietly(final Stargate gate, final int waves)
     {
         try
         {
-            start(gate);
+            start(gate, waves);
         }
         catch (final Exception | LinkageError e)
         {
@@ -129,13 +160,27 @@ public final class HorizonRipple
     }
 
     /**
-     * Starts a ripple on a gate, if it may have one now.
+     * Starts a ripple of one wave on a gate, as a crossing does, if it may have one now.
      *
      * @param gate
      *            the gate
      * @return true if one started
      */
     static boolean start(final Stargate gate)
+    {
+        return start(gate, 1);
+    }
+
+    /**
+     * Starts a ripple on a gate, if it may have one now.
+     *
+     * @param gate
+     *            the gate
+     * @param waves
+     *            how many waves, staggered through the same rings ({@link RippleRings#waves})
+     * @return true if one started
+     */
+    static boolean start(final Stargate gate, final int waves)
     {
         if ((gate == null) || (gate.getGateName() == null) || !ConfigManager.isGateRipple() || !showing(gate)
             || !pluginRunning())
@@ -165,9 +210,13 @@ public final class HorizonRipple
         LAST.put(name, now);
         NEXT.put(name, now + nextWait.getAsLong());
         final List<List<Location>> rings = ringsOf(gate);
+        final List<List<Location>> steps = RippleRings.waves(rings.size(), waves, WAVE_GAP).stream()
+            .map(lit -> lit.stream().flatMap(ring -> rings.get(ring).stream()).toList()).toList();
         logStart(gate, rings.size(), deep, icy);
         final Ripple ripple = new Ripple(gate, deep, icy);
-        final IrisSweepDriver<Location> driver = new IrisSweepDriver<>(rings, ripple, () -> stepTicks(rings.size()));
+        // Paced by the rings and the gaps between waves, so a small gate's ripple stays long enough to see.
+        final long pace = stepTicks(rings.size() + (WAVE_GAP * (Math.max(1, waves) - 1)));
+        final IrisSweepDriver<Location> driver = new IrisSweepDriver<>(steps, ripple, () -> pace);
         // Registered before its first ring, so a throw while drawing it can still call it off.
         ripple.driver = driver;
         RUNNING.put(name, ripple);
@@ -255,7 +304,7 @@ public final class HorizonRipple
                 // Waited again whether or not it starts: refused for a ripple already running, or for
                 // nothing to draw, it would otherwise be asked every second.
                 NEXT.put(name, now + nextWait.getAsLong());
-                startQuietly(gate);
+                startQuietly(gate, waveCount.getAsInt());
             }
         }
         NEXT.keySet().retainAll(watched);
@@ -492,8 +541,10 @@ public final class HorizonRipple
      *            where
      * @param inPlane
      *            true in the opening, false a block in front of it
+     * @param material
+     *            what they were drawn as, or null for a record only put back
      */
-    private record Sent(Player player, List<Location> cells, boolean inPlane)
+    private record Sent(Player player, List<Location> cells, boolean inPlane, Material material)
     {
     }
 
@@ -553,39 +604,56 @@ public final class HorizonRipple
             }
         }
 
-        /** Puts the last ring back and draws this one, for each viewer as they see the gate now. */
-        private void draw(final List<Location> ring)
+        /**
+         * Draws this step's rings for each viewer as they see the gate now, having put back whatever the
+         * last step drew that no wave is on now.
+         */
+        private void draw(final List<Location> step)
         {
-            putBack();
+            final Map<UUID, Sent> next = drawingsOf(step);
+            putBackAllBut(next);
+            next.values().forEach(this::send);
+        }
+
+        /** What each viewer near is to be drawn of a step: nothing for a viewer of a gate with nothing to show them. */
+        private Map<UUID, Sent> drawingsOf(final List<Location> step)
+        {
+            final Map<UUID, Sent> next = new HashMap<>();
             final List<Player> near = StargateBlockSetup.playersNear(gate, reference(gate));
             if (near.isEmpty())
             {
-                return;
+                return next;
             }
             final Set<Spot> taken = occupied(gate);
-            final List<Location> inPlane = ring.stream().filter(at -> !taken.contains(spotOf(at))).toList();
+            final List<Location> inPlane = step.stream().filter(at -> !taken.contains(spotOf(at))).toList();
             final Material portal = gate.getEffectivePortalMaterial();
             List<Location> inFront = null;
             for (final Player player : near)
             {
+                Sent drawing = null;
                 // Drawn the view, their opening is clear: the horizon itself is what crosses it.
                 if ((portal != Material.AIR) && (GateViews.horizonFor(gate, portal, player) == Material.AIR))
                 {
-                    send(player, inPlane, portal, true);
+                    drawing = new Sent(player, inPlane, true, portal);
                 }
                 else if (deep)
                 {
                     if (inFront == null)
                     {
-                        inFront = inFront(ring, taken);
+                        inFront = inFront(step, taken);
                     }
-                    send(player, inFront, portal, false);
+                    drawing = new Sent(player, inFront, false, portal);
                 }
                 else if (icy)
                 {
-                    send(player, inPlane, FLAT_RING, true);
+                    drawing = new Sent(player, inPlane, true, FLAT_RING);
+                }
+                if ((drawing != null) && !drawing.cells().isEmpty())
+                {
+                    next.put(player.getUniqueId(), drawing);
                 }
             }
+            return next;
         }
 
         /** The cells a block in front of a ring that are free to draw in: air, loaded, and nobody in them. */
@@ -601,20 +669,15 @@ public final class HorizonRipple
                 .toList();
         }
 
-        /** Sends one viewer some cells as a material, and notes it to be put back. */
-        private void send(final Player player, final List<Location> cells, final Material material,
-            final boolean inPlane)
+        /** Sends one viewer their drawing, and notes it to be put back. */
+        private void send(final Sent drawing)
         {
-            if (cells.isEmpty())
-            {
-                return;
-            }
             // Noted before it is sent, so a send that throws part way is still put back.
-            sent.put(player.getUniqueId(), new Sent(player, cells, inPlane));
-            final BlockData data = MaterialUtils.drawnAcross(material, gate.getGateFacing());
-            for (final Location at : cells)
+            sent.put(drawing.player().getUniqueId(), drawing);
+            final BlockData data = MaterialUtils.drawnAcross(drawing.material(), gate.getGateFacing());
+            for (final Location at : drawing.cells())
             {
-                player.sendBlockChange(at, data);
+                drawing.player().sendBlockChange(at, data);
             }
         }
 
@@ -625,12 +688,25 @@ public final class HorizonRipple
          */
         private void putBack()
         {
+            putBackAllBut(Map.of());
+        }
+
+        /**
+         * Puts back whatever was drawn, except the cells each viewer is about to be drawn again in the
+         * same place, which are left as they are rather than put back and drawn in the same tick.
+         *
+         * @param next
+         *            what each viewer is to be drawn next, by viewer
+         */
+        private void putBackAllBut(final Map<UUID, Sent> next)
+        {
             if (sent.isEmpty())
             {
                 return;
             }
             // Forgotten first, so a throw part way never leaves a record to be put back twice.
-            final List<Sent> was = new ArrayList<>(sent.values());
+            final List<Sent> was =
+                sent.values().stream().map(old -> withoutKept(old, next.get(old.player().getUniqueId()))).toList();
             sent.clear();
             final World world = gate.getGateWorld();
             final Material portal = gate.getEffectivePortalMaterial();
@@ -655,6 +731,18 @@ public final class HorizonRipple
                     // One viewer who cannot be sent to does not keep everybody else's ring up.
                 }
             }
+        }
+
+        /** A viewer's last drawing less the cells their next one draws again in the same plane. */
+        private static Sent withoutKept(final Sent old, final Sent next)
+        {
+            if ((next == null) || (next.inPlane() != old.inPlane()))
+            {
+                return old;
+            }
+            final Set<Spot> kept = next.cells().stream().map(HorizonRipple::spotOf).collect(Collectors.toSet());
+            return new Sent(old.player(), old.cells().stream().filter(at -> !kept.contains(spotOf(at))).toList(),
+                old.inPlane(), null);
         }
 
         /** Puts back one viewer's ring. */

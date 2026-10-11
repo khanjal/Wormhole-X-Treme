@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.IntStream;
 
 /**
  * The rings a ripple crosses a gate's opening in: out from a patch at its centre, a ring about a
@@ -68,6 +69,35 @@ public final class RippleRings
             byRing.computeIfAbsent(ringAt((dx * dx) + (dy * dy)), ring -> new ArrayList<>()).add(i);
         }
         return new ArrayList<>(byRing.values());
+    }
+
+    /**
+     * The rings lit at each step of a ripple of several waves, each wave the whole ring sequence and
+     * each starting {@code gap} rings after the one before, so on a gate of enough rings two or three
+     * are lit at once. A gate of too few rings for that, {@code rings <= gap * (waves - 1) + 1}, has
+     * its waves back to back instead, so they still read as separate.
+     *
+     * @param rings
+     *            how many rings the opening has
+     * @param waves
+     *            how many waves, at least one
+     * @param gap
+     *            how many rings one wave runs ahead of the next
+     * @return each step's ring indexes, lowest first; every step lights at least one ring
+     */
+    public static List<List<Integer>> waves(final int rings, final int waves, final int gap)
+    {
+        if (rings <= 0)
+        {
+            return List.of();
+        }
+        final int count = Math.max(1, waves);
+        final int apart = (rings > ((gap * (count - 1)) + 1)) ? gap : rings;
+        final int steps = (apart * (count - 1)) + rings;
+        return IntStream.range(0, steps)
+            .mapToObj(step -> IntStream.range(0, count).map(wave -> step - (wave * apart))
+                .filter(ring -> (ring >= 0) && (ring < rings)).sorted().distinct().boxed().toList())
+            .toList();
     }
 
     /** How many cells the patch spans along one side of the opening. */

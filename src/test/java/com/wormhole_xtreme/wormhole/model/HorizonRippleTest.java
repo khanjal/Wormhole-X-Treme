@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
 import org.bukkit.Location;
@@ -105,6 +106,7 @@ class HorizonRippleTest
         now = 100_000L;
         HorizonRipple.clock = () -> now;
         HorizonRipple.nextWait = () -> 7_000L;
+        HorizonRipple.waveCount = () -> 1;
 
         world = mock(World.class);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
@@ -134,6 +136,7 @@ class HorizonRippleTest
         HorizonRipple.cancelAll();
         HorizonRipple.clock = System::currentTimeMillis;
         HorizonRipple.nextWait = DEFAULT_WAIT;
+        HorizonRipple.waveCount = DEFAULT_WAVES;
         manager.close();
         materials.close();
         GateViews.clear();
@@ -144,6 +147,9 @@ class HorizonRippleTest
 
     /** The random wait as shipped, put back after each test. */
     private static final LongSupplier DEFAULT_WAIT = HorizonRipple.nextWait;
+
+    /** The wave count as shipped, put back after each test. */
+    private static final IntSupplier DEFAULT_WAVES = HorizonRipple.waveCount;
 
     private Player playerAt(final double z)
     {
@@ -772,5 +778,151 @@ class HorizonRippleTest
         now += 7_000L;
         HorizonRipple.tick();
         assertTrue(HorizonRipple.isRippling(gate));
+    }
+
+    /** Forgets what was sent so far, then runs and forgets so many more steps. */
+    private void skip(final int steps)
+    {
+        sentTo(front);
+        for (int i = 0; i < steps; i++)
+        {
+            step();
+            sentTo(front);
+        }
+    }
+
+    /** The cells of one ring of the gate's ripple, drawn as one thing. */
+    private Set<String> ring(final int index, final String what)
+    {
+        final Set<String> out = new TreeSet<>();
+        for (final Location at : HorizonRipple.ringsOf(gate).get(index))
+        {
+            out.add(at.getBlockX() + "," + at.getBlockY() + "," + at.getBlockZ() + " " + what);
+        }
+        return out;
+    }
+
+    /** Several rings' cells, each drawn as one thing. */
+    private Set<String> rings(final String what, final int... indexes)
+    {
+        final Set<String> out = new TreeSet<>();
+        for (final int index : indexes)
+        {
+            out.addAll(ring(index, what));
+        }
+        return out;
+    }
+
+    /**
+     * Two waves on the five by five's four rings, two rings apart: two rings lit at once, and a ring put
+     * back only once no wave is on it.
+     */
+    @Test
+    void twoWavesLightTwoRingsAtOnceAndPutBackOnlyWhatNoWaveIsOn()
+    {
+        assertTrue(HorizonRipple.start(gate, 2));
+
+        assertEquals(rings("ice", 0), sentTo(front));
+        step();
+        assertEquals(union(rings("water", 0), rings("ice", 1)), sentTo(front));
+        step();
+        assertEquals(union(rings("water", 1), rings("ice", 0, 2)), sentTo(front), "the second wave starts");
+        step();
+        assertEquals(union(rings("water", 0, 2), rings("ice", 1, 3)), sentTo(front));
+        step();
+        assertEquals(union(rings("water", 1, 3), rings("ice", 2)), sentTo(front), "the first wave over");
+        step();
+        assertEquals(union(rings("water", 2), rings("ice", 3)), sentTo(front));
+        step();
+        assertEquals(rings("water", 3), sentTo(front), "nothing left as ice");
+        assertTrue(pending.isEmpty());
+        assertEquals(List.of(2L, 2L, 2L, 2L, 2L, 2L), delays, "paced as four rings and one gap of two: six steps");
+    }
+
+    /** Three waves on the five by five's four rings are too many to overlap: they run back to back. */
+    @Test
+    void threeWavesOnASmallGateRunBackToBack()
+    {
+        assertTrue(HorizonRipple.start(gate, 3));
+        skip(2);
+        step();
+        assertEquals(union(rings("water", 2), rings("ice", 3)), sentTo(front));
+        step();
+        assertEquals(union(rings("water", 3), rings("ice", 0)), sentTo(front), "the second wave from the middle again");
+        skip(7);
+        step();
+        assertEquals(rings("water", 3), sentTo(front));
+        assertTrue(pending.isEmpty(), "twelve steps in all");
+    }
+
+    /** A gate of two rings: two waves back to back, the middle lit again as the first wave ends. */
+    @Test
+    void twoWavesOnAGateOfTwoRingsRunBackToBack()
+    {
+        opening(gate, 2, 3, false);
+        assertEquals(2, HorizonRipple.ringsOf(gate).size());
+
+        assertTrue(HorizonRipple.start(gate, 2));
+        assertEquals(rings("ice", 0), sentTo(front));
+        step();
+        assertEquals(union(rings("water", 0), rings("ice", 1)), sentTo(front));
+        step();
+        assertEquals(union(rings("water", 1), rings("ice", 0)), sentTo(front));
+        skip(1);
+        step();
+        assertEquals(rings("water", 1), sentTo(front));
+        assertTrue(pending.isEmpty());
+    }
+
+    /** Three waves on a gate of seven rings: three rings lit together, and a call-off then leaves none. */
+    @Test
+    void threeWavesOnALargeGateLightThreeRingsAndACallOffLeavesNothing()
+    {
+        opening(gate, 11, 11, false);
+        assertEquals(7, HorizonRipple.ringsOf(gate).size());
+        assertTrue(HorizonRipple.start(gate, 3));
+        skip(3);
+        step();
+        assertEquals(union(rings("water", 1, 3), rings("ice", 0, 2, 4)), sentTo(front),
+            "step four: rings one and three back, the middle, two and four lit");
+
+        HorizonRipple.cancel(gate);
+
+        assertEquals(rings("water", 0, 2, 4), sentTo(front), "every ring still lit put back, and no other");
+        assertTrue(pending.isEmpty());
+    }
+
+    /** A gate's own ripple has as many waves as it is dealt; a crossing's has one. */
+    @Test
+    void aRippleOfItsOwnHasItsWavesAndACrossingHasOne()
+    {
+        HorizonRipple.waveCount = () -> 3;
+        HorizonRipple.crossed(gate, null);
+        skip(1);
+        step();
+        assertEquals(union(rings("water", 1), rings("ice", 2)), sentTo(front), "a crossing: one wave");
+        step();
+        step();
+
+        now += 60_000L;
+        HorizonRipple.waveCount = () -> 2;
+        HorizonRipple.tick();
+        now += 7_000L;
+        HorizonRipple.tick();
+        assertTrue(HorizonRipple.isRippling(gate));
+        skip(1);
+        step();
+        assertEquals(union(rings("water", 1), rings("ice", 0, 2)), sentTo(front), "its own: two waves");
+    }
+
+    @Test
+    void halfOfOwnRipplesAreOneWaveThreeInTenTwoAndTwoInTenThree()
+    {
+        assertEquals(1, HorizonRipple.wavesFor(0));
+        assertEquals(1, HorizonRipple.wavesFor(49));
+        assertEquals(2, HorizonRipple.wavesFor(50));
+        assertEquals(2, HorizonRipple.wavesFor(79));
+        assertEquals(3, HorizonRipple.wavesFor(80));
+        assertEquals(3, HorizonRipple.wavesFor(99));
     }
 }

@@ -307,4 +307,48 @@ class RippleRingsTest
         assertEquals(3, RippleRings.patchSide(9, true));
         assertEquals(4, RippleRings.patchSide(10, true));
     }
+
+    /** One wave is the rings in order, a step each. */
+    @Test
+    void oneWaveIsTheRingsInOrder()
+    {
+        assertEquals(List.of(List.of(0), List.of(1), List.of(2), List.of(3)), RippleRings.waves(4, 1, 2));
+    }
+
+    /** Two waves two rings apart on four rings: the second starts as the first reaches its third ring. */
+    @Test
+    void twoWavesOnFourRingsOverlap()
+    {
+        assertEquals(List.of(List.of(0), List.of(1), List.of(0, 2), List.of(1, 3), List.of(2), List.of(3)),
+            RippleRings.waves(4, 2, 2));
+    }
+
+    /** Three waves on seven rings: three rings lit at once in the middle of it. */
+    @Test
+    void threeWavesOnSevenRingsLightThreeAtOnce()
+    {
+        final List<List<Integer>> steps = RippleRings.waves(7, 3, 2);
+        assertEquals(11, steps.size(), "seven rings and two gaps of two");
+        assertEquals(List.of(0, 2, 4), steps.get(4));
+        assertEquals(List.of(2, 4, 6), steps.get(6));
+        assertEquals(List.of(6), steps.get(10));
+    }
+
+    /** Too few rings for the waves to overlap and still read apart: back to back. */
+    @Test
+    void wavesOnTooFewRingsRunBackToBack()
+    {
+        assertEquals(List.of(List.of(0), List.of(1), List.of(2), List.of(3), List.of(0), List.of(1), List.of(2),
+            List.of(3), List.of(0), List.of(1), List.of(2), List.of(3)), RippleRings.waves(4, 3, 2),
+            "four rings is not more than two gaps of two and one");
+        assertEquals(List.of(List.of(0), List.of(1), List.of(0), List.of(1)), RippleRings.waves(2, 2, 2));
+        assertEquals(List.of(List.of(0, 2), List.of(1, 3)), RippleRings.waves(4, 2, 2).subList(2, 4),
+            "but four rings is more than one gap of two and one, so two waves overlap");
+    }
+
+    @Test
+    void noRingsNoSteps()
+    {
+        assertTrue(RippleRings.waves(0, 3, 2).isEmpty());
+    }
 }

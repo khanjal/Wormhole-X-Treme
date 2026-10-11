@@ -823,6 +823,15 @@ ripple at a time on a gate, and none within two seconds of the last one starting
 minecarts does not set one off each (`HorizonRipple`, the timings its constants). The random wait
 starts when somebody comes near an open gate, and again whenever it ripples for any reason.
 
+**Waves.** A ripple of a gate's own has one, two or three waves, half, three in ten and two in ten of
+the time (`HorizonRipple.wavesFor`); a crossing's has one. The waves run through the same rings, each
+starting two rings after the one before (`RippleRings.waves`), so on a gate of enough rings two or
+three rings are lit at once, and a ring is put back only once no wave is on it. A gate of too few
+rings for that, no more than two for each wave after the first and one, has its waves back to back
+instead, so they still read as separate: Standard's three rings take even two waves back to back,
+Large's four overlap two and take three back to back, and Grand and Massive overlap all three. The pace counts the rings and the gaps, so a small gate's waves
+still stay long enough to see.
+
 **The rings** (`RippleRings`) are cut in the opening's own grid, out from a patch at its middle: one
 cell across an odd side and two across an even one, so an odd opening starts from one cell, an even
 one from a two by two and an odd by even one from the pair in its middle. An opening nine or more
