@@ -173,9 +173,18 @@ public final class HorizonRipple
         final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
         if ((plugin != null) && plugin.isLoggable(Level.FINE))
         {
-            plugin.prettyLog(Level.FINE, "Ripple on " + gate.getGateName() + ": " + rings + " rings, "
-                + (deep ? "in front" : (icy ? "ice" : "for a view only")));
+            plugin.prettyLog(Level.FINE, "Ripple on " + gate.getGateName() + ": " + rings + " rings, " + kindOf(deep, icy));
         }
+    }
+
+    /** What a ripple is drawn in, for the log. */
+    private static String kindOf(final boolean deep, final boolean icy)
+    {
+        if (deep)
+        {
+            return "in front";
+        }
+        return icy ? "ice" : "for a view only";
     }
 
     /**
