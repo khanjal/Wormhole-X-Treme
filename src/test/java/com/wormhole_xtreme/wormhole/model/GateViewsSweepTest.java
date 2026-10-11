@@ -14,9 +14,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -31,6 +33,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.PrivateStatics;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
@@ -170,6 +173,44 @@ class GateViewsSweepTest
 
         verify(gate).fillGateInterior(Material.WATER);
         assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER), "the view went, so the horizon is back");
+    }
+
+    /**
+     * A gate whose offer throws loses only its own view, and is said once, not every sweep (#583).
+     *
+     * <p>A stale {@code gate-view-funnel: 8} threw ClassCastException from the setting's read for
+     * every gate, out of the whole sweep's offer: no gate on the server showed a view, and the same
+     * warning was logged every second.
+     */
+    @Test
+    void aGateWhoseOfferThrowsLosesOnlyItsOwnViewAndIsSaidOnce()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        // Read first: a mock's answer taken inside another stubbing leaves that one unfinished.
+        final Stargate target = gate.getGateTarget();
+        final List<Location> cells = gate.getGatePortalBlocks();
+        final List<Location> frame = gate.getGateStructureBlocks();
+        final Stargate broken = mock(Stargate.class);
+        when(broken.getGateName()).thenReturn("Broken");
+        when(broken.isGateActive()).thenReturn(true);
+        when(broken.isGatePortalOpen()).thenReturn(true);
+        when(broken.getGateWorld()).thenReturn(world);
+        when(broken.getGateTarget()).thenReturn(target);
+        when(broken.getGateFacing()).thenReturn(BlockFace.SOUTH);
+        when(broken.getGatePortalBlocks()).thenReturn(cells);
+        when(broken.getGateStructureBlocks()).thenReturn(frame);
+        when(broken.getEffectivePortalMaterial()).thenThrow(new ClassCastException("Integer cannot be cast to Boolean"));
+        manager.when(StargateManager::getOpenGates).thenReturn(new LinkedHashSet<>(List.of(broken, gate)));
+        drawn(true);
+
+        GateViews.offerAll();
+        GateViews.offerAll();
+
+        offeredTimes(2);
+        assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "the healthy gate still clears for its view");
+        assertEquals(Material.WATER, GateViews.horizonOf(broken, Material.WATER), "the broken one keeps its horizon");
+        verify(WormholeXTreme.getThisPlugin(), times(1)).prettyLog(eq(Level.WARNING),
+            argThat((String what) -> what.contains("Broken")), any(ClassCastException.class));
     }
 
     /**
