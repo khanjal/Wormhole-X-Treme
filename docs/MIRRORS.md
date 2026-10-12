@@ -675,13 +675,12 @@ and not the view's. So it is handed back on shutdown wherever they are standing,
 check that guards sending blocks to a viewer still in the drawing's world; and what is
 remembered is dropped whenever a view ends, player or no player, since a viewer who logged out
 mid-view would otherwise be recorded as narrowed for the life of the server and be skipped if
-they came back on the same id. The tests are
+they came back on the same id. The tests were
 `aViewerDrawnARoomHasTheirFogPulledInAndPutBack`,
 `stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds` and
 `aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn`.
 
-On Spigot `ViewFog.available()` is false and nothing happens: this world shows past the room,
-which is what it did before.
+On Spigot it did nothing: this world showed past the room, which is what it does everywhere now.
 
 What the jars say, read with `javap` from the API jars this plugin builds against — Spigot
 1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4, 1.21.10, 1.21.11, 26.1.2 and 26.2, and Paper
