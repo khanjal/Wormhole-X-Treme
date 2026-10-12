@@ -2357,10 +2357,12 @@ public final class Windows
         final double reach = (double) depth * depth;
         final BlockData wall = Bukkit.createBlockData(funnel.wall());
         final BlockData air = Bukkit.createBlockData(Material.AIR);
+        // Never over the gate's own frame, such as a ring a block behind its opening.
+        final Set<Spot> own = window.source.structure();
         funnel.forEachWall(depth, (layer, across, up) ->
         {
             final Spot at = shape.behind(layer, across, up);
-            if (drawable(at, min, max, centre, reach))
+            if (drawable(at, min, max, centre, reach) && !own.contains(at))
             {
                 view.put(key(at.x(), at.y(), at.z()), wall);
             }

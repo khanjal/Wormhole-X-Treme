@@ -15,7 +15,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
  * {@code gate-view-funnel} ships on, and reads as on from a {@code config.yml} written before it
  * existed; {@code gate-view-funnel-length}, the longest tunnel, ships at 16 (#583).
  *
- * <p>Sixteen so no shipped pair is cut short: Grand to Standard narrows thirteen, the most of them.
+ * <p>Sixteen so no shipped pair is cut short: Grand to Minimal, the longest, is sixteen.
  */
 class GateViewFunnelSettingTest
 {

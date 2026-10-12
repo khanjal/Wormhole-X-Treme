@@ -12,8 +12,9 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 /**
  * A big gate's view of a small far gate, as a tunnel with the view at its end (#583).
  *
- * <p>The tunnel runs {@code taper} layers behind the opening, the opening itself its first,
- * narrowing from the near opening to the far one's size. It is hollow, walled two blocks thick in
+ * <p>The tunnel runs {@code taper} layers behind the opening, the opening itself its first. The
+ * next is the near opening's size still, and from it the tunnel narrows a block a layer to the far
+ * one's size. It is hollow, walled two blocks thick in
  * the near gate's portal material, and its last layer is the far gate's own plane, where the wall
  * ends in a collar round the far opening. The far room is drawn from the layer after, shifted that
  * much deeper ({@link WindowShape#deeper}), as much of it as the near opening sees through the far
@@ -31,8 +32,8 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  * @param far
  *            the far opening, through the window
  * @param taper
- *            how long the tunnel is, in layers counting the opening's own: as much as the opening
- *            narrows, at most {@code gate-view-funnel-length}
+ *            how long the tunnel is, in layers counting the opening's own and one more at its size: a
+ *            layer more than the opening narrows, at most {@code gate-view-funnel-length}
  * @param wall
  *            what is drawn round it: the near gate's portal material
  * @param nearShape
@@ -155,10 +156,11 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         // One grown to the least aperture ends on all of it, not its own few cells.
         final Set<Integer> farShape = own.equals(seen) ? cellsIn(shape, farCells, far) : cellsIn(shape, null, far);
         final Set<Integer> nearShape = cellsIn(shape, nearCells, null);
-        // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a Large.
+        // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a
+        // Large; and one longer still, for the layer behind the opening that is its own size.
         final int narrows = Math.max(shape.width() - ((far.right() - far.left()) + 1),
             shape.height() - ((far.top() - far.bottom()) + 1));
-        return new Funnel(shape.width(), shape.height(), far, Math.min(longest, narrows), wall, nearShape, farShape);
+        return new Funnel(shape.width(), shape.height(), far, Math.min(longest, narrows + 1), wall, nearShape, farShape);
     }
 
     /**
@@ -306,10 +308,10 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return inBox(layer, across, up, slack, plane);
         }
-        // In whole numbers, every edge times twice the tunnel's length, so a tie is a tie on both sides.
-        final long steps = Math.max(1, plane);
-        // A tunnel of the opening alone asks only of its opening, layer 0, so this is 0 there.
-        final long part = Math.max(0, layer);
+        // In whole numbers, every edge times twice the steps it narrows in, so a tie is a tie on both sides.
+        // The layer behind the opening is its size still: the narrowing starts from it.
+        final long steps = Math.max(1, plane - 1);
+        final long part = Math.max(0, layer - 1);
         final long left = far.left() * part;
         final long right = ((width - 1) * steps) + ((far.right() - (width - 1L)) * part);
         final long bottom = far.bottom() * part;
@@ -327,7 +329,7 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     /** Whether a cell is inside a tunnel layer's box widened by some blocks, for a stand-in already shown. */
     private boolean inBox(final int layer, final int across, final int up, final double slack, final int plane)
     {
-        final double part = (plane == 0) ? 0.0 : Math.max(0, layer) / (double) plane;
+        final double part = Math.max(0, layer - 1) / (double) Math.max(1, plane - 1);
         final double left = far.left() * part;
         final double right = (width - 1) + ((far.right() - (width - 1)) * part);
         final double bottom = far.bottom() * part;

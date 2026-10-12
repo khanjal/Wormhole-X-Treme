@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.block.Block;
 
@@ -50,5 +51,11 @@ public interface WindowSource
     default Funnel funnel()
     {
         return null;
+    }
+
+    /** @return its own blocks, which a funnel's wall leaves as they are: none for a source with no frame */
+    default Set<Spot> structure()
+    {
+        return Set.of();
     }
 }

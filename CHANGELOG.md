@@ -72,8 +72,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   own shape, shrinking as it goes until it is as small as the far opening at its end, walled two
   blocks thick in its portal material, and showing the far side as the small gate would, rather than
   running past the small gate's walls and ceiling; the
-  smaller the far gate, the longer the tunnel (three blocks from Large to Standard, twelve from
-  Massive to Standard); a far gate under three blocks each way, such as Minimal, is seen through a
+  smaller the far gate, the longer the tunnel (four blocks from Large to Standard, thirteen from
+  Massive to Standard, the first behind the opening at its own size); a far gate under three blocks each way, such as Minimal, is seen through a
   three-by-three opening, so its room shows. On by default; `gate-view-funnel: false` shows the whole view, and
   `gate-view-funnel-length` (16) is the longest a tunnel may be. Same-size and small-to-large pairs
   are unchanged.

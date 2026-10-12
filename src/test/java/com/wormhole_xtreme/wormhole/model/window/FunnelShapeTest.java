@@ -180,9 +180,10 @@ class FunnelShapeTest
         final Funnel funnel = funnel("Massive", "Standard");
         final int plane = funnel.taper() - 1;
 
-        assertEquals(12, funnel.taper(), "seventeen square to five narrows twelve");
+        assertEquals(13, funnel.taper(), "seventeen square to five narrows twelve, behind a layer its own size");
         assertEquals(keysOf(portalOf("Massive"), 0), layerOf(funnel, 0), "the near opening's own cells, corners left out");
         assertFalse(funnel.holds(0, 0, 0), "a corner of the box is the frame");
+        assertEquals(layerOf(funnel, 0), layerOf(funnel, 1), "the first layer behind it is the same shape, not a block smaller at once");
         assertEquals(keysOf(portalOf("Standard"), 6), layerOf(funnel, plane), "the far opening's own cells, on its middle columns");
     }
 
@@ -288,21 +289,23 @@ class FunnelShapeTest
     }
 
     /**
-     * A cross onto Standard at a length of three: the end of an arm is hollow on the first layer and
-     * out of the far opening on the next, more than two blocks from it, and not in the cross itself.
-     * Only the layer before walls it; without that, this world showed through the end of the arm.
+     * A cross onto Standard at a length of four: the end of an arm of the shrunk cross is hollow on the
+     * second layer and out of the far opening on the next, more than two blocks from it, and not in
+     * the cross itself. Only the layer before walls it; without that, this world showed through the
+     * end of the arm.
      */
     @Test
     void aCrossesArmIsWalledWhereItEndsAtAShortLength() throws IOException
     {
-        final Funnel funnel = funnel(cross(17), portalOf("Standard"), 3);
+        final Funnel funnel = funnel(cross(17), portalOf("Standard"), 4);
 
-        assertEquals(3, funnel.taper());
+        assertEquals(4, funnel.taper());
         assertEquals(keysOf(cross(17), 0), layerOf(funnel, 0), "the opening is the cross alone, not the far cells it lacks");
-        assertTrue(funnel.hollow(1, 3, 5), "the end of the left arm, hollow on the first layer");
+        assertTrue(funnel.hollow(1, 0, 8), "the first layer is the cross at its own size");
+        assertTrue(funnel.hollow(2, 3, 5), "the end of the left arm, shrunk, hollow on the second layer");
         assertTrue(funnel.hollow(1, 6, 1), "a far cell the cross lacks, held from the first layer on");
-        assertFalse(funnel.holds(2, 3, 5) || funnel.holds(0, 3, 5), "out of the far opening, and of the cross");
-        assertTrue(funnel.wall(2, 3, 5), "so walled from the layer before");
+        assertFalse(funnel.holds(3, 3, 5) || funnel.holds(1, 3, 5), "out of the far opening, and of the cross");
+        assertTrue(funnel.wall(3, 3, 5), "so walled from the layer before");
         for (int layer = 1; layer < funnel.taper(); layer++)
         {
             checkLayer(funnel, layer, "cross to Standard");
@@ -436,8 +439,8 @@ class FunnelShapeTest
         funnel.forEachWall(64, (layer, across, up) -> blocks[0]++);
         funnel.forEachHollow(64, (layer, across, up) -> blocks[0]++);
 
-        assertEquals(13, funnel.taper());
-        assertTrue((blocks[0] > 1000) && (blocks[0] < 6000), blocks[0] + " blocks of wall and hollow");
+        assertEquals(14, funnel.taper());
+        assertTrue((blocks[0] > 1000) && (blocks[0] < 7000), blocks[0] + " blocks of wall and hollow");
     }
 
     /** Every cell of a box, as {@code across * 100 + up}. */
@@ -480,15 +483,15 @@ class FunnelShapeTest
     {
         final Funnel massive = funnel("Massive", "Minimal");
         assertEquals(new Funnel.Opening(7, 9, 0, 2), massive.far(), "three by three about Minimal's column, on its row");
-        assertEquals(14, massive.taper(), "as long as seventeen narrows to three, not to one");
+        assertEquals(15, massive.taper(), "as long as seventeen narrows to three, not to one, and the layer its own size");
         assertEquals(boxOf(massive.far()), farKeys(massive), "the tunnel ends on the whole aperture");
         assertTrue(layerOf(massive, 5).containsAll(boxOf(massive.far())), "and holds it all the way");
         assertArrayEquals(new int[] { 5, 6 }, spanOf(massive, massive.taper(), 1, 8), "five across and six up on the room's first layer");
 
         final Funnel large = funnel("Large", "Minimal");
         assertEquals(new Funnel.Opening(2, 4, 0, 2), large.far());
-        assertEquals(5, large.taper());
-        assertArrayEquals(new int[] { 6, 6 }, spanOf(large, large.taper(), 1, 3), "six across and up through a shorter tunnel");
+        assertEquals(6, large.taper());
+        assertArrayEquals(new int[] { 5, 6 }, spanOf(large, large.taper(), 1, 3), "five across and six up through a shorter tunnel");
     }
 
     /** A far opening three by three already is its own cells at the tunnel's end, a corner it lacks included. */
@@ -537,5 +540,22 @@ class FunnelShapeTest
                 checkLayer(funnel, layer, "Massive to Minimal at " + length);
             }
         }
+    }
+
+    /**
+     * Standard onto Minimal: the opening, a layer at its own size, then the three-by-three aperture,
+     * and the room from the fourth layer.
+     *
+     * <p>Seen in a world: the tunnel went from Standard's five straight to three on its first layer.
+     */
+    @Test
+    void aStandardGateOntoAMinimalOneHoldsItsSizeALayerBeforeNarrowing() throws IOException
+    {
+        final Funnel funnel = funnel("Standard", "Minimal");
+
+        assertEquals(3, funnel.taper(), "the opening, its size again, the aperture");
+        assertEquals(keysOf(portalOf("Standard"), 0), layerOf(funnel, 1), "Standard's own cells on the first layer");
+        assertEquals(boxOf(new Funnel.Opening(1, 3, 0, 2)), layerOf(funnel, 2), "the three by three on the second");
+        assertTrue(funnel.shows(3, 2, 1, 0.0) && !funnel.shows(2, 2, 1, 0.0), "the room from the third");
     }
 }

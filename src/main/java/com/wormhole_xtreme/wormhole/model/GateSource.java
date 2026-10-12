@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.block.Block;
 
@@ -111,6 +113,21 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
     public boolean walkThrough()
     {
         return true;
+    }
+
+    /**
+     * The gate's frame, looked up as asked: a Massive or Grand gate's ring stands a block behind its
+     * opening, where the tunnel's wall would otherwise be drawn over it (#583).
+     *
+     * @return its frame blocks; none for a gate no longer known
+     */
+    @Override
+    public Set<Spot> structure()
+    {
+        // Named by GateViews as "gate:" and the gate's name.
+        final Stargate gate = StargateManager.getStargate(name.substring(name.indexOf(':') + 1));
+        return (gate == null) ? Set.of() : gate.getGateStructureBlocks().stream()
+            .map(block -> new Spot(block.getBlockX(), block.getBlockY(), block.getBlockZ())).collect(Collectors.toSet());
     }
 
     /**

@@ -262,8 +262,8 @@ class GateViewsSweepTest
         // Eighteen by seventeen to three by four narrows fifteen: the far side fourteen layers deeper, the plane its last.
         sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() != null)
             && (window.funnel().far().left() == 7) && (window.funnel().far().right() == 9) && (window.funnel().far().top() == 3)
-            && (window.funnel().taper() == 15) && (window.funnel().wall() == Material.LAVA)
-            && (window.shape().far().z() == (200 - 14))), anyBoolean()));
+            && (window.funnel().taper() == 16) && (window.funnel().wall() == Material.LAVA)
+            && (window.shape().far().z() == (200 - 15))), anyBoolean()));
 
         ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 4);
         GateViews.offerAll();

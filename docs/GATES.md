@@ -715,11 +715,14 @@ trade-off: a far side out in the open shows more of itself the further it goes, 
 and the real world round that room, which only the tunnel's water stands in front of, shows through
 the water from inside the tunnel.
 
-**How long the tunnel is.** A block longer for each block the far opening is narrower, by whichever
-of its width and height narrows more: Large to Standard three, Massive to Standard twelve, Grand to
-Standard thirteen, Massive to Large nine, Grand to Large ten, and Grand to Massive, a block narrower,
-one, the opening itself, with the room straight behind it. `gate-view-funnel-length`, 16 by default,
-is the longest allowed, set so no shipped pair is cut short. The depth is still measured from this
+**How long the tunnel is.** The layer behind the opening is the opening's own size, so the tunnel
+does not look a block smaller at once; from it the tunnel narrows a block a layer, a block longer for
+each block the far opening is narrower, by whichever of its width and height narrows more. Counting
+the opening's own layer: Large to Standard four, Standard to Minimal three, Massive to Large ten,
+Grand to Large eleven, Massive to Standard thirteen, Grand to Standard fourteen, Massive to Minimal
+fifteen, Grand to Minimal sixteen, and Grand to Massive, a block narrower, two: the opening, then
+the far plane. `gate-view-funnel-length`, 16 by default, is the longest allowed, set so no shipped
+pair is cut short; at 1 a tunnel is the opening alone and the view is the plain one. The depth is still measured from this
 gate's opening, so the far room shows `gate-view-depth` less the tunnel; a depth no longer than the
 tunnel shows the tunnel alone.
 
@@ -730,8 +733,12 @@ and upwards from its bottom row, so the ground at the end stays level with where
 Through a Minimal gate's one by two the lines through both openings were a sliver and the room all
 but invisible; through three by three, Massive's first layer of room is five across and six up. The
 tunnel ends on the whole aperture, not the far gate's own two cells, and its length is reckoned from
-it: Massive to Minimal fourteen, Large to Minimal five. A far opening already three each way is its
+it: Massive to Minimal fifteen, Large to Minimal six, Standard to Minimal three. A far opening already three each way is its
 own cells, as before.
+
+**The gate's own frame.** A Massive or Grand gate's portal stands between two rings of frame, so one
+ring is a block behind the opening, beside the tunnel's first layer. The tunnel's wall is not drawn
+over any block of the gate's own frame (`WindowSource.structure`); the ring is left as built.
 
 **Where it lines up.** The far opening is placed where the far gate's own portal cells show through
 the window (`Funnel.of`): on the column travellers land on and standing on the row they land on, so a
