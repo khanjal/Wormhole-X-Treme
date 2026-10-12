@@ -9,6 +9,11 @@ filled in on 2026-10-12. The values are what was recommended for each field then
 marked **(check)** is a value that depends on a list the form offered and that was not read back,
 so correct it here from the live page.
 
+**BukkitDev is the same project.** CurseForge runs dev.bukkit.org, and a project in the Bukkit
+Plugins class shows there too, at <https://dev.bukkit.org/projects/wormhole-x-treme>. There is no
+separate BukkitDev form; whatever is set here is what that page shows. Link both, since some
+server owners still look on bukkit.org first.
+
 **The description is Modrinth's.** CurseForge takes Markdown, and Modrinth's description already
 carries no logo, so the page is the Markdown block in [`modrinth.md`](modrinth.md#description) as
 it stands. Do not copy it into this file: a fourth parallel text is one more to forget. When the

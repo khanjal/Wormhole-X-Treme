@@ -15,7 +15,8 @@ Three are published and the fourth awaits approval:
 [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
 [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) ·
 [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) ·
-[CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme). Editing a file here does not change
+[CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme), which also
+appears on [BukkitDev](https://dev.bukkit.org/projects/wormhole-x-treme). Editing a file here does not change
 a live page; it records what the page should say, and somebody still has to paste it.
 
 Nothing here is generated. The three site files are parallel texts, not renders of `shared.md`,

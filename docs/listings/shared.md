@@ -33,6 +33,7 @@ SpigotMC, Modrinth and Hangar were published on 2026-09-19. CurseForge was submi
 | Modrinth | <https://modrinth.com/plugin/wormhole-x-treme> (slug `wormhole-x-treme`) |
 | Hangar | <https://hangar.papermc.io/khanjal/Wormhole-X-Treme> |
 | CurseForge | <https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme> (slug `wormhole-x-treme`) |
+| BukkitDev | <https://dev.bukkit.org/projects/wormhole-x-treme> — the same CurseForge project, shown on dev.bukkit.org. Nothing to fill in separately. |
 
 These are live pages with real readers, so a change here is a change to something published.
 Edit the file, then carry it to the site — the file is the record of what *should* be there, not
