@@ -336,7 +336,6 @@ public final class Windows
         lines.add(MirrorText.heading("your view"));
         lines.add(MirrorText.field("server", ACTIVE.size() + " window(s), " + VIEWS.size() + " viewer(s)"));
         lines.add(MirrorText.field("depth", ConfigManager.getViewDepth() + " from the opening (view-depth)"));
-        lines.add(MirrorText.field("fog", fogState(player)));
         final ViewerDrawing view = VIEWS.get(player.getUniqueId());
         if (BLIND.contains(player.getUniqueId()))
         {
@@ -395,10 +394,6 @@ public final class Windows
         if (BLIND.contains(player.getUniqueId()))
         {
             lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug -on turns them back on"));
-        }
-        if (ViewFog.enabled())
-        {
-            lines.add(MirrorText.field("fog", fogState(player)));
         }
         final ViewerDrawing view = VIEWS.get(player.getUniqueId());
         if (view == null)
@@ -491,33 +486,6 @@ public final class Windows
         return lines;
     }
 
-    /**
-     * What the fog at a mirror's depth is doing for one viewer, for {@code mirror debug}.
-     *
-     * <p>The feature is invisible by design -- a room ending in fog looks like a room that ends
-     * -- so without a line saying whether it engaged there is no way to tell it from a shallow
-     * depth on a server that never had the method.
-     */
-    private static String fogState(final Player player)
-    {
-        if (!ViewFog.enabled())
-        {
-            return "off";
-        }
-        if (!ViewFog.available())
-        {
-            return MirrorText.bad("on, but this server has no Player.setSendViewDistance")
-                + ", which is Paper's";
-        }
-        final UUID id = player.getUniqueId();
-        if (ViewFog.narrowed(id))
-        {
-            return MirrorText.good("pulled in to " + ViewFog.narrowedTo(id) + " chunk(s)")
-                + ", from " + ViewFog.wasSent(id);
-        }
-        return "on, nothing pulled in: this client is already sent no further than the room reaches";
-    }
-
     /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
     private static String howDrawn(final WindowState window, final boolean fixedForViewer)
     {
@@ -595,7 +563,6 @@ public final class Windows
         WindowSight.clear();
         BLIND.clear();
         FULL.clear();
-        ViewFog.clear();
         Captures.clear();
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
@@ -1037,10 +1004,6 @@ public final class Windows
                 stream(player, entry.getValue(), Integer.MAX_VALUE);
                 veil(player, entry.getValue(), List.of());
             }
-            // Outside that: the fog is the player's own and not the world's, so it goes back
-            // wherever they are standing now. Blocks drawn in a world they have left are already
-            // gone, but a narrowed send distance would follow them out of it.
-            ViewFog.restore(entry.getKey(), player);
         }
         clear();
     }
@@ -1143,8 +1106,6 @@ public final class Windows
             view = new ViewerDrawing(player.getWorld());
             VIEWS.put(id, view);
         }
-        // Before any early return, so a fog setting changed mid-view still reaches the viewer.
-        ViewFog.apply(player, deepest(seeing));
         final long chunk = chunkOf(eye);
         final boolean crossed = view.chunk != chunk;
         seeing.forEach(window -> refreshSolid(window, now));
@@ -1245,12 +1206,11 @@ public final class Windows
     }
 
     /**
-     * Forgets a viewer's drawing, and gives back the fog a mirror pulled in for it.
+     * Forgets a viewer's drawing.
      *
      * <p>Every ending goes through here. A view ends in four places -- the eye moving to a world
      * with no window in it, a redraw finding nothing left to draw, and either half of the stream
-     * running out -- and a narrowed viewer who slipped out through one of them would keep a
-     * mirror's fog for the rest of their session.
+     * running out.
      *
      * @param id
      *            whose view it was
@@ -1264,7 +1224,6 @@ public final class Windows
         {
             StandIns.removeAll(view);
         }
-        ViewFog.restore(id, player);
         // In the same world the last redraw already said what they are drawn; elsewhere it is all gone.
         if ((player == null) || ((view != null) && !view.world.equals(player.getWorld())))
         {

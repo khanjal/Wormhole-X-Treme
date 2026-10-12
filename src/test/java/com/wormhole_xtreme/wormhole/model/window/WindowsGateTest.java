@@ -454,8 +454,8 @@ class WindowsGateTest
      * An old capture is retaken as the gate opens at the depth it is drawn to, not the first step's.
      *
      * <p>Retaken at the first step, a view drawn to its full depth shrank back to it for as long as
-     * the fill took -- the far part gone, this world showing past the near part -- and pulled a
-     * fogged viewer's chunks in and out with it, every time the gate opened.
+     * the fill took -- the far part gone, this world showing past the near part -- every time the
+     * gate opened.
      */
     @Test
     void anOldCaptureIsRetakenAtTheDepthItIsDrawnTo()

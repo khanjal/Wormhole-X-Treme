@@ -7,8 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.World;
-import org.bukkit.entity.Player;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -24,21 +22,6 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
 @EnabledIfSystemProperty(named = "server.api", matches = "paper")
 class PaperApiTest
 {
-    @AfterEach
-    void tearDown()
-    {
-        ViewFog.sendDistanceWith(null);
-    }
-
-    @Test
-    void theFogFindsPapersSendViewDistance() throws NoSuchMethodException
-    {
-        ViewFog.sendDistanceWith(null);
-
-        assertTrue(ViewFog.available(), "a mirror's fog would do nothing on Paper");
-        assertEquals(int.class, Player.class.getMethod("getSendViewDistance").getReturnType());
-    }
-
     /** Paper loads the chunks held for a view's creatures off the main thread, asking for each held chunk not to be generated. */
     @Test
     void theChunkHoldsFindPapersAsyncChunkLoad() throws NoSuchMethodException

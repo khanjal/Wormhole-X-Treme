@@ -650,10 +650,10 @@ the half-minute resend stands behind both. `mirror debug` says `still to send` w
 going. Not measured on a server yet; the tests are `aRoomBiggerThanATickIsStreamedIn...`,
 `aRoomIsTakenBackATickAtATime...` and `aChunkCrossingSendsAgainOnly...` in `WindowsTest`.
 
-### Built, then switched off: the far edge in the client's own fog
+### Built, then removed: the far edge in the client's own fog
 
-Paper only, and off since 1.11.0, when its setting, `mirror-fog-at-depth`, was removed; the code
-stays but nothing turns it on. What follows is how it worked. A viewer being drawn a room has
+Paper only, and removed in 1.11.0 with its setting, `mirror-fog-at-depth`. What follows is how it
+worked. A viewer being drawn a room has
 `Player.setSendViewDistance` set to the room's depth in chunks and a chunk over for the edge, and
 it is put back the moment they are no longer being drawn one. The far edge is then the client's
 own fog rather than anything this plugin drew, which is what the sky wall was faking, and it

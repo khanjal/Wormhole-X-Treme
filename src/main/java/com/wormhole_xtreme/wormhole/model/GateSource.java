@@ -192,7 +192,7 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
         else if (opened && (capture.secondsOld() > retakeAfter(capture)))
         {
             // Retaken at the depth it is drawn to, so the view does not shrink to the first step for
-            // as long as the fill takes, and pull a fogged viewer's chunks in and out with it.
+            // as long as the fill takes.
             ask = drawDepth(capture);
         }
         else
