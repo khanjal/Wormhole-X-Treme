@@ -66,6 +66,8 @@ through is a release nobody reads.
 - A gate's view is drawn from a window source, not as a stand-in mirror.
 - The build no longer fails at random with a corrupt-zip error.
 
+[Back to top](#changelog)
+
 ## 1.9.0 (2026-10-03)
 
 ### For server admins
@@ -163,6 +165,8 @@ through is a release nobody reads.
 - **A test fails if Spigot-only API is used outside the classes that isolate it.** CraftBukkit
   has no `spigot()`, `net.md_5` or `org.spigotmc`, and no CI job builds against it.
 
+[Back to top](#changelog)
+
 ## 1.8.1 (2026-09-28)
 
 ### For server admins
@@ -220,6 +224,8 @@ through is a release nobody reads.
 
 - The travel boot test now also rides a ring pair with an item and a pig, and makes a mirror from
   the console and finds it again after a restart, on Paper 1.20.4, 1.21.11 and 26.3.
+
+[Back to top](#changelog)
 
 ## 1.8.0 (2026-09-26)
 
@@ -400,6 +406,8 @@ The plugin API is in [docs/API.md](docs/API.md).
   through a gate, a beam, a ring and a mirror, a pet following through a gate and a beam, the
   iris and its code, and redstone dialling are tested end to end there.
 
+[Back to top](#changelog)
+
 ## 1.7.1 (2026-09-19)
 
 **Upgrading: take the new `Massive.shape`, then regenerate each `Massive` gate.**
@@ -438,6 +446,8 @@ The plugin API is in [docs/API.md](docs/API.md).
 
 - **`/version WormholeXTreme` says when the jar was built**, in UTC, under the description, so two
   builds of one version can be told apart.
+
+[Back to top](#changelog)
 
 ## 1.7.0 (2026-09-19)
 
@@ -587,6 +597,8 @@ Longer explanations are in [docs/GATES.md](docs/GATES.md) and [docs/guide/](docs
   `mvn test` runs tests instead of downloading the build. Local checkouts are unaffected.
 - **`gate import` is tested against a real SQLite database**, with `sqlite-jdbc` as a test-only
   dependency; the jar still uses the server's driver.
+
+[Back to top](#changelog)
 
 ## 1.6.0 (2026-09-16)
 
@@ -830,6 +842,8 @@ was chosen for scaling with how much exists rather than with how much is happeni
 - **Gate shapes and `config.yml` were looked for in the working directory** rather than the folder
   the server names.
 
+[Back to top](#changelog)
+
 ## 1.5.0 (2026-09-09)
 
 Not a feature release. Rings arrived in 1.3.0 and beaming in 1.4.0; this is the release that
@@ -906,6 +920,8 @@ confidence.
 - Three bugs in the list above were found by writing tests rather than by anybody hitting them.
   Two more turned out to be in methods nothing called, which is how the dead code was noticed.
 
+[Back to top](#changelog)
+
 ## 1.4.0 (2026-09-05)
 
 Beaming: a third way to travel, with no structure to build and nothing to dial. Three large gate
@@ -950,6 +966,8 @@ shapes and palette are additions rather than changes to existing gates.
 
 - `BeamAnimation.Sequence` was split so every phase boundary and quantity can be tested without
   a running server, the same way the ring subsystem was split earlier.
+
+[Back to top](#changelog)
 
 ## 1.3.0 (2026-09-03)
 
@@ -1007,6 +1025,8 @@ breaking change for plugin developers: `StargateMinecartTeleportEvent` moved fro
   facing, so a gate that landed travellers at its side can be corrected.
 - The README is now for server owners; the plugin-developer material moved to docs/API.md.
 
+[Back to top](#changelog)
+
 ## 1.2.0 (2026-09-02)
 
 One jar covers Minecraft 1.20 through 1.21.10, and the range is measured rather than
@@ -1042,6 +1062,8 @@ run Java 21** -- that is the server's requirement, not this plugin's, and the ja
 
 Nothing here has been runtime-verified on a live server of any version. CI proves the plugin
 compiles and its tests pass against each API, not that a gate behaves correctly in game.
+
+[Back to top](#changelog)
 
 ## 1.1.0 (2026-09-01)
 
@@ -1104,6 +1126,8 @@ groups in `config.yml`, chosen by what a gate is built from.
 - The jar bundles nothing and has no runtime dependencies: **15.3 MB to under 300 KB**.
 - Shutdown logs one summary line rather than one per gate.
 
+[Back to top](#changelog)
+
 ## 1.0.0 (2026-05-14)
 
 An internal milestone of this fork. Never tagged and never released -- the first published
@@ -1131,8 +1155,12 @@ release is 1.1.0, and much of the storage work below was removed again there.
 - Improved startup diagnostics and storage initialization logging.
 - Fixed a number of persistence and teleport UX issues (teleport bounce mitigation and gate activation mapping fixes).
 
+[Back to top](#changelog)
+
 ## 0.x (2011, upstream)
 
 The original plugin's releases, from January to May 2011, are in
 [CHANGELOG-ORIGINAL-2011.md](CHANGELOG-ORIGINAL-2011.md). They are kept verbatim: they are somebody else's release notes
 and the record of where this fork came from.
+
+[Back to top](#changelog)
