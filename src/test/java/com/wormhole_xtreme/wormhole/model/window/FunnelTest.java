@@ -496,6 +496,8 @@ class FunnelTest
         assertTrue(drawn.isEmpty(), "nothing hollow or walled behind the opening");
         assertTrue(funnel.shows(1, 5, 1, 0.0), "the room from the first layer");
         assertTrue(funnel.shows(1, -5, 30, 0.0), "all of it: no far opening stands in front of it");
+        assertTrue(funnel.shows(1, 5, 1, 1.0), "a stand-in already shown, too");
+        assertFalse(funnel.shows(0, 5, 1, 1.0), "but never in the opening itself, even held");
     }
 
     /** A far gate three wide and four tall, a block behind an arrival facing a yaw, across the way it faces. */

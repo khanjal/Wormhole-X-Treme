@@ -154,7 +154,7 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         }
         // Only those inside the near opening: a far gate taller or wider than it is cut to it, as its box is.
         // One grown to the least aperture ends on all of it, not its own few cells.
-        final Set<Integer> farShape = own.equals(seen) ? cellsIn(shape, farCells, far) : cellsIn(shape, null, far);
+        final Set<Integer> farShape = cellsIn(shape, own.equals(seen) ? farCells : null, far);
         final Set<Integer> nearShape = cellsIn(shape, nearCells, null);
         // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a
         // Large; and one longer still, for the layer behind the opening that is its own size.
@@ -284,12 +284,13 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /**
-     * The same, with every edge moved out by some blocks: for a stand-in already shown, so one on the
-     * edge is not taken away and shown again as it steps across it.
+     * The same, with the room's edges moved out by some blocks: for a stand-in already shown, so one on
+     * the edge is not taken away and shown again as it steps across it. The tunnel and the far gate's
+     * plane are not widened: nothing stands in their walls.
      *
      * @param slack
-     *            how far out each edge is moved
-     * @return true if the cell is inside the widened tunnel or room
+     *            how far out each of the room's edges is moved
+     * @return true if the cell is inside the tunnel or the widened room
      */
     public boolean holds(final int layer, final int across, final int up, final double slack)
     {
@@ -303,10 +304,6 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             // The far gate's plane is its opening, slack or none: its frame is the collar, where nothing stands.
             return farShape.contains(cellKey(across, up));
-        }
-        if (slack > 0.0)
-        {
-            return inBox(layer, across, up, slack, plane);
         }
         // In whole numbers, every edge times twice the steps it narrows in, so a tie is a tie on both sides.
         // The layer behind the opening is its size still: the narrowing starts from it.
@@ -324,18 +321,6 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         // Never narrower than the far opening it ends on, so no far cell is left in a pocket of wall.
         return ((layer > 0) && farShape.contains(cellKey(across, up)))
             || nearShape.contains(cellKey(sample(across * steps, left, right, width), sample(up * steps, bottom, top, height)));
-    }
-
-    /** Whether a cell is inside a tunnel layer's box widened by some blocks, for a stand-in already shown. */
-    private boolean inBox(final int layer, final int across, final int up, final double slack, final int plane)
-    {
-        final double part = Math.max(0, layer - 1) / (double) Math.max(1, plane - 1);
-        final double left = far.left() * part;
-        final double right = (width - 1) + ((far.right() - (width - 1)) * part);
-        final double bottom = far.bottom() * part;
-        final double top = (height - 1) + ((far.top() - (height - 1)) * part);
-        return ((across + 0.5) >= (left - slack)) && ((across - 0.5) <= (right + slack)) && ((up + 0.5) >= (bottom - slack))
-            && ((up - 0.5) <= (top + slack));
     }
 
     /**
@@ -409,7 +394,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
      */
     public boolean shows(final int layer, final int across, final int up, final double slack)
     {
-        return ((layer + slack) >= taper) && holds(layer, across, up, slack);
+        // Never in the opening itself, which is the near gate's.
+        return (layer >= 1) && ((layer + slack) >= taper) && holds(layer, across, up, slack);
     }
 
     /**
