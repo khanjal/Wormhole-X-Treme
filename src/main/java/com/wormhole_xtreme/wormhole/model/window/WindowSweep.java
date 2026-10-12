@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -29,6 +31,9 @@ public final class WindowSweep
     {
     }
 
+    /** The failures of {@link #alsoOffer} already logged. */
+    private static final Set<String> OFFER_WARNED = ConcurrentHashMap.newKeySet();
+
     /** Offers whatever else is drawn as a window, before the sweep settles them: open gates (#516). */
     private static Runnable alsoOffer = () ->
     {
@@ -56,6 +61,7 @@ public final class WindowSweep
     /** Forgets every view, for a test or a reload. */
     public static void clear()
     {
+        OFFER_WARNED.clear();
         Windows.clear();
     }
 
@@ -118,7 +124,12 @@ public final class WindowSweep
         catch (final Exception | LinkageError e)
         {
             // An experiment's failure must not freeze every mirror's view, which finish() is what moves on.
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not offer gate views to the mirror sweep", e);
+            // Once per kind of failure: it is met again every second.
+            final String key = e.getClass().getName() + " " + e.getMessage();
+            if (OFFER_WARNED.add(key))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not offer gate views to the mirror sweep (said once)", e);
+            }
         }
         // Windows share walls, so they are drawn together once every one has been found. A
         // window not offered this sweep -- broken, taken down, re-hung on a post -- drops out.

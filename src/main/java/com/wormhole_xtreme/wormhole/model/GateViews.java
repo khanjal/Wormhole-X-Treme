@@ -21,6 +21,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.StargateBlockSetup.Redrawn;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Funnel;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -71,6 +72,9 @@ public final class GateViews
     /** When each gate was last looked at for somebody standing at it, by name. */
     private static final Map<String, Long> LOOKED = new HashMap<>();
 
+    /** The failures already logged, once each: the sweep runs every second. */
+    private static final Set<String> WARNED = new HashSet<>();
+
     private GateViews()
     {
     }
@@ -83,6 +87,7 @@ public final class GateViews
         OWED.clear();
         OPEN.clear();
         LOOKED.clear();
+        WARNED.clear();
     }
 
     /**
@@ -347,7 +352,7 @@ public final class GateViews
             }
             if (draws)
             {
-                offer(gate, crossing, "open".equals(level), open, clear);
+                offerGuarded(gate, crossing, "open".equals(level), open, clear);
             }
         }
         OPEN.clear();
@@ -356,6 +361,42 @@ public final class GateViews
         if (draws)
         {
             refreshWatched(System.currentTimeMillis());
+        }
+    }
+
+    /**
+     * Offers one gate, so a failure loses only its view, which keeps its horizon, and is logged
+     * once rather than every sweep: a stale {@code gate-view-funnel: 8} threw for every gate,
+     * every second, and no gate showed a view (#583).
+     */
+    private static void offerGuarded(final Stargate gate, final boolean crossing, final boolean clears,
+        final Set<String> open, final Set<String> clear)
+    {
+        try
+        {
+            offer(gate, crossing, clears, open, clear);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            // Not open this sweep, so the next that offers it treats it as newly opened: one retake at most.
+            open.remove(gate.getGateName());
+            clear.remove(gate.getGateName());
+            failedOnce("Could not offer " + gate.getGateName() + "'s view to the mirror sweep", e);
+        }
+    }
+
+    /** Logs a failure once for each kind and place it happens, with what was being done. */
+    static void failedOnce(final String what, final Throwable failure)
+    {
+        final StackTraceElement[] trace = failure.getStackTrace();
+        final String where = (trace.length == 0) ? "" : trace[0].toString();
+        if (WARNED.add(failure.getClass().getName() + " " + failure.getMessage() + " " + where))
+        {
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, what + " (said once)", failure);
+            }
         }
     }
 
@@ -444,9 +485,13 @@ public final class GateViews
         final List<Spot> open = cellsOf(gate);
         final Spot middle = middleOf(open);
         final Stargate target = gate.getGateTarget();
+        final Funnel funnel = Funnel.of(shape, open, cellsOf(target), ConfigManager.getGateViewFunnelLongest(),
+            gate.getEffectivePortalMaterial());
+        // The far gate's plane is the tunnel's last layer, and the room past it starts on the next.
+        final WindowShape drawn = (funnel == null) ? shape : shape.deeper(funnel.taper() - 1);
         return new GateSource(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(middle.x(), middle.y(), middle.z()),
-            shape, open, Place.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
-            ConfigManager.getGateViewDepth());
+            drawn, open, Place.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
+            ConfigManager.getGateViewDepth(), funnel);
     }
 
     /**

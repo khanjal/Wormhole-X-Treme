@@ -1,11 +1,14 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.block.Block;
 
 import com.wormhole_xtreme.wormhole.model.window.Capture;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Funnel;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -32,9 +35,11 @@ import com.wormhole_xtreme.wormhole.model.window.Windows;
  *            how far past the opening the first step of its capture reaches: {@code gate-view-depth}
  * @param depth
  *            how far past the opening its view is drawn, from the capture it has
+ * @param funnel
+ *            what its view narrows to for a smaller far gate, or null for the whole view (#583)
  */
 public record GateSource(String name, Block anchor, WindowShape shape, List<Spot> open, Place destination,
-    String target, int step, int depth) implements WindowSource
+    String target, int step, int depth, Funnel funnel) implements WindowSource
 {
     /**
      * A gate's capture of its first step alone, older than this, is retaken as the gate is dialled or
@@ -73,7 +78,19 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
     public GateSource(final String name, final Block anchor, final WindowShape shape, final List<Spot> open,
         final Place destination, final String target, final int step)
     {
-        this(name, anchor, shape, open, destination, target, step, step);
+        this(name, anchor, shape, open, destination, target, step, null);
+    }
+
+    /**
+     * The same, its view narrowed to a funnel.
+     *
+     * @param funnel
+     *            what its view narrows to, or null for the whole view
+     */
+    public GateSource(final String name, final Block anchor, final WindowShape shape, final List<Spot> open,
+        final Place destination, final String target, final int step, final Funnel funnel)
+    {
+        this(name, anchor, shape, open, destination, target, step, step, funnel);
     }
 
     /** @return the key its capture is kept under: the far gate's one, seen through the largest opening */
@@ -89,13 +106,28 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
      */
     private GateSource drawnTo(final int drawn)
     {
-        return new GateSource(name, anchor, shape, open, destination, target, step, drawn);
+        return new GateSource(name, anchor, shape, open, destination, target, step, drawn, funnel);
     }
 
     @Override
     public boolean walkThrough()
     {
         return true;
+    }
+
+    /**
+     * The gate's frame, looked up as asked: a Massive or Grand gate's ring stands a block behind its
+     * opening, where the tunnel's wall would otherwise be drawn over it (#583).
+     *
+     * @return its frame blocks; none for a gate no longer known
+     */
+    @Override
+    public Set<Spot> structure()
+    {
+        // Named by GateViews as "gate:" and the gate's name.
+        final Stargate gate = StargateManager.getStargate(name.substring(name.indexOf(':') + 1));
+        return (gate == null) ? Set.of() : gate.getGateStructureBlocks().stream()
+            .map(block -> new Spot(block.getBlockX(), block.getBlockY(), block.getBlockZ())).collect(Collectors.toSet());
     }
 
     /**

@@ -74,6 +74,17 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **At `gate-view: open` the horizon clears only for whoever is drawn the view** (#516): from behind
   the gate, from too far off, or with no clear line into it, a gate shows its own portal material
   as usual rather than an empty ring.
+- **A big gate dialling a small one shows the view at the end of a tunnel**
+  ([#583](https://github.com/khanjal/Wormhole-X-Treme/issues/583)): with `gate-view` on, the far
+  side appears through an opening the small gate's size at the end of a hollow tunnel in the gate's
+  own shape, shrinking as it goes until it is as small as the far opening at its end, walled two
+  blocks thick in its portal material, and showing the far side as the small gate would, rather than
+  running past the small gate's walls and ceiling; the
+  smaller the far gate, the longer the tunnel (four blocks from Large to Standard, thirteen from
+  Massive to Standard, the first behind the opening at its own size); a far gate under three blocks each way, such as Minimal, is seen through a
+  three-by-three opening, so its room shows. On by default; `gate-view-funnel: false` shows the whole view, and
+  `gate-view-funnel-length` (16) is the longest a tunnel may be. Same-size and small-to-large pairs
+  are unchanged.
 - **Gate preview actions can be clicked**: after `gate build`, each one is a button, `[Clear]`
   to `[Place]`, that says what it does when pointed at. `[Material]` fills the chat box in rather
   than running, since it needs a group or a block after it, and a refusal that names a command

@@ -191,7 +191,9 @@ It stays while you keep looking, and only the mirror under your crosshair speaks
 ## Settings
 
 In `config.yml` under `# --- Gate views and mirrors ---`, which also holds the gate views
-(`gate-view`, `gate-view-depth` and `gate-view-full-depth`, first, under `# -- Gate views --`).
+(`gate-view`, `gate-view-depth`, `gate-view-full-depth`, `gate-view-funnel` and
+`gate-view-funnel-length`, first, under `# -- Gate views --`; the funnel two are in
+[GATES.md](GATES.md#a-big-gate-onto-a-small-one)).
 The mirror settings follow in three runs, each under its own `# -- ... --` sub-heading.
 
 ### Mirror views

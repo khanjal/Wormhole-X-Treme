@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -99,7 +100,8 @@ public class ConfigurationYAML
             }
             final Map<String, Object> map = YamlMaps.asMap(loaded);
 
-            final List<Setting> missing = applySettings(map);
+            final Map<String, Object> rewritten = new LinkedHashMap<>();
+            final List<Setting> missing = applySettings(map, rewritten);
 
             // Material groups are a nested section, so they are read straight off the parsed
             // YAML rather than through the flat Setting/ConfigKeys mechanism. A file without the
@@ -114,6 +116,11 @@ public class ConfigurationYAML
             if (map.keySet().stream().anyMatch(RENAMED::containsKey))
             {
                 renameOldKeys(cfg);
+            }
+            // A number left under what is now a switch is written back as the switch it was read as.
+            if (!rewritten.isEmpty())
+            {
+                rewriteValues(cfg, rewritten);
             }
             // Appended to the file as well as defaulted in memory, so an admin can see the
             // setting exists and change it.
@@ -137,30 +144,45 @@ public class ConfigurationYAML
      *
      * @param map
      *            the parsed config file
+     * @param rewritten
+     *            filled with each key, as the file spells it, whose value is to be written back in its
+     *            setting's kind
      * @return the settings the file did not mention, which the caller appends to it
      */
-    private static List<Setting> applySettings(final Map<String, Object> map)
+    private static List<Setting> applySettings(final Map<String, Object> map, final Map<String, Object> rewritten)
     {
         final List<Setting> missing = new ArrayList<>();
         for (final Setting element : DefaultSettings.config)
         {
-            final Object value = valueFor(map, element);
+            final String key = keyFor(map, element);
+            final Object value = (key == null) ? null : map.get(key);
             if (value == null)
             {
-                ConfigManager.getConfigurations().put(element.getName(), element);
+                // A copy, so a later /wormhole config changes this server's setting and not the default.
+                ConfigManager.getConfigurations().put(element.getName(), copyOf(element));
                 missing.add(element);
             }
             else
             {
                 final Setting s = settingFrom(element, value);
                 ConfigManager.getConfigurations().put(s.getName(), s);
+                if ((value instanceof Number) && (s.getValue() instanceof Boolean))
+                {
+                    rewritten.put(key, s.getValue());
+                }
             }
         }
         return missing;
     }
 
+    /** A setting holding its default, apart from the shared one in {@link DefaultSettings}. */
+    private static Setting copyOf(final Setting element)
+    {
+        return new Setting(element.getName(), element.getValue(), element.getDescription(), SETTING_SECTION);
+    }
+
     /**
-     * What the file says about one setting, under either spelling of its key.
+     * The key the file says one setting under, in whichever spelling it uses.
      *
      * <p>Kebab-case first, then the enum name -- so a config.yml written by a version that
      * spelled it TIMEOUT_SHUTDOWN keeps working rather than silently reverting to the
@@ -170,25 +192,25 @@ public class ConfigurationYAML
      *            the parsed config file
      * @param element
      *            the setting being looked for
-     * @return its value, or null if the file does not mention it
+     * @return the key as the file spells it, or null if the file does not mention it
      */
-    private static Object valueFor(final Map<String, Object> map, final Setting element)
+    private static String keyFor(final Map<String, Object> map, final Setting element)
     {
         final String enumKey = element.getName().name();
         final String kebabKey = kebabKeyName(enumKey);
         if (map.containsKey(kebabKey))
         {
-            return map.get(kebabKey);
+            return kebabKey;
         }
         if (map.containsKey(enumKey))
         {
-            return map.get(enumKey);
+            return enumKey;
         }
         for (final Map.Entry<String, ConfigManager.ConfigKeys> renamed : RENAMED.entrySet())
         {
             if ((renamed.getValue() == element.getName()) && map.containsKey(renamed.getKey()))
             {
-                return map.get(renamed.getKey());
+                return renamed.getKey();
             }
         }
         return null;
@@ -202,34 +224,184 @@ public class ConfigurationYAML
         Map.of("mirror-proximity-radius", ConfigManager.ConfigKeys.MIRROR_PROXIMITY_DISTANCE);
 
     /**
-     * Builds a setting from whatever type the YAML parser handed back.
+     * Builds a setting from whatever type the YAML parser handed back, in the kind its default is.
      *
-     * <p>Integer is checked before Number, and the order is load-bearing: Integer is a
-     * Number, so folding the two leaves every whole number stored as a Double and the next
-     * getIntValue throws a ClassCastException.
+     * <p>Stored as found, a value of another kind threw ClassCastException from every read: the
+     * {@code gate-view-funnel: 8} an early tunnel build appended, once the setting became a
+     * switch, took down every gate's view each sweep (#583). A value that cannot be read as its
+     * setting's kind is the default, said once at startup.
      *
      * @param element
-     *            the default, for its key and description
+     *            the default, for its key, kind and description
      * @param value
      *            the value read from the file
      * @return the setting to store
      */
     private static Setting settingFrom(final Setting element, final Object value)
     {
+        final Object read = asKindOf(element.getValue(), value);
+        final String key = kebabKeyName(element.getName().name());
+        if (read == null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
+                + ", which is not " + kindOf(element.getValue()) + "; using " + element.getValue() + " until it is put right.");
+            return copyOf(element);
+        }
+        if ((value instanceof Number) && (read instanceof Boolean))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
+                + ", a number, where it is now true or false; read as " + read + " and written back so.");
+        }
+        return new Setting(element.getName(), read, element.getDescription(), SETTING_SECTION);
+    }
+
+    /**
+     * A value from the file in the kind a setting's default is: a switch from true or false, or
+     * from a number (above 0 is on); a whole number from one written with a point or in quotes; a
+     * number from text; and text from anything, as it reads.
+     *
+     * <p>Text from anything because every text getter casts to String: {@code sign-color-gate-name: 1}
+     * threw. YAML reads a bare off, on, yes or no as true or false, and those come back as
+     * {@code "false"} or {@code "true"}, not the word written: {@code gate-view: off} is then no level
+     * and reads as the default, horizon, which is what off meant, and {@code gate-dial-spin: false}
+     * still reads as no spin.
+     *
+     * @param kind
+     *            the setting's default
+     * @param value
+     *            the value read from the file
+     * @return the value to store, or null if it cannot be read as that kind
+     */
+    static Object asKindOf(final Object kind, final Object value)
+    {
+        if (kind instanceof Boolean)
+        {
+            return asSwitch(value);
+        }
+        if (kind instanceof Integer)
+        {
+            return asWhole(value);
+        }
+        if (kind instanceof Double)
+        {
+            return asNumber(value);
+        }
+        return value.toString();
+    }
+
+    /** A switch from true or false, as written or in quotes, or from a number: on above 0; null if neither. */
+    private static Object asSwitch(final Object value)
+    {
         if (value instanceof Boolean flag)
         {
-            return new Setting(element.getName(), flag, element.getDescription(), SETTING_SECTION);
-        }
-        if (value instanceof Integer whole)
-        {
-            return new Setting(element.getName(), whole, element.getDescription(), SETTING_SECTION);
+            return flag;
         }
         if (value instanceof Number number)
         {
-            return new Setting(element.getName(), number.doubleValue(), element.getDescription(), SETTING_SECTION);
+            return number.doubleValue() > 0.0;
         }
-        return new Setting(element.getName(), value.toString(), element.getDescription(), SETTING_SECTION);
+        final String text = value.toString().trim();
+        if ("true".equalsIgnoreCase(text) || "false".equalsIgnoreCase(text))
+        {
+            return Boolean.valueOf(text);
+        }
+        return null;
     }
+
+    /** A whole number, from one or from a number or text that is whole. */
+    private static Integer asWhole(final Object value)
+    {
+        final Double number = asNumber(value);
+        if ((number == null) || (number != Math.rint(number)) || (number < Integer.MIN_VALUE)
+            || (number > Integer.MAX_VALUE))
+        {
+            return null;
+        }
+        return number.intValue();
+    }
+
+    /** A number, from one or from text that is one. */
+    private static Double asNumber(final Object value)
+    {
+        if (value instanceof Number number)
+        {
+            return number.doubleValue();
+        }
+        if (value instanceof Boolean)
+        {
+            return null;
+        }
+        try
+        {
+            final double number = Double.parseDouble(value.toString().trim());
+            return Double.isFinite(number) ? number : null;
+        }
+        catch (final NumberFormatException notANumber)
+        {
+            return null;
+        }
+    }
+
+    /** What kind a setting is, for a warning. */
+    private static String kindOf(final Object kind)
+    {
+        if (kind instanceof Boolean)
+        {
+            return "true or false";
+        }
+        return (kind instanceof Integer) ? "a whole number" : "a number";
+    }
+
+    /**
+     * Writes some settings' values back into the file, each on its own top-level line, under the
+     * spelling of its key the value was read from.
+     */
+    private static void rewriteValues(final File cfg, final Map<String, Object> values)
+        throws IOException
+    {
+        final List<String> lines = rewriteValueLines(Files.readAllLines(cfg.toPath()), values);
+        try (final FileWriter writer = new FileWriter(cfg, StandardCharsets.UTF_8))
+        {
+            for (final String line : lines)
+            {
+                writer.write(line + System.lineSeparator());
+            }
+        }
+    }
+
+    /**
+     * The file's lines with each named key's top-level line given a new value, any comment after the
+     * old one kept.
+     *
+     * @param lines
+     *            the file as it stands
+     * @param values
+     *            the values to write, by key as the file spells it
+     * @return the lines to write back
+     */
+    static List<String> rewriteValueLines(final List<String> lines, final Map<String, Object> values)
+    {
+        final List<String> out = new ArrayList<>(lines.size());
+        for (final String line : lines)
+        {
+            final int colon = line.indexOf(':');
+            final boolean topLevel = (colon > 0) && !Character.isWhitespace(line.charAt(0)) && (line.charAt(0) != '#');
+            final String key = topLevel ? line.substring(0, colon).trim() : null;
+            out.add(((key != null) && values.containsKey(key))
+                ? (key + ": " + formatValueForYaml(values.get(key)) + commentAfter(line.substring(colon + 1))) : line);
+        }
+        return out;
+    }
+
+    /** The comment after a value, with the spaces before its #, or nothing; the values rewritten are numbers, never quoted. */
+    private static String commentAfter(final String value)
+    {
+        final Matcher comment = TRAILING_COMMENT.matcher(value);
+        return comment.find() ? comment.group() : "";
+    }
+
+    /** A comment at the end of a line: a # after at least one space, and the rest. */
+    private static final Pattern TRAILING_COMMENT = Pattern.compile("\\s+#.*$");
 
     /**
      * Hands the {@code gate-material-groups} section to the registry, tolerating a
