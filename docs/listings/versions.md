@@ -16,7 +16,7 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 
 - **Post oldest first.** Each site treats the newest upload as current, and Spigot makes the last
   update posted the resource's download. Going oldest to newest in one sitting leaves each site on
-  1.9.0 with the history in order.
+  1.10.0 with the history in order.
 - **On Spigot, untick Notify followers for all but the newest**, or followers get one alert per
   back-filled version.
 - **Tick each version's own Minecraft range** on Modrinth and Hangar, from its section below, not
@@ -35,6 +35,46 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 - **Write the Markdown first, then convert it to BBCode** line for line, so the two say the same.
   The conversion is mechanical: `**bold**` to `[B]`, `` `code` `` to `[ICODE]`, a bullet list to
   `[LIST]` with `[*]` per item, a link to `[URL=…]`, and em-dashes to plain hyphens.
+
+## 1.10.0
+
+Released 2026-10-12.
+
+| Field | Value |
+|---|---|
+| Version (all three sites) | `1.10.0` |
+| Title (Spigot update title, Modrinth version title) | `1.10.0 - Views through gates, ripples and more web maps` |
+| Minecraft (Modrinth game versions, Hangar platform versions) | 1.20 – 26.3 |
+
+Modrinth and Hangar changelog:
+
+````markdown
+**Upgrading from 1.9 — one thing may change.** The `pegasus` and `chevron` dial spins have swapped: a gate, group or `gate-dial-spin` set to either now dials the other way, so set it to the other name to keep the old look. A new `config.yml` is laid out commonest first; an existing file keeps its own order. Everything else new is off until you turn it on, except the tunnel (`gate-view-funnel`, which only matters with `gate-view` on) and clickable previews (`clickable-chat`). Coming from 1.8 or earlier? Each release you skipped has notes that still apply. Installing for the first time? None of this applies. Drop the jar in and start.
+
+- **See where a gate goes**, as an experiment: `gate-view` draws the far side behind an open gate, or clears the horizon to show it, and a big gate dialling a small one shows it down a tunnel.
+- **Gates ripple**: `gate-ripple` sends rings across the horizon as something goes through and while somebody is near.
+- **Creatures and players in the view**: `mirror-show-entities` and `mirror-show-players` show who and what is in a mirror's or an open gate's far room, as copies only the viewer sees.
+- **BlueMap, squaremap and Pl3xMap** join Dynmap: gates, rings, public beam destinations and mirrors on each map. Set `bluemap-enabled`, `squaremap-enabled` or `pl3xmap-enabled`.
+- **Build previews have buttons**: after `gate build`, each action is clickable. `show-gate-welcome-message` can tell a player where they arrived.
+
+[Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#1100-2026-10-12)
+````
+
+Spigot update message:
+
+```
+[B]Upgrading from 1.9 - one thing may change.[/B] The [ICODE]pegasus[/ICODE] and [ICODE]chevron[/ICODE] dial spins have swapped: a gate, group or [ICODE]gate-dial-spin[/ICODE] set to either now dials the other way, so set it to the other name to keep the old look. A new [ICODE]config.yml[/ICODE] is laid out commonest first; an existing file keeps its own order. Everything else new is off until you turn it on, except the tunnel ([ICODE]gate-view-funnel[/ICODE], which only matters with [ICODE]gate-view[/ICODE] on) and clickable previews ([ICODE]clickable-chat[/ICODE]). Coming from 1.8 or earlier? Each release you skipped has notes that still apply. Installing for the first time? None of this applies. Drop the jar in and start.
+
+[LIST]
+[*][B]See where a gate goes[/B], as an experiment: [ICODE]gate-view[/ICODE] draws the far side behind an open gate, or clears the horizon to show it, and a big gate dialling a small one shows it down a tunnel.
+[*][B]Gates ripple[/B]: [ICODE]gate-ripple[/ICODE] sends rings across the horizon as something goes through and while somebody is near.
+[*][B]Creatures and players in the view[/B]: [ICODE]mirror-show-entities[/ICODE] and [ICODE]mirror-show-players[/ICODE] show who and what is in a mirror's or an open gate's far room, as copies only the viewer sees.
+[*][B]BlueMap, squaremap and Pl3xMap[/B] join Dynmap: gates, rings, public beam destinations and mirrors on each map. Set [ICODE]bluemap-enabled[/ICODE], [ICODE]squaremap-enabled[/ICODE] or [ICODE]pl3xmap-enabled[/ICODE].
+[*][B]Build previews have buttons[/B]: after [ICODE]gate build[/ICODE], each action is clickable. [ICODE]show-gate-welcome-message[/ICODE] can tell a player where they arrived.
+[/LIST]
+
+[URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#1100-2026-10-12]Full changelog[/URL]
+```
 
 ## 1.9.0
 

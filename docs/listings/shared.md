@@ -13,13 +13,13 @@ The values a release changes. Change them here first, then carry them into the s
 
 | | |
 |---|---|
-| Version | `1.9.0` — newest release. Check which jar each site actually carries before bumping its field. |
+| Version | `1.10.0` — newest release. Check which jar each site actually carries before bumping its field. |
 | Supported Minecraft | 1.20 – 26.3 |
 | Native / compiled against | 1.20 (`pom.xml` sets `spigot-api` to `1.20.4-R0.1-SNAPSHOT`) |
 | Java, plugin | 17 |
 | Java, server | 21 from MC 1.20.5, 25 from MC 26.1 — the server's requirement, not this plugin's |
 | Licence | GPL-3.0 (the name and logo excluded, see [`TRADEMARK.md`](../../TRADEMARK.md)) |
-| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard and Dynmap optional, snakeyaml comes from the server, and bStats is shaded in, relocated. Dynmap shows gates, rings, beams and mirrors as map layers; 1.21.11 needs Dynmap 3.8 (3.7 builds stop at 1.21.4), and no Dynmap runs on 26.x yet |
+| Dependencies | none required. Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, Dynmap, BlueMap, squaremap and Pl3xMap optional, snakeyaml comes from the server, and bStats is shaded in, relocated. Dynmap, BlueMap, squaremap and Pl3xMap show gates, rings, beams and mirrors as map layers; 1.21.11 needs Dynmap 3.8 (3.7 builds stop at 1.21.4), and no Dynmap runs on 26.x yet |
 | Jar | `WormholeXTreme-<version>.jar` |
 
 ## Where the listings live
@@ -195,6 +195,10 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   while the gate is open, for doors and lamps.
 - **Networks, owners and per-gate settings** — shutdown and activate timeouts, cooldown, redstone
   on or off, iris code, owner, and per-gate material overrides.
+- **See where a gate goes, and watch it ripple.** An experiment, and off until you turn it on:
+  `gate-view` draws the far side behind the open gate's horizon, or clears the horizon to show
+  it, and a big gate dialling a small one shows it down a tunnel. `gate-ripple` sends rings
+  across the horizon as something goes through it and while somebody is near.
 - **Gates work in the Nether and the End**, and a wormhole runs one way: nothing comes back up an
   open gate.
 
@@ -273,6 +277,9 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **It says what it is.** Look at one from a few blocks and it tells you above the hotbar what a
   click will do. `mirror debug` lists every fact about a mirror in green and red — a gap in the
   wall, another mirror too near, a missing capture.
+- **Creatures and players in the room, if you want them.** Mobs in the far room can show through
+  a mirror or an open gate as copies only the viewer sees (`mirror-show-entities`), and with
+  `mirror-show-players` on, who is standing at the other end. Both off by default.
 
 ### For the people running the server
 
@@ -299,6 +306,9 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   each as its own layer, with a line between dialled gates. Players' private beam places are never
   shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for
   26.x yet.
+- **BlueMap, squaremap and Pl3xMap**, if you want one: the same marks on each, with every world's
+  layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`,
+  `squaremap-enabled` or `pl3xmap-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
   server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
   turns it off.

@@ -2,9 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
-One line an entry, under the subsystem it belongs to: what changed, and what an operator or
-a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
-it explains, and a release nobody can scroll through is a release nobody reads.
+One line an entry, under the subsystem it belongs to: what changed, and the setting or step an
+operator or a player needs. No paragraphs, no why, no limits and no numbers; the detail lives in
+[docs/](docs/) beside the code, linked from the entry when it helps. A release nobody can scroll
+through is a release nobody reads.
 
 ## 1.11.0 (unreleased)
 
@@ -26,127 +27,47 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **`permissions-auto-fallback`**: with no Vault permissions provider the simple fallback is always on, so a server on a Bukkit-permissions plugin without Vault that had set it `false` is now in simple mode.
 - **`mirror-fog-at-depth`**: a mirror no longer pulls a viewer's fog in, and the code behind it is gone with the `fog` line in `mirror debug`.
 
-## 1.10.0 (unreleased)
+## 1.10.0 (2026-10-12)
 
 ### For server admins
 
 **Added**
 
-- **Gates, rings, public beam destinations and quantum mirrors show on
-  [BlueMap](https://bluemap.bluecolored.de)** too, on every map of each world, and come back by
-  themselves after a `/bluemap reload`. Off until `bluemap-enabled` is set; the `map-show-*` settings
-  choose the layers for every map. See [the guide](docs/guide/SERVER.md#bluemap).
-- **The same marks show on [squaremap](https://modrinth.com/plugin/squaremap)**, Paper's map, with
-  each world's layers kept on it as worlds load. Off until `squaremap-enabled` is set. See
-  [the guide](docs/guide/SERVER.md#squaremap).
-- **And on [Pl3xMap](https://modrinth.com/plugin/pl3xmap)**, put back by themselves after a
-  `/map reload`. Off until `pl3xmap-enabled` is set. See [the guide](docs/guide/SERVER.md#pl3xmap).
-- **Mobs in a mirror's or an open gate's far room can show through it** (`mirror-show-entities`, off
-  by default; [#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)), as copies only the
-  viewer sees, up to twenty each. While a window is watched, the chunks just in front of its far
-  side are held loaded so they show on the first look (`mirror-entity-load-radius`, 2: 15 chunks a
-  window held as `/forceload` holds them, with the ring round them about 63 loaded; 0 for none, at
-  most 4; the ring can generate terrain at the edge of explored land, and on Spigot each held chunk
-  loads on the main thread, one a tick). A
-  copy shows its mob as it looked when the copy appeared: its name, what it wears and holds, and a
-  sheep's wool colour and whether it is shorn; only baby or grown is kept in step. The copies
-  are real entities, so other plugins count them. See
-  [Seeing creatures](docs/MIRRORS.md#seeing-creatures).
-- **The players in that far room can show too** (`mirror-show-players`, off by default, and only
-  with `mirror-show-entities` on; [#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)):
-  it tells a viewer who is at the destination. A mannequin in their skin and pose from 1.21.9, an
-  armour stand wearing their head and armour before, named, within the same twenty. Never the
-  viewer, an invisible or spectating player, an NPC, a rider, or anyone hidden with `hidePlayer`
-  (a plugin that hides players by rewriting packets is not seen). The skin is the real one, not a
-  disguise plugin's: a server that hides identities should leave it off. The account's name and id
-  are not sent with the skin. Stand-ins, mobs' too, wear only what shows of an item, never its contents, pages or lore.
+- Gates, rings, public beam destinations and quantum mirrors show on [BlueMap](https://bluemap.bluecolored.de). Off until `bluemap-enabled` is set. [Guide](docs/guide/SERVER.md#bluemap)
+- The same marks show on [squaremap](https://modrinth.com/plugin/squaremap). Off until `squaremap-enabled` is set. [Guide](docs/guide/SERVER.md#squaremap)
+- The same marks show on [Pl3xMap](https://modrinth.com/plugin/pl3xmap). Off until `pl3xmap-enabled` is set. [Guide](docs/guide/SERVER.md#pl3xmap)
+- Mobs in a mirror's or an open gate's far room show through it ([#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)). Off until `mirror-show-entities` is set; the chunks in front of the far side are held loaded (`mirror-entity-load-radius`). [Details](docs/MIRRORS.md#seeing-creatures)
+- Players in that far room show too. Off until `mirror-show-players` is set, and it needs `mirror-show-entities`. The skin is the real one, so leave it off on a server that hides identities.
 
 **Changed**
 
-- **A new `config.yml` is laid out commonest first** ([#586](https://github.com/khanjal/Wormhole-X-Treme/issues/586)):
-  a "start here" list of the settings most often changed, then General, Stargates, Gate views and
-  mirrors, signs, rings, beaming, economy, the sounds, and integrations last, the big groups split
-  under `# -- ... --` sub-headings. No setting's name, default or meaning changed, and a file you
-  already have keeps its own order; see [the guide](docs/guide/SERVER.md#configuration).
+- A new `config.yml` is laid out commonest first, with a "start here" list and sub-headings ([#586](https://github.com/khanjal/Wormhole-X-Treme/issues/586)). An existing file keeps its own order. [Guide](docs/guide/SERVER.md#configuration)
 
 ### Stargates
 
 **Added**
 
-- **An open gate's event horizon can ripple**
-  ([#579](https://github.com/khanjal/Wormhole-X-Treme/issues/579)), in rings from its middle out,
-  as something goes through it, at both ends, and every 3 to 6 seconds while somebody is near, then
-  in one, two or three waves following one another. Off until `gate-ripple` is set. Grand and
-  Massive ripple their own portal material a block in front of the horizon, a flat water gate bigger
-  than two by two ripples in ice, and at `gate-view: open` a viewer who sees through the gate sees
-  its portal material cross the view; flat lava and nether portal gates, Minimal and horizontal
-  gates do not ripple yet. See [the guide](docs/guide/GATES.md#the-ripple).
-- **An open gate can show where it goes, as an experiment** ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)).
-  `gate-view: behind` draws the far side behind the horizon; `open` clears the horizon once the far
-  side is ready. The default, `horizon`, changes nothing. Only the dialling end of an upright gate,
-  and only with its iris open. Every gate with a ring round its opening shows it through the whole
-  opening, Grand and Massive too; a Minimal gate, with no ring, keeps its horizon. A first capture
-  takes a few seconds in the background, and the fill behind it up to a minute and a half over open
-  sky, one gate at a time; over open ground the fill is cut to fit a million blocks. An existing
-  `config.yml` keeps the old comment on `gate-view`, which is harmless. `gate-view-depth` (32) is how
-  far past the gate it reaches at once, and `gate-view-full-depth` (160, and never past what the server sends) how far it fills in behind. What each gate shows is kept in `data/gates/captures/`, so it is
-  there after a restart, and is taken again as gates are dialled and while somebody is at them.
-- **At `gate-view: open` the horizon clears only for whoever is drawn the view** (#516): from behind
-  the gate, from too far off, or with no clear line into it, a gate shows its own portal material
-  as usual rather than an empty ring.
-- **A big gate dialling a small one shows the view at the end of a tunnel**
-  ([#583](https://github.com/khanjal/Wormhole-X-Treme/issues/583)): with `gate-view` on, the far
-  side appears through an opening the small gate's size at the end of a hollow tunnel in the gate's
-  own shape, shrinking as it goes until it is as small as the far opening at its end, walled two
-  blocks thick in its portal material, and showing the far side as the small gate would, rather than
-  running past the small gate's walls and ceiling; the
-  smaller the far gate, the longer the tunnel (four blocks from Large to Standard, thirteen from
-  Massive to Standard, the first behind the opening at its own size); a far gate under three blocks each way, such as Minimal, is seen through a
-  three-by-three opening, so its room shows. On by default; `gate-view-funnel: false` shows the whole view, and
-  `gate-view-funnel-length` (16) is the longest a tunnel may be. Same-size and small-to-large pairs
-  are unchanged.
-- **Gate preview actions can be clicked**: after `gate build`, each one is a button, `[Clear]`
-  to `[Place]`, that says what it does when pointed at. `[Material]` fills the chat box in rather
-  than running, since it needs a group or a block after it, and a refusal that names a command
-  links it. On by default; `clickable-chat: false` sends the old plain text, which is all
-  CraftBukkit gets.
-- **A player coming out of a gate can be told where they are**: "Arrived at Abydos", in chat,
-  once, and not for their pets or mount. Off until `show-gate-welcome-message` is set; a
-  Settings.txt that had it on is named in the upgrade note. Gates only: rings and beams name their
-  destination whatever it is set to.
+- An open gate's event horizon can ripple ([#579](https://github.com/khanjal/Wormhole-X-Treme/issues/579)). Off until `gate-ripple` is set. [Guide](docs/guide/GATES.md#the-ripple)
+- An open gate can show where it goes, as an experiment ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)). Set `gate-view` to `behind` or `open`; the default is `horizon`.
+- At `gate-view: open` the horizon clears only for whoever is drawn the view; everyone else sees the gate's own portal material.
+- A big gate dialling a smaller one shows the view at the end of a tunnel ([#583](https://github.com/khanjal/Wormhole-X-Treme/issues/583)). On by default; turn off with `gate-view-funnel: false`, and `gate-view-funnel-length` sets the longest tunnel.
+- Gate preview actions can be clicked. On by default; `clickable-chat: false` turns it off.
+- A player coming out of a gate can be told which gate they arrived at. Off until `show-gate-welcome-message` is set.
 
 **Changed**
 
-- **The `pegasus` and `chevron` dial spins have swapped.** `pegasus`, which the Atlantis group
-  uses, now runs half the ring onto each chevron; `chevron` now steps from each locked chevron to
-  the next. A gate, group or `gate-dial-spin` set to either one dials the other way after the
-  upgrade; set it to the other name to keep the old look.
+- The `pegasus` and `chevron` dial spins have swapped. Set `gate-dial-spin` to the other name to keep the old look.
 
 **Fixed**
 
-- **Walking round a gate while its iris opens or closes no longer leaves a block on your side of
-  it that is not there** ([#447](https://github.com/khanjal/Wormhole-X-Treme/issues/447)). Behind
-  a see-through iris the wormhole's stand-in ice, and from behind any drawn iris the iris a block
-  in front of the ring, stayed where they were until the sweep ended, solid to you and not to the
-  server; walking round to the front left the rings already covered with nothing behind them.
-- **A build preview's see-through iris no longer shows empty cells part way through a sweep**
-  ([#432](https://github.com/khanjal/Wormhole-X-Treme/issues/432)). Turned back mid-sweep, or
-  dialled open behind an iris still sweeping shut, the covered cells read as empty until the sweep
-  ended. Every step also sent the whole wormhole back into the ring, under glass that hides it, to
-  everybody watching; now it sends only the ring it moves. A sweep that turns instant after a reload
-  part way through takes back the wormhole the animated one stood behind the ring, and somebody
-  shown the preview mid-sweep is drawn the sweep from the next step rather than at its end.
+- Walking round a gate while its iris opens or closes no longer leaves a block on your side that is not there ([#447](https://github.com/khanjal/Wormhole-X-Treme/issues/447)).
+- A build preview's see-through iris no longer shows empty cells part way through a sweep ([#432](https://github.com/khanjal/Wormhole-X-Treme/issues/432)).
 
 ### Internals
 
-- **The code that draws a far side through an opening has its own package, `model/window`**,
-  and is no longer named for mirrors: `Windows`, `WindowShape`, `Capture`, `Captures` and nine
-  more. Nothing changes for players or operators; the next users of it are gates (#516) and
-  nether portals (#514). Tracked in #522.
-- **A gate's view is no longer drawn as a stand-in mirror**: gates and mirrors are window sources,
-  offered to the drawing through one `Windows.offer`. Nothing changes for players or operators.
-- **The build no longer fails at random with a corrupt-zip error.** The shaded jar is written
-  beside the original, which is kept as `original-WormholeXTreme-<version>.jar`.
+- The code that draws a far side through an opening moved to `model/window`, no longer named for mirrors (#522).
+- A gate's view is drawn from a window source, not as a stand-in mirror.
+- The build no longer fails at random with a corrupt-zip error.
 
 ## 1.9.0 (2026-10-03)
 
