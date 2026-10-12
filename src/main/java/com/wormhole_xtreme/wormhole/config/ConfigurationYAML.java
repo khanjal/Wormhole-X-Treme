@@ -102,6 +102,7 @@ public class ConfigurationYAML
 
             final Map<String, Object> rewritten = new LinkedHashMap<>();
             final List<Setting> missing = applySettings(map, rewritten);
+            carryOverRetired(map, missing);
 
             // Material groups are a nested section, so they are read straight off the parsed
             // YAML rather than through the flat Setting/ConfigKeys mechanism. A file without the
@@ -173,6 +174,31 @@ public class ConfigurationYAML
             }
         }
         return missing;
+    }
+
+    /**
+     * Carries an old view depth over to {@code view-depth}, which is then appended at that value, and
+     * names the retired settings the file still holds, once, at INFO.
+     *
+     * @param map
+     *            the parsed config file
+     * @param missing
+     *            the settings about to be appended to the file
+     */
+    private static void carryOverRetired(final Map<String, Object> map, final List<Setting> missing)
+    {
+        final RetiredSettings.Carried carried = RetiredSettings.carriedViewDepth(map);
+        if (carried != null)
+        {
+            final Setting depth = new Setting(ConfigManager.ConfigKeys.VIEW_DEPTH, carried.depth(),
+                ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.VIEW_DEPTH).getDescription(), SETTING_SECTION);
+            ConfigManager.getConfigurations().put(ConfigManager.ConfigKeys.VIEW_DEPTH, depth);
+            missing.replaceAll(s -> (s.getName() == ConfigManager.ConfigKeys.VIEW_DEPTH) ? depth : s);
+        }
+        for (final String line : RetiredSettings.notice(RetiredSettings.presentIn(map), carried))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, line);
+        }
     }
 
     /** A setting holding its default, apart from the shared one in {@link DefaultSettings}. */

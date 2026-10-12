@@ -525,4 +525,63 @@ class ConfigLoadTest
             assertEquals(before, shipped.getValue(), key + ": a change to it leaves the default alone");
         }
     }
+
+    /**
+     * A file still holding settings 1.11.0 removed loads, says once at INFO which they are, and keeps
+     * them as written (#589).
+     *
+     * <p>Only the removed keys the file holds are named, in either spelling, and nothing at WARNING:
+     * a removed setting is a note for the admin, not a fault.
+     */
+    @Test
+    void removedSettingsAreNamedOnceAtInfoAndLeftInTheFile() throws Exception
+    {
+        writeConfig("ring-deploy-ticks: 4\nview-depth: 96\nmirror-view-depth: 64\nPERMISSIONS_AUTO_FALLBACK: false\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        verify(plugin).prettyLog(Level.INFO, "These settings no longer exist and are ignored: "
+            + "permissions-auto-fallback, ring-deploy-ticks, mirror-view-depth");
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("no longer exist"));
+        assertEquals(96, ConfigManager.getViewDepth(), "view-depth as written, the old depth ignored");
+        assertEquals(2, ConfigManager.getRingDeployTicks(), "and the old frame time with it");
+        assertTrue(configLines().containsAll(List.of("ring-deploy-ticks: 4", "mirror-view-depth: 64",
+            "PERMISSIONS_AUTO_FALLBACK: false")), "left as the admin wrote them: " + configLines());
+    }
+
+    /** A new file names nothing: it holds none of the removed settings. */
+    @Test
+    void aNewFileNamesNoRemovedSettings()
+    {
+        ConfigurationYAML.loadConfiguration(directory);
+        ConfigurationYAML.loadConfiguration(directory);
+
+        verify(plugin, never()).prettyLog(eq(Level.INFO), contains("no longer exist"));
+        verify(plugin, never()).prettyLog(eq(Level.INFO), contains("carried over"));
+    }
+
+    /**
+     * A file from before the merge, with no view-depth, has the shallower of its old depths carried
+     * over and written down as view-depth, so the next start reads it as set (#589).
+     */
+    @Test
+    void anOldDepthIsCarriedOverToViewDepthAndWrittenDown() throws Exception
+    {
+        writeConfig("gate-view-depth: 32\ngate-view-full-depth: 96\nmirror-view-depth: 120\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(96, ConfigManager.getViewDepth(), "the shallower of the gate's fill and the mirror's depth");
+        assertTrue(configLines().contains("view-depth: 96"), "and written down: " + configLines());
+        verify(plugin).prettyLog(eq(Level.INFO), contains("view-depth was added at 96, carried over from "
+            + "mirror-view-depth and gate-view-full-depth"));
+        verify(plugin).prettyLog(Level.INFO, "These settings no longer exist and are ignored: gate-view-depth");
+
+        ConfigTestSupport.clear();
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(96, ConfigManager.getViewDepth(), "read back as set");
+        verify(plugin).prettyLog(Level.INFO, "These settings no longer exist and are ignored: "
+            + "gate-view-depth, gate-view-full-depth, mirror-view-depth");
+    }
 }
