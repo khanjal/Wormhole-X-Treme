@@ -199,9 +199,9 @@ class ParsedSettingTest
         assertFalse(ParsedSetting.read(ConfigKeys.SAME_WORLD_ONLY, Boolean.FALSE, "banana")
             .isAccepted());
         assertEquals(Integer.valueOf(40),
-            ParsedSetting.read(ConfigKeys.RING_OUTLINE_TICKS, Integer.valueOf(20), " 40 ")
+            ParsedSetting.read(ConfigKeys.RING_COOLDOWN_TICKS, Integer.valueOf(20), " 40 ")
                 .getValue());
-        assertFalse(ParsedSetting.read(ConfigKeys.RING_OUTLINE_TICKS, Integer.valueOf(20), "soon")
+        assertFalse(ParsedSetting.read(ConfigKeys.RING_COOLDOWN_TICKS, Integer.valueOf(20), "soon")
             .isAccepted());
         assertEquals(Double.valueOf(2.0),
             ParsedSetting.read(ConfigKeys.GATE_SOUND_VOLUME, Double.valueOf(1.5), "2.0")

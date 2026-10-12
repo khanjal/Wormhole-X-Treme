@@ -78,24 +78,12 @@ public class ConfigManager
         /** The LOG LEVEL. */
         LOG_LEVEL,
 
-        /** Ticks a ring pair counts down before it commits and the rings start rising. */
-        RING_COUNTDOWN_TICKS,
         /** Ticks a ring pair refuses to fire again after a cycle. */
         RING_COOLDOWN_TICKS,
-        /** Ticks between frames of the ring deploy and retract animations. */
-        RING_DEPLOY_TICKS,
-        /** Ticks the fully deployed stack stands still before the swap fires. */
-        RING_SETTLE_TICKS,
-        /** Ticks each ring stays lit as the transport flash runs through the stack. */
-        RING_FLASH_TICKS,
+        /** How fast every ring animation runs against its shipped timings (#589). */
+        RING_ANIMATION_SPEED,
         /** Whether a ring briefly shows its outline to somebody it has turned away. */
         RING_OUTLINE_ON_REFUSAL,
-        /** How long that outline stays up, in ticks. */
-        RING_OUTLINE_TICKS,
-        /** Ticks the pad stays lit after the last ring has sunk back into it. */
-        RING_LIGHTS_LINGER_TICKS,
-        /** Ticks the ring stack stands still after the swap, before retracting. */
-        RING_HOLD_TICKS,
         /** Block layers of passenger volume, measured from the ring plane into the room. */
         RING_REACH,
         /** Required distance between ring anchors, in blocks. */
@@ -209,18 +197,8 @@ public class ConfigManager
         BEAM_SOUND_CHARGE,
         BEAM_SOUND_DEPART,
         BEAM_SOUND_ARRIVE,
-        /** How long the glow gathers at body height before opening into the departure column. */
-        BEAM_ENVELOP_TICKS,
-        /** How far into the envelope the traveller vanishes -- clamped inside it. */
-        BEAM_VANISH_AT_STEP,
-        /** How long the column rises and departs, once the envelope opens into it. */
-        BEAM_RISE_TICKS,
-        /** How far into the rise the real teleport fires -- clamped inside the rise. */
-        BEAM_TELEPORT_AT_STEP,
-        /** How long the column takes to descend into place at the destination. */
-        BEAM_DESCEND_TICKS,
-        /** How long the column takes to fade out once it has deposited the traveller. */
-        BEAM_FADE_TICKS,
+        /** How fast the beaming animation runs against its shipped timings (#589). */
+        BEAM_ANIMATION_SPEED,
         /** Whether beam travel has a per-player cooldown at all. */
         BEAM_USE_COOLDOWN_ENABLED,
         /** Seconds a player must wait between beams, when the above is true. */
@@ -502,11 +480,11 @@ public class ConfigManager
      * a second at walking pace. Set much below that and rings start taking people who were
      * only passing through.
      *
-     * @return countdown in ticks, at least 30
+     * @return countdown in ticks, 100 at the shipped speed and never under 30
      */
     public static int getRingCountdownTicks()
     {
-        return Math.max(30, intSetting(ConfigKeys.RING_COUNTDOWN_TICKS, 100));
+        return Math.max(30, ringTicks(100));
     }
 
     /**
@@ -522,11 +500,11 @@ public class ConfigManager
     /**
      * Ticks between animation frames.
      *
-     * @return frame interval in ticks, at least 1
+     * @return frame interval in ticks, 2 at the shipped speed and at least 1
      */
     public static int getRingDeployTicks()
     {
-        return Math.max(1, intSetting(ConfigKeys.RING_DEPLOY_TICKS, 2));
+        return Math.max(1, ringTicks(2));
     }
 
     /**
@@ -540,7 +518,7 @@ public class ConfigManager
      */
     public static int getRingSettleTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_SETTLE_TICKS, 20));
+        return ringTicks(20);
     }
 
     /**
@@ -550,7 +528,7 @@ public class ConfigManager
      */
     public static int getRingFlashTicks()
     {
-        return Math.max(1, intSetting(ConfigKeys.RING_FLASH_TICKS, 3));
+        return Math.max(1, ringTicks(3));
     }
 
 
@@ -565,7 +543,7 @@ public class ConfigManager
      */
     public static int getRingLightsLingerTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_LIGHTS_LINGER_TICKS, 20));
+        return ringTicks(20);
     }
 
     /**
@@ -590,7 +568,7 @@ public class ConfigManager
      */
     public static int getRingOutlineTicks()
     {
-        return Math.max(1, intSetting(ConfigKeys.RING_OUTLINE_TICKS, 40));
+        return ringTicks(40);
     }
 
     /**
@@ -603,7 +581,7 @@ public class ConfigManager
      */
     public static int getRingHoldTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_HOLD_TICKS, 20));
+        return ringTicks(20);
     }
 
     /**
@@ -750,6 +728,77 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         return (s != null) ? s.getIntValue() : fallback;
+    }
+
+    /** The slowest a ring or beam animation may run, against its shipped pace: twice as long. */
+    static final double SLOWEST_SPEED = 0.5;
+
+    /** The fastest: half as long. A ring's two-tick frame cannot be halved again in whole ticks. */
+    static final double FASTEST_SPEED = 2.0;
+
+    /**
+     * How fast ring animations run against their shipped timings (#589).
+     *
+     * @return 1.0 for the shipped timings, from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
+     */
+    public static double getRingAnimationSpeed()
+    {
+        return speedSetting(ConfigKeys.RING_ANIMATION_SPEED);
+    }
+
+    /**
+     * How fast the beaming animation runs against its shipped timings (#589).
+     *
+     * @return 1.0 for the shipped timings, from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
+     */
+    public static double getBeamAnimationSpeed()
+    {
+        return speedSetting(ConfigKeys.BEAM_ANIMATION_SPEED);
+    }
+
+    /** A speed setting, inside the range that keeps every sequence whole; 1.0 when missing or not a number. */
+    private static double speedSetting(final ConfigKeys key)
+    {
+        final Setting s = ConfigManager.getConfigurations().get(key);
+        return clampSpeed((s == null) ? 1.0 : s.getDoubleValue());
+    }
+
+    /**
+     * A speed brought inside its range.
+     *
+     * @param speed
+     *            as written, which a command may have made NaN
+     * @return from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
+     */
+    static double clampSpeed(final double speed)
+    {
+        return Double.isNaN(speed) ? 1.0 : Math.max(SLOWEST_SPEED, Math.min(FASTEST_SPEED, speed));
+    }
+
+    /**
+     * A shipped duration at a speed: exactly itself at 1.0.
+     *
+     * @param ticks
+     *            the shipped duration
+     * @param speed
+     *            the speed, already clamped
+     * @return the duration in whole ticks
+     */
+    static int atSpeed(final int ticks, final double speed)
+    {
+        return (int) Math.round(ticks / speed);
+    }
+
+    /** A shipped ring duration at {@code ring-animation-speed}. */
+    private static int ringTicks(final int ticks)
+    {
+        return atSpeed(ticks, getRingAnimationSpeed());
+    }
+
+    /** A shipped beam duration at {@code beam-animation-speed}. */
+    private static int beamTicks(final int ticks)
+    {
+        return atSpeed(ticks, getBeamAnimationSpeed());
     }
 
     /**
@@ -1261,69 +1310,62 @@ public class ConfigManager
     /**
      * How long the glow gathers at body height before opening into the departure column.
      *
-     * @return the configured tick count, unclamped -- {@code BeamAnimation} is where the
-     *         relationships between this and the other beam timings are enforced, since
-     *         clamping one setting correctly here would still need to know the others
+     * @return ticks at {@code beam-animation-speed}, unclamped -- {@code BeamTiming} is where the
+     *         relationships between this and the other beam timings are enforced
      */
     public static int getBeamEnvelopTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_ENVELOP_TICKS);
-        return (s == null) ? 12 : s.getIntValue();
+        return beamTicks(12);
     }
 
     /**
      * How far into the envelope the traveller vanishes.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamVanishAtStep()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_VANISH_AT_STEP);
-        return (s == null) ? 6 : s.getIntValue();
+        return beamTicks(6);
     }
 
     /**
      * How long the column rises and departs, once the envelope opens into it.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamRiseTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_RISE_TICKS);
-        return (s == null) ? 18 : s.getIntValue();
+        return beamTicks(18);
     }
 
     /**
      * How far into the rise the real teleport fires.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamTeleportAtStep()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_TELEPORT_AT_STEP);
-        return (s == null) ? 12 : s.getIntValue();
+        return beamTicks(12);
     }
 
     /**
      * How long the column takes to descend into place at the destination.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamDescendTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_DESCEND_TICKS);
-        return (s == null) ? 20 : s.getIntValue();
+        return beamTicks(20);
     }
 
     /**
      * How long the column takes to fade out once it has deposited the traveller.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamFadeTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_FADE_TICKS);
-        return (s == null) ? 8 : s.getIntValue();
+        return beamTicks(8);
     }
 
     /**

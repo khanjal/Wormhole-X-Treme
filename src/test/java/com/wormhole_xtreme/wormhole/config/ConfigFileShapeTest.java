@@ -351,19 +351,16 @@ class ConfigFileShapeTest
      * A floor an operator could trip over is named in the description.
      *
      * <p>Most of the clamps in {@link ConfigManager} only stop nonsense -- no negative tick
-     * counts -- and saying so in the file would be noise. These two sit far enough above
+     * counts -- and saying so in the file would be noise. This one sits far enough above
      * nothing that somebody can set a value the plugin then quietly ignores, which is exactly
      * what a comment above the key should admit to.
      *
-     * <p>From the review of this change. The countdown's description said the abort window
-     * stopped being real below about twenty; the floor is thirty, so every value under it was
-     * already being raised and the file was telling operators otherwise. It had said that before
-     * this change too, so the trim carried the error forward rather than introducing it.
+     * <p>The ring countdown was the other, until it became {@code ring-animation-speed}'s: that
+     * range is pinned in {@code AnimationSpeedSettingTest}.
      */
     @Test
     void aFloorWorthKnowingIsNamedInItsDescription()
     {
-        assertFloor(ConfigKeys.RING_COUNTDOWN_TICKS, 1, 30, ConfigManager::getRingCountdownTicks);
         assertFloor(ConfigKeys.RING_REACH, 0, 2, ConfigManager::getRingReach);
     }
 

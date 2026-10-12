@@ -3,14 +3,13 @@ package com.wormhole_xtreme.wormhole.model.beam;
 /**
  * The clamped, internally-consistent timings one beam sequence runs on.
  *
- * <p>Six durations come from config, and two of them have to sit strictly inside a third:
- * vanish must fire before the envelope ends, and the real teleport must fire before the rise
- * ends. Read naively, a server admin setting {@code BEAM_TELEPORT_AT_STEP} equal to or past
- * {@code BEAM_RISE_TICKS} would mean {@code tick == teleportAtStep} is never reached while
- * {@code tick < riseTicks} still holds -- the teleport condition never fires, and the
- * traveller is left frozen and invisible with no way out short of a restart. Resolving all
- * six together, once, in one place is what makes that impossible regardless of what a config
- * file says.
+ * <p>Six durations, each scaled by {@code beam-animation-speed} and rounded on its own, and two
+ * of them have to sit strictly inside a third: vanish must fire before the envelope ends, and the
+ * real teleport must fire before the rise ends. A teleport step rounded to or past the rise would
+ * mean {@code tick == teleportAtStep} is never reached while {@code tick < riseTicks} still holds
+ * -- the teleport condition never fires, and the traveller is left frozen and invisible with no
+ * way out short of a restart. Resolving all six together, once, in one place is what makes that
+ * impossible whatever the speed.
  */
 public final class BeamTiming
 {
