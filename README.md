@@ -57,7 +57,8 @@ Drop the jar into `plugins/` and start the server. No dependencies.
 [GitHub releases](https://github.com/khanjal/Wormhole-X-Treme/releases/latest) ·
 [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
 [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) ·
-[Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme)
+[Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) ·
+[CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme)
 
 **Already running Wormhole X-Treme?** Swapping the jar keeps your gates, and the plugin moves its
 own folders into their current places on the first startup. Gates from an older fork's SQLite

@@ -8,6 +8,7 @@ first version on the plugin sites; add a section at the top for each new release
 | [SpigotMC](spigot.md#version-upload) | Post Resource Update | the jar, **Version string**, **Update title**, **Update message** (BBCode) |
 | [Modrinth](modrinth.md#version-upload) | Create version | the jar, **Version number**, **Version title**, **Changelog** (Markdown), game versions |
 | [Hangar](hangar.md#version-upload) | Upload version | the jar, then **Changelog** (Markdown) and platform versions on the next screen |
+| [CurseForge](curseforge.md#version-upload) | Upload file | the jar, **Display name**, **Changelog** (the Modrinth and Hangar Markdown), Bukkit versions |
 
 The jar for each is `WormholeXTreme-<version>.jar` on its
 [GitHub release](https://github.com/khanjal/Wormhole-X-Treme/releases).
