@@ -65,7 +65,7 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
   anywhere, so guarding an API call is right; catching `Throwable` to do it is not. It swallows
   `Error` — `OutOfMemoryError`, `StackOverflowError`, a `NoClassDefFoundError` from a genuinely
   missing class — and hides real bugs behind a silently degraded feature. "Exception handling no
-  longer swallows `Error`" is a recorded decision (see the 1.1.0 changelog notes); the ~86
+  longer swallows `Error`" is a recorded decision (see the 1.1.0 changelog); the ~86
   remaining `catch (Throwable)` blocks are legacy being narrowed, not the target style.
 
   The exception is deliberate cross-version compatibility: `plugin/EconomySupport` and
