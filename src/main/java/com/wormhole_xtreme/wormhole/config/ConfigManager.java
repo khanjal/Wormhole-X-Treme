@@ -118,12 +118,6 @@ public class ConfigManager
         /** What an open gate shows: its horizon, the far side behind it, or the far side alone (#516). */
         GATE_VIEW,
 
-        /** How far past a gate's opening its view is captured and drawn, first. */
-        GATE_VIEW_DEPTH,
-
-        /** How far a gate's view is filled in, behind its first step. */
-        GATE_VIEW_FULL_DEPTH,
-
         /** Whether a big gate's view of a smaller far gate is drawn at the end of a tunnel (#583). */
         GATE_VIEW_FUNNEL,
 
@@ -224,13 +218,13 @@ public class ConfigManager
         MIRROR_PROXIMITY_DISTANCE,
 
         /**
-         * How far from a mirror's opening its far side is drawn as real blocks, in blocks.
+         * How far past an opening a mirror's room or an open gate's far side is drawn, in blocks (#589).
          *
-         * <p>Its render distance: past it nothing is drawn, and a capture reaches this far and
-         * no further. 160 by default, ten chunks, so the room ends where the client stops
-         * showing anything; a room is its surfaces, so depth costs little.
+         * <p>Its render distance: past it nothing is drawn. 160 by default, ten chunks, so the room
+         * ends where the client stops showing anything; a room is its surfaces, so depth costs
+         * little. A gate captures a shallower first step and fills in to this behind it.
          */
-        MIRROR_VIEW_DEPTH,
+        VIEW_DEPTH,
 
         /**
          * Whether the creatures standing in a mirror's or a gate's far room are shown through it
@@ -1077,31 +1071,22 @@ public class ConfigManager
         return (level == null) ? GATE_VIEWS.get(0) : level;
     }
 
-    /**
-     * How far past a gate's opening its view reaches, captured and drawn (#516).
-     *
-     * <p>Its own rather than {@code mirror-view-depth}: a gate's capture is taken when it is dialled,
-     * often of somewhere nobody has loaded, and at a mirror's 160 that was a box of some 230 chunks
-     * read from disk before anything showed.
-     *
-     * @return blocks, 4 to 160
-     */
-    public static int getGateViewDepth()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_DEPTH);
-        return (s == null) ? 32 : Math.max(4, Math.min(160, s.getIntValue()));
-    }
+    /** How deep a gate's first capture step reaches, at most: the rest is filled in behind it. */
+    static final int GATE_FIRST_STEP_DEPTH = 32;
 
     /**
-     * How far a gate's view is filled in behind its first step, in the background (#516).
+     * How far past a gate's opening its view is captured and drawn first (#516): 32, or
+     * {@code view-depth} if that is shallower.
      *
-     * @return blocks, 4 to 160; or 0 for no fill, the view staying at {@code gate-view-depth}
+     * <p>Shallower than the view because a gate's capture is taken when it is dialled, often of
+     * somewhere nobody has loaded, and at 160 that was a box of some 230 chunks read from disk
+     * before anything showed. The rest, out to {@code view-depth}, is filled in behind it.
+     *
+     * @return blocks, 4 to 32
      */
-    public static int getGateViewFullDepth()
+    public static int getGateViewFirstDepth()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FULL_DEPTH);
-        final int depth = (s == null) ? 160 : s.getIntValue();
-        return (depth <= 0) ? 0 : Math.max(4, Math.min(160, depth));
+        return Math.min(GATE_FIRST_STEP_DEPTH, getViewDepth());
     }
 
     /**
@@ -1735,13 +1720,13 @@ public class ConfigManager
     }
 
     /**
-     * How far from a viewer's eye a mirror's far side is drawn as real blocks.
+     * How far past an opening a mirror's room, and an open gate's far side once filled in, is drawn.
      *
-     * @return the radius in blocks, between 4 and 160
+     * @return blocks, between 4 and 160
      */
-    public static int getMirrorViewDepth()
+    public static int getViewDepth()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_DEPTH);
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.VIEW_DEPTH);
         // 160 is ten chunks, a server's usual view distance. Taking a capture that deep works a
         // few bits per block over a box 325 across, tens of megabytes for a few seconds.
         return (s == null) ? 160 : Math.max(4, Math.min(160, s.getIntValue()));

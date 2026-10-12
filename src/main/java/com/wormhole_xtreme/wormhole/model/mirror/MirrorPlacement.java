@@ -49,7 +49,7 @@ public final class MirrorPlacement
      */
     public static double apartToDrawWhole()
     {
-        return 2.0 * ConfigManager.getMirrorViewDepth();
+        return 2.0 * ConfigManager.getViewDepth();
     }
 
     /**

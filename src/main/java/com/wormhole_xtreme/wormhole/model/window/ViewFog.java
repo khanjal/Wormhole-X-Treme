@@ -13,7 +13,7 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
 /**
  * Pulling one viewer's own fog in to where a mirror's room ends.
  *
- * <p>A room reaches {@code mirror-view-depth} and nothing is drawn past it, but the room ending
+ * <p>A room reaches {@code view-depth} and nothing is drawn past it, but the room ending
  * is not the same as the world ending: the client goes on drawing this world beyond it, so the
  * hills behind a mirror show over the far edge of what it is showing. A flat wall the colour of
  * the sky stood there for a while and was taken back, because a flat colour where the far sky

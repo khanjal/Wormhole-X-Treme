@@ -92,7 +92,7 @@ class MirrorCommandTest
         PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
         // The too-close warning reaches twice the depth; at the default depth that is the whole world.
-        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_VIEW_DEPTH, 32);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.VIEW_DEPTH, 32);
         MirrorManager.clear();
 
         here = mock(World.class);

@@ -99,7 +99,7 @@ class CapturesTest
         PluginTestSupport.scheduler(null);
         ConfigTestSupport.clear();
         // A small box: 33 across, so three chunks a side.
-        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 16);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 16);
         MirrorManager.clear();
         Captures.clear();
         when(air.getAsString()).thenReturn("minecraft:air");
@@ -460,7 +460,7 @@ class CapturesTest
         assertEquals(96, Captures.reach(far), "six chunks is 96 blocks, well past a depth of 16");
         when(far.getViewDistance()).thenReturn(32);
         assertEquals(160, Captures.reach(far), "never past ten chunks, however far a server sends");
-        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 160);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 160);
         when(far.getViewDistance()).thenReturn(2);
         assertEquals(160, Captures.reach(far), "and never short of the depth, or a view would outrun its capture");
     }
@@ -468,7 +468,7 @@ class CapturesTest
     /**
      * Changing the view depth does not take a capture again; only a reach past what it holds does.
      *
-     * <p>The point of a reach of its own: an operator lowering {@code mirror-view-depth} for a
+     * <p>The point of a reach of its own: an operator lowering {@code view-depth} for a
      * smoother mirror should not see every room's world loaded and photographed again for it. A
      * capture taken by the old rule, to the depth alone, is taken again once, since a server
      * sending further can now show more of the room.
@@ -486,9 +486,9 @@ class CapturesTest
         {
             assertTrue(Captures.outgrown(mirror, toTheDepth), "taken to the depth alone: taken again, once");
             assertFalse(Captures.outgrown(mirror, toTheReach), "taken to the reach: it holds all a view can draw");
-            ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 8);
+            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 8);
             assertFalse(Captures.outgrown(mirror, toTheReach), "a lower depth draws less of it and asks for nothing");
-            ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 120);
+            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 120);
             assertTrue(Captures.outgrown(mirror, toTheReach), "a depth past the reach is the one thing that grows it");
         });
     }
@@ -1187,8 +1187,8 @@ class CapturesTest
      * A gate's fill reaches as far as the far world's server sends, and no further.
      *
      * <p>Past the send distance a drawn block lands in a chunk the client does not hold and is
-     * never seen, so a capture deeper than that is disk and memory spent on nothing. With the fill
-     * off, or set shallower than the first step, the view stays at the first step.
+     * never seen, so a capture deeper than that is disk and memory spent on nothing. With the view
+     * depth no deeper than the first step, the view stays at the first step.
      */
     @Test
     void aGatesFillReachesAsFarAsTheFarWorldSends()
@@ -1198,15 +1198,16 @@ class CapturesTest
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
+            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 160);
 
             assertEquals(96, Captures.gateFillDepth(arrival, 32), "six chunks sent: 96 blocks, not the 160 asked");
-            ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 64);
+            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 64);
             assertEquals(64, Captures.gateFillDepth(arrival, 32), "asked for less than is sent");
-            ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 0);
-            assertEquals(32, Captures.gateFillDepth(arrival, 32), "no fill: the first step");
-            ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 16);
-            assertEquals(32, Captures.gateFillDepth(arrival, 32), "a fill shallower than the first step is none");
-            ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 160);
+            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 32);
+            assertEquals(32, Captures.gateFillDepth(arrival, 32), "a view as deep as the first step: no fill");
+            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 16);
+            assertEquals(32, Captures.gateFillDepth(arrival, 32), "a view shallower than the step asked is no fill");
+            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 160);
             when(far.getViewDistance()).thenReturn(1);
             assertEquals(32, Captures.gateFillDepth(arrival, 32),
                 "a server sending less than the first step still gets the first step, not a shallower fill");
@@ -1229,6 +1230,7 @@ class CapturesTest
             asked[1] = floor;
             return reach;
         });
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 160);
         withServer(() ->
         {
             assertTrue(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING, Captures.GATE_OPENING, 40));
@@ -1236,7 +1238,7 @@ class CapturesTest
         });
 
         assertEquals(40, asked[0], "taken as far as the fill");
-        assertEquals(32, asked[1], "and cut no shallower than the first step, gate-view-depth");
+        assertEquals(32, asked[1], "and cut no shallower than the first step");
     }
 
     /**

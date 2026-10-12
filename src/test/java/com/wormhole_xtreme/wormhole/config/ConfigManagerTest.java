@@ -45,9 +45,9 @@ class ConfigManagerTest
     @Test
     void aMirrorsRoomIsDrawnToTenChunksByDefault()
     {
-        assertEquals(160, ConfigManager.getMirrorViewDepth(), "the getter's fallback");
+        assertEquals(160, ConfigManager.getViewDepth(), "the getter's fallback");
         ConfigTestSupport.loadDefaults();
-        assertEquals(160, ConfigManager.getMirrorViewDepth(), "and the default setting");
+        assertEquals(160, ConfigManager.getViewDepth(), "and the default setting");
     }
 
     /** A configured setting is read back rather than the default. */

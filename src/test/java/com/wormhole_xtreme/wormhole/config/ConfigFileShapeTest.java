@@ -43,7 +43,7 @@ class ConfigFileShapeTest
      *
      * <p>About four wrapped lines at the file's 80 columns. Long enough for a setting that
      * genuinely needs a caveat, short enough that nothing grows back into the fourteen-line
-     * essay {@code mirror-view-depth} used to carry. Why a setting works the way it does goes in
+     * essay {@code view-depth} used to carry. Why a setting works the way it does goes in
      * {@code docs/}, which is where the long version of that one now lives.
      */
     private static final int LONGEST_DESCRIPTION = 320;

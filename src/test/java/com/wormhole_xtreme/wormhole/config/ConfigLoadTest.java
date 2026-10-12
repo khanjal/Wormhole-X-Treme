@@ -447,16 +447,16 @@ class ConfigLoadTest
     @Test
     void aValueOfTheWrongKindIsReadAsTheSettingsKindOrItsDefault() throws Exception
     {
-        writeConfig("gate-view-depth: 48.0\ntimeout-shutdown: \"41\"\ngate-ripple: \"true\"\ngate-view-full-depth: lots\n");
+        writeConfig("view-depth: 48.0\ntimeout-shutdown: \"41\"\ngate-ripple: \"true\"\ngate-view-funnel-length: lots\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
-        assertEquals(48, ConfigManager.getGateViewDepth(), "a whole number written with a point");
+        assertEquals(48, ConfigManager.getViewDepth(), "a whole number written with a point");
         assertEquals(41, ConfigManager.getTimeoutShutdown(), "a number in quotes");
         assertTrue(ConfigManager.isGateRipple(), "a switch in quotes");
-        assertEquals(160, ConfigManager.getGateViewFullDepth(), "not a number at all: the default");
-        assertTrue(configLines().contains("gate-view-full-depth: lots"), "and left as written: " + configLines());
-        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-full-depth"));
+        assertEquals(16, ConfigManager.getGateViewFunnelLength(), "not a number at all: the default");
+        assertTrue(configLines().contains("gate-view-funnel-length: lots"), "and left as written: " + configLines());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-funnel-length"));
     }
 
     /**
@@ -508,11 +508,11 @@ class ConfigLoadTest
     @Test
     void aDefaultedSettingIsACopyNotTheSharedDefault() throws Exception
     {
-        writeConfig("gate-view-full-depth: lots\n");
+        writeConfig("gate-view-funnel-length: lots\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
-        for (final ConfigManager.ConfigKeys key : new ConfigManager.ConfigKeys[] { ConfigManager.ConfigKeys.GATE_VIEW_FULL_DEPTH,
+        for (final ConfigManager.ConfigKeys key : new ConfigManager.ConfigKeys[] { ConfigManager.ConfigKeys.GATE_VIEW_FUNNEL_LENGTH,
             ConfigManager.ConfigKeys.GATE_RIPPLE })
         {
             final Setting shipped = Arrays.stream(DefaultSettings.config).filter(s -> s.getName() == key).findFirst()

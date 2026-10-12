@@ -335,7 +335,7 @@ public final class Windows
         final List<String> lines = new ArrayList<>();
         lines.add(MirrorText.heading("your view"));
         lines.add(MirrorText.field("server", ACTIVE.size() + " window(s), " + VIEWS.size() + " viewer(s)"));
-        lines.add(MirrorText.field("depth", ConfigManager.getMirrorViewDepth() + " from the opening (mirror-view-depth)"));
+        lines.add(MirrorText.field("depth", ConfigManager.getViewDepth() + " from the opening (view-depth)"));
         lines.add(MirrorText.field("fog", fogState(player)));
         final ViewerDrawing view = VIEWS.get(player.getUniqueId());
         if (BLIND.contains(player.getUniqueId()))
@@ -471,7 +471,7 @@ public final class Windows
             final int kept = window.capture.keptReach();
             lines.add(MirrorText.field(name + " capture", "reaches " + ((kept > 0) ? Math.min(box, kept) : box) + " ahead"
                 + ((kept > 0) ? MirrorText.bad(", cut from " + box + " to fit") : "") + ", drawn to " + window.depth()
-                + " (full " + Captures.gateFillDepth(window.source.destination(), ConfigManager.getGateViewDepth())
+                + " (full " + Captures.gateFillDepth(window.source.destination(), ConfigManager.getGateViewFirstDepth())
                 + "), " + window.capture.secondsOld() + "s old"));
         }
         final CreatureTally tally = view.tallies.get(name);
@@ -656,11 +656,11 @@ public final class Windows
     /**
      * The deepest of the views a viewer is being drawn: a gate's is its own, not a mirror's.
      *
-     * @return blocks; {@code mirror-view-depth} for none
+     * @return blocks; {@code view-depth} for none
      */
     private static int deepest(final List<WindowState> seeing)
     {
-        return seeing.stream().mapToInt(WindowState::depth).max().orElse(ConfigManager.getMirrorViewDepth());
+        return seeing.stream().mapToInt(WindowState::depth).max().orElse(ConfigManager.getViewDepth());
     }
 
     /**
@@ -2633,7 +2633,7 @@ public final class Windows
         final List<Entity> inside)
     {
         // Depth is from the opening, and the eye may be the proximity distance from that.
-        final double reach = Math.max(radius, ConfigManager.getMirrorViewDepth())
+        final double reach = Math.max(radius, ConfigManager.getViewDepth())
             + ConfigManager.getMirrorProximityDistance() + 1.0;
         for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
         {

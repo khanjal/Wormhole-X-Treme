@@ -151,7 +151,7 @@ class WindowsTest
         ConfigTestSupport.clear();
         // Shallow unless a test is about depth: every block drawn here is a mock, and a deep cone
         // is thousands of them.
-        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 16);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 16);
         MirrorManager.clear();
         WindowSweep.clear();
         paused = 0L;
