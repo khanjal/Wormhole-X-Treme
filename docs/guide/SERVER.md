@@ -77,10 +77,30 @@ How the version range is built and tested is in
 ## Configuration
 
 On first run the plugin creates `plugins/WormholeXTreme/config.yml`, written in groups under
-`# --- Transport rings ---` headings, each setting with a sentence or two above it. When an
-update adds settings, the missing keys are appended to your file with their defaults and
-descriptions; existing values are never overwritten, and a file you already have keeps its own
-layout rather than being reshaped under you.
+`# --- Transport rings ---` headings, the big groups split under lighter `# -- Timing --` ones,
+each setting with a sentence or two above it. It opens with a short "start here" list of the
+settings most often changed and the group each is under. When an update adds settings, the
+missing keys are appended to your file with their defaults and descriptions; existing values are
+never overwritten, and a file you already have keeps its own layout rather than being reshaped
+under you. To have the current layout, stop the server, move your `config.yml` aside, start it
+once to write a new one, and copy your values across. Copy the whole `gate-material-groups:`
+block too, and any notes of your own: the new file has only the example groups.
+
+The groups, in the order the file has them, and where each is explained:
+
+| Group | Sub-groups | Explained in |
+|---|---|---|
+| General | | [below](#pets) |
+| Stargates | Opening and closing · Travel · Effects · Iris · Building, previews and server load | [below](#keeping-gates-from-staying-open) and [GATES.md](GATES.md) |
+| Gate views and mirrors | Gate views · Mirror views · Creatures and players in a view · Quantum mirrors | [GATES.md](GATES.md) and [MIRRORS.md](MIRRORS.md#settings) |
+| Gate signs | | [GATES.md](GATES.md#signs) |
+| Transport rings | Timing · Refusal outline · Placement and limits · New ring pairs | [RINGS.md](RINGS.md#ring-settings) |
+| Beaming | Animation · Cooldown and cost | [BEAMS.md](BEAMS.md#settings) |
+| Economy | | [Economy](#economy) |
+| Stargate sounds | Dialling · Open wormhole · Iris | [Sounds](#sounds) and [GATES.md](GATES.md#sounds) |
+| Transport ring sounds | | [RINGS.md](RINGS.md#sounds) |
+| Beaming sounds | | [BEAMS.md](BEAMS.md#sounds) |
+| Integrations | Protection and logging · Web maps · Placeholders, metrics and updates | [CoreProtect](#coreprotect) and [WorldGuard](#worldguard); [Dynmap](#dynmap), [BlueMap](#bluemap), [squaremap](#squaremap) and [Pl3xMap](#pl3xmap); [Placeholders](#placeholders) and [Metrics](#metrics) |
 
 **Change settings in-game** with `/wormhole config`:
 
@@ -102,6 +122,18 @@ command, or edit the file with the server stopped.
 it opened with, a cooldown already running ends when it was going to, and a gate's name sign keeps
 its colours until it is next written. Nothing waits for a restart.
 
+### Pets
+
+| Setting | Default | What it does |
+|---|---|---|
+| `pets-follow-owner` | true | A player's tamed wolves, cats and parrots within 12 blocks travel with them by gate, ring, beam or mirror, unless told to sit |
+
+### Clickable chat
+
+| Setting | Default | What it does |
+|---|---|---|
+| `clickable-chat` | true | A command named in chat can be clicked: after `gate build`, each preview action is a button, with hover text saying what it does, and a refusal that names a command links it. An action that needs more, such as `material`, fills in the chat box instead of running. False sends the same lines as plain text, which is all a CraftBukkit server gets anyway |
+
 ### Keeping gates from staying open
 
 | Setting | Default | What it does |
@@ -118,18 +150,6 @@ holding a gate open forever.
 | Setting | Default | What it does |
 |---|---|---|
 | `show-gate-welcome-message` | false | A player coming out of a gate is told in chat which gate they arrived at, once; their pets and mount are not. Gates only: rings and beams name their destination whatever this is set to |
-
-### Pets
-
-| Setting | Default | What it does |
-|---|---|---|
-| `pets-follow-owner` | true | A player's tamed wolves, cats and parrots within 12 blocks travel with them by gate, ring, beam or mirror, unless told to sit |
-
-### Clickable chat
-
-| Setting | Default | What it does |
-|---|---|---|
-| `clickable-chat` | true | A command named in chat can be clicked: after `gate build`, each preview action is a button, with hover text saying what it does, and a refusal that names a command links it. An action that needs more, such as `material`, fills in the chat box instead of running. False sends the same lines as plain text, which is all a CraftBukkit server gets anyway |
 
 ### What this costs a busy server
 

@@ -3,7 +3,10 @@ package com.wormhole_xtreme.wormhole.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +16,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntSupplier;
+import java.util.logging.Level;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +30,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 /**
  * The shape of the {@code config.yml} the plugin writes, rather than its values.
  *
- * <p>Eighty-two settings is something an operator scrolls, so the file is written in groups
+ * <p>Over a hundred settings is something an operator scrolls, so the file is written in groups
  * under {@code # --- ... ---} banners, with no blank line between the settings inside a group
  * and descriptions of a sentence or two. None of that is load-bearing for the plugin, which is
  * exactly why it needs a test: nothing else would notice it drifting back into one flat list of
@@ -49,10 +53,14 @@ class ConfigFileShapeTest
 
     private File cfg;
 
+    /** Kept so a test can check what was logged. */
+    private WormholeXTreme plugin;
+
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
         ConfigTestSupport.loadDefaults();
         cfg = new File(directory, "config.yml");
     }
@@ -98,7 +106,11 @@ class ConfigFileShapeTest
             "and the flat list is exactly the groups, nothing added or lost");
     }
 
-    /** Every group is named, since the heading is what makes the file navigable. */
+    /**
+     * Every group is named, and so is every sub-group but a group's opening run.
+     *
+     * <p>An unheaded run after the first would read as part of the sub-group above it.
+     */
     @Test
     void everyGroupHasAHeadingAndSomeSettings()
     {
@@ -106,7 +118,151 @@ class ConfigFileShapeTest
         {
             assertFalse(group.heading().isBlank(), "a group with no heading");
             assertFalse(group.settings().isEmpty(), "an empty group: " + group.heading());
+            final List<DefaultSettings.SubGroup> subGroups = group.subGroups();
+            for (int i = 0; i < subGroups.size(); i++)
+            {
+                assertFalse(subGroups.get(i).settings().isEmpty(), "an empty sub-group in " + group.heading());
+                assertTrue((i == 0) || !subGroups.get(i).heading().isBlank(),
+                    "an unheaded sub-group after the first in " + group.heading());
+            }
         }
+    }
+
+    /**
+     * The groups come commonest first, the sounds after them and the integrations last.
+     *
+     * <p>From #586: the fourteen integration settings used to open the file, ahead of every gate
+     * setting an admin came to change.
+     */
+    @Test
+    void theGroupsComeCommonestFirst()
+    {
+        final List<String> headings = new ArrayList<>();
+        for (final DefaultSettings.Group group : DefaultSettings.groups)
+        {
+            headings.add(group.heading());
+        }
+
+        assertEquals(List.of("General", "Stargates", "Gate views and mirrors", "Gate signs",
+            "Transport rings", "Beaming", "Economy", "Stargate sounds", "Transport ring sounds",
+            "Beaming sounds", "Integrations"), headings);
+    }
+
+    /**
+     * Every setting is in a group, and the groups hold every setting there is.
+     *
+     * <p>A reshuffle that dropped one would leave it out of a new file altogether.
+     */
+    @Test
+    void theGroupsHoldEverySetting()
+    {
+        final Set<ConfigKeys> grouped = EnumSet.noneOf(ConfigKeys.class);
+        for (final DefaultSettings.Group group : DefaultSettings.groups)
+        {
+            for (final Setting setting : group.settings())
+            {
+                grouped.add(setting.getName());
+            }
+        }
+
+        assertEquals(EnumSet.allOf(ConfigKeys.class), grouped, "every setting has a heading");
+        assertEquals(ConfigKeys.values().length, DefaultSettings.config.length, "and none is listed twice");
+    }
+
+    /**
+     * The start-here block names each setting under the group it really is in.
+     *
+     * <p>Read off the written file: each line of the block names a setting and a heading, and that
+     * setting's key must sit between that heading's banner and the next one. The block lists them
+     * in the order the file does.
+     */
+    @Test
+    void theStartHereBlockNamesEachSettingUnderItsGroup() throws Exception
+    {
+        final List<String> lines = write();
+        final int firstBanner = indexOf(lines, "# --- ");
+        final List<String> block = lines.subList(0, firstBanner).stream()
+            .filter(line -> line.startsWith("#   ")).toList();
+
+        assertEquals(DefaultSettings.START_HERE.size(), block.size(), "a line per listed setting: " + block);
+        assertTrue(block.size() >= 8, "about ten settings to start with");
+        int previous = firstBanner;
+        for (final String entry : block)
+        {
+            final String[] parts = entry.substring(4).split(" {2,}", 2);
+            assertEquals(2, parts.length, "no two-space gap between setting and group in: " + entry);
+            final int banner = lines.indexOf("# --- " + parts[1] + " ---");
+            assertTrue(banner > 0, "no group named " + parts[1]);
+            final int next = banner + 1 + indexOf(lines.subList(banner + 1, lines.size()), "# --- ");
+            final int at = banner + indexOf(lines.subList(banner, next), parts[0] + ": ");
+            assertTrue(at < next, parts[0] + " is not under " + parts[1]);
+            assertTrue(at > previous, parts[0] + " is listed out of file order");
+            previous = at;
+        }
+    }
+
+    /**
+     * Every sub-group's lighter heading is written, in order, inside its group.
+     *
+     * <p>A sub-heading is emitted where a setting opens it, so one whose first setting moved would
+     * lose its heading without anything else changing.
+     */
+    @Test
+    void theWrittenFileCarriesEverySubHeadingInOrder() throws Exception
+    {
+        final List<String> headings = write().stream()
+            .filter(line -> line.startsWith("# --- ") || line.startsWith("# -- ")).toList();
+
+        final List<String> expected = new ArrayList<>();
+        for (final DefaultSettings.Group group : DefaultSettings.groups)
+        {
+            expected.add("# --- " + group.heading() + " ---");
+            for (final DefaultSettings.SubGroup subGroup : group.subGroups())
+            {
+                if (!subGroup.heading().isEmpty())
+                {
+                    expected.add("# -- " + subGroup.heading() + " --");
+                }
+            }
+        }
+        assertTrue(expected.size() > (DefaultSettings.groups.length + 10), "the big groups are split");
+        assertEquals(expected, headings, "each sub-heading inside its group, in order");
+    }
+
+    /**
+     * A start-here name no group holds is left out and logged, and the file is still written whole.
+     *
+     * <p>From the review of #586: the list was looked up while the file was open, so a name with no
+     * group threw there and left a config.yml holding nothing but the first few start-here lines.
+     */
+    @Test
+    void aStartHereNameNoGroupHoldsIsLoggedAndTheFileIsStillWhole() throws Exception
+    {
+        final List<String> startHere = ConfigurationYAML.startHereLines(
+            List.of(ConfigKeys.TIMEOUT_SHUTDOWN, ConfigKeys.LOG_LEVEL),
+            key -> (key == ConfigKeys.LOG_LEVEL) ? null : DefaultSettings.groupOf(key));
+        ConfigurationYAML.writeFile(cfg, DefaultSettings.config, startHere);
+
+        final List<String> lines = Files.readAllLines(cfg.toPath(), StandardCharsets.UTF_8);
+        final Setting last = DefaultSettings.config[DefaultSettings.config.length - 1];
+        assertTrue(lines.stream().anyMatch(l -> l.startsWith("#   timeout-shutdown ")), "the good name is listed");
+        assertFalse(lines.stream().anyMatch(l -> l.startsWith("#   log-level ")), "the bad one is left out");
+        assertTrue(lines.stream().anyMatch(l -> l.startsWith(ConfigurationYAML.kebabKeyName(last.getName().name()) + ": ")),
+            "and the file runs to its last setting");
+        verify(plugin).prettyLog(eq(Level.SEVERE), contains("log-level"));
+    }
+
+    /** @return the first line starting with the prefix, or the size of the list if none does */
+    private static int indexOf(final List<String> lines, final String prefix)
+    {
+        for (int i = 0; i < lines.size(); i++)
+        {
+            if (lines.get(i).startsWith(prefix))
+            {
+                return i;
+            }
+        }
+        return lines.size();
     }
 
     /**
@@ -154,10 +310,13 @@ class ConfigFileShapeTest
     }
 
     /**
-     * Inside a group the settings run on, with no blank line between them.
+     * Inside a sub-group the settings run on, with no blank line between them.
      *
      * <p>Where the third of the file that was blank went. A blank line before each banner is the
-     * only one left, so the count of them is the count of groups less the first.
+     * only one left: one above every group, the first included since the start-here block is
+     * above it, and one above every sub-heading but one straight under a banner with no intro.
+     * That comes to one per sub-group, counting a group with none as one, plus one for each group
+     * whose intro runs into a sub-heading.
      */
     @Test
     void theOnlyBlankLinesAreTheOnesAboveABanner() throws Exception
@@ -170,12 +329,21 @@ class ConfigFileShapeTest
             if (lines.get(i).isEmpty())
             {
                 blanks++;
-                assertTrue((i + 1) < lines.size() && lines.get(i + 1).startsWith("# --- "),
-                    "a blank line at " + (i + 1) + " that does not open a group");
+                assertTrue((i + 1) < lines.size() && lines.get(i + 1).startsWith("# --"),
+                    "a blank line at " + (i + 1) + " that does not open a group or sub-group");
             }
         }
-        assertEquals(DefaultSettings.groups.length - 1, blanks,
-            "one blank above every banner but the first");
+        int expected = 0;
+        for (final DefaultSettings.Group group : DefaultSettings.groups)
+        {
+            expected += group.subGroups().size();
+            // A group intro is followed by a gap before a sub-heading, as Integrations has.
+            if (!group.intro().isEmpty() && !group.subGroups().get(0).heading().isEmpty())
+            {
+                expected++;
+            }
+        }
+        assertEquals(expected, blanks, "one blank above every banner but a sub-heading opening its group");
     }
 
 

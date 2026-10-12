@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -763,6 +764,21 @@ public class ConfigurationYAML
 
     protected static void writeFile(final File file, final Setting[] config)
     {
+        writeFile(file, config, startHereLines(DefaultSettings.START_HERE, DefaultSettings::groupOf));
+    }
+
+    /**
+     * Writes a whole new config file.
+     *
+     * @param file
+     *            the config file
+     * @param config
+     *            the settings, in the order to write them
+     * @param startHere
+     *            the lines that open the file, built before anything is written
+     */
+    static void writeFile(final File file, final Setting[] config, final List<String> startHere)
+    {
         try
         {
             // The directory to make is the one the file goes in; the caller already decided
@@ -774,29 +790,13 @@ public class ConfigurationYAML
             }
             try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
             {
-                boolean started = false;
+                for (final String line : startHere)
+                {
+                    writer.write(line + System.lineSeparator());
+                }
                 for (final Setting s : config)
                 {
-                    // A banner where a group begins, and a blank line above it. Settings inside a
-                    // group run on without one: each starts with its own comment, which separates
-                    // them well enough, and eighty blank lines is a third of the file.
-                    final DefaultSettings.Group group = DefaultSettings.groupAt(s.getName());
-                    if (group != null)
-                    {
-                        if (started)
-                        {
-                            writer.write(System.lineSeparator());
-                        }
-                        writer.write("# --- " + group.heading() + " ---" + System.lineSeparator());
-                        if (!group.intro().isEmpty())
-                        {
-                            writeComment(writer, group.intro());
-                            // A bare comment line, or the group note and the first
-                            // setting description read as one paragraph.
-                            writer.write("#" + System.lineSeparator());
-                        }
-                    }
-                    started = true;
+                    writeBanners(writer, s.getName());
                     writeComment(writer, s.getDescription());
                     writer.write(kebabKeyName(s.getName().name()) + ": "
                         + formatValueForYaml(s.getValue()) + System.lineSeparator());
@@ -806,6 +806,78 @@ public class ConfigurationYAML
         catch (final Exception e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml", e);
+        }
+    }
+
+    /**
+     * The list of most-changed settings that opens a new file, each with its group.
+     *
+     * <p>A listed setting no group holds is left out and logged, so the file is still written whole.
+     *
+     * @param keys
+     *            the settings to list
+     * @param groupOf
+     *            the group each is under, or null for none
+     * @return the comment lines
+     */
+    static List<String> startHereLines(final List<ConfigManager.ConfigKeys> keys,
+                                       final Function<ConfigManager.ConfigKeys, DefaultSettings.Group> groupOf)
+    {
+        final List<String> lines = new ArrayList<>();
+        lines.add("# Start here: the settings most often changed, and the group each is under.");
+        for (final ConfigManager.ConfigKeys key : keys)
+        {
+            final DefaultSettings.Group group = groupOf.apply(key);
+            if (group == null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
+                    "config.yml's start-here list names " + kebabKeyName(key.name())
+                        + ", which no group holds; left out");
+                continue;
+            }
+            lines.add(String.format(Locale.ROOT, "#   %-26s  %s", kebabKeyName(key.name()), group.heading()));
+        }
+        return lines;
+    }
+
+    /**
+     * Writes the banner for a group, or the lighter heading for a sub-group, that a setting opens.
+     *
+     * <p>A blank line above each. Settings inside a run follow on without one: each starts with
+     * its own comment, which separates them well enough, and a hundred blank lines is a third of
+     * the file.
+     *
+     * @param writer
+     *            the file being written
+     * @param key
+     *            the setting about to be written
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void writeBanners(final Writer writer, final ConfigManager.ConfigKeys key) throws IOException
+    {
+        final DefaultSettings.Group group = DefaultSettings.groupAt(key);
+        final DefaultSettings.SubGroup subGroup = DefaultSettings.subGroupAt(key);
+        if (group != null)
+        {
+            writer.write(System.lineSeparator());
+            writer.write("# --- " + group.heading() + " ---" + System.lineSeparator());
+            writeComment(writer, group.intro());
+            if (!group.intro().isEmpty() && (subGroup == null))
+            {
+                // A bare comment line, or the group note and the first
+                // setting description read as one paragraph.
+                writer.write("#" + System.lineSeparator());
+            }
+        }
+        if (subGroup != null)
+        {
+            // Straight under a bare banner it reads as one heading; after an intro it needs a gap.
+            if ((group == null) || !group.intro().isEmpty())
+            {
+                writer.write(System.lineSeparator());
+            }
+            writer.write("# -- " + subGroup.heading() + " --" + System.lineSeparator());
         }
     }
 

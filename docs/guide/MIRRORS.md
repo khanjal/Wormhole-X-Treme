@@ -190,14 +190,32 @@ It stays while you keep looking, and only the mirror under your crosshair speaks
 
 ## Settings
 
+In `config.yml` under `# --- Gate views and mirrors ---`, which also holds the gate views
+(`gate-view`, `gate-view-depth`, `gate-view-full-depth`, `gate-view-funnel` and
+`gate-view-funnel-length`, first, under `# -- Gate views --`; the funnel two are in
+[GATES.md](GATES.md#a-big-gate-onto-a-small-one)).
+The mirror settings follow in three runs, each under its own `# -- ... --` sub-heading.
+
+### Mirror views
+
 | Setting | Default | What it does |
 |---|---|---|
-| `mirror-per-world-limit` | 1 | How many mirrors one world may hold. `0` for no limit. |
-| `mirror-proximity-distance` | 16 | How close a player must be for the banner to give way to the room, and how near they must stay. |
-| `mirror-proximity-ticks` | 20 | How often the proximity sweep runs. Mirrors whose world or chunk is not loaded are skipped. |
 | `mirror-view-depth` | 160 | How far from the opening the room is drawn, 4 to 160. |
 | `mirror-fog-at-depth` | `false` | Pull a viewer's fog in to where the room ends. Paper only. |
+| `mirror-proximity-distance` | 16 | How close a player must be for the banner to give way to the room, and how near they must stay. |
+| `mirror-proximity-ticks` | 20 | How often the proximity sweep runs. Mirrors whose world or chunk is not loaded are skipped. |
+
+### Creatures and players in a view
+
+| Setting | Default | What it does |
+|---|---|---|
 | `mirror-show-entities` | `false` | Show the mobs standing in a mirror's or an open gate's far room, as copies only the viewer sees. |
 | `mirror-show-players` | `false` | With `mirror-show-entities` on too, show the players there as well. It tells a viewer who is at the destination. |
 | `mirror-entity-load-radius` | 2 | With creatures shown, how many chunks in front of a watched far side are held, as `/forceload` holds them: 15 at 2, each with a two-chunk ring kept loaded round it, about 63 chunks loaded in all. 0 for none, at most 4. The ring can generate terrain at the edge of explored land. |
+
+### Quantum mirrors
+
+| Setting | Default | What it does |
+|---|---|---|
+| `mirror-per-world-limit` | 1 | How many mirrors one world may hold. `0` for no limit. |
 | `mirror-approach-message` | `true` | Whether a mirror names itself above the hotbar to whoever looks at it. |

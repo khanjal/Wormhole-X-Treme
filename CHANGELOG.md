@@ -41,6 +41,14 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   disguise plugin's: a server that hides identities should leave it off. The account's name and id
   are not sent with the skin. Stand-ins, mobs' too, wear only what shows of an item, never its contents, pages or lore.
 
+**Changed**
+
+- **A new `config.yml` is laid out commonest first** ([#586](https://github.com/khanjal/Wormhole-X-Treme/issues/586)):
+  a "start here" list of the settings most often changed, then General, Stargates, Gate views and
+  mirrors, signs, rings, beaming, economy, the sounds, and integrations last, the big groups split
+  under `# -- ... --` sub-headings. No setting's name, default or meaning changed, and a file you
+  already have keeps its own order; see [the guide](docs/guide/SERVER.md#configuration).
+
 ### Stargates
 
 **Added**

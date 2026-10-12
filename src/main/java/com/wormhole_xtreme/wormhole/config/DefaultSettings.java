@@ -48,17 +48,40 @@ class DefaultSettings
      *            the heading, written as a {@code # --- ... ---} banner
      * @param intro
      *            a line or two under the banner about the group as a whole, or empty for none
+     * @param subGroups
+     *            its settings in runs, each under its own lighter heading; only the first may
+     *            have none
+     */
+    record Group(String heading, String intro, List<SubGroup> subGroups)
+    {
+        /** @return every setting in the group, in the order the file writes them */
+        List<Setting> settings()
+        {
+            final List<Setting> all = new ArrayList<>();
+            for (final SubGroup subGroup : subGroups)
+            {
+                all.addAll(subGroup.settings());
+            }
+            return all;
+        }
+    }
+
+    /**
+     * A run of settings inside a group, under a {@code # -- ... --} heading of its own.
+     *
+     * @param heading
+     *            the sub-heading, or empty for the settings that open a group before any
      * @param settings
      *            its settings, in the order the file writes them
      */
-    record Group(String heading, String intro, List<Setting> settings)
+    record SubGroup(String heading, List<Setting> settings)
     {
     }
 
     /**
-     * One group, with its settings as varargs.
+     * A group with no sub-groups, its settings as varargs.
      *
-     * <p>So the list below reads as a list. The record holds a {@link List} rather than an array
+     * <p>So the list below reads as a list. The records hold a {@link List} rather than an array
      * because a record with an array component compares and prints by identity, which is a trap
      * for whoever first tries to compare two of them.
      *
@@ -71,7 +94,35 @@ class DefaultSettings
      */
     private static Group group(final String heading, final String intro, final Setting... settings)
     {
-        return new Group(heading, intro, List.of(settings));
+        return new Group(heading, intro, List.of(new SubGroup("", List.of(settings))));
+    }
+
+    /**
+     * A group split into sub-groups.
+     *
+     * @param heading
+     *            the heading, written as a {@code # --- ... ---} banner
+     * @param intro
+     *            a line or two about the group as a whole, or empty for none
+     * @param subGroups
+     *            its sub-groups, in the order the file writes them
+     */
+    private static Group group(final String heading, final String intro, final SubGroup... subGroups)
+    {
+        return new Group(heading, intro, List.of(subGroups));
+    }
+
+    /**
+     * One sub-group, with its settings as varargs.
+     *
+     * @param heading
+     *            the sub-heading, or empty for none
+     * @param settings
+     *            its settings, in the order the file writes them
+     */
+    private static SubGroup sub(final String heading, final Setting... settings)
+    {
+        return new SubGroup(heading, List.of(settings));
     }
 
     /** The groups, in the order {@code config.yml} lists them. */
@@ -83,66 +134,52 @@ class DefaultSettings
             new Setting(ConfigKeys.PETS_FOLLOW_OWNER, true, "Whether tamed wolves, cats and parrots that are following a player, not sitting, travel with them through gates, rings, beams and mirrors.", SECTION),
             new Setting(ConfigKeys.CLICKABLE_CHAT, true, "Whether a command the plugin names in chat can be clicked to run it, with hover text saying what it does. False sends plain text, as servers without Paper or Spigot do anyway.", SECTION)),
 
-        group("Integrations", "Other plugins and services this one can talk to. Each is optional.",
-            new Setting(ConfigKeys.COREPROTECT_ENABLED, false, "Log the blocks that building and taking down gates and rings place and remove to CoreProtect, so they can be rolled back. Requires CoreProtect. A running gate's water, levers and iris are not logged.", SECTION),
-            new Setting(ConfigKeys.WORLDGUARD_ENABLED, false, "Add WorldGuard region flags wormhole-build and wormhole-use, so a region can refuse gate building and gate use. Requires WorldGuard. Turning it off applies at once; turning it on takes a restart. Both default to allow, and WorldGuard's region bypass exempts.", SECTION),
-            new Setting(ConfigKeys.DYNMAP_ENABLED, false, "Show gates, rings, public beam destinations and quantum mirrors on a Dynmap web map, each as its own layer, with a line between dialled gates. Requires Dynmap. Players' private beam places are never shown.", SECTION),
-            new Setting(ConfigKeys.BLUEMAP_ENABLED, false, "Show gates, rings, public beam destinations and quantum mirrors on a BlueMap web map, each as its own marker set, with a line between dialled gates. Requires BlueMap. Players' private beam places are never shown.", SECTION),
-            new Setting(ConfigKeys.SQUAREMAP_ENABLED, false, "Show gates, rings, public beam destinations and quantum mirrors on a squaremap web map, each as its own layer, with a line between dialled gates. Requires squaremap, which runs on Paper. Players' private beam places are never shown.", SECTION),
-            new Setting(ConfigKeys.PL3XMAP_ENABLED, false, "Show gates, rings, public beam destinations and quantum mirrors on a Pl3xMap web map, each as its own layer, with a line between dialled gates. Requires Pl3xMap, built for the server's Minecraft version. Players' private beam places are never shown.", SECTION),
-            new Setting(ConfigKeys.MAP_SHOW_GATES, true, "Whether gates, and the lines between dialled gates, appear on the web map, as their own layer.", SECTION),
-            new Setting(ConfigKeys.MAP_SHOW_RINGS, true, "Whether transport rings appear on the web map, as their own layer.", SECTION),
-            new Setting(ConfigKeys.MAP_SHOW_BEAMS, true, "Whether public beam destinations appear on the web map, as their own layer.", SECTION),
-            new Setting(ConfigKeys.MAP_SHOW_MIRRORS, true, "Whether quantum mirrors appear on the web map, as their own layer.", SECTION),
-            new Setting(ConfigKeys.MAP_SHOW_IRIS_GATES, true, "Whether gates with an iris code appear on the web map. Set false on a PvP server where a gate's location is a secret.", SECTION),
-            new Setting(ConfigKeys.PLACEHOLDERS_ENABLED, false, "Register the %wormhole_...% PlaceholderAPI expansion. Requires PlaceholderAPI. Exposes gates_total, gates_open, gates_owned and nearest_gate.", SECTION),
-            new Setting(ConfigKeys.METRICS_ENABLED, true, "Send anonymous usage counts to bstats.org: Minecraft version, server software, and how many gates, rings, beams and mirrors are in use. No names, coordinates or addresses; bStats keeps a random id so it counts each server once. Set false to stop; bStats/config.yml turns it off for every plugin.", SECTION),
-            new Setting(ConfigKeys.UPDATE_CHECK, true, "At startup, look online for a newer release and say so in the log and to players with wormhole.update.notify as they join. Sends only the plugin and Minecraft versions; never downloads anything. Set false to stop.", SECTION)),
-
-        group("Economy", "Shared by gates and beaming; both need this enabled before any cost applies.",
-            new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.", SECTION),
-            new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. 0.0 to disable.", SECTION),
-            new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. 0.0 to disable.", SECTION)),
-
         group("Stargates", "",
-            new Setting(ConfigKeys.TIMEOUT_ACTIVATE, 30, "Seconds a gate stays activated, waiting to be dialled, before it times out.", SECTION),
-            new Setting(ConfigKeys.TIMEOUT_SHUTDOWN, 38, "Seconds a dialled gate stays open before shutting down. 0 keeps it open until something goes through.", SECTION),
-            new Setting(ConfigKeys.MAX_OPEN_SECONDS, 300, "Longest a wormhole may stay open, in seconds, however often it is re-dialled. Measured from when it first opened, so a gate re-triggered on a schedule cannot hold it open forever. 0 for no limit.", SECTION),
-            new Setting(ConfigKeys.USE_COOLDOWN_ENABLED, false, "Enable Cooldown timers on stargate usage. Timer only activates on passage through wormholes.", SECTION),
-            new Setting(ConfigKeys.USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between gate trips, when the cooldown above is enabled.", SECTION),
-            new Setting(ConfigKeys.WORMHOLE_USE_IS_TELEPORT, false, "Whether wormhole.use is needed to travel at all. False lets anyone travel but only permitted players activate a gate; true limits travel too.", SECTION),
-            new Setting(ConfigKeys.SAME_WORLD_ONLY, false, "If set to true, a gate cannot dial a gate in another world, and nothing -- a player, a cart, a mob, an item or an arrow -- crosses between worlds by gate.", SECTION),
-            new Setting(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME, true, "Whether a redstone signal on an already-open gate pushes its shutdown back. Never past max-open-seconds, so traffic can hold a gate open but not indefinitely.", SECTION),
-            new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates, at least 5. Higher values reduce server load.", SECTION),
-            new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.", SECTION),
-            new Setting(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS, 20, "Ticks a traveller sees water as they come out of a gate, drawn to that player alone. Raise it if distant trips miss the effect while chunks are still loading; too high and the client starts predicting it is swimming. 0 turns it off.", SECTION),
-            new Setting(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE, false, "Whether a player arriving through a gate is told in chat which gate they arrived at. Gates only: rings and beams name their destination whatever this is set to.", SECTION),
-            new Setting(ConfigKeys.GATE_DIAL_SPIN, "TOP", "How a dialling gate's inner ring light moves before each chevron locks: TOP, CHEVRON, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE. Each is described in the gate guide. TOP rests half a second on the top chevron after each lock, and UNIVERSE turns at its own pace, so both dial a little slower.", SECTION),
-            new Setting(ConfigKeys.GATE_PREVIEW_MINUTES, 10, "Minutes a gate preview, stood up by /wormhole gate build, stays up after its owner last used a gate build or gate preview command. At least 1.", SECTION),
-            new Setting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, "Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about 1100. 0 turns previews off.", SECTION)),
+            sub("Opening and closing",
+                new Setting(ConfigKeys.TIMEOUT_ACTIVATE, 30, "Seconds a gate stays activated, waiting to be dialled, before it times out.", SECTION),
+                new Setting(ConfigKeys.TIMEOUT_SHUTDOWN, 38, "Seconds a dialled gate stays open before shutting down. 0 keeps it open until something goes through.", SECTION),
+                new Setting(ConfigKeys.MAX_OPEN_SECONDS, 300, "Longest a wormhole may stay open, in seconds, however often it is re-dialled. Measured from when it first opened, so a gate re-triggered on a schedule cannot hold it open forever. 0 for no limit.", SECTION),
+                new Setting(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME, true, "Whether a redstone signal on an already-open gate pushes its shutdown back. Never past max-open-seconds, so traffic can hold a gate open but not indefinitely.", SECTION)),
+            sub("Travel",
+                new Setting(ConfigKeys.USE_COOLDOWN_ENABLED, false, "Enable Cooldown timers on stargate usage. Timer only activates on passage through wormholes.", SECTION),
+                new Setting(ConfigKeys.USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between gate trips, when the cooldown above is enabled.", SECTION),
+                new Setting(ConfigKeys.WORMHOLE_USE_IS_TELEPORT, false, "Whether wormhole.use is needed to travel at all. False lets anyone travel but only permitted players activate a gate; true limits travel too.", SECTION),
+                new Setting(ConfigKeys.SAME_WORLD_ONLY, false, "If set to true, a gate cannot dial a gate in another world, and nothing -- a player, a cart, a mob, an item or an arrow -- crosses between worlds by gate.", SECTION),
+                new Setting(ConfigKeys.SHOW_GATE_WELCOME_MESSAGE, false, "Whether a player arriving through a gate is told in chat which gate they arrived at. Gates only: rings and beams name their destination whatever this is set to.", SECTION)),
+            sub("Effects",
+                new Setting(ConfigKeys.GATE_DIAL_SPIN, "TOP", "How a dialling gate's inner ring light moves before each chevron locks: TOP, CHEVRON, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE. Each is described in the gate guide. TOP rests half a second on the top chevron after each lock, and UNIVERSE turns at its own pace, so both dial a little slower.", SECTION),
+                new Setting(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS, 20, "Ticks a traveller sees water as they come out of a gate, drawn to that player alone. Raise it if distant trips miss the effect while chunks are still loading; too high and the client starts predicting it is swimming. 0 turns it off.", SECTION),
+                new Setting(ConfigKeys.GATE_RIPPLE, false, "Whether an open gate's event horizon ripples, in rings out from its middle: as something goes in or comes out, and now and then while somebody is near. Upright gates only; the gate guide says which show it and how. Off while it is new.", SECTION)),
+            sub("Iris",
+                new Setting(ConfigKeys.GATE_IRIS_ANIMATION, "sweep", "How an iris crosses its opening: sweep (rings, from the rim in), spiral (a wedge turning outwards), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.", SECTION),
+                new Setting(ConfigKeys.GATE_IRIS_STEP_TICKS, 2, "Ticks between one ring of an iris sweep and the next, 1 to 20. A wider gate has more rings, so it would take longer to cross than a small one; gate-iris-sweep-max-ticks is what stops it.", SECTION),
+                new Setting(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS, 20, "The longest a whole iris crossing may take, in ticks, 0 to 200. A gate with more rings than fit in that time covers several of them per step instead of slowing down. A limit too short for two steps at that pace still gets two. 0 for no limit, which is a step per ring however big the gate.", SECTION),
+                new Setting(ConfigKeys.GATE_IRIS_HORIZON_TICKS, 10, "Ticks between one frame of the wormhole drawn behind a see-through iris and the next, 0 to 100. It is drawn in ice there rather than water, which does not move on its own; 0 leaves it still.", SECTION)),
+            sub("Building, previews and server load",
+                new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.", SECTION),
+                new Setting(ConfigKeys.GATE_PREVIEW_MINUTES, 10, "Minutes a gate preview, stood up by /wormhole gate build, stays up after its owner last used a gate build or gate preview command. At least 1.", SECTION),
+                new Setting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, "Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about 1100. 0 turns previews off.", SECTION),
+                new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates, at least 5. Higher values reduce server load.", SECTION))),
 
-        group("Stargate sounds", SOUNDS,
-            new Setting(ConfigKeys.GATE_SOUNDS_ENABLED, true, "Whether stargates make any noise. Everything below is ignored when this is false.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_VOLUME, 1.5, "How loud gate sounds are. Volume also sets audible range: 1.5 carries about twenty-four blocks.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_ACTIVATE, "block.conduit.activate", "Played as a gate begins to dial.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close", "Played once per chevron as it locks, pitch climbing through the sequence.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_LOCK, "block.beacon.power_select", "Played with the last chevron as it locks, before the wormhole forms.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_KAWOOSH, "entity.player.splash.high_speed", "Played once as the wormhole establishes: the heavy splash, pitched down for size.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate", "Played as a wormhole closes.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close", "The iris closing over a gate, pitched down a little since it is a shield rather than a door.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open", "The iris opening.", SECTION),
-            new Setting(ConfigKeys.GATE_IRIS_ANIMATION, "sweep", "How an iris crosses its opening: sweep (rings, from the rim in), spiral (a wedge turning outwards), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.", SECTION),
-            new Setting(ConfigKeys.GATE_VIEW, "horizon", "What an open gate shows once its kawoosh settles: horizon (the event horizon, as always), behind (where it goes, seen through the horizon), or open (where it goes, with no horizon). Upright gates with a frame round their opening, so not Minimal. An experiment, see #516.", SECTION),
-            new Setting(ConfigKeys.GATE_VIEW_DEPTH, 32, "How far past a gate's opening gate-view captures and draws where it goes first, 4 to 160. Lower than mirror-view-depth because a gate is captured as it is dialled, often of somewhere nobody has loaded: the deeper, the longer before anything shows.", SECTION),
-            new Setting(ConfigKeys.GATE_VIEW_FULL_DEPTH, 160, "How far gate-view then fills in behind that first step, in the background, 4 to 160, and never past what the far world's server sends; 0 to stay at gate-view-depth. A deeper view costs more to draw as a viewer moves: lower it if a gate view stutters.", SECTION),
-            new Setting(ConfigKeys.GATE_VIEW_FUNNEL, true, "When a gate dials a smaller one, gate-view shows the far side at the end of a tunnel the small gate's size, walled in this gate's portal material, so the view does not show past the small gate's walls and ceiling. False shows the whole view, as a gate the same size would.", SECTION),
-            new Setting(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 16, "The longest that tunnel may be, 1 to 64 blocks. It is a block longer for each block narrower the far gate is, and one more for the layer behind the opening that is its own size: four from Large to Standard, thirteen from Massive to Standard, sixteen from Grand to Minimal.", SECTION),
-            new Setting(ConfigKeys.GATE_RIPPLE, false, "Whether an open gate's event horizon ripples, in rings out from its middle: as something goes in or comes out, and now and then while somebody is near. Upright gates only; the gate guide says which show it and how. Off while it is new.", SECTION),
-            new Setting(ConfigKeys.GATE_IRIS_HORIZON_TICKS, 10, "Ticks between one frame of the wormhole drawn behind a see-through iris and the next, 0 to 100. It is drawn in ice there rather than water, which does not move on its own; 0 leaves it still.", SECTION),
-            new Setting(ConfigKeys.GATE_IRIS_STEP_TICKS, 2, "Ticks between one ring of an iris sweep and the next, 1 to 20. A wider gate has more rings, so it would take longer to cross than a small one; gate-iris-sweep-max-ticks is what stops it.", SECTION),
-            new Setting(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS, 20, "The longest a whole iris crossing may take, in ticks, 0 to 200. A gate with more rings than fit in that time covers several of them per step instead of slowing down. A limit too short for two steps at that pace still gets two. 0 for no limit, which is a step per ring however big the gate.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop", "The soft running water an open wormhole makes while it stands there.", SECTION),
-            new Setting(ConfigKeys.GATE_SOUND_AMBIENT_TICKS, 70, "How often the ambient water repeats, in ticks. A little under the sound's own length, so it runs continuously.", SECTION)),
+        group("Gate views and mirrors", "",
+            sub("Gate views",
+                new Setting(ConfigKeys.GATE_VIEW, "horizon", "What an open gate shows once its kawoosh settles: horizon (the event horizon, as always), behind (where it goes, seen through the horizon), or open (where it goes, with no horizon). Upright gates with a frame round their opening, so not Minimal. An experiment, see #516.", SECTION),
+                new Setting(ConfigKeys.GATE_VIEW_DEPTH, 32, "How far past a gate's opening gate-view captures and draws where it goes first, 4 to 160. Lower than mirror-view-depth because a gate is captured as it is dialled, often of somewhere nobody has loaded: the deeper, the longer before anything shows.", SECTION),
+                new Setting(ConfigKeys.GATE_VIEW_FULL_DEPTH, 160, "How far gate-view then fills in behind that first step, in the background, 4 to 160, and never past what the far world's server sends; 0 to stay at gate-view-depth. A deeper view costs more to draw as a viewer moves: lower it if a gate view stutters.", SECTION),
+                new Setting(ConfigKeys.GATE_VIEW_FUNNEL, true, "When a gate dials a smaller one, gate-view shows the far side at the end of a tunnel the small gate's size, walled in this gate's portal material, so the view does not show past the small gate's walls and ceiling. False shows the whole view, as a gate the same size would.", SECTION),
+                new Setting(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 16, "The longest that tunnel may be, 1 to 64 blocks. It is a block longer for each block narrower the far gate is, and one more for the layer behind the opening that is its own size: four from Large to Standard, thirteen from Massive to Standard, sixteen from Grand to Minimal.", SECTION)),
+            sub("Mirror views",
+                new Setting(ConfigKeys.MIRROR_VIEW_DEPTH, 160, "How far from a mirror's opening its room is drawn, 4 to 160; past it this world shows through. 160 is ten chunks, about as far as a server sends. Lower it for a mirror onto somewhere small, or to make one smoother to come to and leave. Changing it never retakes a capture. Above 160 is read as 160.", SECTION),
+                new Setting(ConfigKeys.MIRROR_FOG_AT_DEPTH, false, "Whether a mirror pulls a viewer's own fog in to where its room ends, so the far edge is fog rather than this world showing past it. Paper only, and a radius round the player rather than a direction. Lower mirror-view-depth first: there is nothing to gain at 160.", SECTION),
+                new Setting(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 16, "How close a player must be, in blocks, for a mirror's banner to give way to the room it shows, and how near they must stay for it to stay on.", SECTION),
+                new Setting(ConfigKeys.MIRROR_PROXIMITY_TICKS, 20, "How often the proximity sweep runs, in ticks. 20 is once a second. Mirrors whose world or chunk is not loaded are skipped.", SECTION)),
+            sub("Creatures and players in a view",
+                new Setting(ConfigKeys.MIRROR_SHOW_ENTITIES, false, "Whether the creatures standing in a mirror's or an open gate's far room show through it, as stand-ins only the viewer sees. mirror-entity-load-radius keeps the far side loaded while watched; players only with mirror-show-players. The stand-ins are real entities, which other plugins count.", SECTION),
+                new Setting(ConfigKeys.MIRROR_SHOW_PLAYERS, false, "With mirror-show-entities on too, whether the players in a view's far room show as well: a mannequin from 1.21.9, an armour stand wearing their head before. Off by default: it shows who is at the destination, by their real skin, not a disguise's. Never anyone hidden by hidePlayer; a hide done in packets is not seen.", SECTION),
+                new Setting(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 2, "With mirror-show-entities on, how many chunks in front of a watched view's far side are held, as /forceload holds them, so its creatures show at once: 15 at 2, about 63 loaded with the ring round them, which can generate terrain. 0 holds nothing. Read up to 4.", SECTION)),
+            sub("Quantum mirrors",
+                new Setting(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 1, "How many mirrors one world may hold. 1 by default: a mirror is the door into its world, and a right-click scrolls through the mirrors of every other. 0 for no limit.", SECTION),
+                new Setting(ConfigKeys.MIRROR_APPROACH_MESSAGE, true, "Whether a mirror names itself and the world it opens onto above the hotbar, while a player looks at it from within about six blocks. Only mirrors that go somewhere say anything.", SECTION))),
 
         group("Gate signs", "",
             new Setting(ConfigKeys.SIGN_GLOWING_TEXT, false, "Whether the plugin's own sign text glows. Off, because glow outlines every character and fights the colours below; true is more legible from a distance.", SECTION),
@@ -154,26 +191,65 @@ class DefaultSettings
             new Setting(ConfigKeys.SIGN_COLOR_NEIGHBOUR, "GRAY", "Colour of the destinations either side of the selected one on a dial sign.", SECTION)),
 
         group("Transport rings", "",
-            new Setting(ConfigKeys.RING_COUNTDOWN_TICKS, 100, "Ticks a transport ring counts down before it commits. Anything below 30 is read as 30, so stepping clear stays possible.", SECTION),
-            new Setting(ConfigKeys.RING_COOLDOWN_TICKS, 600, "Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.", SECTION),
-            new Setting(ConfigKeys.RING_DEPLOY_TICKS, 2, "Ticks between frames of the ring deploy and retract animations.", SECTION),
-            new Setting(ConfigKeys.RING_SETTLE_TICKS, 20, "Ticks the fully deployed ring stack stands still before the teleport fires.", SECTION),
-            new Setting(ConfigKeys.RING_FLASH_TICKS, 3, "Ticks each ring stays lit as the transport flash runs through the stack.", SECTION),
-            new Setting(ConfigKeys.RING_LIGHTS_LINGER_TICKS, 20, "Ticks the ring pad stays lit after the last ring has sunk back into it.", SECTION),
-            new Setting(ConfigKeys.RING_HOLD_TICKS, 20, "Ticks the ring stack stands still once the light has finished, before it retracts.", SECTION),
-            new Setting(ConfigKeys.RING_OUTLINE_ON_REFUSAL, true, "Briefly light a ring's pattern for a player it turns away, so they can see where it is. Idle rings are invisible.", SECTION),
-            new Setting(ConfigKeys.RING_OUTLINE_TICKS, 40, "How long that outline stays visible, in ticks.", SECTION),
-            new Setting(ConfigKeys.RING_REACH, 4, "Block layers of passenger volume, from the ring plane into the room, at least 2. Matters most for ceiling rings.", SECTION),
-            new Setting(ConfigKeys.RING_MIN_SEPARATION, 8, "Required distance between ring anchors, in blocks. Overlap is refused regardless of this.", SECTION),
-            new Setting(ConfigKeys.RING_MAX_LINK_DISTANCE, 256, "Furthest apart the two ends of a ring pair may be on the ground, in blocks. 256 is sixteen chunks; gates are the long-haul option. 0 for no limit.", SECTION),
-            new Setting(ConfigKeys.RING_MAX_LINK_HEIGHT, 384, "Furthest apart the two ends of a ring pair may be in height, in blocks. 384 is the full world height, so bedrock to build limit is always allowed. 0 for no limit.", SECTION),
-            new Setting(ConfigKeys.RING_MAX_CEILING_DROP, 10, "How far below its plane a ceiling ring will look for the floor, in blocks. Its rings stack up from there, so it needs a floor near enough to reach.", SECTION),
-            new Setting(ConfigKeys.RING_MAX_PAIRS_PER_PLAYER, 10, "How many ring pairs one player may own. 0 for no limit.", SECTION),
-            new Setting(ConfigKeys.RING_DEFAULT_ACCESS, "PRIVATE", "What a newly built ring pair starts as: PUBLIC or PRIVATE.", SECTION),
-            new Setting(ConfigKeys.RING_DEFAULT_STYLE, "CONCURRENT", "How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).", SECTION),
-            new Setting(ConfigKeys.RING_DEFAULT_MATERIAL, "SMOOTH_STONE_SLAB", "Fallback ring material, used only when the slab a ring was built from cannot be read. SMOOTH_STONE_SLAB is the plain stone slab, not STONE_SLAB, which is the rougher one.", SECTION),
-            new Setting(ConfigKeys.RING_DEFAULT_LIGHT, "REDSTONE_LAMP", "What the ring pad lights up as while it is working.", SECTION),
-            new Setting(ConfigKeys.RING_DEFAULT_FLASH, "GLOWSTONE", "What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.", SECTION)),
+            sub("Timing",
+                new Setting(ConfigKeys.RING_COUNTDOWN_TICKS, 100, "Ticks a transport ring counts down before it commits. Anything below 30 is read as 30, so stepping clear stays possible.", SECTION),
+                new Setting(ConfigKeys.RING_COOLDOWN_TICKS, 600, "Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.", SECTION),
+                new Setting(ConfigKeys.RING_DEPLOY_TICKS, 2, "Ticks between frames of the ring deploy and retract animations.", SECTION),
+                new Setting(ConfigKeys.RING_SETTLE_TICKS, 20, "Ticks the fully deployed ring stack stands still before the teleport fires.", SECTION),
+                new Setting(ConfigKeys.RING_FLASH_TICKS, 3, "Ticks each ring stays lit as the transport flash runs through the stack.", SECTION),
+                new Setting(ConfigKeys.RING_LIGHTS_LINGER_TICKS, 20, "Ticks the ring pad stays lit after the last ring has sunk back into it.", SECTION),
+                new Setting(ConfigKeys.RING_HOLD_TICKS, 20, "Ticks the ring stack stands still once the light has finished, before it retracts.", SECTION)),
+            sub("Refusal outline",
+                new Setting(ConfigKeys.RING_OUTLINE_ON_REFUSAL, true, "Briefly light a ring's pattern for a player it turns away, so they can see where it is. Idle rings are invisible.", SECTION),
+                new Setting(ConfigKeys.RING_OUTLINE_TICKS, 40, "How long that outline stays visible, in ticks.", SECTION)),
+            sub("Placement and limits",
+                new Setting(ConfigKeys.RING_REACH, 4, "Block layers of passenger volume, from the ring plane into the room, at least 2. Matters most for ceiling rings.", SECTION),
+                new Setting(ConfigKeys.RING_MIN_SEPARATION, 8, "Required distance between ring anchors, in blocks. Overlap is refused regardless of this.", SECTION),
+                new Setting(ConfigKeys.RING_MAX_LINK_DISTANCE, 256, "Furthest apart the two ends of a ring pair may be on the ground, in blocks. 256 is sixteen chunks; gates are the long-haul option. 0 for no limit.", SECTION),
+                new Setting(ConfigKeys.RING_MAX_LINK_HEIGHT, 384, "Furthest apart the two ends of a ring pair may be in height, in blocks. 384 is the full world height, so bedrock to build limit is always allowed. 0 for no limit.", SECTION),
+                new Setting(ConfigKeys.RING_MAX_CEILING_DROP, 10, "How far below its plane a ceiling ring will look for the floor, in blocks. Its rings stack up from there, so it needs a floor near enough to reach.", SECTION),
+                new Setting(ConfigKeys.RING_MAX_PAIRS_PER_PLAYER, 10, "How many ring pairs one player may own. 0 for no limit.", SECTION)),
+            sub("New ring pairs",
+                new Setting(ConfigKeys.RING_DEFAULT_ACCESS, "PRIVATE", "What a newly built ring pair starts as: PUBLIC or PRIVATE.", SECTION),
+                new Setting(ConfigKeys.RING_DEFAULT_STYLE, "CONCURRENT", "How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).", SECTION),
+                new Setting(ConfigKeys.RING_DEFAULT_MATERIAL, "SMOOTH_STONE_SLAB", "Fallback ring material, used only when the slab a ring was built from cannot be read. SMOOTH_STONE_SLAB is the plain stone slab, not STONE_SLAB, which is the rougher one.", SECTION),
+                new Setting(ConfigKeys.RING_DEFAULT_LIGHT, "REDSTONE_LAMP", "What the ring pad lights up as while it is working.", SECTION),
+                new Setting(ConfigKeys.RING_DEFAULT_FLASH, "GLOWSTONE", "What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.", SECTION))),
+
+        group("Beaming", "",
+            sub("Animation",
+                new Setting(ConfigKeys.BEAM_ENVELOP_TICKS, 12, "How long, in ticks, the glow gathers at body height before opening into the departure column.", SECTION),
+                new Setting(ConfigKeys.BEAM_VANISH_AT_STEP, 6, "How far into the envelope, in ticks, the traveller vanishes. Clamped inside it at run time.", SECTION),
+                new Setting(ConfigKeys.BEAM_RISE_TICKS, 18, "How long, in ticks, the column rises and departs once the envelope opens into it.", SECTION),
+                new Setting(ConfigKeys.BEAM_TELEPORT_AT_STEP, 12, "How far into the rise, in ticks, the real teleport fires. Clamped inside the rise at run time.", SECTION),
+                new Setting(ConfigKeys.BEAM_DESCEND_TICKS, 20, "How long, in ticks, the column takes to descend into place at the destination.", SECTION),
+                new Setting(ConfigKeys.BEAM_FADE_TICKS, 8, "How long, in ticks, the column takes to fade out once it has deposited the traveller.", SECTION)),
+            sub("Cooldown and cost",
+                new Setting(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED, false, "Whether beam travel has a per-player cooldown at all.", SECTION),
+                new Setting(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between beams, when the cooldown above is enabled.", SECTION),
+                new Setting(ConfigKeys.BEAM_ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they beam. 0.0 to disable; economy-enabled must also be true.", SECTION))),
+
+        group("Economy", "Shared by gates and beaming; both need this enabled before any cost applies.",
+            new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.", SECTION),
+            new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. 0.0 to disable.", SECTION),
+            new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. 0.0 to disable.", SECTION)),
+
+        group("Stargate sounds", SOUNDS,
+            sub("",
+                new Setting(ConfigKeys.GATE_SOUNDS_ENABLED, true, "Whether stargates make any noise. Everything below is ignored when this is false.", SECTION),
+                new Setting(ConfigKeys.GATE_SOUND_VOLUME, 1.5, "How loud gate sounds are. Volume also sets audible range: 1.5 carries about twenty-four blocks.", SECTION)),
+            sub("Dialling",
+                new Setting(ConfigKeys.GATE_SOUND_ACTIVATE, "block.conduit.activate", "Played as a gate begins to dial.", SECTION),
+                new Setting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close", "Played once per chevron as it locks, pitch climbing through the sequence.", SECTION),
+                new Setting(ConfigKeys.GATE_SOUND_LOCK, "block.beacon.power_select", "Played with the last chevron as it locks, before the wormhole forms.", SECTION)),
+            sub("Open wormhole",
+                new Setting(ConfigKeys.GATE_SOUND_KAWOOSH, "entity.player.splash.high_speed", "Played once as the wormhole establishes: the heavy splash, pitched down for size.", SECTION),
+                new Setting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop", "The soft running water an open wormhole makes while it stands there.", SECTION),
+                new Setting(ConfigKeys.GATE_SOUND_AMBIENT_TICKS, 70, "How often the ambient water repeats, in ticks. A little under the sound's own length, so it runs continuously.", SECTION),
+                new Setting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate", "Played as a wormhole closes.", SECTION)),
+            sub("Iris",
+                new Setting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close", "The iris closing over a gate, pitched down a little since it is a shield rather than a door.", SECTION),
+                new Setting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open", "The iris opening.", SECTION))),
 
         group("Transport ring sounds", SOUNDS,
             new Setting(ConfigKeys.RING_SOUNDS_ENABLED, true, "Whether rings make any noise. Everything below is ignored when this is false.", SECTION),
@@ -184,17 +260,6 @@ class DefaultSettings
             new Setting(ConfigKeys.RING_SOUND_CLOSE, "block.beacon.deactivate", "Played at both ends as the pad closes.", SECTION),
             new Setting(ConfigKeys.RING_SOUND_REFUSED, "block.note_block.bass", "Played to a player a ring turns away, wherever they are standing. Heard by them alone.", SECTION)),
 
-        group("Beaming", "",
-            new Setting(ConfigKeys.BEAM_ENVELOP_TICKS, 12, "How long, in ticks, the glow gathers at body height before opening into the departure column.", SECTION),
-            new Setting(ConfigKeys.BEAM_VANISH_AT_STEP, 6, "How far into the envelope, in ticks, the traveller vanishes. Clamped inside it at run time.", SECTION),
-            new Setting(ConfigKeys.BEAM_RISE_TICKS, 18, "How long, in ticks, the column rises and departs once the envelope opens into it.", SECTION),
-            new Setting(ConfigKeys.BEAM_TELEPORT_AT_STEP, 12, "How far into the rise, in ticks, the real teleport fires. Clamped inside the rise at run time.", SECTION),
-            new Setting(ConfigKeys.BEAM_DESCEND_TICKS, 20, "How long, in ticks, the column takes to descend into place at the destination.", SECTION),
-            new Setting(ConfigKeys.BEAM_FADE_TICKS, 8, "How long, in ticks, the column takes to fade out once it has deposited the traveller.", SECTION),
-            new Setting(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED, false, "Whether beam travel has a per-player cooldown at all.", SECTION),
-            new Setting(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between beams, when the cooldown above is enabled.", SECTION),
-            new Setting(ConfigKeys.BEAM_ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they beam. 0.0 to disable; economy-enabled must also be true.", SECTION)),
-
         group("Beaming sounds", SOUNDS,
             new Setting(ConfigKeys.BEAM_SOUNDS_ENABLED, true, "Whether beaming makes any noise. Everything below is ignored when this is false.", SECTION),
             new Setting(ConfigKeys.BEAM_SOUND_VOLUME, 1.0, "How loud beam sounds are. Volume also sets audible range: 1.0 is heard about sixteen blocks away.", SECTION),
@@ -202,16 +267,24 @@ class DefaultSettings
             new Setting(ConfigKeys.BEAM_SOUND_DEPART, "entity.enderman.teleport", "Played the instant the real teleport fires, partway through the rise.", SECTION),
             new Setting(ConfigKeys.BEAM_SOUND_ARRIVE, "entity.shulker.teleport", "Played once the column finishes descending at the destination.", SECTION)),
 
-        group("Quantum mirrors", "",
-            new Setting(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 1, "How many mirrors one world may hold. 1 by default: a mirror is the door into its world, and a right-click scrolls through the mirrors of every other. 0 for no limit.", SECTION),
-            new Setting(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 16, "How close a player must be, in blocks, for a mirror's banner to give way to the room it shows, and how near they must stay for it to stay on.", SECTION),
-            new Setting(ConfigKeys.MIRROR_PROXIMITY_TICKS, 20, "How often the proximity sweep runs, in ticks. 20 is once a second. Mirrors whose world or chunk is not loaded are skipped.", SECTION),
-            new Setting(ConfigKeys.MIRROR_VIEW_DEPTH, 160, "How far from a mirror's opening its room is drawn, 4 to 160; past it this world shows through. 160 is ten chunks, about as far as a server sends. Lower it for a mirror onto somewhere small, or to make one smoother to come to and leave. Changing it never retakes a capture. Above 160 is read as 160.", SECTION),
-            new Setting(ConfigKeys.MIRROR_FOG_AT_DEPTH, false, "Whether a mirror pulls a viewer's own fog in to where its room ends, so the far edge is fog rather than this world showing past it. Paper only, and a radius round the player rather than a direction. Lower mirror-view-depth first: there is nothing to gain at 160.", SECTION),
-            new Setting(ConfigKeys.MIRROR_SHOW_ENTITIES, false, "Whether the creatures standing in a mirror's or an open gate's far room show through it, as stand-ins only the viewer sees. mirror-entity-load-radius keeps the far side loaded while watched; players only with mirror-show-players. The stand-ins are real entities, which other plugins count.", SECTION),
-            new Setting(ConfigKeys.MIRROR_SHOW_PLAYERS, false, "With mirror-show-entities on too, whether the players in a view's far room show as well: a mannequin from 1.21.9, an armour stand wearing their head before. Off by default: it shows who is at the destination, by their real skin, not a disguise's. Never anyone hidden by hidePlayer; a hide done in packets is not seen.", SECTION),
-            new Setting(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 2, "With mirror-show-entities on, how many chunks in front of a watched view's far side are held, as /forceload holds them, so its creatures show at once: 15 at 2, about 63 loaded with the ring round them, which can generate terrain. 0 holds nothing. Read up to 4.", SECTION),
-            new Setting(ConfigKeys.MIRROR_APPROACH_MESSAGE, true, "Whether a mirror names itself and the world it opens onto above the hotbar, while a player looks at it from within about six blocks. Only mirrors that go somewhere say anything.", SECTION))
+        group("Integrations", "Other plugins and services this one can talk to. Each is optional.",
+            sub("Protection and logging",
+                new Setting(ConfigKeys.COREPROTECT_ENABLED, false, "Log the blocks that building and taking down gates and rings place and remove to CoreProtect, so they can be rolled back. Requires CoreProtect. A running gate's water, levers and iris are not logged.", SECTION),
+                new Setting(ConfigKeys.WORLDGUARD_ENABLED, false, "Add WorldGuard region flags wormhole-build and wormhole-use, so a region can refuse gate building and gate use. Requires WorldGuard. Turning it off applies at once; turning it on takes a restart. Both default to allow, and WorldGuard's region bypass exempts.", SECTION)),
+            sub("Web maps",
+                new Setting(ConfigKeys.DYNMAP_ENABLED, false, "Show gates, rings, public beam destinations and quantum mirrors on a Dynmap web map, each as its own layer, with a line between dialled gates. Requires Dynmap. Players' private beam places are never shown.", SECTION),
+                new Setting(ConfigKeys.BLUEMAP_ENABLED, false, "Show gates, rings, public beam destinations and quantum mirrors on a BlueMap web map, each as its own marker set, with a line between dialled gates. Requires BlueMap. Players' private beam places are never shown.", SECTION),
+                new Setting(ConfigKeys.SQUAREMAP_ENABLED, false, "Show gates, rings, public beam destinations and quantum mirrors on a squaremap web map, each as its own layer, with a line between dialled gates. Requires squaremap, which runs on Paper. Players' private beam places are never shown.", SECTION),
+                new Setting(ConfigKeys.PL3XMAP_ENABLED, false, "Show gates, rings, public beam destinations and quantum mirrors on a Pl3xMap web map, each as its own layer, with a line between dialled gates. Requires Pl3xMap, built for the server's Minecraft version. Players' private beam places are never shown.", SECTION),
+                new Setting(ConfigKeys.MAP_SHOW_GATES, true, "Whether gates, and the lines between dialled gates, appear on the web map, as their own layer.", SECTION),
+                new Setting(ConfigKeys.MAP_SHOW_RINGS, true, "Whether transport rings appear on the web map, as their own layer.", SECTION),
+                new Setting(ConfigKeys.MAP_SHOW_BEAMS, true, "Whether public beam destinations appear on the web map, as their own layer.", SECTION),
+                new Setting(ConfigKeys.MAP_SHOW_MIRRORS, true, "Whether quantum mirrors appear on the web map, as their own layer.", SECTION),
+                new Setting(ConfigKeys.MAP_SHOW_IRIS_GATES, true, "Whether gates with an iris code appear on the web map. Set false on a PvP server where a gate's location is a secret.", SECTION)),
+            sub("Placeholders, metrics and updates",
+                new Setting(ConfigKeys.PLACEHOLDERS_ENABLED, false, "Register the %wormhole_...% PlaceholderAPI expansion. Requires PlaceholderAPI. Exposes gates_total, gates_open, gates_owned and nearest_gate.", SECTION),
+                new Setting(ConfigKeys.METRICS_ENABLED, true, "Send anonymous usage counts to bstats.org: Minecraft version, server software, and how many gates, rings, beams and mirrors are in use. No names, coordinates or addresses; bStats keeps a random id so it counts each server once. Set false to stop; bStats/config.yml turns it off for every plugin.", SECTION),
+                new Setting(ConfigKeys.UPDATE_CHECK, true, "At startup, look online for a newer release and say so in the log and to players with wormhole.update.notify as they join. Sends only the plugin and Minecraft versions; never downloads anything. Set false to stop.", SECTION)))
     };
 
     /**
@@ -223,8 +296,29 @@ class DefaultSettings
      */
     static final Setting[] config = flatten();
 
+    /**
+     * The settings most servers change, listed at the top of a new {@code config.yml} with the
+     * group each is under, in file order.
+     */
+    static final List<ConfigKeys> START_HERE = List.of(
+        ConfigKeys.PETS_FOLLOW_OWNER,
+        ConfigKeys.TIMEOUT_SHUTDOWN,
+        ConfigKeys.MAX_OPEN_SECONDS,
+        ConfigKeys.USE_COOLDOWN_ENABLED,
+        ConfigKeys.WORMHOLE_USE_IS_TELEPORT,
+        ConfigKeys.SAME_WORLD_ONLY,
+        ConfigKeys.GATE_DIAL_SPIN,
+        ConfigKeys.RING_MAX_LINK_DISTANCE,
+        ConfigKeys.RING_MAX_PAIRS_PER_PLAYER,
+        ConfigKeys.ECONOMY_ENABLED,
+        ConfigKeys.GATE_SOUNDS_ENABLED,
+        ConfigKeys.GATE_SOUND_VOLUME);
+
     /** The group each heading-opening key starts, so the writer knows where to put a banner. */
     private static final Map<ConfigKeys, Group> OPENS = opens();
+
+    /** The headed sub-group each key starts, so the writer knows where to put a sub-heading. */
+    private static final Map<ConfigKeys, SubGroup> SUB_OPENS = subOpens();
 
     /**
      * The group this key opens, if it is the first setting of one.
@@ -236,6 +330,40 @@ class DefaultSettings
     static Group groupAt(final ConfigKeys key)
     {
         return OPENS.get(key);
+    }
+
+    /**
+     * The headed sub-group this key opens, if it is the first setting of one.
+     *
+     * @param key
+     *            the setting about to be written
+     * @return its sub-group when it opens a headed one, or null otherwise
+     */
+    static SubGroup subGroupAt(final ConfigKeys key)
+    {
+        return SUB_OPENS.get(key);
+    }
+
+    /**
+     * The group a setting is listed under.
+     *
+     * @param key
+     *            any setting
+     * @return its group, or null if no group lists it
+     */
+    static Group groupOf(final ConfigKeys key)
+    {
+        for (final Group group : groups)
+        {
+            for (final Setting setting : group.settings())
+            {
+                if (setting.getName() == key)
+                {
+                    return group;
+                }
+            }
+        }
+        return null;
     }
 
     /** @return every setting, in group order */
@@ -258,6 +386,23 @@ class DefaultSettings
             if (!group.settings().isEmpty())
             {
                 first.put(group.settings().get(0).getName(), group);
+            }
+        }
+        return first;
+    }
+
+    /** @return the first key of each headed sub-group, mapped to that sub-group */
+    private static Map<ConfigKeys, SubGroup> subOpens()
+    {
+        final Map<ConfigKeys, SubGroup> first = new EnumMap<>(ConfigKeys.class);
+        for (final Group group : groups)
+        {
+            for (final SubGroup subGroup : group.subGroups())
+            {
+                if (!subGroup.heading().isEmpty() && !subGroup.settings().isEmpty())
+                {
+                    first.put(subGroup.settings().get(0).getName(), subGroup);
+                }
             }
         }
         return first;

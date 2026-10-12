@@ -40,6 +40,11 @@ Permissions are listed under [Permissions](SERVER.md#permissions).
 
 ## Settings
 
+In `config.yml` under `# --- Beaming ---`, in two runs, each under its own `# -- ... --`
+sub-heading.
+
+### Animation
+
 The six timings, tick by tick; the descend column starts at the teleport, so the whole trip is
 52 ticks rather than the 58 the phases add up to.
 
@@ -53,13 +58,18 @@ The six timings, tick by tick; the descend column starts at the teleport, so the
 | `beam-teleport-at-step` | 12 | How far into the rise you are moved. |
 | `beam-descend-ticks` | 20 | How long the column takes to arrive at the far end. |
 | `beam-fade-ticks` | 8 | How long it takes to collapse once you are there. |
-| `beam-use-cooldown-enabled` | `false` | Whether beaming has a per-player cooldown. |
-| `beam-use-cooldown-seconds` | 120 | How long that cooldown is. |
-| `beam-economy-use-cost` | 0 | Default cost of a beam. A public destination may override it. |
 
 The two `-at-step` settings are clamped inside their phase whatever you write, so a traveller can
 never be left frozen and invisible. Durations are read when a beam starts, so a change does not
 disturb one in flight.
+
+### Cooldown and cost
+
+| Setting | Default | What it does |
+|---|---|---|
+| `beam-use-cooldown-enabled` | `false` | Whether beaming has a per-player cooldown. |
+| `beam-use-cooldown-seconds` | 120 | How long that cooldown is. |
+| `beam-economy-use-cost` | 0 | Default cost of a beam. A public destination may override it. |
 
 ## Sounds
 
