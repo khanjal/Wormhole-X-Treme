@@ -6,6 +6,26 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
+## 1.11.0 (unreleased)
+
+### For server admins
+
+**Changed**
+
+- **`ring-animation-speed` replaces the seven ring timings**: 1.0 is the old timing, 2.0 twice as fast, 0.5 half as fast, and nothing outside that range.
+- **`beam-animation-speed` replaces the six beaming timings** the same way.
+- **`view-depth` replaces `gate-view-depth`, `gate-view-full-depth` and `mirror-view-depth`**: one depth for a mirror's room and a gate's view; a file without it takes the shallower of its old ones.
+- **A `config.yml` holding a removed setting still loads**: the line is ignored and left as it is, and one line in the log at startup names them.
+
+**Removed**
+
+- **`mirror-proximity-ticks`, `entity-scan-interval-ticks` and `gate-sound-ambient-ticks`**: the sweeps keep their old default pace.
+- **`gate-iris-step-ticks`, `gate-iris-sweep-max-ticks` and `gate-iris-horizon-ticks`**: an iris crosses as it did by default; `gate-iris-animation` stays.
+- **`gate-arrival-splash-ticks`**: the arrival splash always shows, for as long as it did by default.
+- **`ring-max-link-height` and `ring-default-material`**: rings reach a whole world's height, and a ring whose slab is unknown is drawn in smooth stone.
+- **`permissions-auto-fallback`**: with no permissions plugin the simple fallback is always on.
+- **`mirror-fog-at-depth`**: a mirror no longer pulls a viewer's fog in.
+
 ## 1.10.0 (unreleased)
 
 ### For server admins
