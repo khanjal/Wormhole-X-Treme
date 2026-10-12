@@ -98,7 +98,7 @@ does not have; see the note under the tables).
 | M3 | Right-click walks the others by name; own room never in the round; three-second hold when someone else is there; `-start <mirror>|-none` | `MirrorInteraction`, `MirrorSettle` | part: no start, no hold |
 | M4 | Punch to travel; land in front of the far banner facing out; pets follow | `MirrorArrival`, `PetEscort` | part |
 | M5 | Wall rules: solid one block out on every side; warning at two; a banner on a post refused; two banners wide makes one 2×2 mirror; banner and wall protected while a mirror | `MirrorPlacement`, `BlockPlace` | no |
-| M6 | Proximity view (`mirror-proximity-distance`), real-block capture from the arrival point, `-capture` retake, `view-depth` 4–160, whole-room vs through-the-opening view, creatures hidden, lava/water rules | `Windows`, `Capture`, `MirrorView`, `ViewFog`, `WindowSight` | no |
+| M6 | Proximity view (`mirror-proximity-distance`), real-block capture from the arrival point, `-capture` retake, `view-depth` 4–160, whole-room vs through-the-opening view, creatures hidden, lava/water rules | `Windows`, `Capture`, `MirrorView`, `WindowSight` | no |
 | M7 | Looks: 90 shipped `.mirror` files; `-stamp <look>` and `-stamp` from the room (biome frame, dominant colours); patterned banner keeps its pattern | `MirrorStamp`, `MirrorPresetRegistry`, `MirrorPalette` | part: named stamps |
 | M8 | Approach message above the hotbar; `mirror-approach-message`; only near a mirror (1.9.0) | `MirrorSignpost`, `WindowSweep` | no |
 | M9 | `mirror debug [name] [-all|-full|-on|-off]`, `mirror list` | `MirrorCommand` | part: used as a wait |
@@ -108,10 +108,10 @@ does not have; see the note under the tables).
 
 | # | Feature | Source | Current lab |
 |---|---|---|---|
-| X1 | `/wormhole config <setting> [value]`, search by substring, both spellings, fixed-value refusal; every setting in `DefaultSettings` (about 120 keys) | `ConfigCommand`, `DefaultSettings` | part: three settings poked as fixtures |
+| X1 | `/wormhole config <setting> [value]`, search by substring, both spellings, fixed-value refusal; every setting in `DefaultSettings` (about 90 keys) | `ConfigCommand`, `DefaultSettings` | part: three settings poked as fixtures |
 | X2 | `pets-follow-owner` across gate, ring, beam, mirror; cats and parrots; a sitting pet stays | `PetEscort` | part: wolf by gate and beam |
 | X3 | Freya, `/wormhole freya on|off`: a cat only her owner sees, kept away in bed and when hunted, travels as a pet, re-summoned if a transport drops her | `model/freya/*` | no |
-| X4 | Permissions: every node in `plugin.yml`; op outranks a negated node; `permissions-support-disable`, the simple-mode fallback with no permissions plugin; `wormhole-use-is-teleport` | `WXPermissions`, `PermissionsSupport` | no |
+| X4 | Permissions: every node in `plugin.yml`; op outranks a negated node; `permissions-support-disable`, the simple-mode fallback with no permissions plugin; `wormhole-use-is-teleport` (needs a permissions plugin, so only the Permissions Desk's LuckPerms companion run reaches it, at its default) | `WXPermissions`, `PermissionsSupport` | no |
 | X5 | Use cooldowns: gates (`use-cooldown-*`), beams | `StargateRestrictions`, `BeamCooldown` | no |
 | X6 | Economy use/build cost and beam cost | `EconomySupport` | n/a (Vault + economy plugin) |
 | X7 | Placeholders, CoreProtect, metrics switch, Help registration | `plugin/*` | n/a / no |
@@ -419,8 +419,7 @@ adds `Wide` (two banners), `Near` (deliberately within twice the view depth of `
 
 **M1 Round** — Options: from, to, start (`-none` or a name), hold (alone / with the tester
 standing there, expecting the three-second hold), look (mirror, five named looks, stamp from
-room), view depth (16, 160), approach message on/off, fog on/off (Paper only; the bot checks
-the packet arrived, the tester checks the sky). `Run`: walk up (the banner must give way: the
+room), view depth (16, 160), approach message on/off. `Run`: walk up (the banner must give way: the
 bot's client sees the opening's blocks change), right-click until `to` shows (counting clicks
 against the expected order by name), punch, land in front of `to` facing out, and the
 approach line must have shown above the hotbar (the bot reads action-bar packets).
