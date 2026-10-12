@@ -64,7 +64,7 @@ shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-f
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
 
 **On the dependency rows.** Leave them all empty. `plugin.yml` declares no `depend:` at all,
-only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap]` — every
+only `softdepend: [Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap, Pl3xMap]` — every
 one is optional and the plugin loads without them. Declaring a required dependency that is not
 required would make Hangar warn operators off installing it, and the listing's strongest line is
 "no dependencies"; a row for each optional one would dilute that for nothing.
@@ -184,7 +184,8 @@ in with its own sound, and then the kawoosh. Shapes ship from Minimal to Massive
 Horizontal one that lies flat; a choice of dial-spin patterns, per gate if you like; an eighth chevron for a cross-world
 destination; an iris that sweeps shut, with remote codes; sign and redstone dialling. Shapes and material palettes
 are plain text files you can edit, and `/wormhole gate build` stands the shape full size in front
-of you as a guide before you place a block.
+of you as a guide before you place a block. An open gate can also show where it goes and ripple, as an
+experiment you turn on.
 
 ### Transport rings
 
@@ -210,7 +211,8 @@ own places. Charge per destination through Vault if you want to.
 Hang a banner on a wall and run one command. Walk up to it and the banner gives way to an opening
 showing another world's room in real blocks, with depth that shifts as you move past it.
 Right-click to choose where it leads, punch it to go. A look ships for every biome, and
-`-stamp` paints a banner from the room it stands in.
+`-stamp` paints a banner from the room it stands in. Mobs and players in that room can show too, if
+you turn them on.
 
 **On Paper:** optional fog pulled in to where the room ends, so the far edge is fog rather than
 this world's hills.
@@ -229,6 +231,7 @@ this world's hills.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
 - **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building and using gates in a region. Off until `worldguard-enabled` is set.
 - **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
+- **BlueMap, squaremap and Pl3xMap**, if you want one: the same marks on each, with every world's layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`, `squaremap-enabled` or `pl3xmap-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
@@ -336,7 +339,7 @@ text.
 
 | Field | Value |
 |---|---|
-| Version | `1.9.0` |
+| Version | `1.10.0` |
 | Release channel | Release |
 | Platform | Paper |
 | Platform versions | that version's Minecraft range in [`versions.md`](versions.md), every release ticked individually. Snapshots off. |
@@ -350,7 +353,7 @@ Hangar's form has no version title; the version string is the title.
 Published 2026-09-19 at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.9.0` is the newest release.
+1. **Check which version the project carries.** `v1.10.0` is the newest release.
 2. **Render the avatar** from `docs/images/logo.svg`, once the open AI-image question at the top
    of this file is settled; if Hangar bans AI images, crop it from a capture instead. Size unverified; the 256×256 rendered for
    Spigot is a reasonable starting point.
