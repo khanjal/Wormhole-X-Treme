@@ -561,7 +561,7 @@ different.
 
 **And it has to move.** Water animates itself and ice does not, so a single ice sheet reads as
 a frozen gate. Blue and packed ice are laid in a checkerboard and swap places on a timer
-(`gate-iris-horizon-ticks`, ten by default, `0` to leave it still), which gives the surface
+every ten ticks, which gives the surface
 something to do. `StargateManager.tickIrisHorizon` is one sweep over the open gates, as the
 ambient hum is, and it skips every gate whose iris shows the real wormhole before it looks at a
 single player — those need nothing, because water moves on its own.
@@ -723,7 +723,7 @@ Grand to Large eleven, Massive to Standard thirteen, Grand to Standard fourteen,
 fifteen, Grand to Minimal sixteen, and Grand to Massive, a block narrower, two: the opening, then
 the far plane. `gate-view-funnel-length`, 16 by default, is the longest allowed, set so no shipped
 pair is cut short; at 1 a tunnel is the opening alone and the view is the plain one. The depth is still measured from this
-gate's opening, so the far room shows `gate-view-depth` less the tunnel; a depth no longer than the
+gate's opening, so the far room shows the view's depth less the tunnel; a depth no longer than the
 tunnel shows the tunnel alone.
 
 **The least aperture.** A far opening narrower or lower than three blocks is taken as three
@@ -817,10 +817,10 @@ captures; a refresh that hands a gate back keeps them. It is taken again:
   dial opens at once, with no kawoosh to wait through, so its first capture of somewhere cold
   still shows the horizon until it is read;
 - **while somebody stands at the gate it shows**, once it is ten minutes old. Most of that gate's
-  chunks are loaded then, though a capture reaches `gate-view-depth` past the gate and to either
+  chunks are loaded then, though a capture reaches its first step past the gate and to either
   side, which can be further than a player with a short view distance has loaded. Each gate is
   looked at once a minute, and a capture on disk is judged by its file's age, not read to find out;
-- **whenever it is shallower than the view now draws**, after `gate-view-depth` is raised.
+- **whenever it is shallower than the view now draws**, after `view-depth` is raised.
 
 The old one is drawn until the new one arrives. Walking out of range and back is not an opening.
 The dial's ask needs somebody within `mirror-proximity-distance` of the middle of the dialling
@@ -837,25 +837,25 @@ it waits is dropped; one removed while it runs stops at its next start point, as
 when the plugin stops, and lets the next go at once. A mirror's, a second or so, never waits
 behind a gate's.
 
-**A gate's view comes in two steps.** The first reaches `gate-view-depth`, 32 by default against a
-mirror's 160: at a mirror's depth the box round a far gate nobody had loaded was some 230 chunks,
-read twice before anything showed, and at 32 it is about fifteen. Once that is in, the fill out to
-`gate-view-full-depth` is taken behind it: 160 by default, and never past what the far world's
-server sends, since a drawn block in a chunk the client does not hold is never seen. It is taken a chunk a tick rather than two, since
+**A gate's view comes in two steps.** The first reaches 32 blocks, or `view-depth` if that is
+shallower; it is not a setting. At a mirror's 160 the box round a far gate nobody had loaded was
+some 230 chunks, read twice before anything showed, and at 32 it is about fifteen. Once that is
+in, the fill out to `view-depth` is taken behind it: 160 by default, and never past what the far
+world's server sends, since a drawn block in a chunk the client does not hold is never seen. It is taken a chunk a tick rather than two, since
 nobody is waiting on it and most of it comes off the disk. The first step is drawn meanwhile, and
 the view deepens when the fill arrives. A retake as the gate opens is taken to the depth the view
 is drawn to, the old capture drawn until it lands, so an opening never shrinks the view back to
 its first step; a refresh while somebody is at the gate goes straight to the full depth too. A
 fill too big to keep is cut to fit a million blocks, never shallower than the first step, and the
 view is drawn only as far as the cut left it, past which this world shows; a capture that fails is tried again
-five minutes later rather than every sweep. `0` turns the fill off. A deeper view costs more to draw as a
-viewer moves, the way a mirror's does at 160, so this is the setting to lower if a gate view
-stutters. A drawn gate view may hold a million blocks before its depth is cut to fit, four times
-a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks out. `mirror debug`
-says when a view was cut, and to what. With `mirror-fog-at-depth` on, a player drawn only a
-gate's view has their send distance pulled in to the depth it is drawn to, not a mirror's: at the
-first step, 32, that is two chunks and the edge in every direction, until the fill arrives and it
-is given back. "What the server sends" is the world's view distance; on Paper a lower
+five minutes later rather than every sweep. A deeper view costs more to draw as a viewer moves,
+the way a mirror's does at 160, so `view-depth` is the setting to lower if a gate view stutters;
+at 32 or less there is no fill. A drawn gate view may hold a million blocks before its depth is
+cut to fit, four times a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks
+out. `mirror debug` says when a view was cut, and to what. An upgraded `config.yml` without
+`view-depth` takes the shallower of its old `mirror-view-depth` and `gate-view-full-depth` (a
+full depth of 0 counting as the first step, the old `gate-view-depth` or 32), written to the file
+as `view-depth`. "What the server sends" is the world's view distance; on Paper a lower
 `send-view-distance` can make the fill reach a little further than a client is ever sent.
 
 **What it does not do yet**, each a thing to judge in a world before it is built:

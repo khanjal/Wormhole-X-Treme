@@ -45,23 +45,21 @@ sub-heading.
 
 ### Animation
 
-The six timings, tick by tick; the descend column starts at the teleport, so the whole trip is
-52 ticks rather than the 58 the phases add up to.
+The beam at its default speed, tick by tick; the descend column starts at the teleport, so the
+whole trip is 52 ticks rather than the 58 the phases add up to.
 
 ![The beam sequence, tick by tick](../images/beams/timing.svg)
 
 | Setting | Default | What it does |
 |---|---|---|
-| `beam-envelop-ticks` | 12 | How long the glow gathers. You can still move during this. |
-| `beam-vanish-at-step` | 6 | How far into that you disappear. |
-| `beam-rise-ticks` | 18 | How long the column rises and departs. |
-| `beam-teleport-at-step` | 12 | How far into the rise you are moved. |
-| `beam-descend-ticks` | 20 | How long the column takes to arrive at the far end. |
-| `beam-fade-ticks` | 8 | How long it takes to collapse once you are there. |
+| `beam-animation-speed` | 1.0 | How fast the beam gathers, rises, descends and fades. 2.0 is twice as fast, 0.5 half as fast; read from 0.5 to 2.0. |
 
-The two `-at-step` settings are clamped inside their phase whatever you write, so a traveller can
-never be left frozen and invisible. Durations are read when a beam starts, so a change does not
-disturb one in flight.
+At 1.0 the glow gathers for 12 ticks (you vanish at the 6th, and can still move until then), the
+column rises for 18 (you are moved at the 12th), descends for 20 and fades for 8. Each duration is
+divided by the speed and rounded to whole ticks, so a beam takes 52 ticks at 1.0, 104 at 0.5 and
+26 at 2.0. The vanish and teleport always land inside their phase, so a traveller is never left
+frozen and invisible. The speed is read when a beam starts, so a change does not disturb one in
+flight.
 
 ### Cooldown and cost
 

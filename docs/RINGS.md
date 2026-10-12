@@ -186,8 +186,9 @@ exercised in one direction only. An empty committed cycle is legal and expected.
 
 **Countdown length is a constraint, not a preference.** Getting clear of a ring is around four
 blocks from the middle, close to a second at walking pace, and the abort window is only real
-because the countdown comfortably exceeds that. `ring-countdown-ticks` defaults to 100 ticks and is
-floored at 30; below that, rings begin taking people who were only walking past.
+because the countdown comfortably exceeds that. The countdown is 100 ticks at the default
+`ring-animation-speed` and is floored at 30 at any speed; below that, rings begin taking people
+who were only walking past.
 
 ## Trigger and re-arm
 
@@ -300,7 +301,7 @@ interiors, so a blocked pair's answer is trusted for a second before the world i
 **A refused ring shows itself.** An idle ring is invisible, which is the point of it, and that
 works against a player the moment one turns them away: they are told it is recharging while
 standing on ground that looks like every other patch of ground. So a refusal briefly lights the
-pattern for that one player, sent only to them and taken back after `ring-outline-ticks`.
+pattern for that one player, sent only to them and taken back after 40 ticks at the default speed.
 Nothing is written to the world.
 
 Shown for any refusal that leaves the pad dark — recharging, and an end that is built in or has
@@ -458,8 +459,8 @@ the next emerge.
 
 The **stored** value stays `CONCURRENT` or `SEQUENTIAL`, because that names what the setting
 actually does — how many rings are in the air at once — and stays true whatever the tick rate is.
-Naming it by speed would claim the same ground as `ring-deploy-ticks`: `slow` with
-`deploy-ticks: 1` is not slow. The two differ *only* in when a ring leaves the plane, so this is
+Naming it by speed would claim the same ground as `ring-animation-speed`: `slow` at a speed of
+2.0 is not slow. The two differ *only* in when a ring leaves the plane, so this is
 one number rather than two animations, and style belongs to the **end** like the materials, since
 nobody watches both at once.
 
@@ -602,18 +603,18 @@ removal on retract so nothing outlives the cycle that requested it.
 **The reach limit is a design choice, not a technical one**, and it is two numbers because the
 two axes are different questions. `ring-max-link-distance` is 256 blocks on the ground —
 comfortably a whole base and nowhere near town to town — which stops rings becoming the answer to
-everything. `ring-max-link-height` is 384, the full height of the world, because going straight
-down is exactly what rings are *for*. Either set to `0` lifts that limit. **Quota** is
+everything; `0` lifts it. The height limit is fixed at 384, the full height of the world, because
+going straight down is exactly what rings are *for*. **Quota** is
 `ring-max-pairs-per-player`, bypassed by `wormhole.ring.unlimited`.
 
 ## Config
 
 Every ring setting is a flat `ring-` key in `config.yml`, listed with its default in the
-[ring guide](guide/RINGS.md#ring-settings). Three are worth a note here: `ring-countdown-ticks`
-is floored at 30 for the reason under [the cycle](#the-cycle); `ring-max-link-distance` and
-`ring-max-link-height` are two numbers because the two axes are different questions, under
-[limits](#limits); and `ring-default-material` is a fallback only, never what `reset` goes back
-to, under [names, removal and reset](#names-removal-and-reset).
+[ring guide](guide/RINGS.md#ring-settings). Two are worth a note here: `ring-animation-speed`
+scales every ring timing, but the countdown is floored at 30 ticks for the reason under
+[the cycle](#the-cycle); and `ring-max-link-distance` limits the ground only, the height being
+fixed at the world's, under [limits](#limits). The fallback slab, smooth stone slab, is never what
+`reset` goes back to, under [names, removal and reset](#names-removal-and-reset).
 
 ## Commands and permissions
 

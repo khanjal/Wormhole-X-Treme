@@ -287,8 +287,7 @@ fired from the console. Probe2 is a second bot, never opped and in adventure mod
 a player who is not an op. `r1` is the pair stand (patterns, six slabs, distances, private pairs
 and who may use them, styles, the shortest countdown); `r2` hangs one ring from the ceiling (6
 and 10 up pass, 11 and 2 are refused in the plugin's words) and checks the rings stood on the
-floor; `r3` pairs the top of the 60-deep shaft with 20, 40 or 60 down, and at
-`ring-max-link-height 30` the deeper ones are refused; `r4` lays each faulty circle and reads the
+floor; `r3` pairs the top of the 60-deep shaft with 20, 40 or 60 down; `r4` lays each faulty circle and reads the
 refusal back; `r5` edits a pair (a name announced on arrival, a pad light drawn, private,
 allow, deny, owner); the range tunnel pairs 64, 128 and 250 apart and refuses 257. Timing: the
 swap comes about 154 ticks after a ring is armed and the pair recharges for 30 s after the cycle.
@@ -354,8 +353,7 @@ the block displays its client (and Probe2's) is shown. `g5`, the Iris Chamber, h
 apart, IrisA (Atlantis, a yellow glass iris) and IrisS (Standard, stone). Its checks are on the
 block-change packets a watcher is sent in the opening: closing and opening must come in the
 plugin's steps for each style (`lib/iris.js` works them out the way `IrisSweep` does), cell for
-cell, a step every `gate-iris-step-ticks`, merged to `max(2, gate-iris-sweep-max-ticks / step)`
-bands; on an open gate with its iris shut, the front is shown the iris in the plane and the horizon
+cell, a step every 2 ticks, merged to at most ten bands; on an open gate with its iris shut, the front is shown the iris in the plane and the horizon
 (water, or ice behind a glass iris) a block behind it, behind is shown the water in the plane and
 the iris a block toward the DHD, and the side the iris alone; an arrow at a shut iris is taken
 away; a block put into the shut opening is refused.
@@ -382,7 +380,7 @@ and two dispatches, a mirror round and its hold, a wall refusal, a capture and a
 banner's patterns are read under another key on 1.20.4), a horse to the Range, a pad in the End,
 a gate built by hand and one by preview, a lever and a command block at G3, a G4 activate and
 share, three G5 iris cells, seven of S1's (the setting audit, bad values, gate and beam sounds,
-the permission fallback and nodes, a ring's defaults), and one transit route per feature, in about
+the permission fallback, a ring's defaults), and one transit route per feature, in about
 17 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
@@ -488,20 +486,16 @@ the run like a chamber's `needs.config`. A false check also prints what it saw (
 - **Ring settings** (`rings.js`): the defaults a pair Probe builds takes (access, style, pad light,
   flash), each limit's refusal and the same pair made once it is raised (separation, pairs per
   player, ceiling drop, link distance), the barrier outline a recharging pair shows and how long,
-  and the timings of a trip read off its sounds and lights (deploy, settle, flash, hold, linger).
-- **The rest** (`more.js`): the mirror proximity distance, view depth and fog; metrics and
-  CoreProtect with neither installed; and settings that once waited for a restart, now in force at
-  once: the hum's interval (heard), the entity scan interval (an item lying in an open gate waits
-  for the rescheduled sweep, against one sent at the default), and placeholders and economy (each
-  says at once that its plugin is missing; the start before said neither).
+  and the timings of a trip read off its sounds and lights at `ring-animation-speed 0.5` (deploy,
+  settle, flash, hold, linger).
+- **The rest** (`more.js`): the mirror proximity distance and `view-depth`; metrics and
+  CoreProtect with neither installed; the entity sweep at its fixed once a second (an item lying in
+  an open gate is sent within a second or two); and placeholders and economy, in force at once
+  (each says at once that its plugin is missing; the start before said neither).
 - **Permissions** (`permissions.js`), by Probe2, never an op, with no permissions plugin: the
   plugin falls back to its simple mode at start, so Probe2 may use a gate, `/wormhole list` and the
-  compass, but not preview, configure or remove (and `go` to a gate is no gate to it). With
-  `permissions-auto-fallback false`, which the plugin follows at every check, it is held to the
-  nodes and their `plugin.yml` defaults, so the DHD, the list and the compass are refused too; an
-  op is not. With
-  `wormhole-use-is-teleport true` it cannot walk through an open gate, and with false it can. These
-  refuse a run with LuckPerms installed: the Permissions Desk covers that.
+  compass, but not preview, configure or remove (and `go` to a gate is no gate to it). It refuses
+  a run with LuckPerms installed: the Permissions Desk covers that.
 
 A matrix cell may also hold `settings` of its own on top of its chamber's, with `because` saying
 what they are meant to stop: `g1 wolf to the Range, pets-follow-owner false` expects the wolf, alive,
@@ -521,32 +515,31 @@ Every setting, and where it is changed and its effect seen:
 
 | Settings | Where |
 |---|---|
-| `log-level`, `coreprotect-enabled`, `metrics-enabled`, `placeholders-enabled`, `economy-enabled`, `permissions-auto-fallback`, `wormhole-use-is-teleport` | S1 (`log level`, `coreprotect`, `metrics`, `integrations at once`, the permission cases) |
+| `log-level`, `coreprotect-enabled`, `metrics-enabled`, `placeholders-enabled`, `economy-enabled` | S1 (`log level`, `coreprotect`, `metrics`, `integrations at once`) |
 | `pets-follow-owner` | `g1 wolf to the Range, pets-follow-owner false` |
-| `timeout-activate`, `use-cooldown-*`, `same-world-only`, `gate-preview-*`, `gate-arrival-splash-ticks`, `gate-dial-spin`, `gate-iris-animation`, `entity-scan-interval-ticks` | S1 (gate cases; `scan at once`) |
-| `gate-sounds-enabled`, `gate-sound-volume`, `gate-sound-kawoosh`, `gate-sound-chevron`, `gate-sound-ambient-ticks`; the other gate sound names heard at their defaults | S1 (sound cases, `hum at once`) |
+| `timeout-activate`, `use-cooldown-*`, `same-world-only`, `gate-preview-*`, `gate-dial-spin`, `gate-iris-animation`; the arrival splash and the entity sweep at their fixed defaults | S1 (gate cases, `arrival splash`; `entity sweep`) |
+| `gate-sounds-enabled`, `gate-sound-volume`, `gate-sound-kawoosh`, `gate-sound-chevron`; the other gate sound names heard at their defaults | S1 (sound cases) |
 | `sign-glowing-text`, `sign-color-gate-name`, `-network`, `-owner` | S1 `sign colours`, `sign colour bad` |
-| `ring-default-access`, `-style`, `-light`, `-flash`, `ring-min-separation`, `ring-max-pairs-per-player`, `ring-max-ceiling-drop`, `ring-max-link-distance`, `ring-outline-*`, `ring-deploy/settle/flash/hold/lights-linger-ticks`, `ring-sounds-enabled` | S1 (ring cases) |
+| `ring-default-access`, `-style`, `-light`, `-flash`, `ring-min-separation`, `ring-max-pairs-per-player`, `ring-max-ceiling-drop`, `ring-max-link-distance`, `ring-outline-on-refusal`, `ring-sounds-enabled` | S1 (ring cases) |
+| `ring-animation-speed` | R1 (`quick`), S1 (`ring timings`) |
 | `beam-sounds-enabled` | S1 `beam sounds off` |
-| `mirror-proximity-distance`, `mirror-view-depth`, `mirror-fog-at-depth` | S1 (mirror cases) |
+| `mirror-proximity-distance`, `view-depth` | S1 (`mirror proximity`, `view depth`) |
 | `timeout-shutdown`, `max-open-seconds`, `redstone-extend-open-time` | G3 |
-| `gate-iris-step-ticks`, `gate-iris-sweep-max-ticks` | G5 |
-| `ring-countdown-ticks`, `ring-cooldown-ticks`, `ring-max-link-height` | R1, R5, R3 |
-| the beam timings, `beam-use-cooldown-*` | B1, B2 |
+| `ring-cooldown-ticks` | R5 |
+| `beam-animation-speed`, `beam-use-cooldown-*` | B1 (timing presets `slow`, `fast`, `past fastest`), B2 |
 | `mirror-per-world-limit`, `mirror-approach-message` | M1, M2 |
 
 Not changed by any case, and why:
 
 - `permissions-support-disable`: off by default, and with no permissions plugin the simple mode
-  comes from the fallback anyway; the node cases switch the fallback off instead. #550 retires
-  `help-support-disable` (nothing read it), and makes `ring-default-material` the slab a ring is
+  comes from the fallback anyway. #550 retired `help-support-disable` (nothing read it), and made
+  `ring-default-material` (removed in 1.11.0, its smooth stone slab now fixed) the slab a ring is
   drawn in when its own is one the server lacks, which no case stages.
+- `wormhole-use-is-teleport`: it needs the nodes, so its two cases went with the node cases in
+  1.11.0, when the fallback stopped being a switch.
 - `economy-use-cost`, `economy-build-cost`, `beam-economy-use-cost`: every cost is 0 without Vault
   and an economy plugin. `plugins-extra` can supply them; no case is written for them, since none
   was available here to prove one against.
-- `gate-iris-horizon-ticks` and `mirror-proximity-ticks`: sweep periods, rescheduled at once like
-  the hum's and the scan's (which are measured); G5's layer cells see the horizon drawn at the
-  default.
 - `gate-material-groups-autodiscover`: the first start adds Lab.shape's Diamond group with the
   default; false matters only for a shape no group claims, and an added group stays in `config.yml`.
 - `sign-color-selected`, `sign-color-neighbour`, `sign-dial-match-material`: only a sign-dial gate
@@ -568,13 +561,14 @@ the cells now expect its behaviour:
 - Settings changed by `wormhole config` that waited for a restart, though the guide says a change
   needs no reload and no restart: the hum's interval was measured unchanged (one hum in five
   seconds at 20 ticks); by the source the same was so of the entity scan, the iris horizon, the
-  mirror sweep, the permission fallback, placeholders and economy. With #550 each applies at once
-  (`s1 hum at once`, `s1 scan at once`, `s1 integrations at once`, the node permission cases).
+  mirror sweep, the permission fallback, placeholders and economy. With #550 each applied at once
+  (`s1 integrations at once` still checks the last two); the rest stopped being settings in
+  1.11.0, and their cases went with them.
 - The sign colours were not checked: `sign-color-gate-name PINK` was "now PINK", and a sign
   written after showed its default colour. With #550 it is refused, naming the sixteen colours
   (`s1 sign colour bad`).
-- `help-support-disable` and `ring-default-material` were read by nothing; #550 retires the one and
-  puts the other to use.
+- `help-support-disable` and `ring-default-material` were read by nothing; #550 retired the one and
+  put the other to use (removed in 1.11.0).
 - By the source, not seen in game: `log-level` sets the level of the server's own logger, not the
   plugin's (`WormholeXTreme.applyLogLevel`).
 - `use-cooldown` has no op bypass: Probe, an op, is refused too, as the source has it.
@@ -798,9 +792,9 @@ What stage 3 found (none of it a plugin fault; the design had some of it wrong):
 - A ring arms on a player's move inside it. A player standing still sends no moves, so after a
   trip it is carried back only once it moves, not when the cooldown ends. Naming an end means
   standing in it, which arms the pair; stepping out cancels the countdown.
-- A beam's `beam-rise-ticks` only paces the rising column: the descent starts at the teleport
-  (envelop + teleport-at-step), so the whole beam is envelop + teleport-at-step + descend + fade,
-  52 ticks by default. `beam-descend-ticks` or a later `beam-teleport-at-step` makes it longer.
+- A beam's rise only paces the rising column: the descent starts at the teleport (envelop +
+  teleport step), so the whole beam is envelop + teleport step + descend + fade, 52 ticks at the
+  default `beam-animation-speed`.
 - The server kicks a player who is not an op for spam after about ten commands in a burst, so
   Probe2 sends only what a run needs. Probe2 rejoins if it is kicked, and the log says why.
 - An arrival must match height as well as place: the shaft's two ends share x and z.

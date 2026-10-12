@@ -92,20 +92,20 @@ nested block.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `ring-countdown-ticks` | 100 | Ticks before the rings commit. At least 30, so stepping clear stays possible. |
 | `ring-cooldown-ticks` | 600 | Ticks before a pair fires again. |
-| `ring-deploy-ticks` | 2 | Ticks between animation frames — the speed knob. |
-| `ring-settle-ticks` | 20 | How long the finished stack stands before transport. |
-| `ring-flash-ticks` | 3 | How long each ring stays lit as the light passes. |
-| `ring-lights-linger-ticks` | 20 | How long the pad stays lit after the last ring is home. |
-| `ring-hold-ticks` | 20 | How long the stack stands after the light. |
+| `ring-animation-speed` | 1.0 | How fast the rings run their countdown, rise, flash, return and refusal outline. 2.0 is twice as fast, 0.5 half as fast; read from 0.5 to 2.0. |
+
+At 1.0 the countdown is 100 ticks, a frame comes every 2, the finished stack settles for 20,
+each ring stays lit for 3 as the light passes, the stack holds for 20 after it and the pad stays
+lit for 20 once the last ring is home. Each is divided by the speed and rounded to whole ticks, so
+the countdown is 50 at 2.0 and 200 at 0.5. It never goes under 30, so stepping clear stays
+possible.
 
 ### Refusal outline
 
 | Setting | Default | What it does |
 |---|---|---|
-| `ring-outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
-| `ring-outline-ticks` | 40 | How long that outline stays up. |
+| `ring-outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away, for 40 ticks at the default speed. |
 
 ### Placement and limits
 
@@ -113,8 +113,7 @@ nested block.
 |---|---|---|
 | `ring-reach` | 4 | Block layers of passenger volume above the pad. |
 | `ring-min-separation` | 8 | Required distance between ring anchors. |
-| `ring-max-link-distance` | 256 | Furthest two ends may be across. `0` is unlimited. |
-| `ring-max-link-height` | 384 | Furthest two ends may be in height. `0` is unlimited. |
+| `ring-max-link-distance` | 256 | Furthest two ends may be across. `0` is unlimited. In height they may span the whole world. |
 | `ring-max-ceiling-drop` | 10 | How far below a ceiling ring to look for the floor. |
 | `ring-max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
 
@@ -124,9 +123,11 @@ nested block.
 |---|---|---|
 | `ring-default-access` | `PRIVATE` | What a new pair starts as. |
 | `ring-default-style` | `CONCURRENT` | How the stack deploys. |
-| `ring-default-material` | `SMOOTH_STONE_SLAB` | Fallback only: what a ring is drawn in when the slab it was saved with is not one this server has. Normally it is the slab you laid. |
 | `ring-default-light` | `REDSTONE_LAMP` | What the pad lights up as; also a stored pad whose light block this server does not have. |
 | `ring-default-flash` | `GLOWSTONE` | What a ring turns to as the light passes. |
+
+A ring is drawn in the slab you laid; one saved with a slab this server does not have is drawn in
+smooth stone slab.
 
 ## Editing a pair
 
