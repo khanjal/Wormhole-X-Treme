@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.contains;
@@ -18,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -35,6 +37,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
 
 /**
@@ -398,5 +401,128 @@ class ConfigLoadTest
 
         assertEquals(41, ConfigManager.getTimeoutShutdown(), "the rest of the file is read");
         assertTrue(configLines().contains("help-support-disable: true"), "and the retired line is left where it was");
+    }
+
+    /**
+     * A number left under a setting that is now a switch reads as one, and is written back as one (#583).
+     *
+     * <p>An early build of the gate-view tunnel shipped {@code gate-view-funnel} as a length and
+     * appended {@code gate-view-funnel: 8} to the file; the next made it true or false. The 8 was
+     * stored as found, so every read of the switch threw ClassCastException, which took down every
+     * gate's view each sweep, and {@code /wormhole config gate-view-funnel true} was refused as
+     * "a number".
+     */
+    @Test
+    void aNumberUnderASwitchIsReadAsOneAndWrittenBack() throws Exception
+    {
+        writeConfig("gate-view-funnel: 8\ntimeout-shutdown: 41\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertTrue(ConfigManager.isGateViewFunnel(), "8 was a length, so the tunnel was on");
+        assertTrue(ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_VIEW_FUNNEL).getValue() instanceof Boolean,
+            "stored as a switch, so /wormhole config takes true or false for it");
+        assertTrue(configLines().contains("gate-view-funnel: true"), "and the file says what is read: " + configLines());
+        assertEquals(41, ConfigManager.getTimeoutShutdown(), "the rest of the file is untouched");
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-funnel"));
+    }
+
+    /** A 0 left there reads as off. */
+    @Test
+    void aZeroUnderASwitchIsOff() throws Exception
+    {
+        writeConfig("gate-view-funnel: 0\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertFalse(ConfigManager.isGateViewFunnel());
+        assertTrue(configLines().contains("gate-view-funnel: false"), "written back as a switch: " + configLines());
+    }
+
+    /**
+     * A value of the wrong kind is read as the kind its setting is, where it can be, so no getter
+     * meets a type it casts wrongly; one that cannot be read is the default, said once, and left in
+     * the file for the admin to put right.
+     */
+    @Test
+    void aValueOfTheWrongKindIsReadAsTheSettingsKindOrItsDefault() throws Exception
+    {
+        writeConfig("gate-view-depth: 48.0\ntimeout-shutdown: \"41\"\ngate-ripple: \"true\"\ngate-view-full-depth: lots\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(48, ConfigManager.getGateViewDepth(), "a whole number written with a point");
+        assertEquals(41, ConfigManager.getTimeoutShutdown(), "a number in quotes");
+        assertTrue(ConfigManager.isGateRipple(), "a switch in quotes");
+        assertEquals(160, ConfigManager.getGateViewFullDepth(), "not a number at all: the default");
+        assertTrue(configLines().contains("gate-view-full-depth: lots"), "and left as written: " + configLines());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-full-depth"));
+    }
+
+    /**
+     * A switch written back keeps the comment after it, and only the line it was read from changes:
+     * the enum spelling of the same key, which was not read, is left as written.
+     */
+    @Test
+    void aSwitchWrittenBackKeepsItsCommentAndOnlyTheLineItWasReadFrom() throws Exception
+    {
+        writeConfig("gate-view-funnel: 8 \t# left from an early build\nGATE_VIEW_FUNNEL: 0\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertTrue(ConfigManager.isGateViewFunnel(), "the kebab spelling is the one read");
+        assertTrue(configLines().contains("gate-view-funnel: true \t# left from an early build"), "comment kept: " + configLines());
+        assertTrue(configLines().contains("GATE_VIEW_FUNNEL: 0"), "the spelling not read is left alone: " + configLines());
+    }
+
+    /**
+     * A text setting given a number or a bare off is read as text, so no getter that casts to text
+     * throws: a number for a sign colour, and off for gate-view, which YAML reads as false and is then
+     * no level, so the horizon, as off meant. A dial spin written false still means no spin.
+     */
+    @Test
+    void aTextSettingGivenANumberOrABareOffIsReadAsText() throws Exception
+    {
+        writeConfig("sign-color-gate-name: 1\ngate-view: off\ngate-dial-spin: false\nring-default-style: 5\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals("1", ConfigManager.getSignColorGateName());
+        assertEquals("horizon", ConfigManager.getGateView());
+        assertEquals("false", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_VIEW).getValue());
+        assertEquals(DialSpinPattern.NONE, ConfigManager.getGateDialSpinPattern());
+        assertEquals("5", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.RING_DEFAULT_STYLE).getValue());
+
+        writeConfig("gate-dial-spin: true\ngate-view: open\n");
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern(), "true was the old spinning dial");
+        assertEquals("open", ConfigManager.getGateView(), "a level as written is read as it was");
+    }
+
+    /**
+     * A setting given the default, because the file says nothing or nothing readable, holds its own
+     * copy: {@code /wormhole config} sets the value on what is stored, and on the shared default it
+     * changed the default for every later load.
+     */
+    @Test
+    void aDefaultedSettingIsACopyNotTheSharedDefault() throws Exception
+    {
+        writeConfig("gate-view-full-depth: lots\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        for (final ConfigManager.ConfigKeys key : new ConfigManager.ConfigKeys[] { ConfigManager.ConfigKeys.GATE_VIEW_FULL_DEPTH,
+            ConfigManager.ConfigKeys.GATE_RIPPLE })
+        {
+            final Setting shipped = Arrays.stream(DefaultSettings.config).filter(s -> s.getName() == key).findFirst()
+                .orElseThrow();
+            final Setting stored = ConfigManager.getConfigurations().get(key);
+            assertNotSame(shipped, stored, key + ": unreadable or missing, its own copy");
+            assertEquals(shipped.getValue(), stored.getValue(), key + ": holding the default");
+            final Object before = shipped.getValue();
+            stored.setValue("changed");
+            assertEquals(before, shipped.getValue(), key + ": a change to it leaves the default alone");
+        }
     }
 }

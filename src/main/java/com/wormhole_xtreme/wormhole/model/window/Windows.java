@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -545,7 +546,9 @@ public final class Windows
     static int reachAhead(final WindowState window)
     {
         final int[] box = window.capture.bounds();
-        final Spot far = window.shape.far();
+        // From where travellers land, not the window's far block, which a tunnel moves deeper.
+        final Place destination = window.source.destination();
+        final Spot far = new Spot((int) Math.floor(destination.x()), 0, (int) Math.floor(destination.z()));
         final Spot ahead = window.shape.ahead();
         if (ahead.x() != 0)
         {
@@ -622,6 +625,7 @@ public final class Windows
         final WindowState previous = ACTIVE.get(name);
         if ((previous != null) && previous.shape.equals(window.shape))
         {
+            final boolean sameFunnel = Objects.equals(previous.source.funnel(), source.funnel());
             window.solid = previous.solid;
             window.border = previous.border;
             window.margin = previous.margin;
@@ -629,9 +633,9 @@ public final class Windows
             window.solidAt = previous.solidAt;
             // Every window in a loaded chunk is offered each sweep, looked at or not: a fixed view
             // nobody has used for a while is let go rather than carried for the life of the chunk.
-            // A walked-through window's also goes with the capture it was built from.
+            // A walked-through window's also goes with the capture it was built from, and its funnel.
             if ((previous.fixed != null) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS)
-                && (!source.walkThrough() || (previous.capture == capture)))
+                && (!source.walkThrough() || (previous.capture == capture)) && sameFunnel)
             {
                 window.fixed = previous.fixed;
                 window.fixedFrom = previous.fixedFrom;
@@ -640,7 +644,7 @@ public final class Windows
                 window.fixedDepth = previous.fixedDepth;
                 window.fixedUsedAt = previous.fixedUsedAt;
             }
-            if (FULL.containsValue(name))
+            if (FULL.containsValue(name) && sameFunnel)
             {
                 window.full = previous.full;
                 window.fullFrom = previous.fullFrom;
@@ -2315,7 +2319,77 @@ public final class Windows
     }
 
     /**
-     * A walled window's view to a depth, or {@link #TOO_MANY} if it would hold more than {@code most}.
+     * A walled window's view to a depth, or {@link #TOO_MANY} if it would hold more than {@code most};
+     * narrowed to its funnel, if it has one.
+     */
+    static Map<Long, BlockData> fixedTo(final WindowState window, final int depth, final long now,
+        final int most)
+    {
+        // A capture that never went through the seen pass keeps nothing for air: walk the volume.
+        final Map<Long, BlockData> view = window.capture.complete() ? fixedToByVolume(window, depth, now, most)
+            : fixedToByKept(window, depth, now, most);
+        return tunnelled(window, view, depth, now, most);
+    }
+
+    /**
+     * Draws a tunnel into a view, short of the depth (#583): hollow inside, and a wall two blocks
+     * thick in its gate's portal material round it, ending in a collar round the far gate's plane.
+     *
+     * <p>Only the wall, not everything outside: every line of sight that leaves the tunnel meets the
+     * wall first, and the far side outside the room past it was never put in the view. Hollow as the
+     * far side's seen air is: air only where the real block is not empty.
+     *
+     * @return the view, or {@link #TOO_MANY} if it now holds more than {@code most}
+     */
+    static Map<Long, BlockData> tunnelled(final WindowState window, final Map<Long, BlockData> view, final int depth,
+        final long now, final int most)
+    {
+        final Funnel funnel = window.source.funnel();
+        if ((funnel == null) || (view == TOO_MANY))
+        {
+            return view;
+        }
+        final WindowShape shape = window.shape;
+        final World here = window.anchor().getWorld();
+        final int min = here.getMinHeight();
+        final int max = here.getMaxHeight();
+        final double[] centre = centreOf(shape);
+        final double reach = (double) depth * depth;
+        final BlockData wall = Bukkit.createBlockData(funnel.wall());
+        final BlockData air = Bukkit.createBlockData(Material.AIR);
+        // Never over the gate's own frame, such as a ring a block behind its opening.
+        final Set<Spot> own = window.source.structure();
+        funnel.forEachWall(depth, (layer, across, up) ->
+        {
+            final Spot at = shape.behind(layer, across, up);
+            if (drawable(at, min, max, centre, reach) && !own.contains(at))
+            {
+                view.put(key(at.x(), at.y(), at.z()), wall);
+            }
+        });
+        funnel.forEachHollow(depth, (layer, across, up) ->
+        {
+            final Spot at = shape.behind(layer, across, up);
+            if (drawable(at, min, max, centre, reach) && !WindowSight.reallyEmpty(here, at.x(), at.y(), at.z(), now))
+            {
+                view.put(key(at.x(), at.y(), at.z()), air);
+            }
+        });
+        return (view.size() > most) ? TOO_MANY : view;
+    }
+
+    /** Whether a block is inside the world's height and within a view's depth of its opening's middle. */
+    private static boolean drawable(final Spot at, final int min, final int max, final double[] centre,
+        final double reach)
+    {
+        final double dx = (at.x() + 0.5) - centre[0];
+        final double dy = (at.y() + 0.5) - centre[1];
+        final double dz = (at.z() + 0.5) - centre[2];
+        return (at.y() >= min) && (at.y() < max) && (((dx * dx) + (dy * dy) + (dz * dz)) < reach);
+    }
+
+    /**
+     * A walled window's view to a depth from what its capture kept, or {@link #TOO_MANY}.
      *
      * <p>Every block the capture kept that lies behind the wall within the depth of the opening's
      * middle: the far side's block where it is not air, and air where the far side's air was seen
@@ -2323,14 +2397,9 @@ public final class Windows
      * see, so this is a walk over what is kept, not over the volume, and a view at the render
      * distance costs what its surfaces cost.
      */
-    private static Map<Long, BlockData> fixedTo(final WindowState window, final int depth, final long now,
+    private static Map<Long, BlockData> fixedToByKept(final WindowState window, final int depth, final long now,
         final int most)
     {
-        if (window.capture.complete())
-        {
-            // A capture that never went through the seen pass keeps nothing for air: walk the volume.
-            return fixedToByVolume(window, depth, now, most);
-        }
         final WindowShape shape = window.shape;
         final Capture capture = window.capture;
         final World here = window.anchor().getWorld();
@@ -2352,7 +2421,7 @@ public final class Windows
             final int y = at.y();
             final int z = at.z();
             final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
-            if ((layer < 1) || (y < min) || (y >= max))
+            if ((layer < 1) || (y < min) || (y >= max) || !window.showsFar(x, y, z))
             {
                 return;
             }
@@ -2469,7 +2538,7 @@ public final class Windows
         {
             final Capture capture = window.capture;
             final Spot at = window.shape.farOf(x, y, z);
-            if (!capture.contains(at.x(), at.y(), at.z()))
+            if (!window.showsFar(x, y, z) || !capture.contains(at.x(), at.y(), at.z()))
             {
                 return false;
             }

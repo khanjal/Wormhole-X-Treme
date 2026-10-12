@@ -113,4 +113,24 @@ final class WindowState
     {
         return source.depth();
     }
+
+    /** @return true if the far side may be drawn at a block behind the opening: past its tunnel, if it has one (#583) */
+    boolean showsFar(final int x, final int y, final int z)
+    {
+        return showsFar(x, y, z, 0.0);
+    }
+
+    /**
+     * The same, the edges of the room past the tunnel moved out by some blocks.
+     *
+     * @param slack
+     *            how far out each edge is moved
+     * @return true if the block is inside the widened room, or there is no tunnel
+     */
+    boolean showsFar(final int x, final int y, final int z, final double slack)
+    {
+        final Funnel funnel = source.funnel();
+        return (funnel == null)
+            || funnel.shows(shape.layerOf(x, z), shape.acrossOf(x, z), y - shape.base().y(), slack);
+    }
 }

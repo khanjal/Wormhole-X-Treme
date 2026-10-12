@@ -14,9 +14,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -31,6 +33,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.PrivateStatics;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
@@ -173,6 +176,44 @@ class GateViewsSweepTest
     }
 
     /**
+     * A gate whose offer throws loses only its own view, and is said once, not every sweep (#583).
+     *
+     * <p>A stale {@code gate-view-funnel: 8} threw ClassCastException from the setting's read for
+     * every gate, out of the whole sweep's offer: no gate on the server showed a view, and the same
+     * warning was logged every second.
+     */
+    @Test
+    void aGateWhoseOfferThrowsLosesOnlyItsOwnViewAndIsSaidOnce()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        // Read first: a mock's answer taken inside another stubbing leaves that one unfinished.
+        final Stargate target = gate.getGateTarget();
+        final List<Location> cells = gate.getGatePortalBlocks();
+        final List<Location> frame = gate.getGateStructureBlocks();
+        final Stargate broken = mock(Stargate.class);
+        when(broken.getGateName()).thenReturn("Broken");
+        when(broken.isGateActive()).thenReturn(true);
+        when(broken.isGatePortalOpen()).thenReturn(true);
+        when(broken.getGateWorld()).thenReturn(world);
+        when(broken.getGateTarget()).thenReturn(target);
+        when(broken.getGateFacing()).thenReturn(BlockFace.SOUTH);
+        when(broken.getGatePortalBlocks()).thenReturn(cells);
+        when(broken.getGateStructureBlocks()).thenReturn(frame);
+        when(broken.getEffectivePortalMaterial()).thenThrow(new ClassCastException("Integer cannot be cast to Boolean"));
+        manager.when(StargateManager::getOpenGates).thenReturn(new LinkedHashSet<>(List.of(broken, gate)));
+        drawn(true);
+
+        GateViews.offerAll();
+        GateViews.offerAll();
+
+        offeredTimes(2);
+        assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "the healthy gate still clears for its view");
+        assertEquals(Material.WATER, GateViews.horizonOf(broken, Material.WATER), "the broken one keeps its horizon");
+        verify(WormholeXTreme.getThisPlugin(), times(1)).prettyLog(eq(Level.WARNING),
+            argThat((String what) -> what.contains("Broken")), any(ClassCastException.class));
+    }
+
+    /**
      * A Grand gate's opening, eighteen by seventeen, is drawn whole and cleared whole at {@code open}.
      *
      * <p>It used to be drawn through an eight-by-eight window carved at the foot of its middle, the
@@ -192,6 +233,49 @@ class GateViewsSweepTest
             && (window.shape().width() == 18) && (window.shape().height() == 17)), anyBoolean()));
         verify(gate, never()).fillGateInterior(Material.AIR); // cleared for whoever is drawn the view, not filled for everybody
         assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "the whole opening, not a window in it");
+    }
+
+    /**
+     * A big gate dialling a small one offers its view at the end of a tunnel as long as its opening
+     * narrows, its far side shifted that deep, walled in its own portal material; at most
+     * {@code gate-view-funnel-length} long, and whole at {@code gate-view-funnel: false} (#583).
+     */
+    @Test
+    void aBigGateDiallingASmallOneIsOfferedNarrowedToItsOpening()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        opening(10, 18, 64, 17);
+        final List<Location> small = new ArrayList<>();
+        for (int x = 99; x <= 101; x++)
+        {
+            for (int y = 70; y <= 73; y++)
+            {
+                small.add(new Location(far, x, y, 199));
+            }
+        }
+        when(gate.getGateTarget().getGatePortalBlocks()).thenReturn(small);
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        // Eighteen by seventeen to three by four narrows fifteen: the far side fourteen layers deeper, the plane its last.
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() != null)
+            && (window.funnel().far().left() == 7) && (window.funnel().far().right() == 9) && (window.funnel().far().top() == 3)
+            && (window.funnel().taper() == 16) && (window.funnel().wall() == Material.LAVA)
+            && (window.shape().far().z() == (200 - 15))), anyBoolean()));
+
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 4);
+        GateViews.offerAll();
+
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() != null) && (window.funnel().taper() == 4)
+            && (window.shape().far().z() == (200 - 3))), anyBoolean()));
+
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL, false);
+        GateViews.offerAll();
+
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() == null) && (window.shape().far().z() == 200)),
+            anyBoolean()));
     }
 
     /**

@@ -145,6 +145,12 @@ public class ConfigManager
         /** How far a gate's view is filled in, behind its first step. */
         GATE_VIEW_FULL_DEPTH,
 
+        /** Whether a big gate's view of a smaller far gate is drawn at the end of a tunnel (#583). */
+        GATE_VIEW_FUNNEL,
+
+        /** The longest that tunnel may be. */
+        GATE_VIEW_FUNNEL_LENGTH,
+
         /** Whether an open gate's horizon ripples (#579). */
         GATE_RIPPLE,
 
@@ -1179,6 +1185,40 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FULL_DEPTH);
         final int depth = (s == null) ? 160 : s.getIntValue();
         return (depth <= 0) ? 0 : Math.max(4, Math.min(160, depth));
+    }
+
+    /**
+     * Whether a big gate's view of a smaller far gate is drawn at the end of a tunnel (#583); on when
+     * the setting is missing, as it ships.
+     *
+     * @return true for the tunnel, false for the plain view
+     */
+    public static boolean isGateViewFunnel()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * The longest a big gate's tunnel to a smaller far gate may be, in blocks (#583).
+     *
+     * @return blocks, 1 to 64
+     */
+    public static int getGateViewFunnelLength()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH);
+        final int blocks = (s == null) ? 16 : s.getIntValue();
+        return Math.max(1, Math.min(64, blocks));
+    }
+
+    /**
+     * How long a big gate's tunnel may be now: its length, or none with the tunnel off.
+     *
+     * @return blocks; 0 for the plain view
+     */
+    public static int getGateViewFunnelLongest()
+    {
+        return isGateViewFunnel() ? getGateViewFunnelLength() : 0;
     }
 
     /**
