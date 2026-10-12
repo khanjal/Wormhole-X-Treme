@@ -212,9 +212,6 @@ showing another world's room in real blocks, with depth that shifts as you move 
 Right-click to choose where it leads, punch it to go. A look ships for every biome, and
 `-stamp` paints a banner from the room it stands in.
 
-**On Paper:** optional fog pulled in to where the room ends, so the far edge is fog rather than
-this world's hills.
-
 ---
 
 ## For the people running the server

@@ -113,7 +113,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]Everything in the ring travels[/B] — players, mobs, items, vehicles. Ride in on a horse and you arrive still on it. Only players are checked for access.
 [*][B]It refuses an unfit arrival[/B]: every square clear, solid ground under it, water and lava not counting. A refused trip costs nothing, and the pattern is flashed to whoever was turned away.
 [*][B]Owners, access and quotas.[/B] Pairs start public or private, [ICODE]ring allow[/ICODE] and [ICODE]ring deny[/ICODE] manage a private pair's list, [ICODE]ring owner[/ICODE] hands it over, and a per-player quota caps how many anyone may own.
-[*][B]Every timing is a setting[/B] — countdown, cooldown, animation speed, how long the stack settles, how long each ring stays lit, how long the pad glows afterwards — as are the maximum distance and height between two ends.
+[*][B]Tunable[/B] — the cooldown, one speed for the whole animation, and the maximum distance between two ends are settings.
 [*][B]Name an end[/B] and its partner tells travellers where they are heading.
 [*][B]Build and fire them from command blocks.[/B] [ICODE]ring build[/ICODE] pairs two laid circles by their coordinates and [ICODE]ring fire[/ICODE] sets a pair off with nobody in it, from console or a command block, and [ICODE]~[/ICODE] counts from the block — so a map's rings keep working wherever it is pasted.
 [/LIST]
@@ -148,7 +148,6 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]The view is a capture[/B], taken once and kept on disk, so a mirror onto an archived world still shows it without loading that world.
 [*][B]Tunable depth.[/B] How far the room is drawn is a setting (about as far as a server sends, by default). A deep redraw rests before the next, so a mirror can never take more than a quarter of the server's time however close you stand.
 [*][B]It says what it is.[/B] Look at one from a few blocks and it tells you above the hotbar what a click will do. [ICODE]mirror debug[/ICODE] lists every fact about a mirror in green and red — a gap in the wall, another mirror too near, a missing capture.
-[*][B]Paper bonus:[/B] optional fog pulled in to where the room ends, so the far edge is fog rather than this world's hills.
 [/LIST]
 
 

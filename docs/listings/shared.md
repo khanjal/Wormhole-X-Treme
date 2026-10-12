@@ -221,9 +221,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **Owners, access and quotas.** Pairs start public or private, `ring allow` and `ring deny`
   manage a private pair's list, `ring owner` hands it over, and a per-player quota caps how many
   anyone may own.
-- **Every timing is a setting** — countdown, cooldown, animation speed, how long the stack
-  settles, how long each ring stays lit, how long the pad glows afterwards — as are the maximum
-  distance and height between two ends.
+- **Tunable** — the cooldown, one speed for the whole animation, and the maximum distance
+  between two ends are settings.
 - **Name an end** and its partner tells travellers where they are heading.
 - **Build and fire them from command blocks.** `ring build` pairs two laid circles by their
   coordinates and `ring fire` sets a pair off with nobody in it, from console or a command block,
@@ -274,8 +273,6 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **It says what it is.** Look at one from a few blocks and it tells you above the hotbar what a
   click will do. `mirror debug` lists every fact about a mirror in green and red — a gap in the
   wall, another mirror too near, a missing capture.
-- **Paper bonus:** optional fog pulled in to where the room ends, so the far edge is fog rather
-  than this world's hills.
 
 ### For the people running the server
 
