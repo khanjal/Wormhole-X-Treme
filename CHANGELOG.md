@@ -7,7 +7,7 @@ operator or a player needs. No paragraphs, no why, no limits and no numbers; the
 [docs/](docs/) beside the code, linked from the entry when it helps. A release nobody can scroll
 through is a release nobody reads.
 
-## 1.10.0 (unreleased)
+## 1.10.0 (2026-10-12)
 
 ### For server admins
 
