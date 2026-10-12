@@ -30,17 +30,16 @@ const cases = [
   v('ring max pairs', '`ring-max-pairs-per-player 1`: a second pair cannot be handed to Probe2 once it owns one'),
   v('ring ceiling drop', '`ring-max-ceiling-drop 12`: a ceiling ring 11 up is paired, where the default 10 refuses it'),
   v('ring link distance', '`ring-max-link-distance 300`: rings 257 apart are paired, where the default 256 refuses them'),
-  v('ring outline', 'stepping back into a recharging pair shows a barrier outline under it, for ring-outline-ticks (100 here)'),
+  v('ring outline', 'stepping back into a recharging pair shows a barrier outline under it, for 40 ticks at the shipped ring-animation-speed'),
   v('ring outline off', '`ring-outline-on-refusal false`: the same, recharging, and no outline'),
-  v('ring timings', 'deploy 4, settle 30, flash 8, hold 40, linger 60 ticks: each interval between the sounds and lights is as long'),
+  v('ring timings', '`ring-animation-speed 0.5`: deploy 4, settle 40, flash 6, hold 40, linger 40 ticks; each interval between the sounds and lights is as long'),
 ];
 
 function needs(o) {
   return {
     'ring defaults': { 'ring-default-access': 'PUBLIC', 'ring-default-style': 'SEQUENTIAL', 'ring-default-light': 'SEA_LANTERN', 'ring-default-flash': 'GOLD_BLOCK' },
-    'ring outline': { 'ring-outline-ticks': '100' },
     'ring outline off': { 'ring-outline-on-refusal': 'false' },
-    'ring timings': { 'ring-deploy-ticks': '4', 'ring-settle-ticks': '30', 'ring-flash-ticks': '8', 'ring-hold-ticks': '40', 'ring-lights-linger-ticks': '60' },
+    'ring timings': { 'ring-animation-speed': '0.5' },
   }[o.case] || {};
 }
 
@@ -222,9 +221,9 @@ function checks(obs, o) {
     ];
     if (o.case === 'ring outline') {
       list.push(c('a barrier outline was drawn under the pad', () => Boolean(obs.barriers && obs.barriers.at)),
-        c('and taken back about five seconds later (ring-outline-ticks 100)', () => {
+        c('and taken back about two seconds later (40 ticks)', () => {
           const ms = obs.barriers && obs.barriers.gone ? obs.barriers.gone - obs.barriers.at : null;
-          if (ms !== null && ms >= 4000 && ms <= 6500) return true;
+          if (ms !== null && ms >= 1500 && ms <= 3300) return true;
           throw new Error(`after ${ms} ms`);
         }));
     } else {
@@ -249,10 +248,10 @@ function checks(obs, o) {
       c('the pair was made and Probe carried', () => Boolean(obs.id) && obs.carried === true),
       c('four rings up at A and four down at B, the flashes and the close heard', () => ringsA.length === 4 && ringsB.length === 4 && flashA && flashB && closeB),
       span('a ring every 3 deploy frames, 4 ticks each', ringsA.length === 4 ? (ringsA[3].t - ringsA[0].t) / 3 : null, 12),
-      span('the last ring up to the flash out: two frames and the settle', flashA && ringsA[3] ? flashA.t - ringsA[3].t : null, 2 * 4 + 30),
-      span('the flash out to the flash in: four rings lit, 8 ticks each', flashA && flashB ? flashB.t - flashA.t : null, 4 * 8),
-      span('the flash in to the first ring down: the sweep, the hold and a frame', flashB && ringsB[0] ? ringsB[0].t - flashB.t : null, 4 * 8 + 40 + 4),
-      span('the close to the pad lights gone: the linger', closeB && obs.lightsLastAt ? obs.lightsLastAt - (obs.recStart + closeB.t) : null, 60),
+      span('the last ring up to the flash out: two frames and the settle', flashA && ringsA[3] ? flashA.t - ringsA[3].t : null, 2 * 4 + 40),
+      span('the flash out to the flash in: four rings lit, 6 ticks each', flashA && flashB ? flashB.t - flashA.t : null, 4 * 6),
+      span('the flash in to the first ring down: the sweep, the hold and a frame', flashB && ringsB[0] ? ringsB[0].t - flashB.t : null, 4 * 6 + 40 + 4),
+      span('the close to the pad lights gone: the linger', closeB && obs.lightsLastAt ? obs.lightsLastAt - (obs.recStart + closeB.t) : null, 40),
     ];
   }
   return [];

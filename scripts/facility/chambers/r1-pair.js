@@ -28,7 +28,7 @@ const OPTIONS = {
   access: [v('as built', 'console pairs are public, player pairs private'), v('stranger', 'Probe2 walks into Probe\'s private pair: refused'),
     v('allowed', '`ring allow Probe2`: Probe2 is carried')],
   timing: [v('default', ''), v('slow', '`edit style slow`: the rings climb one at a time'),
-    v('quick', '`ring-countdown-ticks 30`, the shortest countdown')],
+    v('quick', '`ring-animation-speed 2.0`, the fastest rings: a 50-tick countdown')],
 };
 
 function refuses(o) {
@@ -44,7 +44,7 @@ module.exports = {
   cell: def.box,
   seat: cellLayout(def).seat,
   options: OPTIONS,
-  needs: (o) => ({ config: o.timing === 'quick' ? { 'ring-countdown-ticks': '30' } : {} }),
+  needs: (o) => ({ config: o.timing === 'quick' ? { 'ring-animation-speed': '2.0' } : {} }),
   refuses,
 
   async stage(ctx, o) {

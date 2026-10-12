@@ -11,8 +11,9 @@
 //  - `beam to <name>` (and `go <name>`) looks in the traveller's own places, then the public list.
 //  - `beam admin send <player> <player|dest>|<x> <y> <z> [world]` works from the console;
 //    `beam admin goto` is player-only; both need wormhole.beam.admin.teleport (op by default).
-//  - "Beaming to <name>..." at tick 0, the teleport at envelop + teleport-at-step (24 ticks),
-//    "Beamed to <name>." at the teleport + descend + fade (52 ticks by default). The rise's
+//  - "Beaming to <name>..." at tick 0, the teleport at envelop + teleport step (24 ticks),
+//    "Beamed to <name>." at the teleport + descend + fade (52 ticks by default; each part is
+//    divided by beam-animation-speed). The rise's
 //    length only paces the column: the descent starts at the teleport, not after the rise.
 //  - The landing is the stored spot if a player can stand there, else the first standable
 //    spot 1..3 up, else 1..3 down, at the block's centre with the stored yaw.
@@ -23,12 +24,18 @@ const trip = require('./ringtrip');
 
 const WORLDS = { 'minecraft:overworld': 'world', 'minecraft:the_nether': 'world_nether', 'minecraft:the_end': 'world_the_end' };
 
-/** The ticks from "Beaming to" to "Beamed to" for these settings (the defaults if absent), clamped as BeamTiming does. */
+/**
+ * The ticks from "Beaming to" to "Beamed to" at these settings' beam-animation-speed (1.0 if
+ * absent): each shipped timing divided by the speed, read from 0.5 to 2.0, rounded on its own and
+ * clamped as BeamTiming does.
+ */
 function beamTicks(s = {}) {
-  const n = (k, d) => (s[k] !== undefined ? Number(s[k]) : d);
-  const rise = Math.max(2, n('beam-rise-ticks', 18));
-  const teleportAt = Math.min(Math.max(n('beam-teleport-at-step', 12), 1), rise - 1);
-  return Math.max(2, n('beam-envelop-ticks', 12)) + teleportAt + Math.max(1, n('beam-descend-ticks', 20)) + Math.max(1, n('beam-fade-ticks', 8));
+  const asked = s['beam-animation-speed'] !== undefined ? Number(s['beam-animation-speed']) : 1;
+  const speed = Number.isNaN(asked) ? 1 : Math.min(Math.max(asked, 0.5), 2);
+  const at = (t) => Math.round(t / speed);
+  const rise = Math.max(2, at(18));
+  const teleportAt = Math.min(Math.max(at(12), 1), rise - 1);
+  return Math.max(2, at(12)) + teleportAt + Math.max(1, at(20)) + Math.max(1, at(8));
 }
 
 function flat(p, q) {

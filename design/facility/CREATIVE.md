@@ -192,7 +192,7 @@ runway is the walk lane and the arrival lane; nothing stands on it. A **dial con
 (`wormhole gate dial Ops Hall`, `... Range`, `... Annex`) with a display over each; the console
 form of dialling is a plugin feature (G6/G7), so the buttons are themselves a test. The DHD is
 the hands-on way: press the button on (2, 0, −9), then `/dial Hall`. With no permissions plugin
-and `permissions-auto-fallback: true` (the default) a non-op may use and dial, so an adventure
+the plugin's simple-mode fallback lets a non-op use and dial, so an adventure
 tester needs no op for this; `gate dial` from the console needs none either.
 
 The transit gates go on the **default network** (no `net=`): the design's `wormhole.network.use.
@@ -522,7 +522,7 @@ Covered in 2.1–2.2. Additionally:
 
 | Set piece | Where | What it tests, beyond looking right |
 |---|---|---|
-| The Gate Room | Ops north, 2.1 | `gate build` console form as a fixture, DHD + `/dial` by a non-op under `permissions-auto-fallback`, `gate dial` from a command block (G6/G7), cross-world dialling to Range/Annex (G18), `timeout-shutdown` after every trip (G11), "already active" when G1 holds the far gate (G9) |
+| The Gate Room | Ops north, 2.1 | `gate build` console form as a fixture, DHD + `/dial` by a non-op under the simple-mode fallback, `gate dial` from a command block (G6/G7), cross-world dialling to Range/Annex (G18), `timeout-shutdown` after every trip (G11), "already active" when G1 holds the far gate (G9) |
 | The Briefing Room window | mezzanine, y 5 | nothing new; it is where the Ops wall's TRANSIT block is read from |
 | The ring pads | Ops east, Concourse | `ring build` console form (R9), a public pair's access (R7), the countdown and the 30 s cooldown message (R4, R6), `ring list` showing a pair nobody made in a run |
 | The transporter pads | Ops west, Beam lab | `beam admin set` by a player, `admin send` from a command block (B3), `beam to` by a non-op, arrival facing (B4), the use cooldown (B6) |

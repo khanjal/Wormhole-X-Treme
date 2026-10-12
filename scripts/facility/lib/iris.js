@@ -9,9 +9,9 @@
 //    the horizontal), spiral (wound round the middle, cut into as many steps as the sweep makes),
 //    instant (no animation). The centre is the midpoint of the opening's extremes.
 //  - Opening runs innermost first; closing is the same steps reversed.
-//  - A step is drawn every gate-iris-step-ticks (1..20, default 2), the first in the tick of the
-//    toggle; with more steps than max(2, gate-iris-sweep-max-ticks / step ticks) (max ticks
-//    0..200, default 20; 0 = no limit) adjacent steps are merged into that many bands.
+//  - A step is drawn every 2 ticks (IrisSweepDriver.STEP_TICKS), the first in the tick of the
+//    toggle; with more steps than max(2, 20 / 2) = 10 (SWEEP_MAX_TICKS over the step) adjacent
+//    steps are merged into that many bands.
 
 const STYLES = ['sweep', 'spiral', 'rows', 'columns', 'instant'];
 
@@ -80,7 +80,7 @@ function closingOrder(cells, style, maxSteps = 0) {
   return openingOrder(cells, style, maxSteps).slice().reverse();
 }
 
-/** The plugin's step pace and band limit from the two settings, clamped as ConfigManager does. */
+/** The plugin's step pace and band limit, fixed in IrisSweepDriver since 1.11.0; worked out as maxSteps does. */
 function pace(stepTicks = 2, maxTicks = 20) {
   const step = Math.min(20, Math.max(1, stepTicks));
   const max = Math.min(200, Math.max(0, maxTicks));

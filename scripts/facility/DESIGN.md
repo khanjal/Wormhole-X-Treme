@@ -41,18 +41,18 @@ does not have; see the note under the tables).
 | G10 | Wormhole is one way: entering the destination ring pushes a player out | `WormholeXTremePlayerListener` | no |
 | G11 | Timeouts: `timeout-activate`, `timeout-shutdown` (0 = until used), `max-open-seconds`, `redstone-extend-open-time` | `StargateLifecycle`, `TimeoutsCommand` | no |
 | G12 | Iris: code via `complete idc=` or `edit idc`; `-clear` removes the lever; lever at `:IA`; owner may set without `wormhole.config` | `GateIris`, `WXIDC` | part |
-| G13 | Iris animation: sweep, spiral, rows, columns, instant; `gate-iris-step-ticks`, `gate-iris-sweep-max-ticks`; per gate / per group override | `IrisSweep`, `StargateIrisAnimator`, `IrisLayering` | no |
-| G14 | Drawn iris on upright gates (two layers, swaps as you walk round), horizon look-alike in ice behind a glass iris (`gate-iris-horizon-ticks`), real-block iris on Horizontal | `DrawnHorizon`, `IrisLayering` | no |
+| G13 | Iris animation: sweep, spiral, rows, columns, instant, a step every 2 ticks merged into at most ten; per gate / per group override | `IrisSweep`, `StargateIrisAnimator`, `IrisLayering` | no |
+| G14 | Drawn iris on upright gates (two layers, swaps as you walk round), horizon look-alike in ice behind a glass iris, real-block iris on Horizontal | `DrawnHorizon`, `IrisLayering` | no |
 | G15 | A shut iris holds: walker bounced, minecart pushed back, arrow/item destroyed at either end, no building in the opening | `GateInteractionHandler`, `ProjectileGateTracker`, `WormholeXTremeBlockListener` | part: walker only |
 | G16 | Redstone: `[RD]` trigger by lever, button, plate, detector rail, dust/repeater/comparator; `[RA]` output lever; signal on DHD mount block; per-gate `edit redstone`; signal drop shuts a `timeout-shutdown: 0` gate; one trigger per quarter second | `WormholeXTremeRedstoneListener`, `GateRedstoneWrite` | part: lever on RD |
-| G17 | Travellers: player; minecart and boat with passengers re-seated; ridden horse, camel, pig, donkey, llama, strider; tamed wolf, cat, parrot within 12 (not sitting); arrows, tridents, snowballs, eggs, ender pearls (teleport the thrower), potions, fireballs; mobs, items, XP orbs, armour stands by sweep (`entity-scan-interval-ticks`); item frames and paintings never | `RiddenTeleport`, `PetEscort`, `ProjectileGateTracker`, `GateEntityScanner`, `WormholeXTremeVehicleListener` | part: walk, boat, minecart, horse, wolf |
+| G17 | Travellers: player; minecart and boat with passengers re-seated; ridden horse, camel, pig, donkey, llama, strider; tamed wolf, cat, parrot within 12 (not sitting); arrows, tridents, snowballs, eggs, ender pearls (teleport the thrower), potions, fireballs; mobs, items, XP orbs, armour stands by sweep (once a second); item frames and paintings never | `RiddenTeleport`, `PetEscort`, `ProjectileGateTracker`, `GateEntityScanner`, `WormholeXTremeVehicleListener` | part: walk, boat, minecart, horse, wolf |
 | G18 | Cross-world: overworld to nether and back; the End | `StargateManager`, `WorldUtils` | part: nether one way |
 | G19 | Signs: name sign (name / network / owner lines) and dial sign colours, `»«` markers, `sign-glowing-text`, `sign-dial-match-material` | `SignStyle` | no |
 | G20 | `gate edit` fields: portal, iris, light, group (`-clear`), woosh, redstone, custom, idc, owner, spin, iris-animation | `GateEditCommand` | part: portal, redstone, custom, idc |
 | G21 | Upkeep: `remove [-destroy]`, `regen [-shape] [-fill] [-water] | -all`, `validate <gate|-all>` (WorldEdit-torn gate), `refresh`, `shapes reload|validate`, `import`, `list [net]`, `go`, `compass [reset]`, `owner` | `RegenerateCommand`, `ValidateCommand`, `GateShapesCommand`, `Compass`, `WXList` | part: remove, list |
 | G22 | A custom `.shape` file dropped in `shapes/gate/`, and `[C]`, `[S:C]`, `[RS]` cells | `ShapeFileValidator`, `GateBlueprint` | no |
 | G23 | Sounds: activate, chevron, lock, kawoosh, ambient (+ ticks), close, iris open/close; `gate-sound-volume`; `none`; pitch and volume scaled by shape width / `SOUND_SCALE` | `GateSounds`, `Sounds` | no (audible by accident) |
-| G24 | `gate-arrival-splash-ticks`; woosh depth | `WooshSequence`, `WooshDepthCommand` | no |
+| G24 | Arrival splash; woosh depth | `WooshSequence`, `WooshDepthCommand` | no |
 | G25 | Protection: frame refuses a pickaxe; only owner / op / `wormhole.config` / `remove.all` may build in an opening; explosions | `WormholeXTremeBlockListener`, `WormholeXTremeEntityListener` | no |
 | G26 | Networks: `net=`, `wormhole.network.use/build.<net>`, `list [network]` | `StargateNetwork`, `ComplexPermission` | no |
 | G27 | Events: `StargateActivated/Created/Removed/Shutdown/PlayerTravel/MinecartTeleport`, `RingTravelEvent` | `events/*` | n/a (needs a listener plugin) |
@@ -98,7 +98,7 @@ does not have; see the note under the tables).
 | M3 | Right-click walks the others by name; own room never in the round; three-second hold when someone else is there; `-start <mirror>|-none` | `MirrorInteraction`, `MirrorSettle` | part: no start, no hold |
 | M4 | Punch to travel; land in front of the far banner facing out; pets follow | `MirrorArrival`, `PetEscort` | part |
 | M5 | Wall rules: solid one block out on every side; warning at two; a banner on a post refused; two banners wide makes one 2×2 mirror; banner and wall protected while a mirror | `MirrorPlacement`, `BlockPlace` | no |
-| M6 | Proximity view (`mirror-proximity-distance`, `-ticks`), real-block capture from the arrival point, `-capture` retake, `mirror-view-depth` 4–160, whole-room vs through-the-opening view, fog on Paper (`mirror-fog-at-depth`), creatures hidden, lava/water rules | `Windows`, `Capture`, `MirrorView`, `ViewFog`, `WindowSight` | no |
+| M6 | Proximity view (`mirror-proximity-distance`), real-block capture from the arrival point, `-capture` retake, `view-depth` 4–160, whole-room vs through-the-opening view, creatures hidden, lava/water rules | `Windows`, `Capture`, `MirrorView`, `ViewFog`, `WindowSight` | no |
 | M7 | Looks: 90 shipped `.mirror` files; `-stamp <look>` and `-stamp` from the room (biome frame, dominant colours); patterned banner keeps its pattern | `MirrorStamp`, `MirrorPresetRegistry`, `MirrorPalette` | part: named stamps |
 | M8 | Approach message above the hotbar; `mirror-approach-message`; only near a mirror (1.9.0) | `MirrorSignpost`, `WindowSweep` | no |
 | M9 | `mirror debug [name] [-all|-full|-on|-off]`, `mirror list` | `MirrorCommand` | part: used as a wait |
@@ -111,7 +111,7 @@ does not have; see the note under the tables).
 | X1 | `/wormhole config <setting> [value]`, search by substring, both spellings, fixed-value refusal; every setting in `DefaultSettings` (about 120 keys) | `ConfigCommand`, `DefaultSettings` | part: three settings poked as fixtures |
 | X2 | `pets-follow-owner` across gate, ring, beam, mirror; cats and parrots; a sitting pet stays | `PetEscort` | part: wolf by gate and beam |
 | X3 | Freya, `/wormhole freya on|off`: a cat only her owner sees, kept away in bed and when hunted, travels as a pet, re-summoned if a transport drops her | `model/freya/*` | no |
-| X4 | Permissions: every node in `plugin.yml`; op outranks a negated node; `permissions-support-disable`, `permissions-auto-fallback`; `wormhole-use-is-teleport` | `WXPermissions`, `PermissionsSupport` | no |
+| X4 | Permissions: every node in `plugin.yml`; op outranks a negated node; `permissions-support-disable`, the simple-mode fallback with no permissions plugin; `wormhole-use-is-teleport` | `WXPermissions`, `PermissionsSupport` | no |
 | X5 | Use cooldowns: gates (`use-cooldown-*`), beams | `StargateRestrictions`, `BeamCooldown` | no |
 | X6 | Economy use/build cost and beam cost | `EconomySupport` | n/a (Vault + economy plugin) |
 | X7 | Placeholders, CoreProtect, metrics switch, Help registration | `plugin/*` | n/a / no |
@@ -229,7 +229,7 @@ Sizes, and why:
   testable. The **shaft** under R3 drops 60 for the height rule, with a ledge every 20.
 - **Beam lab 71 × 61 × 12.** Six pads; the size is for the "landed on the nearest safe spot"
   test, which needs a pad you can cut the floor from under.
-- **Mirror gallery 81 × 51.** Long enough for a mirror to sit more than twice `mirror-view-depth`
+- **Mirror gallery 81 × 51.** Long enough for a mirror to sit more than twice `view-depth`
   (at a lowered depth of 16) from its neighbours, and to have one pair deliberately closer for
   the "another mirror too near" warning.
 - **Ops 41 × 41 × 16** with a mezzanine (Systems) at +6.
@@ -309,7 +309,7 @@ kawoosh; send the traveller; check arrival. `Check` differs per traveller:
 - dropped items: the stack with the run's tag, same count and NBT (a named, enchanted item),
   at the far end within the sweep interval + 2 s; with a shut iris it is gone at both ends;
 - sweep travellers (zombie, item, XP, armour stand): the entity is at the far end within
-  `entity-scan-interval-ticks` + 2 s; the item frame is where it was hung;
+  the sweep's second + 2 s; the item frame is where it was hung;
 - refusals: the opening stays air and the plugin's refusal line was heard (each refusal's text
   is taken from `ConfigManager`'s message keys, not guessed);
 - afterwards: the near gate shuts by itself within `timeout-shutdown` + 5 s, and the far
@@ -355,8 +355,7 @@ fills it (G5 last row). `Reset` clears previews (`preview clear -all`) and the c
 
 **G5 Iris Chamber** — two fixed Standard gates facing each other twenty apart, one in
 Atlantis (glass iris) and one in Standard (stone), both with a code, on their own network so
-G2's gates never dial them. Options: animation style (five), `gate-iris-step-ticks`,
-`gate-iris-sweep-max-ticks`, `gate-iris-horizon-ticks`, side (front / behind / round the side),
+G2's gates never dial them. Options: animation style (five), side (front / behind / round the side),
 which gate. `Run`: shut the iris at the lever, count the drawn steps the bot's client
 received (block-change packets in the opening, grouped by tick) against the expected count for
 the style and limit; open it; dial through and walk from the chosen side to check the
@@ -382,8 +381,8 @@ room height (6, 10, 11 = refused), pattern. Checks as R1 plus "the stack stood o
 (a block-change at floor + 1 on the bot's client).
 
 **R3 Shaft** — a ring at the top of a 60-deep shaft and one at the bottom, with ledges: tests the
-height rule and "going straight down is what they are for". Options: depth 20 / 40 / 60,
-`ring-max-link-height` 384 or 30 (= refused).
+height rule and "going straight down is what they are for" (as far as a world is tall, 384).
+Options: depth 20 / 40 / 60.
 
 **R4 Build Bench** — creative cell with two marked centres. Hands-on: lay circles, `ring create`
 twice, `ring cancel` in between, mixed slabs, a double slab, a disc instead of a ring, a ring
@@ -401,9 +400,9 @@ the drawn light/flash blocks.
 letter), `Pad-Trap` (whose floor the bot removes before beaming, for the safe-spot rule) and
 `Pad-Far` in the Range; the Annex has `Pad-End`. Options: destination, kind (public, own place,
 another player's place = refused, `go` command), traveller (bot, horse, wolf, cat, Freya),
-cooldown on/off, cost (needs Vault), timing preset (default, long: `beam-rise-ticks 60`,
-clamped: `beam-vanish-at-step 99`). `Run`: beam, check landing within 1 of the pad and yaw
-within 5°, second beam inside the cooldown refused with the message, the long preset takes at
+cooldown on/off, cost (needs Vault), timing preset (default, slow: `beam-animation-speed 0.5`,
+fast: `beam-animation-speed 2.0`). `Run`: beam, check landing within 1 of the pad and yaw
+within 5°, second beam inside the cooldown refused with the message, the slow preset takes at
 least the sum of its phases (the bot times it from the charge sound... no: from the
 `hidden` → `shown` transition of its own entity, which the tester can see too).
 

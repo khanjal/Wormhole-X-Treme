@@ -9,7 +9,7 @@
 //   gates.js        a gate setting at a time, changed and its effect seen
 //   rings.js        the ring settings: defaults a new pair takes, refusals, outline, timings
 //   more.js         mirrors, logging, integrations, and the settings read only at start
-//   permissions.js  a non-op with no permissions plugin: the fallback, the nodes, use-is-teleport
+//   permissions.js  a non-op with no permissions plugin: the fallback
 //
 // The settings no case changes are listed in docs/DEVELOPMENT.md, each with why.
 

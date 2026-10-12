@@ -175,10 +175,9 @@ const B1 = [
   { name: 'b1 op', values: { traveller: 'op' }, expect: 'PASS' },
   { name: 'b1 horse', values: { traveller: 'horse' }, expect: 'PASS' },
   { name: 'b1 wolf', values: { destination: 'E', traveller: 'wolf' }, expect: 'PASS' },
-  { name: 'b1 long', values: { timing: 'long' }, expect: 'PASS' },
-  { name: 'b1 late teleport', values: { timing: 'late teleport' }, expect: 'PASS' },
-  { name: 'b1 clamped teleport', values: { timing: 'clamped' }, expect: 'PASS' },
-  { name: 'b1 clamped vanish', values: { timing: 'clamped vanish' }, expect: 'PASS' },
+  { name: 'b1 slow', values: { timing: 'slow' }, expect: 'PASS' },
+  { name: 'b1 fast', values: { timing: 'fast' }, expect: 'PASS' },
+  { name: 'b1 past fastest', values: { timing: 'past fastest' }, expect: 'PASS' },
   { name: 'b1 another\'s place as op', values: { kind: 'another\'s place', traveller: 'op' }, expect: 'REFUSED:another\'s place is asked for by Probe2 (the player)' },
 ];
 
@@ -203,8 +202,6 @@ const MATRIX = {
   ],
   r3: [
     ...['20', '40', '60'].map((depth) => ({ name: `r3 shaft ${depth} down`, values: { depth }, expect: 'PASS' })),
-    { name: 'r3 20 down, reach 30', values: { depth: '20', 'max height': '30' }, expect: 'PASS' },
-    { name: 'r3 40 down, reach 30: refused', values: { depth: '40', 'max height': '30' }, expect: 'PASS' },
   ],
   r4: ['pair', 'cancel', 'mixed slabs', 'mixed halves', 'double slab', 'filled disc', 'low ceiling', 'built inside', 'hole in floor']
     .map((c) => ({ name: `r4 ${c}`, values: { case: c }, expect: 'PASS' })),
@@ -247,9 +244,6 @@ const MATRIX = {
     { name: 'g5 sweep steps, IrisS', values: { check: 'steps' }, expect: 'PASS' },
     { name: 'g5 sweep steps, IrisA', values: { check: 'steps', gate: 'Atlantis' }, expect: 'PASS' },
     ...['spiral', 'rows', 'columns', 'instant'].map((a) => ({ name: `g5 ${a} steps`, values: { check: 'steps', animation: a }, expect: 'PASS' })),
-    { name: 'g5 steps at 4 ticks', values: { check: 'steps', 'step ticks': '4' }, expect: 'PASS' },
-    { name: 'g5 steps merged to two bands', values: { check: 'steps', 'max ticks': '4' }, expect: 'PASS' },
-    { name: 'g5 steps with no band limit', values: { check: 'steps', 'max ticks': '0' }, expect: 'PASS' },
     // A known failure (the puller's own arm swing redrew the iris whole mid-sweep) until #546.
     { name: 'g5 the puller watches the sweep', values: { check: 'steps', watcher: 'puller' }, expect: 'PASS' },
     ...['front', 'behind', 'side'].map((s) => ({ name: `g5 layers from ${s === 'side' ? 'the side' : s === 'front' ? 'the front' : 'behind'}, IrisS`, values: { check: 'layers', side: s }, expect: 'PASS' })),
@@ -280,7 +274,7 @@ const QUICK = new Set([
   'm1 round to Range', 'm1 the three-second hold', 'm2 gap one out', 'm3 capture', 'm3 stamp a look', 'g1 horse to the Range', 'b1 End',
   'g1 built by hand', 'g1 Lab.shape by preview, sign right', 'g3 lever', 'g3 command block: gate build', 'g4 activate', 'g4 share', 'g5 sweep steps, IrisS',
   'g5 layers from the front, IrisA (ice behind glass)', 'g5 arrow at the shut iris, IrisS',
-  's1 every setting', 's1 bad values', 's1 gate sounds', 's1 beam sounds', 's1 fallback', 's1 nodes', 's1 ring defaults',
+  's1 every setting', 's1 bad values', 's1 gate sounds', 's1 beam sounds', 's1 fallback', 's1 ring defaults',
 ]);
 for (const [id, cells] of Object.entries(MATRIX)) {
   for (const cell of cells) if (id === 'c0' || QUICK.has(cell.name)) cell.quick = true;

@@ -6,8 +6,8 @@
 //
 //  - steps: the iris shut and opened at its lever; a watcher's block-change packets in the
 //    opening, grouped by when they came, must be the plugin's steps for the style (lib/iris.js
-//    works them out as IrisSweep does), cell for cell, a step every gate-iris-step-ticks, with
-//    more than the band limit merged;
+//    works them out as IrisSweep does), cell for cell, a step every 2 ticks, with more than the
+//    ten-step band limit merged;
 //  - layers: the gates dialled to each other and the iris shut on the open one, then a watcher
 //    in front, behind or to the side is shown the two layers (iris in the plane and the horizon
 //    one behind it, from the front; the horizon in the plane and the iris one further off, from
@@ -69,16 +69,14 @@ module.exports = {
     check: [v('steps', 'the packets of a closing and an opening, step by step'), v('layers', 'the two-layer iris on an open gate'),
       v('arrow', 'an arrow at the iris'), v('place', 'a block put into the opening while shut')],
     animation: iris.STYLES.map((s) => v(s, `\`gate edit <gate> iris-animation ${s}\``)),
-    'step ticks': [v('2', 'gate-iris-step-ticks 2 (the default)'), v('4', 'gate-iris-step-ticks 4')],
-    'max ticks': [v('20', 'gate-iris-sweep-max-ticks 20 (the default: ten steps at 2)'), v('4', '4: at most two bands'), v('0', '0: no limit')],
     watcher: [v('Probe2', 'Probe2 stands by while Probe pulls the lever'), v('puller', 'Probe, who pulled it, watches')],
     side: [v('front', 'layers: from the DHD side'), v('behind', 'layers: from behind the ring'), v('side', 'layers: level with the ring, off to one side')],
     iris: [v('shut', 'arrow: at the shut iris'), v('open', 'arrow: at the open one, the control')],
   },
-  needs: (o) => ({ config: o.check === 'steps' ? { 'gate-iris-step-ticks': o['step ticks'], 'gate-iris-sweep-max-ticks': o['max ticks'] } : {} }),
+  needs: () => ({ config: {} }),
   refuses: (o) => {
-    const stepsOnly = o.animation !== 'sweep' || o['step ticks'] !== '2' || o['max ticks'] !== '20' || o.watcher !== 'Probe2';
-    if (o.check !== 'steps' && stepsOnly) return 'the animation, pace and watcher rows are the steps check';
+    const stepsOnly = o.animation !== 'sweep' || o.watcher !== 'Probe2';
+    if (o.check !== 'steps' && stepsOnly) return 'the animation and watcher rows are the steps check';
     if (o.check !== 'layers' && o.side !== 'front') return 'the side row is the layers check';
     if (o.check !== 'arrow' && o.iris !== 'shut') return 'the iris row is the arrow check';
     return null;
@@ -106,7 +104,7 @@ module.exports = {
       if (watcher !== probe) await watcher.teleport(spot(g, 6, 2), O);
       // A teleport is followed by redraws of every drawn iris for 60 ticks: let them pass.
       await ticks(70);
-      const { stepTicks, maxSteps } = iris.pace(Number(o['step ticks']), Number(o['max ticks']));
+      const { stepTicks, maxSteps } = iris.pace();
       const expected = iris.closingOrder(geom.opening, o.animation, maxSteps);
       const crossMs = (expected.length * stepTicks + 20) * 50;
       let rec = iris.recordCells(watcher.bot, geom.opening);
