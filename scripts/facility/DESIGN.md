@@ -111,7 +111,7 @@ does not have; see the note under the tables).
 | X1 | `/wormhole config <setting> [value]`, search by substring, both spellings, fixed-value refusal; every setting in `DefaultSettings` (about 90 keys) | `ConfigCommand`, `DefaultSettings` | part: three settings poked as fixtures |
 | X2 | `pets-follow-owner` across gate, ring, beam, mirror; cats and parrots; a sitting pet stays | `PetEscort` | part: wolf by gate and beam |
 | X3 | Freya, `/wormhole freya on|off`: a cat only her owner sees, kept away in bed and when hunted, travels as a pet, re-summoned if a transport drops her | `model/freya/*` | no |
-| X4 | Permissions: every node in `plugin.yml`; op outranks a negated node; `permissions-support-disable`, the simple-mode fallback with no permissions plugin; `wormhole-use-is-teleport` (needs a permissions plugin, so only the Permissions Desk's LuckPerms companion run reaches it, at its default) | `WXPermissions`, `PermissionsSupport` | no |
+| X4 | Permissions: every node in `plugin.yml`; op outranks a negated node; `permissions-support-disable`, the simple-mode fallback with no permissions plugin; `wormhole-use-is-teleport` (needs a Vault permissions provider (a permissions plugin with Vault), so only the Permissions Desk's LuckPerms companion run reaches it, at its default) | `WXPermissions`, `PermissionsSupport` | no |
 | X5 | Use cooldowns: gates (`use-cooldown-*`), beams | `StargateRestrictions`, `BeamCooldown` | no |
 | X6 | Economy use/build cost and beam cost | `EconomySupport` | n/a (Vault + economy plugin) |
 | X7 | Placeholders, CoreProtect, metrics switch, Help registration | `plugin/*` | n/a / no |

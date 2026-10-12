@@ -340,7 +340,7 @@ defaults, so a new setting is visible rather than only documented; a setting tha
 read from its old name and written back under the new one. Values you set are not touched, and a
 file that no longer parses as YAML is left exactly as you left it rather than having every
 default appended to the end of it. A setting a release removed is left in the file and ignored,
-and one INFO line at startup names the removed settings your file still holds.
+and the log names the removed settings your file still holds at startup.
 
 **Shipped shapes update themselves unless you edited them.** At startup, a copy in
 `shapes/gate/` that matches a version some release shipped is replaced with the jar's, and the old
