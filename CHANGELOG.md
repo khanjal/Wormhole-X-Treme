@@ -12,9 +12,9 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 **Changed**
 
-- **`ring-animation-speed` replaces the seven ring timings**: 1.0 is the old timing, 2.0 twice as fast, 0.5 half as fast, and nothing outside that range.
+- **`ring-animation-speed` replaces the seven ring timings**: 1.0 is the old timing, 2.0 twice as fast, 0.5 half as fast, and nothing outside that range; the settle, hold and lingering lights can no longer be 0, and are 10 ticks at 2.0.
 - **`beam-animation-speed` replaces the six beaming timings** the same way.
-- **`view-depth` replaces `gate-view-depth`, `gate-view-full-depth` and `mirror-view-depth`**: one depth for a mirror's room and a gate's view; a file without it takes the shallower of its old ones.
+- **`view-depth` replaces `gate-view-depth`, `gate-view-full-depth` and `mirror-view-depth`**: one depth for a mirror's room and a gate's view; a file without it takes the shallower of `mirror-view-depth` and `gate-view-full-depth`, so a lowered gate depth (0 meaning its first step) now shallows mirrors too, and a gate's first step is otherwise back at 32.
 - **A `config.yml` holding a removed setting still loads**: the line is ignored and left as it is, and one line in the log at startup names them.
 
 **Removed**
@@ -24,7 +24,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 - **`gate-arrival-splash-ticks`**: the arrival splash always shows, for as long as it did by default.
 - **`ring-max-link-height` and `ring-default-material`**: rings reach a whole world's height, and a ring whose slab is unknown is drawn in smooth stone.
 - **`permissions-auto-fallback`**: with no permissions plugin the simple fallback is always on.
-- **`mirror-fog-at-depth`**: a mirror no longer pulls a viewer's fog in.
+- **`mirror-fog-at-depth`**: a mirror no longer pulls a viewer's fog in, and the code behind it is gone with the `fog` line in `mirror debug`.
 
 ## 1.10.0 (unreleased)
 
