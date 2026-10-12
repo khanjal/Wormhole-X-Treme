@@ -213,11 +213,10 @@ class RingYamlManagerTest
     }
 
     /**
-     * A ring whose slab this server does not have is drawn in ring-default-material, not dropped.
+     * A ring whose slab this server does not have is drawn in smooth stone, not dropped.
      *
      * <p>A pair saved on a newer Minecraft can name a slab an older server lacks. It used to be
-     * skipped as unreadable and lost at the next save, while the setting that says it is "used only
-     * when the slab a ring was built from cannot be read" was read by nothing.
+     * skipped as unreadable and lost at the next save.
      */
     @Test
     void aRingInASlabThisServerLacksIsDrawnInTheDefaultMaterial() throws IOException
@@ -234,19 +233,10 @@ class RingYamlManagerTest
                 B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
             """;
         Files.write(new File(directory, "world.yml").toPath(), yaml.getBytes(StandardCharsets.UTF_8));
-        ConfigTestSupport.set(ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL, "QUARTZ_SLAB");
-        try
-        {
-            assertEquals(1, RingYamlManager.loadAll(directory, REACH), "the pair loads");
-        }
-        finally
-        {
-            ConfigTestSupport.clear();
-        }
+        assertEquals(1, RingYamlManager.loadAll(directory, REACH), "the pair loads");
 
         final RingPair loaded = RingManager.getPair("future01");
-        assertEquals(Material.QUARTZ_SLAB, loaded.getEndA().getRingMaterial(),
-            "the configured fallback, not the smooth stone it defaults to");
+        assertEquals(Material.SMOOTH_STONE_SLAB, loaded.getEndA().getRingMaterial(), "drawn in the plain stone slab");
         assertEquals(Material.STONE_SLAB, loaded.getEndB().getRingMaterial(), "the other end keeps its own");
     }
 

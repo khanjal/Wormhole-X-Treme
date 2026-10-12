@@ -9,7 +9,6 @@ import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
-import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
@@ -187,8 +186,6 @@ final class ParsedSetting
                 return readAccess(key, trimmed);
             case RING_DEFAULT_STYLE:
                 return readStyle(key, trimmed);
-            case RING_DEFAULT_MATERIAL:
-                return readSlab(key, trimmed);
             case RING_DEFAULT_LIGHT, RING_DEFAULT_FLASH:
                 return readBlock(key, trimmed);
             case SIGN_COLOR_GATE_NAME, SIGN_COLOR_NETWORK, SIGN_COLOR_OWNER, SIGN_COLOR_SELECTED,
@@ -274,29 +271,6 @@ final class ParsedSetting
                 + "\". Fast and slow work too.");
         }
         return accepted(style.name());
-    }
-
-    /**
-     * Reads a material a travelling ring could be made of.
-     *
-     * @param key
-     *            which setting is being written
-     * @param raw
-     *            the value as typed
-     * @return the material's name, or the reason it was refused
-     */
-    private static ParsedSetting readSlab(final ConfigKeys key, final String raw)
-    {
-        final Material material = Material.matchMaterial(raw);
-        if (!Ring.isUsableAsRing(material))
-        {
-            // The same refusal /wormhole ring edit ring gives, and for the same reason: the
-            // rise is drawn out of slab halves, so a full block would cost the animation the
-            // half-block movement that is the whole effect.
-            return refused(key + " is the name of a slab, not \"" + raw
-                + "\" -- a ring moves half a block at a time, which is what a slab can do.");
-        }
-        return accepted(material.name());
     }
 
     /**

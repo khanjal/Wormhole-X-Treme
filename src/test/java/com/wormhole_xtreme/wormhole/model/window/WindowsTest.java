@@ -197,6 +197,7 @@ class WindowsTest
         MirrorManager.clear();
         WindowSweep.clear();
         ViewFog.sendDistanceWith(null);
+        ViewFog.enabledForTest(false);
         HiddenEntities.creationWith(null);
         // A failed hold test leaves nothing for the next: clear() let go of the chunks above.
         FarChunkHolds.loaderWith(null);
@@ -2062,7 +2063,7 @@ class WindowsTest
     @Test
     void aViewerDrawnARoomHasTheirFogPulledInAndPutBack()
     {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        ViewFog.enabledForTest(true);
         final List<Integer> fog = new ArrayList<>();
         ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
@@ -2111,7 +2112,7 @@ class WindowsTest
     @Test
     void stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds()
     {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        ViewFog.enabledForTest(true);
         final List<Integer> fog = new ArrayList<>();
         ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
@@ -2158,9 +2159,9 @@ class WindowsTest
     {
         final Player asker = playerAt(200.5, 200.5);
 
-        assertEquals("fog: off (mirror-fog-at-depth)", fogLine(asker), "off by default");
+        assertEquals("fog: off", fogLine(asker), "off by default");
 
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        ViewFog.enabledForTest(true);
         // A client already being sent no further than a 16-deep room reaches.
         ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
@@ -2185,7 +2186,7 @@ class WindowsTest
     @DisabledIfSystemProperty(named = "server.api", matches = "paper")
     void debugSaysWhenTheServerHasNoFog()
     {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        ViewFog.enabledForTest(true);
 
         final String line = fogLine(playerAt(200.5, 200.5));
 
@@ -2261,7 +2262,7 @@ class WindowsTest
     /** A fog that reports ten chunks and records every number it is asked to set. */
     private static List<Integer> watchTheFog()
     {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        ViewFog.enabledForTest(true);
         final List<Integer> asked = new ArrayList<>();
         ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
@@ -2388,7 +2389,7 @@ class WindowsTest
     void turningTheFogOnReachesAViewerAlreadyAtTheMirror()
     {
         final List<Integer> fog = watchTheFog();
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
+        ViewFog.enabledForTest(false);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -2396,7 +2397,7 @@ class WindowsTest
         {
             WindowSweep.tick();
             assertEquals(List.of(), fog, "off when they walked up, so nothing yet");
-            ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+            ViewFog.enabledForTest(true);
             WindowSweep.tick();
         });
 

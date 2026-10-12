@@ -226,7 +226,7 @@ class IrisSweepTest
      *
      * <p>How many steps differs by style, and that is the geometry rather than a choice: a
      * five-wide opening has three rows but six rings, so a rows iris crosses in half the steps
-     * a sweep does at the same {@code gate-iris-step-ticks}. What none of them may do is cross
+     * a sweep does at the same pace. What none of them may do is cross
      * in one step, which is the instant iris wearing a style's name.
      */
     @Test

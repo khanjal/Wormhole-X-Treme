@@ -129,16 +129,6 @@ class ParsedSettingTest
     }
 
     @Test
-    void aRingMaterialThatIsNotASlabIsRefused()
-    {
-        // The same rule /wormhole ring edit ring already applies: the rise is drawn out of
-        // slab halves, and a full block costs the animation its half-block movement.
-        refuses(ConfigKeys.RING_DEFAULT_MATERIAL, "stone");
-        refuses(ConfigKeys.RING_DEFAULT_MATERIAL, "banana");
-        storesAs(ConfigKeys.RING_DEFAULT_MATERIAL, "smooth_stone_slab", "SMOOTH_STONE_SLAB");
-    }
-
-    @Test
     void aRingLightThatIsNotAMaterialAtAllIsRefused()
     {
         // Only the "no such material" half is asserted, deliberately. Whether a material is a

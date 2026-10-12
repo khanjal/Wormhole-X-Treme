@@ -85,6 +85,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
+import com.wormhole_xtreme.wormhole.model.IrisSweepDriver;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
@@ -260,6 +261,7 @@ class GatePreviewsTest
         MaterialGroupRegistry.load(null);
         HiddenEntities.creationWith(null);
         ConfigTestSupport.clear();
+        IrisSweepDriver.resetPaceForTest();
         PluginTestSupport.remove();
     }
 
@@ -3180,7 +3182,7 @@ class GatePreviewsTest
             places.add(at);
             index.put(at, i);
         }
-        final int cap = ConfigManager.getGateIrisMaxSteps();
+        final int cap = IrisSweepDriver.stepCap();
         final List<List<Location>> rings = closing
             ? IrisSweep.closingOrder(places, IrisSweep.Style.of(style), cap)
             : IrisSweep.openingOrder(places, IrisSweep.Style.of(style), cap);
@@ -3286,8 +3288,7 @@ class GatePreviewsTest
     @Test
     void aPreviewsSweepBooksOneStepPerRingAtTheConfiguredPace()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_STEP_TICKS, 7);
-        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS, 0);
+        IrisSweepDriver.setPaceForTest(7, 0);
         watchTheSweep();
         GatePreviews.show(owner, standard, null);
         final int rings = ringsAsAsked(true, previewsIrisStyle()).size();
@@ -3749,13 +3750,12 @@ class GatePreviewsTest
     {
         watchTheSweep();
         when(plugin.isEnabled()).thenReturn(true);
-        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_STEP_TICKS, PARITY_STEP_TICKS);
         for (final String style : new String[] {"sweep", "spiral", "rows", "columns"})
         {
             for (final int maxTicks : new int[] {0, 3 * PARITY_STEP_TICKS})
             {
                 ConfigTestSupport.set(ConfigKeys.GATE_IRIS_ANIMATION, style);
-                ConfigTestSupport.set(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS, maxTicks);
+                IrisSweepDriver.setPaceForTest(PARITY_STEP_TICKS, maxTicks);
                 final String label = style + " capped at " + maxTicks + " ticks";
 
                 GatePreviews.show(owner, standard, null);

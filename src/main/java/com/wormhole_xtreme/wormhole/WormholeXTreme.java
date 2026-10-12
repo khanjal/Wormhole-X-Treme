@@ -762,9 +762,7 @@ public class WormholeXTreme extends JavaPlugin
         registerEvents();
         registerCommands();
         enableMapIfConfigured();
-        final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
-        prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
-        // The sweeps whose period is a setting, rescheduled when /wormhole config changes one.
+        // The repeating sweeps; one whose period is a setting is rescheduled when /wormhole config changes it.
         RepeatingSweeps.startAll();
         // Projectiles cross a portal in about a tick, far too fast for the entity sweep to
         // see, so they are followed individually and checked every tick while in flight.

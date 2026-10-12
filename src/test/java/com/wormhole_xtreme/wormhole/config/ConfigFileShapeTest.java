@@ -351,7 +351,7 @@ class ConfigFileShapeTest
      * A floor an operator could trip over is named in the description.
      *
      * <p>Most of the clamps in {@link ConfigManager} only stop nonsense -- no negative tick
-     * counts -- and saying so in the file would be noise. These three sit far enough above
+     * counts -- and saying so in the file would be noise. These two sit far enough above
      * nothing that somebody can set a value the plugin then quietly ignores, which is exactly
      * what a comment above the key should admit to.
      *
@@ -365,8 +365,6 @@ class ConfigFileShapeTest
     {
         assertFloor(ConfigKeys.RING_COUNTDOWN_TICKS, 1, 30, ConfigManager::getRingCountdownTicks);
         assertFloor(ConfigKeys.RING_REACH, 0, 2, ConfigManager::getRingReach);
-        assertFloor(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 1, 5,
-            ConfigManager::getEntityScanIntervalTicks);
     }
 
     /**

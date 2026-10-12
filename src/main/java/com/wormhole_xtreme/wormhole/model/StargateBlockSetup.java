@@ -700,6 +700,9 @@ class StargateBlockSetup
     /** Radius, in blocks, within which clients are sent portal visual updates. */
     private static final double VISUAL_RADIUS = 64.0;
 
+    /** Ticks a traveller sees water as they come out of a gate: short, or the client predicts swimming. */
+    static final long SPLASH_TICKS = 20L;
+
     /** How often the arrival splash is redrawn while it is showing, in ticks. */
     private static final long SPLASH_REDRAW_INTERVAL = 2L;
 
@@ -823,8 +826,7 @@ class StargateBlockSetup
      * decoration -- for as long as it believes it is submerged it predicts swimming, and the
      * server does not agree. A short flash is over before that argument can be felt. It is
      * the one drawing here that makes the client's world <em>less</em> solid than the real
-     * one, which is the direction that caused trouble before, so it is kept to a moment and
-     * can be turned off outright.
+     * one, which is the direction that caused trouble before, so it is kept to a moment.
      *
      * <p>Only sent where the eye is in open air. Water drawn over somebody's ceiling would be
      * a strange thing to see, and the arrival point is out in the open in any case.
@@ -834,9 +836,7 @@ class StargateBlockSetup
      */
     public static void splashArrival(final Player player)
     {
-        final long ticks = ConfigManager
-            .getGateArrivalSplashTicks();
-        if ((player == null) || (ticks <= 0L) || !player.isOnline())
+        if ((player == null) || !player.isOnline())
         {
             return;
         }
@@ -855,11 +855,11 @@ class StargateBlockSetup
             // a hop to a nearby gate reuses chunks the client already has, while a trip
             // across the world makes it fetch everything from scratch. The portal redraw
             // above hit exactly this and answered it the same way.
-            for (long t = 0L; t < ticks; t += SPLASH_REDRAW_INTERVAL)
+            for (long t = 0L; t < SPLASH_TICKS; t += SPLASH_REDRAW_INTERVAL)
             {
                 drawSplash(player, at, true, t);
             }
-            drawSplash(player, at, false, ticks);
+            drawSplash(player, at, false, SPLASH_TICKS);
         }
         catch (final RuntimeException ignore)
         {

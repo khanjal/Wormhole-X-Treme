@@ -16,8 +16,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
-import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 /**
  * The sequencing a gate's iris sweep and a build preview's share, on a canvas that only records.
@@ -100,14 +98,13 @@ class IrisSweepDriverTest
     @BeforeEach
     void setUp()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_STEP_TICKS, 7);
-        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS, 0);
+        IrisSweepDriver.setPaceForTest(7, 0);
     }
 
     @AfterEach
     void tearDown()
     {
-        ConfigTestSupport.clear();
+        IrisSweepDriver.resetPaceForTest();
     }
 
     /** Runs the one booked step, failing if there is not exactly one. */

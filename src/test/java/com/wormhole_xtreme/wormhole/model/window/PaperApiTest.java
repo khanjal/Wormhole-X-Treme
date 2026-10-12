@@ -35,7 +35,7 @@ class PaperApiTest
     {
         ViewFog.sendDistanceWith(null);
 
-        assertTrue(ViewFog.available(), "mirror-fog-at-depth would do nothing on Paper");
+        assertTrue(ViewFog.available(), "a mirror's fog would do nothing on Paper");
         assertEquals(int.class, Player.class.getMethod("getSendViewDistance").getReturnType());
     }
 

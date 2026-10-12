@@ -396,7 +396,7 @@ public final class Windows
         {
             lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug -on turns them back on"));
         }
-        if (ConfigManager.isMirrorFogAtDepth())
+        if (ViewFog.enabled())
         {
             lines.add(MirrorText.field("fog", fogState(player)));
         }
@@ -492,7 +492,7 @@ public final class Windows
     }
 
     /**
-     * What {@code mirror-fog-at-depth} is doing for one viewer, for {@code mirror debug}.
+     * What the fog at a mirror's depth is doing for one viewer, for {@code mirror debug}.
      *
      * <p>The feature is invisible by design -- a room ending in fog looks like a room that ends
      * -- so without a line saying whether it engaged there is no way to tell it from a shallow
@@ -500,9 +500,9 @@ public final class Windows
      */
     private static String fogState(final Player player)
     {
-        if (!ConfigManager.isMirrorFogAtDepth())
+        if (!ViewFog.enabled())
         {
-            return "off (mirror-fog-at-depth)";
+            return "off";
         }
         if (!ViewFog.available())
         {

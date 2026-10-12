@@ -41,7 +41,7 @@ class ViewFogTest
     void setUp()
     {
         ConfigTestSupport.clear();
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        ViewFog.enabledForTest(true);
         ViewFog.sendDistanceWith(new ViewFog.SendDistance()
         {
             @Override
@@ -63,6 +63,7 @@ class ViewFogTest
     void tearDown()
     {
         ViewFog.sendDistanceWith(null);
+        ViewFog.enabledForTest(false);
         ConfigTestSupport.clear();
     }
 
@@ -114,7 +115,7 @@ class ViewFogTest
     @Test
     void theSettingOffLeavesTheViewerAlone()
     {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
+        ViewFog.enabledForTest(false);
 
         ViewFog.apply(player(), 48);
 
@@ -161,7 +162,7 @@ class ViewFogTest
         final Player viewer = player();
         ViewFog.apply(viewer, 48);
 
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
+        ViewFog.enabledForTest(false);
         ViewFog.apply(viewer, 48);
 
         assertEquals(List.of(4, 10), set, "given back the moment the setting is off");

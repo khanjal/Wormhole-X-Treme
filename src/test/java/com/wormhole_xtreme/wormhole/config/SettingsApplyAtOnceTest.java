@@ -200,7 +200,6 @@ class SettingsApplyAtOnceTest
     void supportTurnedBackOnInGameLooksForAProviderAgain()
     {
         ConfigTestSupport.set(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, true);
-        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true);
         try (MockedStatic<PermissionsSupport> permissions = mockStatic(PermissionsSupport.class))
         {
             ConfigManager.applySetting("permissions-support-disable", "false");

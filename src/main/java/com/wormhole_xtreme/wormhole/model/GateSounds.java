@@ -248,7 +248,7 @@ public final class GateSounds
      * Silences the ambient hum the instant a gate shuts down, rather than letting the last
      * triggered instance play out on its own.
      *
-     * <p>{@link #tickAmbient} re-triggers every {@code getGateSoundAmbientTicks()} (a little
+     * <p>{@link #tickAmbient} re-triggers every 70 ticks (a little
      * under the sample's own length, deliberately, so retriggers overlap and the hum sounds
      * continuous rather than gasping) -- so at almost any instant a gate is open, there is
      * already an in-flight instance of a multi-second sample playing. Removing the gate from
@@ -261,8 +261,8 @@ public final class GateSounds
      * per-location stop to target instead. Every gate shares the same configured ambient sound
      * name, so on a world with more than one gate open, closing any one of them also stops the
      * hum for whichever others are still open. It self-heals on their own next
-     * {@link #tickAmbient} sweep, bounded to at most {@code getGateSoundAmbientTicks()} (70
-     * ticks, ~3.5s, by default) of silence. Gating the stop on whether any other gate in the
+     * {@link #tickAmbient} sweep, bounded to at most 70
+     * ticks, ~3.5s, of silence. Gating the stop on whether any other gate in the
      * world is still open was considered and rejected: that would bring back the original bug
      * -- the closed gate's own tail outliving it -- for exactly the multi-gate-per-world case
      * this note is about, trading one audible glitch for a worse one rather than removing it.

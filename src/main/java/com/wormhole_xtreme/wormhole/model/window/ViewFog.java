@@ -8,7 +8,6 @@ import java.util.logging.Level;
 
 import org.bukkit.entity.Player;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
@@ -33,9 +32,9 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  * happens: this world shows past the room, which is what it does today.
  *
  * <p>It is a radius round the player, not a direction, so it pulls the fog in everywhere and not
- * only through the opening. That is why it is off by default ({@code mirror-fog-at-depth}) and
- * why it suits a shallow depth: at the default 160 there is nothing to gain, since the room
- * already reaches as far as a server usually sends.
+ * only through the opening, and at the default depth of 160 there is nothing to gain, since the
+ * room already reaches as far as a server usually sends. So it is off, and no setting turns it
+ * on any more; a test turns it on to keep the drawing honest.
  */
 final class ViewFog
 {
@@ -71,12 +70,32 @@ final class ViewFog
     /** Every narrowed viewer, so each can be put back exactly and debug can say what happened. */
     private static final Map<UUID, Narrowed> BEFORE = new HashMap<>();
 
+    /** Whether a mirror narrows its viewers' fog at all: off, but for a test. */
+    private static boolean fogOn;
+
     /** The server's own, or whatever a test installed; null where the API is absent. */
     private static SendDistance sendDistance = reflective();
 
     /** Static state only. */
     private ViewFog()
     {
+    }
+
+    /** @return true if a mirror may narrow what its viewers are sent */
+    static boolean enabled()
+    {
+        return fogOn;
+    }
+
+    /**
+     * Turns the fog on or off, for a test.
+     *
+     * @param on
+     *            true to let a mirror narrow what its viewers are sent
+     */
+    static void enabledForTest(final boolean on)
+    {
+        fogOn = on;
     }
 
     /** @return true if this server can be told how far to send one player's chunks */
@@ -124,7 +143,7 @@ final class ViewFog
         final Narrowed was = BEFORE.get(id);
         if (was != null)
         {
-            if (!ConfigManager.isMirrorFogAtDepth() || (wanted >= was.before()))
+            if (!fogOn || (wanted >= was.before()))
             {
                 // Off now, or deep enough that there is nothing to gain: give it back.
                 BEFORE.remove(id);
@@ -137,7 +156,7 @@ final class ViewFog
             }
             return;
         }
-        if (!ConfigManager.isMirrorFogAtDepth())
+        if (!fogOn)
         {
             return;
         }
@@ -253,7 +272,7 @@ final class ViewFog
         };
     }
 
-    /** Looks one method up once, saying so in the log only for the one that decides the feature. */
+    /** Looks one method up once; absent on Spigot, which has nothing to say since the fog is off. */
     private static Method find(final String name, final Class<?>... parameters)
     {
         try
@@ -262,12 +281,6 @@ final class ViewFog
         }
         catch (final NoSuchMethodException absent)
         {
-            if ("setSendViewDistance".equals(name))
-            {
-                PluginLog.log(Level.INFO, "This server has no Player.setSendViewDistance, so"
-                    + " mirror-fog-at-depth does nothing: a mirror's room ends where it ends and"
-                    + " this world shows past it. That method is Paper's.");
-            }
             return null;
         }
         catch (final RuntimeException | LinkageError e)

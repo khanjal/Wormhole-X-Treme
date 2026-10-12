@@ -15,12 +15,24 @@ import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost;
 
 /**
- * The repeating sweeps whose period is a setting, so {@code /wormhole config} can change one
- * without a restart: the task is cancelled and scheduled again at the new period.
+ * The plugin's repeating sweeps. One whose period is a setting is rescheduled when
+ * {@code /wormhole config} changes it, without a restart.
  */
 public final class RepeatingSweeps
 {
-    /** One sweep: the setting that times it, and the task running it now, if any. */
+    /** Ticks between scans for loose entities drifting into an open wormhole. */
+    static final long ENTITY_SCAN_TICKS = 20L;
+
+    /** Ticks between ambient hums, a little under the sound's own length so it runs on. */
+    static final long GATE_AMBIENT_TICKS = 70L;
+
+    /** Ticks between mirror proximity sweeps: once a second. */
+    static final long MIRROR_PROXIMITY_TICKS = 20L;
+
+    /** Ticks between frames of the wormhole drawn behind a see-through iris. */
+    static final long IRIS_HORIZON_TICKS = 10L;
+
+    /** One sweep: the setting that times it, or null for a fixed period, and the task running it now, if any. */
     private static final class Sweep
     {
         private final ConfigKeys key;
@@ -48,26 +60,21 @@ public final class RepeatingSweeps
     {
     }
 
-    /** Starts every sweep at its configured period, forgetting any from an earlier enable. */
+    /** Starts every sweep at its period, forgetting any from an earlier enable. */
     static void startAll()
     {
         sweeps.clear();
         // Loose non-player entities that drift into an open wormhole: dropped items and wandering
         // mobs, which raise no event of their own. Players and vehicles have theirs.
-        sweeps.add(new Sweep(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20L, GateEntityScanner.create(),
-            ConfigManager::getEntityScanIntervalTicks));
+        sweeps.add(new Sweep(null, 20L, GateEntityScanner.create(), () -> ENTITY_SCAN_TICKS));
         // An open wormhole hums: one sweep over the open gates rather than a task per gate.
-        sweeps.add(new Sweep(ConfigKeys.GATE_SOUND_AMBIENT_TICKS, 20L, GateSounds::tickAmbient,
-            ConfigManager::getGateSoundAmbientTicks));
+        sweeps.add(new Sweep(null, 20L, GateSounds::tickAmbient, () -> GATE_AMBIENT_TICKS));
         // A mirror on a wall is drawn as a view of its room, and names itself to whoever looks at
         // it. Two tasks, one walking the mirrors and one the players, sharing the period.
-        sweeps.add(new Sweep(ConfigKeys.MIRROR_PROXIMITY_TICKS, 40L, WindowSweep.createTicker(),
-            ConfigManager::getMirrorProximityTicks));
-        sweeps.add(new Sweep(ConfigKeys.MIRROR_PROXIMITY_TICKS, 40L, MirrorSignpost.createTicker(),
-            ConfigManager::getMirrorProximityTicks));
-        // The ice behind a see-through iris, moved for it; at 0 there is no task at all.
-        sweeps.add(new Sweep(ConfigKeys.GATE_IRIS_HORIZON_TICKS, 20L, StargateManager::tickIrisHorizon,
-            ConfigManager::getGateIrisHorizonTicks));
+        sweeps.add(new Sweep(null, 40L, WindowSweep.createTicker(), () -> MIRROR_PROXIMITY_TICKS));
+        sweeps.add(new Sweep(null, 40L, MirrorSignpost.createTicker(), () -> MIRROR_PROXIMITY_TICKS));
+        // The ice behind a see-through iris, moved for it.
+        sweeps.add(new Sweep(null, 20L, StargateManager::tickIrisHorizon, () -> IRIS_HORIZON_TICKS));
         // A ripple now and then on each open gate somebody is near; off, there is no task at all.
         sweeps.add(new Sweep(ConfigKeys.GATE_RIPPLE, 20L, HorizonRipple::tick,
             () -> ConfigManager.isGateRipple() ? 20L : 0L));
@@ -127,13 +134,13 @@ public final class RepeatingSweeps
     }
 
     /**
-     * The settings timing a sweep that is running now, once per sweep.
+     * The periods of the sweeps running now, once per sweep.
      *
-     * @return the keys, in the order the sweeps were started
+     * @return ticks, in the order the sweeps were started
      */
-    static List<ConfigKeys> runningKeys()
+    static List<Long> runningPeriods()
     {
-        return sweeps.stream().filter(sweep -> sweep.task != null).map(sweep -> sweep.key).toList();
+        return sweeps.stream().filter(sweep -> sweep.task != null).map(sweep -> sweep.period.getAsLong()).toList();
     }
 
     /**

@@ -41,7 +41,6 @@ public class ConfigManager
     /** Plugin folder name, remembered so config.yml can be located again after load. */
     private static volatile String configuredPluginName = SECTION;
 
-
     /**
      * The Enum ConfigKeys.
      */
@@ -50,8 +49,6 @@ public class ConfigManager
 
         /** The PERMISSION SUPPORT DISABLE. */
         PERMISSIONS_SUPPORT_DISABLE,
-        /** Automatically fall back to simple permission mode when no Vault provider is detected. */
-        PERMISSIONS_AUTO_FALLBACK,
         /** Whether wormhole.use is required to travel, not merely to dial. */
         WORMHOLE_USE_IS_TELEPORT,
 
@@ -80,8 +77,6 @@ public class ConfigManager
 
         /** The LOG LEVEL. */
         LOG_LEVEL,
-        /** Tick interval for periodic non-player entity gate scan. */
-        ENTITY_SCAN_INTERVAL_TICKS,
 
         /** Ticks a ring pair counts down before it commits and the rings start rising. */
         RING_COUNTDOWN_TICKS,
@@ -107,8 +102,6 @@ public class ConfigManager
         RING_MIN_SEPARATION,
         /** Furthest two ends of a pair may be apart on the ground. Zero means no limit. */
         RING_MAX_LINK_DISTANCE,
-        /** Furthest two ends of a pair may be apart in height. Zero means no limit. */
-        RING_MAX_LINK_HEIGHT,
         /** Furthest below its plane a ceiling ring will look for the floor. */
         RING_MAX_CEILING_DROP,
         /** How many ring pairs one player may own. Zero means no limit. */
@@ -117,8 +110,6 @@ public class ConfigManager
         RING_DEFAULT_ACCESS,
         /** How a ring stack deploys: CONCURRENT or SEQUENTIAL. */
         RING_DEFAULT_STYLE,
-        /** Fallback ring material, used only when the template cannot say. */
-        RING_DEFAULT_MATERIAL,
         /** What the countdown lights are made of. */
         RING_DEFAULT_LIGHT,
         /** What a ring turns to as the transport light passes through it. */
@@ -154,17 +145,7 @@ public class ConfigManager
         /** Whether an open gate's horizon ripples (#579). */
         GATE_RIPPLE,
 
-        /** Ticks between one ring of an iris sweep and the next. */
-        GATE_IRIS_STEP_TICKS,
-
-        /** Ticks between frames of the wormhole drawn behind a see-through iris. */
-        GATE_IRIS_HORIZON_TICKS,
-
-        /** The longest a whole iris crossing may take, whatever the gate's size. */
-        GATE_IRIS_SWEEP_MAX_TICKS,
         GATE_SOUND_AMBIENT,
-        GATE_SOUND_AMBIENT_TICKS,
-        GATE_ARRIVAL_SPLASH_TICKS,
         /** Whether a player arriving through a gate is told in chat which gate they arrived at (#485). */
         SHOW_GATE_WELCOME_MESSAGE,
         GATE_DIAL_SPIN,
@@ -265,15 +246,6 @@ public class ConfigManager
         MIRROR_PROXIMITY_DISTANCE,
 
         /**
-         * How often the proximity sweep runs, in ticks.
-         *
-         * <p>Twenty is once a second, which is fast enough that walking up to a mirror feels
-         * immediate and slow enough that the sweep is not worth optimising further. The sweep
-         * skips mirrors in unloaded worlds and unloaded chunks before touching anything.
-         */
-        MIRROR_PROXIMITY_TICKS,
-
-        /**
          * How far from a mirror's opening its far side is drawn as real blocks, in blocks.
          *
          * <p>Its render distance: past it nothing is drawn, and a capture reaches this far and
@@ -281,16 +253,6 @@ public class ConfigManager
          * showing anything; a room is its surfaces, so depth costs little.
          */
         MIRROR_VIEW_DEPTH,
-
-        /**
-         * Whether a viewer's own fog is pulled in to where a mirror's room ends.
-         *
-         * <p>Paper only, and off by default. The room ending is not the world ending: the client
-         * draws this world past it unless it is told not to have those chunks. A radius round the
-         * player rather than a direction, so it pulls the fog in everywhere, which is why it is
-         * something to turn on for a shallow depth rather than the way mirrors work.
-         */
-        MIRROR_FOG_AT_DEPTH,
 
         /**
          * Whether the creatures standing in a mirror's or a gate's far room are shown through it
@@ -467,23 +429,6 @@ public class ConfigManager
     }
 
     /**
-     * Gets whether the plugin should automatically fall back to simple permission mode when no
-     * Vault/LuckPerms provider is detected. Default: true.
-     */
-    public static boolean getPermissionsAutoFallback()
-    {
-        Setting psd;
-        if ((psd = ConfigManager.getConfigurations().get(ConfigKeys.PERMISSIONS_AUTO_FALLBACK)) != null)
-        {
-            return psd.getBooleanValue();
-        }
-        else
-        {
-            return true;
-        }
-    }
-
-    /**
      * Gets the setting.
      * 
      * @return the setting, or null if the key is not registered
@@ -546,19 +491,6 @@ public class ConfigManager
         {
             return 38;
         }
-    }
-
-    /**
-     * Tick interval for periodic non-player entity scan.
-     * A higher value reduces server load at the cost of slightly delayed teleport detection.
-     *
-     * @return scan interval in ticks (minimum 5)
-     */
-    public static int getEntityScanIntervalTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 20;
-        return Math.max(5, configured);
     }
 
     /**
@@ -733,22 +665,6 @@ public class ConfigManager
     }
 
     /**
-     * Furthest apart the two ends of a pair may be in height.
-     *
-     * <p>Measured separately from the ground distance, because the two are different
-     * questions. Going straight down is exactly what rings are for — bedrock to the surface,
-     * a mine to the hall above it — so the default is the full height of the world, and any
-     * vertical link at all is allowed. Sprawling sideways is the thing being discouraged, and
-     * that is the other setting.
-     *
-     * @return the limit in blocks, or zero for none
-     */
-    public static int getRingMaxLinkHeight()
-    {
-        return Math.max(0, intSetting(ConfigKeys.RING_MAX_LINK_HEIGHT, 384));
-    }
-
-    /**
      * How many pairs one player may own.
      *
      * @return the quota, or zero for no limit
@@ -798,20 +714,6 @@ public class ConfigManager
         {
             return RingStyle.CONCURRENT;
         }
-    }
-
-    /**
-     * Fallback material for the travelling rings.
-     *
-     * <p>Normally unused: a ring keeps whatever slab it was laid in. This only answers when a
-     * stored ring names a material that is not a slab on this server.
-     *
-     * @return the fallback slab material, smooth stone when the setting is not a slab
-     */
-    public static Material getRingDefaultMaterial()
-    {
-        final Material configured = materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.SMOOTH_STONE_SLAB);
-        return Ring.isUsableAsRing(configured) ? configured : Material.SMOOTH_STONE_SLAB;
     }
 
     /**
@@ -1038,40 +940,6 @@ public class ConfigManager
         return soundSetting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop");
     }
 
-    /**
-     * How often the ambient sound repeats.
-     *
-     * <p>Floored at one tick rather than trusted, because a zero or negative period is not a
-     * faster hum -- it is a repeating task with no delay in it.
-     *
-     * @return the period in ticks
-     */
-    public static long getGateSoundAmbientTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUND_AMBIENT_TICKS);
-        return (s == null) ? 70L : Math.max(1L, s.getIntValue());
-    }
-
-    /**
-     * How long a traveller sees water as they come out of a gate.
-     *
-     * <p>Zero turns it off. This is both how long the water shows and how long the plugin
-     * keeps redrawing it, because an arrival hands the client a fresh copy of the chunk and
-     * that erases anything drawn into the old one. A trip far enough that the client is still
-     * fetching chunks when the window ends will not see it at all; widening this widens the
-     * window with it.
-     *
-     * <p>Still kept short, because the client treats water as physics rather than decoration
-     * and will predict swimming for as long as it believes it is submerged.
-     *
-     * @return the time in ticks, or zero for no splash
-     */
-    public static long getGateArrivalSplashTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
-        return (s == null) ? 20L : Math.max(0L, s.getIntValue());
-    }
-
     /** Returns true if an open gate's horizon ripples (#579); off when the setting is missing, as it ships. */
     public static boolean isGateRipple()
     {
@@ -1241,80 +1109,6 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_ANIMATION);
         return (s == null) ? "sweep" : String.valueOf(s.getStringValue()).trim();
-    }
-
-    /**
-     * Ticks between one ring of an iris sweep and the next.
-     *
-     * <p>Floored at one: a sweep of zero-tick steps draws every ring in the same tick, which is
-     * the instant iris written the long way round and reads as the animation having failed.
-     * A ceiling too, because the sweep holds the drawn picture apart from the placed blocks for
-     * as long as it runs, and a gate whose iris takes a minute to look shut is worse than one
-     * that snaps.
-     *
-     * @return ticks per ring, between 1 and 20
-     */
-    public static int getGateIrisStepTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_STEP_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 2;
-        return Math.min(20, Math.max(1, configured));
-    }
-
-    /**
-     * How often the wormhole drawn behind a see-through iris changes frame.
-     *
-     * <p>Only gates whose iris hides real water draw it in something else -- ice, which does
-     * not move the way water does. Alternating two of them is what gives it a surface. Nothing
-     * else pays for this: a gate whose iris shows the real wormhole never reaches it.
-     *
-     * @return ticks between frames, 0 to leave it still
-     */
-    public static int getGateIrisHorizonTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_HORIZON_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 10;
-        return Math.min(100, Math.max(0, configured));
-    }
-
-    /**
-     * The longest a whole iris crossing may take, however big the gate.
-     *
-     * <p>{@code gate-iris-step-ticks} is a pace and not a duration, and how many steps there are
-     * to pace is the opening's geometry: {@code Standard} has five rings and {@code Grand} has
-     * sixty-one, so at the same setting one closes in half a second and the other in six. The
-     * pace cannot answer that -- a step is a tick at the very least -- so this is the other end
-     * of it, and the steps are merged into bands to keep to it.
-     *
-     * <p>Zero for no limit, which is what every version before this one did.
-     *
-     * @return ticks, 0 to 200
-     */
-    public static int getGateIrisSweepMaxTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 20;
-        return Math.min(200, Math.max(0, configured));
-    }
-
-    /**
-     * The most steps an iris sweep may be drawn in at the configured pace.
-     *
-     * <p>Floored at two rather than one wherever there is a limit at all: a crossing of one step
-     * is the instant iris written the long way round, and a server that asked for a fast sweep
-     * asked for a fast sweep rather than for no sweep. That is the same reasoning
-     * {@link #getGateIrisStepTicks} floors at one tick for.
-     *
-     * @return the most steps, or 0 for a step per ring however many that is
-     */
-    public static int getGateIrisMaxSteps()
-    {
-        final int ticks = getGateIrisSweepMaxTicks();
-        if (ticks <= 0)
-        {
-            return 0;
-        }
-        return Math.max(2, ticks / getGateIrisStepTicks());
     }
 
     /**
@@ -1801,20 +1595,6 @@ public class ConfigManager
     }
 
     /**
-     * How often the proximity sweep runs.
-     *
-     * <p>Floored at one tick rather than zero: a period of zero asks Bukkit to reschedule
-     * forever without advancing, which is a hung server rather than a fast mirror.
-     *
-     * @return the period in ticks, never below one
-     */
-    public static long getMirrorProximityTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_TICKS);
-        return (s == null) ? 20L : Math.max(1L, s.getIntValue());
-    }
-
-    /**
      * Whether a mirror names itself above the hotbar to whoever is looking at it.
      *
      * <p>Defaults to true when the setting is missing, which is what an existing server's
@@ -1830,22 +1610,6 @@ public class ConfigManager
         return (s == null) || s.getBooleanValue();
     }
 
-
-    /**
-     * Whether a viewer's own fog is pulled in to where a mirror's room ends.
-     *
-     * <p>Defaults to false when the setting is missing, which is what an existing server's
-     * config.yml looks like after an upgrade. Off is the right default: it does nothing at all on
-     * Spigot, nothing at the default depth, and where it does work it changes how the whole world
-     * looks to that player and not only the mirror.
-     *
-     * @return true if a mirror may narrow what its viewers are sent
-     */
-    public static boolean isMirrorFogAtDepth()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_FOG_AT_DEPTH);
-        return (s != null) && s.getBooleanValue();
-    }
 
     /**
      * Whether creatures in a mirror's or a gate's far room are shown through it, as stand-ins.
@@ -2086,7 +1850,7 @@ public class ConfigManager
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
             case GATE_RIPPLE -> followRipple();
-            case PERMISSIONS_SUPPORT_DISABLE, PERMISSIONS_AUTO_FALLBACK -> PermissionsSupport.detectProvider();
+            case PERMISSIONS_SUPPORT_DISABLE -> PermissionsSupport.detectProvider();
             case DYNMAP_ENABLED, BLUEMAP_ENABLED, SQUAREMAP_ENABLED, PL3XMAP_ENABLED, MAP_SHOW_GATES,
                 MAP_SHOW_RINGS, MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS, MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
             default -> RepeatingSweeps.follow(key);
