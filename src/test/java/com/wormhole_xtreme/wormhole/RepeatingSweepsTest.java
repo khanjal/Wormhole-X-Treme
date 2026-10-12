@@ -77,20 +77,6 @@ class RepeatingSweepsTest
         PluginTestSupport.remove();
     }
 
-    /** The tasks started at this period. */
-    private List<BukkitTask> startedAt(final long period)
-    {
-        final List<BukkitTask> found = new ArrayList<>();
-        for (final Scheduled s : scheduled)
-        {
-            if (s.period() == period)
-            {
-                found.add(s.task());
-            }
-        }
-        return found;
-    }
-
     /**
      * Every sweep starts at its period: the entity scan, the hum, both mirror sweeps and the iris
      * horizon, at what their settings defaulted to before they were fixed. The ripple is off.

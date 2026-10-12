@@ -14,6 +14,14 @@ import java.util.Map;
  */
 final class RetiredSettings
 {
+    private static final String VIEW_DEPTH = "view-depth";
+
+    private static final String MIRROR_DEPTH = "mirror-view-depth";
+
+    private static final String GATE_FULL_DEPTH = "gate-view-full-depth";
+
+    private static final String GATE_FIRST_DEPTH = "gate-view-depth";
+
     /** Every setting removed in 1.11.0, as config.yml spells it. */
     static final List<String> KEYS = List.of(
         "permissions-auto-fallback", "entity-scan-interval-ticks", "mirror-proximity-ticks",
@@ -24,15 +32,7 @@ final class RetiredSettings
         "ring-lights-linger-ticks", "ring-hold-ticks", "ring-outline-ticks",
         "beam-envelop-ticks", "beam-vanish-at-step", "beam-rise-ticks", "beam-teleport-at-step",
         "beam-descend-ticks", "beam-fade-ticks",
-        "gate-view-depth", "gate-view-full-depth", "mirror-view-depth");
-
-    private static final String VIEW_DEPTH = "view-depth";
-
-    private static final String MIRROR_DEPTH = "mirror-view-depth";
-
-    private static final String GATE_FULL_DEPTH = "gate-view-full-depth";
-
-    private static final String GATE_FIRST_DEPTH = "gate-view-depth";
+        GATE_FIRST_DEPTH, GATE_FULL_DEPTH, MIRROR_DEPTH);
 
     /**
      * The view depth carried over from the old settings, and which of them it came from.
@@ -60,15 +60,7 @@ final class RetiredSettings
      */
     static List<String> presentIn(final Map<String, Object> map)
     {
-        final List<String> present = new ArrayList<>();
-        for (final String key : KEYS)
-        {
-            if (valueOf(map, key) != null)
-            {
-                present.add(key);
-            }
-        }
-        return present;
+        return KEYS.stream().filter(key -> valueOf(map, key) != null).toList();
     }
 
     /**
