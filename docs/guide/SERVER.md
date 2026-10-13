@@ -629,7 +629,13 @@ What is sent, twice an hour:
   country from the address the counts come from;
 - how many gates, ring pairs, beam destinations and mirrors there are, as a range (`0`, `1-5`,
   `6-20`, `21-50`, `51-200`, `200+`);
-- the `gate-dial-spin` pattern.
+- which gate shapes are in use, by name for the ones that ship with the plugin and `custom` for
+  any other, and which portal material the gates show (`water`, `lava`, `nether_portal`,
+  `end_gateway`, `end_portal`, or `other`), each counted by gate;
+- the `gate-dial-spin` pattern, `gate-view`, `gate-iris-animation`, and whether `gate-ripple` and
+  `gate-sounds-enabled` are on;
+- which of Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap
+  and Pl3xMap are installed, or `none`.
 
 No player or gate names, coordinates or addresses. `plugins/bStats/config.yml` has `enabled: false` to stop
 it for every plugin on the server, and a DNS blocker that blocks `bstats.org` stops it too,

@@ -30,6 +30,7 @@ through is a release nobody reads.
 
 **Added**
 
+- Anonymous usage counts to bStats also say which gate shapes and portal materials are in use, the gate view, ripple, sound and iris settings, and which optional plugins are installed. Nothing that names a player, gate or place. [Guide](docs/guide/SERVER.md#metrics)
 - Gates, rings, public beam destinations and quantum mirrors show on [BlueMap](https://bluemap.bluecolored.de). Off until `bluemap-enabled` is set. [Guide](docs/guide/SERVER.md#bluemap)
 - The same marks show on [squaremap](https://modrinth.com/plugin/squaremap). Off until `squaremap-enabled` is set. [Guide](docs/guide/SERVER.md#squaremap)
 - The same marks show on [Pl3xMap](https://modrinth.com/plugin/pl3xmap). Off until `pl3xmap-enabled` is set. [Guide](docs/guide/SERVER.md#pl3xmap)

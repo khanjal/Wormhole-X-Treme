@@ -1,16 +1,25 @@
 package com.wormhole_xtreme.wormhole.plugin;
 
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bstats.bukkit.Metrics;
+import org.bstats.charts.AdvancedPie;
 import org.bstats.charts.SimplePie;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
@@ -26,6 +35,14 @@ public final class MetricsSupport
 {
     /** This plugin's id on bstats.org. */
     static final int BSTATS_ID = 34269;
+
+    /** The portal materials a chart names; any other is {@code other}, so a custom shape cannot add a bar. */
+    private static final Set<String> PORTAL_MATERIALS =
+        Set.of("water", "lava", "nether_portal", "end_gateway", "end_portal");
+
+    /** The plugins this one has an optional integration with, as they name themselves. */
+    private static final List<String> INTEGRATIONS = List.of("Vault", "LuckPerms", "PlaceholderAPI",
+        "CoreProtect", "WorldGuard", "dynmap", "BlueMap", "squaremap", "Pl3xMap");
 
     private static Metrics metrics;
 
@@ -60,6 +77,17 @@ public final class MetricsSupport
         started.addCustomChart(new SimplePie("mirrors", () -> range(MirrorManager.all().size())));
         started.addCustomChart(new SimplePie("gate_dial_spin",
             () -> ConfigManager.getGateDialSpinPattern().name().toLowerCase(Locale.ROOT)));
+        started.addCustomChart(new SimplePie("gate_view", () -> ConfigManager.getGateView().toLowerCase(Locale.ROOT)));
+        started.addCustomChart(new SimplePie("gate_ripple", () -> onOff(ConfigManager.isGateRipple())));
+        started.addCustomChart(new SimplePie("gate_sounds", () -> onOff(ConfigManager.isGateSoundsEnabled())));
+        started.addCustomChart(new SimplePie("gate_iris_animation",
+            () -> irisAnimation(ConfigManager.getGateIrisAnimation(null, null))));
+        started.addCustomChart(new AdvancedPie("gate_shapes",
+            () -> shapeCounts(StargateManager.getAllGatesUnsorted())));
+        started.addCustomChart(new AdvancedPie("portal_material",
+            () -> portalMaterialCounts(StargateManager.getAllGatesUnsorted())));
+        started.addCustomChart(new AdvancedPie("integrations",
+            () -> integrations(name -> Bukkit.getPluginManager().isPluginEnabled(name))));
         metrics = started;
         plugin.getLogger().info("Sending anonymous usage counts to bStats; metrics-enabled: false stops it.");
     }
@@ -74,6 +102,84 @@ public final class MetricsSupport
             running.shutdown();
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Stopped sending usage counts to bStats.");
         }
+    }
+
+    private static String onOff(final boolean on)
+    {
+        return on ? "on" : "off";
+    }
+
+    /**
+     * The iris animation as a chart names it: one of the five there are, so a value written into
+     * the config by hand is {@code other} rather than a bar of its own.
+     */
+    static String irisAnimation(final String animation)
+    {
+        final String name = String.valueOf(animation).toLowerCase(Locale.ROOT);
+        return ConfigManager.irisAnimations().contains(name) ? name : "other";
+    }
+
+    /**
+     * How many gates there are of each shape: a shape that ships with the plugin by its name,
+     * every other, which a server's own file can name anything, as {@code custom}.
+     *
+     * @param gates
+     *            the gates
+     * @return shape to count; empty with no gates
+     */
+    static Map<String, Integer> shapeCounts(final Collection<Stargate> gates)
+    {
+        final Map<String, Integer> counts = new LinkedHashMap<>();
+        for (final Stargate gate : gates)
+        {
+            final String shape = (gate.getGateShape() == null) ? null : gate.getGateShape().getShapeName();
+            counts.merge(StargateShapeRegistry.isShipped(shape) ? shape : "custom", 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    /**
+     * How many gates show each portal material: the five a gate is likely to use by name, any
+     * other as {@code other}. Counted by gate, so one server of many does not stand for them all.
+     *
+     * @param gates
+     *            the gates
+     * @return material to count; empty with no gates
+     */
+    static Map<String, Integer> portalMaterialCounts(final Collection<Stargate> gates)
+    {
+        final Map<String, Integer> counts = new LinkedHashMap<>();
+        for (final Stargate gate : gates)
+        {
+            final String material = gate.getEffectivePortalMaterial().name().toLowerCase(Locale.ROOT);
+            counts.merge(PORTAL_MATERIALS.contains(material) ? material : "other", 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    /**
+     * Which of the plugins this one integrates with the server has, each counted once; {@code none}
+     * when it has none, since a chart with no entries is not sent at all.
+     *
+     * @param present
+     *            whether a plugin of that name is enabled
+     * @return plugin to 1
+     */
+    static Map<String, Integer> integrations(final Predicate<String> present)
+    {
+        final Map<String, Integer> found = new LinkedHashMap<>();
+        for (final String name : INTEGRATIONS)
+        {
+            if (present.test(name))
+            {
+                found.put(name, 1);
+            }
+        }
+        if (found.isEmpty())
+        {
+            found.put("none", 1);
+        }
+        return found;
     }
 
     /** Public beam destinations and every player's own places. */

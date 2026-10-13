@@ -313,8 +313,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`,
   `squaremap-enabled` or `pl3xmap-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
-  server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
-  turns it off.
+  server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes and portal materials are in use, the gate view, ripple, sound and iris settings, and which optional plugins are installed.
+  `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to
   operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never
   downloads anything. `update-check: false` turns it off.
