@@ -9,6 +9,7 @@ through is a release nobody reads.
 
 **Releases:**
 
+- [1.11.0 (unreleased)](#1110-unreleased)
 - [1.10.0 (2026-10-12)](#1100-2026-10-12)
 - [1.9.0 (2026-10-03)](#190-2026-10-03)
 - [1.8.1 (2026-09-28)](#181-2026-09-28)
@@ -23,6 +24,14 @@ through is a release nobody reads.
 - [1.1.0 (2026-09-01)](#110-2026-09-01)
 - [1.0.0 (2026-05-14)](#100-2026-05-14)
 - [0.x (2011, upstream)](#0x-2011-upstream)
+
+## 1.11.0 (unreleased)
+
+### For server admins
+
+**Added**
+
+- Anonymous usage counts to bStats also say which gate shapes and portal materials are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled. Nothing that names a player, gate or place. [Guide](docs/guide/SERVER.md#metrics)
 
 ## 1.10.0 (2026-10-12)
 

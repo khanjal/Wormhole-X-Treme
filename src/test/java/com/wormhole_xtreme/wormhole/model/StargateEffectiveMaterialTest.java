@@ -5,9 +5,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 /**
  * Tests the material resolution order on {@link Stargate}: an explicit per-gate override
@@ -282,5 +286,66 @@ class StargateEffectiveMaterialTest
         assertEquals(Material.STONE, gate.getEffectiveIrisMaterial());
         assertEquals(Material.GLOWSTONE, gate.getEffectiveLightMaterial());
         assertEquals(Material.OBSIDIAN, gate.getEffectiveStructureMaterial());
+    }
+
+    private static Stargate gateInWorld(final World world)
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateShape(new StargateShape());
+        gate.setGateWorld(world);
+        gate.getGateStructureBlocks().add(new Location(world, 33, 64, -17));
+        return gate;
+    }
+
+    /**
+     * Asked for the portal material without loading anything, a gate whose group is not yet known
+     * and whose frame is in an unloaded chunk answers null and reads no block, and still finds its
+     * group once the chunk is there.
+     *
+     * <p>bStats counts the gates' portal materials on the server thread; without this, the first
+     * count after boot would load the chunk of every gate nobody had used. The chunk is asked
+     * about by its chunk coordinates, 33 and -17 shifted down by four bits: 2 and -2.
+     */
+    @Test
+    void portalMaterialIsNotLookedUpInAnUnloadedChunk()
+    {
+        final World world = Mockito.mock(World.class);
+        final Block frame = Mockito.mock(Block.class);
+        Mockito.when(frame.getType()).thenReturn(Material.LAPIS_BLOCK);
+        Mockito.when(world.getBlockAt(33, 64, -17)).thenReturn(frame);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+
+        assertNull(gate.getEffectivePortalMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(true);
+        assertEquals(Material.WATER, gate.getEffectivePortalMaterialIfLoaded(),
+            "the group is still found on a later ask, the first having cached nothing");
+        Mockito.verify(world, Mockito.times(1)).getBlockAt(33, 64, -17);
+    }
+
+    /** A gate whose group is already known needs no chunk, so it answers wherever it is. */
+    @Test
+    void portalMaterialOfAGateWithAKnownGroupNeedsNoChunk()
+    {
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(Mockito.anyInt(), Mockito.anyInt())).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+
+        assertEquals(Material.WATER, gate.getEffectivePortalMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+    }
+
+    /** A world that cannot say whether a chunk is loaded is treated as not loaded rather than failing. */
+    @Test
+    void aWorldThatCannotAnswerIsTreatedAsUnloaded()
+    {
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(Mockito.anyInt(), Mockito.anyInt()))
+            .thenThrow(new IllegalStateException("world unloaded"));
+
+        assertNull(gateInWorld(world).getEffectivePortalMaterialIfLoaded());
     }
 }

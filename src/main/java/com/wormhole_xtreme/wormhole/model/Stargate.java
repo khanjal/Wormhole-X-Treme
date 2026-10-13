@@ -795,6 +795,15 @@ public class Stargate implements GateIris
      */
     private Material resolveMaterial(final MaterialRole role)
     {
+        return resolveMaterial(role, true);
+    }
+
+    /**
+     * The same, but with {@code load} false it answers null rather than read a block from a chunk
+     * that is not loaded, which is what finding a gate's material group would otherwise do.
+     */
+    private Material resolveMaterial(final MaterialRole role, final boolean load)
+    {
         if (gateCustom)
         {
             final Material override = role.custom.apply(this);
@@ -806,6 +815,10 @@ public class Stargate implements GateIris
         if ((gateShape != null) && role.shapeDeclares.test(gateShape))
         {
             return role.fromShape.apply(gateShape);
+        }
+        if (!load && !gateMaterialGroupResolved && !frameChunkLoaded())
+        {
+            return null;
         }
         final MaterialGroup group = getGateMaterialGroup();
         if (group != null)
@@ -823,6 +836,40 @@ public class Stargate implements GateIris
     public Material getEffectivePortalMaterial()
     {
         return resolveMaterial(MaterialRole.PORTAL);
+    }
+
+    /**
+     * The portal material, unless working it out would load a chunk (#239).
+     *
+     * <p>A gate read from storage finds its material group from its frame block in the world, the
+     * first time it is asked. That is fine when somebody is using the gate and not when a statistics
+     * task asks about every gate at once, so this answers null for a gate whose group is not known
+     * yet and whose frame is in a chunk that is not loaded.
+     *
+     * @return the portal material, or null if only loading a chunk would tell
+     */
+    public Material getEffectivePortalMaterialIfLoaded()
+    {
+        return resolveMaterial(MaterialRole.PORTAL, false);
+    }
+
+    /** Whether the gate's first frame block is in a loaded chunk; true where there is no world to read. */
+    private boolean frameChunkLoaded()
+    {
+        if ((gateWorld == null) || gateStructureBlocks.isEmpty())
+        {
+            return true;
+        }
+        final Location first = gateStructureBlocks.get(0);
+        try
+        {
+            return gateWorld.isChunkLoaded(first.getBlockX() >> 4, first.getBlockZ() >> 4);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // A world the server has since unloaded: nothing to read, so nothing to wait for.
+            return false;
+        }
     }
 
     /**
