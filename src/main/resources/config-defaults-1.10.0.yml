@@ -1,4 +1,4 @@
-# The defaults 1.10.0 wrote into a new config.yml, frozen: a file holding exactly these is untouched (#595).
+# The defaults 1.10.0 wrote into a new config.yml, frozen: a file holding exactly these is untouched (#599).
 # Never edit; a later release's changed default is not a change to these.
 log-level: "INFO"
 permissions-support-disable: false

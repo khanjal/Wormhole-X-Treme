@@ -33,7 +33,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
- * An untouched 1.10.0 config.yml is replaced with the current layout, and nothing else is (#595).
+ * An untouched 1.10.0 config.yml is replaced with the current layout, and nothing else is (#599).
  *
  * <p>The pristine file here is the frozen 1.10.0 defaults themselves, which is a valid config.yml.
  */

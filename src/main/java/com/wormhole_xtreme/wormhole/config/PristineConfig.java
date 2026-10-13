@@ -17,7 +17,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
- * Replaces a config.yml nobody ever changed with the current layout (#595).
+ * Replaces a config.yml nobody ever changed with the current layout (#599).
  *
  * <p>An existing file keeps the layout it was written in, so an untouched 1.10.0 one would never
  * see the grouped file or a changed default. Untouched means every value is what 1.10.0 wrote,
