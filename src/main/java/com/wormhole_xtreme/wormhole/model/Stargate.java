@@ -801,7 +801,8 @@ public class Stargate implements GateIris
     /**
      * The same, but with {@code load} false it does not read a block from a chunk that is not
      * loaded, which is what finding a gate's material group would otherwise do: it answers only
-     * when every group gives the same material, and null otherwise.
+     * when every group gives the same material, which a frame matching no group gives too, and
+     * null otherwise.
      */
     private Material resolveMaterial(final MaterialRole role, final boolean load)
     {

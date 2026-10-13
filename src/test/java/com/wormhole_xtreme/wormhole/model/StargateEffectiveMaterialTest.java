@@ -9,6 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -31,6 +32,13 @@ class StargateEffectiveMaterialTest
         final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Atlantis", atlantis);
         MaterialGroupRegistry.load(section);
+    }
+
+    /** Puts the registry back, so a group a test added does not reach another class. */
+    @AfterEach
+    void restoreGroups()
+    {
+        loadGroups();
     }
 
     /** Adds a group beside the ones already loaded, which {@code load} would replace. */
