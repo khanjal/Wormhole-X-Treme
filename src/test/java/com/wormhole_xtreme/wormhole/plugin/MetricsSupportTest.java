@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.plugin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -143,7 +144,7 @@ class MetricsSupportTest
 
     private static String chartId(final CustomChart chart) throws Exception
     {
-        final java.lang.reflect.Field field = CustomChart.class.getDeclaredField("chartId");
+        final Field field = CustomChart.class.getDeclaredField("chartId");
         field.setAccessible(true);
         return (String) field.get(chart);
     }
