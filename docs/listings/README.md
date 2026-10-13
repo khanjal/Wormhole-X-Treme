@@ -66,17 +66,16 @@ changes, you change it there and then carry it into whichever site files quote i
   Reasoning in
   [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page). Clips and screenshots
   are real captures and are not affected.
-- **The README carries a badge per site that has one.** SpigotMC's come from Spiget, by resource
-  id: `img.shields.io/spiget/version/138936` and `spiget/downloads/138936`. Hangar's downloads
-  come from `img.shields.io/hangar/dt/Wormhole-X-Treme` — there is no Hangar version badge, and
-  no Paper or Hangar logo in shields' icon set, so that one carries a colour instead.
-  CurseForge's come from `img.shields.io/curseforge/v/1742170` and `curseforge/dt/1742170`: the
-  numeric project ID, which is in the page's About box. BukkitDev is the same project and gets no
-  badge of its own.
-  **Modrinth has no badge yet**: `modrinth/dt` and `modrinth/v` answer "not found" while
-  `api.modrinth.com/v2/project/wormhole-x-treme` 404s, which it does today. Add them once it
-  resolves. Point them at that slug and nothing else — Modrinth also carries `wormholextreme`,
-  which is the other fork, and a badge on its slug would advertise its downloads as ours.
+- **The README carries a badge table**, one row per site with a version and a downloads column.
+  SpigotMC's badges come from Spiget, by resource id: `img.shields.io/spiget/version/138936` and
+  `spiget/downloads/138936`. Modrinth's are `modrinth/v/wormhole-x-treme` and
+  `modrinth/dt/wormhole-x-treme`. Point them at that slug and nothing else: Modrinth also carries
+  `wormholextreme`, which is the other fork, and a badge on its slug would advertise its downloads
+  as ours. (They answered "not found" while the project was in review; if they still do, the API
+  at `api.modrinth.com/v2/project/wormhole-x-treme` says why.) Hangar's downloads come from
+  `img.shields.io/hangar/dt/Wormhole-X-Treme`; there is no Hangar version badge, so that cell is
+  empty. CurseForge's come from `curseforge/v/1742170` and `curseforge/dt/1742170`, the numeric
+  project ID from the page's About box; BukkitDev shares that row, being the same project.
 - **The name and logo are not under the GPL.** Every listing says so and links
   [`TRADEMARK.md`](../../TRADEMARK.md); more than one project carries this name.
 - **The non-affiliation notice ships on every listing.** It is trademark hygiene and it is the
