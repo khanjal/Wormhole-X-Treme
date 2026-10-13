@@ -17,12 +17,12 @@ and in the description, so if there is such a rule, both have to change the same
 did: crop the avatar from `docs/images/gates/gate-shapes-active.png` and drop the banner. Check
 before the next upload rather than assuming either way.
 
-**The one real difference from the other two sites:** Hangar is PaperMC's own platform and its
+**The one real difference from the other sites:** Hangar is PaperMC's own platform and its
 platform tags are **Paper, Velocity and Waterfall** — there is no Spigot or Bukkit tag
 **(inferred, see below)**. So this plugin lists there as a Paper plugin, which is honest (CI builds and tests
 against Paper at every supported version) but inverts how Spigot and Modrinth describe it. The page
 below leads with Paper and mentions Spigot second, which is the only place the copy deliberately
-diverges from the other two.
+diverges from the others.
 
 ---
 
@@ -58,7 +58,7 @@ the real form, showed a **Paper group and nothing else**. Hangar scopes dependen
 platform, so a Spigot or Bukkit platform would have brought its own group. That plus Hangar being
 Paper, Velocity and Waterfall only is why the page leads with Paper. If the platform picker ever
 shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-first wording in
-[`modrinth.md`](modrinth.md#description) so all three read alike.
+[`modrinth.md`](modrinth.md#description) so every site reads alike.
 
 **On Velocity and Waterfall.** Leave both off. Ticking a proxy platform for a server plugin puts
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.

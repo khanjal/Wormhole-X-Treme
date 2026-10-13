@@ -74,7 +74,7 @@ AI-generated assets or text, or a substantial amount of AI-generated code.
 ### Rule 6: no AI-generated images on the page
 
 This is a takedown rule, not a disclosure question, and it is the reason the icon above and the
-description's missing banner differ from the other two sites. Modrinth's Content Rules, section 6.2.1:
+description's missing banner differ from the Spigot and Hangar pages. Modrinth's Content Rules, section 6.2.1:
 
 > No images uploaded to a gallery, icon, description, or any other part of a project page may be
 > created or derived from generative AI output. Any such images may be removed.
