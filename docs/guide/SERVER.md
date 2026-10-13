@@ -633,9 +633,9 @@ What is sent, twice an hour:
   any other, and which portal material the gates show (`water`, `lava`, `nether_portal`,
   `end_gateway`, `end_portal`, or `other`), each counted by gate. A gate's material comes from its
   frame, which is read from the world; where every material group gives the same portal, and so
-  does a frame that matches none, that is not needed. Otherwise a gate nobody has used since the server started, in a chunk that is not
-  loaded, is `unknown`: finding its material would load the chunk, and the counts are taken on the
-  server thread;
+  does a frame that matches none, that is not needed. Otherwise a gate nobody has used since the
+  server started, in a chunk that is not loaded, is `unknown`: finding its material would load the
+  chunk, and the counts are taken on the server thread;
 - the `gate-dial-spin` pattern, `gate-view`, `gate-iris-animation`, and whether `gate-ripple` and
   `gate-sounds-enabled` are on;
 - which of Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap
