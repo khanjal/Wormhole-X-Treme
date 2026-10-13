@@ -1,7 +1,7 @@
 # CurseForge
 
 Copy for the CurseForge project at <https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme>,
-submitted 2026-10-12 and **awaiting CurseForge's approval** at the time of writing. Facts and prose come from
+submitted 2026-10-12 and live since (it was approved some time after; the date was not recorded). Facts and prose come from
 [`shared.md`](shared.md); what is here is CurseForge's own field set.
 
 Rows marked **(confirmed)** are the form's own wording, read off it while the project was being
@@ -88,11 +88,10 @@ The first upload, 1.10.0, went in with the project on 2026-10-12.
 
 ## Keeping it current
 
-1. **Wait for approval, then check the page.** Read the licence and categories back and correct
-   the **(check)** rows above, and that the project's slug really is `wormhole-x-treme` (the
-   links in the README and `shared.md` assume it).
+1. **Read the live page back.** Correct the **(check)** rows above (licence, additional
+   categories) from it. The slug is confirmed: the page is at `/bukkit-plugins/wormhole-x-treme`.
 2. **The README badges use the numeric project ID, 1742170**, not the slug — shields.io's
-   CurseForge badges take nothing else. They read "not found" until CurseForge approves the project.
+   CurseForge badges take nothing else. The project is approved and its ID is 1742170, as the page's About box shows.
 3. **Check CurseForge's content rules for AI-generated images** before ever putting the logo on
    the page.
 4. **Upload each release here too.** Same jar, same changelog as Modrinth and Hangar. A change to the description is re-pasted

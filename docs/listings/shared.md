@@ -25,7 +25,7 @@ The values a release changes. Change them here first, then carry them into the s
 ## Where the listings live
 
 SpigotMC, Modrinth and Hangar were published on 2026-09-19. CurseForge was submitted on
-2026-10-12 and awaits approval.
+2026-10-12 and is approved.
 
 | Site | URL |
 |---|---|

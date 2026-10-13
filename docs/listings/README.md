@@ -11,7 +11,7 @@ The copy that goes on the plugin sites, kept here so a release is an edit rather
 | [`curseforge.md`](curseforge.md) | [CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) — project fields; the description is Modrinth's. |
 | [`versions.md`](versions.md) | Every version's upload fields and short changelog, Markdown and BBCode, newest first. |
 
-Three are published and the fourth awaits approval:
+All four are published:
 [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
 [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) ·
 [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) ·
@@ -71,7 +71,7 @@ changes, you change it there and then carry it into whichever site files quote i
   `spiget/downloads/138936`. Modrinth's are `modrinth/v/wormhole-x-treme` and
   `modrinth/dt/wormhole-x-treme`. Point them at that slug and nothing else: Modrinth also carries
   `wormholextreme`, which is the other fork, and a badge on its slug would advertise its downloads
-  as ours. (They answered "not found" while the project was in review; if they still do, the API
+  as ours. (They once answered "not found"; if they still do, the API
   at `api.modrinth.com/v2/project/wormhole-x-treme` says why.) Hangar's downloads come from
   `img.shields.io/hangar/dt/Wormhole-X-Treme`; there is no Hangar version badge, so that cell is
   empty. CurseForge's come from `curseforge/v/1742170` and `curseforge/dt/1742170`, the numeric
