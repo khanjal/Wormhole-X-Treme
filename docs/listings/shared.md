@@ -118,7 +118,7 @@ Liberation Sans is metric-compatible with Arial, which is already in the stack, 
 
 ## Tagline
 
-Written to Spigot's 100-character cap, which is the tightest of the three. Measured.
+Written to Spigot's 100-character cap, which is the tightest of the four. Measured.
 
 **Preferred** (97):
 

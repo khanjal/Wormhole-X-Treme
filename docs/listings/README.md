@@ -19,7 +19,7 @@ Three are published and the fourth awaits approval:
 appears on [BukkitDev](https://dev.bukkit.org/projects/wormhole-x-treme). Editing a file here does not change
 a live page; it records what the page should say, and somebody still has to paste it.
 
-Nothing here is generated. The three site files are parallel texts, not renders of `shared.md`,
+Nothing here is generated. The site files are parallel texts, not renders of `shared.md`,
 because the markup and the field sets differ enough that a generator would cost more than it
 saves. What `shared.md` buys is that the *facts* live in one place: when a number or a link
 changes, you change it there and then carry it into whichever site files quote it.
@@ -42,9 +42,9 @@ changes, you change it there and then carry it into whichever site files quote i
    long for a download page.
 5. **Check the image URLs still resolve.** They are pinned to `main`, not to a tag, so they follow
    whatever later happens to those files. That is deliberate: a tag URL 404s until the tag exists,
-   which is what broke the first Spigot preview. The cost is that renaming a capture breaks three
-   listings at once.
-6. **Carry any feature change into all three descriptions.** This is the one place the parallel
+   which is what broke the first Spigot preview. The cost is that renaming a capture breaks every
+   listing at once.
+6. **Carry any feature change into every description: Spigot, Modrinth, Hangar, and a re-paste of Modrinth's into CurseForge.** This is the one place the parallel
    texts hurt. `grep` for a phrase from the block you changed.
 
 ## Conventions
@@ -81,6 +81,6 @@ changes, you change it there and then carry it into whichever site files quote i
   that site has no rule requiring it.
 - **Claude Code is named as plain text, never linked.** Spigot's advertising rule wants a business
   arrangement behind a link to a commercial product. The disclosure loses nothing by being
-  unlinked, so all three read the same way.
+  unlinked, so every site reads the same way.
 - **Do not position this fork against the other one.** Both forked the same 2011 original
   independently. The lineage line says that; nothing else needs to.

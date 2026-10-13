@@ -3,7 +3,7 @@
 Copy for the Spigot resource at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>, published 2026-09-19. Facts and prose come from
 [`shared.md`](shared.md); what is here is Spigot's own field set and markup.
 
-Spigot is the only one of the three that takes **BBCode** rather than Markdown, and it has the
+Spigot is the only one of the four that takes **BBCode** rather than Markdown, and it has the
 tightest tagline cap, so it is the site the shared tagline is written to.
 
 Fields marked **(assumed)** come from the standard XenForo resource form, not from looking at

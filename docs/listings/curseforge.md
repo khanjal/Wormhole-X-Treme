@@ -84,10 +84,12 @@ The first upload, 1.10.0, went in with the project on 2026-10-12.
 ## Keeping it current
 
 1. **Wait for approval, then check the page.** Read the licence and categories back and correct
-   the **(check)** rows above.
+   the **(check)** rows above, and that the project's slug really is `wormhole-x-treme` (the
+   links in the README and `shared.md` assume it).
 2. **Add the badges once the page is live.** shields.io's CurseForge badges take the numeric
    project ID, not the slug, so read it off the page (the About box shows it) and add
    `img.shields.io/curseforge/dt/<id>` and `curseforge/v/<id>` to the README beside the others.
 3. **Check CurseForge's content rules for AI-generated images** before ever putting the logo on
    the page.
-4. **Upload each release here too.** Same jar, same changelog as Modrinth and Hangar.
+4. **Upload each release here too.** Same jar, same changelog as Modrinth and Hangar. A change to the description is re-pasted
+   from [`modrinth.md`](modrinth.md#description).

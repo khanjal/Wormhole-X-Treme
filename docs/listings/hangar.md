@@ -58,7 +58,7 @@ the real form, showed a **Paper group and nothing else**. Hangar scopes dependen
 platform, so a Spigot or Bukkit platform would have brought its own group. That plus Hangar being
 Paper, Velocity and Waterfall only is why the page leads with Paper. If the platform picker ever
 shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-first wording in
-[`modrinth.md`](modrinth.md#description) so all three read alike.
+[`modrinth.md`](modrinth.md#description) so every site reads alike.
 
 **On Velocity and Waterfall.** Leave both off. Ticking a proxy platform for a server plugin puts
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.

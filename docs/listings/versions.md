@@ -43,9 +43,9 @@ Released 2026-10-12.
 
 | Field | Value |
 |---|---|
-| Version (all three sites) | `1.10.0` |
+| Version (all four sites) | `1.10.0` |
 | Title (Spigot update title, Modrinth version title) | `1.10.0 - Views through gates, ripples and more web maps` |
-| Minecraft (Modrinth game versions, Hangar platform versions) | 1.20 – 26.3 |
+| Minecraft (Modrinth game versions, Hangar platform versions, CurseForge Bukkit versions) | 1.20 – 26.3 |
 
 Modrinth and Hangar changelog:
 
