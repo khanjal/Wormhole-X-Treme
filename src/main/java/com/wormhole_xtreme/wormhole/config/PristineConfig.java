@@ -7,6 +7,8 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +79,11 @@ final class PristineConfig
      */
     private static boolean isUntouched(final Map<String, Object> file, final String release, final List<String> releases)
     {
+        final Set<?> keys = file.keySet(); // raw: a YAML key may be a number or a boolean
+        if (!keys.stream().allMatch(String.class::isInstance))
+        {
+            return false; // a key like 2024: or on: parses to a number or a boolean, and is the admin's own
+        }
         final Map<String, Object> shipped = shipped(release);
         final Set<String> required = new HashSet<>(shipped.keySet());
         required.remove(GROUPS);
@@ -86,9 +93,9 @@ final class PristineConfig
         }
         for (final Map.Entry<String, Object> entry : file.entrySet())
         {
-            final Object expected = shipped.containsKey(entry.getKey())
-                ? shipped.get(entry.getKey()) : laterDefault(entry.getKey(), releases);
-            if ((expected == null) || !sameValue(expected, entry.getValue()))
+            final List<Object> expected = shipped.containsKey(entry.getKey())
+                ? List.of(shipped.get(entry.getKey())) : laterDefaults(entry.getKey(), releases);
+            if (expected.stream().noneMatch(value -> sameValue(value, entry.getValue())))
             {
                 return false;
             }
@@ -96,15 +103,20 @@ final class PristineConfig
         return true;
     }
 
-    /** What a key not in the release holds at its default: a setting now, else as a listed release wrote it. */
-    private static Object laterDefault(final String key, final List<String> releases)
+    /**
+     * What a key not in the release may hold at a default: a setting's now, and what each listed release
+     * wrote, since a release in between appended it at its own.
+     */
+    private static List<Object> laterDefaults(final String key, final List<String> releases)
     {
+        final List<Object> values = new ArrayList<>();
         final Object current = defaultOf(key);
         if (current != null)
         {
-            return current;
+            values.add(current);
         }
-        return releases.stream().map(release -> shipped(release).get(key)).filter(Objects::nonNull).findFirst().orElse(null);
+        releases.stream().map(release -> shipped(release).get(key)).filter(Objects::nonNull).forEach(values::add);
+        return values;
     }
 
     /** The default a setting has now, or null if the key is no setting. */
@@ -178,12 +190,13 @@ final class PristineConfig
         final File fresh = new File(cfg.getParentFile(), cfg.getName() + ".new");
         try
         {
-            backup = copyAside(cfg.toPath());
+            // First, so a folder that cannot be written to costs no backup, one more every start.
             ConfigurationYAML.writeFile(fresh, DefaultSettings.config);
-            if (!fresh.isFile() || (fresh.length() == 0))
+            if (!isComplete(fresh))
             {
-                throw new IOException("the new file was not written");
+                throw new IOException("the new file was not written whole");
             }
+            backup = copyAside(cfg.toPath());
             Files.move(fresh.toPath(), cfg.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
         catch (final IOException e)
@@ -195,6 +208,21 @@ final class PristineConfig
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "config.yml was unchanged from " + release + ", so it was replaced with the new"
             + " layout; the old file is kept as " + backup.getFileName() + ", and any comment you added is only there.");
+    }
+
+    /** Whether a freshly written file parses and holds every setting; writeFile logs a failed write and goes on. */
+    static boolean isComplete(final File written)
+    {
+        try (InputStream in = Files.newInputStream(written.toPath()))
+        {
+            final Object loaded = new Yaml().load(in);
+            return (loaded instanceof Map<?, ?> map) && Arrays.stream(DefaultSettings.config)
+                .allMatch(setting -> map.containsKey(ConfigurationYAML.kebabKeyName(setting.getName().name())));
+        }
+        catch (final IOException | YAMLException e)
+        {
+            return false;
+        }
     }
 
     private static void discard(final File leftover)
@@ -209,8 +237,11 @@ final class PristineConfig
         }
     }
 
-    /** Copies the file to config.yml.bak, or the first .bak.N free, never over an existing one. */
-    private static Path copyAside(final Path cfg) throws IOException
+    /**
+     * Copies the file to config.yml.bak, or the first .bak.N free, never over an existing one. A backup
+     * already holding the same bytes is reused, so a replacement that keeps failing leaves one copy.
+     */
+    static Path copyAside(final Path cfg) throws IOException
     {
         for (int n = 0; n < MAX_BACKUPS; n++)
         {
@@ -221,7 +252,10 @@ final class PristineConfig
             }
             catch (final FileAlreadyExistsException taken)
             {
-                // try the next name
+                if (Files.mismatch(cfg, target) == -1)
+                {
+                    return target;
+                }
             }
         }
         throw new IOException("no free name for a backup of " + cfg.getFileName());

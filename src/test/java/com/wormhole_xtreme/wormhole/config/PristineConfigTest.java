@@ -167,9 +167,9 @@ class PristineConfigTest
         assertFalse(new File(directory, "config.yml.bak").exists());
     }
 
-    /** A file from before 1.10.0 lacks keys 1.10.0 wrote, so it is not recognised as untouched. */
+    /** A file missing a key every listed release wrote is not recognised as untouched. */
     @Test
-    void aFileFromBefore110LeavesItAlone() throws Exception
+    void aFileMissingAKeyEveryReleaseWroteLeavesItAlone() throws Exception
     {
         final String older = pristine().replace("sign-glowing-text: false\n", "");
         assertNotEquals(pristine(), older, "the edit applied");
@@ -280,7 +280,7 @@ class PristineConfigTest
         {
             final Map<String, Object> old = YamlMaps.asMap(new Yaml().load(in));
             file.forEach(old::putIfAbsent);
-            assertNotNull(PristineConfig.untouchedSince(old));
+            assertEquals("1.3.0", PristineConfig.untouchedSince(old));
             old.put("ring-hold-ticks", 21);
             assertNull(PristineConfig.untouchedSince(old), "a changed value still counts");
         }
@@ -294,6 +294,80 @@ class PristineConfigTest
         assertNotNull(file.remove("gate-material-groups"), "the snapshot had them");
 
         assertEquals("1.10.0", PristineConfig.untouchedSince(file));
+    }
+
+    /**
+     * A key that parses to a number or a boolean is the admin's own, and is not a ClassCastException here.
+     *
+     * <p>The loader after it still fails on such a key (ConfigurationYAML's RENAMED check), as it did before
+     * this change; this only keeps the decision from being the first thing to throw.
+     */
+    @Test
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    void aKeyThatIsNotTextIsNotUntouched() throws Exception
+    {
+        final Map file = new LinkedHashMap(pristineMap());
+        file.put(2024, "migrated");
+
+        assertNull(PristineConfig.untouchedSince(file));
+    }
+
+    /** A new file cut short by a failed write is not moved over the old one. */
+    @Test
+    void aTruncatedNewFileIsNotComplete() throws Exception
+    {
+        final File whole = new File(directory, "whole.yml");
+        ConfigurationYAML.writeFile(whole, DefaultSettings.config);
+        assertTrue(PristineConfig.isComplete(whole));
+
+        final String text = Files.readString(whole.toPath());
+        final File cut = new File(directory, "cut.yml");
+        Files.writeString(cut.toPath(), text.substring(0, text.length() / 2));
+        assertFalse(PristineConfig.isComplete(cut), "half the settings");
+        Files.writeString(cut.toPath(), "");
+        assertFalse(PristineConfig.isComplete(cut), "none");
+    }
+
+    /** A backup that already holds these bytes is reused, so a replacement that keeps failing leaves one copy. */
+    @Test
+    void anIdenticalBackupIsReused() throws Exception
+    {
+        write(pristine());
+
+        final java.nio.file.Path first = PristineConfig.copyAside(config().toPath());
+        final java.nio.file.Path second = PristineConfig.copyAside(config().toPath());
+
+        assertEquals(first, second);
+        assertFalse(new File(directory, "config.yml.bak.1").exists());
+    }
+
+    /**
+     * Two releases that differ in one default cannot be told apart by a value that is the other's.
+     *
+     * <p>Documents the accepted corner: a 1.8.1 file whose admin set ring-default-flash back to the
+     * REDSTONE_LAMP of 1.8.0 reads as an untouched 1.8.0 one. The copy kept as config.yml.bak has it.
+     */
+    @Test
+    void aValueThatIsASiblingReleasesDefaultReadsAsThatRelease() throws Exception
+    {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("config-defaults-1.8.1.yml"))
+        {
+            final Map<String, Object> file = YamlMaps.asMap(new Yaml().load(in));
+            assertEquals("1.8.1", PristineConfig.untouchedSince(file));
+            file.put("ring-default-flash", "REDSTONE_LAMP");
+            assertEquals("1.8.0", PristineConfig.untouchedSince(file));
+        }
+    }
+
+    /** A key two listed releases wrote differently is accepted at either, since a release in between appended it. */
+    @Test
+    void aKeyIsAcceptedAtAnyListedReleasesValue()
+    {
+        final List<String> releases = List.of("test-release-a", "test-release-b", "test-release");
+
+        assertEquals("test-release-b", PristineConfig.untouchedSince(Map.of("timeout-shutdown", 77, "k", 2), releases));
+        assertEquals("test-release-a", PristineConfig.untouchedSince(Map.of("timeout-shutdown", 77, "k", 1), releases));
+        assertNull(PristineConfig.untouchedSince(Map.of("timeout-shutdown", 77, "k", 3), releases));
     }
 
     /** The frozen table covers what 1.11.0 removed, or a file holding one could never be recognised. */
