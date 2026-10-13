@@ -70,6 +70,9 @@ changes, you change it there and then carry it into whichever site files quote i
   id: `img.shields.io/spiget/version/138936` and `spiget/downloads/138936`. Hangar's downloads
   come from `img.shields.io/hangar/dt/Wormhole-X-Treme` — there is no Hangar version badge, and
   no Paper or Hangar logo in shields' icon set, so that one carries a colour instead.
+  CurseForge's come from `img.shields.io/curseforge/v/1742170` and `curseforge/dt/1742170`: the
+  numeric project ID, which is in the page's About box. BukkitDev is the same project and gets no
+  badge of its own.
   **Modrinth has no badge yet**: `modrinth/dt` and `modrinth/v` answer "not found" while
   `api.modrinth.com/v2/project/wormhole-x-treme` 404s, which it does today. Add them once it
   resolves. Point them at that slug and nothing else — Modrinth also carries `wormholextreme`,

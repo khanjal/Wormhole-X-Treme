@@ -17,6 +17,8 @@
 [![SpigotMC](https://img.shields.io/spiget/version/138936?label=spigotmc&logo=spigotmc&logoColor=white)](https://www.spigotmc.org/resources/wormhole-x-treme.138936/)
 [![SpigotMC downloads](https://img.shields.io/spiget/downloads/138936?label=downloads&logo=spigotmc&logoColor=white)](https://www.spigotmc.org/resources/wormhole-x-treme.138936/)
 [![Hangar downloads](https://img.shields.io/hangar/dt/Wormhole-X-Treme?label=hangar%20downloads&color=blue)](https://hangar.papermc.io/khanjal/Wormhole-X-Treme)
+[![CurseForge](https://img.shields.io/curseforge/v/1742170?label=curseforge&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme)
+[![CurseForge downloads](https://img.shields.io/curseforge/dt/1742170?label=downloads&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme)
 [![bStats servers](https://img.shields.io/bstats/servers/34269?label=servers)](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269)
 
 Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.3.
