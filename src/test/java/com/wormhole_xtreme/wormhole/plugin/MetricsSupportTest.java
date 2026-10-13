@@ -71,7 +71,8 @@ class MetricsSupportTest
                 .when(m).addCustomChart(ArgumentMatchers.any()));
             MockedStatic<Bukkit> bukkit = Mockito.mockStatic(Bukkit.class))
         {
-            bukkit.when(Bukkit::getPluginManager).thenReturn(Mockito.mock(PluginManager.class));
+            final PluginManager plugins = Mockito.mock(PluginManager.class);
+            bukkit.when(Bukkit::getPluginManager).thenReturn(plugins);
             MetricsSupport.enableMetrics(plugin);
             MetricsSupport.enableMetrics(plugin);
             assertEquals(1, made.constructed().size(), "a second start while running starts nothing");
