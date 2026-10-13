@@ -33,6 +33,13 @@ class StargateEffectiveMaterialTest
         MaterialGroupRegistry.load(section);
     }
 
+    /** Adds a group beside the ones already loaded, which {@code load} would replace. */
+    private static void addGroup(final String name, final String structure, final String portal)
+    {
+        MaterialGroupRegistry.registerDiscoveredGroup(new MaterialGroup(name, Material.valueOf(structure),
+            Material.valueOf(portal), Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN));
+    }
+
     @Test
     void shapeDefaultsApplyWhenThereIsNoGroupOrOverride()
     {
@@ -309,6 +316,7 @@ class StargateEffectiveMaterialTest
     @Test
     void portalMaterialIsNotLookedUpInAnUnloadedChunk()
     {
+        addGroup("Nether", "NETHERRACK", "LAVA");
         final World world = Mockito.mock(World.class);
         final Block frame = Mockito.mock(Block.class);
         Mockito.when(frame.getType()).thenReturn(Material.LAPIS_BLOCK);
@@ -323,6 +331,43 @@ class StargateEffectiveMaterialTest
         assertEquals(Material.WATER, gate.getEffectivePortalMaterialIfLoaded(),
             "the group is still found on a later ask, the first having cached nothing");
         Mockito.verify(world, Mockito.times(1)).getBlockAt(33, 64, -17);
+    }
+
+    /**
+     * When every group gives the same portal material the group does not matter, so an unloaded
+     * chunk need not be read: a server with one group, or groups that agree, gets a real answer
+     * for every gate rather than "unknown". The default config has only Atlantis, whose portal is
+     * water, so this is the case on most servers.
+     */
+    @Test
+    void portalMaterialNeedsNoChunkWhenEveryGroupAgrees()
+    {
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+
+        assertEquals(Material.WATER, gateInWorld(world).getEffectivePortalMaterialIfLoaded());
+
+        addGroup("Pool", "PRISMARINE", "WATER");
+        assertEquals(Material.WATER, gateInWorld(world).getEffectivePortalMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+    }
+
+    /**
+     * A frame that matches no group falls back to the shape's portal, so groups that agree with
+     * each other but not with that fall-back still leave the answer to the frame.
+     */
+    @Test
+    void portalMaterialStillNeedsTheChunkWhenTheGroupsAgreeOnADifferentMaterialThanNoGroup()
+    {
+        final Map<String, Object> only = new LinkedHashMap<>();
+        only.put("structure", "NETHERRACK");
+        only.put("portal", "LAVA");
+        MaterialGroupRegistry.load(Map.of("Nether", only));
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+
+        assertNull(gateInWorld(world).getEffectivePortalMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
     }
 
     /** A gate whose group is already known needs no chunk, so it answers wherever it is. */
@@ -342,6 +387,7 @@ class StargateEffectiveMaterialTest
     @Test
     void aWorldThatCannotAnswerIsTreatedAsUnloaded()
     {
+        addGroup("Nether", "NETHERRACK", "LAVA");
         final World world = Mockito.mock(World.class);
         Mockito.when(world.isChunkLoaded(Mockito.anyInt(), Mockito.anyInt()))
             .thenThrow(new IllegalStateException("world unloaded"));

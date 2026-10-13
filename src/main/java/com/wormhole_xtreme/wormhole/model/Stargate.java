@@ -818,7 +818,7 @@ public class Stargate implements GateIris
         }
         if (!load && !gateMaterialGroupResolved && !frameChunkLoaded())
         {
-            return null;
+            return sameForEveryGroup(role);
         }
         final MaterialGroup group = getGateMaterialGroup();
         if (group != null)
@@ -826,6 +826,25 @@ public class Stargate implements GateIris
             return role.fromGroup.apply(group);
         }
         return (gateShape != null) ? role.fromShape.apply(gateShape) : role.fallback;
+    }
+
+    /**
+     * The material when it does not depend on the group, so there is no need to read the frame to
+     * find the group: every group gives it, and so does a frame that matches none.
+     *
+     * @return that material, or null when the groups disagree
+     */
+    private Material sameForEveryGroup(final MaterialRole role)
+    {
+        final Material unmatched = (gateShape != null) ? role.fromShape.apply(gateShape) : role.fallback;
+        for (final MaterialGroup group : MaterialGroupRegistry.getGroups())
+        {
+            if (role.fromGroup.apply(group) != unmatched)
+            {
+                return null;
+            }
+        }
+        return unmatched;
     }
 
     /**
@@ -843,8 +862,9 @@ public class Stargate implements GateIris
      *
      * <p>A gate read from storage finds its material group from its frame block in the world, the
      * first time it is asked. That is fine when somebody is using the gate and not when a statistics
-     * task asks about every gate at once, so this answers null for a gate whose group is not known
-     * yet and whose frame is in a chunk that is not loaded.
+     * task asks about every gate at once, so for a gate whose group is not known yet and whose frame
+     * is in a chunk that is not loaded, this answers only when every group gives the same portal
+     * material, and null when only loading the chunk would tell.
      *
      * @return the portal material, or null if only loading a chunk would tell
      */
