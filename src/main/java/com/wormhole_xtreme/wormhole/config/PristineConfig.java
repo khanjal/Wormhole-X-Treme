@@ -7,8 +7,11 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.yaml.snakeyaml.Yaml;
@@ -30,9 +33,15 @@ final class PristineConfig
     /**
      * Releases whose new-file defaults are frozen in {@code config-defaults-<release>.yml}, material groups
      * included. When a release changes the layout or a default, add the release it replaces here, with its
-     * snapshot; never the current one, or an untouched current file would be rewritten every start.
+     * snapshot; never the current one, or an untouched current file would be rewritten every start. Newest
+     * first.
+     *
+     * <p>Only 1.10.0's snapshot holds the material groups: they are seeded after the first start, from
+     * 1.8.0 on and always the same, so a file may or may not have them.
      */
-    static final List<String> RELEASES = List.of("1.10.0");
+    static final List<String> RELEASES = List.of("1.10.0", "1.9.0", "1.8.1", "1.8.0", "1.5.0", "1.3.0");
+
+    private static final String GROUPS = "gate-material-groups";
 
     private static final int MAX_BACKUPS = 100;
 
@@ -56,25 +65,29 @@ final class PristineConfig
     /** As {@link #untouchedSince(Map)}, against the given releases. */
     static String untouchedSince(final Map<String, Object> file, final List<String> releases)
     {
-        return releases.stream().filter(release -> isUntouched(file, release)).findFirst().orElse(null);
+        return releases.stream().filter(release -> isUntouched(file, release, releases)).findFirst().orElse(null);
     }
 
     /**
-     * Whether a file holds only what a release wrote, or that plus settings added since at their defaults.
+     * Whether a file holds only what a release wrote, or that plus what later releases added to it at their
+     * defaults, as a server that ran them since has.
      *
-     * @return false for any other value, any key no setting answers to, or a key of that release gone missing
+     * @return false for any other value, any key neither a setting nor in a listed release, or a key of that
+     *         release gone missing
      */
-    private static boolean isUntouched(final Map<String, Object> file, final String release)
+    private static boolean isUntouched(final Map<String, Object> file, final String release, final List<String> releases)
     {
         final Map<String, Object> shipped = shipped(release);
-        if (shipped.isEmpty() || !file.keySet().containsAll(shipped.keySet()))
+        final Set<String> required = new HashSet<>(shipped.keySet());
+        required.remove(GROUPS);
+        if (shipped.isEmpty() || !file.keySet().containsAll(required))
         {
             return false;
         }
         for (final Map.Entry<String, Object> entry : file.entrySet())
         {
             final Object expected = shipped.containsKey(entry.getKey())
-                ? shipped.get(entry.getKey()) : defaultOf(entry.getKey());
+                ? shipped.get(entry.getKey()) : laterDefault(entry.getKey(), releases);
             if ((expected == null) || !sameValue(expected, entry.getValue()))
             {
                 return false;
@@ -83,7 +96,18 @@ final class PristineConfig
         return true;
     }
 
-    /** The default a setting added since has now, or null if the key is no setting. */
+    /** What a key not in the release holds at its default: a setting now, else as a listed release wrote it. */
+    private static Object laterDefault(final String key, final List<String> releases)
+    {
+        final Object current = defaultOf(key);
+        if (current != null)
+        {
+            return current;
+        }
+        return releases.stream().map(release -> shipped(release).get(key)).filter(Objects::nonNull).findFirst().orElse(null);
+    }
+
+    /** The default a setting has now, or null if the key is no setting. */
     private static Object defaultOf(final String key)
     {
         for (final Setting setting : DefaultSettings.config)

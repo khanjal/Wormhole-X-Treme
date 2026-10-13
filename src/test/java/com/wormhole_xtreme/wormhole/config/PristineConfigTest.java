@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -248,7 +249,41 @@ class PristineConfigTest
         assertEquals("test-release", PristineConfig.untouchedSince(file, List.of("1.10.0", "test-release")));
         assertNull(PristineConfig.untouchedSince(file, List.of("1.10.0")), "not a 1.10.0 file");
         assertNull(PristineConfig.untouchedSince(Map.of("timeout-shutdown", 78), List.of("test-release")));
-        assertEquals(List.of("1.10.0"), PristineConfig.RELEASES, "the current release is never listed");
+        assertFalse(PristineConfig.RELEASES.contains("1.11.0"), "the current release is never listed");
+    }
+
+    /** Each listed release's own defaults are recognised as that release, and no newer one. */
+    @Test
+    void everyListedReleaseIsRecognisedByItsOwnDefaults() throws Exception
+    {
+        for (final String release : PristineConfig.RELEASES)
+        {
+            try (InputStream in = getClass().getClassLoader().getResourceAsStream("config-defaults-" + release + ".yml"))
+            {
+                final Map<String, Object> file = YamlMaps.asMap(new Yaml().load(in));
+                assertEquals(release, PristineConfig.untouchedSince(file), release);
+            }
+        }
+    }
+
+    /**
+     * An old release's file that later releases appended to is still untouched.
+     *
+     * <p>A 1.5.0 file run on 1.10.0 gains the keys 1.10.0 added, the removed ones among them, and the material
+     * groups; none of that is the admin's doing.
+     */
+    @Test
+    void anOldFileLaterReleasesAddedToIsStillUntouched() throws Exception
+    {
+        final Map<String, Object> file = pristineMap();
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("config-defaults-1.3.0.yml"))
+        {
+            final Map<String, Object> old = YamlMaps.asMap(new Yaml().load(in));
+            file.forEach(old::putIfAbsent);
+            assertNotNull(PristineConfig.untouchedSince(old));
+            old.put("ring-hold-ticks", 21);
+            assertNull(PristineConfig.untouchedSince(old), "a changed value still counts");
+        }
     }
 
     /** The frozen table covers what 1.11.0 removed, or a file holding one could never be recognised. */
