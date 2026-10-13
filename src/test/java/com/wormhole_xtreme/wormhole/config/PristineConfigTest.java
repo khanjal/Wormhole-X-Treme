@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
@@ -18,6 +19,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -232,9 +234,21 @@ class PristineConfigTest
     {
         final Map<String, Object> file = pristineMap();
         file.put("ring-animation-speed", 1);
-        assertTrue(PristineConfig.isUntouched(file), "1 is 1.0 and the default");
+        assertEquals("1.10.0", PristineConfig.untouchedSince(file), "1 is 1.0 and the default");
         file.put("ring-animation-speed", 2.0);
-        assertFalse(PristineConfig.isUntouched(file));
+        assertNull(PristineConfig.untouchedSince(file));
+    }
+
+    /** Any listed release will do, so a later cleanup only adds a snapshot; a release not listed matches nothing. */
+    @Test
+    void anyListedReleaseMatches()
+    {
+        final Map<String, Object> file = Map.of("timeout-shutdown", 77);
+
+        assertEquals("test-release", PristineConfig.untouchedSince(file, List.of("1.10.0", "test-release")));
+        assertNull(PristineConfig.untouchedSince(file, List.of("1.10.0")), "not a 1.10.0 file");
+        assertNull(PristineConfig.untouchedSince(Map.of("timeout-shutdown", 78), List.of("test-release")));
+        assertEquals(List.of("1.10.0"), PristineConfig.RELEASES, "the current release is never listed");
     }
 
     /** The frozen table covers what 1.11.0 removed, or a file holding one could never be recognised. */

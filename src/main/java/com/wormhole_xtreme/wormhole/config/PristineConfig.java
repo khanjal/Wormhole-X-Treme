@@ -7,6 +7,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -19,14 +20,19 @@ import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 /**
  * Replaces a config.yml nobody ever changed with the current layout (#599).
  *
- * <p>An existing file keeps the layout it was written in, so an untouched 1.10.0 one would never
- * see the grouped file or a changed default. Untouched means every value is what 1.10.0 wrote,
+ * <p>An existing file keeps the layout it was written in, so an untouched one from an earlier release
+ * would never see a newer layout or a changed default. Untouched means every value is what one of
+ * the {@link #RELEASES} wrote,
  * judged on values alone, so comments and order do not matter. Anything else is left exactly as it is.
  */
 final class PristineConfig
 {
-    /** What 1.10.0 wrote into a new file, including its material groups. */
-    private static final String DEFAULTS_1_10_0 = "config-defaults-1.10.0.yml";
+    /**
+     * Releases whose new-file defaults are frozen in {@code config-defaults-<release>.yml}, material groups
+     * included. When a release changes the layout or a default, add the release it replaces here, with its
+     * snapshot; never the current one, or an untouched current file would be rewritten every start.
+     */
+    static final List<String> RELEASES = List.of("1.10.0");
 
     private static final int MAX_BACKUPS = 100;
 
@@ -36,15 +42,31 @@ final class PristineConfig
     }
 
     /**
-     * Whether a file holds only what 1.10.0 wrote, or that plus settings added since at their defaults.
+     * The release whose defaults a file still holds, if any.
      *
      * @param file
      *            the parsed config file
-     * @return false for any other value, any key no setting answers to, or a 1.10.0 key gone missing
+     * @return the first of {@link #RELEASES} it matches, or null
      */
-    static boolean isUntouched(final Map<String, Object> file)
+    static String untouchedSince(final Map<String, Object> file)
     {
-        final Map<String, Object> shipped = shipped110();
+        return untouchedSince(file, RELEASES);
+    }
+
+    /** As {@link #untouchedSince(Map)}, against the given releases. */
+    static String untouchedSince(final Map<String, Object> file, final List<String> releases)
+    {
+        return releases.stream().filter(release -> isUntouched(file, release)).findFirst().orElse(null);
+    }
+
+    /**
+     * Whether a file holds only what a release wrote, or that plus settings added since at their defaults.
+     *
+     * @return false for any other value, any key no setting answers to, or a key of that release gone missing
+     */
+    private static boolean isUntouched(final Map<String, Object> file, final String release)
+    {
+        final Map<String, Object> shipped = shipped(release);
         if (shipped.isEmpty() || !file.keySet().containsAll(shipped.keySet()))
         {
             return false;
@@ -61,7 +83,7 @@ final class PristineConfig
         return true;
     }
 
-    /** The default a setting added after 1.10.0 has now, or null if the key is no setting. */
+    /** The default a setting added since has now, or null if the key is no setting. */
     private static Object defaultOf(final String key)
     {
         for (final Setting setting : DefaultSettings.config)
@@ -74,15 +96,15 @@ final class PristineConfig
         return null;
     }
 
-    private static Map<String, Object> shipped110()
+    private static Map<String, Object> shipped(final String release)
     {
-        try (InputStream in = PristineConfig.class.getClassLoader().getResourceAsStream(DEFAULTS_1_10_0))
+        try (InputStream in = PristineConfig.class.getClassLoader().getResourceAsStream("config-defaults-" + release + ".yml"))
         {
             return (in == null) ? Map.of() : YamlMaps.asMap(new Yaml().load(in));
         }
         catch (final IOException | YAMLException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not read the 1.10.0 defaults; config.yml is left as it is", e);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not read the " + release + " defaults; config.yml is left as it is", e);
             return Map.of();
         }
     }
@@ -113,10 +135,12 @@ final class PristineConfig
      */
     static void replaceIfUntouched(final File cfg)
     {
+        final String release;
         try (InputStream in = Files.newInputStream(cfg.toPath()))
         {
             final Object loaded = new Yaml().load(in);
-            if (!(loaded instanceof Map) || !isUntouched(YamlMaps.asMap(loaded)))
+            release = (loaded instanceof Map) ? untouchedSince(YamlMaps.asMap(loaded)) : null;
+            if (release == null)
             {
                 return;
             }
@@ -142,10 +166,10 @@ final class PristineConfig
         {
             discard(fresh);
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "config.yml holds only the 1.10.0 defaults but could not be replaced with the new layout; it is left as it is", e);
+                "config.yml holds only the " + release + " defaults but could not be replaced with the new layout; it is left as it is", e);
             return;
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "config.yml was unchanged from 1.10.0, so it was replaced with the new"
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "config.yml was unchanged from " + release + ", so it was replaced with the new"
             + " layout; the old file is kept as " + backup.getFileName() + ", and any comment you added is only there.");
     }
 

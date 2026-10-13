@@ -1249,8 +1249,9 @@ much work went into it.
   an **Upgrading:** note at the top of its changelog entry. A shape may gain a marker, a config
   key may gain a default, a gate may need regenerating; none of that changes what a file that
   already exists *means*. A `config.yml` keeps its layout and its old defaults, except one holding
-  exactly the frozen 1.10.0 values (`config-defaults-1.10.0.yml`, checked by `PristineConfig`), which is
-  copied to `config.yml.bak` and rewritten; a default changed after 1.10.0 reaches no other file.
+  exactly the frozen values of a past release (`config-defaults-<release>.yml`, listed in
+  `PristineConfig.RELEASES`), which is copied to `config.yml.bak` and rewritten. A release that changes
+  the layout or a default adds the one it replaces to that list; a customised file never gets the change.
 - **Major** (`2.0.0`) — the shape or data format changes meaning, or the events and methods in
   [API.md](API.md) break. Reserved for the case where a file that parsed yesterday describes
   something different today.
