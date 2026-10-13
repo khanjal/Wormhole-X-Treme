@@ -13,6 +13,7 @@ import org.bstats.bukkit.Metrics;
 import org.bstats.charts.AdvancedPie;
 import org.bstats.charts.SimplePie;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -125,7 +126,7 @@ public final class MetricsSupport
      *
      * @param gates
      *            the gates
-     * @return shape to count; empty with no gates
+     * @return shape to count, spelled as the plugin ships it; empty with no gates
      */
     static Map<String, Integer> shapeCounts(final Collection<Stargate> gates)
     {
@@ -133,14 +134,17 @@ public final class MetricsSupport
         for (final Stargate gate : gates)
         {
             final String shape = (gate.getGateShape() == null) ? null : gate.getGateShape().getShapeName();
-            counts.merge(StargateShapeRegistry.isShipped(shape) ? shape : "custom", 1, Integer::sum);
+            final String shipped = StargateShapeRegistry.shippedName(shape);
+            counts.merge((shipped != null) ? shipped : "custom", 1, Integer::sum);
         }
         return counts;
     }
 
     /**
      * How many gates show each portal material: the five a gate is likely to use by name, any
-     * other as {@code other}. Counted by gate, so one server of many does not stand for them all.
+     * other as {@code other}, and a gate whose material only a chunk load would tell as
+     * {@code unknown}, since this runs on the server thread and must not load one. Counted by gate,
+     * so one server of many does not stand for them all.
      *
      * @param gates
      *            the gates
@@ -151,8 +155,10 @@ public final class MetricsSupport
         final Map<String, Integer> counts = new LinkedHashMap<>();
         for (final Stargate gate : gates)
         {
-            final String material = gate.getEffectivePortalMaterial().name().toLowerCase(Locale.ROOT);
-            counts.merge(PORTAL_MATERIALS.contains(material) ? material : "other", 1, Integer::sum);
+            final Material portal = gate.getEffectivePortalMaterialIfLoaded();
+            final String material = (portal == null) ? "unknown" : portal.name().toLowerCase(Locale.ROOT);
+            counts.merge(("unknown".equals(material) || PORTAL_MATERIALS.contains(material)) ? material : "other",
+                1, Integer::sum);
         }
         return counts;
     }

@@ -90,16 +90,29 @@ public final class StargateShapeRegistry
     }
 
     /**
-     * Whether a shape is one the plugin ships, by name; a server's own can be called anything.
+     * The name a bundled shape ships under, for a shape called that, whatever the capitals; a
+     * server's own shape can be called anything, so a name that is not one of the bundled ones is
+     * not answered.
      *
      * @param name
      *            a shape's name, or null
-     * @return true for Standard, Minimal and the rest of the bundled shapes, whatever the capitals
+     * @return {@code Standard}, {@code Minimal} and so on as the plugin spells them, or null
      */
-    public static boolean isShipped(final String name)
+    public static String shippedName(final String name)
     {
-        return (name != null) && ShippedShapes.NAMES.stream()
-            .anyMatch(file -> file.equalsIgnoreCase(name + SHAPE_SUFFIX));
+        if (name == null)
+        {
+            return null;
+        }
+        for (final String file : ShippedShapes.NAMES)
+        {
+            final String shipped = file.substring(0, file.length() - SHAPE_SUFFIX.length());
+            if (shipped.equalsIgnoreCase(name))
+            {
+                return shipped;
+            }
+        }
+        return null;
     }
 
     /**

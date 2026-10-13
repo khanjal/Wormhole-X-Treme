@@ -635,7 +635,7 @@ What is sent, twice an hour:
 - the `gate-dial-spin` pattern, `gate-view`, `gate-iris-animation`, and whether `gate-ripple` and
   `gate-sounds-enabled` are on;
 - which of Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap
-  and Pl3xMap are installed, or `none`.
+  and Pl3xMap are enabled, or `none`.
 
 No player or gate names, coordinates or addresses. `plugins/bStats/config.yml` has `enabled: false` to stop
 it for every plugin on the server, and a DNS blocker that blocks `bstats.org` stops it too,

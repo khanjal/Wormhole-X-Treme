@@ -83,7 +83,11 @@ class MetricsSupportTest
                 final Object json = chart.getRequestJsonObject((message, error) -> { throw new AssertionError(message, error); }, true);
                 final String id = chartId(chart);
                 ids.add(id);
-                if (!List.of("gate_shapes", "portal_material").contains(id))
+                if (List.of("gate_shapes", "portal_material").contains(id))
+                {
+                    Assertions.assertNull(json, id + " is not sent while there is no gate to count");
+                }
+                else
                 {
                     Assertions.assertNotNull(json, id + " answers");
                     Assertions.assertTrue(CHART_ID.matcher(json.toString()).find(), json.toString());
@@ -150,13 +154,14 @@ class MetricsSupportTest
         Mockito.when(gateShape.getShapeName()).thenReturn(shape);
         final Stargate gate = Mockito.mock(Stargate.class);
         Mockito.when(gate.getGateShape()).thenReturn(gateShape);
-        Mockito.when(gate.getEffectivePortalMaterial()).thenReturn(portal);
+        Mockito.when(gate.getEffectivePortalMaterialIfLoaded()).thenReturn(portal);
         return gate;
     }
 
     /**
-     * A shipped shape is counted by its name, whatever the capitals, and every other as custom:
-     * a server's own shape file can be called anything, and a chart must not grow a bar for each.
+     * A shipped shape is counted under the name the plugin ships it by, whatever capitals a server's
+     * file wrote, and every other as custom: a server's own shape file can be called anything, and
+     * a chart must neither grow a bar for each nor split one shape over several spellings.
      */
     @Test
     void shapesAreCountedByNameWhenTheyShipAndAsCustomWhenTheyDoNot()
@@ -165,7 +170,7 @@ class MetricsSupportTest
             gate("Standard", Material.WATER), gate("standard", Material.WATER),
             gate("Minimal", Material.WATER), gate("Steve's Hideout", Material.WATER),
             gate("Weird", Material.WATER)));
-        assertEquals(Map.of("Standard", 1, "standard", 1, "Minimal", 1, "custom", 2), counts);
+        assertEquals(Map.of("Standard", 2, "Minimal", 1, "custom", 2), counts);
     }
 
     /** A gate with no shape is custom rather than a crash. */
@@ -187,6 +192,18 @@ class MetricsSupportTest
             gate("Standard", Material.GLASS)));
         assertEquals(Map.of("water", 2, "lava", 1, "nether_portal", 1, "end_gateway", 1,
             "end_portal", 1, "other", 1), counts);
+    }
+
+    /**
+     * A gate whose material only loading a chunk would tell is counted as unknown: the chart runs on
+     * the server thread, and asking every idle gate would load every one of their chunks at once.
+     */
+    @Test
+    void aGateInAnUnloadedChunkIsUnknownRatherThanLoadedToFindOut()
+    {
+        final Stargate idle = gate("Standard", null);
+        assertEquals(Map.of("unknown", 1, "water", 1), MetricsSupport.portalMaterialCounts(
+            List.of(idle, gate("Standard", Material.WATER))));
     }
 
     /** With no gates there is nothing to count, which the chart leaves unsent. */
