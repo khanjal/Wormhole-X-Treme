@@ -54,7 +54,7 @@ bStats adds these for every plugin; the plugin sends nothing for them.
   same reason `gate_shapes` and `portal_material` only count servers with at least one gate, so
   their totals are lower than `servers`.
 - Every value is from a closed set. The plugin never sends a name a server chose: a shape that
-  does not ship with it is `custom`, a material outside the five is `other`, and an iris
+  does not ship with it, or a gate with no shape, is `custom`, a material outside the five is `other`, and an iris
   animation that is not one of the five is `other`.
 
 ## When the plugin changes
@@ -62,6 +62,8 @@ bStats adds these for every plugin; the plugin sends nothing for them.
 The dashboard does not follow the code. Add or edit the chart there when you:
 
 - add a chart, in `MetricsSupport`: create it with the same ID and type;
+- change any of the below: the Metrics section of [guide/SERVER.md](guide/SERVER.md) repeats the
+  same lists, so edit it too;
 - change `range()`: it sets the values of `gates`, `ring_pairs`, `beam_destinations` and `mirrors`
   together;
 - add a shipped gate shape (`ShippedShapes.NAMES`), an iris animation
