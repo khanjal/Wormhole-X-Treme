@@ -286,6 +286,16 @@ class PristineConfigTest
         }
     }
 
+    /** The material groups are seeded after the first start, so a file without them is as untouched as one with. */
+    @Test
+    void theMaterialGroupsAreOptional() throws Exception
+    {
+        final Map<String, Object> file = pristineMap();
+        assertNotNull(file.remove("gate-material-groups"), "the snapshot had them");
+
+        assertEquals("1.10.0", PristineConfig.untouchedSince(file));
+    }
+
     /** The frozen table covers what 1.11.0 removed, or a file holding one could never be recognised. */
     @Test
     void theFrozenDefaultsHoldEveryRemovedSetting() throws Exception
