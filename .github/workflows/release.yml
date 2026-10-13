@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write   # needed to create the GitHub Release and upload assets
+  issues: write     # needed to close the release's milestone
 
 jobs:
   release:
@@ -94,6 +95,31 @@ jobs:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: ${{ steps.jar.outputs.JAR }}
+
+      # The milestone is named for the version (1.10.0), so the tag finds it. It is closed only
+      # when nothing in it is still open, and a tag with no milestone (a -beta) is skipped. This
+      # runs after the release is published, so continue-on-error keeps a milestone hiccup from
+      # turning a published release red.
+      - name: Close the release's milestone
+        if: github.event_name == 'push'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          MILESTONE=$(gh api "repos/$GITHUB_REPOSITORY/milestones?state=open&per_page=100" \
+            | jq -r --arg v "$VERSION" '.[] | select(.title == $v) | "\(.number) \(.open_issues)"')
+          if [ -z "$MILESTONE" ]; then
+            echo "No open milestone named $VERSION; nothing to close."
+            exit 0
+          fi
+          NUMBER=${MILESTONE% *}
+          OPEN=${MILESTONE#* }
+          if [ "$OPEN" != "0" ]; then
+            echo "::warning::Milestone $VERSION still has $OPEN open issues, so it was left open."
+            exit 0
+          fi
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/milestones/$NUMBER" -f state=closed
 
       # So a rehearsal produces something to look at rather than only a green tick.
       - name: Upload the jar a real release would have attached
