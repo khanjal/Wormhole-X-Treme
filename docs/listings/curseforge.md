@@ -68,6 +68,11 @@ CurseForge's rules turn out to allow it, the logo could go back. Until then, lea
 The form's own logo rule **(confirmed)**: not a solid or gradient colour, not a game logo, not a
 trademarked asset, nothing NSFW. The gate crop passes all four.
 
+**Badges are allowed on the page** **(confirmed, CurseForge's rules as pasted 2026-10-12)**:
+"dependency badges or functional link badges at the top … for cross-hosting/social linking
+purposes", as long as they carry no promotional material. So a row of link badges to the other
+sites and the repo may lead the description; a badge that advertises rather than links may not.
+
 ## Version upload
 
 | Field | Value |
