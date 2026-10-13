@@ -336,8 +336,8 @@ class StargateEffectiveMaterialTest
     /**
      * When every group gives the same portal material the group does not matter, so an unloaded
      * chunk need not be read: a server with one group, or groups that agree, gets a real answer
-     * for every gate rather than "unknown". The default config has only Atlantis, whose portal is
-     * water, so this is the case on most servers.
+     * for every gate rather than "unknown". The shipped config's four groups all have a water portal,
+     * so this is the case on most servers; this class loads only Atlantis.
      */
     @Test
     void portalMaterialNeedsNoChunkWhenEveryGroupAgrees()
