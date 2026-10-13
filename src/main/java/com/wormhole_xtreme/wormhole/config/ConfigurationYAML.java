@@ -81,6 +81,10 @@ public class ConfigurationYAML
         {
             writeFile(cfg, DefaultSettings.config);
         }
+        else
+        {
+            PristineConfig.replaceIfUntouched(cfg);
+        }
 
         // An unread file must still leave a group claiming OBSIDIAN, or the shipped shapes warn.
         boolean groupsLoaded = false;
