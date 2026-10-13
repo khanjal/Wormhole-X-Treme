@@ -31,7 +31,7 @@ Modrinth description changes, paste the new one here too.
 | Class | Bukkit Plugins |
 | Main category | Teleportation |
 | Additional categories **(check)** | Mechanics, Fun |
-| Allow comments | off. Support goes to the issue tracker, as on the other sites. |
+| Allow comments | off. Support goes to the issue tracker. |
 | Unlisted project | off |
 | Social links | GitHub: `https://github.com/khanjal/Wormhole-X-Treme`. Discord blank, for the reason in [`shared.md`](shared.md#links). |
 | Description | the Markdown block in [`modrinth.md`](modrinth.md#description) |

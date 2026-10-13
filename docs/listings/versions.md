@@ -20,7 +20,7 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
   1.10.0 with the history in order.
 - **On Spigot, untick Notify followers for all but the newest**, or followers get one alert per
   back-filled version.
-- **Tick each version's own Minecraft range** on Modrinth and Hangar, from its section below, not
+- **Tick each version's own Minecraft range** on Modrinth, Hangar and CurseForge, from its section below, not
   today's.
 
 ## Writing a new entry

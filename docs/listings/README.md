@@ -34,9 +34,9 @@ changes, you change it there and then carry it into whichever site files quote i
    Modrinth, Hangar and CurseForge take a version upload each. Each of the four has a version-upload section
    in its file saying what goes in the fields. This is the step that actually ships the release to
    the people using it, and it is easy to stop after tagging.
-3. **Re-check Modrinth's game versions.** Its auto-detection reads `api-version` from `plugin.yml`
+3. **Re-check Modrinth's game versions** (and CurseForge's, which may do the same). Its auto-detection reads `api-version` from `plugin.yml`
    and ticks 1.20.x alone, so a version upload can quietly narrow what the page claims. See
-   [`modrinth.md`](modrinth.md#fields).
+   [`modrinth.md`](modrinth.md#fields) and [`curseforge.md`](curseforge.md#version-upload).
 4. **Add the release to [`versions.md`](versions.md)**: title, Minecraft range, and a short
    changelog in Markdown with its BBCode copy. The full `CHANGELOG.md` section is too
    long for a download page.

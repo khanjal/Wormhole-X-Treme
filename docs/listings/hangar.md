@@ -17,12 +17,12 @@ and in the description, so if there is such a rule, both have to change the same
 did: crop the avatar from `docs/images/gates/gate-shapes-active.png` and drop the banner. Check
 before the next upload rather than assuming either way.
 
-**The one real difference from the other two sites:** Hangar is PaperMC's own platform and its
+**The one real difference from the other sites:** Hangar is PaperMC's own platform and its
 platform tags are **Paper, Velocity and Waterfall** — there is no Spigot or Bukkit tag
 **(inferred, see below)**. So this plugin lists there as a Paper plugin, which is honest (CI builds and tests
 against Paper at every supported version) but inverts how Spigot and Modrinth describe it. The page
 below leads with Paper and mentions Spigot second, which is the only place the copy deliberately
-diverges from the other two.
+diverges from the others.
 
 ---
 
