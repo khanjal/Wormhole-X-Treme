@@ -631,7 +631,10 @@ What is sent, twice an hour:
   `6-20`, `21-50`, `51-200`, `200+`);
 - which gate shapes are in use, by name for the ones that ship with the plugin and `custom` for
   any other, and which portal material the gates show (`water`, `lava`, `nether_portal`,
-  `end_gateway`, `end_portal`, or `other`), each counted by gate;
+  `end_gateway`, `end_portal`, or `other`), each counted by gate. A gate nobody has used since the
+  server started, in a chunk that is not loaded, is `unknown`: finding its material would load the
+  chunk, and the counts are taken on the server thread. So that chart reflects the gates near
+  players or in use more than all of them;
 - the `gate-dial-spin` pattern, `gate-view`, `gate-iris-animation`, and whether `gate-ripple` and
   `gate-sounds-enabled` are on;
 - which of Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap

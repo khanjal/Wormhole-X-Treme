@@ -861,7 +861,15 @@ public class Stargate implements GateIris
             return true;
         }
         final Location first = gateStructureBlocks.get(0);
-        return gateWorld.isChunkLoaded(first.getBlockX() >> 4, first.getBlockZ() >> 4);
+        try
+        {
+            return gateWorld.isChunkLoaded(first.getBlockX() >> 4, first.getBlockZ() >> 4);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // A world the server has since unloaded: nothing to read, so nothing to wait for.
+            return false;
+        }
     }
 
     /**
