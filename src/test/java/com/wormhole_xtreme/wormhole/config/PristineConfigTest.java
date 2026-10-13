@@ -328,6 +328,21 @@ class PristineConfigTest
         assertFalse(PristineConfig.isComplete(cut), "none");
     }
 
+    /** A new file that cannot be written is never moved over the old one. */
+    @Test
+    void aNewFileThatCannotBeWrittenLeavesTheFile() throws Exception
+    {
+        final String original = pristine();
+        write(original);
+        Files.createDirectory(new File(directory, "config.yml.new").toPath());
+
+        load();
+
+        assertTrue(config().isFile(), "still a file");
+        assertEquals(original, text("config.yml").substring(0, original.length()));
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("could not be replaced"), any(Throwable.class));
+    }
+
     /** A backup that already holds these bytes is reused, so a replacement that keeps failing leaves one copy. */
     @Test
     void anIdenticalBackupIsReused() throws Exception
@@ -363,9 +378,10 @@ class PristineConfigTest
     @Test
     void aKeyIsAcceptedAtAnyListedReleasesValue()
     {
-        final List<String> releases = List.of("test-release-a", "test-release-b", "test-release");
+        final List<String> releases = List.of("test-release-a", "test-release", "test-release-b");
 
-        assertEquals("test-release-b", PristineConfig.untouchedSince(Map.of("timeout-shutdown", 77, "k", 2), releases));
+        assertEquals("test-release", PristineConfig.untouchedSince(Map.of("timeout-shutdown", 77, "k", 2), releases),
+            "k is not in this release's own file, and the last release wrote 2");
         assertEquals("test-release-a", PristineConfig.untouchedSince(Map.of("timeout-shutdown", 77, "k", 1), releases));
         assertNull(PristineConfig.untouchedSince(Map.of("timeout-shutdown", 77, "k", 3), releases));
     }
