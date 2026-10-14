@@ -38,10 +38,12 @@ final class PristineConfig
      * snapshot; never the current one, or an untouched current file would be rewritten every start. Newest
      * first.
      *
+     * <p>1.2.0 stands for 1.1.0 too: the same fifteen settings with the same defaults.
+     *
      * <p>Only 1.10.0's snapshot holds the material groups: they are seeded after the first start, from
      * 1.8.0 on and always the same, so a file may or may not have them.
      */
-    static final List<String> RELEASES = List.of("1.10.0", "1.9.0", "1.8.1", "1.8.0", "1.5.0", "1.3.0");
+    static final List<String> RELEASES = List.of("1.10.0", "1.9.0", "1.8.1", "1.8.0", "1.5.0", "1.3.0", "1.2.0");
 
     private static final String GROUPS = "gate-material-groups";
 
