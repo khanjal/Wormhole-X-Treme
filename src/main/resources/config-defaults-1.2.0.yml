@@ -1,0 +1,17 @@
+# The defaults 1.2.0 wrote into a new config.yml, frozen: a file holding exactly these is untouched.
+# Never edit; a later release's changed default is not a change to these.
+timeout-activate: 30
+timeout-shutdown: 38
+max-open-seconds: 300
+use-cooldown-enabled: false
+permissions-support-disable: false
+permissions-auto-fallback: true
+wormhole-use-is-teleport: false
+help-support-disable: false
+same-world-only: false
+log-level: "INFO"
+entity-scan-interval-ticks: 20
+gate-material-groups-autodiscover: true
+economy-enabled: false
+economy-use-cost: 0.0
+economy-build-cost: 0.0
