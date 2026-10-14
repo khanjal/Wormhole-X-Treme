@@ -9,6 +9,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,11 +56,11 @@ class CaptureSectionsTest
     /** As many states, some solid, some to be seen through, some water and some leaves. */
     private static BlockData[] states(final int count)
     {
+        final Material[] materials = { null, null, null, Material.WATER, null, Material.OAK_LEAVES, null };
         final BlockData[] states = new BlockData[count];
         for (int i = 0; i < count; i++)
         {
-            final Material material = ((i % 7) == 3) ? Material.WATER : (((i % 7) == 5) ? Material.OAK_LEAVES : null);
-            states[i] = state("test:state_" + i, (i % 3) != 0, material);
+            states[i] = state("test:state_" + i, (i % 3) != 0, materials[i % materials.length]);
         }
         return states;
     }
@@ -111,10 +115,13 @@ class CaptureSectionsTest
             for (int z = box.minZ(); z < (box.minZ() + box.sizeZ()); z++)
             {
                 final int ground = box.minY() + 8 + (int) (6 * Math.sin(x / 5.0) * Math.cos(z / 7.0));
-                for (int y = box.minY(); y <= ground; y++)
+                for (int y = box.minY(); y <= (ground - 3); y++)
                 {
-                    builder.put(x, y, z, (y == ground) ? grass : ((y > (ground - 3)) ? dirt : stone));
+                    builder.put(x, y, z, stone);
                 }
+                builder.put(x, ground - 2, z, dirt);
+                builder.put(x, ground - 1, z, dirt);
+                builder.put(x, ground, z, grass);
                 if (((x * 31) + z) % 11 == 0)
                 {
                     builder.put(x, ground + 1, z, flower);
@@ -436,6 +443,88 @@ class CaptureSectionsTest
         {
             fail("byte " + at + " read, then threw " + thrown, thrown);
         }
+    }
+
+    /** The west half of a section, x 0 to 7: a box edge running through it. */
+    private static final Section.Inside WEST_HALF = new Section.Inside(0, 7, 0, 15, 0, 15);
+
+    /**
+     * A full section, one bit a block, with blocks at the given numbers, as {@code Section.write}
+     * writes one; {@code said} is the count it claims.
+     */
+    private static DataInputStream fullSection(final int said, final int... locals) throws IOException
+    {
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(bytes))
+        {
+            out.writeShort(said);
+            out.writeShort(1);
+            out.writeShort(1);
+            out.writeBoolean(true);
+            final long[] packed = new long[Section.BLOCKS / Long.SIZE];
+            for (final int local : locals)
+            {
+                packed[local >>> 6] |= 1L << (local & 63);
+            }
+            for (final long word : packed)
+            {
+                out.writeLong(word);
+            }
+            out.writeByte(0);
+        }
+        return new DataInputStream(new ByteArrayInputStream(bytes.toByteArray()));
+    }
+
+    /**
+     * A full section with a block past the box's edge is refused, where the same block inside it is read.
+     *
+     * <p>The section is on the world's grid and the box is not, so part of a section can lie outside
+     * the box. A block kept there by a bad file is visited as kept, and a view would draw it.
+     */
+    @Test
+    void aFullSectionWithABlockPastTheBoxsEdgeIsRefused() throws IOException
+    {
+        final File file = new File("edge.view");
+        final int inside = Section.local(7, 3, 5);
+        final int outside = Section.local(8, 3, 5);
+
+        final Section read = Section.read(fullSection(1, inside), file, 2, WEST_HALF);
+
+        assertEquals(1, read.value(inside), "x 7 is inside, and read");
+        assertThrows(IOException.class, () -> Section.read(fullSection(1, outside), file, 2, WEST_HALF), "x 8 is past it");
+    }
+
+    /** A full section holding a different number of blocks than it says is refused. */
+    @Test
+    void aFullSectionHoldingOtherThanItSaysIsRefused() throws IOException
+    {
+        final File file = new File("count.view");
+        final int one = Section.local(1, 1, 1);
+        final int two = Section.local(2, 1, 1);
+
+        assertEquals(2, Section.read(fullSection(2, one, two), file, 2, WEST_HALF).entries(), "two said, two held");
+        assertThrows(IOException.class, () -> Section.read(fullSection(2, one), file, 2, WEST_HALF), "two said, one held");
+        assertThrows(IOException.class, () -> Section.read(fullSection(1, one, two), file, 2, WEST_HALF), "one said, two held");
+    }
+
+    /**
+     * A section the box only partly covers, said to be all seen air, is refused; a whole one is read.
+     *
+     * <p>All air is one byte in the file, and all 4096 blocks of the section; through part of a
+     * section that would be seen air past the box's edge.
+     */
+    @Test
+    void aSectionPartlyOutsideTheBoxIsNotAllAir() throws IOException
+    {
+        final File file = new File("air.view");
+        final byte[] allAir = { 0, 0, 1 };
+        final Section.Inside whole = new Section.Inside(0, 15, 0, 15, 0, 15);
+
+        assertEquals(Section.BLOCKS,
+            Section.read(new DataInputStream(new ByteArrayInputStream(allAir)), file, 2, whole).airCount(),
+            "a whole section can be all air");
+        assertThrows(IOException.class,
+            () -> Section.read(new DataInputStream(new ByteArrayInputStream(allAir)), file, 2, WEST_HALF));
     }
 
     /** A file's contents, gunzipped. */

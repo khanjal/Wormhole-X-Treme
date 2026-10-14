@@ -43,7 +43,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
  * world there. A dense grid of the box came first, and at the render distance it was eighty
  * megabytes a capture. Air that can be seen is kept too, apart from the entries, since air a viewer
  * can see is what a view carves through the real world. The entries and the air are kept by
- * {@link Section}, sixteen blocks a side, as Minecraft keeps a chunk (#525): a sorted list of
+ * {@code Section}, sixteen blocks a side, as Minecraft keeps a chunk (#525): a sorted list of
  * positions came before, at ten bytes a block.
  *
  * <p>A capture may instead be <em>complete</em>, holding every block that is not air, with no
