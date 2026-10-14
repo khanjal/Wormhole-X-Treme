@@ -80,7 +80,9 @@ way.
 ## The banner's look
 
 Up close a mirror shows a room, drawn in real blocks behind its wall, and nothing on the banner
-matters. From further than `mirror-proximity-distance`, from behind, and before a room is captured,
+matters. From further than `mirror-proximity-distance`, from behind, before a room is captured, and
+for the moment its capture is read off the disk (off the main thread, after a restart or five
+minutes unwatched),
 the banner is what shows — so a corridor of mirrors still reads as a row of doors.
 
 A banner is a dyed base plus at most six flat patterns, in sixteen colours, and what it can carry

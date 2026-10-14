@@ -806,7 +806,13 @@ what it can see is already there, and one capture serves every gate that dials t
 gate can still be dialled and shows nothing itself, but a ring gate dialling it shows its front. The file is named for the gate made file-safe, with a hash of the name,
 since two names can come out alike; one seen through a smaller opening, left by an earlier build,
 is deleted as its gate is next refreshed. So it is there after a restart, and a remote gate shows its view at
-once rather than after its far side has been read off the disk. Removing a gate deletes its
+once rather than after its far side has been read off the disk. The capture's own file is read off
+the main thread, the first time it is wanted after a restart or after five minutes nobody drew from
+it ([#528](https://github.com/khanjal/Wormhole-X-Treme/issues/528)): one at a mirror's cap of half a
+million blocks took about 130 ms, a hitch on the main thread. The horizon shows until it is in, and
+the dial starts the read, so it is usually in before the kawoosh settles. Nothing is taken while it
+is read, since a first step taken then would overwrite a capture holding the fill; a gate removed
+meanwhile does not have it put back. Removing a gate deletes its
 captures; a refresh that hands a gate back keeps them. It is taken again:
 
 - **as a gate is dialled or opens**, or its iris opens, once it is a minute old if it holds only the
