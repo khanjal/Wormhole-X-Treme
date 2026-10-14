@@ -812,7 +812,12 @@ it ([#528](https://github.com/khanjal/Wormhole-X-Treme/issues/528)): one at a mi
 million blocks took about 130 ms, a hitch on the main thread. The horizon shows until it is in, and
 the dial starts the read, so it is usually in before the kawoosh settles. Nothing is taken while it
 is read, since a first step taken then would overwrite a capture holding the fill; a gate removed
-meanwhile does not have it put back. Removing a gate deletes its
+meanwhile does not have it put back. A read that has not come back in a minute is counted lost and
+the file read again. A gate whose first sweep after opening meets its read still in flight skips
+that opening's retake of an old capture; the refresh while somebody is at the gate catches it up.
+On Windows a file being read cannot be deleted or replaced, so a gate removed, or a capture saved,
+during the read can leave the old file behind, logged as for any failed delete or write; a
+retake's old file is read back once the new capture is let go, until the next retake. Removing a gate deletes its
 captures; a refresh that hands a gate back keeps them. It is taken again:
 
 - **as a gate is dialled or opens**, or its iris opens, once it is a minute old if it holds only the

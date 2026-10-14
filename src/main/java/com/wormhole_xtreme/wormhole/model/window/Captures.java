@@ -14,6 +14,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -227,7 +228,34 @@ public final class Captures
      * Captures being read off the disk off the main thread, by key, each with a token of its own read
      * (#528): a read whose token is gone by the time it lands was forgotten or cleared meanwhile.
      */
-    private static final Map<String, Object> LOADING = new HashMap<>();
+    private static final Map<String, Reading> LOADING = new HashMap<>();
+
+    /** How long a read may take before it is counted lost and the file read again: a minute, for a read of a tenth of a second. */
+    static final long READ_TIMEOUT_MILLIS = 60_000L;
+
+    /** The time a read's age is measured by; the field is for a test to move on. */
+    static LongSupplier clock = System::currentTimeMillis;
+
+    /** Reads a capture's file, so a test can make a read fail; null for the usual way. */
+    @FunctionalInterface
+    interface CaptureLoader
+    {
+        /** @return the capture in the file */
+        Capture load(File file) throws IOException;
+    }
+
+    private static CaptureLoader loader;
+
+    /** One read of a capture's file: its own token, told apart from any other by identity, and when it began. */
+    private static final class Reading
+    {
+        private final long startedAt;
+
+        Reading(final long startedAt)
+        {
+            this.startedAt = startedAt;
+        }
+    }
 
     /** Captures being taken, by destination key. */
     private static final Map<String, Job> JOBS = new HashMap<>();
@@ -607,7 +635,7 @@ public final class Captures
             held.usedAt = System.currentTimeMillis();
             return held.capture;
         }
-        if (ABSENT.contains(key) || LOADING.containsKey(key))
+        if (ABSENT.contains(key) || loading(key))
         {
             return null;
         }
@@ -623,11 +651,21 @@ public final class Captures
     /**
      * Whether a capture is being read off the disk, so a caller handed null does not take it afresh.
      *
+     * <p>A read older than {@link #READ_TIMEOUT_MILLIS} is counted lost -- a landing the scheduler
+     * dropped -- so it cannot keep its key from being read or taken for good.
+     *
      * @return true while its read is under way
      */
     static boolean loading(final String key)
     {
-        return LOADING.containsKey(key);
+        final Reading reading = LOADING.get(key);
+        return (reading != null) && ((clock.getAsLong() - reading.startedAt) < READ_TIMEOUT_MILLIS);
+    }
+
+    /** Reads capture files another way, for a test; null for the usual way. */
+    static void loadFilesWith(final CaptureLoader other)
+    {
+        loader = other;
     }
 
     /**
@@ -637,8 +675,13 @@ public final class Captures
      */
     private static Capture startLoading(final String key, final File file)
     {
-        final Object token = new Object();
-        LOADING.put(key, token);
+        final Reading token = new Reading(clock.getAsLong());
+        // A lost read's landing, should it come after all, finds its token gone and is dropped.
+        if (LOADING.put(key, token) != null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "A read of capture " + file.getName()
+                + " did not come back in " + (READ_TIMEOUT_MILLIS / 1000L) + "s; reading it again");
+        }
         try
         {
             WormholeXTreme.getScheduler().runTaskAsynchronously(WormholeXTreme.getThisPlugin(),
@@ -660,14 +703,14 @@ public final class Captures
      * <p>An OutOfMemoryError is not caught, so the pool still reports it, but the finally hands back
      * all the same, so the key is not left loading for good.
      */
-    private static void read(final String key, final Object token, final File file, final Consumer<Runnable> onMain)
+    private static void read(final String key, final Reading token, final File file, final Consumer<Runnable> onMain)
     {
         final long started = System.nanoTime();
         Capture capture = null;
         Throwable failure = null;
         try
         {
-            capture = Capture.load(file);
+            capture = (loader == null) ? Capture.load(file) : loader.load(file);
         }
         catch (final Exception | LinkageError unreadable)
         {
@@ -686,7 +729,8 @@ public final class Captures
      * Puts a capture just read in memory, on the main thread, or remembers its file as unreadable.
      *
      * <p>Nothing is kept if the key was forgotten or cleared while it was read, and a capture taken
-     * meanwhile is newer than the file, so it stays.
+     * meanwhile is newer than the file, so it stays; a read that failed then, likely on the file
+     * being written over by that capture, does not mark its key as having none.
      *
      * @param capture
      *            what was read, or null if it failed
@@ -696,21 +740,18 @@ public final class Captures
      * @param millis
      *            how long the read took
      */
-    private static void land(final String key, final Object token, final File file, final Capture capture,
+    private static void land(final String key, final Reading token, final File file, final Capture capture,
         final Throwable failure, final long millis)
     {
-        if (!LOADING.remove(key, token))
+        if (!LOADING.remove(key, token) || LOADED.containsKey(key))
         {
             return;
         }
         final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
         if (capture != null)
         {
-            if (!LOADED.containsKey(key))
-            {
-                LOADED.put(key, new Held(capture, System.currentTimeMillis()));
-                changed();
-            }
+            LOADED.put(key, new Held(capture, System.currentTimeMillis()));
+            changed();
             if ((plugin != null) && plugin.isLoggable(Level.FINE))
             {
                 plugin.prettyLog(Level.FINE, "Read capture " + file.getName() + " in " + millis + " ms: "
@@ -720,8 +761,11 @@ public final class Captures
         }
         if (failure != null)
         {
-            plugin.prettyLog(Level.WARNING, "Could not read mirror capture " + file.getName(), failure);
             ABSENT.add(key);
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not read mirror capture " + file.getName(), failure);
+            }
         }
     }
 
@@ -977,7 +1021,7 @@ public final class Captures
     /** Lets go of captures nobody has looked at for a while. */
     static void unloadIdle()
     {
-        final long now = System.currentTimeMillis();
+        final long now = clock.getAsLong();
         LOADED.entrySet().removeIf(entry -> (now - entry.getValue().usedAt) > IDLE_MILLIS);
     }
 

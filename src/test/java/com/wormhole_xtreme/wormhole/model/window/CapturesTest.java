@@ -145,6 +145,8 @@ class CapturesTest
     {
         Captures.clear();
         Captures.siftWith(null);
+        Captures.loadFilesWith(null);
+        Captures.clock = System::currentTimeMillis;
         PluginTestSupport.scheduler(null);
         MirrorManager.clear();
         ConfigTestSupport.clear();
@@ -1568,5 +1570,155 @@ class CapturesTest
         pool.runMain();
 
         assertNotNull(Captures.get(gateKey()), "the capture on disk, in memory now");
+    }
+
+    /**
+     * A read that fails after a retake has landed does not mark the place as having no capture.
+     *
+     * <p>The retake writes the file the read is reading, so the read can fail on it. Counted
+     * absent then, the place had no capture the moment the retake was let go as idle, and the
+     * next look took the room afresh although its file was fine.
+     */
+    @Test
+    void aReadFailingAfterARetakeLandedDoesNotHideTheRetake() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        assertNull(Captures.get(mirror));
+        final List<Runnable> read = new ArrayList<>(pool.held);
+        pool.held.clear();
+        pool.holdAsync = false;
+        withServer(() ->
+        {
+            assertTrue(Captures.retake(mirror));
+            pool.tickUntilIdle();
+        });
+        assertNotNull(Captures.get(mirror), "the retake landed first");
+        Captures.loadFilesWith(file ->
+        {
+            throw new IOException("cut short by the retake's own write");
+        });
+
+        read.forEach(Runnable::run);
+        pool.runMain();
+        Captures.loadFilesWith(null);
+        final long later = System.currentTimeMillis() + 400_000L;
+        Captures.clock = () -> later;
+        Captures.unloadIdle();
+        pool.holdAsync = true;
+
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("Could not read mirror capture"), any(IOException.class));
+        assertNull(Captures.get(mirror), "let go as idle");
+        assertEquals(1, pool.held.size(), "and read again from its file, not counted as having none");
+    }
+
+    /**
+     * A read whose landing never comes is counted lost after a minute, and the file read again.
+     *
+     * <p>A landing the scheduler dropped left the key loading for good: its view never drew, and
+     * nothing could take it afresh either, until a restart.
+     */
+    @Test
+    void aReadThatNeverLandsIsCountedLostAfterAMinute() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        final long[] now = { 1_000_000L };
+        Captures.clock = () -> now[0];
+        assertNull(Captures.get(mirror));
+        pool.held.clear();
+
+        now[0] += Captures.READ_TIMEOUT_MILLIS - 1;
+        assertNull(Captures.get(mirror), "still waited for just short of a minute");
+        assertTrue(pool.held.isEmpty(), "with no second read");
+        withServer(() -> assertFalse(Captures.request(mirror), "and nothing taken over it"));
+
+        now[0]++;
+        withServer(() -> assertTrue(Captures.request(mirror), "a lost read no longer holds back a capture"));
+        assertNull(Captures.get(mirror));
+        assertEquals(1, pool.held.size(), "the file is read again");
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("did not come back"));
+        pool.runHeld();
+        pool.runMain();
+        assertNotNull(Captures.get(mirror), "and lands");
+    }
+
+    /** A read landing as the plugin is let go warns nobody and throws nothing, and still remembers an unreadable file. */
+    @Test
+    void anUnreadableFileLandingWithNoPluginThrowsNothing() throws Exception
+    {
+        assertTrue(DataLayout.mirrorCaptureDir().mkdirs());
+        Files.write(mirrorFile().toPath(), new byte[] { 1, 2, 3 });
+        final Pool pool = holdingPool();
+        assertNull(Captures.get(mirror));
+        pool.runHeld();
+
+        PluginTestSupport.remove();
+        try
+        {
+            pool.runMain();
+        }
+        finally
+        {
+            PluginTestSupport.install(plugin);
+        }
+
+        assertNull(Captures.get(mirror));
+        assertTrue(pool.held.isEmpty(), "remembered as unreadable, not read again");
+    }
+
+    /**
+     * An Error while reading -- running out of memory on a big capture -- reaches the pool, and still lets the key go.
+     *
+     * <p>Left loading, the place would never be read or taken again until a restart.
+     */
+    @Test
+    void anErrorWhileReadingStillLetsTheKeyGo() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        Captures.loadFilesWith(file ->
+        {
+            throw new OutOfMemoryError("a capture too big to read");
+        });
+        assertNull(Captures.get(mirror));
+
+        assertThrows(OutOfMemoryError.class, pool::runHeld, "the error is not swallowed");
+        assertEquals(1, pool.main.size(), "handed back all the same");
+        pool.runMain();
+        Captures.loadFilesWith(null);
+
+        assertNull(Captures.get(mirror));
+        assertEquals(1, pool.held.size(), "read again when next wanted, not counted as having none");
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("Could not read mirror capture"), any(Throwable.class));
+    }
+
+    /**
+     * A read that lands before a retake is drawn until the retake replaces it.
+     *
+     * <p>The other order from {@link #aCaptureTakenWhileTheOldOneIsReadIsNotReplacedByIt}: newer
+     * wins either way, so neither a read nor a retake may keep its place by having arrived first.
+     */
+    @Test
+    void aReadLandingBeforeARetakeIsDrawnUntilTheRetakeReplacesIt() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        withServer(() ->
+        {
+            assertTrue(Captures.retake(mirror));
+            assertNull(Captures.get(mirror));
+            assertEquals(1, pool.held.size(), "the read, while the retake waits for its first tick");
+            pool.runHeld();
+            pool.runMain();
+            final Capture old = Captures.get(mirror);
+            assertNotNull(old, "the file read, drawn while the retake runs");
+
+            pool.holdAsync = false;
+            pool.tickUntilIdle();
+            final Capture fresh = Captures.get(mirror);
+            assertNotNull(fresh);
+            assertFalse(old == fresh, "the retake replaced the capture read first");
+        });
     }
 }
