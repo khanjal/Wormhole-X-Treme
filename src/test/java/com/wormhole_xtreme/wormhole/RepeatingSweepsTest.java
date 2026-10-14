@@ -2,10 +2,9 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -26,14 +25,15 @@ import org.junit.jupiter.api.io.TempDir;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import java.util.Collections;
 
 /**
- * A sweep's period changed with {@code /wormhole config} takes effect at once.
+ * The repeating sweeps start at their periods, and one timed by a setting follows a change to it
+ * at once.
  *
- * <p>The research facility's stage 6 set {@code gate-sound-ambient-ticks} in-game and the hum kept
- * its old interval until a restart, though the guide says a change needs none: the period was handed
- * to the scheduler once, at enable. Four settings time a sweep that way.
+ * <p>The research facility's stage 6 set the ambient hum's period in-game and it kept its old
+ * interval until a restart, though the guide says a change needs none: the period was handed to
+ * the scheduler once, at enable. The hum's period is fixed now; the ripple's on-off is the setting
+ * that still times a sweep.
  */
 class RepeatingSweepsTest
 {
@@ -63,10 +63,7 @@ class RepeatingSweepsTest
                 return task;
             });
         PluginTestSupport.scheduler(scheduler);
-        ConfigTestSupport.set(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20);
-        ConfigTestSupport.set(ConfigKeys.GATE_SOUND_AMBIENT_TICKS, 70);
-        ConfigTestSupport.set(ConfigKeys.MIRROR_PROXIMITY_TICKS, 25);
-        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_HORIZON_TICKS, 10);
+        ConfigTestSupport.set(ConfigKeys.GATE_RIPPLE, false);
         ConfigTestSupport.set(ConfigKeys.GATE_SOUNDS_ENABLED, true);
         RepeatingSweeps.startAll();
     }
@@ -80,86 +77,34 @@ class RepeatingSweepsTest
         PluginTestSupport.remove();
     }
 
-    /** The tasks started at this period. */
-    private List<BukkitTask> startedAt(final long period)
+    /**
+     * Every sweep starts at its period: the entity scan, the hum, both mirror sweeps and the iris
+     * horizon, at what their settings defaulted to before they were fixed. The ripple is off.
+     */
+    @Test
+    void everySweepStartsAtItsPeriod()
     {
-        final List<BukkitTask> found = new ArrayList<>();
-        for (final Scheduled s : scheduled)
-        {
-            if (s.period() == period)
-            {
-                found.add(s.task());
-            }
-        }
-        return found;
+        assertEquals(List.of(20L, 70L, 20L, 20L, 10L), RepeatingSweeps.runningPeriods());
     }
 
-    /** Every sweep a setting times is started, once each, the mirrors' period timing two. */
+    /** Turned on, the ripple sweep starts at once, and turned off again it stops. */
     @Test
-    void everySweepASettingTimesIsStarted()
+    void theRippleFollowsItsSettingWithoutARestart()
     {
-        assertEquals(List.of(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, ConfigKeys.GATE_SOUND_AMBIENT_TICKS,
-            ConfigKeys.MIRROR_PROXIMITY_TICKS, ConfigKeys.MIRROR_PROXIMITY_TICKS, ConfigKeys.GATE_IRIS_HORIZON_TICKS),
-            RepeatingSweeps.runningKeys());
-    }
-
-    /** The reported case: the hum moves to its new interval, and the old one stops. */
-    @Test
-    void theHumFollowsANewIntervalWithoutARestart()
-    {
-        final List<BukkitTask> hum = startedAt(70L);
-        assertEquals(1, hum.size(), "one hum task, started at the configured 70: " + scheduled);
-
-        ConfigManager.applySetting("gate-sound-ambient-ticks", "40");
-
-        verify(hum.get(0)).cancel();
-        verify(scheduler).runTaskTimer(eq(plugin), any(Runnable.class), eq(40L), eq(40L));
-    }
-
-    /** Both mirror sweeps share their period, so both move. */
-    @Test
-    void bothMirrorSweepsFollowTheProximityInterval()
-    {
-        final List<BukkitTask> mirrors = startedAt(25L);
-        assertEquals(2, mirrors.size(), "the proximity sweep and the signpost: " + scheduled);
-
-        ConfigManager.applySetting("mirror-proximity-ticks", "30");
-
-        verify(mirrors.get(0)).cancel();
-        verify(mirrors.get(1)).cancel();
-        assertEquals(2, startedAt(30L).size(), "both started again at 30");
-    }
-
-    /** The entity sweep follows its interval too. */
-    @Test
-    void theEntitySweepFollowsItsInterval()
-    {
-        final List<BukkitTask> sweep = startedAt(20L);
-        assertEquals(1, sweep.size(), scheduled.toString());
-
-        ConfigManager.applySetting("entity-scan-interval-ticks", "60");
-
-        verify(sweep.get(0)).cancel();
-        assertEquals(1, startedAt(60L).size());
-    }
-
-    /** At 0 the iris horizon has no task at all, and set again it has one back. */
-    @Test
-    void theIrisHorizonStopsAtZeroAndStartsAgainAfter()
-    {
-        final List<BukkitTask> horizon = startedAt(10L);
-        assertEquals(1, horizon.size(), scheduled.toString());
-
         final int before = scheduled.size();
-        ConfigManager.applySetting("gate-iris-horizon-ticks", "0");
-        verify(horizon.get(0)).cancel();
-        assertEquals(before, scheduled.size(), "nothing scheduled at a period of 0");
-        assertFalse(RepeatingSweeps.runningKeys().contains(ConfigKeys.GATE_IRIS_HORIZON_TICKS),
-            "and the horizon is not counted as running");
 
-        ConfigManager.applySetting("gate-iris-horizon-ticks", "15");
-        assertEquals(1, startedAt(15L).size(), "running again at 15");
-        assertTrue(RepeatingSweeps.runningKeys().contains(ConfigKeys.GATE_IRIS_HORIZON_TICKS));
+        ConfigManager.applySetting("gate-ripple", "true");
+
+        assertEquals(before + 1, scheduled.size(), "one ripple task: " + scheduled);
+        final Scheduled ripple = scheduled.get(before);
+        assertEquals(20L, ripple.period());
+        assertEquals(List.of(20L, 70L, 20L, 20L, 10L, 20L), RepeatingSweeps.runningPeriods());
+
+        ConfigManager.applySetting("gate-ripple", "false");
+
+        verify(ripple.task()).cancel();
+        assertEquals(List.of(20L, 70L, 20L, 20L, 10L), RepeatingSweeps.runningPeriods(),
+            "and the ripple is not counted as running");
     }
 
     /** A setting that times no sweep leaves them all running as they were. */
@@ -177,35 +122,39 @@ class RepeatingSweepsTest
     }
 
     /**
-     * A scheduler that refuses the new period leaves the sweeps running at the old one.
+     * A scheduler that refuses the new period leaves the sweeps running as they were.
      *
      * <p>Cancelling first left a refused change with no sweep at all until a restart, while the
-     * reply said the change would wait for one. Both mirror sweeps move together or not at all.
+     * reply said the change would wait for one.
      */
     @Test
-    void aRefusedRescheduleLeavesBothMirrorSweepsRunning()
+    void aRefusedRescheduleLeavesTheSweepsRunning()
     {
-        final List<BukkitTask> mirrors = startedAt(25L);
-        final int[] calls = { 0 };
-        final List<BukkitTask> replacements = new ArrayList<>();
+        ConfigManager.applySetting("gate-ripple", "true");
+        final BukkitTask ripple = scheduled.get(scheduled.size() - 1).task();
         when(scheduler.runTaskTimer(any(Plugin.class), any(Runnable.class), anyLong(), anyLong()))
-            .thenAnswer(inv -> {
-                if (++calls[0] == 2)
-                {
-                    throw new IllegalStateException("scheduler refused");
-                }
-                final BukkitTask task = mock(BukkitTask.class);
-                replacements.add(task);
-                return task;
-            });
+            .thenThrow(new IllegalStateException("scheduler refused"));
 
-        final String said = ConfigManager.applySetting("mirror-proximity-ticks", "30");
+        assertThrows(IllegalStateException.class, () -> RepeatingSweeps.follow(ConfigKeys.GATE_RIPPLE));
 
-        assertTrue(said.contains("could not be applied now"), said);
-        verify(mirrors.get(0), never()).cancel();
-        verify(mirrors.get(1), never()).cancel();
-        verify(replacements.get(0)).cancel();
-        assertEquals(2, Collections.frequency(RepeatingSweeps.runningKeys(), ConfigKeys.MIRROR_PROXIMITY_TICKS),
-            "both still running");
+        verify(ripple, never()).cancel();
+        assertEquals(List.of(20L, 70L, 20L, 20L, 10L, 20L), RepeatingSweeps.runningPeriods(), "all still running");
+    }
+
+    /** The fixed sweeps are never rescheduled, whatever setting changes. */
+    @Test
+    void theFixedSweepsAreNotTimedByAnySetting()
+    {
+        for (final ConfigKeys key : ConfigKeys.values())
+        {
+            if (key != ConfigKeys.GATE_RIPPLE)
+            {
+                assertFalse(RepeatingSweeps.follow(key), key + " times no sweep");
+            }
+        }
+        for (final Scheduled s : scheduled)
+        {
+            verify(s.task(), never()).cancel();
+        }
     }
 }

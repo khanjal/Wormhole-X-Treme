@@ -51,6 +51,8 @@ import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 public class RingCommand implements SubCommand
 {
     private static final String ALLOW = "allow";
+    /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
+    static final int MAX_LINK_HEIGHT = 384;
     private static final String NOT_YOUR_PAIR = "That is not your ring pair.";
 
     /* (non-Javadoc)
@@ -292,11 +294,10 @@ public class RingCommand implements SubCommand
                 + " reach " + maxDistance + ".", "Build a stargate for a trip that long — rings are for getting "
                 + "around one place.");
         }
-        final int maxHeight = ConfigManager.getRingMaxLinkHeight();
         final int climb = Math.abs(first.getAnchorY() - second.getAnchorY());
-        if ((maxHeight > 0) && (climb > maxHeight))
+        if (climb > MAX_LINK_HEIGHT)
         {
-            return List.of("Those two rings are " + climb + " blocks apart in height, and rings reach " + maxHeight
+            return List.of("Those two rings are " + climb + " blocks apart in height, and rings reach " + MAX_LINK_HEIGHT
                 + ".");
         }
         if ((first.getAnchorX() == second.getAnchorX()) && (first.getAnchorY() == second.getAnchorY())

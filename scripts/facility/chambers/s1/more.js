@@ -1,16 +1,14 @@
 'use strict';
-// The rest: the mirror settings, the integrations a server without their plugins can still see,
-// and the settings that once took effect only at the next start, which now apply as soon as
-// `wormhole config` changes them, as the guide says (no reload, no restart).
+// The rest: the mirror and view settings, the entity sweep, the integrations a server without their
+// plugins can still see, and the settings that once took effect only at the next start, which now
+// apply as soon as `wormhole config` changes them, as the guide says (no reload, no restart).
 
 const { GateKit } = require('../../lib/gatekit');
 const mirrors = require('../../lib/mirrors');
-const sounds = require('../../lib/sounds');
 const campus = require('../../lib/campus');
 const { ticks } = require('../../lib/probe');
-const { O, GATE, GEOM, RELAY, v, c, until, ear, toldSince, before, logMark, logSince, buildGate, builtChecks } = require('./common');
+const { O, GATE, GEOM, RELAY, v, c, until, ear, before, logMark, logSince, buildGate, builtChecks } = require('./common');
 const { itemNbt } = require('../../lib/menagerie');
-const { GATE_SOUNDS } = require('./sounds');
 
 const OPS = campus.ROUTES.mirrors.find((m) => m.name === 'Ops');
 const FAR = { x: OPS.x + 0.5, y: 0, z: OPS.z - 30.5, yaw: 0 };
@@ -20,25 +18,21 @@ const RELAY_GEOM = new GateKit(null).place('Standard', RELAY.facing, RELAY);
 
 const cases = [
   v('mirror proximity', '`mirror-proximity-distance 4`: eight blocks from a mirror nothing is drawn, three blocks from it the room is; the default 16 draws it at eight'),
-  v('mirror view depth', '`mirror-view-depth 4`: the room behind a mirror is drawn no deeper than four blocks, where the default goes far further'),
-  v('mirror fog', '`mirror-fog-at-depth true` with a shallow view: `mirror debug` says the view distance was pulled in; off by default'),
+  v('view depth', '`view-depth 4`: the room behind a mirror is drawn no deeper than four blocks, where the default goes far further'),
   v('metrics', '`metrics-enabled true` starts bStats at once, and false stops it again, each said in the log; the lab starts with it off'),
   v('coreprotect', '`coreprotect-enabled true` with no CoreProtect: building a gate logs that nothing is logged to it'),
-  v('hum at once', '`gate-sound-ambient-ticks 20`, no restart: the hum repeats every second at once'),
-  v('scan at once', '`entity-scan-interval-ticks 200`, no restart: an item lying in an open gate waits for the next sweep, ten seconds off, where by default it is sent within a second or two'),
+  v('entity sweep', 'an item lying in an open gate, which raises no event, is sent by the entity sweep within a second or two'),
   v('integrations at once', '`placeholders-enabled true` and `economy-enabled true`, no restart: each says at once that its plugin is not there; a start with both off says neither'),
 ];
 
 function needs(o) {
   return {
-    'mirror fog': { 'mirror-view-depth': '4' },
     coreprotect: { 'coreprotect-enabled': 'true' },
-    'hum at once': { 'gate-sound-ambient-ticks': '20' },
   }[o.case] || {};
 }
 
 async function stage(ctx, o) {
-  if (['hum at once', 'scan at once'].includes(o.case)) Object.assign(ctx.observed, await buildGate(ctx));
+  if (o.case === 'entity sweep') Object.assign(ctx.observed, await buildGate(ctx));
 }
 
 /**
@@ -109,23 +103,6 @@ async function lookFrom(probe, d) {
   return { count: seen.count, deepest: seen.deepest };
 }
 
-/** Counts the hum's packets from Sys over five seconds of it standing open. */
-async function hum(ctx) {
-  const probe = ctx.facility.probe;
-  const kit = new GateKit(ctx.server);
-  await probe.teleport(before(GEOM, 8), O);
-  await ticks(20);
-  const dial = (await kit.dial(GATE, 'Relay')).text;
-  const drawn = await kit.waitDrawn(probe, GEOM, 15000);
-  await ticks(20);
-  const rec = sounds.record(probe.bot);
-  await ticks(100);
-  const n = sounds.named(rec.stop(), GATE_SOUNDS.ambient).length;
-  await kit.force(GATE);
-  await kit.force('Relay');
-  return { dial, drawn, n };
-}
-
 async function run(ctx, o) {
   const obs = ctx.observed;
   const probe = ctx.facility.probe;
@@ -136,24 +113,10 @@ async function run(ctx, o) {
     await ctx.config.set('mirror-proximity-distance', '4', 's1');
     obs.atEight = await lookFrom(probe, 8);
     obs.atThree = await lookFrom(probe, 3);
-  } else if (o.case === 'mirror view depth') {
+  } else if (o.case === 'view depth') {
     obs.byDefault = await lookFrom(probe, 3);
-    await ctx.config.set('mirror-view-depth', '4', 's1');
+    await ctx.config.set('view-depth', '4', 's1');
     obs.shallow = await lookFrom(probe, 3);
-  } else if (o.case === 'mirror fog') {
-    const debug = async () => {
-      await lookFrom(probe, 3);
-      const t0 = Date.now();
-      probe.bot.chat(`/wormhole mirror debug ${OPS.name} -all`);
-      await until(async () => /fog: /.test(toldSince(probe, t0)), 3000);
-      await ticks(10);
-      const line = toldSince(probe, t0).split(' / ').find((l) => /fog: /.test(l));
-      return line || toldSince(probe, t0).slice(0, 300);
-    };
-    obs.off = await debug();
-    await ctx.config.set('mirror-fog-at-depth', 'true', 's1');
-    obs.on = await debug();
-    await probe.teleport(campus.TRANSIT.home);
   } else if (o.case === 'metrics') {
     // The launcher seeds it off, so the first change that is heard is turning it on; plugins/bStats/config.yml
     // keeps the library from sending while it runs.
@@ -172,15 +135,10 @@ async function run(ctx, o) {
     Object.assign(obs, await buildGate(ctx));
     await ticks(10);
     obs.logged = logSince(ctx, mark).some((l) => l.includes('coreprotect-enabled is set, but CoreProtect is not running; nothing is logged to it.'));
-  } else if (o.case === 'hum at once') {
-    obs.hum = await hum(ctx);
-  } else if (o.case === 'scan at once') {
+  } else if (o.case === 'entity sweep') {
     const g = await lyingItem(ctx);
     Object.assign(obs, { dial: g.dial, drawn: g.drawn });
     obs.byDefault = await g.run();
-    // Rescheduled at the change, its next sweep a whole period (ten seconds) off.
-    await ctx.config.set('entity-scan-interval-ticks', '200', 's1');
-    obs.slow = await g.run({ holdMs: 5000, ms: 12000 });
     await new GateKit(ctx.server).force(GATE);
     await new GateKit(ctx.server).force('Relay');
   } else if (o.case === 'integrations at once') {
@@ -209,24 +167,12 @@ function checks(obs, o) {
       c('and three blocks off, it was', () => obs.atThree && obs.atThree.count > 100),
     ];
   }
-  if (o.case === 'mirror view depth') {
+  if (o.case === 'view depth') {
     return [
       c('by default the room was drawn more than ten blocks deep', () => obs.byDefault && obs.byDefault.deepest > 10),
       c('at 4, no deeper than five', () => {
         if (obs.shallow && obs.shallow.count > 0 && obs.shallow.deepest <= 5) return true;
         throw new Error(`${obs.shallow && obs.shallow.count} blocks, ${obs.shallow && obs.shallow.deepest} deep`);
-      }),
-    ];
-  }
-  if (o.case === 'mirror fog') {
-    return [
-      c('by default mirror debug says "fog: off (mirror-fog-at-depth)"', () => {
-        if (/fog: off \(mirror-fog-at-depth\)/.test(obs.off || '')) return true;
-        throw new Error(`said: ${obs.off}`);
-      }),
-      c('on, with the view four deep: "fog: pulled in to N chunk(s), from M"', () => {
-        if (/fog: pulled in to \d+ chunk\(s\), from \d+/.test(obs.on || '')) return true;
-        throw new Error(`said: ${obs.on}`);
       }),
     ];
   }
@@ -240,26 +186,12 @@ function checks(obs, o) {
     return [...builtChecks(obs),
       c('"coreprotect-enabled is set, but CoreProtect is not running; nothing is logged to it." logged', () => obs.logged === true)];
   }
-  const humCheck = (n) => c(`the hum repeated every ${n} ticks: four or more in five seconds`, () => {
-    if (obs.hum && obs.hum.n >= 4) return true;
-    throw new Error(`${obs.hum && obs.hum.n} in five seconds`);
-  });
-  const opened = c(`${GATE} dialled Relay and opened`, () => obs.hum && /Stargates connected/.test(obs.hum.dial || '') && obs.hum.drawn === true);
-  if (o.case === 'hum at once') return [...builtChecks(obs), opened, humCheck(20)];
-  if (o.case === 'scan at once') {
+  if (o.case === 'entity sweep') {
     return [...builtChecks(obs),
       c(`${GATE} dialled Relay and opened`, () => /Stargates connected/.test(obs.dial || '') && obs.drawn === true),
-      c('by default an item laid in the opening was sent within two seconds', () => {
+      c('an item laid in the opening was sent within two seconds', () => {
         if (obs.byDefault && obs.byDefault.after !== null && obs.byDefault.after <= 2000) return true;
         throw new Error(`after ${obs.byDefault && obs.byDefault.after} ms`);
-      }),
-      c('at 200, set just before it was laid, the next one was still there five seconds on', () => {
-        if (obs.slow && obs.slow.held === true) return true;
-        throw new Error(`held ${obs.slow && obs.slow.held}, sent after ${obs.slow && obs.slow.after} ms (by default ${obs.byDefault && obs.byDefault.after} ms)`);
-      }),
-      c('and sent by the sweep ten seconds after the change', () => {
-        if (obs.slow && obs.slow.after !== null && obs.slow.after >= 5000) return true;
-        throw new Error(`after ${obs.slow && obs.slow.after} ms`);
       })];
   }
   if (o.case === 'integrations at once') {

@@ -73,7 +73,6 @@ import org.bukkit.util.BoundingBox;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
@@ -151,7 +150,7 @@ class WindowsTest
         ConfigTestSupport.clear();
         // Shallow unless a test is about depth: every block drawn here is a mock, and a deep cone
         // is thousands of them.
-        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 16);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 16);
         MirrorManager.clear();
         WindowSweep.clear();
         paused = 0L;
@@ -196,7 +195,6 @@ class WindowsTest
         Windows.clear();
         MirrorManager.clear();
         WindowSweep.clear();
-        ViewFog.sendDistanceWith(null);
         HiddenEntities.creationWith(null);
         // A failed hold test leaves nothing for the next: clear() let go of the chunks above.
         FarChunkHolds.loaderWith(null);
@@ -2049,239 +2047,6 @@ class WindowsTest
 
 
     /**
-     * A viewer drawn a room has their own fog pulled in to it, and gets it back on leaving.
-     *
-     * <p>Wiring, not arithmetic: {@code ViewFogTest} pins what number is asked for and why.
-     * What this holds is that the asking happens where a view begins and the putting-back where
-     * one ends -- and a view ends in four places, two of them inside the stream that takes a room
-     * back. Restoring only where a redraw finds nothing left to draw looked right and left a
-     * viewer who walked away narrowed for the rest of their session.
-     *
-     * <p>Paper only and off by default, so both halves are easy to wire to nothing by accident.
-     */
-    @Test
-    void aViewerDrawnARoomHasTheirFogPulledInAndPutBack()
-    {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-        final List<Integer> fog = new ArrayList<>();
-        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
-        {
-            @Override
-            public int get(final Player player)
-            {
-                return 10;
-            }
-
-            @Override
-            public void set(final Player player, final int chunks)
-            {
-                fog.add(chunks);
-            }
-        });
-        final Player viewer = playerAt(10.5, 7.5);
-        when(viewer.isOnline()).thenReturn(true);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(() ->
-        {
-            WindowSweep.tick();
-            assertEquals(List.of(2), fog, "a room 16 deep is one chunk, and one over for the edge");
-            // The feature is invisible by design, so debug has to be able to say it happened.
-            final List<String> debug = Windows.describe(viewer).stream()
-                .map(WindowsTest::plain).toList();
-            assertTrue(debug.stream().anyMatch(line -> line.equals("fog: pulled in to 2 chunk(s), from 10")),
-                "debug says what the fog did: " + debug);
-            pause();
-            // Well out of range: the room goes back, and the view ends with it.
-            Windows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
-        });
-
-        assertEquals(List.of(2, 10), fog, "and the ten they were being sent before comes back");
-    }
-
-
-    /**
-     * Stopping puts a viewer's fog back even if they have since changed worlds.
-     *
-     * <p>From the review. The blocks a mirror drew in a world somebody has left are already gone
-     * with the chunks, so the send is rightly skipped for them -- but a narrowed send distance is
-     * the player's own and follows them out of the world, so it has to go back whatever world they
-     * are standing in. Gated behind the same world check as the blocks, it did not.
-     */
-    @Test
-    void stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds()
-    {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-        final List<Integer> fog = new ArrayList<>();
-        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
-        {
-            @Override
-            public int get(final Player player)
-            {
-                return 10;
-            }
-
-            @Override
-            public void set(final Player player, final int chunks)
-            {
-                fog.add(chunks);
-            }
-        });
-        final Player viewer = playerAt(10.5, 7.5);
-        when(viewer.isOnline()).thenReturn(true);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(() ->
-        {
-            WindowSweep.tick();
-            assertEquals(List.of(2), fog, "narrowed while being drawn a room");
-            // Through a portal: the drawing's world is stale, the player's fog is not.
-            final World elsewhere = mock(World.class);
-            when(viewer.getWorld()).thenReturn(elsewhere);
-            Windows.restoreAll();
-        });
-
-        assertEquals(List.of(2, 10), fog, "the ten they had comes back wherever they are");
-    }
-
-    /**
-     * {@code mirror debug} says which of the fog's four states a viewer is in.
-     *
-     * <p>The feature is invisible by design -- a room ending in fog looks like a room that ends --
-     * so the line is the only way to tell "pulled in" from "off", from "this server has not got
-     * the method", from "already sent no further than the room reaches". The pulled-in case is
-     * {@code aViewerDrawnARoomHasTheirFogPulledInAndPutBack}, no method is
-     * {@code debugSaysWhenTheServerHasNoFog}, and these are the other two.
-     */
-    @Test
-    void debugSaysWhichStateTheFogIsIn()
-    {
-        final Player asker = playerAt(200.5, 200.5);
-
-        assertEquals("fog: off (mirror-fog-at-depth)", fogLine(asker), "off by default");
-
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-        // A client already being sent no further than a 16-deep room reaches.
-        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
-        {
-            @Override
-            public int get(final Player player)
-            {
-                return 2;
-            }
-
-            @Override
-            public void set(final Player player, final int chunks)
-            {
-                throw new AssertionError("nothing to gain, so nothing should be set");
-            }
-        });
-        assertTrue(fogLine(asker).contains("nothing pulled in"),
-            "on, and no narrower than they already are: " + fogLine(asker));
-    }
-
-    /** On a server without the method, debug says so. Not Paper, where the method is there. */
-    @Test
-    @DisabledIfSystemProperty(named = "server.api", matches = "paper")
-    void debugSaysWhenTheServerHasNoFog()
-    {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-
-        final String line = fogLine(playerAt(200.5, 200.5));
-
-        assertTrue(line.contains("no Player.setSendViewDistance"),
-            "on, with no Paper under it: " + line);
-    }
-
-    /** The one debug line about the fog, without its colours. */
-    private static String fogLine(final Player player)
-    {
-        return Windows.describe(player).stream().map(WindowsTest::plain)
-            .filter(line -> line.startsWith("fog: ")).findFirst().orElse("no fog line");
-    }
-
-
-    /**
-     * Walking into another world drops the view and gives the fog back.
-     *
-     * <p>The chunks of the new world have already replaced everything drawn in the old one, so
-     * there is nothing to take back -- but the send distance is the player's own and came with
-     * them, so it has to go back here too. One of the four places a view ends.
-     */
-    @Test
-    void walkingIntoAnotherWorldGivesTheFogBack()
-    {
-        final List<Integer> fog = watchTheFog();
-        final Player viewer = playerAt(10.5, 7.5);
-        when(viewer.isOnline()).thenReturn(true);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(() ->
-        {
-            WindowSweep.tick();
-            assertEquals(List.of(2), fog, "narrowed while being drawn a room");
-            // A redraw on a move is throttled, so wait the gap out before stepping.
-            pause();
-            final World elsewhere = mock(World.class);
-            when(viewer.getWorld()).thenReturn(elsewhere);
-            Windows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
-        });
-
-        assertEquals(List.of(2, 10), fog, "and given back on the way into the new world");
-        assertFalse(ViewFog.narrowed(viewer.getUniqueId()), "nothing left remembered");
-    }
-
-    /**
-     * A viewer who logs out mid-view is forgotten by the next sweep.
-     *
-     * <p>Nothing can be sent to somebody who is not there, and their send distance died with the
-     * connection. What matters is that the sweep stops remembering them: an entry kept for a
-     * player who has gone would make a mirror skip them if they came back on the same id.
-     */
-    @Test
-    void aViewerWhoLogsOutMidViewIsForgottenByTheSweep()
-    {
-        final List<Integer> fog = watchTheFog();
-        final Player viewer = playerAt(10.5, 7.5);
-        when(viewer.isOnline()).thenReturn(true);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(WindowSweep::tick);
-        assertEquals(List.of(2), fog, "narrowed while they were here");
-
-        // Gone: no players in the world, so the sweep finds no player behind the view either.
-        when(world.getPlayers()).thenReturn(List.of());
-        withServer(WindowSweep::tick);
-
-        assertEquals(List.of(2), fog, "nothing sent to somebody who is not there");
-        assertFalse(ViewFog.narrowed(viewer.getUniqueId()),
-            "and they are not remembered as narrowed, so coming back narrows them again");
-    }
-
-    /** A fog that reports ten chunks and records every number it is asked to set. */
-    private static List<Integer> watchTheFog()
-    {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-        final List<Integer> asked = new ArrayList<>();
-        ViewFog.sendDistanceWith(new ViewFog.SendDistance()
-        {
-            @Override
-            public int get(final Player player)
-            {
-                return 10;
-            }
-
-            @Override
-            public void set(final Player player, final int chunks)
-            {
-                asked.add(chunks);
-            }
-        });
-        return asked;
-    }
-
-
-    /**
      * A click part-way through taking a room back still takes all of it back.
      *
      * <p>"Scrolling through mirror worlds, sometimes part of the previous one remains for a couple
@@ -2382,26 +2147,6 @@ class WindowsTest
         return 0;
     }
 
-
-    /** Turning the fog on while somebody stands at a mirror reaches them at the next sweep. */
-    @Test
-    void turningTheFogOnReachesAViewerAlreadyAtTheMirror()
-    {
-        final List<Integer> fog = watchTheFog();
-        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(() ->
-        {
-            WindowSweep.tick();
-            assertEquals(List.of(), fog, "off when they walked up, so nothing yet");
-            ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-            WindowSweep.tick();
-        });
-
-        assertEquals(List.of(2), fog, "on at the next sweep, without leaving the mirror");
-    }
 
     @Test
     void clickingTheOpeningWhileLookingInIsTheMirror()

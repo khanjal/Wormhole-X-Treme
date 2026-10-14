@@ -8,11 +8,11 @@ import org.junit.jupiter.api.Test;
  * A misconfigured beam timing must never freeze a traveller forever.
  *
  * <p>{@link BeamAnimation.Sequence} checks {@code tick == teleportAtStep} while
- * {@code tick < riseTicks} to decide when the real teleport fires. If an admin set
- * {@code BEAM_TELEPORT_AT_STEP} equal to or past {@code BEAM_RISE_TICKS}, that equality would
+ * {@code tick < riseTicks} to decide when the real teleport fires. If the teleport step came
+ * out equal to or past the rise, that equality would
  * never be reached inside the rise loop -- the traveller would stay frozen and invisible with
  * no way out short of a server restart. The same shape of bug applies to vanishing strictly
- * inside the envelope. {@link BeamTiming#resolve} is where six independently-configurable
+ * inside the envelope. {@link BeamTiming#resolve} is where six independently-rounded
  * values get reconciled against each other so that no combination of them can produce this.
  */
 class BeamTimingTest

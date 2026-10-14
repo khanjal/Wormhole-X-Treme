@@ -745,7 +745,7 @@ async function sweep(ctx, o, geom, f) {
     obs.framePlace = hang;
     await ctx.menagerie.summon('item_frame', { x: hang.x, y: hang.y, z: hang.z }, ctx.tag, `${hangingAt(hang.x, hang.y, hang.z)},Facing:${facing}b`);
   }
-  const scan = 20; // entity-scan-interval-ticks, the default
+  const scan = 20; // the entity sweep's period, RepeatingSweeps.ENTITY_SCAN_TICKS
   if (['armour stand', 'zombie', 'llama'].includes(t)) {
     // A summoned mob is tagged in its summon, as a lying item is: the sweep may take it before a
     // later command. The llama comes from the pen, so it is tagged after.

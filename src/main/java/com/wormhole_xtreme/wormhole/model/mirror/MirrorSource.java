@@ -28,7 +28,7 @@ public record MirrorSource(QuantumMirror mirror, Block anchor, WindowShape shape
     implements WindowSource
 {
     /**
-     * A mirror drawn to {@code mirror-view-depth}.
+     * A mirror drawn to {@code view-depth}.
      *
      * @param mirror
      *            the mirror as shown
@@ -41,7 +41,7 @@ public record MirrorSource(QuantumMirror mirror, Block anchor, WindowShape shape
      */
     public MirrorSource(final QuantumMirror mirror, final Block anchor, final WindowShape shape, final List<Spot> open)
     {
-        this(mirror, anchor, shape, open, ConfigManager.getMirrorViewDepth());
+        this(mirror, anchor, shape, open, ConfigManager.getViewDepth());
     }
 
     @Override

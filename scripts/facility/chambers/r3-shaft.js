@@ -1,8 +1,7 @@
 'use strict';
 // R3, the Shaft (design 3.2): a ring on the glass cap at the top of the 60-deep shaft and one at
 // the bottom (on a platform at 20 or 40 down, or the shaft's floor at 60). Rings are for going
-// straight down; `ring-max-link-height` (384) limits how far, so at 30 the deeper pairs are
-// refused in the plugin's words.
+// straight down, as far as a world is tall (384), so every pair here goes.
 
 const campus = require('../lib/campus');
 const { cellLayout } = require('../lib/blueprint');
@@ -24,9 +23,8 @@ module.exports = {
   seat: cellLayout(def).seat,
   options: {
     depth: [v('20', 'a platform twenty down'), v('40', 'forty down'), v('60', 'the shaft floor')],
-    'max height': [v('384', 'ring-max-link-height, the default'), v('30', 'ring-max-link-height 30: the deeper pairs are refused')],
   },
-  needs: (o) => ({ config: o['max height'] === '30' ? { 'ring-max-link-height': '30' } : {} }),
+  needs: () => ({ config: {} }),
   refuses: () => null,
 
   async stage(ctx, o) {
@@ -43,11 +41,6 @@ module.exports = {
   },
 
   checks(ctx, o) {
-    const depth = Number(o.depth);
-    if (o['max height'] === '30' && depth > 30) {
-      const text = `Those two rings are ${depth} blocks apart in height, and rings reach 30.`;
-      return trip.checks(ctx, o, { refusal: new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), label: text });
-    }
     return trip.checks(ctx, { ...o, timing: 'default' }).filter((x) => !/recharging|ring list/.test(x.name));
   },
 

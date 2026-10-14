@@ -447,16 +447,16 @@ class ConfigLoadTest
     @Test
     void aValueOfTheWrongKindIsReadAsTheSettingsKindOrItsDefault() throws Exception
     {
-        writeConfig("gate-view-depth: 48.0\ntimeout-shutdown: \"41\"\ngate-ripple: \"true\"\ngate-view-full-depth: lots\n");
+        writeConfig("view-depth: 48.0\ntimeout-shutdown: \"41\"\ngate-ripple: \"true\"\ngate-view-funnel-length: lots\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
-        assertEquals(48, ConfigManager.getGateViewDepth(), "a whole number written with a point");
+        assertEquals(48, ConfigManager.getViewDepth(), "a whole number written with a point");
         assertEquals(41, ConfigManager.getTimeoutShutdown(), "a number in quotes");
         assertTrue(ConfigManager.isGateRipple(), "a switch in quotes");
-        assertEquals(160, ConfigManager.getGateViewFullDepth(), "not a number at all: the default");
-        assertTrue(configLines().contains("gate-view-full-depth: lots"), "and left as written: " + configLines());
-        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-full-depth"));
+        assertEquals(16, ConfigManager.getGateViewFunnelLength(), "not a number at all: the default");
+        assertTrue(configLines().contains("gate-view-funnel-length: lots"), "and left as written: " + configLines());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-funnel-length"));
     }
 
     /**
@@ -508,11 +508,11 @@ class ConfigLoadTest
     @Test
     void aDefaultedSettingIsACopyNotTheSharedDefault() throws Exception
     {
-        writeConfig("gate-view-full-depth: lots\n");
+        writeConfig("gate-view-funnel-length: lots\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
-        for (final ConfigManager.ConfigKeys key : new ConfigManager.ConfigKeys[] { ConfigManager.ConfigKeys.GATE_VIEW_FULL_DEPTH,
+        for (final ConfigManager.ConfigKeys key : new ConfigManager.ConfigKeys[] { ConfigManager.ConfigKeys.GATE_VIEW_FUNNEL_LENGTH,
             ConfigManager.ConfigKeys.GATE_RIPPLE })
         {
             final Setting shipped = Arrays.stream(DefaultSettings.config).filter(s -> s.getName() == key).findFirst()
@@ -524,5 +524,64 @@ class ConfigLoadTest
             stored.setValue("changed");
             assertEquals(before, shipped.getValue(), key + ": a change to it leaves the default alone");
         }
+    }
+
+    /**
+     * A file still holding settings 1.11.0 removed loads, says once at INFO which they are, and keeps
+     * them as written (#589).
+     *
+     * <p>Only the removed keys the file holds are named, in either spelling, and nothing at WARNING:
+     * a removed setting is a note for the admin, not a fault.
+     */
+    @Test
+    void removedSettingsAreNamedOnceAtInfoAndLeftInTheFile() throws Exception
+    {
+        writeConfig("ring-deploy-ticks: 4\nview-depth: 96\nmirror-view-depth: 64\nPERMISSIONS_AUTO_FALLBACK: false\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        verify(plugin).prettyLog(Level.INFO, "These settings no longer exist and are ignored: "
+            + "permissions-auto-fallback, ring-deploy-ticks, mirror-view-depth");
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("no longer exist"));
+        assertEquals(96, ConfigManager.getViewDepth(), "view-depth as written, the old depth ignored");
+        assertEquals(2, ConfigManager.getRingDeployTicks(), "and the old frame time with it");
+        assertTrue(configLines().containsAll(List.of("ring-deploy-ticks: 4", "mirror-view-depth: 64",
+            "PERMISSIONS_AUTO_FALLBACK: false")), "left as the admin wrote them: " + configLines());
+    }
+
+    /** A new file names nothing: it holds none of the removed settings. */
+    @Test
+    void aNewFileNamesNoRemovedSettings()
+    {
+        ConfigurationYAML.loadConfiguration(directory);
+        ConfigurationYAML.loadConfiguration(directory);
+
+        verify(plugin, never()).prettyLog(eq(Level.INFO), contains("no longer exist"));
+        verify(plugin, never()).prettyLog(eq(Level.INFO), contains("carried over"));
+    }
+
+    /**
+     * A file from before the merge, with no view-depth, has the shallower of its old depths carried
+     * over and written down as view-depth, so the next start reads it as set (#589).
+     */
+    @Test
+    void anOldDepthIsCarriedOverToViewDepthAndWrittenDown() throws Exception
+    {
+        writeConfig("gate-view-depth: 32\ngate-view-full-depth: 96\nmirror-view-depth: 120\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(96, ConfigManager.getViewDepth(), "the shallower of the gate's fill and the mirror's depth");
+        assertTrue(configLines().contains("view-depth: 96"), "and written down: " + configLines());
+        verify(plugin).prettyLog(eq(Level.INFO), contains("view-depth was added at 96, carried over from "
+            + "mirror-view-depth and gate-view-full-depth"));
+        verify(plugin).prettyLog(Level.INFO, "These settings no longer exist and are ignored: gate-view-depth");
+
+        ConfigTestSupport.clear();
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(96, ConfigManager.getViewDepth(), "read back as set");
+        verify(plugin).prettyLog(Level.INFO, "These settings no longer exist and are ignored: "
+            + "gate-view-depth, gate-view-full-depth, mirror-view-depth");
     }
 }

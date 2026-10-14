@@ -67,11 +67,12 @@ be too heavy and too slow to read.
 |---|---|---|
 | A built gate | still | -- |
 | Dial and kawoosh | shape-dependent | `WOOSH_TICKS = 3`, `LIGHT_TICKS = 2` per step in the `.shape` file |
-| Ring countdown and deploy | 5s countdown, then ~1.5s | `ring-countdown-ticks` (100 by default), then a frame every `ring-deploy-ticks` (2) |
-| Flash, hold and retract | ~3.5s | `ring-flash-ticks` 3 x 4 rings, `ring-hold-ticks` 20, `ring-lights-linger-ticks` 20 |
+| Ring countdown and deploy | 5s countdown, then ~1.5s | A 100-tick countdown, then a frame every 2 ticks |
+| Flash, hold and retract | ~3.5s | A 3-tick flash x 4 rings, a 20-tick hold, the pad lit 20 ticks more |
 | A whole beam cycle | 2.6s | 52 ticks — the phases overlap, see below |
 
-Twenty ticks is one second.
+Twenty ticks is one second. The ring and beam numbers are at the default `ring-animation-speed`
+and `beam-animation-speed` of 1.0.
 
 **The beam is the easy one.** Its entire cycle -- envelop, rise, descend, fade -- runs 52
 ticks, so the whole thing fits one short loop with nothing cut. Record it in third person (F5)

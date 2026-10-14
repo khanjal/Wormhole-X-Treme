@@ -430,7 +430,7 @@ public final class GateViews
             // To the full depth: somebody is here, so most of the fill's chunks are loaded anyway.
             final Place at = Place.of(arrival);
             Captures.refreshGate(gate.getGateName(), at,
-                Captures.gateFillDepth(at, ConfigManager.getGateViewDepth()), REFRESH_SECONDS);
+                Captures.gateFillDepth(at, ConfigManager.getGateViewFirstDepth()), REFRESH_SECONDS);
         }
     }
 
@@ -491,7 +491,7 @@ public final class GateViews
         final WindowShape drawn = (funnel == null) ? shape : shape.deeper(funnel.taper() - 1);
         return new GateSource(PREFIX + gate.getGateName(), gate.getGateWorld().getBlockAt(middle.x(), middle.y(), middle.z()),
             drawn, open, Place.of(target.getGatePlayerTeleportLocation()), target.getGateName(),
-            ConfigManager.getGateViewDepth(), funnel);
+            ConfigManager.getGateViewFirstDepth(), funnel);
     }
 
     /**

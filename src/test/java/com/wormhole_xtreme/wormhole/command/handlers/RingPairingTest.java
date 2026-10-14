@@ -88,10 +88,9 @@ class RingPairingTest
         when(player.getLocation()).thenReturn(new Location(world, 0, 64, 0));
 
         config = mockStatic(ConfigManager.class);
-        // A mocked config answers 0 to every int, and 0 means "no limit" to two of these
-        // rules. Every test that cares sets its own.
+        // A mocked config answers 0 to every int, and 0 means "no limit" to the ground rule.
+        // Every test that cares sets its own.
         config.when(ConfigManager::getRingMaxLinkDistance).thenReturn(Integer.valueOf(64));
-        config.when(ConfigManager::getRingMaxLinkHeight).thenReturn(Integer.valueOf(32));
         config.when(ConfigManager::getRingReach).thenReturn(Integer.valueOf(4));
         config.when(ConfigManager::getRingDefaultAccess).thenReturn(RingAccess.PUBLIC);
         config.when(ConfigManager::getRingDefaultStyle).thenReturn(RingStyle.SEQUENTIAL);
@@ -294,19 +293,17 @@ class RingPairingTest
     @Test
     void endsTooFarApartInHeightAreRefusedInEitherDirection()
     {
-        config.when(ConfigManager::getRingMaxLinkHeight).thenReturn(Integer.valueOf(32));
-
-        pairWith(waitingAt(0, 64, 0, WORLD), ringAt(20, 130, 0));
-        assertNull(registered(), "66 blocks above is too far");
-        verify(player).sendMessage(contains("are 66 blocks apart in height, and rings reach 32"));
+        pairWith(waitingAt(0, -64, 0, WORLD), ringAt(20, 336, 0));
+        assertNull(registered(), "400 blocks above is too far");
+        verify(player).sendMessage(contains("are 400 blocks apart in height, and rings reach 384"));
 
         RingManager.clear();
-        pairWith(waitingAt(0, 130, 0, WORLD), ringAt(20, 64, 0));
-        assertNull(registered(), "and so is 66 blocks below");
+        pairWith(waitingAt(0, 336, 0, WORLD), ringAt(20, -64, 0));
+        assertNull(registered(), "and so is 400 blocks below");
     }
 
     /**
-     * Exactly the configured climb is allowed; one block more is not.
+     * Exactly a world's height of climb is allowed; one block more is not.
      *
      * <p>The same boundary the ground limit has. Rings are for going straight down, so where
      * this line falls is the difference between a shaft that works and one that does not.
@@ -314,25 +311,12 @@ class RingPairingTest
     @Test
     void theHeightLimitIsInclusive()
     {
-        config.when(ConfigManager::getRingMaxLinkHeight).thenReturn(Integer.valueOf(32));
-
-        pairWith(waitingAt(0, 64, 0, WORLD), ringAt(20, 96, 0));
-        assertNotNull(registered(), "exactly 32 blocks of climb is near enough");
+        pairWith(waitingAt(0, -64, 0, WORLD), ringAt(20, 320, 0));
+        assertNotNull(registered(), "exactly 384 blocks of climb is near enough");
 
         RingManager.clear();
-        pairWith(waitingAt(0, 64, 0, WORLD), ringAt(20, 97, 0));
-        assertNull(registered(), "33 is not");
-    }
-
-    /** A height limit of zero means rings reach as far up or down as anybody wants. */
-    @Test
-    void aHeightLimitOfZeroIsNoLimit()
-    {
-        config.when(ConfigManager::getRingMaxLinkHeight).thenReturn(Integer.valueOf(0));
-
-        pairWith(waitingAt(0, 5, 0, WORLD), ringAt(20, 300, 0));
-
-        assertNotNull(registered(), "zero turns the height limit off");
+        pairWith(waitingAt(0, -64, 0, WORLD), ringAt(20, 321, 0));
+        assertNull(registered(), "385 is not");
     }
 
     /**

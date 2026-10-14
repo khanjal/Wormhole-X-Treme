@@ -75,7 +75,7 @@ async function runGate(ctx) {
   await sounds.probeSound(ctx.server, probe.name, GEOM.arrival);
   obs.dial = (await kit.dial(GATE, 'Relay')).text;
   obs.drawn = await kit.waitDrawn(probe, GEOM, 15000);
-  // The hum repeats every gate-sound-ambient-ticks (70): five seconds hears at least one.
+  // The hum repeats every 70 ticks: five seconds hears at least one.
   await ticks(100);
   obs.irisShut = await kit.toggleIris(probe, GEOM);
   await ticks(30);

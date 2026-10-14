@@ -650,19 +650,19 @@ the half-minute resend stands behind both. `mirror debug` says `still to send` w
 going. Not measured on a server yet; the tests are `aRoomBiggerThanATickIsStreamedIn...`,
 `aRoomIsTakenBackATickAtATime...` and `aChunkCrossingSendsAgainOnly...` in `WindowsTest`.
 
-### Built: the far edge in the client's own fog
+### Built, then removed: the far edge in the client's own fog
 
-`mirror-fog-at-depth`, off by default and Paper only. A viewer being drawn a room has
+Paper only, and removed in 1.11.0 with its setting, `mirror-fog-at-depth`. What follows is how it
+worked. A viewer being drawn a room has
 `Player.setSendViewDistance` set to the room's depth in chunks and a chunk over for the edge, and
 it is put back the moment they are no longer being drawn one. The far edge is then the client's
 own fog rather than anything this plugin drew, which is what the sky wall was faking, and it
 costs no blocks at all.
 
-Off by default because it is a radius round the player and not a direction: it pulls the fog in
-every way they look, not only through the opening. And it does nothing at the default depth, where
-the room already reaches about as far as a server sends — the number asked for has to be lower
-than what the client is being sent, or there is nothing to gain. Lower `mirror-view-depth` first,
-then turn it on.
+It was off by default because it is a radius round the player and not a direction: it pulls the
+fog in every way they look, not only through the opening. And it does nothing at the default
+depth, where the room already reaches about as far as a server sends — the number asked for has
+to be lower than what the client is being sent, or there is nothing to gain.
 
 Giving it back is the whole of the difficulty. A view ends in four places — the eye moving to a
 world with no window in it, a redraw finding nothing left to draw, and either half of the stream
@@ -675,14 +675,12 @@ and not the view's. So it is handed back on shutdown wherever they are standing,
 check that guards sending blocks to a viewer still in the drawing's world; and what is
 remembered is dropped whenever a view ends, player or no player, since a viewer who logged out
 mid-view would otherwise be recorded as narrowed for the life of the server and be skipped if
-they came back on the same id. The tests are
+they came back on the same id. The tests were
 `aViewerDrawnARoomHasTheirFogPulledInAndPutBack`,
 `stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds` and
 `aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn`.
 
-On Spigot `ViewFog.available()` is false and nothing happens: this world shows past the room,
-which is what it did before. The setting is read all the same, so a server that moves to Paper
-gets it without editing anything.
+On Spigot it did nothing: this world showed past the room, which is what it does everywhere now.
 
 What the jars say, read with `javap` from the API jars this plugin builds against — Spigot
 1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4, 1.21.10, 1.21.11, 26.1.2 and 26.2, and Paper

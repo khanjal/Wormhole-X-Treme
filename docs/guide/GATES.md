@@ -341,13 +341,9 @@ An iris sweeps shut a ring at a time from the rim inwards, and draws back from t
 | Setting | Default | What it does |
 |---|---|---|
 | `gate-iris-animation` | `sweep` | Which way it crosses, below, or `instant` for no animation |
-| `gate-iris-step-ticks` | `2` | Ticks between one step and the next, 1 to 20 |
-| `gate-iris-sweep-max-ticks` | `20` | The longest a whole crossing may take, 0 to 200; `0` for no limit |
 
-The two settings together decide the longest crossing: the limit divided by the pace is how
-many steps there may be. A limit too short for two steps at the pace you have set still gets
-two, so a very short limit against a slow pace runs longer than the limit says. An opening with
-only one ring -- `Minimal` -- is one step whatever either says.
+A step comes every 2 ticks, and a whole crossing takes at most 20 ticks, so ten steps. An opening
+with only one ring -- `Minimal` -- is one step.
 
 | Style | How it crosses |
 |---|---|
@@ -361,25 +357,16 @@ A gate can have its own: `/wormhole gate edit <gate> iris-animation <style>`, or
 back. A material group can set one for its gates with `iris-animation:`. A gate uses its own, then
 its group's, then `gate-iris-animation`; a build preview uses its group's, then the setting.
 
-Each takes as many steps as it has pieces to cross, so at the same `gate-iris-step-ticks` a
-`rows` iris is quicker than a `sweep` one -- a gate has fewer rows than rings. Raise the ticks
-for the style you settle on rather than expecting them to match, and raise
-`gate-iris-sweep-max-ticks` with them: past the limit a slower pace merges steps instead of
-lengthening the crossing. A name the plugin does not know falls back to `sweep`, so a typo
-costs you the style and not the iris.
+Each takes as many steps as it has pieces to cross, so a `rows` iris is quicker than a `sweep`
+one -- a gate has fewer rows than rings. A name the plugin does not know falls back to `sweep`,
+so a typo costs you the style and not the iris.
 
-A wider gate has more rings than a small one, so at a fixed pace it would take proportionally
-longer to cross: `Standard` has five rings and `Grand` sixty-one, which at the default pace is
-half a second against six. `gate-iris-sweep-max-ticks` is what stops that. A gate with more
-rings than fit inside it covers several of them per step rather than taking longer, so nothing
-on the server crosses in more than the limit -- about a second, at the defaults, where `Grand`
-took six. It is a ceiling and not a pace, so a small gate is still the quicker one. Gates
-already inside the limit are untouched by it: at the default pace that is every shape this
-plugin ships but `Massive` and `Grand`, and at a slower pace it is fewer of them.
-
-Set it to `0` for a step per ring however big the gate, which is what versions before 1.8 did.
-A server that had raised `gate-iris-step-ticks` is the one most likely to want that, since a
-slower pace reaches the limit on smaller gates.
+A wider gate has more rings than a small one: `Standard` has five rings and `Grand` sixty-one,
+which at a step per ring would be half a second against six. A gate with more than ten rings
+merges them into bands, several per step, so nothing on the server crosses in more than about a
+second. It is a ceiling and not a pace, so a small gate is still the quicker one; of the shapes
+this plugin ships only `Massive` and `Grand` reach it. The pace and the ceiling were settings
+until 1.11.0.
 
 **A closed iris does not take the wormhole away.** An opening is one block thick, so a closed
 iris and the event horizon cannot both fit in it. On an upright gate each of them is drawn
@@ -404,7 +391,7 @@ gate's state, never on what is drawn.
 stained glass, tinted glass, ice, slime or honey, so a wormhole sitting right behind an iris of
 one of those would simply not be there. Behind such an iris it is drawn in ice instead -- blue
 and packed ice in a checkerboard, swapping places twice a second so the surface moves the way
-water would. `gate-iris-horizon-ticks` sets that pace, and `0` leaves it still. From behind the
+water would. From behind the
 gate, where the wormhole is in the ring with air in front of it, it is the real thing as always.
 Plain glass never had the problem and is left alone.
 
@@ -478,7 +465,8 @@ gate on your side; lava hides it. The far side is still captured whole: the tunn
 what is drawn.
 
 In `config.yml` these two are under `# --- Gate views and mirrors ---`, `# -- Gate views --`,
-right after `gate-view-full-depth`.
+right after `gate-view`. How far a gate's view reaches is `view-depth`, shared with mirrors: see
+[Mirrors](MIRRORS.md#settings).
 
 | Setting | Default | What it does |
 |---|---|---|
@@ -578,11 +566,10 @@ plugin drops an `[RS]` that lands adjacent to it.
 | Ridden horses, camels, pigs, donkeys, llamas, striders | With the rider, re-seated |
 | A player's tamed wolves, cats and parrots within 12 blocks, not sitting | With their owner, landing beside them (`pets-follow-owner`) |
 | Arrows, tridents, snowballs, eggs, ender pearls, potions, fireballs | Followed from launch, crossing the tick they reach the portal |
-| Mobs, dropped items, XP orbs, armour stands | A sweep of open gates every `entity-scan-interval-ticks` (default once a second) |
+| Mobs, dropped items, XP orbs, armour stands | A sweep of open gates once a second |
 | Item frames, paintings | Never |
 
-A fast mob or item can cross the portal between two sweeps and carry on without travelling; lower
-the interval to catch more, at the cost of more scanning.
+A fast mob or item can cross the portal between two sweeps and carry on without travelling.
 
 A projectile is re-fired out of the far gate with the same speed, shooter, damage and effects, so a
 kill through a gate is credited correctly. **An ender pearl thrown through a gate teleports its
@@ -710,8 +697,7 @@ three runs, each under its own `# -- ... --` sub-heading.
 | Setting | Default | When it plays |
 |---|---|---|
 | `gate-sound-kawoosh` | `entity.player.splash.high_speed` | As the wormhole forms, at pitch 0.7 |
-| `gate-sound-ambient` | `ambient.underwater.loop` | On repeat while open, at 40% volume |
-| `gate-sound-ambient-ticks` | 70 | How often it repeats; shorter layers it |
+| `gate-sound-ambient` | `ambient.underwater.loop` | On repeat while open, every 70 ticks, at 40% volume |
 | `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes |
 
 ### Iris
@@ -723,14 +709,13 @@ three runs, each under its own `# -- ... --` sub-heading.
 
 ### Dial spin and arrival splash
 
-Not sounds, but they go with them. In `config.yml` they are under `# --- Stargates ---`,
-`# -- Effects --`, in this order, before `gate-ripple` ([the ripple](#the-ripple)).
+Not sounds, but they go with them. In `config.yml` the dial spin is under `# --- Stargates ---`,
+`# -- Effects --`, before `gate-ripple` ([the ripple](#the-ripple)).
 
 | Setting | Default | What it does |
 |---|---|---|
 | `gate-dial-spin` | `top` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `top`: half the ring to the top chevron, alternating direction, resting there as each chevron locks. `chevron`: from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `lap`: a whole turn clockwise every glyph. `fill`: as `pegasus`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, half the ring, landing on the chevron about to lock, alternating. `chase`: a whole turn anticlockwise to chevron 1, then from each locked chevron to the next, alternating. `universe`: as Destiny's gate dials, about a full turn each glyph, each locked chevron riding round with the ring until the last puts them all back in place. `overshoot`: as `pegasus`, running past and backing onto it. `none`: no ring light. `top` dials slower by resting half a second on the top after each lock, and `universe` a little, by turning about a full turn for each glyph at its own pace; `true` and `false` from older configs mean `top` and `none`. A gate's own `spin`, or its group's `dial-spin`, comes first. |
-| `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival. `0` turns it off. |
 
-If a long trip shows no arrival splash, raise `gate-arrival-splash-ticks`: the chunk load can wipe
-it. Not far, though — the client believes it is swimming for as long as the water shows, and that
-is felt as a stumble on landing.
+A traveller sees water for 20 ticks on arrival; this is no longer a setting and cannot be turned
+off. It is kept short because the client believes it is swimming for as long as the water shows,
+and that is felt as a stumble on landing.

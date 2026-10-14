@@ -33,11 +33,10 @@ public final class CaptureSeam
         });
     }
 
-    /** Forgets every viewer's sight, fog and signpost, which the mirrors' own clears leave. */
+    /** Forgets every viewer's sight and signpost, which the mirrors' own clears leave. */
     public static void forgetViewers()
     {
         WindowSight.clear();
-        ViewFog.clear();
         MirrorSignpost.clear();
     }
 

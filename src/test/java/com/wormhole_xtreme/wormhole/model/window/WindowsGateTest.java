@@ -82,8 +82,8 @@ class WindowsGateTest
         PluginTestSupport.install(plugin);
         PluginTestSupport.scheduler(null);
         ConfigTestSupport.clear();
-        // No fill behind the first step unless a test is about it.
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 0);
+        // No fill behind the first step unless a test is about it: the view as deep as the step.
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 16);
         Windows.clear();
 
         world = mock(World.class);
@@ -192,7 +192,7 @@ class WindowsGateTest
     /**
      * A capture shallower than the gate's depth is still drawn, and a deeper one is asked for.
      *
-     * <p>A capture kept from before {@code gate-view-depth} was raised is the best base there is;
+     * <p>A capture kept from before the first step was deepened is the best base there is;
      * showing nothing until the deeper one arrived would be worse than showing it short.
      */
     @Test
@@ -309,7 +309,7 @@ class WindowsGateTest
     @Test
     void theFirstStepIsFollowedByTheFill()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 48);
         // Outside the verify: a call to Captures inside it would be what is verified.
         final String key = key();
         Captures.install(key, capture(20));
@@ -328,7 +328,7 @@ class WindowsGateTest
     @Test
     void aCaptureThatReachesTheFullDepthIsLeftAlone()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 48);
         Captures.install(key(), capture(60));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
             MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))
@@ -348,7 +348,7 @@ class WindowsGateTest
     @Test
     void aGateWhoseFillIsInIsDrawnToTheFullDepth() throws ReflectiveOperationException
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 48);
         Captures.install(key(), capture(60));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
@@ -360,12 +360,12 @@ class WindowsGateTest
     }
 
     @Test
-    void theFullDepthIsTheFirstStepsWhereItIsOffOrShallower()
+    void theFullDepthIsTheFirstStepsWhereTheViewIsNoDeeper()
     {
-        assertEquals(16, gate.fullDepth(), "off");
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 8);
+        assertEquals(16, gate.fullDepth(), "as deep as the first step");
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 8);
         assertEquals(16, gate.fullDepth(), "shallower than the first step");
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 48);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             // The far world not loaded to ask: as far as it is set.
@@ -434,7 +434,7 @@ class WindowsGateTest
     @Test
     void aFilledCaptureIsRetakenAsTheGateOpensOnlyOnceTenMinutesOld()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 48);
 
         assertEquals(Map.of(), askedAsItOpens(oldCapture(60, 300)), "five minutes old: drawn as it is");
         Captures.clear();
@@ -454,13 +454,13 @@ class WindowsGateTest
      * An old capture is retaken as the gate opens at the depth it is drawn to, not the first step's.
      *
      * <p>Retaken at the first step, a view drawn to its full depth shrank back to it for as long as
-     * the fill took -- the far part gone, this world showing past the near part -- and pulled a
-     * fogged viewer's chunks in and out with it, every time the gate opened.
+     * the fill took -- the far part gone, this world showing past the near part -- every time the
+     * gate opened.
      */
     @Test
     void anOldCaptureIsRetakenAtTheDepthItIsDrawnTo()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 48);
         final String key = key();
         Captures.install(key, oldCapture(60, 660));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
@@ -480,7 +480,7 @@ class WindowsGateTest
     @Test
     void anOldCaptureIsNotRetakenUnlessTheGateHasJustOpened()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FULL_DEPTH, 48);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 48);
         Captures.install(key(), oldCapture(60));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
             MockedStatic<Captures> captures = mockStatic(Captures.class, CALLS_REAL_METHODS))

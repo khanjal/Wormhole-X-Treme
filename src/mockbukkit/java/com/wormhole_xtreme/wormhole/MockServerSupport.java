@@ -60,7 +60,7 @@ final class MockServerSupport
     private static ConfigSnapshot configBefore;
 
     /**
-     * Starts a server and loads the plugin onto it, with a mirror's view drawn 4 blocks deep: a
+     * Starts a server and loads the plugin onto it, with every view drawn 4 blocks deep: a
      * capture copies every block in reach, and each one MockBukkit touches becomes an object.
      */
     static ServerMock start()
@@ -69,7 +69,7 @@ final class MockServerSupport
         final ServerMock server = MockBukkit.mock(new Server());
         MockBukkit.load(WormholeXTreme.class);
         ConfigTestSupport.set(
-            ConfigManager.ConfigKeys.MIRROR_VIEW_DEPTH, 4);
+            ConfigManager.ConfigKeys.VIEW_DEPTH, 4);
         CaptureSeam.readFromWorldBlocks();
         return server;
     }

@@ -214,9 +214,6 @@ Right-click to choose where it leads, punch it to go. A look ships for every bio
 `-stamp` paints a banner from the room it stands in. Mobs and players in that room can show too, if
 you turn them on.
 
-**On Paper:** optional fog pulled in to where the room ends, so the far edge is fog rather than
-this world's hills.
-
 ---
 
 ## For the people running the server

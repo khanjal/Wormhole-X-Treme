@@ -45,7 +45,7 @@ class WindowSourceTest
     {
         PluginTestSupport.install();
         ConfigTestSupport.clear();
-        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 24);
+        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 24);
     }
 
     @AfterEach
@@ -68,7 +68,7 @@ class WindowSourceTest
         assertEquals(ROOM, source.destination());
         assertFalse(source.walkThrough(), "a mirror's opening is barred and punched through");
         assertSame(museum, source.punchTarget(), "a punch travels the mirror itself");
-        assertEquals(24, source.depth(), "drawn to mirror-view-depth as set, not its default of 160");
+        assertEquals(24, source.depth(), "drawn to view-depth as set, not its default of 160");
     }
 
     /** The mirror chosen at a banner lends its room, but the window is still the banner's own mirror. */

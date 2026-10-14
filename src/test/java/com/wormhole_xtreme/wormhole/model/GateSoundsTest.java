@@ -71,16 +71,6 @@ class GateSoundsTest
     }
 
     @Test
-    void theAmbientPeriodIsNeverZero()
-    {
-        // A zero or negative period is not a faster hum, it is a repeating task with no delay
-        // in it. Config is text somebody can type anything into, so this is floored rather
-        // than trusted.
-        assertTrue(ConfigManager.getGateSoundAmbientTicks() >= 1L,
-            "the hum would run every tick, or tighter");
-    }
-
-    @Test
     void anIterationPastTheEndStaysAtTheTop()
     {
         // The animator's counter and the light-block list have been off by one from each

@@ -339,8 +339,8 @@ public final class IrisSweep
      * a clock hand.
      *
      * <p>Cut into as many steps as {@link Style#SWEEP} would make on the same opening, so every
-     * style takes the same number of {@code gate-iris-step-ticks} to cross. A style that took
-     * twice as long as another at the same setting would be a second pace control nobody asked
+     * style takes the same number of steps to cross. A style that took
+     * twice as long as another at the same pace would be a second pace control nobody asked
      * for.
      *
      * @return the steps, innermost first

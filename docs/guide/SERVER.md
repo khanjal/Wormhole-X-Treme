@@ -157,11 +157,10 @@ One repeating task per subsystem and no background threads. Cost scales with how
 travelling is happening, not with how much has been built: three thousand gates cost the same
 per tick as three, as long as the same number are open.
 
-- **Entity sweep** — every `entity-scan-interval-ticks` (default 20), one entity query per
-  *open* gate. Raise it if many wormholes are open at once.
+- **Entity sweep** — once a second, one entity query per *open* gate.
 - **Projectile tracking** — per tick, but only for projectiles in flight while a wormhole is
   open, and only for a couple of seconds after they are fired.
-- **Ambient hum** — every `gate-sound-ambient-ticks`, one sound per open gate.
+- **Ambient hum** — every 70 ticks, one sound per open gate.
   `gate-sounds-enabled: false` removes it.
 
 Everything else is event-driven and answered by a hash lookup on the block position — including
@@ -236,10 +235,9 @@ Worth knowing:
 
 - `permissions-support-disable` (default `false`) — never attach to an external permission
   provider, even if one is present.
-- `permissions-auto-fallback` (default `true`) — if no provider is found at startup, basic use
-  actions keep working and advanced ones stay with operators and gate owners. Set `false` to
-  leave permission handling entirely to you. Whether a provider is there is looked at startup, and
-  again whenever this or `permissions-support-disable` is changed in-game.
+- With no provider found, the plugin runs in simple mode: basic use actions keep working and
+  advanced ones stay with operators and gate owners. Whether a provider is there is looked at
+  startup, and again whenever `permissions-support-disable` is changed in-game.
 
 ## Commands
 
@@ -341,7 +339,8 @@ changed.
 defaults, so a new setting is visible rather than only documented; a setting that was renamed is
 read from its old name and written back under the new one. Values you set are not touched, and a
 file that no longer parses as YAML is left exactly as you left it rather than having every
-default appended to the end of it.
+default appended to the end of it. A setting a release removed is left in the file and ignored,
+and the log names the removed settings your file still holds at startup.
 
 **Shipped shapes update themselves unless you edited them.** At startup, a copy in
 `shapes/gate/` that matches a version some release shipped is replaced with the jar's, and the old

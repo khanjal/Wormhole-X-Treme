@@ -40,13 +40,12 @@ function compareWithSource(found) {
 const REFUSALS = [
   ['gate-sounds-enabled', 'loud', 'GATE_SOUNDS_ENABLED is true or false, not "loud".'],
   ['gate-sound-volume', 'quiet', 'GATE_SOUND_VOLUME is a number, not "quiet".'],
-  ['ring-countdown-ticks', '1.5', 'RING_COUNTDOWN_TICKS is a number, not "1.5".'],
+  ['ring-cooldown-ticks', '1.5', 'RING_COOLDOWN_TICKS is a number, not "1.5".'],
   ['gate-dial-spin', 'wobble', 'GATE_DIAL_SPIN is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not "wobble".'],
   ['gate-iris-animation', 'wobble', 'GATE_IRIS_ANIMATION is sweep, spiral, rows, columns, instant, not "wobble".'],
   ['log-level', 'LOUD', 'LOG_LEVEL is SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, ALL or OFF, not "LOUD".'],
   ['ring-default-access', 'open', 'RING_DEFAULT_ACCESS is PUBLIC or PRIVATE, not "open".'],
   ['ring-default-style', 'zigzag', 'RING_DEFAULT_STYLE is CONCURRENT or SEQUENTIAL, not "zigzag". Fast and slow work too.'],
-  ['ring-default-material', 'stone', 'RING_DEFAULT_MATERIAL is the name of a slab, not "stone" -- a ring moves half a block at a time, which is what a slab can do.'],
   ['ring-default-light', 'diamond', 'RING_DEFAULT_LIGHT is the name of a block, not "diamond".'],
 ];
 

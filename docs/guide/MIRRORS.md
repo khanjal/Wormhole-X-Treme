@@ -109,9 +109,10 @@ within a second of `create`; another mirror's room is captured the first time so
 it. After that its world need not be loaded, so a mirror in an archived world still shows.
 Nothing retakes a capture on its own: when the room has changed, run `mirror set -capture`.
 
-**How far it reaches** is `mirror-view-depth`, 160 blocks by default — ten chunks, about as far
-as a server sends — and nothing is drawn past it. Lower it for a mirror onto somewhere small; a
-shallower view is also a smoother one, since the client has less to redraw as you come and go.
+**How far it reaches** is `view-depth`, 160 blocks by default — ten chunks, about as far as a
+server sends — and nothing is drawn past it. The same setting sets how far an open gate's view
+reaches. Lower it for views onto somewhere small; a shallower view is also a smoother one, since
+the client has less to redraw as you come and go.
 
 **A mirror in a solid wall shows the whole room** — solid for the proximity distance on every
 side of the opening, with no other mirror within twice the depth, which `create` warns about.
@@ -121,11 +122,8 @@ step. A redraw that took long rests before the next, so a deep mirror cannot tak
 quarter of the server's time however close you stand.
 
 **Past the room, this world shows.** The client goes on drawing the hills behind the wall past
-the far edge of the view. On a **Paper** server, `mirror-fog-at-depth` pulls your own fog in to
-the room's depth while you look through a mirror, so the far edge is fog instead. It is off by
-default, does nothing on Spigot, and does nothing at the default depth of 160: lower
-`mirror-view-depth` first, then turn it on. It pulls the fog in every way you look, not only
-through the mirror, which is the price.
+the far edge of the view. The setting that pulled your fog in to the room's depth was removed in
+1.11.0.
 
 **Blocks, and creatures if the server turns them on.** With `mirror-show-entities` on, the mobs
 standing in the room show through the mirror (or an open gate) as copies only you see; it is off by
@@ -190,20 +188,23 @@ It stays while you keep looking, and only the mirror under your crosshair speaks
 
 ## Settings
 
-In `config.yml` under `# --- Gate views and mirrors ---`, which also holds the gate views
-(`gate-view`, `gate-view-depth`, `gate-view-full-depth`, `gate-view-funnel` and
-`gate-view-funnel-length`, first, under `# -- Gate views --`; the funnel two are in
-[GATES.md](GATES.md#a-big-gate-onto-a-small-one)).
+In `config.yml` under `# --- Gate views and mirrors ---`, which opens with `view-depth` and also
+holds the gate views (`gate-view`, `gate-view-funnel` and `gate-view-funnel-length`, under
+`# -- Gate views --`; the funnel two are in [GATES.md](GATES.md#a-big-gate-onto-a-small-one)).
 The mirror settings follow in three runs, each under its own `# -- ... --` sub-heading.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `view-depth` | 160 | How far from the opening a mirror's room, or an open gate's far side, is drawn, 4 to 160. A gate shows the first 32 at once and fills in the rest behind. |
+
+An upgraded `config.yml` without `view-depth` gets the shallower of its old `mirror-view-depth`
+and `gate-view-full-depth`, written to the file as `view-depth`.
 
 ### Mirror views
 
 | Setting | Default | What it does |
 |---|---|---|
-| `mirror-view-depth` | 160 | How far from the opening the room is drawn, 4 to 160. |
-| `mirror-fog-at-depth` | `false` | Pull a viewer's fog in to where the room ends. Paper only. |
-| `mirror-proximity-distance` | 16 | How close a player must be for the banner to give way to the room, and how near they must stay. |
-| `mirror-proximity-ticks` | 20 | How often the proximity sweep runs. Mirrors whose world or chunk is not loaded are skipped. |
+| `mirror-proximity-distance` | 16 | How close a player must be for the banner to give way to the room, and how near they must stay. It is checked once a second; mirrors whose world or chunk is not loaded are skipped. |
 
 ### Creatures and players in a view
 

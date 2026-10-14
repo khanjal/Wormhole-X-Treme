@@ -77,7 +77,7 @@ four units up, which gives the slab its thickness.
 The count, the equal size and the colour are all taken from the code rather than chosen.
 `RingAnimator.RING_COUNT` is 4 and the doc comment there explains why it is four rather than the
 show's five. The rings settle one block apart centre to centre and are all the same seven-block
-diameter, so nothing about them tapers. And `RING_DEFAULT_MATERIAL` is `SMOOTH_STONE_SLAB`, so
+diameter, so nothing about them tapers. And `RingYamlManager.FALLBACK_MATERIAL` is `SMOOTH_STONE_SLAB`, so
 they are grey stone, not gold.
 
 An earlier draft had three amber rings shrinking as they rose. That was prettier -- amber inside

@@ -41,7 +41,6 @@ public class ConfigManager
     /** Plugin folder name, remembered so config.yml can be located again after load. */
     private static volatile String configuredPluginName = SECTION;
 
-
     /**
      * The Enum ConfigKeys.
      */
@@ -50,8 +49,6 @@ public class ConfigManager
 
         /** The PERMISSION SUPPORT DISABLE. */
         PERMISSIONS_SUPPORT_DISABLE,
-        /** Automatically fall back to simple permission mode when no Vault provider is detected. */
-        PERMISSIONS_AUTO_FALLBACK,
         /** Whether wormhole.use is required to travel, not merely to dial. */
         WORMHOLE_USE_IS_TELEPORT,
 
@@ -80,35 +77,19 @@ public class ConfigManager
 
         /** The LOG LEVEL. */
         LOG_LEVEL,
-        /** Tick interval for periodic non-player entity gate scan. */
-        ENTITY_SCAN_INTERVAL_TICKS,
 
-        /** Ticks a ring pair counts down before it commits and the rings start rising. */
-        RING_COUNTDOWN_TICKS,
         /** Ticks a ring pair refuses to fire again after a cycle. */
         RING_COOLDOWN_TICKS,
-        /** Ticks between frames of the ring deploy and retract animations. */
-        RING_DEPLOY_TICKS,
-        /** Ticks the fully deployed stack stands still before the swap fires. */
-        RING_SETTLE_TICKS,
-        /** Ticks each ring stays lit as the transport flash runs through the stack. */
-        RING_FLASH_TICKS,
+        /** How fast every ring animation runs against its shipped timings (#589). */
+        RING_ANIMATION_SPEED,
         /** Whether a ring briefly shows its outline to somebody it has turned away. */
         RING_OUTLINE_ON_REFUSAL,
-        /** How long that outline stays up, in ticks. */
-        RING_OUTLINE_TICKS,
-        /** Ticks the pad stays lit after the last ring has sunk back into it. */
-        RING_LIGHTS_LINGER_TICKS,
-        /** Ticks the ring stack stands still after the swap, before retracting. */
-        RING_HOLD_TICKS,
         /** Block layers of passenger volume, measured from the ring plane into the room. */
         RING_REACH,
         /** Required distance between ring anchors, in blocks. */
         RING_MIN_SEPARATION,
         /** Furthest two ends of a pair may be apart on the ground. Zero means no limit. */
         RING_MAX_LINK_DISTANCE,
-        /** Furthest two ends of a pair may be apart in height. Zero means no limit. */
-        RING_MAX_LINK_HEIGHT,
         /** Furthest below its plane a ceiling ring will look for the floor. */
         RING_MAX_CEILING_DROP,
         /** How many ring pairs one player may own. Zero means no limit. */
@@ -117,8 +98,6 @@ public class ConfigManager
         RING_DEFAULT_ACCESS,
         /** How a ring stack deploys: CONCURRENT or SEQUENTIAL. */
         RING_DEFAULT_STYLE,
-        /** Fallback ring material, used only when the template cannot say. */
-        RING_DEFAULT_MATERIAL,
         /** What the countdown lights are made of. */
         RING_DEFAULT_LIGHT,
         /** What a ring turns to as the transport light passes through it. */
@@ -139,12 +118,6 @@ public class ConfigManager
         /** What an open gate shows: its horizon, the far side behind it, or the far side alone (#516). */
         GATE_VIEW,
 
-        /** How far past a gate's opening its view is captured and drawn, first. */
-        GATE_VIEW_DEPTH,
-
-        /** How far a gate's view is filled in, behind its first step. */
-        GATE_VIEW_FULL_DEPTH,
-
         /** Whether a big gate's view of a smaller far gate is drawn at the end of a tunnel (#583). */
         GATE_VIEW_FUNNEL,
 
@@ -154,17 +127,7 @@ public class ConfigManager
         /** Whether an open gate's horizon ripples (#579). */
         GATE_RIPPLE,
 
-        /** Ticks between one ring of an iris sweep and the next. */
-        GATE_IRIS_STEP_TICKS,
-
-        /** Ticks between frames of the wormhole drawn behind a see-through iris. */
-        GATE_IRIS_HORIZON_TICKS,
-
-        /** The longest a whole iris crossing may take, whatever the gate's size. */
-        GATE_IRIS_SWEEP_MAX_TICKS,
         GATE_SOUND_AMBIENT,
-        GATE_SOUND_AMBIENT_TICKS,
-        GATE_ARRIVAL_SPLASH_TICKS,
         /** Whether a player arriving through a gate is told in chat which gate they arrived at (#485). */
         SHOW_GATE_WELCOME_MESSAGE,
         GATE_DIAL_SPIN,
@@ -228,18 +191,8 @@ public class ConfigManager
         BEAM_SOUND_CHARGE,
         BEAM_SOUND_DEPART,
         BEAM_SOUND_ARRIVE,
-        /** How long the glow gathers at body height before opening into the departure column. */
-        BEAM_ENVELOP_TICKS,
-        /** How far into the envelope the traveller vanishes -- clamped inside it. */
-        BEAM_VANISH_AT_STEP,
-        /** How long the column rises and departs, once the envelope opens into it. */
-        BEAM_RISE_TICKS,
-        /** How far into the rise the real teleport fires -- clamped inside the rise. */
-        BEAM_TELEPORT_AT_STEP,
-        /** How long the column takes to descend into place at the destination. */
-        BEAM_DESCEND_TICKS,
-        /** How long the column takes to fade out once it has deposited the traveller. */
-        BEAM_FADE_TICKS,
+        /** How fast the beaming animation runs against its shipped timings (#589). */
+        BEAM_ANIMATION_SPEED,
         /** Whether beam travel has a per-player cooldown at all. */
         BEAM_USE_COOLDOWN_ENABLED,
         /** Seconds a player must wait between beams, when the above is true. */
@@ -265,32 +218,13 @@ public class ConfigManager
         MIRROR_PROXIMITY_DISTANCE,
 
         /**
-         * How often the proximity sweep runs, in ticks.
+         * How far past an opening a mirror's room or an open gate's far side is drawn, in blocks (#589).
          *
-         * <p>Twenty is once a second, which is fast enough that walking up to a mirror feels
-         * immediate and slow enough that the sweep is not worth optimising further. The sweep
-         * skips mirrors in unloaded worlds and unloaded chunks before touching anything.
+         * <p>Its render distance: past it nothing is drawn. 160 by default, ten chunks, so the room
+         * ends where the client stops showing anything; a room is its surfaces, so depth costs
+         * little. A gate captures a shallower first step and fills in to this behind it.
          */
-        MIRROR_PROXIMITY_TICKS,
-
-        /**
-         * How far from a mirror's opening its far side is drawn as real blocks, in blocks.
-         *
-         * <p>Its render distance: past it nothing is drawn, and a capture reaches this far and
-         * no further. 160 by default, ten chunks, so the room ends where the client stops
-         * showing anything; a room is its surfaces, so depth costs little.
-         */
-        MIRROR_VIEW_DEPTH,
-
-        /**
-         * Whether a viewer's own fog is pulled in to where a mirror's room ends.
-         *
-         * <p>Paper only, and off by default. The room ending is not the world ending: the client
-         * draws this world past it unless it is told not to have those chunks. A radius round the
-         * player rather than a direction, so it pulls the fog in everywhere, which is why it is
-         * something to turn on for a shallow depth rather than the way mirrors work.
-         */
-        MIRROR_FOG_AT_DEPTH,
+        VIEW_DEPTH,
 
         /**
          * Whether the creatures standing in a mirror's or a gate's far room are shown through it
@@ -467,23 +401,6 @@ public class ConfigManager
     }
 
     /**
-     * Gets whether the plugin should automatically fall back to simple permission mode when no
-     * Vault/LuckPerms provider is detected. Default: true.
-     */
-    public static boolean getPermissionsAutoFallback()
-    {
-        Setting psd;
-        if ((psd = ConfigManager.getConfigurations().get(ConfigKeys.PERMISSIONS_AUTO_FALLBACK)) != null)
-        {
-            return psd.getBooleanValue();
-        }
-        else
-        {
-            return true;
-        }
-    }
-
-    /**
      * Gets the setting.
      * 
      * @return the setting, or null if the key is not registered
@@ -549,19 +466,6 @@ public class ConfigManager
     }
 
     /**
-     * Tick interval for periodic non-player entity scan.
-     * A higher value reduces server load at the cost of slightly delayed teleport detection.
-     *
-     * @return scan interval in ticks (minimum 5)
-     */
-    public static int getEntityScanIntervalTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 20;
-        return Math.max(5, configured);
-    }
-
-    /**
      * How long a ring pair counts down before committing.
      *
      * <p>Floored rather than taken as written. The abort window only means anything because
@@ -570,11 +474,11 @@ public class ConfigManager
      * a second at walking pace. Set much below that and rings start taking people who were
      * only passing through.
      *
-     * @return countdown in ticks, at least 30
+     * @return countdown in ticks, 100 at the shipped speed and never under 30
      */
     public static int getRingCountdownTicks()
     {
-        return Math.max(30, intSetting(ConfigKeys.RING_COUNTDOWN_TICKS, 100));
+        return Math.max(30, ringTicks(100));
     }
 
     /**
@@ -590,11 +494,11 @@ public class ConfigManager
     /**
      * Ticks between animation frames.
      *
-     * @return frame interval in ticks, at least 1
+     * @return frame interval in ticks, 2 at the shipped speed and at least 1
      */
     public static int getRingDeployTicks()
     {
-        return Math.max(1, intSetting(ConfigKeys.RING_DEPLOY_TICKS, 2));
+        return Math.max(1, ringTicks(2));
     }
 
     /**
@@ -608,7 +512,7 @@ public class ConfigManager
      */
     public static int getRingSettleTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_SETTLE_TICKS, 20));
+        return ringTicks(20);
     }
 
     /**
@@ -618,7 +522,7 @@ public class ConfigManager
      */
     public static int getRingFlashTicks()
     {
-        return Math.max(1, intSetting(ConfigKeys.RING_FLASH_TICKS, 3));
+        return Math.max(1, ringTicks(3));
     }
 
 
@@ -633,7 +537,7 @@ public class ConfigManager
      */
     public static int getRingLightsLingerTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_LIGHTS_LINGER_TICKS, 20));
+        return ringTicks(20);
     }
 
     /**
@@ -658,7 +562,7 @@ public class ConfigManager
      */
     public static int getRingOutlineTicks()
     {
-        return Math.max(1, intSetting(ConfigKeys.RING_OUTLINE_TICKS, 40));
+        return ringTicks(40);
     }
 
     /**
@@ -671,7 +575,7 @@ public class ConfigManager
      */
     public static int getRingHoldTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_HOLD_TICKS, 20));
+        return ringTicks(20);
     }
 
     /**
@@ -733,22 +637,6 @@ public class ConfigManager
     }
 
     /**
-     * Furthest apart the two ends of a pair may be in height.
-     *
-     * <p>Measured separately from the ground distance, because the two are different
-     * questions. Going straight down is exactly what rings are for — bedrock to the surface,
-     * a mine to the hall above it — so the default is the full height of the world, and any
-     * vertical link at all is allowed. Sprawling sideways is the thing being discouraged, and
-     * that is the other setting.
-     *
-     * @return the limit in blocks, or zero for none
-     */
-    public static int getRingMaxLinkHeight()
-    {
-        return Math.max(0, intSetting(ConfigKeys.RING_MAX_LINK_HEIGHT, 384));
-    }
-
-    /**
      * How many pairs one player may own.
      *
      * @return the quota, or zero for no limit
@@ -801,20 +689,6 @@ public class ConfigManager
     }
 
     /**
-     * Fallback material for the travelling rings.
-     *
-     * <p>Normally unused: a ring keeps whatever slab it was laid in. This only answers when a
-     * stored ring names a material that is not a slab on this server.
-     *
-     * @return the fallback slab material, smooth stone when the setting is not a slab
-     */
-    public static Material getRingDefaultMaterial()
-    {
-        final Material configured = materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.SMOOTH_STONE_SLAB);
-        return Ring.isUsableAsRing(configured) ? configured : Material.SMOOTH_STONE_SLAB;
-    }
-
-    /**
      * What the countdown lights are made of.
      *
      * @return the configured material, or redstone lamp when it is missing or unknown
@@ -848,6 +722,77 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         return (s != null) ? s.getIntValue() : fallback;
+    }
+
+    /** The slowest a ring or beam animation may run, against its shipped pace: twice as long. */
+    static final double SLOWEST_SPEED = 0.5;
+
+    /** The fastest: half as long. A ring's two-tick frame cannot be halved again in whole ticks. */
+    static final double FASTEST_SPEED = 2.0;
+
+    /**
+     * How fast ring animations run against their shipped timings (#589).
+     *
+     * @return 1.0 for the shipped timings, from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
+     */
+    public static double getRingAnimationSpeed()
+    {
+        return speedSetting(ConfigKeys.RING_ANIMATION_SPEED);
+    }
+
+    /**
+     * How fast the beaming animation runs against its shipped timings (#589).
+     *
+     * @return 1.0 for the shipped timings, from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
+     */
+    public static double getBeamAnimationSpeed()
+    {
+        return speedSetting(ConfigKeys.BEAM_ANIMATION_SPEED);
+    }
+
+    /** A speed setting, inside the range that keeps every sequence whole; 1.0 when missing or not a number. */
+    private static double speedSetting(final ConfigKeys key)
+    {
+        final Setting s = ConfigManager.getConfigurations().get(key);
+        return clampSpeed((s == null) ? 1.0 : s.getDoubleValue());
+    }
+
+    /**
+     * A speed brought inside its range.
+     *
+     * @param speed
+     *            as written, which a command may have made NaN
+     * @return from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
+     */
+    static double clampSpeed(final double speed)
+    {
+        return Double.isNaN(speed) ? 1.0 : Math.max(SLOWEST_SPEED, Math.min(FASTEST_SPEED, speed));
+    }
+
+    /**
+     * A shipped duration at a speed: exactly itself at 1.0.
+     *
+     * @param ticks
+     *            the shipped duration
+     * @param speed
+     *            the speed, already clamped
+     * @return the duration in whole ticks
+     */
+    static int atSpeed(final int ticks, final double speed)
+    {
+        return (int) Math.round(ticks / speed);
+    }
+
+    /** A shipped ring duration at {@code ring-animation-speed}. */
+    private static int ringTicks(final int ticks)
+    {
+        return atSpeed(ticks, getRingAnimationSpeed());
+    }
+
+    /** A shipped beam duration at {@code beam-animation-speed}. */
+    private static int beamTicks(final int ticks)
+    {
+        return atSpeed(ticks, getBeamAnimationSpeed());
     }
 
     /**
@@ -1038,40 +983,6 @@ public class ConfigManager
         return soundSetting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop");
     }
 
-    /**
-     * How often the ambient sound repeats.
-     *
-     * <p>Floored at one tick rather than trusted, because a zero or negative period is not a
-     * faster hum -- it is a repeating task with no delay in it.
-     *
-     * @return the period in ticks
-     */
-    public static long getGateSoundAmbientTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUND_AMBIENT_TICKS);
-        return (s == null) ? 70L : Math.max(1L, s.getIntValue());
-    }
-
-    /**
-     * How long a traveller sees water as they come out of a gate.
-     *
-     * <p>Zero turns it off. This is both how long the water shows and how long the plugin
-     * keeps redrawing it, because an arrival hands the client a fresh copy of the chunk and
-     * that erases anything drawn into the old one. A trip far enough that the client is still
-     * fetching chunks when the window ends will not see it at all; widening this widens the
-     * window with it.
-     *
-     * <p>Still kept short, because the client treats water as physics rather than decoration
-     * and will predict swimming for as long as it believes it is submerged.
-     *
-     * @return the time in ticks, or zero for no splash
-     */
-    public static long getGateArrivalSplashTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
-        return (s == null) ? 20L : Math.max(0L, s.getIntValue());
-    }
-
     /** Returns true if an open gate's horizon ripples (#579); off when the setting is missing, as it ships. */
     public static boolean isGateRipple()
     {
@@ -1160,31 +1071,22 @@ public class ConfigManager
         return (level == null) ? GATE_VIEWS.get(0) : level;
     }
 
-    /**
-     * How far past a gate's opening its view reaches, captured and drawn (#516).
-     *
-     * <p>Its own rather than {@code mirror-view-depth}: a gate's capture is taken when it is dialled,
-     * often of somewhere nobody has loaded, and at a mirror's 160 that was a box of some 230 chunks
-     * read from disk before anything showed.
-     *
-     * @return blocks, 4 to 160
-     */
-    public static int getGateViewDepth()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_DEPTH);
-        return (s == null) ? 32 : Math.max(4, Math.min(160, s.getIntValue()));
-    }
+    /** How deep a gate's first capture step reaches, at most: the rest is filled in behind it. */
+    static final int GATE_FIRST_STEP_DEPTH = 32;
 
     /**
-     * How far a gate's view is filled in behind its first step, in the background (#516).
+     * How far past a gate's opening its view is captured and drawn first (#516): 32, or
+     * {@code view-depth} if that is shallower.
      *
-     * @return blocks, 4 to 160; or 0 for no fill, the view staying at {@code gate-view-depth}
+     * <p>Shallower than the view because a gate's capture is taken when it is dialled, often of
+     * somewhere nobody has loaded, and at 160 that was a box of some 230 chunks read from disk
+     * before anything showed. The rest, out to {@code view-depth}, is filled in behind it.
+     *
+     * @return blocks, 4 to 32
      */
-    public static int getGateViewFullDepth()
+    public static int getGateViewFirstDepth()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FULL_DEPTH);
-        final int depth = (s == null) ? 160 : s.getIntValue();
-        return (depth <= 0) ? 0 : Math.max(4, Math.min(160, depth));
+        return Math.min(GATE_FIRST_STEP_DEPTH, getViewDepth());
     }
 
     /**
@@ -1241,80 +1143,6 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_ANIMATION);
         return (s == null) ? "sweep" : String.valueOf(s.getStringValue()).trim();
-    }
-
-    /**
-     * Ticks between one ring of an iris sweep and the next.
-     *
-     * <p>Floored at one: a sweep of zero-tick steps draws every ring in the same tick, which is
-     * the instant iris written the long way round and reads as the animation having failed.
-     * A ceiling too, because the sweep holds the drawn picture apart from the placed blocks for
-     * as long as it runs, and a gate whose iris takes a minute to look shut is worse than one
-     * that snaps.
-     *
-     * @return ticks per ring, between 1 and 20
-     */
-    public static int getGateIrisStepTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_STEP_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 2;
-        return Math.min(20, Math.max(1, configured));
-    }
-
-    /**
-     * How often the wormhole drawn behind a see-through iris changes frame.
-     *
-     * <p>Only gates whose iris hides real water draw it in something else -- ice, which does
-     * not move the way water does. Alternating two of them is what gives it a surface. Nothing
-     * else pays for this: a gate whose iris shows the real wormhole never reaches it.
-     *
-     * @return ticks between frames, 0 to leave it still
-     */
-    public static int getGateIrisHorizonTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_HORIZON_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 10;
-        return Math.min(100, Math.max(0, configured));
-    }
-
-    /**
-     * The longest a whole iris crossing may take, however big the gate.
-     *
-     * <p>{@code gate-iris-step-ticks} is a pace and not a duration, and how many steps there are
-     * to pace is the opening's geometry: {@code Standard} has five rings and {@code Grand} has
-     * sixty-one, so at the same setting one closes in half a second and the other in six. The
-     * pace cannot answer that -- a step is a tick at the very least -- so this is the other end
-     * of it, and the steps are merged into bands to keep to it.
-     *
-     * <p>Zero for no limit, which is what every version before this one did.
-     *
-     * @return ticks, 0 to 200
-     */
-    public static int getGateIrisSweepMaxTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_SWEEP_MAX_TICKS);
-        final int configured = (s != null) ? s.getIntValue() : 20;
-        return Math.min(200, Math.max(0, configured));
-    }
-
-    /**
-     * The most steps an iris sweep may be drawn in at the configured pace.
-     *
-     * <p>Floored at two rather than one wherever there is a limit at all: a crossing of one step
-     * is the instant iris written the long way round, and a server that asked for a fast sweep
-     * asked for a fast sweep rather than for no sweep. That is the same reasoning
-     * {@link #getGateIrisStepTicks} floors at one tick for.
-     *
-     * @return the most steps, or 0 for a step per ring however many that is
-     */
-    public static int getGateIrisMaxSteps()
-    {
-        final int ticks = getGateIrisSweepMaxTicks();
-        if (ticks <= 0)
-        {
-            return 0;
-        }
-        return Math.max(2, ticks / getGateIrisStepTicks());
     }
 
     /**
@@ -1467,69 +1295,62 @@ public class ConfigManager
     /**
      * How long the glow gathers at body height before opening into the departure column.
      *
-     * @return the configured tick count, unclamped -- {@code BeamAnimation} is where the
-     *         relationships between this and the other beam timings are enforced, since
-     *         clamping one setting correctly here would still need to know the others
+     * @return ticks at {@code beam-animation-speed}, unclamped -- {@code BeamTiming} is where the
+     *         relationships between this and the other beam timings are enforced
      */
     public static int getBeamEnvelopTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_ENVELOP_TICKS);
-        return (s == null) ? 12 : s.getIntValue();
+        return beamTicks(12);
     }
 
     /**
      * How far into the envelope the traveller vanishes.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamVanishAtStep()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_VANISH_AT_STEP);
-        return (s == null) ? 6 : s.getIntValue();
+        return beamTicks(6);
     }
 
     /**
      * How long the column rises and departs, once the envelope opens into it.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamRiseTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_RISE_TICKS);
-        return (s == null) ? 18 : s.getIntValue();
+        return beamTicks(18);
     }
 
     /**
      * How far into the rise the real teleport fires.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamTeleportAtStep()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_TELEPORT_AT_STEP);
-        return (s == null) ? 12 : s.getIntValue();
+        return beamTicks(12);
     }
 
     /**
      * How long the column takes to descend into place at the destination.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamDescendTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_DESCEND_TICKS);
-        return (s == null) ? 20 : s.getIntValue();
+        return beamTicks(20);
     }
 
     /**
      * How long the column takes to fade out once it has deposited the traveller.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamFadeTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_FADE_TICKS);
-        return (s == null) ? 8 : s.getIntValue();
+        return beamTicks(8);
     }
 
     /**
@@ -1801,20 +1622,6 @@ public class ConfigManager
     }
 
     /**
-     * How often the proximity sweep runs.
-     *
-     * <p>Floored at one tick rather than zero: a period of zero asks Bukkit to reschedule
-     * forever without advancing, which is a hung server rather than a fast mirror.
-     *
-     * @return the period in ticks, never below one
-     */
-    public static long getMirrorProximityTicks()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_TICKS);
-        return (s == null) ? 20L : Math.max(1L, s.getIntValue());
-    }
-
-    /**
      * Whether a mirror names itself above the hotbar to whoever is looking at it.
      *
      * <p>Defaults to true when the setting is missing, which is what an existing server's
@@ -1830,22 +1637,6 @@ public class ConfigManager
         return (s == null) || s.getBooleanValue();
     }
 
-
-    /**
-     * Whether a viewer's own fog is pulled in to where a mirror's room ends.
-     *
-     * <p>Defaults to false when the setting is missing, which is what an existing server's
-     * config.yml looks like after an upgrade. Off is the right default: it does nothing at all on
-     * Spigot, nothing at the default depth, and where it does work it changes how the whole world
-     * looks to that player and not only the mirror.
-     *
-     * @return true if a mirror may narrow what its viewers are sent
-     */
-    public static boolean isMirrorFogAtDepth()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_FOG_AT_DEPTH);
-        return (s != null) && s.getBooleanValue();
-    }
 
     /**
      * Whether creatures in a mirror's or a gate's far room are shown through it, as stand-ins.
@@ -1929,13 +1720,13 @@ public class ConfigManager
     }
 
     /**
-     * How far from a viewer's eye a mirror's far side is drawn as real blocks.
+     * How far past an opening a mirror's room, and an open gate's far side once filled in, is drawn.
      *
-     * @return the radius in blocks, between 4 and 160
+     * @return blocks, between 4 and 160
      */
-    public static int getMirrorViewDepth()
+    public static int getViewDepth()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_DEPTH);
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.VIEW_DEPTH);
         // 160 is ten chunks, a server's usual view distance. Taking a capture that deep works a
         // few bits per block over a box 325 across, tens of megabytes for a few seconds.
         return (s == null) ? 160 : Math.max(4, Math.min(160, s.getIntValue()));
@@ -2086,7 +1877,7 @@ public class ConfigManager
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
             case GATE_RIPPLE -> followRipple();
-            case PERMISSIONS_SUPPORT_DISABLE, PERMISSIONS_AUTO_FALLBACK -> PermissionsSupport.detectProvider();
+            case PERMISSIONS_SUPPORT_DISABLE -> PermissionsSupport.detectProvider();
             case DYNMAP_ENABLED, BLUEMAP_ENABLED, SQUAREMAP_ENABLED, PL3XMAP_ENABLED, MAP_SHOW_GATES,
                 MAP_SHOW_RINGS, MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS, MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
             default -> RepeatingSweeps.follow(key);

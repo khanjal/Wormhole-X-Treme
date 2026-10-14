@@ -19,12 +19,13 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
- * {@code permissions-auto-fallback} is asked at every check, so changing it in-game applies at once.
+ * With no permission provider the plugin falls back to simple mode, asked at every check, so a
+ * provider found again applies at once.
  *
  * <p>It used to be read once at enable, where finding no provider set
- * {@code permissions-support-disable} to {@code true} in memory, so turning the fallback off
- * afterwards changed nothing until a restart. (That value was never saved: config.yml's writer
- * leaves permissions-support-disable as the admin wrote it.)
+ * {@code permissions-support-disable} to {@code true} in memory, so nothing found afterwards
+ * changed anything until a restart. The fallback was a setting, permissions-auto-fallback, until
+ * 1.11.0; it is always on now.
  */
 class PermissionsFallbackTest
 {
@@ -43,26 +44,15 @@ class PermissionsFallbackTest
         PluginTestSupport.remove();
     }
 
-    /** No provider and the fallback on: simple mode. Turned off in-game: nodes again, at once. */
+    /** No provider: simple mode. A provider found again: nodes, at once. */
     @Test
-    void theFallbackFollowsTheSettingWhileNoProviderIsThere()
+    void theFallbackFollowsWhetherAProviderIsThere()
     {
         PermissionsSupport.setNoProvider(true);
-        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true);
         assertTrue(PermissionsSupport.isSimpleMode());
 
-        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, false);
-        assertFalse(PermissionsSupport.isSimpleMode(), "nodes again, without a restart");
-    }
-
-    /** With a provider there is nothing to fall back from. */
-    @Test
-    void aServerWithAProviderNeverFallsBack()
-    {
         PermissionsSupport.setNoProvider(false);
-        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true);
-
-        assertFalse(PermissionsSupport.isSimpleMode());
+        assertFalse(PermissionsSupport.isSimpleMode(), "nodes again, without a restart");
     }
 
     /** Turning provider support off is simple mode whatever was found. */
@@ -70,14 +60,14 @@ class PermissionsFallbackTest
     void supportTurnedOffIsSimpleModeWhateverWasFound()
     {
         ConfigTestSupport.set(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, true);
-        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, false);
+        PermissionsSupport.setNoProvider(false);
 
         assertTrue(PermissionsSupport.isSimpleMode());
     }
 
     /**
      * The whole check follows it: a player holding no node may use the compass under the fallback,
-     * and not once the fallback is turned off in-game.
+     * and not once a provider is there.
      */
     @Test
     void aPermissionCheckFollowsTheFallbackAtOnce()
@@ -86,10 +76,9 @@ class PermissionsFallbackTest
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.hasPermission(anyString())).thenReturn(false);
         PermissionsSupport.setNoProvider(true);
-        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true);
         assertTrue(WXPermissions.checkWXPermissions(player, PermissionType.COMPASS), "simple mode lets anyone");
 
-        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, false);
+        PermissionsSupport.setNoProvider(false);
 
         assertFalse(WXPermissions.checkWXPermissions(player, PermissionType.COMPASS), "nodes, which they lack");
     }

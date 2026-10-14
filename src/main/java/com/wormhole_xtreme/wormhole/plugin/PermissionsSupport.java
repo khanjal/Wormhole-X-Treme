@@ -30,15 +30,14 @@ public class PermissionsSupport
      * Whether permissions run in simple mode: anyone may use, dial and travel, and the rest is
      * for operators and gate owners.
      *
-     * <p>Asked at every check, so {@code permissions-support-disable} and
-     * {@code permissions-auto-fallback} changed in-game apply at once.
+     * <p>Asked at every check, so {@code permissions-support-disable} changed in-game applies at once.
      *
      * @return true if permission nodes are not consulted
      */
     public static boolean isSimpleMode()
     {
         return ConfigManager.getPermissionsSupportDisable()
-            || (noProvider && ConfigManager.getPermissionsAutoFallback());
+            || noProvider;
     }
 
     /**
@@ -56,7 +55,7 @@ public class PermissionsSupport
      * Looks for a Vault permission provider again, and remembers whether there is one.
      *
      * <p>Asked whatever {@code permissions-support-disable} says, so turning it off in-game finds
-     * the fallback ready, and when either permission setting changes, which picks up a provider
+     * the fallback ready, and when that setting changes, which picks up a provider
      * installed since startup.
      *
      * @return true if one was found
@@ -96,13 +95,9 @@ public class PermissionsSupport
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Vault provider detected; permission checks will use Vault/Bukkit provider.");
         }
-        else if (ConfigManager.getPermissionsAutoFallback())
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions or set PERMISSIONS_AUTO_FALLBACK=false.");
-        }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "No Vault/LuckPerms provider detected; permission checks will rely on server built-in permission handling (player.hasPermission()).");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions.");
         }
     }
 }

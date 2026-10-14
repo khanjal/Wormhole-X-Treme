@@ -21,6 +21,7 @@ import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
+import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 
 /**
  * Every material this plugin ships by name has to exist in the Minecraft version it targets.
@@ -142,15 +143,14 @@ class ShippedMaterialsExistTest
             new LinkedHashMap<ConfigManager.ConfigKeys, String>();
         for (final Setting setting : DefaultSettings.config)
         {
-            if ((setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL)
-                || (setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_LIGHT)
+            if ((setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_LIGHT)
                 || (setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_FLASH))
             {
                 named.put(setting.getName(), String.valueOf(setting.getValue()));
             }
         }
 
-        assertEquals(3, named.size(), "a ring material default was added or renamed");
+        assertEquals(2, named.size(), "a ring material default was added or renamed");
         for (final Map.Entry<ConfigManager.ConfigKeys, String> entry : named.entrySet())
         {
             assertNotNull(Material.matchMaterial(entry.getValue()),
@@ -160,10 +160,8 @@ class ShippedMaterialsExistTest
 
         // The ring material is what a pair falls back to when its own slab cannot be read, so
         // it has to be something a ring could actually have been laid in.
-        final Material fallback = Material.matchMaterial(
-            named.get(ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL));
-        assertTrue(Ring.isUsableAsRing(fallback),
-            fallback + " is the ring fallback and must be something a ring could be laid in");
+        assertTrue(Ring.isUsableAsRing(RingYamlManager.FALLBACK_MATERIAL),
+            RingYamlManager.FALLBACK_MATERIAL + " is the ring fallback and must be something a ring could be laid in");
     }
 
     @Test

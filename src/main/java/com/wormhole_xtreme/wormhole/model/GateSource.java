@@ -32,7 +32,7 @@ import com.wormhole_xtreme.wormhole.model.window.Windows;
  * @param target
  *            the gate they land in front of, whose capture it is
  * @param step
- *            how far past the opening the first step of its capture reaches: {@code gate-view-depth}
+ *            how far past the opening the first step of its capture reaches
  * @param depth
  *            how far past the opening its view is drawn, from the capture it has
  * @param funnel
@@ -73,7 +73,7 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
      * @param target
      *            the gate they land in front of
      * @param step
-     *            {@code gate-view-depth}; drawn to that depth, until {@link #drawnTo} says otherwise
+     *            the first step's depth; drawn to that depth, until {@link #drawnTo} says otherwise
      */
     public GateSource(final String name, final Block anchor, final WindowShape shape, final List<Spot> open,
         final Place destination, final String target, final int step)
@@ -170,9 +170,9 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
 
     /**
      * The capture this gate is drawn from, asking for the next step of it: the first, out to
-     * {@code gate-view-depth}, if it has none or it is shallower than that; a retake at the depth it
+     * the first step's depth, if it has none or it is shallower than that; a retake at the depth it
      * is drawn to, if the gate has just opened and it is old; otherwise the fill out to
-     * {@code gate-view-full-depth}, behind the first, if it does not reach that yet.
+     * {@code view-depth}, behind the first, if it does not reach that yet.
      *
      * <p>In steps so a remote gate shows something at once: the first is some fifteen chunks, the
      * fill several times that, most of them read off the disk. A retake keeps the depth drawn, the
@@ -192,7 +192,7 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
         else if (opened && (capture.secondsOld() > retakeAfter(capture)))
         {
             // Retaken at the depth it is drawn to, so the view does not shrink to the first step for
-            // as long as the fill takes, and pull a fogged viewer's chunks in and out with it.
+            // as long as the fill takes.
             ask = drawDepth(capture);
         }
         else

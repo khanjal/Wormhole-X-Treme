@@ -356,8 +356,7 @@ function buildPlugin(repo, javaExe) {
 const KNOWN_BENIGN = [
   // No Vault or LuckPerms on the test server, by design: the plugin says so once at enable.
   'No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; '
-    + 'advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions or set '
-    + 'PERMISSIONS_AUTO_FALLBACK=false.',
+    + 'advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions.',
   // #236, dynmap-enabled with Dynmap absent (the Map Desk's paired run): said once at enable, by
   // design, and everything else carries on (MapMarkers.enable).
   'dynmap-enabled is set but Dynmap was not found. Nothing is shown on a map.',

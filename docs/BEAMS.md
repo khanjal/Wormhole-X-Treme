@@ -202,13 +202,13 @@ mount whose every method is a no-op, so the sequence never branches on null.
 Three separate guards, because a stuck beam leaves somebody frozen and invisible and no amount
 of reconnecting fixes it.
 
-**The timings are clamped, once.** Six durations come from config and two must sit strictly
-inside a third: the vanish before the envelope ends, the teleport before the rise ends. Set
-`beam-teleport-at-step` at or past `beam-rise-ticks` and the teleport condition is never reached
-while the rise is still active — the traveller is left frozen and invisible with no way out
-short of a restart. Resolving all six together in one place is what makes that impossible
-whatever a config file says. They are read once per sequence rather than per tick, so a config
-change mid-flight cannot desync a beam already running.
+**The timings are clamped, once.** Six durations are scaled by `beam-animation-speed` and two must
+sit strictly inside a third: the vanish before the envelope ends, the teleport before the rise
+ends. A teleport step at or past the end of the rise would never be reached while the rise is
+still active — the traveller would be left frozen and invisible with no way out short of a
+restart. Resolving all six together in one place keeps both steps inside their phases at any
+speed. They are read once per sequence rather than per tick, so a config change mid-flight
+cannot desync a beam already running.
 
 **Terrain drifts.** A destination's coordinates were recorded once and nothing re-checks them,
 so somewhere standable when it was saved can be dug out or built over. The safe-ground
@@ -290,10 +290,10 @@ argument slot as `list`, `admin` and `place` and read as one more subcommand rat
 thing you are travelling to. `goto` and `send` are the one place a non-player sender is accepted:
 console and command blocks have no location to beam *from*, so only `send` makes sense for either.
 
-**The two `-at-step` settings are clamped strictly inside the phases they sit in**, for the
-reason under [nothing can strand a traveller](#nothing-can-strand-a-traveller). The defaults are
-what the plugin falls back to when a setting is absent, so a config that has never mentioned
-beaming still gets the tuned sequence.
+**One speed, not six timings.** `beam-animation-speed` scales the tuned sequence as a whole, so it
+keeps its shape at any speed, and the vanish and teleport steps are clamped strictly inside their
+phases for the reason under [nothing can strand a traveller](#nothing-can-strand-a-traveller). At
+1.0 every duration is the old default; the six timings were settings until 1.11.0.
 
 ## Layout
 

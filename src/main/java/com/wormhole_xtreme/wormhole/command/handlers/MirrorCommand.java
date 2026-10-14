@@ -507,7 +507,7 @@ public class MirrorCommand implements SubCommand
         }
         final long apart = Math.round(Math.sqrt(MirrorPlacement.squaredApartOf(mirror, near)));
         say(sender, "It is " + apart + " blocks from " + MirrorText.quoted(near.name()) + ". Mirrors nearer than "
-            + (long) MirrorPlacement.apartToDrawWhole() + " -- twice mirror-view-depth -- are not drawn whole:");
+            + (long) MirrorPlacement.apartToDrawWhole() + " -- twice view-depth -- are not drawn whole:");
         say(sender, "each shows only what a viewer sees through it, which costs more as people walk past.");
     }
 

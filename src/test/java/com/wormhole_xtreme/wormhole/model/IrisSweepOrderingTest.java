@@ -226,7 +226,7 @@ class IrisSweepOrderingTest
     /**
      * A gate wider than the limit sweeps in the limit's steps, not one per ring.
      *
-     * <p>The cap is arithmetic in {@link IrisSweep} and a setting in {@code ConfigManager}, and
+     * <p>The cap is arithmetic in {@link IrisSweep} and a constant in {@code IrisSweepDriver}, and
      * both are pinned on their own. What nothing pinned is the wire between them: this is the
      * only place a real gate's iris asks for it, and the fixtures everywhere else are small
      * enough to sit inside the cap, so dropping the argument here left every test passing and
@@ -236,7 +236,7 @@ class IrisSweepOrderingTest
     void aGateWiderThanTheLimitSweepsInTheLimitsSteps()
     {
         widenOpeningTo(9);
-        final int cap = ConfigManager.getGateIrisMaxSteps();
+        final int cap = IrisSweepDriver.stepCap();
         assertTrue(IrisSweep.closingRings(gate.getGatePortalBlocks()).size() > cap,
             "a nineteen-wide opening must have more rings than the cap, or this proves nothing");
 
@@ -1063,14 +1063,14 @@ class IrisSweepOrderingTest
     private List<List<Location>> closingRingsOfTheGate()
     {
         return IrisSweep.closingOrder(gate.getGatePortalBlocks(),
-            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), ConfigManager.getGateIrisMaxSteps());
+            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap());
     }
 
     /** The same, opening order. */
     private List<List<Location>> openingRingsOfTheGate()
     {
         return IrisSweep.openingOrder(gate.getGatePortalBlocks(),
-            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), ConfigManager.getGateIrisMaxSteps());
+            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap());
     }
 
     /** Each ring as the sorted "x,y" of its cells, so a ring compares as a set. */
@@ -1256,7 +1256,7 @@ class IrisSweepOrderingTest
     @Test
     void aSweepBooksOneStepPerRingAtTheConfiguredPace()
     {
-        ConfigTestSupport.set(ConfigManager.ConfigKeys.GATE_IRIS_STEP_TICKS, 7);
+        IrisSweepDriver.setPaceForTest(7, IrisSweepDriver.SWEEP_MAX_TICKS);
         try
         {
             final int rings = closingRingsOfTheGate().size();
@@ -1274,7 +1274,7 @@ class IrisSweepOrderingTest
         }
         finally
         {
-            ConfigTestSupport.clear();
+            IrisSweepDriver.resetPaceForTest();
         }
     }
 

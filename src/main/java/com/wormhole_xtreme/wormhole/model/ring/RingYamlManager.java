@@ -40,6 +40,8 @@ import com.wormhole_xtreme.wormhole.utils.YamlStore;
  */
 public final class RingYamlManager
 {
+    /** What a ring whose stored slab this server lacks is drawn in: the plain stone slab. */
+    public static final Material FALLBACK_MATERIAL = Material.SMOOTH_STONE_SLAB;
     private static final String WORLD_KEY = "World";
     private static final String STYLE_KEY = "Style";
 
@@ -340,7 +342,7 @@ public final class RingYamlManager
     }
 
     /**
-     * The slab a stored ring is drawn in, or {@code ring-default-material} when that is not a slab on
+     * The slab a stored ring is drawn in, or {@link #FALLBACK_MATERIAL} when that is not a slab on
      * this server -- a ring saved on a newer Minecraft can name one an older server lacks.
      *
      * <p>Without it the whole pair was skipped as unreadable, and lost at the next save.
@@ -356,10 +358,9 @@ public final class RingYamlManager
         {
             return named;
         }
-        final Material fallback = ConfigManager.getRingDefaultMaterial();
         log(Level.WARNING, "Ring material " + stored + " is not a slab on this server; drawing the ring in "
-            + fallback + ", ring-default-material.");
-        return fallback;
+            + FALLBACK_MATERIAL + ".");
+        return FALLBACK_MATERIAL;
     }
 
     /**

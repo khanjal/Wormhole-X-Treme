@@ -335,8 +335,7 @@ public final class Windows
         final List<String> lines = new ArrayList<>();
         lines.add(MirrorText.heading("your view"));
         lines.add(MirrorText.field("server", ACTIVE.size() + " window(s), " + VIEWS.size() + " viewer(s)"));
-        lines.add(MirrorText.field("depth", ConfigManager.getMirrorViewDepth() + " from the opening (mirror-view-depth)"));
-        lines.add(MirrorText.field("fog", fogState(player)));
+        lines.add(MirrorText.field("depth", ConfigManager.getViewDepth() + " from the opening (view-depth)"));
         final ViewerDrawing view = VIEWS.get(player.getUniqueId());
         if (BLIND.contains(player.getUniqueId()))
         {
@@ -395,10 +394,6 @@ public final class Windows
         if (BLIND.contains(player.getUniqueId()))
         {
             lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug -on turns them back on"));
-        }
-        if (ConfigManager.isMirrorFogAtDepth())
-        {
-            lines.add(MirrorText.field("fog", fogState(player)));
         }
         final ViewerDrawing view = VIEWS.get(player.getUniqueId());
         if (view == null)
@@ -471,7 +466,7 @@ public final class Windows
             final int kept = window.capture.keptReach();
             lines.add(MirrorText.field(name + " capture", "reaches " + ((kept > 0) ? Math.min(box, kept) : box) + " ahead"
                 + ((kept > 0) ? MirrorText.bad(", cut from " + box + " to fit") : "") + ", drawn to " + window.depth()
-                + " (full " + Captures.gateFillDepth(window.source.destination(), ConfigManager.getGateViewDepth())
+                + " (full " + Captures.gateFillDepth(window.source.destination(), ConfigManager.getGateViewFirstDepth())
                 + "), " + window.capture.secondsOld() + "s old"));
         }
         final CreatureTally tally = view.tallies.get(name);
@@ -489,33 +484,6 @@ public final class Windows
                 + ((far == null) ? "not yet" : (far.blocks().size() + " blocks kept"))));
         }
         return lines;
-    }
-
-    /**
-     * What {@code mirror-fog-at-depth} is doing for one viewer, for {@code mirror debug}.
-     *
-     * <p>The feature is invisible by design -- a room ending in fog looks like a room that ends
-     * -- so without a line saying whether it engaged there is no way to tell it from a shallow
-     * depth on a server that never had the method.
-     */
-    private static String fogState(final Player player)
-    {
-        if (!ConfigManager.isMirrorFogAtDepth())
-        {
-            return "off (mirror-fog-at-depth)";
-        }
-        if (!ViewFog.available())
-        {
-            return MirrorText.bad("on, but this server has no Player.setSendViewDistance")
-                + ", which is Paper's";
-        }
-        final UUID id = player.getUniqueId();
-        if (ViewFog.narrowed(id))
-        {
-            return MirrorText.good("pulled in to " + ViewFog.narrowedTo(id) + " chunk(s)")
-                + ", from " + ViewFog.wasSent(id);
-        }
-        return "on, nothing pulled in: this client is already sent no further than the room reaches";
     }
 
     /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
@@ -595,7 +563,6 @@ public final class Windows
         WindowSight.clear();
         BLIND.clear();
         FULL.clear();
-        ViewFog.clear();
         Captures.clear();
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
@@ -656,11 +623,11 @@ public final class Windows
     /**
      * The deepest of the views a viewer is being drawn: a gate's is its own, not a mirror's.
      *
-     * @return blocks; {@code mirror-view-depth} for none
+     * @return blocks; {@code view-depth} for none
      */
     private static int deepest(final List<WindowState> seeing)
     {
-        return seeing.stream().mapToInt(WindowState::depth).max().orElse(ConfigManager.getMirrorViewDepth());
+        return seeing.stream().mapToInt(WindowState::depth).max().orElse(ConfigManager.getViewDepth());
     }
 
     /**
@@ -1037,10 +1004,6 @@ public final class Windows
                 stream(player, entry.getValue(), Integer.MAX_VALUE);
                 veil(player, entry.getValue(), List.of());
             }
-            // Outside that: the fog is the player's own and not the world's, so it goes back
-            // wherever they are standing now. Blocks drawn in a world they have left are already
-            // gone, but a narrowed send distance would follow them out of it.
-            ViewFog.restore(entry.getKey(), player);
         }
         clear();
     }
@@ -1143,8 +1106,6 @@ public final class Windows
             view = new ViewerDrawing(player.getWorld());
             VIEWS.put(id, view);
         }
-        // Before any early return, so a fog setting changed mid-view still reaches the viewer.
-        ViewFog.apply(player, deepest(seeing));
         final long chunk = chunkOf(eye);
         final boolean crossed = view.chunk != chunk;
         seeing.forEach(window -> refreshSolid(window, now));
@@ -1245,12 +1206,11 @@ public final class Windows
     }
 
     /**
-     * Forgets a viewer's drawing, and gives back the fog a mirror pulled in for it.
+     * Forgets a viewer's drawing.
      *
      * <p>Every ending goes through here. A view ends in four places -- the eye moving to a world
      * with no window in it, a redraw finding nothing left to draw, and either half of the stream
-     * running out -- and a narrowed viewer who slipped out through one of them would keep a
-     * mirror's fog for the rest of their session.
+     * running out.
      *
      * @param id
      *            whose view it was
@@ -1264,7 +1224,6 @@ public final class Windows
         {
             StandIns.removeAll(view);
         }
-        ViewFog.restore(id, player);
         // In the same world the last redraw already said what they are drawn; elsewhere it is all gone.
         if ((player == null) || ((view != null) && !view.world.equals(player.getWorld())))
         {
@@ -2633,7 +2592,7 @@ public final class Windows
         final List<Entity> inside)
     {
         // Depth is from the opening, and the eye may be the proximity distance from that.
-        final double reach = Math.max(radius, ConfigManager.getMirrorViewDepth())
+        final double reach = Math.max(radius, ConfigManager.getViewDepth())
             + ConfigManager.getMirrorProximityDistance() + 1.0;
         for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
         {

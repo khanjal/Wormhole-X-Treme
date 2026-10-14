@@ -28,7 +28,7 @@ const cases = [
   v('preview minutes', '`gate-preview-minutes 1`: a preview is gone a minute later, with nobody clearing it'),
   v('iris animation', '`gate-iris-animation instant`: a gate with none of its own shuts its iris in one step, where the default sweeps'),
   v('dial spin', '`gate-dial-spin none`: the chevrons lock about twice as fast as with the default top rest'),
-  v('arrival splash', '`gate-arrival-splash-ticks 0`: no water over the eyes on arrival, where the default shows it'),
+  v('arrival splash', 'water is drawn over the eyes of a traveller arriving through a gate, for a second'),
   v('log level', '`log-level FINE`: a DHD press is logged as [FINE], and not at INFO'),
   v('sign colours', 'sign-color-gate-name RED, -network GOLD, -owner BLUE and sign-glowing-text true: the name sign a gate is built with is written so'),
   v('sign colour bad', '`sign-color-gate-name PINK`: like every other setting with a fixed set of values, refused, naming the sixteen colours'),
@@ -234,8 +234,6 @@ async function run(ctx, o) {
       return { arrived, water: seen.water };
     };
     obs.byDefault = await once();
-    await ctx.config.set('gate-arrival-splash-ticks', '0', 's1');
-    obs.off = await once();
   } else if (o.case === 'sign colours') {
     obs.sign = await nameSign(ctx);
   } else if (o.case === 'sign colour bad') {
@@ -368,8 +366,7 @@ function checks(obs, o) {
         throw new Error(`${obs.top && Math.round(obs.top.span)} ms a chevron by default, ${obs.none && Math.round(obs.none.span)} with none`);
       }));
   } else if (o.case === 'arrival splash') {
-    list.push(c('by default Probe arrived at Relay with water drawn over its eyes', () => obs.byDefault && obs.byDefault.arrived && obs.byDefault.water > 0),
-      c('at 0 it arrived with none', () => obs.off && obs.off.arrived && obs.off.water === 0));
+    list.push(c('Probe arrived at Relay with water drawn over its eyes', () => obs.byDefault && obs.byDefault.arrived && obs.byDefault.water > 0));
   } else if (o.case === 'sign colours') {
     const line = (what, text, colour) => c(`${what} in ${colour}: "${text}"`, () => {
       if (coloured(text, colour)) return true;

@@ -123,7 +123,7 @@ public final class Captures
      * <p>As far as that world's server sends -- its view distance, in blocks -- and never short
      * of the view depth, so a capture always holds what a view draws. A capture used to be taken
      * to the view depth and no further, which tied the two together the wrong way round: lowering
-     * {@code mirror-view-depth} to make a mirror cheaper cut every capture to match, and raising
+     * {@code view-depth} to make a mirror cheaper cut every capture to match, and raising
      * it again meant taking every one again, loading each room's world for a few seconds. The
      * reach is the capture's own now, and the depth says how much of it a view draws
      * ({@code Windows.fixedTo}), so the depth can change without a capture being touched.
@@ -137,7 +137,7 @@ public final class Captures
      */
     static int reach(final World far)
     {
-        final int depth = ConfigManager.getMirrorViewDepth();
+        final int depth = ConfigManager.getViewDepth();
         if (far == null)
         {
             return depth;
@@ -146,7 +146,7 @@ public final class Captures
     }
 
     /**
-     * How far a gate's view is filled in behind its first step (#516): {@code gate-view-full-depth},
+     * How far a gate's view is filled in behind its first step (#516): {@code view-depth},
      * never past what the far world's server sends, and never short of the first step.
      *
      * <p>Past the server's send distance a drawn block lands in a chunk the client does not hold,
@@ -156,12 +156,12 @@ public final class Captures
      * @param arrival
      *            where travellers through the gate land, in the far world
      * @param first
-     *            the first step's depth, {@code gate-view-depth}
+     *            the first step's depth
      * @return blocks
      */
     public static int gateFillDepth(final Place arrival, final int first)
     {
-        final int full = ConfigManager.getGateViewFullDepth();
+        final int full = ConfigManager.getViewDepth();
         if (full <= first)
         {
             return first;
@@ -708,14 +708,14 @@ public final class Captures
      * @param holeHeight
      *            and tall
      * @param depth
-     *            how far past the opening it reaches: {@code gate-view-depth} for the first step, and
-     *            anything deeper is the background fill to {@code gate-view-full-depth}, taken at half the pace
+     *            how far past the opening it reaches: the first step, and anything deeper is the
+     *            background fill to {@code view-depth}, taken at half the pace
      * @return true if a capture is now being taken, or already was
      */
     public static boolean requestGate(final String key, final String gate, final Place arrival,
         final int holeWidth, final int holeHeight, final int depth)
     {
-        final boolean fill = depth > ConfigManager.getGateViewDepth();
+        final boolean fill = depth > ConfigManager.getGateViewFirstDepth();
         return request(key, "gate '" + gate + "'" + (fill ? " out to " + depth : ""), arrival,
             new int[] { holeWidth, holeHeight }, Math.max(4, depth), fill, signCells(gate));
     }
@@ -764,7 +764,7 @@ public final class Captures
             + far.getName() + " around " + key);
         final int reach = (depth > 0) ? depth : reach(far);
         // A sift is cut to fit its budget as far back as the floor, never short of it: a mirror's view depth, a gate's first step.
-        final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewDepth()) : ConfigManager.getMirrorViewDepth();
+        final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewFirstDepth()) : ConfigManager.getViewDepth();
         final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
         job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
         job.blank = blank;

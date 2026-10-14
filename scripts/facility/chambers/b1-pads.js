@@ -33,10 +33,9 @@ const PADS = {
 
 const TIMING = {
   default: {},
-  long: { 'beam-descend-ticks': '60' },
-  'late teleport': { 'beam-rise-ticks': '60', 'beam-teleport-at-step': '50' },
-  clamped: { 'beam-teleport-at-step': '99' },
-  'clamped vanish': { 'beam-vanish-at-step': '99' },
+  slow: { 'beam-animation-speed': '0.5' },
+  fast: { 'beam-animation-speed': '2.0' },
+  'past fastest': { 'beam-animation-speed': '9' },
 };
 
 const v = (value, why) => ({ value, label: value, why });
@@ -59,10 +58,9 @@ module.exports = {
       v('another\'s place', 'Probe\'s place, asked for by Probe2: refused'), v('go', '`/wormhole go <name>` to a public one')],
     traveller: [v('player', 'Probe2, never opped, watched by Probe'), v('op', 'Probe, watched by Probe2'),
       v('horse', 'Probe riding a saddled horse'), v('wolf', 'Probe2 with its tame wolf standing by')],
-    timing: [v('default', '52 ticks from "Beaming" to "Beamed"'), v('long', '`beam-descend-ticks 60`: 92 ticks'),
-      v('late teleport', '`beam-rise-ticks 60`, `beam-teleport-at-step 50`: 90 ticks'),
-      v('clamped', '`beam-teleport-at-step 99`: clamped inside the rise, 57 ticks'),
-      v('clamped vanish', '`beam-vanish-at-step 99`: clamped inside the envelope; still lands, not frozen')],
+    timing: [v('default', '52 ticks from "Beaming" to "Beamed"'), v('slow', '`beam-animation-speed 0.5`: 104 ticks'),
+      v('fast', '`beam-animation-speed 2.0`: 26 ticks; still lands, not frozen'),
+      v('past fastest', '`beam-animation-speed 9`: read as 2.0, 26 ticks')],
   },
   needs: (o) => ({ config: TIMING[o.timing] || {} }),
   refuses: (o) => {
@@ -144,7 +142,7 @@ module.exports = {
       const at = await ctx.server.run(`data get entity @e[tag=${ctx.tag},tag=wx_kind_wolf,limit=1] Pos`);
       obs.wolfAt = at.lines.join(' ').replace(/.*data: /, '');
     }
-    if (o.timing === 'clamped vanish' && obs.beam.done) {
+    if (o.timing === 'fast' && obs.beam.done) {
       // Not left frozen: two blocks' walk.
       const from = { ...traveller.position };
       await traveller.walkTo({ x: from.x - 2, z: from.z }, { within: 0.4, ms: 4000 }).catch(() => {});
@@ -182,7 +180,7 @@ module.exports = {
     // Timed by the traveller's own chat, on localhost: 52 ticks came in at 2591-2598 ms.
     const expect = beamTicks(TIMING[o.timing]) * 50;
     list.push(c(`the beam took ${beamTicks(TIMING[o.timing])} ticks (${(expect / 1000).toFixed(2)} s, within 0.25 s)`, () => b().ms && Math.abs(b().ms - expect) <= 250));
-    if (o.timing === 'clamped vanish') list.push(c('and it could walk away afterwards (not left frozen)', () => obs.walked > 1.5));
+    if (o.timing === 'fast') list.push(c('and it could walk away afterwards (not left frozen)', () => obs.walked > 1.5));
     if (o.traveller === 'horse') {
       list.push(c('Probe was riding the horse', () => obs.riding));
       list.push(c('the same horse came along', () => obs.horseCame));

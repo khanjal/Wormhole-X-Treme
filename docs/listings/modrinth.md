@@ -251,7 +251,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Everything in the ring travels** — players, mobs, items, vehicles. Ride in on a horse and you arrive still on it. Only players are checked for access.
 - **It refuses an unfit arrival**: every square clear, solid ground under it, water and lava not counting. A refused trip costs nothing, and the pattern is flashed to whoever was turned away.
 - **Owners, access and quotas.** Pairs start public or private, `ring allow` and `ring deny` manage a private pair's list, `ring owner` hands it over, and a per-player quota caps how many anyone may own.
-- **Every timing is a setting** — countdown, cooldown, animation speed, how long the stack settles, how long each ring stays lit, how long the pad glows afterwards — as are the maximum distance and height between two ends.
+- **Tunable** — the cooldown, one speed for the whole animation, and the maximum distance between two ends are settings.
 - **Name an end** and its partner tells travellers where they are heading.
 - **Build and fire them from command blocks.** `ring build` pairs two laid circles by their coordinates and `ring fire` sets a pair off with nobody in it, from console or a command block, and `~` counts from the block — so a map's rings keep working wherever it is pasted.
 
@@ -281,7 +281,6 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Tunable depth.** How far the room is drawn is a setting (about as far as a server sends, by default). A deep redraw rests before the next, so a mirror can never take more than a quarter of the server's time however close you stand.
 - **It says what it is.** Look at one from a few blocks and it tells you above the hotbar what a click will do. `mirror debug` lists every fact about a mirror in green and red — a gap in the wall, another mirror too near, a missing capture.
 - **Creatures and players in the room, if you want them.** Mobs in the far room can show through a mirror or an open gate as copies only the viewer sees (`mirror-show-entities`), and with `mirror-show-players` on, who is standing at the other end. Both off by default.
-- **Paper bonus:** optional fog pulled in to where the room ends, so the far edge is fog rather than this world's hills.
 
 ---
 

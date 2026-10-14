@@ -7,13 +7,6 @@
 # require operator status.
 permissions-support-disable: false
 
-# If true (default), and no Vault-compatible permission provider is detected
-# at server startup, the plugin will automatically enable a simple permission
-# fallback mode so that basic use/dial actions continue to work. Advanced
-# actions remain restricted to operators or gate owners. Set this to false to
-# disable the automatic fallback.
-permissions-auto-fallback: true
-
 # Whether a redstone signal on a gate that is already open pushes its shutdown back, instead
 # of doing nothing. Never past max_open_seconds, which is measured from when the wormhole
 # first opened and is not affected by this -- so a cart crossing a detector rail can hold a
