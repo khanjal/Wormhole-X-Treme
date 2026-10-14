@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
@@ -151,21 +152,7 @@ class CaptureSectionsTest
         {
             for (int z = box.minZ() - 1; z <= (box.minZ() + box.sizeZ()); z++)
             {
-                if (expected.top(x, z) != actual.top(x, z))
-                {
-                    wrong.add("top " + x + "," + z + ": " + actual.top(x, z) + ", not " + expected.top(x, z));
-                }
-                for (int y = box.minY() - 1; y <= (box.minY() + box.sizeY()); y++)
-                {
-                    final String was = expected.nameAt(x, y, z) + (expected.isAir(x, y, z) ? " air" : "")
-                        + (expected.isBuried(x, y, z) ? " buried" : "");
-                    final String is = actual.nameAt(x, y, z) + (actual.isAir(x, y, z) ? " air" : "")
-                        + (actual.isBuried(x, y, z) ? " buried" : "");
-                    if (!was.equals(is))
-                    {
-                        wrong.add(x + "," + y + "," + z + ": " + is + ", not " + was);
-                    }
-                }
+                columnAnswers(expected, actual, box, x, z, wrong);
             }
         }
         assertTrue(wrong.isEmpty(), wrong.size() + " answers changed, first " + wrong.subList(0, Math.min(5, wrong.size())));
@@ -173,6 +160,27 @@ class CaptureSectionsTest
         assertEquals(expected.filled(), actual.filled(), "blocks kept that are not air");
         assertEquals(expected.seenAir(), actual.seenAir(), "air seen");
         assertEquals(expected.visits(), visits(actual), "every block kept, visited in the same order");
+    }
+
+    /** Adds to {@code wrong} every block of one column, and its top, that the two answer differently. */
+    private static void columnAnswers(final LegacyCapture expected, final Capture actual, final Capture.Box box,
+        final int x, final int z, final List<String> wrong)
+    {
+        if (expected.top(x, z) != actual.top(x, z))
+        {
+            wrong.add("top " + x + "," + z + ": " + actual.top(x, z) + ", not " + expected.top(x, z));
+        }
+        for (int y = box.minY() - 1; y <= (box.minY() + box.sizeY()); y++)
+        {
+            final String was = expected.nameAt(x, y, z) + (expected.isAir(x, y, z) ? " air" : "")
+                + (expected.isBuried(x, y, z) ? " buried" : "");
+            final String is = actual.nameAt(x, y, z) + (actual.isAir(x, y, z) ? " air" : "")
+                + (actual.isBuried(x, y, z) ? " buried" : "");
+            if (!was.equals(is))
+            {
+                wrong.add(x + "," + y + "," + z + ": " + is + ", not " + was);
+            }
+        }
     }
 
     private static List<String> visits(final Capture capture)
@@ -525,6 +533,101 @@ class CaptureSectionsTest
             "a whole section can be all air");
         assertThrows(IOException.class,
             () -> Section.read(new DataInputStream(new ByteArrayInputStream(allAir)), file, 2, WEST_HALF));
+    }
+
+    /**
+     * A version 5 file as {@code Capture.save} writes one, of a box, with the given sections at
+     * the given places in its grid, in the order given.
+     */
+    private static void sectionsFile(final File file, final Capture.Box box, final int[] places,
+        final Section... sections) throws IOException
+    {
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(bytes))
+        {
+            out.writeInt(0x4D495257);
+            out.writeInt(5);
+            out.writeInt(3);
+            out.writeBytes("far");
+            out.writeBoolean(true);
+            out.writeBoolean(false);
+            out.writeInt(box.minX());
+            out.writeInt(box.minY());
+            out.writeInt(box.minZ());
+            out.writeInt(box.sizeX());
+            out.writeInt(box.sizeY());
+            out.writeInt(box.sizeZ());
+            out.writeLong(0L);
+            out.writeInt(-1);
+            out.writeInt(1);
+            out.writeInt(13);
+            out.writeBytes("minecraft:air");
+            out.writeInt(places.length);
+            for (int i = 0; i < places.length; i++)
+            {
+                out.writeInt(places[i]);
+                sections[i].write(out);
+            }
+        }
+        final byte[] raw = bytes.toByteArray();
+        zip(file, raw, raw.length);
+    }
+
+    /** A section all of whose blocks are seen air. */
+    private static Section allAir()
+    {
+        final long[] air = new long[Section.BLOCKS / Long.SIZE];
+        Arrays.fill(air, -1L);
+        return Section.of(new short[0], new short[0], 0, 0, air, new int[1]);
+    }
+
+    /**
+     * Sections written out of order, or one place twice, are refused; in order they are read.
+     *
+     * <p>Read anyway, the second section at a place would silently stand for the first, and the
+     * capture would keep less than its file holds.
+     */
+    @Test
+    void sectionsOutOfOrderAreRefused(@TempDir final File dir) throws IOException
+    {
+        final Capture.Box twoSections = new Capture.Box(0, 0, 0, 16, 32, 16);
+        final File file = new File(dir, "order.view");
+
+        sectionsFile(file, twoSections, new int[] { 0, 1 }, allAir(), allAir());
+        assertEquals(2 * Section.BLOCKS, Capture.load(file).seenAir(), "in order: both sections of air");
+
+        sectionsFile(file, twoSections, new int[] { 0, 0 }, allAir(), allAir());
+        assertThrows(IOException.class, () -> Capture.load(file), "one place twice");
+        sectionsFile(file, twoSections, new int[] { 1, 0 }, allAir(), allAir());
+        assertThrows(IOException.class, () -> Capture.load(file), "out of order");
+    }
+
+    /**
+     * A box no capture could have is refused before anything is made for it.
+     *
+     * <p>A capture's sections are an array the size of its box's grid. A box a block wide and two
+     * billion tall passes the old check on its volume, and its grid alone would be half a gigabyte:
+     * read off the main thread, that is an OutOfMemoryError on the pool, and the file read again at
+     * the next look. A box near the edge of the int range wraps round, and its grid is negative.
+     */
+    @Test
+    void aBoxNoCaptureCouldHaveIsRefused(@TempDir final File dir) throws IOException
+    {
+        final File file = new File(dir, "box.view");
+
+        sectionsFile(file, new Capture.Box(0, 0, 0, 1, 384, 1), new int[0]);
+        assertEquals(384, Capture.load(file).size(), "a column the height of a world is read");
+
+        final int huge = Integer.MAX_VALUE;
+        for (final Capture.Box box : new Capture.Box[] { new Capture.Box(0, 0, 0, huge, 1, 1),
+            new Capture.Box(0, 0, 0, 1, huge, 1), new Capture.Box(0, 0, 0, 1, 1, huge) })
+        {
+            sectionsFile(file, box, new int[0]);
+            final IOException refused = assertThrows(IOException.class, () -> Capture.load(file), "two billion long: " + box);
+            assertTrue(refused.getMessage().contains("impossible shape"), refused.getMessage());
+        }
+        sectionsFile(file, new Capture.Box(Integer.MAX_VALUE - 4, 0, 0, 10, 10, 10), new int[0]);
+        assertThrows(IOException.class, () -> Capture.load(file), "past the end of the int range");
     }
 
     /** A file's contents, gunzipped. */

@@ -302,7 +302,8 @@ public final class Capture
             final short[] sortedValues = new short[cells.length];
             for (int i = 0; i < cells.length; i++)
             {
-                final int to = next[in[i]]++;
+                final int to = next[in[i]];
+                next[in[i]] = to + 1;
                 sortedLocals[to] = locals[i];
                 sortedValues[to] = values[i];
             }
@@ -1724,21 +1725,26 @@ public final class Capture
             {
                 throw new IOException(file + " has an impossible number of runs");
             }
-            final int dx = (int) (column >>> 20);
-            final int dz = (int) (column & 0xFFFFF);
             for (int run = 0; run < runs; run++)
             {
-                final int from = in.readShort();
-                final int to = in.readShort();
-                if ((from < 0) || (to < from) || (to >= box.sizeY()))
-                {
-                    throw new IOException(file + " has a run of air outside its box");
-                }
-                for (int dy = from; dy <= to; dy++)
-                {
-                    assembly.air(dx, dy, dz);
-                }
+                readRun(in, file, box, assembly, column);
             }
+        }
+    }
+
+    /** Reads one run of seen air in a column, as {@code (dx << 20) | dz}. */
+    private static void readRun(final DataInputStream in, final File file, final Box box, final Assembly assembly,
+        final long column) throws IOException
+    {
+        final int from = in.readShort();
+        final int to = in.readShort();
+        if ((from < 0) || (to < from) || (to >= box.sizeY()))
+        {
+            throw new IOException(file + " has a run of air outside its box");
+        }
+        for (int dy = from; dy <= to; dy++)
+        {
+            assembly.air((int) (column >>> 20), dy, (int) (column & 0xFFFFF));
         }
     }
 

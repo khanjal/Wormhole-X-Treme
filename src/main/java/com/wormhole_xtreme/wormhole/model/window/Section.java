@@ -33,6 +33,9 @@ final class Section
     /** Air seen in every block, shared by every cube that is all seen air; never written to. */
     private static final long[] ALL_AIR = new long[AIR_WORDS];
 
+    /** Air seen in no block, shared by every cube with none; never written to. */
+    private static final long[] NO_AIR_SEEN = new long[AIR_WORDS];
+
     static
     {
         Arrays.fill(ALL_AIR, -1L);
@@ -55,7 +58,7 @@ final class Section
     private final int entries;
     /** How many of those are not air. */
     private final int filled;
-    /** The air that can be seen, a bit a block; null for none. */
+    /** The air that can be seen, a bit a block; {@link #NO_AIR_SEEN} for none, {@link #ALL_AIR} for every block. */
     private final long[] air;
     /** How many blocks of it. */
     private final int airCount;
@@ -153,9 +156,14 @@ final class Section
         }
     }
 
+    /** Seen air given as a bit a block, or null for none, as one of the shared arrays where it is none or all. */
     private static long[] canonical(final long[] air)
     {
-        if ((air == null) || (air == ALL_AIR))
+        if (air == null)
+        {
+            return NO_AIR_SEEN;
+        }
+        if ((air == ALL_AIR) || (air == NO_AIR_SEEN))
         {
             return air;
         }
@@ -168,17 +176,13 @@ final class Section
         }
         if (none)
         {
-            return null;
+            return NO_AIR_SEEN;
         }
         return every ? ALL_AIR : air;
     }
 
     private static int count(final long[] air)
     {
-        if (air == null)
-        {
-            return 0;
-        }
         int count = 0;
         for (final long word : air)
         {
@@ -231,7 +235,7 @@ final class Section
         final int[] slot)
     {
         final int entries = to - from;
-        if ((entries == 0) && (canonical(air) == null))
+        if ((entries == 0) && (canonical(air) == NO_AIR_SEEN))
         {
             return null;
         }
@@ -249,7 +253,8 @@ final class Section
                     palette = Arrays.copyOf(palette, states * 2);
                 }
                 slot[value] = states;
-                palette[states++] = (short) value;
+                palette[states] = (short) value;
+                states++;
             }
             local[i] = slot[value];
         }
@@ -326,7 +331,7 @@ final class Section
     /** Whether a block is air that can be seen. */
     boolean airAt(final int local)
     {
-        return (air != null) && ((air[local >>> 6] & (1L << (local & 63))) != 0);
+        return (air[local >>> 6] & (1L << (local & 63))) != 0;
     }
 
     /** Handed each entry of a cube. */
@@ -404,7 +409,7 @@ final class Section
     /** Hands one column's seen air to {@code kept}, upward, in world coordinates. */
     void columnAir(final int column, final int x, final int baseY, final int z, final Capture.Kept kept)
     {
-        if (air == null)
+        if (air == NO_AIR_SEEN)
         {
             return;
         }
@@ -427,7 +432,7 @@ final class Section
         {
             bytes += 16L + (positions.length * 2L);
         }
-        if ((air != null) && (air != ALL_AIR))
+        if ((air != NO_AIR_SEEN) && (air != ALL_AIR))
         {
             bytes += 16L + (air.length * 8L);
         }
@@ -458,7 +463,12 @@ final class Section
                 out.writeLong(word);
             }
         }
-        if (air == null)
+        writeAir(out);
+    }
+
+    private void writeAir(final DataOutputStream out) throws IOException
+    {
+        if (air == NO_AIR_SEEN)
         {
             out.writeByte(NO_AIR);
         }
@@ -495,43 +505,57 @@ final class Section
         {
             throw new IOException(file + " has a section of " + entries + " blocks");
         }
-        short[] palette = new short[0];
-        int bits = 1;
-        long[] packed = new long[0];
-        short[] positions = new short[0];
-        if (entries > 0)
-        {
-            final int size = in.readUnsignedShort();
-            if ((size < 1) || (size > entries))
-            {
-                throw new IOException(file + " has a section palette of " + size);
-            }
-            palette = new short[size];
-            for (int i = 0; i < size; i++)
-            {
-                final int value = in.readUnsignedShort();
-                if (value >= states)
-                {
-                    throw new IOException(file + " has a block of state " + value + " of " + states);
-                }
-                palette[i] = (short) value;
-            }
-            final boolean full = in.readBoolean();
-            positions = full ? null : readPositions(in, file, entries, inside);
-            bits = full ? bitsFor(size + 1) : bitsFor(size);
-            packed = new long[words(full ? BLOCKS : entries, bits)];
-            for (int i = 0; i < packed.length; i++)
-            {
-                packed[i] = in.readLong();
-            }
-            check(file, palette, bits, packed, positions, entries, inside);
-        }
+        final Section kept = (entries > 0) ? readEntries(in, file, states, inside, entries) : null;
         final long[] air = readAir(in, file, inside);
-        if ((entries == 0) && (air == null))
+        if (kept != null)
         {
-            return null;
+            return new Section(kept, air);
         }
-        return new Section(palette, bits, packed, positions, entries, air);
+        return (air == NO_AIR_SEEN) ? null : new Section(new short[0], 1, new long[0], new short[0], 0, air);
+    }
+
+    /** The same entries as another cube, with seen air. */
+    private Section(final Section kept, final long[] air)
+    {
+        this.palette = kept.palette;
+        this.bits = kept.bits;
+        this.packed = kept.packed;
+        this.positions = kept.positions;
+        this.entries = kept.entries;
+        this.filled = kept.filled;
+        this.air = canonical(air);
+        this.airCount = count(this.air);
+    }
+
+    /** Reads a cube's palette and entries, refusing what the box could not hold; the cube has no air yet. */
+    private static Section readEntries(final DataInputStream in, final File file, final int states, final Inside inside,
+        final int entries) throws IOException
+    {
+        final int size = in.readUnsignedShort();
+        if ((size < 1) || (size > entries))
+        {
+            throw new IOException(file + " has a section palette of " + size);
+        }
+        final short[] palette = new short[size];
+        for (int i = 0; i < size; i++)
+        {
+            final int value = in.readUnsignedShort();
+            if (value >= states)
+            {
+                throw new IOException(file + " has a block of state " + value + " of " + states);
+            }
+            palette[i] = (short) value;
+        }
+        final boolean full = in.readBoolean();
+        final short[] positions = full ? null : readPositions(in, file, entries, inside);
+        final int bits = full ? bitsFor(size + 1) : bitsFor(size);
+        final long[] packed = new long[words(full ? BLOCKS : entries, bits)];
+        for (int i = 0; i < packed.length; i++)
+        {
+            packed[i] = in.readLong();
+        }
+        check(file, palette, bits, packed, positions, entries, inside);
+        return new Section(palette, bits, packed, positions, entries, NO_AIR_SEEN);
     }
 
     private static short[] readPositions(final DataInputStream in, final File file, final int entries,
@@ -581,7 +605,7 @@ final class Section
         final int kind = in.readUnsignedByte();
         if (kind == NO_AIR)
         {
-            return null;
+            return NO_AIR_SEEN;
         }
         if ((kind == EVERY_AIR) && inside.whole())
         {
