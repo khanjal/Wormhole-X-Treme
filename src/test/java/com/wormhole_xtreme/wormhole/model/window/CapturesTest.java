@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -1729,7 +1730,7 @@ class CapturesTest
             pool.tickUntilIdle();
             final Capture fresh = Captures.get(mirror);
             assertNotNull(fresh);
-            assertFalse(old == fresh, "the retake replaced the capture read first");
+            assertNotSame(old, fresh, "the retake replaced the capture read first");
         });
     }
 }

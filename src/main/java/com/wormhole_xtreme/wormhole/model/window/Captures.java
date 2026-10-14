@@ -1171,10 +1171,21 @@ public final class Captures
         final String key = keyOf(mirror.destination());
         final File file = fileOf(key);
         final Held held = LOADED.get(key);
+        final String memory;
+        if (held != null)
+        {
+            memory = "in memory, " + held.capture.filled() + " blocks, taken " + held.capture.secondsOld() + "s ago";
+        }
+        else if (loading(key))
+        {
+            memory = "not in memory, being read now";
+        }
+        else
+        {
+            memory = "not in memory";
+        }
         return MirrorText.field(CAPTURE, (file.isFile() ? (file.length() + " bytes") : MirrorText.bad("file missing"))
-            + ", " + ((held == null) ? ("not in memory" + (loading(key) ? ", being read now" : ""))
-                : ("in memory, " + held.capture.filled() + " blocks, taken " + held.capture.secondsOld() + "s ago"))
-            + (JOBS.containsKey(key) ? ", being taken now" : ""));
+            + ", " + memory + (JOBS.containsKey(key) ? ", being taken now" : ""));
     }
 
     /** Reads chunks another way, for a test. */

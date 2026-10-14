@@ -771,7 +771,7 @@ class CaptureTest
      * A folder of the file's name, with something in it, is refused the same way everywhere.
      */
     @Test
-    void aSaveWhoseRenameIsRefusedLeavesNoTemporaryFile(@TempDir final File dir) throws IOException
+    void aSaveWhoseRenameIsRefusedLeavesNoTemporaryFile(@TempDir final File dir)
     {
         final File file = new File(dir, "busy.view");
         assertTrue(new File(file, "inside").mkdirs(), "a folder where the file goes, not empty");
