@@ -658,4 +658,22 @@ class FunnelShapeTest
         assertEquals(9 * 221, blocks[0], "nine layers of Massive's 221 cells");
         assertEquals(1368, blocks[1], "and a wall two thick round each");
     }
+
+    /**
+     * A Standard gate dialling a Large one is seen down a tube of Standard's own shape to its end, corners
+     * left out: not the square middle of the Large opening it ends in front of (#587).
+     */
+    @Test
+    void aSmallGateOntoABigOnesTubeIsItsOwnShapeToItsEnd() throws IOException
+    {
+        final List<int[]> standard = portalOf("Standard");
+        final WindowShape window = windowFor(standard);
+        final Funnel funnel = Funnel.of(window, nearCells(window, standard), farCells(portalOf("Large")), 16, 3,
+            Material.WATER);
+
+        assertEquals(3, funnel.taper());
+        assertEquals(keysOf(standard, 0), layerOf(funnel, 1));
+        assertEquals(keysOf(standard, 0), layerOf(funnel, 2), "its last layer too");
+        assertFalse(funnel.holds(2, 0, 0), "a corner of the box is Standard's frame");
+    }
 }
