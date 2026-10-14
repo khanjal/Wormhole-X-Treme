@@ -1078,6 +1078,28 @@ class IrisSweepCrossingTest
             "opening, cell " + cell + " had its wormhole replaced: " + sent));
     }
 
+    /**
+     * Somebody who comes near after an opening began is still shown each ring open.
+     *
+     * <p>They have nothing on record for the sweep to move, so the per-viewer path has nothing to work from. They
+     * are shown the ring as the shared send always showed it, and the settle at the end does the rest.
+     */
+    @Test
+    void aViewerArrivingMidOpenIsShownEachRingOpenAsBefore()
+    {
+        final Player viewer = viewerAt(200.5);
+        watching(viewer);
+        final List<List<String>> rings = rings(false);
+        startSweep(false);
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+
+        stand(viewer, FRONT);
+        step();
+
+        assertEquals(cellsOf(rings.get(1)), new FarPlane(viewer).showingAt(0, water),
+            "the ring this step opened, and only it, drawn as the wormhole");
+    }
+
     /** Every block sent to one viewer in the ring, by cell, in order; clears what they were sent. */
     private static Map<String, List<BlockData>> sentToRing(final Player viewer)
     {
