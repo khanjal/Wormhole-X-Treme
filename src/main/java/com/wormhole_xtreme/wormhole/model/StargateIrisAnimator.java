@@ -180,16 +180,17 @@ public final class StargateIrisAnimator
             return gate.getGateWorld() != null;
         }
 
+        /** The ring and the far layer behind it together, per viewer on a layered gate (#429). */
         @Override
         public void drawRing(final List<Location> ring)
         {
-            StargateBlockSetup.sendCells(gate, ring, draw);
+            StargateBlockSetup.sweepRing(gate, ring, draw, covering);
         }
 
         @Override
         public void moveHorizon(final List<Location> ring)
         {
-            StargateBlockSetup.horizonBehind(gate, ring, covering);
+            // Nothing left to do: drawRing moved the far layer with the ring, each viewer from their own side.
         }
 
         @Override
@@ -236,6 +237,10 @@ public final class StargateIrisAnimator
      * <p>Called when the iris is toggled again before a sweep finishes. The half-drawn picture
      * is not unwound frame by frame -- the true blocks are simply sent, which is both the
      * shortest way back to honest and the state the next sweep expects to start from.
+     *
+     * <p>Not over a wormhole, where no one block is true for everybody (#429). A sweep called off there is
+     * finished per viewer; with none running, each viewer already holds their own settled picture, and the iris
+     * sent to everybody's ring was the front's picture for a viewer behind, at the start of every opening.
      */
     static void cancel(final Stargate gate)
     {
@@ -254,7 +259,16 @@ public final class StargateIrisAnimator
                 gate.fillGateInterior(gate.isGatePortalOpen()
                     ? GateViews.horizonOf(gate, gate.getEffectivePortalMaterial()) : Material.AIR);
             }
-            StargateBlockSetup.sendCells(gate, gate.getGatePortalBlocks(), irisAsItStands(gate));
+            if (sweep != null)
+            {
+                // Finished as the last step would, so the next sweep starts from what each viewer was drawn.
+                StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), irisAsItStands(gate),
+                    gate.isGateIrisActive());
+            }
+            else if (!StargateBlockSetup.isLayered(gate))
+            {
+                StargateBlockSetup.sendCells(gate, gate.getGatePortalBlocks(), irisAsItStands(gate));
+            }
         }
     }
 

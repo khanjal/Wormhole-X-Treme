@@ -1947,51 +1947,59 @@ class StargateBlockSetup
     }
 
     /**
-     * Shows or takes back the far layer for some of a gate's cells, without touching the ring.
+     * Draws one ring of an iris sweep, for everybody near, each from their own side (#429).
      *
-     * <p>A sweep draws the iris a ring at a time, and the layers used to be stacked only once
-     * it had finished. Behind an opaque iris that is invisible. Behind a see-through one every
-     * ring that arrived was a pane of glass with nothing behind it, so a gate spent its whole
-     * animation showing the landscape through its own iris; opening, the same the other way
-     * round, because the far layer came down before the first ring uncovered.
+     * <p>A gate with no layers -- a horizontal one, or one with no wormhole open -- looks the same
+     * from everywhere, and gets the one shared {@link #sendCells} it always had.
      *
-     * <p>So the far layer follows the sweep, ring by ring: it arrives with the iris that covers
-     * it and leaves with the iris that uncovers it, and the wormhole in the ring is never
-     * touched by any of it. The ring is the sweep's own to paint.
-     *
-     * <p>Only the far layer, and only for whoever has one. A viewer behind the gate keeps the
-     * horizon in the ring, which is what the sweep is already painting there, so they are left
-     * alone rather than sent a second copy of it.
+     * <p>A layered gate does not, and one block for everybody gave everybody the front's picture:
+     * a viewer behind watched the iris replace their wormhole a ring at a time, then jump behind it
+     * when the sweep settled. So each viewer is moved, cell by cell, from what they hold to the
+     * placement {@link IrisLayering} gives them. The ring belongs to whoever's near layer it is and
+     * only the far layer moves: in front, the iris comes into the ring and the wormhole goes a
+     * block behind; behind, the ring keeps the wormhole and the iris arrives a block beyond it.
      *
      * <p>Every cell the sweep has covered for a viewer is checked again at each step, not only this
-     * step's: whoever has walked round since is handed back the layer now on their own side and
-     * drawn the one now on their far side (#447).
+     * step's: whoever has walked round since is handed back what is now on their own side and drawn
+     * what is now on their far side (#447).
      *
      * @param gate
      *            the gate, whose iris is sweeping
-     * @param only
-     *            the ring cells this step covers, or null for all of them
-     * @param show
+     * @param ring
+     *            the ring cells this step covers or uncovers
+     * @param draw
+     *            what the ring is drawn as on the side it changes: the iris closing, the bare
+     *            opening opening; null for the real blocks
+     * @param covering
      *            true as a ring is covered, false as one is uncovered
      */
-    static void horizonBehind(final Stargate gate, final List<Location> only, final boolean show)
+    static void sweepRing(final Stargate gate, final List<Location> ring, final Material draw, final boolean covering)
     {
         final World world = sweptWorld(gate);
-        if (world == null)
+        if ((world == null) || (ring == null) || ring.isEmpty())
         {
+            sendCells(gate, ring, draw);
             return;
         }
-        final Set<IrisLayering.At> wanted = (only == null) ? null : new HashSet<>(asPositions(only));
-        // Whoever the ring is sent to: sendCells measures from the step's own first cell, and a viewer
-        // near enough for one and not the other was shown glass with nothing behind it.
-        final Location from = ((only == null) || only.isEmpty()) ? gate.getGatePortalBlocks().get(0) : only.get(0);
+        final Set<IrisLayering.At> wanted = new HashSet<>(asPositions(ring));
+        // Measured from the step's own first cell, as sendCells measures it.
+        final Location from = ring.get(0);
         final List<Player> near =
             playersNear(gate, new Location(world, from.getBlockX(), from.getBlockY(), from.getBlockZ()));
+        if (near.isEmpty())
+        {
+            // Built only once somebody is near, as sendCells does: createBlockData needs a live server.
+            world.getPlayers().forEach(player -> forgetStep(player, gate, wanted));
+            return;
+        }
+        final SweepStep step = new SweepStep(wanted,
+            (draw == null) ? null : MaterialUtils.drawnAcross(draw, gate.getGateFacing()),
+            MaterialUtils.drawnAcross(gate.getEffectiveIrisMaterial(), gate.getGateFacing()), covering);
         for (final Player player : world.getPlayers())
         {
             if (near.contains(player))
             {
-                horizonBehindFor(player, gate, wanted, show);
+                sweepRingFor(player, gate, ring, step);
             }
             else
             {
@@ -1999,6 +2007,22 @@ class StargateBlockSetup
                 forgetStep(player, gate, wanted);
             }
         }
+    }
+
+    /**
+     * One step of a layered sweep, as every viewer near it is drawn it.
+     *
+     * @param wanted
+     *            the cells this step covers or uncovers
+     * @param drawn
+     *            what a ring cell the step uncovers is drawn as, or null for its real block
+     * @param iris
+     *            what the iris is drawn as, wherever it goes
+     * @param covering
+     *            true as the step covers its cells
+     */
+    private record SweepStep(Set<IrisLayering.At> wanted, BlockData drawn, BlockData iris, boolean covering)
+    {
     }
 
     /**
@@ -2019,56 +2043,105 @@ class StargateBlockSetup
     }
 
     /**
-     * The same for one player, whose own side decides whether they have a far layer at all.
+     * The same for one player, whose own side decides where each layer goes.
      *
-     * @param wanted
-     *            the cells this step covers, or null for all of them
-     * @param show
-     *            true as the step covers its cells, false as it uncovers them
+     * @param stepRing
+     *            the ring cells this step covers or uncovers
      */
-    private static void horizonBehindFor(final Player player, final Stargate gate,
-        final Set<IrisLayering.At> wanted, final boolean show)
+    private static void sweepRingFor(final Player player, final Stargate gate, final List<Location> stepRing,
+        final SweepStep step)
     {
         final Map<Integer, IrisLayering.Placement> held = sweptFor(player, gate);
-        // Opening with nothing covered for them: nothing to move, and nothing to work out.
-        if (!show && held.isEmpty())
+        if (!step.covering() && held.isEmpty())
         {
+            // Opening with nothing covered for them, which is somebody who came near after it began: nothing
+            // of theirs to move, so the ring is shown them as it always was, and the settle does the rest.
+            sendRingTo(player, gate, stepRing, step.drawn());
             return;
         }
         final List<IrisLayering.Placement> layers = layersFor(gate, player.getLocation());
-        final List<Location> ring = gate.getGatePortalBlocks();
+        final List<Location> opening = gate.getGatePortalBlocks();
         for (int i = 0; i < layers.size(); i++)
         {
-            final IrisLayering.At cell = positionOf(ring.get(i));
-            final boolean stepped = (wanted == null) || wanted.contains(cell);
+            final IrisLayering.At cell = positionOf(opening.get(i));
+            final boolean stepped = step.wanted().contains(cell);
             final IrisLayering.Placement before = held.get(i);
             // Covered once this step is done: closing, what already was and this step's cells; opening,
             // what was and is not this step's.
-            final boolean covered = (before != null) ? (show || !stepped) : (show && stepped);
+            final boolean covered = (before != null) ? (step.covering() || !stepped) : (step.covering() && stepped);
             final IrisLayering.Placement after = covered ? layers.get(i) : null;
-            moveLayers(player, gate, cell, before, after);
-            remember(held, i, before, heldAfter(before, after, cell));
+            moveRingCell(player, gate, cell, irisInRing(before, cell), irisInRing(after, cell),
+                stepped && !step.covering(), step);
+            moveOffRing(player, gate, cell, before, after, step.iris());
+            remember(held, i, before, after);
         }
     }
 
     /**
-     * What a viewer holds once a cell is moved to a placement: the placement, but an iris off the ring only
-     * if they held it already.
+     * Sends one player a step's ring as one picture, the way {@link #sendCells} sends it to everybody.
      *
-     * <p>A sweep never draws the iris beyond the ring; only a whole draw does. Filed as held, it would be
-     * handed back to a viewer who never had it as soon as they walked round.
-     *
-     * @return what to file, or null for a cell not covered
+     * @param drawn
+     *            what to draw the cells as, or null for their real blocks
      */
-    private static IrisLayering.Placement heldAfter(final IrisLayering.Placement before,
-        final IrisLayering.Placement after, final IrisLayering.At cell)
+    private static void sendRingTo(final Player player, final Stargate gate, final List<Location> stepRing,
+        final BlockData drawn)
     {
-        if ((after == null) || (after.iris() == null) || after.iris().equals(cell)
-            || ((before != null) && after.iris().equals(before.iris())))
+        for (final Location bc : stepRing)
         {
-            return after;
+            final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            player.sendBlockChange(at, (drawn != null) ? drawn
+                : gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()).getBlockData());
         }
-        return new IrisLayering.Placement(null, after.horizon());
+    }
+
+    /**
+     * Whether a placement puts the iris in the ring itself.
+     *
+     * @param placed
+     *            the placement, or null for a cell not covered
+     * @return true only for a covered cell whose iris is the near layer
+     */
+    private static boolean irisInRing(final IrisLayering.Placement placed, final IrisLayering.At cell)
+    {
+        return (placed != null) && cell.equals(placed.iris());
+    }
+
+    /**
+     * Redraws one ring cell for one viewer, only if the iris comes into it or leaves it.
+     *
+     * <p>Otherwise the ring is the wormhole's, before and after, and is not touched: that is the whole of
+     * what a viewer behind the gate is owed while it sweeps.
+     *
+     * @param before
+     *            whether the iris is in the ring for them now
+     * @param after
+     *            whether it is to be
+     * @param uncovering
+     *            true if this step uncovers the cell, which draws it as the step says; otherwise the iris
+     *            leaves the ring because the viewer walked round, and the wormhole takes it
+     */
+    private static void moveRingCell(final Player player, final Stargate gate, final IrisLayering.At cell,
+        final boolean before, final boolean after, final boolean uncovering, final SweepStep step)
+    {
+        if (before == after)
+        {
+            return;
+        }
+        final Location at = located(gate, cell);
+        if (after)
+        {
+            player.sendBlockChange(at, step.iris());
+        }
+        else if (!uncovering)
+        {
+            player.sendBlockChange(at, MaterialUtils.drawnAcross(DrawnHorizon.materialFor(
+                gate.getEffectivePortalMaterial(), gate.getEffectiveIrisMaterial(), cell, false), gate.getGateFacing()));
+        }
+        else
+        {
+            player.sendBlockChange(at, (step.drawn() != null) ? step.drawn()
+                : gate.getGateWorld().getBlockAt(cell.x(), cell.y(), cell.z()).getBlockData());
+        }
     }
 
     /** Files one cell's new placement in a viewer's sweep record, touching it only if it changed. */
@@ -2092,10 +2165,9 @@ class StargateBlockSetup
     /**
      * Moves one cell's layers off the ring for one viewer, from one placement to the next.
      *
-     * <p>The far horizon is handed back and drawn again where it now belongs. An iris held off the ring
-     * -- a block in front, from behind the gate -- is only handed back: the sweep paints the iris in the
-     * ring for everybody, so a viewer walking round to the back keeps it there rather than being drawn a
-     * second one beyond it.
+     * <p>The far horizon, a block behind from in front, and the far iris, a block beyond from behind, are each
+     * handed back and drawn again where they now belong. They are on opposite sides of the ring, so neither
+     * can land where the other is being handed back.
      *
      * @param cell
      *            the ring cell they belong to
@@ -2103,39 +2175,42 @@ class StargateBlockSetup
      *            what they hold, or null for a cell not covered
      * @param after
      *            what they are to hold, or null for a cell not covered
+     * @param iris
+     *            what the iris is drawn as, or null if no placement here can put it off the ring
      */
-    private static void moveLayers(final Player player, final Stargate gate, final IrisLayering.At cell,
-        final IrisLayering.Placement before, final IrisLayering.Placement after)
+    private static void moveOffRing(final Player player, final Stargate gate, final IrisLayering.At cell,
+        final IrisLayering.Placement before, final IrisLayering.Placement after, final BlockData iris)
     {
-        final IrisLayering.At strayIris = strayIrisOf(before, after, cell);
-        if (strayIris != null)
+        final IrisLayering.At irisFrom = farIrisOf(before, cell);
+        final IrisLayering.At irisTo = farIrisOf(after, cell);
+        if (!Objects.equals(irisFrom, irisTo))
         {
-            sendTruthIfFree(player, located(gate, strayIris));
+            if (irisFrom != null)
+            {
+                sendTruthIfFree(player, located(gate, irisFrom));
+            }
+            if (irisTo != null)
+            {
+                player.sendBlockChange(located(gate, irisTo), iris);
+            }
         }
         moveFarLayer(player, gate, cell, farLayerOf(before, cell), farLayerOf(after, cell));
     }
 
     /**
-     * Where a viewer holds the iris off the ring that their next placement no longer uses.
+     * Where a placement puts the iris off the ring.
      *
-     * @param before
-     *            what they hold, or null
-     * @param after
-     *            what they are to hold, or null
-     * @return the position to hand back, or null if there is none
+     * @param placed
+     *            the placement, or null for a cell not covered
+     * @return the position, or null when the iris has the ring or is not drawn
      */
-    private static IrisLayering.At strayIrisOf(final IrisLayering.Placement before,
-        final IrisLayering.Placement after, final IrisLayering.At cell)
+    private static IrisLayering.At farIrisOf(final IrisLayering.Placement placed, final IrisLayering.At cell)
     {
-        if ((before == null) || (before.iris() == null) || before.iris().equals(cell))
+        if ((placed == null) || cell.equals(placed.iris()))
         {
             return null;
         }
-        if ((after != null) && (before.iris().equals(after.iris()) || before.iris().equals(after.horizon())))
-        {
-            return null;
-        }
-        return before.iris();
+        return placed.iris();
     }
 
     /**
@@ -2241,7 +2316,7 @@ class StargateBlockSetup
             if (i < ring.size())
             {
                 final IrisLayering.At cell = positionOf(ring.get(i));
-                moveLayers(player, gate, cell, placed, null);
+                moveOffRing(player, gate, cell, placed, null, null);
             }
         });
     }

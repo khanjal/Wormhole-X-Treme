@@ -811,8 +811,8 @@ class IrisLayeringTest
      * with nothing behind it, so the gate spent its whole animation showing the landscape
      * through its own iris and then produced the wormhole in a single pop at the end.
      *
-     * <p>Asserted before any sweep step is allowed to run: the horizon is behind the ring, and
-     * the iris is not drawn yet, because drawing that is the sweep's whole job.
+     * <p>One ring's step, from the front: the iris into the ring and the stand-in a block behind
+     * it, in the same step, and never the real water, which the glass would hide.
      */
     @Test
     void theHorizonGoesBehindTheRingAsTheIrisCoversIt()
@@ -822,32 +822,42 @@ class IrisLayeringTest
         glassIris(ice, packed);
         standAt(Z - 4);
 
-        StargateBlockSetup.horizonBehind(gate, null, true);
+        StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
-        verify(viewer, never()).sendBlockChange(any(Location.class), eq(iris));
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
         verify(viewer, never()).sendBlockChange(any(Location.class), eq(horizon));
     }
 
     /**
-     * A viewer behind the gate is sent nothing extra before the sweep.
+     * A viewer behind the gate keeps the wormhole in the ring while the iris sweeps, and has the iris come and go
+     * a block beyond it (#429).
      *
-     * <p>Their horizon is the ring itself, which is exactly what the sweep paints there to
-     * begin with. Sending it again would be a second copy of the same block, and sending it a
-     * block behind the ring would put it on their own side -- the picture this whole
-     * arrangement exists to avoid.
+     * <p>The ring is the near layer's, and from behind that is the wormhole. The sweep used to paint the ring for
+     * everybody as the front sees it, so a viewer behind watched the iris replace their wormhole a ring at a time
+     * and then jump behind it once the sweep had settled. Nothing is sent into the ring for them either way, and
+     * nothing on their own side of it.
      */
     @Test
-    void aViewerBehindIsSentNoFarHorizonBySweeping()
+    void aViewerBehindKeepsTheWormholeInTheRingAndHasTheIrisSweepBeyondIt()
     {
         final BlockData ice = mock(BlockData.class);
         final BlockData packed = mock(BlockData.class);
         glassIris(ice, packed);
         standAt(Z + 4);
 
-        StargateBlockSetup.horizonBehind(gate, null, true);
+        StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), Material.YELLOW_STAINED_GLASS, true);
 
-        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(viewer).sendBlockChange(at(Z - 1), eq(iris));
+        verify(viewer, never()).sendBlockChange(at(Z), any(BlockData.class));
+        verify(viewer, never()).sendBlockChange(at(Z + 1), any(BlockData.class));
+
+        clearInvocations(viewer);
+        StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), Material.WATER, false);
+
+        verify(viewer).sendBlockChange(at(Z - 1), eq(truthAhead));
+        verify(viewer, never()).sendBlockChange(at(Z), any(BlockData.class));
+        verify(viewer, never()).sendBlockChange(at(Z + 1), any(BlockData.class));
     }
 
     /**
@@ -874,7 +884,7 @@ class IrisLayeringTest
         gate.getGateStructureBlocks().add(new Location(world, X + 2, Y, Z));
         standAt(Z - 4);
 
-        StargateBlockSetup.horizonBehind(gate, List.of(new Location(world, X, Y, Z)), true);
+        StargateBlockSetup.sweepRing(gate, List.of(new Location(world, X, Y, Z)), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
         verify(viewer, never()).sendBlockChange(
@@ -882,7 +892,7 @@ class IrisLayeringTest
 
         // And the same going the other way, as a ring uncovers.
         clearInvocations(viewer);
-        StargateBlockSetup.horizonBehind(gate, List.of(new Location(world, X, Y, Z)), false);
+        StargateBlockSetup.sweepRing(gate, List.of(new Location(world, X, Y, Z)), Material.WATER, false);
 
         verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
         verify(viewer, never()).sendBlockChange(
