@@ -17,12 +17,12 @@ and in the description, so if there is such a rule, both have to change the same
 did: crop the avatar from `docs/images/gates/gate-shapes-active.png` and drop the banner. Check
 before the next upload rather than assuming either way.
 
-**The one real difference from the other two sites:** Hangar is PaperMC's own platform and its
+**The one real difference from the other sites:** Hangar is PaperMC's own platform and its
 platform tags are **Paper, Velocity and Waterfall** — there is no Spigot or Bukkit tag
 **(inferred, see below)**. So this plugin lists there as a Paper plugin, which is honest (CI builds and tests
 against Paper at every supported version) but inverts how Spigot and Modrinth describe it. The page
 below leads with Paper and mentions Spigot second, which is the only place the copy deliberately
-diverges from the other two.
+diverges from the others.
 
 ---
 
@@ -58,7 +58,7 @@ the real form, showed a **Paper group and nothing else**. Hangar scopes dependen
 platform, so a Spigot or Bukkit platform would have brought its own group. That plus Hangar being
 Paper, Velocity and Waterfall only is why the page leads with Paper. If the platform picker ever
 shows a Spigot or Bukkit option, revert the page's opening lines to the Spigot-first wording in
-[`modrinth.md`](modrinth.md#description) so all three read alike.
+[`modrinth.md`](modrinth.md#description) so every site reads alike.
 
 **On Velocity and Waterfall.** Leave both off. Ticking a proxy platform for a server plugin puts
 it in front of people who cannot use it, and Hangar's platform filter is how most people browse.
@@ -229,7 +229,7 @@ you turn them on.
 - **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building and using gates in a region. Off until `worldguard-enabled` is set.
 - **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 - **BlueMap, squaremap and Pl3xMap**, if you want one: the same marks on each, with every world's layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`, `squaremap-enabled` or `pl3xmap-enabled` is set.
-- **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false` turns it off.
+- **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes and portal materials are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled. `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 

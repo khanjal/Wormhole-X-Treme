@@ -3,7 +3,8 @@
 Setting up, building, testing and the conventions this repository keeps. The plugin's own
 documentation is in [guide/](guide/README.md) for server owners and [API.md](API.md) for plugin
 authors; how each subsystem is designed is in [GATES.md](GATES.md), [RINGS.md](RINGS.md),
-[BEAMS.md](BEAMS.md) and [MIRRORS.md](MIRRORS.md).
+[BEAMS.md](BEAMS.md) and [MIRRORS.md](MIRRORS.md); the bStats charts and their dashboard setup
+are in [BSTATS.md](BSTATS.md).
 
 ## Building and testing
 
@@ -1270,3 +1271,7 @@ Two things that follow from it, worth knowing before filing an issue:
   reported a number that was already out and said nothing about what was in it. `/version`
   still prints the build time, which is what tells two builds of one version apart; the
   `-SNAPSHOT` is what stops a development jar claiming to be a release.
+
+A release also closes its milestone: `release.yml` closes the open milestone named for the
+tag's version once the release is published, if it has no open issues. One that still does
+is left open with a warning in the run, and a tag with no such milestone is skipped.

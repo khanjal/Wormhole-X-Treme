@@ -795,6 +795,17 @@ public class Stargate implements GateIris
      */
     private Material resolveMaterial(final MaterialRole role)
     {
+        return resolveMaterial(role, true);
+    }
+
+    /**
+     * The same, but with {@code load} false it does not read a block from a chunk that is not
+     * loaded, which is what finding a gate's material group would otherwise do: it answers only
+     * when every group gives the same material, which a frame matching no group gives too, and
+     * null otherwise.
+     */
+    private Material resolveMaterial(final MaterialRole role, final boolean load)
+    {
         if (gateCustom)
         {
             final Material override = role.custom.apply(this);
@@ -807,12 +818,35 @@ public class Stargate implements GateIris
         {
             return role.fromShape.apply(gateShape);
         }
+        if (!load && !gateMaterialGroupResolved && !frameChunkLoaded())
+        {
+            return sameForEveryGroup(role);
+        }
         final MaterialGroup group = getGateMaterialGroup();
         if (group != null)
         {
             return role.fromGroup.apply(group);
         }
         return (gateShape != null) ? role.fromShape.apply(gateShape) : role.fallback;
+    }
+
+    /**
+     * The material when it does not depend on the group, so there is no need to read the frame to
+     * find the group: every group gives it, and so does a frame that matches none.
+     *
+     * @return that material, or null when the groups disagree
+     */
+    private Material sameForEveryGroup(final MaterialRole role)
+    {
+        final Material unmatched = (gateShape != null) ? role.fromShape.apply(gateShape) : role.fallback;
+        for (final MaterialGroup group : MaterialGroupRegistry.getGroups())
+        {
+            if (role.fromGroup.apply(group) != unmatched)
+            {
+                return null;
+            }
+        }
+        return unmatched;
     }
 
     /**
@@ -823,6 +857,41 @@ public class Stargate implements GateIris
     public Material getEffectivePortalMaterial()
     {
         return resolveMaterial(MaterialRole.PORTAL);
+    }
+
+    /**
+     * The portal material, unless working it out would load a chunk (#239).
+     *
+     * <p>A gate read from storage finds its material group from its frame block in the world, the
+     * first time it is asked. That is fine when somebody is using the gate and not when a statistics
+     * task asks about every gate at once, so for a gate whose group is not known yet and whose frame
+     * is in a chunk that is not loaded, this answers only when every group gives the same portal
+     * material, and null when only loading the chunk would tell.
+     *
+     * @return the portal material, or null if only loading a chunk would tell
+     */
+    public Material getEffectivePortalMaterialIfLoaded()
+    {
+        return resolveMaterial(MaterialRole.PORTAL, false);
+    }
+
+    /** Whether the gate's first frame block is in a loaded chunk; true where there is no world to read. */
+    private boolean frameChunkLoaded()
+    {
+        if ((gateWorld == null) || gateStructureBlocks.isEmpty())
+        {
+            return true;
+        }
+        final Location first = gateStructureBlocks.get(0);
+        try
+        {
+            return gateWorld.isChunkLoaded(first.getBlockX() >> 4, first.getBlockZ() >> 4);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // A world the server has since unloaded: nothing to read, so nothing to wait for.
+            return false;
+        }
     }
 
     /**

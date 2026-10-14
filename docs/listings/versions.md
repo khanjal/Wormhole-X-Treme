@@ -8,6 +8,7 @@ first version on the plugin sites; add a section at the top for each new release
 | [SpigotMC](spigot.md#version-upload) | Post Resource Update | the jar, **Version string**, **Update title**, **Update message** (BBCode) |
 | [Modrinth](modrinth.md#version-upload) | Create version | the jar, **Version number**, **Version title**, **Changelog** (Markdown), game versions |
 | [Hangar](hangar.md#version-upload) | Upload version | the jar, then **Changelog** (Markdown) and platform versions on the next screen |
+| [CurseForge](curseforge.md#version-upload) | Upload file | the jar, **Display name**, **Changelog** (the Modrinth and Hangar Markdown), Bukkit versions |
 
 The jar for each is `WormholeXTreme-<version>.jar` on its
 [GitHub release](https://github.com/khanjal/Wormhole-X-Treme/releases).
@@ -19,7 +20,7 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
   1.10.0 with the history in order.
 - **On Spigot, untick Notify followers for all but the newest**, or followers get one alert per
   back-filled version.
-- **Tick each version's own Minecraft range** on Modrinth and Hangar, from its section below, not
+- **Tick each version's own Minecraft range** on Modrinth, Hangar and CurseForge, from its section below, not
   today's.
 
 ## Writing a new entry
@@ -42,9 +43,9 @@ Released 2026-10-12.
 
 | Field | Value |
 |---|---|
-| Version (all three sites) | `1.10.0` |
+| Version (all four sites) | `1.10.0` |
 | Title (Spigot update title, Modrinth version title) | `1.10.0 - Views through gates, ripples and more web maps` |
-| Minecraft (Modrinth game versions, Hangar platform versions) | 1.20 – 26.3 |
+| Minecraft (Modrinth game versions, Hangar platform versions, CurseForge Bukkit versions) | 1.20 – 26.3 |
 
 Modrinth and Hangar changelog:
 

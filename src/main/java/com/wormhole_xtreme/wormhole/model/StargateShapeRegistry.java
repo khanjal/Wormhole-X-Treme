@@ -90,6 +90,32 @@ public final class StargateShapeRegistry
     }
 
     /**
+     * The name a bundled shape ships under, for a shape called that, whatever the capitals; a
+     * server's own shape can be called anything, so a name that is not one of the bundled ones is
+     * not answered.
+     *
+     * @param name
+     *            a shape's name, or null
+     * @return {@code Standard}, {@code Minimal} and so on as the plugin spells them, or null
+     */
+    public static String shippedName(final String name)
+    {
+        if (name == null)
+        {
+            return null;
+        }
+        for (final String file : ShippedShapes.NAMES)
+        {
+            final String shipped = file.substring(0, file.length() - SHAPE_SUFFIX.length());
+            if (shipped.equalsIgnoreCase(name))
+            {
+                return shipped;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Moves shapes up out of the old {@code 3d} and {@code 2d} subdirectories.
      *
      * <p>Shapes were once split into those two folders. They are read from one flat

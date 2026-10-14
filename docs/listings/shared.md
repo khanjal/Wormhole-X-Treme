@@ -24,13 +24,16 @@ The values a release changes. Change them here first, then carry them into the s
 
 ## Where the listings live
 
-All three were published on 2026-09-19.
+SpigotMC, Modrinth and Hangar were published on 2026-09-19. CurseForge was submitted on
+2026-10-12 and is approved.
 
 | Site | URL |
 |---|---|
 | SpigotMC | <https://www.spigotmc.org/resources/wormhole-x-treme.138936/> (resource id 138936) |
 | Modrinth | <https://modrinth.com/plugin/wormhole-x-treme> (slug `wormhole-x-treme`) |
 | Hangar | <https://hangar.papermc.io/khanjal/Wormhole-X-Treme> |
+| CurseForge | <https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme> (slug `wormhole-x-treme`) |
+| BukkitDev | <https://dev.bukkit.org/projects/wormhole-x-treme> — the same CurseForge project, shown on dev.bukkit.org. Nothing to fill in separately. |
 
 These are live pages with real readers, so a change here is a change to something published.
 Edit the file, then carry it to the site — the file is the record of what *should* be there, not
@@ -92,7 +95,8 @@ stack, the beam timing strip. Render to PNG before using them anywhere that will
 **Both logo images are AI-authored, and at least one site forbids that on the page.** Modrinth's
 Content Rules 6.2.1 bans any page image "created or derived from generative AI output", so its
 icon is cropped from a gameplay capture and its description carries no banner. SpigotMC's rules
-carry no AI clause, so the logo stays there; Hangar's are unchecked. The reasoning is in
+carry no AI clause, so the logo stays there; Hangar's and CurseForge's are unchecked, and
+CurseForge uses the Modrinth crop rather than find out. The reasoning is in
 [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page); every clip and screenshot
 is a real capture and is unaffected.
 
@@ -114,7 +118,7 @@ Liberation Sans is metric-compatible with Arial, which is already in the stack, 
 
 ## Tagline
 
-Written to Spigot's 100-character cap, which is the tightest of the three. Measured.
+Written to Spigot's 100-character cap, which is the tightest of the caps recorded (CurseForge's summary cap was not). Measured.
 
 **Preferred** (97):
 
@@ -310,8 +314,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`,
   `squaremap-enabled` or `pl3xmap-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
-  server software, and how many gates, rings, beams and mirrors, in ranges. `metrics-enabled: false`
-  turns it off.
+  server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes and portal materials are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled.
+  `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to
   operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never
   downloads anything. `update-check: false` turns it off.
