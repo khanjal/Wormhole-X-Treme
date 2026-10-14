@@ -461,13 +461,18 @@ the opening and a first layer behind it at the opening's own size. A gate
 smaller than three blocks each way, such as Minimal, is seen through a three-by-three opening at the
 end, so there is something to see. Mobs and
 players on the far side are shown only in the view at the end, not in the tunnel or beside it. Gates of
-the same size, and a small gate dialling a big one, show the whole view as before.
+the same size, and a small gate dialling a big one, show the whole view as before, unless
+`gate-view-funnel-min-length` is set: then they are seen down a straight tunnel the size of your
+gate, and every tunnel runs straight for a while before it narrows, longer for a bigger gate. At 3, a
+Standard pair has a tunnel of 3, a Large pair 5, Large to Standard 8. It does nothing while
+`gate-view-funnel` is `false`. The far side starts at the tunnel's end, so a low `view-depth` shows
+less of it, and at a depth no longer than the tunnel, the tunnel alone.
 
 Water is see-through, so through the tunnel's walls you can see, faintly, whatever stands behind the
 gate on your side; lava hides it. The far side is still captured whole: the tunnel only changes
 what is drawn.
 
-In `config.yml` these two are under `# --- Gate views and mirrors ---`, `# -- Gate views --`,
+In `config.yml` these three are under `# --- Gate views and mirrors ---`, `# -- Gate views --`,
 right after `gate-view`. How far a gate's view reaches is `view-depth`, shared with mirrors: see
 [Mirrors](MIRRORS.md#settings).
 
@@ -475,6 +480,7 @@ right after `gate-view`. How far a gate's view reaches is `view-depth`, shared w
 |---|---|---|
 | `gate-view-funnel` | `true` | Whether a gate dialling a smaller one shows the view at the end of a tunnel; `false` shows the whole view |
 | `gate-view-funnel-length` | `16` | The longest that tunnel may be, 1 to 64 blocks |
+| `gate-view-funnel-min-length` | `0` | The shortest it is, up to `gate-view-funnel-length`; above 0, same-size and small-to-large pairs get a straight tunnel too. 3 is the wormhole look for a Standard gate. No effect while `gate-view-funnel` is `false`. [Details](../GATES.md) |
 
 ## Redstone
 
