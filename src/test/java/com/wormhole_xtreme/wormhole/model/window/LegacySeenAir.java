@@ -10,13 +10,12 @@ import java.util.BitSet;
 import java.util.List;
 
 /**
- * The air a capture keeps because a viewer can see it, as runs of y a column at a time, every
- * position an offset from the box's corner.
- *
- * <p>The air in a column is a few runs, and a desert at the render distance is a hundred thousand
- * columns rather than tens of millions of blocks of air.
+ * The seen air a capture kept before sections (#525), as runs of y a column at a time, every
+ * position an offset from the box's corner: {@code SeenAir} as it was, kept unchanged for
+ * {@link LegacyCapture}, which the sectioned capture is checked against and which writes the
+ * version 3 and 4 files it still has to read.
  */
-final class SeenAir
+final class LegacySeenAir
 {
     /** Every column with air that can be seen, as {@code (dx << 20) | dz}, ascending. */
     private final long[] columns;
@@ -27,7 +26,7 @@ final class SeenAir
     /** Each run's last y, likewise. */
     private final short[] to;
 
-    private SeenAir(final long[] columns, final int[] first, final short[] from, final short[] to)
+    private LegacySeenAir(final long[] columns, final int[] first, final short[] from, final short[] to)
     {
         this.columns = columns;
         this.first = first;
@@ -44,7 +43,7 @@ final class SeenAir
      *            blocks blanked to air, which are entries rather than runs
      * @return the runs
      */
-    static SeenAir of(final BitSet seen, final BitSet cleared, final int sizeX, final int sizeY,
+    static LegacySeenAir of(final BitSet seen, final BitSet cleared, final int sizeX, final int sizeY,
         final int sizeZ)
     {
         final Runs runs = new Runs();
@@ -96,10 +95,10 @@ final class SeenAir
             }
         }
 
-        SeenAir done()
+        LegacySeenAir done()
         {
             first.add(from.size());
-            return new SeenAir(columns.stream().mapToLong(Long::longValue).toArray(),
+            return new LegacySeenAir(columns.stream().mapToLong(Long::longValue).toArray(),
                 first.stream().mapToInt(Integer::intValue).toArray(), shorts(from), shorts(to));
         }
     }
@@ -123,6 +122,12 @@ final class SeenAir
             air += (to[i] - from[i]) + 1;
         }
         return air;
+    }
+
+    /** @return bytes its arrays take */
+    long bytes()
+    {
+        return (columns.length * 8L) + (first.length * 4L) + (from.length * 4L);
     }
 
     /** Whether a block, as offsets from the box's corner, is air that can be seen. */
@@ -181,7 +186,7 @@ final class SeenAir
      * @throws IOException
      *             if it is cut short, or holds more than a box of this size could
      */
-    static SeenAir read(final DataInputStream in, final File file, final int sizeX, final int sizeY,
+    static LegacySeenAir read(final DataInputStream in, final File file, final int sizeX, final int sizeY,
         final int sizeZ) throws IOException
     {
         final int count = in.readInt();
@@ -209,6 +214,6 @@ final class SeenAir
             }
         }
         first[count] = from.size();
-        return new SeenAir(columns, first, shorts(from), shorts(to));
+        return new LegacySeenAir(columns, first, shorts(from), shorts(to));
     }
 }

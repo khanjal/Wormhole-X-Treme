@@ -25,8 +25,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.GZIPOutputStream;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
@@ -1503,6 +1506,30 @@ class CapturesTest
 
         verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("Could not read mirror capture"),
             any(IOException.class));
+    }
+
+    /**
+     * A capture file of sections cut short is warned of once and remembered as unreadable, as a
+     * file of the list before it was (#525).
+     *
+     * <p>A capture written as sections, then cut off part way through them, as a full disk or a
+     * killed server leaves one.
+     */
+    @Test
+    void aSectionsFileCutShortIsWarnedOfOnceAndRememberedAsUnreadable() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final byte[] whole = CaptureSectionsTest.unzipped(mirrorFile());
+        try (OutputStream out = new GZIPOutputStream(Files.newOutputStream(mirrorFile().toPath())))
+        {
+            out.write(whole, 0, whole.length - 9);
+        }
+
+        assertNull(Captures.get(mirror), "cut short, so none");
+        assertNull(Captures.get(mirror), "and not read again");
+
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("Could not read mirror capture"),
+            any(EOFException.class));
     }
 
     /**

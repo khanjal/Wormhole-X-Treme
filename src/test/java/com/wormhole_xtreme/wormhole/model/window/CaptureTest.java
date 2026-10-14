@@ -987,33 +987,14 @@ class CaptureTest
         final Capture.Builder builder = box();
         builder.put(1, 2, 3, stone);
         final File file = new File(dir, "three.view");
-        builder.build().save(file);
-        asVersionThree(file);
+        // As version 3 wrote it: a sorted list, before sections (#525), with no kept reach.
+        final Capture built = builder.build();
+        new LegacyCapture(new Capture.Box(0, 0, 0, 4, 4, 4), built.complete(), built.names(), builder.entries(),
+            builder.airSeen()).save(file, 3, "far", true, built.takenAt(), 7);
 
         final Capture loaded = Capture.load(file);
 
         assertEquals(-1, loaded.keptReach());
         assertEquals("minecraft:stone", loaded.nameAt(1, 2, 3), "and reads the rest as it always did");
-    }
-
-    /** Rewrites a capture file as version 3 wrote it: the same, less the kept reach after when it was taken. */
-    private static void asVersionThree(final File file) throws IOException
-    {
-        final byte[] raw;
-        try (GZIPInputStream in = new GZIPInputStream(Files.newInputStream(file.toPath())))
-        {
-            raw = in.readAllBytes();
-        }
-        final ByteBuffer buffer = ByteBuffer.wrap(raw);
-        buffer.putInt(4, 3);
-        // Magic, version, the world's name, sky and complete, the box's six ints, when it was taken.
-        final int kept = 8 + 4 + buffer.getInt(8) + 2 + 24 + 8;
-        final byte[] three = new byte[raw.length - 4];
-        System.arraycopy(raw, 0, three, 0, kept);
-        System.arraycopy(raw, kept + 4, three, kept, raw.length - kept - 4);
-        try (GZIPOutputStream out = new GZIPOutputStream(Files.newOutputStream(file.toPath())))
-        {
-            out.write(three);
-        }
     }
 }

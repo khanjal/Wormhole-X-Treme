@@ -37,12 +37,14 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
  * stays exactly as it was captured. What it costs is currency: the far side changes only when
  * the capture is taken again, by {@code mirror set [name] capture}.
  *
- * <p>Stored as a palette of block states and one entry per block kept, sorted by position, so a
- * box the render distance across costs what its visible surfaces cost and nothing for the rest.
- * A block inside the box with no entry is <em>buried</em>: nothing at the opening could see it,
- * and every view leaves the real world there. A dense grid of the box came first, and at the
- * render distance it was eighty megabytes a capture. Air that can be seen has an entry of its
- * own, since air a viewer can see is what a view carves through the real world.
+ * <p>Stored as a palette of block states and an entry per block kept, so a box the render distance
+ * across costs what its visible surfaces cost and nothing for the rest. A block inside the box with
+ * no entry is <em>buried</em>: nothing at the opening could see it, and every view leaves the real
+ * world there. A dense grid of the box came first, and at the render distance it was eighty
+ * megabytes a capture. Air that can be seen is kept too, apart from the entries, since air a viewer
+ * can see is what a view carves through the real world. The entries and the air are kept by
+ * {@link Section}, sixteen blocks a side, as Minecraft keeps a chunk (#525): a sorted list of
+ * positions came before, at ten bytes a block.
  *
  * <p>A capture may instead be <em>complete</em>, holding every block that is not air, with no
  * entry meaning air: the form {@code mirror debug save} once wrote, for replaying a view away
@@ -55,8 +57,11 @@ public final class Capture
     /** The file header, so a file that is not one is refused rather than misread. */
     private static final int MAGIC = 0x4D495257;
 
-    /** 3 keeps only entries, sorted; 1 and 2 wrote a dense grid, and are taken again. */
-    private static final int VERSION = 4;
+    /** 5 keeps sections; 1 and 2 wrote a dense grid, and are taken again. */
+    private static final int VERSION = 5;
+
+    /** The version before sections, a sorted list of entries; still read, and written as sections next time. */
+    private static final int LISTED_VERSION = 4;
 
     /** The version before a capture recorded how far it kept; still read, as never cut. */
     private static final int UNCUT_VERSION = 3;
@@ -79,16 +84,16 @@ public final class Capture
     private final long takenAt;
     private final String[] names;
     private final BlockData[] states;
-    /** Every entry's position inside the box, as {@link #cell}, ascending. */
-    private final long[] cells;
-    /** Each entry's palette index, in step with {@link #cells}. */
-    private final short[] values;
-    /** Every column with a block that is not air, as {@code (dx << 20) | dz}, ascending. */
-    private final long[] columns;
-    /** The highest such block in each, as an offset from the box's floor, in step. */
+    /** Where the sections lie. */
+    private final Grid grid;
+    /** Every section the box touches, by {@link Grid#index}; null where nothing is kept. */
+    private final Section[] sections;
+    /** The highest block that is not air in each column, as an offset from the box's floor, or -1; by {@code dx * sizeZ + dz}. */
     private final short[] tops;
-    /** The air that can be seen, which has no entries. */
-    private final SeenAir air;
+    /** How many entries it keeps, how many of those are not air, and how much seen air. */
+    private final int entryCount;
+    private final int filledCount;
+    private final int airCount;
     private BlockData standIn;
 
     /**
@@ -99,9 +104,8 @@ public final class Capture
     private int keptReach = -1;
 
     private Capture(final String worldName, final boolean hasSky, final boolean complete, final Box box,
-        final long takenAt, final Blocks blocks, final SeenAir air)
+        final long takenAt, final Blocks blocks, final Section[] sections)
     {
-        this.air = air;
         this.worldName = worldName;
         this.hasSky = hasSky;
         this.complete = complete;
@@ -114,31 +118,203 @@ public final class Capture
         this.takenAt = takenAt;
         this.names = blocks.names;
         this.states = blocks.states;
-        this.cells = blocks.cells;
-        this.values = blocks.values;
+        this.grid = new Grid(box);
+        this.sections = sections;
         // The highest block that is not air in each column, which the drawing skips sky above.
-        final Map<Long, Integer> highest = new HashMap<>();
-        for (int i = 0; i < cells.length; i++)
+        this.tops = new short[sizeX * sizeZ];
+        Arrays.fill(tops, (short) -1);
+        int entries = 0;
+        int filled = 0;
+        int seen = 0;
+        for (int index = 0; index < sections.length; index++)
         {
-            if (values[i] != 0)
+            final Section section = sections[index];
+            if (section != null)
             {
-                final long column = cells[i] >>> 20;
-                final int dy = (int) (cells[i] & 0xFFFFF);
-                highest.merge(column, dy, Math::max);
+                entries += section.entries();
+                filled += section.filled();
+                seen += section.airCount();
+                if (section.filled() > 0)
+                {
+                    raiseTops(section, index);
+                }
             }
         }
-        columns = highest.keySet().stream().mapToLong(Long::longValue).sorted().toArray();
-        tops = new short[columns.length];
-        for (int i = 0; i < columns.length; i++)
+        this.entryCount = entries;
+        this.filledCount = filled;
+        this.airCount = seen;
+    }
+
+    /** Raises each column's top to the highest block that is not air in one section. */
+    private void raiseTops(final Section section, final int index)
+    {
+        final int[] corner = grid.corner(index);
+        section.forEachEntry((local, value) ->
         {
-            tops[i] = highest.get(columns[i]).shortValue();
-        }
+            if (value != 0)
+            {
+                final int column = (((corner[0] + Section.x(local)) - minX) * sizeZ) + ((corner[2] + Section.z(local)) - minZ);
+                tops[column] = (short) Math.max(tops[column], (corner[1] + Section.y(local)) - minY);
+            }
+        });
     }
 
     /** A block's place in the box as one number that sorts by x, then z, then y. */
     private static long cell(final int dx, final int dy, final int dz)
     {
         return (((long) dx) << 40) | (((long) dz) << 20) | dy;
+    }
+
+    /**
+     * Where a box's sections lie: each sixteen blocks a side, on the world's own chunk sections, so
+     * a box that does not start on one is covered by sections that reach past it.
+     */
+    static final class Grid
+    {
+        private final int minX;
+        private final int minY;
+        private final int minZ;
+        private final int maxX;
+        private final int maxY;
+        private final int maxZ;
+        /** The first section along each axis, in sections from the world's origin. */
+        private final int fromX;
+        private final int fromY;
+        private final int fromZ;
+        /** How many sections the box spans along each axis. */
+        private final int acrossX;
+        private final int acrossY;
+        private final int acrossZ;
+
+        Grid(final Box box)
+        {
+            minX = box.minX();
+            minY = box.minY();
+            minZ = box.minZ();
+            maxX = (minX + box.sizeX()) - 1;
+            maxY = (minY + box.sizeY()) - 1;
+            maxZ = (minZ + box.sizeZ()) - 1;
+            fromX = minX >> 4;
+            fromY = minY >> 4;
+            fromZ = minZ >> 4;
+            acrossX = ((maxX >> 4) - fromX) + 1;
+            acrossY = ((maxY >> 4) - fromY) + 1;
+            acrossZ = ((maxZ >> 4) - fromZ) + 1;
+        }
+
+        /** @return how many sections the box touches */
+        int length()
+        {
+            return acrossX * acrossY * acrossZ;
+        }
+
+        /** The section a block inside the box is in: x, then z, then y. */
+        int index(final int x, final int y, final int z)
+        {
+            return (((((x >> 4) - fromX) * acrossZ) + ((z >> 4) - fromZ)) * acrossY) + ((y >> 4) - fromY);
+        }
+
+        /** @return a section's lowest corner, in world coordinates, {@code {x, y, z}} */
+        int[] corner(final int index)
+        {
+            final int x = index / (acrossY * acrossZ);
+            final int z = (index / acrossY) % acrossZ;
+            final int y = index % acrossY;
+            return new int[] { (fromX + x) << 4, (fromY + y) << 4, (fromZ + z) << 4 };
+        }
+
+        /** Which of a section's blocks lie inside the box. */
+        Section.Inside inside(final int index)
+        {
+            final int[] corner = corner(index);
+            return new Section.Inside(Math.max(0, minX - corner[0]), Math.min(Section.EDGE - 1, maxX - corner[0]),
+                Math.max(0, minY - corner[1]), Math.min(Section.EDGE - 1, maxY - corner[1]),
+                Math.max(0, minZ - corner[2]), Math.min(Section.EDGE - 1, maxZ - corner[2]));
+        }
+    }
+
+    /**
+     * Gathers a capture's entries and seen air into sections.
+     *
+     * <p>Pure: a capture's file is read off the main thread, and this is how it is read.
+     */
+    private static final class Assembly
+    {
+        private final Box box;
+        private final Grid grid;
+        private final int states;
+        /** Each section's seen air, a bit a block, made when the first is met. */
+        private final long[][] air;
+
+        Assembly(final Box box, final int states)
+        {
+            this.box = box;
+            this.grid = new Grid(box);
+            this.states = states;
+            this.air = new long[grid.length()][];
+        }
+
+        /** Notes a block of air that can be seen, as offsets from the box's corner. */
+        void air(final int dx, final int dy, final int dz)
+        {
+            final int x = box.minX() + dx;
+            final int y = box.minY() + dy;
+            final int z = box.minZ() + dz;
+            final int index = grid.index(x, y, z);
+            if (air[index] == null)
+            {
+                air[index] = new long[Section.BLOCKS / Long.SIZE];
+            }
+            final int local = Section.local(x, y, z);
+            air[index][local >>> 6] |= 1L << (local & 63);
+        }
+
+        /**
+         * The sections, from every entry and the air noted.
+         *
+         * @param cells
+         *            every entry's place in the box, as {@link #cell}, ascending
+         * @param values
+         *            each one's palette index, in step
+         */
+        Section[] sections(final long[] cells, final short[] values)
+        {
+            // Counted out by section, keeping their order: within a section, x then z then y is the section's own order.
+            final int length = grid.length();
+            final int[] start = new int[length + 1];
+            final int[] in = new int[cells.length];
+            final short[] locals = new short[cells.length];
+            for (int i = 0; i < cells.length; i++)
+            {
+                final int x = box.minX() + (int) (cells[i] >>> 40);
+                final int y = box.minY() + (int) (cells[i] & 0xFFFFF);
+                final int z = box.minZ() + (int) ((cells[i] >>> 20) & 0xFFFFF);
+                in[i] = grid.index(x, y, z);
+                locals[i] = (short) Section.local(x, y, z);
+                start[in[i] + 1]++;
+            }
+            for (int index = 0; index < length; index++)
+            {
+                start[index + 1] += start[index];
+            }
+            final int[] next = Arrays.copyOf(start, length);
+            final short[] sortedLocals = new short[cells.length];
+            final short[] sortedValues = new short[cells.length];
+            for (int i = 0; i < cells.length; i++)
+            {
+                final int to = next[in[i]]++;
+                sortedLocals[to] = locals[i];
+                sortedValues[to] = values[i];
+            }
+            final int[] slot = new int[states];
+            Arrays.fill(slot, -1);
+            final Section[] sections = new Section[length];
+            for (int index = 0; index < length; index++)
+            {
+                sections[index] = Section.of(sortedLocals, sortedValues, start[index], start[index + 1], air[index], slot);
+            }
+            return sections;
+        }
     }
 
     /**
@@ -188,18 +364,32 @@ public final class Capture
         }
     }
 
-    /** The palette and the entries that index into it, as a capture is made from them. */
+    /** The palette, as a capture is made from it. */
     private static final class Blocks
     {
         private final String[] names;
         private final BlockData[] states;
-        private final long[] cells;
-        private final short[] values;
 
-        Blocks(final String[] names, final BlockData[] states, final long[] cells, final short[] values)
+        Blocks(final String[] names, final BlockData[] states)
         {
             this.names = names;
             this.states = states;
+        }
+    }
+
+    /**
+     * A capture's entries before they are put in sections: one a block, sorted by position, as
+     * {@code Builder.build} finds them and as a version 4 file held them.
+     */
+    static final class Entries
+    {
+        /** Every entry's place in the box, as {@link #cell}, ascending. */
+        final long[] cells;
+        /** Each entry's palette index, in step. */
+        final short[] values;
+
+        Entries(final long[] cells, final short[] values)
+        {
             this.cells = cells;
             this.values = values;
         }
@@ -940,8 +1130,41 @@ public final class Capture
          */
         Capture build(final long takenAt)
         {
-            // Sorted by position, the last word on each block winning: a block put and then
-            // cleared is air, and a block put twice is what it was put as last.
+            final Box box = new Box(minX, minY, minZ, sizeX, sizeY, sizeZ);
+            final Assembly assembly = new Assembly(box, names.size());
+            final BitSet air = airSeen();
+            for (int at = (air == null) ? -1 : air.nextSetBit(0); at >= 0; at = air.nextSetBit(at + 1))
+            {
+                assembly.air(at / (sizeY * sizeZ), at % sizeY, (at / sizeY) % sizeZ);
+            }
+            final Entries entries = entries();
+            final Capture capture = new Capture(worldName, hasSky, complete, box, takenAt,
+                new Blocks(names.toArray(new String[0]), states.toArray(new BlockData[0])),
+                assembly.sections(entries.cells, entries.values));
+            capture.keptReach = keptReach;
+            return capture;
+        }
+
+        /**
+         * The air a view can see, less any block blanked to air, which is an entry instead.
+         *
+         * @return by offset, a bit a block; null for none
+         */
+        BitSet airSeen()
+        {
+            if (seenAir == null)
+            {
+                return null;
+            }
+            final BitSet air = (BitSet) seenAir.clone();
+            air.andNot(cleared);
+            return air;
+        }
+
+        /** Every block's entry, sorted by position, the last word on each block winning. */
+        Entries entries()
+        {
+            // A block put and then cleared is air, and a block put twice is what it was put as last.
             final int[] byCell = byCell();
             final long[] outCells = new long[count];
             final short[] outValues = new short[count];
@@ -965,13 +1188,7 @@ public final class Capture
                     out++;
                 }
             }
-            final Capture capture = new Capture(worldName, hasSky, complete,
-                new Box(minX, minY, minZ, sizeX, sizeY, sizeZ), takenAt,
-                new Blocks(names.toArray(new String[0]), states.toArray(new BlockData[0]),
-                    Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out)),
-                SeenAir.of(seenAir, cleared, sizeX, sizeY, sizeZ));
-            capture.keptReach = keptReach;
-            return capture;
+            return new Entries(Arrays.copyOf(outCells, out), Arrays.copyOf(outValues, out));
         }
 
         /**
@@ -1058,19 +1275,20 @@ public final class Capture
     /** @return how many blocks it keeps, seen air included */
     public int kept()
     {
-        return cells.length + seenAir();
+        return entryCount + airCount;
     }
 
     /** @return how many blocks of air that can be seen it keeps */
     public int seenAir()
     {
-        return air.count();
+        return airCount;
     }
 
-    /** Whether a block inside the box is air that can be seen, by the column runs. */
+    /** Whether a block inside the box is air that can be seen. */
     private boolean seenAirAt(final int x, final int y, final int z)
     {
-        return air.has(x - minX, y - minY, z - minZ);
+        final Section section = sections[grid.index(x, y, z)];
+        return (section != null) && section.airAt(Section.local(x, y, z));
     }
 
     /**
@@ -1090,10 +1308,11 @@ public final class Capture
             && (z >= minZ) && (z < (minZ + sizeZ));
     }
 
-    /** The entry for a block inside the box, or a negative number for none. */
+    /** The palette index of a block inside the box, or a negative number for no entry. */
     private int entry(final int x, final int y, final int z)
     {
-        return Arrays.binarySearch(cells, cell(x - minX, y - minY, z - minZ));
+        final Section section = sections[grid.index(x, y, z)];
+        return (section == null) ? -1 : section.value(Section.local(x, y, z));
     }
 
     /**
@@ -1119,7 +1338,7 @@ public final class Capture
         {
             if (complete || seenAirAt(x, y, z))
             {
-                return state((short) 0);
+                return state(0);
             }
             if (standIn == null)
             {
@@ -1127,7 +1346,7 @@ public final class Capture
             }
             return standIn;
         }
-        return state(values[entry]);
+        return state(entry);
     }
 
     /**
@@ -1149,7 +1368,7 @@ public final class Capture
             return true;
         }
         final int entry = entry(x, y, z);
-        return (entry < 0) ? (complete || seenAirAt(x, y, z)) : (values[entry] == 0);
+        return (entry < 0) ? (complete || seenAirAt(x, y, z)) : (entry == 0);
     }
 
     /**
@@ -1186,8 +1405,7 @@ public final class Capture
         {
             return minY - 1;
         }
-        final int column = Arrays.binarySearch(columns, (((long) dx) << 20) | dz);
-        return (column < 0) ? (minY - 1) : (minY + tops[column]);
+        return minY + tops[(dx * sizeZ) + dz];
     }
 
     /** @return the box's lowest y */
@@ -1226,20 +1444,58 @@ public final class Capture
     }
 
     /**
-     * Visits every block kept, seen air included, in order of position.
+     * Visits every block kept, in order of position, x then z then y: every entry, then the seen air.
      *
      * @param kept
      *            handed each one; {@link #at} says what it is
      */
     public void forEachKept(final Kept kept)
     {
-        for (int i = 0; i < cells.length; i++)
+        // Where each listed section's next column starts in its list, as its columns are met in order.
+        final int[] next = new int[sections.length];
+        for (int x = minX; x < (minX + sizeX); x++)
         {
-            final long cell = cells[i];
-            kept.at(minX + (int) (cell >>> 40), minY + (int) (cell & 0xFFFFF), minZ + (int) ((cell >>> 20) & 0xFFFFF),
-                values[i] == 0);
+            for (int z = minZ; z < (minZ + sizeZ); z++)
+            {
+                columnKept(x, z, next, kept);
+            }
         }
-        air.forEach(minX, minY, minZ, kept);
+        for (int x = minX; x < (minX + sizeX); x++)
+        {
+            for (int z = minZ; z < (minZ + sizeZ); z++)
+            {
+                columnKept(x, z, null, kept);
+            }
+        }
+    }
+
+    /**
+     * Visits one column's entries, upward, or with no {@code next} its seen air.
+     *
+     * @param next
+     *            where each listed section's next column starts; null for the air
+     */
+    private void columnKept(final int x, final int z, final int[] next, final Kept kept)
+    {
+        final int column = Section.column(x, z);
+        final int bottom = grid.index(x, minY, z);
+        final int highest = grid.index(x, (minY + sizeY) - 1, z);
+        for (int index = bottom; index <= highest; index++)
+        {
+            final Section section = sections[index];
+            if (section != null)
+            {
+                final int baseY = (minY & -Section.EDGE) + ((index - bottom) * Section.EDGE);
+                if (next == null)
+                {
+                    section.columnAir(column, x, baseY, z, kept);
+                }
+                else
+                {
+                    next[index] = section.columnEntries(column, next[index], x, baseY, z, kept);
+                }
+            }
+        }
     }
 
     /**
@@ -1276,13 +1532,20 @@ public final class Capture
             {
                 writeString(out, name);
             }
-            out.writeInt(cells.length);
-            for (int i = 0; i < cells.length; i++)
+            int held = 0;
+            for (final Section section : sections)
             {
-                out.writeLong(cells[i]);
-                out.writeShort(values[i]);
+                held += (section == null) ? 0 : 1;
             }
-            air.write(out);
+            out.writeInt(held);
+            for (int index = 0; index < sections.length; index++)
+            {
+                if (sections[index] != null)
+                {
+                    out.writeInt(index);
+                    sections[index].write(out);
+                }
+            }
         }
         try
         {
@@ -1335,7 +1598,7 @@ public final class Capture
                 throw new IOException(file + " is not a mirror capture");
             }
             final int version = in.readInt();
-            if ((version != VERSION) && (version != UNCUT_VERSION))
+            if ((version != VERSION) && (version != LISTED_VERSION) && (version != UNCUT_VERSION))
             {
                 throw new IOException(file + " is capture version " + version + ", not " + VERSION
                     + "; it will be taken again");
@@ -1343,17 +1606,11 @@ public final class Capture
             final String worldName = readString(in);
             final boolean hasSky = in.readBoolean();
             final boolean complete = in.readBoolean();
-            final int minX = in.readInt();
-            final int minY = in.readInt();
-            final int minZ = in.readInt();
-            final int sizeX = in.readInt();
-            final int sizeY = in.readInt();
-            final int sizeZ = in.readInt();
+            final Box box = new Box(in.readInt(), in.readInt(), in.readInt(), in.readInt(), in.readInt(), in.readInt());
             final long takenAt = in.readLong();
             final int kept = (version == UNCUT_VERSION) ? -1 : in.readInt();
             final int count = in.readInt();
-            if ((count < 1) || (count > MOST_STATES) || (sizeX < 1) || (sizeY < 1) || (sizeZ < 1)
-                || (((long) sizeX * sizeY * sizeZ) > Integer.MAX_VALUE))
+            if ((count < 1) || (count > MOST_STATES) || !possible(box))
             {
                 throw new IOException(file + " has an impossible shape");
             }
@@ -1362,27 +1619,126 @@ public final class Capture
             {
                 names[i] = readString(in);
             }
-            final int entries = in.readInt();
-            if ((entries < 0) || (entries > (sizeX * sizeY * sizeZ)))
-            {
-                throw new IOException(file + " has an impossible number of blocks");
-            }
-            final long[] cells = new long[entries];
-            final short[] values = new short[entries];
-            for (int i = 0; i < entries; i++)
-            {
-                cells[i] = in.readLong();
-                values[i] = in.readShort();
-                if ((i > 0) && (cells[i] <= cells[i - 1]))
-                {
-                    throw new IOException(file + " is out of order");
-                }
-            }
-            final SeenAir air = SeenAir.read(in, file, sizeX, sizeY, sizeZ);
-            final Capture capture = new Capture(worldName, hasSky, complete,
-                new Box(minX, minY, minZ, sizeX, sizeY, sizeZ), takenAt, new Blocks(names, new BlockData[count], cells, values), air);
+            final Section[] sections = (version == VERSION) ? readSections(in, file, box, count)
+                : readListed(in, file, box, count);
+            final Capture capture = new Capture(worldName, hasSky, complete, box, takenAt,
+                new Blocks(names, new BlockData[count]), sections);
             capture.keptReach = kept;
             return capture;
+        }
+    }
+
+    /** Past this along any axis a box is no capture's; one at the render distance is about 325. */
+    private static final int MOST_ACROSS = 1 << 14;
+
+    /** Past this from the origin no block is in any world: the world border is thirty million out. */
+    private static final int MOST_FAR = 1 << 26;
+
+    /** Whether a box read from a file is one a capture could have. */
+    private static boolean possible(final Box box)
+    {
+        return (box.sizeX() >= 1) && (box.sizeY() >= 1) && (box.sizeZ() >= 1) && (box.sizeX() <= MOST_ACROSS)
+            && (box.sizeY() <= MOST_ACROSS) && (box.sizeZ() <= MOST_ACROSS)
+            && (((long) box.sizeX() * box.sizeY() * box.sizeZ()) <= Integer.MAX_VALUE)
+            && (Math.abs(box.minX()) <= MOST_FAR) && (Math.abs(box.minY()) <= MOST_FAR) && (Math.abs(box.minZ()) <= MOST_FAR);
+    }
+
+    /** Reads the sections a version 5 file holds, each after its place in the box's grid. */
+    private static Section[] readSections(final DataInputStream in, final File file, final Box box, final int states)
+        throws IOException
+    {
+        final Grid grid = new Grid(box);
+        final Section[] sections = new Section[grid.length()];
+        final int held = in.readInt();
+        if ((held < 0) || (held > sections.length))
+        {
+            throw new IOException(file + " has an impossible number of sections");
+        }
+        int last = -1;
+        for (int i = 0; i < held; i++)
+        {
+            final int index = in.readInt();
+            if ((index <= last) || (index >= sections.length))
+            {
+                throw new IOException(file + " has its sections out of order");
+            }
+            sections[index] = Section.read(in, file, states, grid.inside(index));
+            last = index;
+        }
+        return sections;
+    }
+
+    /**
+     * Reads what a version 3 or 4 file holds, a sorted list of entries and the seen air a column at
+     * a time, into sections: it is written as sections the next time it is saved.
+     */
+    private static Section[] readListed(final DataInputStream in, final File file, final Box box, final int states)
+        throws IOException
+    {
+        final int volume = box.sizeX() * box.sizeY() * box.sizeZ();
+        final int entries = in.readInt();
+        if ((entries < 0) || (entries > volume))
+        {
+            throw new IOException(file + " has an impossible number of blocks");
+        }
+        final long[] cells = new long[entries];
+        final short[] values = new short[entries];
+        for (int i = 0; i < entries; i++)
+        {
+            cells[i] = in.readLong();
+            values[i] = in.readShort();
+            if ((i > 0) && (cells[i] <= cells[i - 1]))
+            {
+                throw new IOException(file + " is out of order");
+            }
+            if (!insideBox(cells[i], box) || ((values[i] & 0xFFFF) >= states))
+            {
+                throw new IOException(file + " has a block outside its box or its palette");
+            }
+        }
+        final Assembly assembly = new Assembly(box, states);
+        readRuns(in, file, box, assembly);
+        return assembly.sections(cells, values);
+    }
+
+    /** Whether a {@link #cell} read from a file is inside the box. */
+    private static boolean insideBox(final long cell, final Box box)
+    {
+        return ((cell >>> 40) < box.sizeX()) && (((cell >>> 20) & 0xFFFFF) < box.sizeZ()) && ((cell & 0xFFFFF) < box.sizeY());
+    }
+
+    /** Reads the seen air a version 3 or 4 file holds, as runs of y a column at a time. */
+    private static void readRuns(final DataInputStream in, final File file, final Box box, final Assembly assembly)
+        throws IOException
+    {
+        final int columns = in.readInt();
+        if ((columns < 0) || (columns > (box.sizeX() * box.sizeZ())))
+        {
+            throw new IOException(file + " has an impossible number of columns");
+        }
+        for (int i = 0; i < columns; i++)
+        {
+            final long column = in.readLong();
+            final int runs = in.readInt();
+            if ((runs < 0) || (runs > box.sizeY()) || ((column >>> 20) >= box.sizeX()) || ((column & 0xFFFFF) >= box.sizeZ()))
+            {
+                throw new IOException(file + " has an impossible number of runs");
+            }
+            final int dx = (int) (column >>> 20);
+            final int dz = (int) (column & 0xFFFFF);
+            for (int run = 0; run < runs; run++)
+            {
+                final int from = in.readShort();
+                final int to = in.readShort();
+                if ((from < 0) || (to < from) || (to >= box.sizeY()))
+                {
+                    throw new IOException(file + " has a run of air outside its box");
+                }
+                for (int dy = from; dy <= to; dy++)
+                {
+                    assembly.air(dx, dy, dz);
+                }
+            }
         }
     }
 
@@ -1415,21 +1771,47 @@ public final class Capture
         {
             return (complete || seenAirAt(x, y, z)) ? names[0] : BURIED;
         }
-        return names[values[entry]];
+        return names[entry];
     }
 
     /** @return how many blocks kept are not air */
     public int filled()
     {
-        int filled = 0;
-        for (final short value : values)
+        return filledCount;
+    }
+
+    /**
+     * About how many bytes the capture's blocks take in memory: its sections, their grid and the
+     * column tops, headers included; not the palette, which is the same whatever holds the blocks.
+     *
+     * @return bytes
+     */
+    long bytes()
+    {
+        long bytes = 16L + (sections.length * 4L) + 16L + (tops.length * 2L);
+        for (final Section section : sections)
         {
-            if (value != 0)
+            bytes += (section == null) ? 0L : section.bytes();
+        }
+        return bytes;
+    }
+
+    /**
+     * @param full
+     *            true to count the sections holding an index for every block, false those listing the blocks they keep
+     * @return how many sections of that kind it holds
+     */
+    int sections(final boolean full)
+    {
+        int count = 0;
+        for (final Section section : sections)
+        {
+            if ((section != null) && (section.entries() > 0) && (section.full() == full))
             {
-                filled++;
+                count++;
             }
         }
-        return filled;
+        return count;
     }
 
     /** @return the box, its age and what it holds, in one line */
@@ -1470,7 +1852,7 @@ public final class Capture
     }
 
     /** The state for an index, made from its name the first time. */
-    private BlockData state(final short index)
+    private BlockData state(final int index)
     {
         BlockData state = states[index];
         if (state == null)

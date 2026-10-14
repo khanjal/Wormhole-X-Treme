@@ -1,0 +1,443 @@
+package com.wormhole_xtreme.wormhole.model.window;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
+import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+/**
+ * A capture kept by sections answers exactly as the sorted list it replaced did (#525).
+ *
+ * <p>Only the storage changed: the kept set, the seen air and each column's top have to be what
+ * they were for the same blocks, or a view would draw a different far side than it did the day
+ * before. Each test here builds the same blocks twice, once into the sections and once into
+ * {@link LegacyCapture}, the list as it was, and asks both about every block of the box and a
+ * block round it. A block answered wrong is a hole in a far hillside, or this world's stone where
+ * the far side's air was seen.
+ */
+class CaptureSectionsTest
+{
+    private final BlockData air = state("minecraft:air", false, null);
+
+    /** A block state; stub-only, since a big capture asks each one a few million times. */
+    private static BlockData state(final String name, final boolean occluding, final Material material)
+    {
+        final BlockData data = mock(BlockData.class, withSettings().stubOnly());
+        when(data.getAsString()).thenReturn(name);
+        when(data.isOccluding()).thenReturn(occluding);
+        when(data.getMaterial()).thenReturn(material);
+        return data;
+    }
+
+    /** As many states, some solid, some to be seen through, some water and some leaves. */
+    private static BlockData[] states(final int count)
+    {
+        final BlockData[] states = new BlockData[count];
+        for (int i = 0; i < count; i++)
+        {
+            final Material material = ((i % 7) == 3) ? Material.WATER : (((i % 7) == 5) ? Material.OAK_LEAVES : null);
+            states[i] = state("test:state_" + i, (i % 3) != 0, material);
+        }
+        return states;
+    }
+
+    /** A box that starts and ends part way into sections, below and above y 0. */
+    private static final Capture.Box ODD = new Capture.Box(-21, -7, 13, 45, 37, 50);
+
+    /**
+     * Blocks at random, put in a random order, some put twice, some cleared, and seen from an
+     * opening at the box's low x side or not.
+     */
+    private Capture.Builder random(final long seed, final Capture.Box box, final int kinds, final double share,
+        final boolean seen)
+    {
+        final Random random = new Random(seed);
+        final BlockData[] palette = states(kinds);
+        final Capture.Builder builder = new Capture.Builder("far", true, box, air);
+        final int volume = box.sizeX() * box.sizeY() * box.sizeZ();
+        final int puts = (int) (volume * share);
+        for (int i = 0; i < puts; i++)
+        {
+            final int x = box.minX() + random.nextInt(box.sizeX());
+            final int y = box.minY() + random.nextInt(box.sizeY());
+            final int z = box.minZ() + random.nextInt(box.sizeZ());
+            // Skewed, as a far side is: a few states are most of it.
+            final int kind = (int) (kinds * random.nextDouble() * random.nextDouble());
+            builder.put(x, y, z, (random.nextInt(20) == 0) ? air : palette[kind]);
+        }
+        for (int i = 0; i < (puts / 50); i++)
+        {
+            builder.clear(box.minX() + random.nextInt(box.sizeX()), box.minY() + random.nextInt(box.sizeY()),
+                box.minZ() + random.nextInt(box.sizeZ()));
+        }
+        if (seen)
+        {
+            builder.keepOnlySeen(new Capture.Arrival(box.minX() + 1, box.minY() + (box.sizeY() / 2),
+                box.minZ() + (box.sizeZ() / 2), 1, 0, 5, 5), Math.max(box.sizeX(), box.sizeZ()));
+        }
+        return builder;
+    }
+
+    /** Ground with a surface, and the air over it seen from an opening, as a hillside capture is. */
+    private Capture.Builder hillside(final Capture.Box box)
+    {
+        final BlockData stone = state("minecraft:stone", true, null);
+        final BlockData dirt = state("minecraft:dirt", true, null);
+        final BlockData grass = state("minecraft:grass_block[snowy=false]", true, null);
+        final BlockData flower = state("minecraft:poppy", false, null);
+        final Capture.Builder builder = new Capture.Builder("far", true, box, air);
+        for (int x = box.minX(); x < (box.minX() + box.sizeX()); x++)
+        {
+            for (int z = box.minZ(); z < (box.minZ() + box.sizeZ()); z++)
+            {
+                final int ground = box.minY() + 8 + (int) (6 * Math.sin(x / 5.0) * Math.cos(z / 7.0));
+                for (int y = box.minY(); y <= ground; y++)
+                {
+                    builder.put(x, y, z, (y == ground) ? grass : ((y > (ground - 3)) ? dirt : stone));
+                }
+                if (((x * 31) + z) % 11 == 0)
+                {
+                    builder.put(x, ground + 1, z, flower);
+                }
+            }
+        }
+        builder.keepOnlySeen(new Capture.Arrival(box.minX() + 1, box.minY() + 16, box.minZ() + (box.sizeZ() / 2), 1, 0, 7, 7),
+            box.sizeX());
+        builder.prune();
+        return builder;
+    }
+
+    /** The same blocks kept as a list, as before sections. */
+    private static LegacyCapture listed(final Capture.Builder builder, final Capture.Box box, final Capture capture)
+    {
+        return new LegacyCapture(box, capture.complete(), capture.names(), builder.entries(), builder.airSeen());
+    }
+
+    /**
+     * Asks both about every block of the box and a block round it: what it is, whether it is air
+     * or buried, each column's top, what is kept and in what order.
+     */
+    private static void assertSameAnswers(final LegacyCapture expected, final Capture actual, final Capture.Box box)
+    {
+        final List<String> wrong = new ArrayList<>();
+        for (int x = box.minX() - 1; x <= (box.minX() + box.sizeX()); x++)
+        {
+            for (int z = box.minZ() - 1; z <= (box.minZ() + box.sizeZ()); z++)
+            {
+                if (expected.top(x, z) != actual.top(x, z))
+                {
+                    wrong.add("top " + x + "," + z + ": " + actual.top(x, z) + ", not " + expected.top(x, z));
+                }
+                for (int y = box.minY() - 1; y <= (box.minY() + box.sizeY()); y++)
+                {
+                    final String was = expected.nameAt(x, y, z) + (expected.isAir(x, y, z) ? " air" : "")
+                        + (expected.isBuried(x, y, z) ? " buried" : "");
+                    final String is = actual.nameAt(x, y, z) + (actual.isAir(x, y, z) ? " air" : "")
+                        + (actual.isBuried(x, y, z) ? " buried" : "");
+                    if (!was.equals(is))
+                    {
+                        wrong.add(x + "," + y + "," + z + ": " + is + ", not " + was);
+                    }
+                }
+            }
+        }
+        assertTrue(wrong.isEmpty(), wrong.size() + " answers changed, first " + wrong.subList(0, Math.min(5, wrong.size())));
+        assertEquals(expected.kept(), actual.kept(), "blocks kept, air included");
+        assertEquals(expected.filled(), actual.filled(), "blocks kept that are not air");
+        assertEquals(expected.seenAir(), actual.seenAir(), "air seen");
+        assertEquals(expected.visits(), visits(actual), "every block kept, visited in the same order");
+    }
+
+    private static List<String> visits(final Capture capture)
+    {
+        final List<String> visited = new ArrayList<>();
+        capture.forEachKept((x, y, z, isAir) -> visited.add(x + "," + y + "," + z + (isAir ? " air" : "")));
+        return visited;
+    }
+
+    /** Builds the sections and the list from the same builder, and checks they agree. */
+    private Capture assertSameAsListed(final Capture.Builder builder, final Capture.Box box)
+    {
+        final Capture capture = builder.build();
+        assertSameAnswers(listed(builder, box, capture), capture, box);
+        return capture;
+    }
+
+    /**
+     * Blocks at random answer as the list did, seen from an opening and not, in a box that starts
+     * and ends part way into sections.
+     *
+     * <p>Put in no order, some twice and some cleared after, as a far banner is: the last word on a
+     * block has to win in the sections as it did in the list, and a block outside the box must not
+     * land in a section the box only partly covers.
+     */
+    @Test
+    void blocksAtRandomAnswerAsTheListDid()
+    {
+        for (long seed = 1; seed <= 6; seed++)
+        {
+            final Capture capture = assertSameAsListed(random(seed, ODD, 40, 0.3, seed % 2 == 0), ODD);
+            assertTrue(capture.kept() > 1000, "seed " + seed + " kept something: " + capture.kept());
+        }
+    }
+
+    /**
+     * A box nearly full of a few states is kept in full sections, an index for every block, and
+     * answers as the list did.
+     */
+    @Test
+    void aDenseVolumeIsKeptInFullSectionsAndAnswersAsTheListDid()
+    {
+        final Capture.Box box = new Capture.Box(-16, 0, 0, 48, 40, 48);
+        final Capture capture = assertSameAsListed(random(7, box, 6, 3.0, false), box);
+
+        assertTrue(capture.sections(true) > 0, "full sections: " + capture.sections(true));
+        assertEquals(0, capture.sections(false), "and none that list their blocks");
+    }
+
+    /** A few blocks scattered through a box are kept in sections listing them, and answer as the list did. */
+    @Test
+    void scatteredBlocksAreListedAndAnswerAsTheListDid()
+    {
+        final Capture capture = assertSameAsListed(random(8, ODD, 12, 0.004, false), ODD);
+
+        assertTrue(capture.sections(false) > 0, "listing sections: " + capture.sections(false));
+        assertEquals(0, capture.sections(true), "and none full");
+    }
+
+    /**
+     * A hillside seen from an opening, its ground pruned, keeps both kinds of section and the seen
+     * air over it, and answers as the list did: the shape almost every capture has.
+     */
+    @Test
+    void aHillsideSeenFromAnOpeningAnswersAsTheListDid()
+    {
+        final Capture.Box box = new Capture.Box(-3, 60, -40, 70, 48, 80);
+        final Capture capture = assertSameAsListed(hillside(box), box);
+
+        assertTrue(capture.seenAir() > 10_000, "the air over the hill is kept: " + capture.seenAir());
+        assertTrue(capture.sections(true) > 0 && capture.sections(false) > 0,
+            "both kinds: " + capture.sections(true) + " full, " + capture.sections(false) + " listed");
+    }
+
+    /**
+     * A section with hundreds of states packs each index wider than a byte, across the boundary
+     * between one long and the next, and answers as the list did.
+     */
+    @Test
+    void aPaletteOfHundredsPacksAcrossLongsAndAnswersAsTheListDid()
+    {
+        final Capture.Box box = new Capture.Box(0, 0, 0, 16, 16, 16);
+        final Capture capture = assertSameAsListed(random(9, box, 700, 2.0, false), box);
+
+        assertTrue(capture.states() > 512, "ten bits an index: " + capture.states() + " states");
+        assertEquals(1, capture.sections(true), "one full section");
+    }
+
+    /**
+     * A capture comes back from the disk byte for byte, through both kinds of section, and answers
+     * as the list did after it.
+     */
+    @Test
+    void aCaptureRoundTripsByteForByteThroughBothKindsOfSection(@TempDir final File dir) throws IOException
+    {
+        final Capture.Box box = new Capture.Box(-3, 60, -40, 70, 48, 80);
+        final Capture.Builder builder = hillside(box);
+        builder.keptReach(17);
+        final Capture before = builder.build();
+        final File first = new File(dir, "first.view");
+        final File second = new File(dir, "second.view");
+
+        before.save(first);
+        final Capture after = Capture.load(first);
+        after.save(second);
+
+        assertTrue(before.sections(true) > 0 && before.sections(false) > 0, "both kinds of section are written");
+        assertArrayEquals(unzipped(first), unzipped(second), "written again, the same bytes");
+        assertSameAnswers(listed(builder, box, before), after, box);
+        assertEquals(before.takenAt(), after.takenAt());
+        assertEquals(17, after.keptReach(), "how far it kept");
+    }
+
+    /**
+     * A version 4 file, the list as the last build wrote it, reads back answering exactly as it
+     * did, and is written as sections the next time, still answering the same.
+     *
+     * <p>Every capture on a server that upgrades is one. Refused, each mirror and gate would take
+     * its far side again on the next look.
+     */
+    @Test
+    void aVersionFourFileReadsBackIdenticallyAndIsWrittenAsSectionsNextTime(@TempDir final File dir) throws IOException
+    {
+        final Capture.Builder builder = random(10, ODD, 30, 0.3, true);
+        final Capture built = builder.build();
+        final LegacyCapture list = listed(builder, ODD, built);
+        final File four = new File(dir, "four.view");
+        list.save(four, 4, "far", true, 1234L, 21);
+
+        final Capture read = Capture.load(four);
+
+        assertSameAnswers(list, read, ODD);
+        assertEquals(21, read.keptReach(), "how far it kept");
+        assertEquals(1234L, read.takenAt());
+        final File five = new File(dir, "five.view");
+        read.save(five);
+        assertEquals(5, versionOf(five), "written as sections");
+        assertSameAnswers(list, Capture.load(five), ODD);
+        assertEquals(21, Capture.load(five).keptReach(), "and still knows how far it kept");
+    }
+
+    /** A version 3 file, from before a capture recorded how far it kept, reads back too, as never cut. */
+    @Test
+    void aVersionThreeFileReadsBackIdentically(@TempDir final File dir) throws IOException
+    {
+        final Capture.Builder builder = random(11, ODD, 30, 0.3, true);
+        final LegacyCapture list = listed(builder, ODD, builder.build());
+        final File three = new File(dir, "three.view");
+        list.save(three, 3, "far", true, 99L, 21);
+
+        final Capture read = Capture.load(three);
+
+        assertSameAnswers(list, read, ODD);
+        assertEquals(-1, read.keptReach(), "never cut, as a version 3 file always reads");
+    }
+
+    /**
+     * A file cut short anywhere is refused as unreadable, never with anything but an IOException.
+     *
+     * <p>A capture is read off the main thread now, and the read takes anything else as a failure
+     * too; but a sections file says how much follows, and an array sized from a count the file
+     * never finished would be gigabytes, or a negative size, before the end of the file was found.
+     */
+    @Test
+    void aFileCutShortAnywhereIsRefused(@TempDir final File dir) throws IOException
+    {
+        final Capture.Builder builder = random(12, new Capture.Box(-8, 0, -8, 24, 20, 24), 20, 0.4, true);
+        final File whole = new File(dir, "whole.view");
+        builder.build().save(whole);
+        final byte[] bytes = unzipped(whole);
+        final File cut = new File(dir, "cut.view");
+
+        for (int length = 0; length < bytes.length; length += Math.max(1, bytes.length / 400))
+        {
+            zip(cut, bytes, length);
+            final int at = length;
+            assertThrows(IOException.class, () -> Capture.load(cut), "cut at " + at + " of " + bytes.length);
+        }
+    }
+
+    /**
+     * A file with any one byte wrong is refused with an IOException, or reads as a capture that
+     * answers for every block without throwing.
+     *
+     * <p>A byte flipped in a section's place, its palette or its positions could otherwise put a
+     * block outside the box, or an index past the palette, and the view would throw on the main
+     * thread every time it drew.
+     */
+    @Test
+    void aFileWithAByteWrongIsRefusedOrStillAnswers(@TempDir final File dir) throws IOException
+    {
+        final Capture.Box box = new Capture.Box(-8, 0, -8, 24, 20, 24);
+        final Capture.Builder builder = random(13, box, 20, 0.4, true);
+        final File whole = new File(dir, "whole.view");
+        builder.build().save(whole);
+        final byte[] bytes = unzipped(whole);
+        final File wrong = new File(dir, "wrong.view");
+        final Random random = new Random(13);
+        int refused = 0;
+
+        for (int at = 8; at < bytes.length; at += Math.max(1, bytes.length / 600))
+        {
+            final byte[] changed = bytes.clone();
+            changed[at] ^= (byte) (1 << random.nextInt(8));
+            zip(wrong, changed, changed.length);
+            final Capture read;
+            try
+            {
+                read = Capture.load(wrong);
+            }
+            catch (final IOException expected)
+            {
+                refused++;
+                continue;
+            }
+            catch (final RuntimeException thrown)
+            {
+                fail("byte " + at + " threw " + thrown, thrown);
+                return;
+            }
+            answersEverywhere(read, box, at);
+        }
+        assertTrue(refused > 0, "some changes are refused");
+    }
+
+    /** Asks a capture about every block of its box and visits what it keeps, failing on anything thrown. */
+    private static void answersEverywhere(final Capture capture, final Capture.Box box, final int at)
+    {
+        try
+        {
+            for (int x = box.minX(); x < (box.minX() + box.sizeX()); x++)
+            {
+                for (int z = box.minZ(); z < (box.minZ() + box.sizeZ()); z++)
+                {
+                    capture.top(x, z);
+                    for (int y = box.minY(); y < (box.minY() + box.sizeY()); y++)
+                    {
+                        capture.nameAt(x, y, z);
+                        capture.isBuried(x, y, z);
+                    }
+                }
+            }
+            capture.forEachKept((x, y, z, isAir) -> capture.nameAt(x, y, z));
+        }
+        catch (final RuntimeException thrown)
+        {
+            fail("byte " + at + " read, then threw " + thrown, thrown);
+        }
+    }
+
+    /** A file's contents, gunzipped. */
+    static byte[] unzipped(final File file) throws IOException
+    {
+        try (InputStream in = new GZIPInputStream(Files.newInputStream(file.toPath())))
+        {
+            return in.readAllBytes();
+        }
+    }
+
+    /** Writes the first {@code length} bytes, gzipped, as a capture file is. */
+    private static void zip(final File file, final byte[] bytes, final int length) throws IOException
+    {
+        try (OutputStream out = new GZIPOutputStream(Files.newOutputStream(file.toPath())))
+        {
+            out.write(bytes, 0, length);
+        }
+    }
+
+    /** The version a capture file says it is. */
+    private static int versionOf(final File file) throws IOException
+    {
+        final byte[] bytes = unzipped(file);
+        return ((bytes[4] & 0xFF) << 24) | ((bytes[5] & 0xFF) << 16) | ((bytes[6] & 0xFF) << 8) | (bytes[7] & 0xFF);
+    }
+}
