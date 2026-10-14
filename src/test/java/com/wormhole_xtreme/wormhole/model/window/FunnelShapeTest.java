@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -557,5 +558,251 @@ class FunnelShapeTest
         assertEquals(keysOf(portalOf("Standard"), 0), layerOf(funnel, 1), "Standard's own cells on the first layer");
         assertEquals(boxOf(new Funnel.Opening(1, 3, 0, 2)), layerOf(funnel, 2), "the three by three on the second");
         assertTrue(funnel.shows(3, 2, 1, 0.0) && !funnel.shows(2, 2, 1, 0.0), "the room from the third");
+    }
+
+    /** The shipped upright shapes, smallest first. */
+    private static final String[] SHIPPED = { "Minimal", "Standard", "Large", "Massive", "Grand" };
+
+    /** Every shipped pair's tunnel length at a least length, near gate by row, far by column; 0 for the plain view. */
+    private static int[][] lengths(final int least) throws IOException
+    {
+        final int[][] table = new int[SHIPPED.length][SHIPPED.length];
+        for (int near = 0; near < SHIPPED.length; near++)
+        {
+            for (int far = 0; far < SHIPPED.length; far++)
+            {
+                final List<int[]> nearCells = portalOf(SHIPPED[near]);
+                final WindowShape window = windowFor(nearCells);
+                final Funnel funnel = Funnel.of(window, nearCells(window, nearCells), farCells(portalOf(SHIPPED[far])), 16,
+                    least, Material.WATER);
+                table[near][far] = (funnel == null) ? 0 : funnel.taper();
+            }
+        }
+        return table;
+    }
+
+    private static String rows(final int[][] table)
+    {
+        final StringBuilder text = new StringBuilder();
+        for (final int[] row : table)
+        {
+            text.append(Arrays.toString(row)).append('\n');
+        }
+        return text.toString();
+    }
+
+    /**
+     * Every shipped pair's tunnel, at {@code gate-view-funnel-length: 16}: with no least length as before
+     * #587, a pair that does not narrow the plain view; and at a least of three, the wormhole-everywhere
+     * value, as docs/GATES.md tabulates it. A change to a shipped opening changes this table.
+     *
+     * <p>Rows are the near gate, columns the far one: Minimal, Standard, Large, Massive, Grand. Minimal's
+     * opening is one by two, Standard five square, Large eight, Massive seventeen, Grand eighteen by
+     * seventeen.
+     */
+    @Test
+    void everyShippedPairsTunnelIsAsTabulated() throws IOException
+    {
+        final int[][] before = {
+            { 0, 0, 0, 0, 0 },
+            { 3, 0, 0, 0, 0 },
+            { 6, 4, 0, 0, 0 },
+            { 15, 13, 10, 0, 0 },
+            { 16, 14, 11, 2, 0 } };
+        final int[][] atThree = {
+            { 3, 3, 3, 3, 3 },
+            { 5, 3, 3, 3, 3 },
+            { 10, 8, 5, 5, 5 },
+            { 16, 16, 16, 10, 10 },
+            { 16, 16, 16, 12, 11 } };
+
+        assertEquals(rows(before), rows(lengths(0)), "no least length changes nothing");
+        assertEquals(rows(atThree), rows(lengths(3)), "at a least of three");
+    }
+
+    /**
+     * Every cell of every shipped pair's tunnel at no least length, as a hash: whether the tunnel holds
+     * it, walls it, leaves it hollow and shows the room there, held or not, over every layer to a few
+     * past its end and a few blocks round the opening.
+     */
+    private static long drawingOf(final int least) throws IOException
+    {
+        long hash = 17;
+        for (final String near : SHIPPED)
+        {
+            for (final String far : SHIPPED)
+            {
+                final List<int[]> nearCells = portalOf(near);
+                final WindowShape window = windowFor(nearCells);
+                final Funnel funnel = Funnel.of(window, nearCells(window, nearCells), farCells(portalOf(far)), 16, least,
+                    Material.WATER);
+                hash = (hash * 31) + ((funnel == null) ? -1 : funnel.taper());
+                if (funnel != null)
+                {
+                    hash = (hash * 31) + funnel.far().hashCode();
+                    hash = drawingOf(funnel, hash);
+                }
+            }
+        }
+        return hash;
+    }
+
+    private static long drawingOf(final Funnel funnel, final long start)
+    {
+        long hash = start;
+        for (int layer = 0; layer <= (funnel.taper() + 4); layer++)
+        {
+            for (int across = -4; across < (funnel.width() + 4); across++)
+            {
+                for (int up = -4; up < (funnel.height() + 4); up++)
+                {
+                    final int bits = (funnel.holds(layer, across, up) ? 1 : 0) | (funnel.wall(layer, across, up) ? 2 : 0)
+                        | (funnel.hollow(layer, across, up) ? 4 : 0) | (funnel.shows(layer, across, up, 0.0) ? 8 : 0)
+                        | (funnel.shows(layer, across, up, 1.0) ? 16 : 0);
+                    hash = (hash * 31) + bits;
+                }
+            }
+        }
+        return hash;
+    }
+
+    /**
+     * With no least length, every shipped pair's tunnel is drawn cell for cell as it was before #587: the
+     * hash was recorded from the #583 code, before the straight run moved where the narrowing starts.
+     */
+    @Test
+    void noLeastLengthDrawsEveryShippedPairAsBefore() throws IOException
+    {
+        assertEquals(-5904751408123294266L, drawingOf(0),"every cell of every pair, as #583 drew it");
+    }
+
+    /**
+     * Large onto Standard at a least of three runs straight for five layers at Large's own shape, then
+     * narrows exactly as it does with none, four layers deeper: the run comes before the narrowing, not
+     * spread through it (#587).
+     */
+    @Test
+    void theStraightRunComesBeforeTheNarrowing() throws IOException
+    {
+        final List<int[]> large = portalOf("Large");
+        final WindowShape window = windowFor(large);
+        final List<Spot> standard = farCells(portalOf("Standard"));
+        final Funnel plain = Funnel.of(window, nearCells(window, large), standard, 16, 0, Material.WATER);
+        final Funnel run = Funnel.of(window, nearCells(window, large), standard, 16, 3, Material.WATER);
+
+        assertEquals(4, plain.taper());
+        assertEquals(8, run.taper());
+        for (int layer = 1; layer <= 5; layer++)
+        {
+            assertEquals(keysOf(large, 0), layerOf(run, layer), "Large's own shape on layer " + layer);
+        }
+        for (int layer = 1; layer <= 3; layer++)
+        {
+            assertEquals(layerOf(plain, layer), layerOf(run, layer + 4), "the narrowing's layer " + layer + ", four deeper");
+        }
+        assertTrue(layerOf(run, 6).size() < layerOf(run, 5).size(), "a step in on the first layer past the run");
+        assertTrue(layerOf(run, 7).size() < layerOf(run, 6).size(), "and another to the far opening");
+    }
+
+    /**
+     * Where the longest cuts a tunnel short, the straight run gives way before the narrowing: Massive onto
+     * Standard at a least of three would be ten straight and twelve narrowing; cut to sixteen, it runs four
+     * layers and narrows exactly as it does with none (#587).
+     */
+    @Test
+    void aTunnelCutShortLosesItsStraightRunFirst() throws IOException
+    {
+        final List<int[]> massive = portalOf("Massive");
+        final WindowShape window = windowFor(massive);
+        final List<Spot> standard = farCells(portalOf("Standard"));
+        final Funnel plain = Funnel.of(window, nearCells(window, massive), standard, 16, 0, Material.WATER);
+        final Funnel cut = Funnel.of(window, nearCells(window, massive), standard, 16, 3, Material.WATER);
+
+        assertEquals(13, plain.taper());
+        assertEquals(16, cut.taper());
+        assertEquals(keysOf(massive, 0), layerOf(cut, 4), "Massive's own shape to the fourth layer");
+        for (int layer = 1; layer <= 12; layer++)
+        {
+            assertEquals(layerOf(plain, layer), layerOf(cut, layer + 3), "the narrowing's layer " + layer + ", three deeper");
+        }
+    }
+
+    /**
+     * A Standard pair is shorter than a Large pair, which is shorter than a Large gate onto a Standard one,
+     * which is shorter than a Massive gate onto a Standard one: at a least of three and of four. From five
+     * a Standard pair's run is as long as a Large pair's, three fifths of eight (#587).
+     */
+    @Test
+    void aBiggerPairIsFurtherDownAndANarrowingOneFurtherStill() throws IOException
+    {
+        for (int least = 3; least <= 4; least++)
+        {
+            final int[][] table = lengths(least);
+            final int standardPair = table[1][1];
+            final int largePair = table[2][2];
+            final int largeToStandard = table[2][1];
+            final int massiveToStandard = table[3][1];
+            assertTrue((standardPair < largePair) && (largePair < largeToStandard) && (largeToStandard < massiveToStandard),
+                "at " + least + ": " + standardPair + ", " + largePair + ", " + largeToStandard + ", " + massiveToStandard);
+        }
+        assertEquals(lengths(5)[2][2], lengths(5)[1][1], "at five, a Standard pair is as long as a Large one");
+    }
+
+    /**
+     * Below three, the least length matters only to a Minimal gate: every other shipped opening's own run,
+     * three fifths of its longer side, is three or more (#587).
+     */
+    @Test
+    void belowThreeOnlyAMinimalGatesTunnelChanges() throws IOException
+    {
+        final int[][] three = lengths(3);
+        for (int least = 1; least <= 2; least++)
+        {
+            final int[][] table = lengths(least);
+            for (int near = 1; near < SHIPPED.length; near++)
+            {
+                assertEquals(Arrays.toString(three[near]), Arrays.toString(table[near]), SHIPPED[near] + " at " + least);
+            }
+            assertEquals((least == 1) ? "[0, 0, 0, 0, 0]" : "[2, 2, 2, 2, 2]", Arrays.toString(table[0]),
+                "Minimal at " + least + ": its run the least, and a run of one the plain view");
+        }
+    }
+
+    /**
+     * What a straight tube costs a watched gate (#587): its air and wall are sent with the view. A pair of
+     * Standard gates at a least of three is 154 blocks; a pair of Massive ones, ten long, 3357, about what
+     * Grand onto Standard already cost.
+     */
+    @Test
+    void aMassivePairsStraightTubeIsAFewThousandBlocks() throws IOException
+    {
+        final List<int[]> massive = portalOf("Massive");
+        final WindowShape window = windowFor(massive);
+        final Funnel funnel = Funnel.of(window, nearCells(window, massive), farCells(massive), 16, 3, Material.WATER);
+        final int[] blocks = { 0, 0 };
+        funnel.forEachHollow(64, (layer, across, up) -> blocks[0]++);
+        funnel.forEachWall(64, (layer, across, up) -> blocks[1]++);
+
+        assertEquals(10, funnel.taper());
+        assertEquals(9 * 221, blocks[0], "nine layers of Massive's 221 cells");
+        assertEquals(1368, blocks[1], "and a wall two thick round each");
+    }
+
+    /**
+     * A Standard gate dialling a Large one is seen down a tube of Standard's own shape to its end, corners
+     * left out: not the square middle of the Large opening it ends in front of (#587).
+     */
+    @Test
+    void aSmallGateOntoABigOnesTubeIsItsOwnShapeToItsEnd() throws IOException
+    {
+        final List<int[]> standard = portalOf("Standard");
+        final WindowShape window = windowFor(standard);
+        final Funnel funnel = Funnel.of(window, nearCells(window, standard), farCells(portalOf("Large")), 16, 3,
+            Material.WATER);
+
+        assertEquals(3, funnel.taper());
+        assertEquals(keysOf(standard, 0), layerOf(funnel, 1));
+        assertEquals(keysOf(standard, 0), layerOf(funnel, 2), "its last layer too");
+        assertFalse(funnel.holds(2, 0, 0), "a corner of the box is Standard's frame");
     }
 }

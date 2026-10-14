@@ -52,6 +52,10 @@ through is a release nobody reads.
 
 ### Stargates
 
+**Added**
+
+- Gates the same size, or a small gate dialling a big one, can be seen down a straight tunnel too, and every tunnel runs straight before it narrows, longer for a bigger gate ([#587](https://github.com/khanjal/Wormhole-X-Treme/issues/587)). Off until `gate-view-funnel-min-length` is set. [Details](docs/GATES.md)
+
 **Fixed**
 
 - Behind an open gate, shutting or opening its iris no longer covers your wormhole for a moment before moving the iris beyond it: the wormhole stays in the ring and the iris sweeps in a block further off ([#429](https://github.com/khanjal/Wormhole-X-Treme/issues/429)). [Guide](docs/guide/GATES.md#how-it-arrives)

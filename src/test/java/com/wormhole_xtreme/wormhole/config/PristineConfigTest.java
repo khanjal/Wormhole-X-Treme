@@ -395,4 +395,18 @@ class PristineConfigTest
         assertTrue(frozen.keySet().containsAll(RetiredSettings.KEYS));
         assertEquals(116, frozen.size(), "the 115 settings 1.10.0 wrote and its material groups");
     }
+
+    /**
+     * A 1.10.0 file that {@code gate-view-funnel-min-length} was appended to at 0, as a server that ran
+     * 1.11.0 has, is still untouched, so it is still replaced with the new layout (#587).
+     */
+    @Test
+    void aFileTheLeastTunnelLengthWasAppendedToIsStillUntouched() throws Exception
+    {
+        final Map<String, Object> appended = pristineMap();
+        assertFalse(appended.containsKey("gate-view-funnel-min-length"), "1.10.0 had no such setting");
+        appended.put("gate-view-funnel-min-length", 0);
+
+        assertEquals("1.10.0", PristineConfig.untouchedSince(appended), "appended at its default");
+    }
 }

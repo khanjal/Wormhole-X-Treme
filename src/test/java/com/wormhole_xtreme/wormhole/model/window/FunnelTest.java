@@ -581,4 +581,143 @@ class FunnelTest
         assertFalse(funnel.holds(8, 3, 1, 1.0) || funnel.holds(8, 5, -1, 1.0) || funnel.holds(8, 5, 4, 1.0),
             "but never its frame, the collar, held or not");
     }
+
+    /** The same-size far gate, eleven square, at a least length of three (#587). */
+    private static Funnel straightTube()
+    {
+        return Funnel.of(BIG, null, farGate(95, 105, 70, 80), 16, 3, Material.WATER);
+    }
+
+    /**
+     * {@code gate-view-funnel-min-length: 0}, as it ships, changes nothing: every pair is the funnel it
+     * was before the setting existed, and a pair that does not narrow is still the plain view (#587).
+     */
+    @Test
+    void noLeastLengthLeavesEveryTunnelAsItWas()
+    {
+        assertEquals(toStandard(), Funnel.of(BIG, null, farGate(99, 101, 70, 73), 16, 0, Material.WATER));
+        assertEquals(9, Funnel.of(BIG, null, farGate(99, 101, 70, 73), 16, 0, Material.WATER).taper(),
+            "a block a layer narrowed, and one for the layer its own size");
+        assertNull(Funnel.of(BIG, null, farGate(95, 105, 70, 80), 16, 0, Material.WATER), "the same size: plain");
+        assertNull(Funnel.of(BIG, null, farGate(90, 110, 69, 85), 16, 0, Material.WATER), "small to large: plain");
+    }
+
+    /**
+     * With a least length, a gate the same size is seen down a straight tube: every layer of it the near
+     * opening's whole shape, its last too, walled two blocks thick, and the room past it (#587).
+     *
+     * <p>Seven long, three fifths of eleven, longer than the least of three.
+     */
+    @Test
+    void aLeastLengthSeesAGateTheSameSizeDownAStraightTube()
+    {
+        final Funnel funnel = straightTube();
+        final List<Spot> hollow = new ArrayList<>();
+        funnel.forEachHollow(20, (layer, across, up) -> hollow.add(new Spot(layer, across, up)));
+
+        assertNotNull(funnel, "no longer the plain view");
+        assertEquals(7, funnel.taper());
+        assertEquals(new Funnel.Opening(0, 10, 0, 10), funnel.far(), "the far opening is the near one's whole size");
+        assertEquals(6 * 121, hollow.size(), "six layers behind the opening, each all eleven square");
+        assertTrue(funnel.hollow(6, 0, 0) && funnel.hollow(6, 10, 10), "the last layer's corners too: no narrowing");
+        assertTrue(funnel.wall(1, -1, 5) && funnel.wall(1, -2, 5), "two thick beside the first layer");
+        assertFalse(funnel.wall(1, -3, 5), "and no thicker");
+        assertTrue(funnel.wall(6, 12, 12), "round its last layer, corners included");
+        assertFalse(funnel.wall(7, -1, 5), "none round the room");
+        assertFalse(funnel.shows(6, 5, 0, 0.0), "no far side in the tube");
+        assertTrue(funnel.shows(7, 5, 0, 0.0), "the room on the layer after it");
+    }
+
+    /**
+     * A small gate dialling a big one gets the same tube, at its own opening's size: its view can be no
+     * wider than the gate it is seen through (#587).
+     */
+    @Test
+    void aSmallGateOntoABigOneIsTheSameTubeAtItsOwnSize()
+    {
+        assertEquals(straightTube(), Funnel.of(BIG, null, farGate(90, 110, 69, 85), 16, 3, Material.WATER),
+            "a far gate twenty-one by seventeen, cut to the near eleven square");
+    }
+
+    /**
+     * Past a straight tube, the room is exactly what some line through both its ends reaches: the far
+     * side shifted to the tube's end, seen through an opening the near one's size (#587).
+     */
+    @Test
+    void theRoomPastAStraightTubeIsWhatSomeLineThroughBothEndsReaches()
+    {
+        final Funnel funnel = Funnel.of(opening(17, 17), null, farOpening(17, 17), 2, 3, Material.WATER);
+
+        assertEquals(2, funnel.taper(), "cut to the longest allowed");
+        assertEquals(seenByLines(-0.5, 16.5, -0.5, 16.5), heldAlong(funnel, true, 2), "across");
+        assertEquals(seenByLines(-0.5, 16.5, -0.5, 16.5), heldAlong(funnel, false, 8), "up");
+    }
+
+    /**
+     * The tunnel runs straight for the least length, or three fifths of the near opening's longer side
+     * if that is longer, then a block longer for each it narrows; at most the longest allowed (#587).
+     *
+     * <p>So a pair of Large gates is further down than a pair of Standard ones, and a Large onto a
+     * Standard further still, since it narrows too.
+     */
+    @Test
+    void theStraightRunIsTheLeastOrThreeFifthsOfTheOpeningThenItNarrows()
+    {
+        assertEquals(3, Funnel.length(0, 5, 16, 3), "Standard pair: three fifths of five, three");
+        assertEquals(4, Funnel.length(0, 5, 16, 4), "a least longer than that wins");
+        assertEquals(5, Funnel.length(0, 8, 16, 3), "Large pair: four point eight, to the nearest");
+        assertEquals(8, Funnel.length(3, 8, 16, 3), "Large to Standard: five, then three more narrowing");
+        assertEquals(10, Funnel.length(0, 17, 16, 3), "Massive pair: ten point two");
+        assertEquals(16, Funnel.length(12, 17, 16, 3), "Massive to Standard: twenty-two, cut to the longest");
+        assertEquals(2, Funnel.length(0, 5, 2, 3), "never past the longest, the least included");
+        assertEquals(4, Funnel.length(3, 8, 16, 0), "no least: a block more than it narrows, as before");
+        assertEquals(15, Funnel.of(BIG, null, farGate(99, 101, 70, 73), 16, 3, Material.WATER).taper(),
+            "eleven square to three by four: seven straight, then eight narrowing");
+    }
+
+    /**
+     * A far gate as wide but lower, with a least length: the straight run at the near opening's whole
+     * size, then only the ceiling comes down, a block a layer, the width kept all the way (#587).
+     */
+    @Test
+    void asWideButLowerRunsStraightThenOnlyTheCeilingComesDown()
+    {
+        final Funnel funnel = Funnel.of(BIG, null, farGate(95, 105, 70, 73), 16, 3, Material.WATER);
+
+        assertEquals(new Funnel.Opening(0, 10, 0, 3), funnel.far());
+        assertEquals(14, funnel.taper(), "seven straight, three fifths of eleven, then seven lower");
+        for (int layer = 1; layer <= 7; layer++)
+        {
+            assertTrue(funnel.holds(layer, 5, 10), "the top row on the straight run's layer " + layer);
+        }
+        assertFalse(funnel.holds(8, 5, 10), "the ceiling a block lower on the first layer past it");
+        assertTrue(funnel.holds(12, 0, 0) && funnel.holds(12, 10, 0), "the whole width to the end");
+        assertTrue(funnel.holds(13, 0, 3) && !funnel.holds(13, 0, 4), "the far plane four high");
+    }
+
+    /** A straight tube of the opening alone draws nothing: it is the plain view, as no funnel (#587). */
+    @Test
+    void aStraightTubeOfOneLayerIsThePlainView()
+    {
+        assertNull(Funnel.of(BIG, null, farGate(95, 105, 70, 80), 1, 3, Material.WATER), "the longest allowed is one");
+        assertNull(Funnel.of(opening(1, 2), null, farOpening(1, 2), 16, 1, Material.WATER),
+            "a least of one, onto a run of three fifths of two, one");
+        assertEquals(2, Funnel.of(opening(1, 2), null, farOpening(1, 2), 16, 2, Material.WATER).taper(), "a least of two");
+    }
+
+    /** A far gate lying flat is still no hole across the view, least length or not (#587). */
+    @Test
+    void aFarGateLyingFlatHasNoTubeEither()
+    {
+        final List<Spot> flat = new ArrayList<>();
+        for (int z = 190; z <= 199; z++)
+        {
+            for (int x = 95; x <= 105; x++)
+            {
+                flat.add(new Spot(x, 71, z));
+            }
+        }
+
+        assertNull(Funnel.of(BIG, null, flat, 16, 3, Material.WATER));
+    }
 }
