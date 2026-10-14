@@ -764,6 +764,24 @@ class CaptureTest
     }
 
     /**
+     * A save whose rename over the old file is refused leaves no temporary file behind.
+     *
+     * <p>Windows refuses to replace a capture file another thread is reading (#528). The
+     * {@code .view.tmp} was left for good: the startup sweep only looks at {@code .view} files.
+     * A folder of the file's name, with something in it, is refused the same way everywhere.
+     */
+    @Test
+    void aSaveWhoseRenameIsRefusedLeavesNoTemporaryFile(@TempDir final File dir)
+    {
+        final File file = new File(dir, "busy.view");
+        assertTrue(new File(file, "inside").mkdirs(), "a folder where the file goes, not empty");
+
+        assertThrows(IOException.class, () -> box().build().save(file), "the rename is refused");
+
+        assertFalse(new File(dir, "busy.view.tmp").exists(), "and the temporary file is gone");
+    }
+
+    /**
      * A file of an earlier kind is refused, and says why.
      *
      * <p>Earlier files were a dense grid of the whole box; this one keeps only what can be seen.

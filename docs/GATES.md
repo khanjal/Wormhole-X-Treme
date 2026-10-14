@@ -852,7 +852,23 @@ what it can see is already there, and one capture serves every gate that dials t
 gate can still be dialled and shows nothing itself, but a ring gate dialling it shows its front. The file is named for the gate made file-safe, with a hash of the name,
 since two names can come out alike; one seen through a smaller opening, left by an earlier build,
 is deleted as its gate is next refreshed. So it is there after a restart, and a remote gate shows its view at
-once rather than after its far side has been read off the disk. Removing a gate deletes its
+once rather than after its far side has been read off the disk. The capture's own file is read off
+the main thread, the first time it is wanted after a restart or after five minutes nobody drew from
+it ([#528](https://github.com/khanjal/Wormhole-X-Treme/issues/528)): one at a mirror's cap of half a
+million blocks took about 130 ms, a hitch on the main thread. The horizon shows until it is in, and
+the dial starts the read, so it is usually in before the kawoosh settles. Nothing is taken while it
+is read, since a first step taken then would overwrite a capture holding the fill; a gate removed
+meanwhile does not have it put back. A read that has not come back in a minute is counted lost and
+the file read again. A gate whose first sweep after opening meets its read still in flight skips
+that opening's retake of an old capture; the refresh while somebody is at the gate catches it up.
+On Windows a file being read cannot be deleted or replaced, so a gate removed, or a capture saved,
+during the read can leave the old file behind, logged as for any failed delete or write, with
+the save's temporary file deleted; a retake's old file is read back once the new capture is let go,
+until the next retake. Each read landing tells every window to look again, so after a restart a hub
+with several open gates can redraw a viewer once a read, paced by the redraw interval. Reads are not
+queued: each goes to the server's pool at once, so many gates at the cap read together after a
+restart hold several megabytes each meanwhile; one read at a time, as gate sifts take turns, is the
+next step if that ever shows. Removing a gate deletes its
 captures; a refresh that hands a gate back keeps them. It is taken again:
 
 - **as a gate is dialled or opens**, or its iris opens, once it is a minute old if it holds only the

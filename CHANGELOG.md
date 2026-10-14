@@ -60,6 +60,10 @@ through is a release nobody reads.
 
 - Behind an open gate, shutting or opening its iris no longer covers your wormhole for a moment before moving the iris beyond it: the wormhole stays in the ring and the iris sweeps in a block further off ([#429](https://github.com/khanjal/Wormhole-X-Treme/issues/429)). [Guide](docs/guide/GATES.md#how-it-arrives)
 
+### Performance
+
+- A mirror's or gate's view no longer makes the server hitch the first time it is drawn after a restart or a while unwatched: its capture is read off the disk off the main thread, the banner or horizon showing until it is in ([#528](https://github.com/khanjal/Wormhole-X-Treme/issues/528)). [Details](docs/GATES.md#seeing-through-a-gate-experimental)
+
 ## 1.10.0 (2026-10-12)
 
 ### For server admins
