@@ -20,9 +20,11 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -59,6 +61,10 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  * sweeping gate is not restacked as anybody moves. Walking round the other way left the rings
  * already covered with no wormhole behind them.
  *
+ * <p>The ring itself is drawn per viewer too (#429). It used to be one block for everybody, the front's
+ * picture, so a viewer behind watched the iris replace their wormhole a ring at a time and jump behind it
+ * once the sweep had settled. The ring belongs to whoever's near layer it is, and only the far layer moves.
+ *
  * <p>The gate faces south, so its front is the larger z. The ring is at z=0 and the far layer of
  * a viewer in front at z=-1, which is the near side for anybody behind. The opening is five by
  * five, which the rows sweep draws in three rings, so a viewer can cross between two of them
@@ -81,6 +87,8 @@ class IrisSweepCrossingTest
     private final BlockData packed = mock(BlockData.class);
     /** What the see-through iris is drawn as, so an iris block can be told from the stand-in. */
     private final BlockData glass = mock(BlockData.class);
+    /** What the wormhole is drawn as in the ring, so it can be told from the iris and from the real air. */
+    private final BlockData water = mock(BlockData.class);
     private final LinkedHashMap<Integer, Runnable> pending = new LinkedHashMap<>();
     private int nextTaskId = 1;
 
@@ -96,6 +104,7 @@ class IrisSweepCrossingTest
         final BlockData anyOther = mock(BlockData.class);
         materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), any())).thenReturn(anyOther);
         materials.when(() -> MaterialUtils.drawnAcross(eq(Material.YELLOW_STAINED_GLASS), any())).thenReturn(glass);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.WATER), any())).thenReturn(water);
         materials.when(() -> MaterialUtils.drawnAcross(eq(Material.BLUE_ICE), any())).thenReturn(ice);
         materials.when(() -> MaterialUtils.drawnAcross(eq(Material.PACKED_ICE), any())).thenReturn(packed);
         materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
@@ -504,10 +513,11 @@ class IrisSweepCrossingTest
         stand(viewer, FRONT);
         step();
 
-        verify(viewer, atLeastOnce()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), any(BlockData.class));
+        // The ring is the wormhole's for them already, so the step reaches them a block in front of it instead.
+        assertEquals(cellsOf(rings.get(0), rings.get(2)), plane.showingAt(1, truth),
+            "drawn the last ring opening, in range again: the iris they held beyond it was handed back");
         assertEquals(List.of(), iced(plane),
-            "drawn the last ring opening, in range again, and every ring is open, so nothing behind any of them: "
-                + rings.get(1));
+            "and every ring is open, so nothing behind any of them: " + rings.get(1));
     }
 
     /**
@@ -668,13 +678,14 @@ class IrisSweepCrossingTest
     }
 
     /**
-     * Walking round to the back mid-open keeps the iris in the ring and draws none beyond it.
+     * Walking round to the back mid-open gives the ring still covered back to the wormhole, and the iris goes beyond it.
      *
-     * <p>The sweep paints the iris in the ring for everybody, and the ring is not this step's to touch. A
-     * viewer who walks round to the back keeps it there; drawing a second iris a block beyond would be two.
+     * <p>The sweep used to paint the iris in the ring for everybody, so a viewer who walked round kept it there until
+     * the sweep settled: the front's picture, from behind (#429). Now the ring is the near layer's, which from behind
+     * is the wormhole, and the iris they are still owed is drawn a block beyond it.
      */
     @Test
-    void walkingRoundToTheBackMidOpenKeepsTheIrisInTheRingAndDrawsNoneBeyond()
+    void walkingRoundToTheBackMidOpenGivesTheCoveredRingBackToTheWormhole()
     {
         final Player viewer = viewerAt(FRONT);
         watching(viewer);
@@ -686,9 +697,9 @@ class IrisSweepCrossingTest
         stand(viewer, BEHIND);
         step();
 
-        assertEquals(cellsOf(rings.get(2)), plane.showingAt(0, glass), "the ring still covered keeps its iris");
-        assertEquals(List.of(), irisInFront(plane), "and none is drawn a block beyond it");
-        assertEquals(List.of(), iced(plane), "nor any stand-in on their side");
+        assertEquals(List.of(), plane.showingAt(0, glass), "no iris left in the ring");
+        assertEquals(cellsOf(rings.get(2)), irisInFront(plane), "the ring still covered has it a block beyond");
+        assertEquals(List.of(), iced(plane), "and no stand-in on their side");
     }
 
     /**
@@ -738,8 +749,8 @@ class IrisSweepCrossingTest
     /**
      * An opening called off by shutting takes back the iris a viewer behind held beyond the ring.
      *
-     * <p>The closing paints the opening bare first, so an iris a block in front of a bare cell is a block
-     * nobody else has. It goes as the closing starts.
+     * <p>The closing starts with nothing covered, so an iris a block in front of a cell it has not reached is a
+     * block nobody else has. It goes as the closing starts, and comes back beyond each ring as the closing covers it.
      */
     @Test
     void anOpeningCalledOffByShuttingTakesBackTheIrisHeldBeyondTheRing()
@@ -747,15 +758,16 @@ class IrisSweepCrossingTest
         final Player viewer = viewerAt(BEHIND);
         watching(viewer);
         final FarPlane plane = new FarPlane(viewer);
-        final List<List<String>> rings = rings(false);
+        final List<List<String>> opening = rings(false);
+        final List<List<String>> closing = rings(true);
         startSweep(false);
-        assertEquals(cellsOf(rings.get(1), rings.get(2)), irisInFront(plane), "the rings still covered keep it");
+        assertEquals(cellsOf(opening.get(1), opening.get(2)), irisInFront(plane), "the rings still covered keep it");
 
         gate.toggleIrisActive(false);
 
-        assertEquals(List.of(), irisInFront(plane), "none left beyond the ring");
-        assertTrue(plane.showingAt(1, truth).containsAll(cellsOf(rings.get(1), rings.get(2))),
-            "the cells the opening had left covered were handed back: " + plane.showingAt(1, truth));
+        assertEquals(cellsOf(closing.get(0)), irisInFront(plane), "beyond the closing's first ring, and no other");
+        assertEquals(cellsOf(closing.get(1), closing.get(2)), plane.showingAt(1, truth),
+            "every cell the closing has not reached was handed back");
     }
 
     /**
@@ -893,14 +905,13 @@ class IrisSweepCrossingTest
     }
 
     /**
-     * A viewer behind who walks round to the front mid-close is sent nothing a block in front of the ring.
+     * A viewer behind who walks round to the front mid-close is handed back the iris beyond the ring, once per cell.
      *
-     * <p>The sweep never drew them an iris there, only the iris in the ring. Filed as if it had, every
-     * covered cell was handed back to them as they came round: a packet per cell for a block they never
-     * held, hundreds on a big gate.
+     * <p>The sweep draws a viewer behind the iris a block beyond each ring it covers (#429), so coming round to the
+     * front that block is on their own side and goes: once for each cell they were drawn it in, and for no other.
      */
     @Test
-    void aViewerBehindWhoWalksRoundMidCloseIsSentNothingInFrontOfTheRing()
+    void aViewerBehindWhoWalksRoundMidCloseIsHandedBackOnlyTheIrisTheyWereDrawn()
     {
         final Player viewer = viewerAt(BEHIND);
         watching(viewer);
@@ -908,38 +919,48 @@ class IrisSweepCrossingTest
         final List<List<String>> rings = rings(true);
         gate.toggleIrisActive(false);
         step();
-        iced(plane);
+        assertEquals(cellsOf(rings.get(0), rings.get(1)), irisInFront(plane), "behind, the iris beyond the rings covered");
 
         stand(viewer, FRONT);
         step();
 
-        assertEquals(List.of(), sentInFront(viewer), "nothing a block in front of the ring");
+        assertEquals(cellsOf(rings.get(0), rings.get(1)), sentInFront(viewer).stream().sorted().toList(),
+            "one hand-back a block in front for each cell they held the iris in, and none for the ring just drawn");
+        assertEquals(List.of(), irisInFront(plane), "so none is left on their side");
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), plane.showingAt(0, glass),
+            "the iris came into the ring of every cell covered");
         assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), iced(plane),
-            "while the wormhole did come in behind every covered ring, so the step reached them");
+            "and the wormhole in behind every one of them");
     }
 
     /**
-     * A closing called off by an opening sends a viewer behind nothing a block in front of the ring.
+     * A closing called off by an opening never puts the iris in the ring of a viewer behind.
      *
-     * <p>The opening starts from what the closing drew them, which was never an iris beyond the ring.
+     * <p>The call-off finishes the closing as its last step would have, each viewer from their own side, and the
+     * opening starts from that. Finished as one block for everybody, a viewer behind was shown the iris over their
+     * wormhole, and an opening that leaves their ring alone would have left it there until it settled.
      */
     @Test
-    void aClosingCalledOffByOpeningSendsAViewerBehindNothingInFrontOfTheRing()
+    void aClosingCalledOffByOpeningNeverPutsTheIrisInTheRingOfAViewerBehind()
     {
         final Player viewer = viewerAt(BEHIND);
         watching(viewer);
         final FarPlane plane = new FarPlane(viewer);
+        final List<List<String>> rings = rings(true);
         gate.toggleIrisActive(false);
         step();
-        iced(plane);
+        assertEquals(cellsOf(rings.get(0), rings.get(1)), irisInFront(plane), "two rings closed, the iris beyond them");
 
         gate.toggleIrisActive(false);
         step();
         step();
 
         assertTrue(StargateIrisAnimator.isSweeping(gate), "the opening has not settled yet, which hands every cell back");
-        verify(viewer, atLeastOnce()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), any(BlockData.class));
-        assertEquals(List.of(), sentInFront(viewer), "nothing a block in front of the ring, while the rings were drawn");
+        verify(viewer, never()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), eq(glass));
+        verify(viewer, never()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), eq(truth));
+        assertEquals(List.of(), irisInFront(plane), "and the iris beyond the ring left with every ring");
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), plane.showingAt(1, truth),
+            "every cell, the one the call-off covered too");
     }
 
     /**
@@ -960,10 +981,242 @@ class IrisSweepCrossingTest
             "past the reach from the gate's first cell, or this proves nothing");
         assertTrue(new Location(world, 2, 66, 63.9).distance(corner) <= 64, "and within it from the ring's");
 
-        StargateBlockSetup.horizonBehind(gate, List.of(corner), true);
+        StargateBlockSetup.sweepRing(gate, List.of(corner), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(argThat(at -> (at.getBlockX() == 2) && (at.getBlockY() == 66)
             && (at.getBlockZ() == -1)), argThat(d -> (d == ice) || (d == packed)));
+    }
+
+    /**
+     * Closing, a viewer in front and a viewer behind the same gate are drawn the same ring differently (#429).
+     *
+     * <p>In front the iris comes into the ring. Behind, the ring keeps the wormhole and the iris arrives a block
+     * beyond it. The ring used to be one block for everybody, so the viewer behind was shown the iris over their
+     * wormhole until the sweep settled and moved it.
+     */
+    @Test
+    void closingTheRingIsTheIrisInFrontAndTheWormholeBehind()
+    {
+        final Player front = viewerAt(FRONT);
+        final Player rear = viewerAt(BEHIND);
+        watching(front, rear);
+        final FarPlane frontPlane = new FarPlane(front);
+        final FarPlane rearPlane = new FarPlane(rear);
+        final List<List<String>> rings = rings(true);
+
+        gate.toggleIrisActive(false);
+
+        assertEquals(cellsOf(rings.get(0)), frontPlane.showingAt(0, glass), "in front, the iris comes into the ring");
+        assertEquals(cellsOf(rings.get(0)), iced(frontPlane), "with the wormhole a block behind it");
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), rearPlane.showingAt(0, water),
+            "behind, every cell of the ring is still the wormhole, the one just covered too");
+        assertEquals(cellsOf(rings.get(0)), rearPlane.showingAt(1, glass), "and the iris arrives a block beyond it");
+        assertEquals(List.of(), iced(rearPlane), "with nothing on their own side");
+    }
+
+    /**
+     * Opening, the same two viewers are sent different blocks for the same ring (#429).
+     *
+     * <p>In front the iris leaves the ring for the wormhole. Behind, the ring is not touched at all, because it has
+     * been the wormhole all along, and the iris leaves from a block beyond it.
+     */
+    @Test
+    void openingTheIrisLeavesTheRingInFrontAndFromBeyondItBehind()
+    {
+        final Player front = viewerAt(FRONT);
+        final Player rear = viewerAt(BEHIND);
+        watching(front, rear);
+        final FarPlane frontPlane = new FarPlane(front);
+        final FarPlane rearPlane = new FarPlane(rear);
+        final List<List<String>> rings = rings(false);
+        gate.toggleIrisActive(false);
+        finishSweep();
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), rearPlane.showingAt(1, glass),
+            "shut, the viewer behind holds the iris a block beyond every cell");
+        frontPlane.showingAt(0, glass);
+
+        gate.toggleIrisActive(false);
+
+        verify(rear, never()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), any(BlockData.class));
+        verify(front, atLeastOnce()).sendBlockChange(argThat(at -> at.getBlockZ() == 0), eq(water));
+        assertEquals(cellsOf(rings.get(1), rings.get(2)), frontPlane.showingAt(0, glass),
+            "in front, the first ring's iris gave way to the wormhole and only it");
+        assertEquals(cellsOf(rings.get(0)), rearPlane.showingAt(1, truth), "behind, the iris left from beyond that ring");
+        assertEquals(cellsOf(rings.get(1), rings.get(2)), rearPlane.showingAt(1, glass), "and from no other");
+    }
+
+    /**
+     * A viewer behind is never sent anything but the wormhole in the ring, closing or opening, from the first ring
+     * to the settle (#429).
+     *
+     * <p>The reported fault: toggling the iris replaced the water for a moment, then moved it in front of the water.
+     * Opening it had a second cause beside the sweep. Calling off a sweep that was not running sent the iris to
+     * every ring before the opening began, so a viewer behind lost the wormhole at once and got it back ring by ring.
+     *
+     * <p>The closing toggle draws the finished iris for everybody before its sweep hides it again, in the same
+     * tick, and before the first ring. That one draw, which a viewer in front gets too, is all that is allowed
+     * through: per cell, nothing after the first wormhole may be anything else.
+     */
+    @Test
+    void aViewerBehindIsSentNothingButTheWormholeInTheRing()
+    {
+        final Player rear = viewerAt(BEHIND);
+        watching(rear);
+
+        gate.toggleIrisActive(false);
+        finishSweep();
+        final Map<String, List<BlockData>> closing = sentToRing(rear);
+        assertFalse(closing.isEmpty(), "the ring was drawn for them, or this proves nothing");
+        closing.forEach((cell, sent) ->
+        {
+            final List<BlockData> afterHidden = sent.subList(Math.max(0, sent.indexOf(water)), sent.size());
+            assertTrue(!afterHidden.isEmpty() && afterHidden.stream().allMatch(data -> data == water),
+                "closing, cell " + cell + " had its wormhole replaced: " + sent);
+        });
+
+        gate.toggleIrisActive(false);
+        finishSweep();
+        final Map<String, List<BlockData>> opening = sentToRing(rear);
+        // Every cell, so the check below is not satisfied by a ring nobody sent anything to.
+        assertEquals(closing.keySet(), opening.keySet(), "opening, every cell of the ring ends drawn for them");
+        opening.forEach((cell, sent) -> assertTrue(sent.stream().allMatch(data -> data == water),
+            "opening, cell " + cell + " had its wormhole replaced: " + sent));
+    }
+
+    /**
+     * Somebody who comes near after an opening began is still shown each ring open.
+     *
+     * <p>They have nothing on record for the sweep to move, so the per-viewer path has nothing to work from. They
+     * are shown the ring as the shared send always showed it, and the settle at the end does the rest.
+     */
+    @Test
+    void aViewerArrivingMidOpenIsShownEachRingOpenAsBefore() throws ReflectiveOperationException
+    {
+        final Player viewer = viewerAt(200.5);
+        watching(viewer);
+        final List<List<String>> rings = rings(false);
+        startSweep(false);
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+
+        stand(viewer, FRONT);
+        step();
+
+        assertEquals(cellsOf(rings.get(1)), new FarPlane(viewer).showingAt(0, water),
+            "the ring this step opened, and only it, drawn as the wormhole");
+        assertFalse(recorded(viewer), "and no empty record filed for them, which every step used to leave");
+    }
+
+    /**
+     * Closing over a cleared gate view leaves the wormhole in the ring of a viewer behind (#429).
+     *
+     * <p>A horizon cleared for the gate view stays cleared while the iris crosses, and is nothing only for whoever
+     * is drawn the view. The closing sweep hides the iris it has just drawn by sending the opening as it was, and
+     * that was the cleared nothing for everybody: a hole in the wormhole of a viewer behind for the whole sweep,
+     * since the sweep leaves their ring alone after it. Each viewer is sent their own horizon instead.
+     */
+    @Test
+    void closingOverAClearedViewLeavesTheWormholeInTheRingOfAViewerBehind() throws ReflectiveOperationException
+    {
+        final BlockData air = mock(BlockData.class);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.AIR), any())).thenReturn(air);
+        final Player front = viewerAt(FRONT);
+        final Player rear = viewerAt(BEHIND);
+        watching(front, rear);
+        final FarPlane frontPlane = new FarPlane(front);
+        final FarPlane rearPlane = new FarPlane(rear);
+        final List<List<String>> rings = rings(true);
+        final Set<String> cleared = PrivateStatics.of(GateViews.class, "CLEARED");
+        final Map<UUID, Set<String>> through = PrivateStatics.of(GateViews.class, "SEES_THROUGH");
+        try
+        {
+            cleared.add(gate.getGateName());
+            through.put(front.getUniqueId(), new HashSet<>(Set.of(gate.getGateName())));
+
+            gate.toggleIrisActive(false);
+
+            assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), rearPlane.showingAt(0, water),
+                "behind, every cell of the ring is still the wormhole");
+            assertEquals(cellsOf(rings.get(1), rings.get(2)), frontPlane.showingAt(0, air),
+                "while in front, drawn the view, the rings not yet covered still show it");
+        }
+        finally
+        {
+            GateViews.clear();
+        }
+    }
+
+    /**
+     * An opening called off on a gate with no wormhole puts the real blocks back for everybody alike.
+     *
+     * <p>There is nothing to layer, so the call-off is the one shared send it always was: the same truth in every
+     * cell of the ring, in front and behind.
+     */
+    @Test
+    void anOpeningCalledOffOnAnIdleGatePutsTheSameTruthInEveryRing()
+    {
+        gate.setGateActive(false);
+        final Player front = viewerAt(FRONT);
+        final Player rear = viewerAt(BEHIND);
+        watching(front, rear);
+        final FarPlane frontPlane = new FarPlane(front);
+        final FarPlane rearPlane = new FarPlane(rear);
+        final List<List<String>> rings = rings(false);
+        startSweep(false);
+        assertEquals(cellsOf(rings.get(1), rings.get(2)), rearPlane.showingAt(0, glass), "behind, two rings still shut");
+        frontPlane.showingAt(0, glass);
+
+        StargateIrisAnimator.cancel(gate);
+
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), frontPlane.showingAt(0, truth),
+            "in front, every cell put back to what is really there");
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), rearPlane.showingAt(0, truth),
+            "and behind, the same");
+    }
+
+    /** Every block sent to one viewer in the ring, by cell, in order; clears what they were sent. */
+    private static Map<String, List<BlockData>> sentToRing(final Player viewer)
+    {
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+        verify(viewer, atLeast(0)).sendBlockChange(where.capture(), what.capture());
+        final Map<String, List<BlockData>> sent = new LinkedHashMap<>();
+        for (int i = 0; i < where.getAllValues().size(); i++)
+        {
+            final Location at = where.getAllValues().get(i);
+            if (at.getBlockZ() == 0)
+            {
+                sent.computeIfAbsent(at.getBlockX() + "," + at.getBlockY(), cell -> new ArrayList<>())
+                    .add(what.getAllValues().get(i));
+            }
+        }
+        clearInvocations(viewer);
+        return sent;
+    }
+
+    /**
+     * A gate with no wormhole open still draws its sweep as one block for everybody.
+     *
+     * <p>There is nothing to layer, so both sides see the same iris in the same ring, and the cheap shared send
+     * stays: the per-viewer path is for a gate where no one block is right for everybody.
+     */
+    @Test
+    void anIdleGatesSweepIsTheSameRingForEverybody()
+    {
+        gate.setGateActive(false);
+        final Player front = viewerAt(FRONT);
+        final Player rear = viewerAt(BEHIND);
+        watching(front, rear);
+        final FarPlane frontPlane = new FarPlane(front);
+        final FarPlane rearPlane = new FarPlane(rear);
+        final List<List<String>> rings = rings(true);
+
+        gate.toggleIrisActive(false);
+        step();
+
+        assertEquals(cellsOf(rings.get(0), rings.get(1)), frontPlane.showingAt(0, glass), "in front, two rings of iris");
+        assertEquals(cellsOf(rings.get(0), rings.get(1)), rearPlane.showingAt(0, glass), "and behind, the same two");
+        assertEquals(List.of(), rearPlane.showingAt(1, glass), "with no iris drawn beyond the ring behind");
+        assertEquals(List.of(), iced(frontPlane), "and no wormhole behind it in front");
     }
 
     /** The cells covered after this step: closing, the rings so far; opening, the rings still to go. */
