@@ -42,8 +42,8 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  *
  * <p>Captures are keyed by destination rather than by mirror, so two mirrors onto the same place
  * share one, renaming a mirror changes nothing, and re-pointing one simply asks for a different
- * key. A capture is loaded from disk the first time a window wants it, and let go again when no
- * window has wanted it for a while.
+ * key. A capture is read from disk, off the main thread, the first time a window wants it, and let
+ * go again when no window has wanted it for a while.
  *
  * <p>Taking one reads the far side a couple of chunks a tick, from chunk snapshots, until the
  * box is covered -- a few seconds for the default box -- then blanks the far side's own mirror
@@ -223,6 +223,12 @@ public final class Captures
     /** Keys whose file was tried and found missing or unreadable, so they are not tried again. */
     private static final Set<String> ABSENT = new HashSet<>();
 
+    /**
+     * Captures being read off the disk off the main thread, by key, each with a token of its own read
+     * (#528): a read whose token is gone by the time it lands was forgotten or cleared meanwhile.
+     */
+    private static final Map<String, Object> LOADING = new HashMap<>();
+
     /** Captures being taken, by destination key. */
     private static final Map<String, Job> JOBS = new HashMap<>();
 
@@ -369,6 +375,7 @@ public final class Captures
         keys.addAll(LOADED.keySet());
         // And one still being taken, which has neither yet: a first capture removed mid-way wrote its file anyway.
         keys.addAll(JOBS.keySet());
+        keys.addAll(LOADING.keySet());
         keys.removeIf(key -> !key.startsWith(GATE_KEY + stem + '_') || !GATE_HOLE.matcher(key)
             .region(GATE_KEY.length() + stem.length(), key.length()).matches());
         return keys;
@@ -492,6 +499,8 @@ public final class Captures
             finishedSifting(job);
         }
         LOADED.remove(key);
+        // A read still under way lands on nothing.
+        LOADING.remove(key);
         ABSENT.add(key);
         // As a mirror's forget does, so a gate built again under the name is warned about afresh.
         WARNED.remove(key);
@@ -584,18 +593,21 @@ public final class Captures
     /**
      * The capture kept under a key, if there is one: a mirror's place, or a {@link #gateKey}.
      *
-     * @return the capture, or null if none has been taken yet
+     * <p>One on disk and not in memory is read off the main thread (#528) and null is answered
+     * meanwhile, as for one still being taken; it lands at a later tick and bumps
+     * {@link #generation()}. Where there is no scheduler it is read here and answered at once.
+     *
+     * @return the capture, or null if none has been taken yet or it is still being read
      */
     public static Capture get(final String key)
     {
-        final long now = System.currentTimeMillis();
         final Held held = LOADED.get(key);
         if (held != null)
         {
-            held.usedAt = now;
+            held.usedAt = System.currentTimeMillis();
             return held.capture;
         }
-        if (ABSENT.contains(key))
+        if (ABSENT.contains(key) || LOADING.containsKey(key))
         {
             return null;
         }
@@ -605,19 +617,111 @@ public final class Captures
             ABSENT.add(key);
             return null;
         }
+        return startLoading(key, file);
+    }
+
+    /**
+     * Whether a capture is being read off the disk, so a caller handed null does not take it afresh.
+     *
+     * @return true while its read is under way
+     */
+    static boolean loading(final String key)
+    {
+        return LOADING.containsKey(key);
+    }
+
+    /**
+     * Reads a capture's file on the scheduler's pool, or here where there is none.
+     *
+     * @return the capture if it was read here, else null
+     */
+    private static Capture startLoading(final String key, final File file)
+    {
+        final Object token = new Object();
+        LOADING.put(key, token);
         try
         {
-            final Capture capture = Capture.load(file);
-            LOADED.put(key, new Held(capture, now));
-            changed();
-            return capture;
-        }
-        catch (final IOException unreadable)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Could not read mirror capture " + file.getName(), unreadable);
-            ABSENT.add(key);
+            WormholeXTreme.getScheduler().runTaskAsynchronously(WormholeXTreme.getThisPlugin(),
+                () -> read(key, token, file, Job::toMainThread));
             return null;
+        }
+        catch (final RuntimeException noScheduler)
+        {
+            // Startup, or a test: read here, as the save path writes here.
+            read(key, token, file, Runnable::run);
+            final Held held = LOADED.get(key);
+            return (held == null) ? null : held.capture;
+        }
+    }
+
+    /**
+     * Reads a capture's file, then hands the main thread what came of it.
+     *
+     * <p>An OutOfMemoryError is not caught, so the pool still reports it, but the finally hands back
+     * all the same, so the key is not left loading for good.
+     */
+    private static void read(final String key, final Object token, final File file, final Consumer<Runnable> onMain)
+    {
+        final long started = System.nanoTime();
+        Capture capture = null;
+        Throwable failure = null;
+        try
+        {
+            capture = Capture.load(file);
+        }
+        catch (final Exception | LinkageError unreadable)
+        {
+            failure = unreadable;
+        }
+        finally
+        {
+            final Capture read = capture;
+            final Throwable why = failure;
+            final long millis = (System.nanoTime() - started) / 1_000_000L;
+            onMain.accept(() -> land(key, token, file, read, why, millis));
+        }
+    }
+
+    /**
+     * Puts a capture just read in memory, on the main thread, or remembers its file as unreadable.
+     *
+     * <p>Nothing is kept if the key was forgotten or cleared while it was read, and a capture taken
+     * meanwhile is newer than the file, so it stays.
+     *
+     * @param capture
+     *            what was read, or null if it failed
+     * @param failure
+     *            why it failed, or null if it did not finish (an Error the pool reports), which leaves
+     *            it to be read again when next wanted
+     * @param millis
+     *            how long the read took
+     */
+    private static void land(final String key, final Object token, final File file, final Capture capture,
+        final Throwable failure, final long millis)
+    {
+        if (!LOADING.remove(key, token))
+        {
+            return;
+        }
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if (capture != null)
+        {
+            if (!LOADED.containsKey(key))
+            {
+                LOADED.put(key, new Held(capture, System.currentTimeMillis()));
+                changed();
+            }
+            if ((plugin != null) && plugin.isLoggable(Level.FINE))
+            {
+                plugin.prettyLog(Level.FINE, "Read capture " + file.getName() + " in " + millis + " ms: "
+                    + capture.filled() + " blocks");
+            }
+            return;
+        }
+        if (failure != null)
+        {
+            plugin.prettyLog(Level.WARNING, "Could not read mirror capture " + file.getName(), failure);
+            ABSENT.add(key);
         }
     }
 
@@ -653,13 +757,21 @@ public final class Captures
     }
 
     /**
-     * Starts taking a mirror's capture, if the far world is loaded and none is being taken.
+     * Starts taking a mirror's capture, if the far world is loaded, none is being taken, and none is
+     * being read off the disk: a read in flight answers {@link #get} with null, and taking the
+     * room afresh then would overwrite the very file being read.
      *
      * @param mirror
      *            a mirror with somewhere to go
      * @return true if a capture is now being taken, or already was
      */
     public static boolean request(final QuantumMirror mirror)
+    {
+        return (mirror.destination() != null) && !loading(keyOf(mirror.destination())) && take(mirror);
+    }
+
+    /** Starts taking a mirror's capture, if the far world is loaded and none is being taken. */
+    private static boolean take(final QuantumMirror mirror)
     {
         return (mirror.destination() != null) && request(keyOf(mirror.destination()), "mirror '" + mirror.name() + "'",
             mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, false, NO_CELLS);
@@ -710,11 +822,16 @@ public final class Captures
      * @param depth
      *            how far past the opening it reaches: the first step, and anything deeper is the
      *            background fill to {@code view-depth}, taken at half the pace
-     * @return true if a capture is now being taken, or already was
+     * @return true if a capture is now being taken, or already was; false while one is read off the
+     *         disk, which a first step taken now would overwrite with a shallower one
      */
     public static boolean requestGate(final String key, final String gate, final Place arrival,
         final int holeWidth, final int holeHeight, final int depth)
     {
+        if (loading(key))
+        {
+            return false;
+        }
         final boolean fill = depth > ConfigManager.getGateViewFirstDepth();
         return request(key, "gate '" + gate + "'" + (fill ? " out to " + depth : ""), arrival,
             new int[] { holeWidth, holeHeight }, Math.max(4, depth), fill, signCells(gate));
@@ -776,6 +893,9 @@ public final class Captures
     /**
      * Takes a mirror's capture again, keeping the old one until the new one is ready.
      *
+     * <p>Even while the old one is read off the disk: asked for by name, and the read, landing
+     * first, is drawn until the new one replaces it, or, landing after, gives way to it.
+     *
      * @return true if it is being taken
      */
     public static boolean retake(final QuantumMirror mirror)
@@ -785,7 +905,7 @@ public final class Captures
             // Whoever asked hears if it fails again.
             FAILED.remove(keyOf(mirror.destination()));
         }
-        return request(mirror);
+        return take(mirror);
     }
 
     /**
@@ -815,6 +935,8 @@ public final class Captures
             job.cancel();
         }
         LOADED.remove(key);
+        // A read still under way lands on nothing.
+        LOADING.remove(key);
         ABSENT.remove(key);
         FAILED.remove(key);
         final File file = fileOf(key);
@@ -920,6 +1042,8 @@ public final class Captures
         GATE_SIFTS.clear();
         gateSifting = null;
         LOADED.clear();
+        // Reads under way land on nothing: after a reload a fresh one is started when wanted.
+        LOADING.clear();
         ABSENT.clear();
         WARNED.clear();
         FAILED.clear();
@@ -952,7 +1076,7 @@ public final class Captures
         if (held == null)
         {
             lines.add(MirrorText.field("in memory",
-                ABSENT.contains(key) ? MirrorText.bad("no, and its file was found missing") : "no"));
+                ABSENT.contains(key) ? MirrorText.bad("no, and its file was found missing") : notInMemory(key)));
             return lines;
         }
         final Capture capture = held.capture;
@@ -972,6 +1096,12 @@ public final class Captures
         return lines;
     }
 
+    /** @return what {@code mirror debug} says of a capture not in memory and not found missing */
+    private static String notInMemory(final String key)
+    {
+        return loading(key) ? "no, being read now" : "no";
+    }
+
     /**
      * What a mirror's capture is, on one line, for {@code mirror debug} without {@code all}.
      *
@@ -987,7 +1117,7 @@ public final class Captures
         final File file = fileOf(key);
         final Held held = LOADED.get(key);
         return MirrorText.field(CAPTURE, (file.isFile() ? (file.length() + " bytes") : MirrorText.bad("file missing"))
-            + ", " + ((held == null) ? "not in memory"
+            + ", " + ((held == null) ? ("not in memory" + (loading(key) ? ", being read now" : ""))
                 : ("in memory, " + held.capture.filled() + " blocks, taken " + held.capture.secondsOld() + "s ago"))
             + (JOBS.containsKey(key) ? ", being taken now" : ""));
     }

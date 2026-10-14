@@ -44,6 +44,7 @@ import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -60,6 +61,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
@@ -1309,5 +1311,260 @@ class CapturesTest
 
         assertFalse(small.exists(), "the smaller one, gone");
         assertTrue(one.exists(), "the one that serves them all, kept");
+    }
+
+    /** Takes the museum's capture and writes it, with no scheduler, then forgets it as a restart would: on disk only. */
+    private void mirrorCaptureOnDiskOnly()
+    {
+        withServer(() ->
+        {
+            assertTrue(Captures.request(mirror));
+            Captures.step(100);
+        });
+        Captures.clear();
+        assertTrue(mirrorFile().isFile(), "written to disk");
+    }
+
+    private File mirrorFile()
+    {
+        return new File(DataLayout.mirrorCaptureDir(), Captures.keyFor(mirror) + ".view");
+    }
+
+    /** A pool that holds what it is handed off the main thread, to be counted and run when told. */
+    private static Pool holdingPool() throws Exception
+    {
+        final Pool pool = new Pool();
+        pool.holdAsync = true;
+        return pool;
+    }
+
+    /**
+     * A capture on disk is read off the main thread once, and served from memory once it lands (#528).
+     *
+     * <p>Read on the main thread, a capture at the cap was one hitch the first time a mirror or gate
+     * was drawn from it after a restart, or after five minutes nobody looked.
+     */
+    @Test
+    void aCaptureOnDiskIsReadOffTheMainThreadOnceThenServedFromMemory() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+
+        assertNull(Captures.get(mirror), "not ready while it is read");
+        assertEquals(1, pool.held.size(), "one read, on the pool");
+        assertNull(Captures.get(mirror), "still not ready");
+        assertEquals(1, pool.held.size(), "and no second read of the same file");
+        pool.runHeld();
+        assertNull(Captures.get(mirror), "read, but not yet handed to the main thread");
+        assertTrue(pool.held.isEmpty(), "still no second read while it waits for the main thread");
+        final int before = Captures.generation();
+        pool.runMain();
+
+        assertNotEquals(before, Captures.generation(), "every view looks again once it lands");
+        assertTrue(mirrorFile().delete(), "the file, gone from disk");
+        final Capture capture = Captures.get(mirror);
+        assertNotNull(capture, "served from memory, with no file left to read");
+        assertFalse(capture.isAir(100, 69, -21), "the beach it captured");
+        assertTrue(pool.held.isEmpty(), "and nothing read again");
+    }
+
+    /**
+     * A mirror forgotten while its capture is read off the disk does not have it put back.
+     *
+     * <p>Its read lands a tick or more later; kept then, a mirror removed or re-pointed meanwhile
+     * would hold the old room in memory, and draw it to one built again on the spot.
+     */
+    @Test
+    void aMirrorForgottenWhileItsCaptureIsReadDoesNotHaveItPutBack() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        assertNull(Captures.get(mirror));
+        pool.runHeld();
+
+        Captures.forget(mirror);
+        pool.runMain();
+
+        assertFalse(mirrorFile().exists(), "its file deleted");
+        assertNull(Captures.get(mirror), "and nothing in memory for a mirror that is gone");
+    }
+
+    /** The same for a gate removed while its capture is read: the counterpart of {@link #aGateRemovedMidCaptureDoesNotHaveItWritten}. */
+    @Test
+    void aGateRemovedWhileItsCaptureIsReadDoesNotHaveItPutBack() throws Exception
+    {
+        takeGateCapture(8);
+        Captures.clear();
+        final Pool pool = holdingPool();
+        assertNull(Captures.get(gateKey()));
+        pool.runHeld();
+
+        Captures.forgetGate(GATE);
+        pool.runMain();
+
+        assertNull(Captures.get(gateKey()), "nothing in memory for a gate that is gone");
+        assertTrue(pool.held.isEmpty(), "and its file not read again");
+    }
+
+    /**
+     * Captures cleared while one is read -- a reload, or the plugin stopping -- drop what the read finds.
+     *
+     * <p>Otherwise a reload that let every capture go had one come back from before it.
+     */
+    @Test
+    void aReadUnderWayWhenCapturesAreClearedLandsOnNothing() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        assertNull(Captures.get(mirror));
+        pool.runHeld();
+
+        Captures.clear();
+        pool.runMain();
+
+        assertNull(Captures.get(mirror), "not in memory after the clear");
+        assertEquals(1, pool.held.size(), "so its file is read afresh");
+    }
+
+    /**
+     * A capture taken while the old one is read off the disk is not replaced by the old one landing.
+     *
+     * <p>An admin's {@code -capture} goes ahead during a read. The read can land after the new
+     * capture, and putting it in memory then would draw the room as it was before the retake.
+     */
+    @Test
+    void aCaptureTakenWhileTheOldOneIsReadIsNotReplacedByIt() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        assertNull(Captures.get(mirror));
+        final List<Runnable> read = new ArrayList<>(pool.held);
+        pool.held.clear();
+        pool.holdAsync = false;
+
+        withServer(() ->
+        {
+            assertTrue(Captures.retake(mirror), "an admin's retake goes ahead during the read");
+            pool.tickUntilIdle();
+        });
+        final Capture fresh = Captures.get(mirror);
+        assertNotNull(fresh, "the retake landed first");
+        read.forEach(Runnable::run);
+        pool.runMain();
+
+        assertSame(fresh, Captures.get(mirror), "the capture just taken, not the file read under it");
+    }
+
+    /**
+     * An unreadable file is warned about once, as it lands on the main thread, and not read again.
+     *
+     * <p>As before the read moved off the main thread: a mirror with a broken file costs one failed
+     * read, not one a sweep.
+     */
+    @Test
+    void anUnreadableFileReadOffTheMainThreadIsWarnedOfOnceAndNotReadAgain() throws Exception
+    {
+        assertTrue(DataLayout.mirrorCaptureDir().mkdirs());
+        Files.write(mirrorFile().toPath(), new byte[] { 1, 2, 3 });
+        final Pool pool = holdingPool();
+
+        assertNull(Captures.get(mirror));
+        pool.runHeld();
+        pool.runMain();
+
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not read mirror capture"), any(IOException.class));
+        assertNull(Captures.get(mirror));
+        assertTrue(pool.held.isEmpty(), "remembered as unreadable, not read again");
+    }
+
+    /** Where there is no scheduler -- startup, or a test -- a capture is still read at once, and a broken one warned of at once. */
+    @Test
+    void withNoSchedulerAnUnreadableFileIsWarnedOfAtOnce() throws Exception
+    {
+        assertTrue(DataLayout.mirrorCaptureDir().mkdirs());
+        Files.write(mirrorFile().toPath(), new byte[] { 1, 2, 3 });
+
+        assertNull(Captures.get(mirror));
+        assertNull(Captures.get(mirror));
+
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("Could not read mirror capture"),
+            any(IOException.class));
+    }
+
+    /**
+     * A read that ends as the plugin stops does not throw on the pool's thread.
+     *
+     * <p>The main thread refuses a task from a disabled plugin; as for a sift, the refusal is not
+     * thrown on the pool, where it would be logged as SEVERE.
+     */
+    @Test
+    void aReadEndingAsThePluginStopsThrowsNothing() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        assertNull(Captures.get(mirror));
+
+        pool.refuseMain = true;
+        pool.runHeld();
+
+        assertTrue(pool.escaped.isEmpty(), "nothing thrown on the pool: " + pool.escaped);
+        assertTrue(pool.main.isEmpty(), "and nothing handed back");
+    }
+
+    /**
+     * A mirror whose capture is being read is not captured afresh by the sweep.
+     *
+     * <p>The sweep takes null from {@code get} as "no capture yet" and asks for one. Asked during
+     * a read, that would cast every ray again and write over the very file being read.
+     */
+    @Test
+    void aMirrorWhoseCaptureIsBeingReadIsNotTakenAfresh() throws Exception
+    {
+        mirrorCaptureOnDiskOnly();
+        final Pool pool = holdingPool();
+        final Block banner = mock(Block.class);
+        final Directional facing = mock(Directional.class);
+        when(facing.getFacing()).thenReturn(BlockFace.NORTH);
+        when(banner.getBlockData()).thenReturn(facing);
+
+        withServer(() ->
+        {
+            assertFalse(WindowSweep.offerMirror(mirror, banner), "the banner shows while it is read");
+            assertEquals(1, pool.held.size(), "the read the sweep started");
+            assertFalse(Captures.request(mirror), "and nothing taken by asking again");
+            assertEquals(0, Captures.taking(), "no fresh capture of the room");
+        });
+    }
+
+    /**
+     * A gate whose capture is being read takes no first step over it, from the dial, the sweep or a refresh.
+     *
+     * <p>A gate given null asks for its first step, which would overwrite a capture holding the
+     * fill with a shallower one. The dial's ask starts the read, so the capture is in memory by the
+     * time the kawoosh settles.
+     */
+    @Test
+    void aGateWhoseCaptureIsBeingReadTakesNoFirstStepOverIt() throws Exception
+    {
+        takeGateCapture(8);
+        Captures.clear();
+        final Pool pool = holdingPool();
+        final GateSource gate = new GateSource("gate:Chulak", null, null, List.of(), mirror.destination(), GATE, 8);
+
+        withServer(() ->
+        {
+            GateSource.prepare(gate);
+            assertEquals(1, pool.held.size(), "the dial starts the read");
+            assertFalse(GateSource.offer(gate, true), "the horizon shows while it is read");
+            assertFalse(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING,
+                Captures.GATE_OPENING, 8), "a first step is refused");
+            assertEquals(0, Captures.refreshGate(GATE, mirror.destination(), 8, -1L), "even an old one waits for its read");
+            assertEquals(0, Captures.taking(), "no fresh capture of the gate's far side");
+            assertEquals(1, pool.held.size(), "and the one read");
+        });
+        pool.runHeld();
+        pool.runMain();
+
+        assertNotNull(Captures.get(gateKey()), "the capture on disk, in memory now");
     }
 }
