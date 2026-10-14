@@ -41,6 +41,12 @@ public interface WindowSource
     /** @return how far past the opening its view is drawn */
     int depth();
 
+    /** @return how far its view is filled in once complete: a gate's view comes in steps, so this may pass {@link #depth()} */
+    default int fullDepth()
+    {
+        return depth();
+    }
+
     /** @return the mirror a punch at this window travels through, or null for none */
     default QuantumMirror punchTarget()
     {
