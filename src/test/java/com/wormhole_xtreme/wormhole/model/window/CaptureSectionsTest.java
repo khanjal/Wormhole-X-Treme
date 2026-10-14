@@ -618,12 +618,13 @@ class CaptureSectionsTest
         sectionsFile(file, new Capture.Box(0, 0, 0, 1, 384, 1), new int[0]);
         assertEquals(384, Capture.load(file).size(), "a column the height of a world is read");
 
-        final int huge = Integer.MAX_VALUE;
-        for (final Capture.Box box : new Capture.Box[] { new Capture.Box(0, 0, 0, huge, 1, 1),
-            new Capture.Box(0, 0, 0, 1, huge, 1), new Capture.Box(0, 0, 0, 1, 1, huge) })
+        // A block past the longest any capture is, which a regression would read without throwing.
+        final int tooLong = (1 << 14) + 1;
+        for (final Capture.Box box : new Capture.Box[] { new Capture.Box(0, 0, 0, tooLong, 1, 1),
+            new Capture.Box(0, 0, 0, 1, tooLong, 1), new Capture.Box(0, 0, 0, 1, 1, tooLong) })
         {
             sectionsFile(file, box, new int[0]);
-            final IOException refused = assertThrows(IOException.class, () -> Capture.load(file), "two billion long: " + box);
+            final IOException refused = assertThrows(IOException.class, () -> Capture.load(file), "too long: " + box);
             assertTrue(refused.getMessage().contains("impossible shape"), refused.getMessage());
         }
         sectionsFile(file, new Capture.Box(Integer.MAX_VALUE - 4, 0, 0, 10, 10, 10), new int[0]);

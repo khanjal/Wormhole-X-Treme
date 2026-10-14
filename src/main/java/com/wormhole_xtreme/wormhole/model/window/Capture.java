@@ -1582,7 +1582,8 @@ public final class Capture
      * asked for, which needs a running server.
      *
      * <p>A file from before captures kept only what could be seen is refused: it is a grid of
-     * the whole box, and the mirror it is for takes a fresh capture on the next look.
+     * the whole box, and the mirror it is for takes a fresh capture on the next look. One from
+     * before sections, a sorted list, is read into sections. Pure, since it runs off the main thread.
      *
      * @throws IOException
      *             if the file is missing, not a capture, of an earlier kind, or cut short
