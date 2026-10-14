@@ -13,5 +13,6 @@ Route: row ___ · implementer: ___ · planned by: ___ · attempts: ___ · hand-b
 - [ ] **Final review** of the finished PR, before merge. Model: ___ · commit: ___
 - [ ] **Copilot**, requested once, last. Commit: ___ · Result: reviewed / quota exhausted / no response
 - [ ] Every finding fixed with a test, or written down above with why not
+- [ ] In a milestone: the release it ships in
 - [ ] SonarCloud issues on this PR: 0
 - [ ] No new compiler warnings in the CI logs of the jobs that compile the changed files

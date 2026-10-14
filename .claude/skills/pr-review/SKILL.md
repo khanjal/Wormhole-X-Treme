@@ -82,7 +82,12 @@ run step 1 again on the new commits, and add that run to the checklist's first-r
 ## 2. Sonar: the PR's issues, not the tick
 
 Open the PR, with the checklist in its body, once step 1's findings are handled; Sonar and CI
-only run on an open PR. A green Sonar check can hide an open issue. `scripts/sonar-issues.sh <pr>`
+only run on an open PR. **Every PR goes in a milestone**, the release it will ship in (the open
+one with the next version number: `1.11.0` while `pom.xml` says `1.11.0-SNAPSHOT`), set when the
+PR opens and not left for the merge. `gh pr create` takes `--milestone <title>`; without `gh`,
+the milestone *number* is needed (`GET /repos/khanjal/Wormhole-X-Treme/milestones`), set through
+the issue API. A PR with none drops out of the milestone's list, which is how a release's notes are
+checked, and a merged one can be added afterwards but is easy to forget. A green Sonar check can hide an open issue. `scripts/sonar-issues.sh <pr>`
 (below) does the two reads that follow; by hand, read the count directly:
 
 ```bash
