@@ -1420,10 +1420,12 @@ class CapturesTest
         pool.runHeld();
 
         Captures.clear();
-        pool.runMain();
-
         assertNull(Captures.get(mirror), "not in memory after the clear");
         assertEquals(1, pool.held.size(), "so its file is read afresh");
+        pool.runMain();
+
+        assertNull(Captures.get(mirror), "the old read landing is dropped, not taken for the new one");
+        assertEquals(1, pool.held.size(), "and the new read is still the only one");
     }
 
     /**
