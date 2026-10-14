@@ -118,7 +118,7 @@ public final class StargateIrisAnimator
         // rather than the finished iris the server has just told it about.
         for (final List<Location> ring : rings)
         {
-            StargateBlockSetup.sendCells(gate, ring, under);
+            StargateBlockSetup.sendUncovered(gate, ring, under);
         }
         // Then each ring is let through to the truth, which is the iris already standing there.
         // The far layer arrives with the ring that covers it, so a see-through iris has the

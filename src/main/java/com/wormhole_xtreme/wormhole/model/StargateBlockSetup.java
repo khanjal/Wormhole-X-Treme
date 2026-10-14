@@ -1984,8 +1984,9 @@ class StargateBlockSetup
         final Set<IrisLayering.At> wanted = new HashSet<>(asPositions(ring));
         // Measured from the step's own first cell, as sendCells measures it.
         final Location from = ring.get(0);
-        final List<Player> near =
-            playersNear(gate, new Location(world, from.getBlockX(), from.getBlockY(), from.getBlockZ()));
+        // A set: asked once for every player in the world, on every step.
+        final Set<Player> near = new HashSet<>(
+            playersNear(gate, new Location(world, from.getBlockX(), from.getBlockY(), from.getBlockZ())));
         if (near.isEmpty())
         {
             // Built only once somebody is near, as sendCells does: createBlockData needs a live server.
@@ -2006,6 +2007,37 @@ class StargateBlockSetup
                 // Nothing is sent out of range, and they keep what they hold until the next redraw.
                 forgetStep(player, gate, wanted);
             }
+        }
+    }
+
+    /**
+     * Draws some of a gate's cells as the opening looked before its iris closed, for a closing sweep to uncover.
+     *
+     * <p>Shared on a gate with no layers, as it always was. Over a wormhole each viewer is sent the horizon they
+     * are drawn: a horizon cleared for the gate view is nothing only for whoever is drawn that view, and sent as
+     * nothing to everybody it was a hole in the wormhole of a viewer behind for the length of the sweep, which
+     * leaves their ring alone after this.
+     *
+     * @param cells
+     *            the cells to draw
+     * @param under
+     *            what the opening showed, for a gate with no layers
+     */
+    static void sendUncovered(final Stargate gate, final List<Location> cells, final Material under)
+    {
+        final World world = sweptWorld(gate);
+        if ((world == null) || (cells == null) || cells.isEmpty())
+        {
+            sendCells(gate, cells, under);
+            return;
+        }
+        final Location from = cells.get(0);
+        final Material portal = gate.getEffectivePortalMaterial();
+        for (final Player player
+            : playersNear(gate, new Location(world, from.getBlockX(), from.getBlockY(), from.getBlockZ())))
+        {
+            sendRingTo(player, gate, cells,
+                MaterialUtils.drawnAcross(GateViews.horizonFor(gate, portal, player), gate.getGateFacing()));
         }
     }
 
@@ -2051,14 +2083,17 @@ class StargateBlockSetup
     private static void sweepRingFor(final Player player, final Stargate gate, final List<Location> stepRing,
         final SweepStep step)
     {
-        final Map<Integer, IrisLayering.Placement> held = sweptFor(player, gate);
-        if (!step.covering() && held.isEmpty())
+        final Map<String, Map<Integer, IrisLayering.Placement>> byGate = SWEPT.get(player.getUniqueId());
+        final Map<Integer, IrisLayering.Placement> known = (byGate == null) ? null : byGate.get(gate.getGateName());
+        if (!step.covering() && ((known == null) || known.isEmpty()))
         {
             // Opening with nothing covered for them, which is somebody who came near after it began: nothing
             // of theirs to move, so the ring is shown them as it always was, and the settle does the rest.
             sendRingTo(player, gate, stepRing, step.drawn());
             return;
         }
+        // Filed only now: closing, this step covers its cells for them, so something goes in it.
+        final Map<Integer, IrisLayering.Placement> held = (known != null) ? known : sweptFor(player, gate);
         final List<IrisLayering.Placement> layers = layersFor(gate, player.getLocation());
         final List<Location> opening = gate.getGatePortalBlocks();
         for (int i = 0; i < layers.size(); i++)

@@ -20,9 +20,11 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -1074,7 +1076,10 @@ class IrisSweepCrossingTest
 
         gate.toggleIrisActive(false);
         finishSweep();
-        sentToRing(rear).forEach((cell, sent) -> assertTrue(sent.stream().allMatch(data -> data == water),
+        final Map<String, List<BlockData>> opening = sentToRing(rear);
+        // Every cell, so the check below is not satisfied by a ring nobody sent anything to.
+        assertEquals(closing.keySet(), opening.keySet(), "opening, every cell of the ring ends drawn for them");
+        opening.forEach((cell, sent) -> assertTrue(sent.stream().allMatch(data -> data == water),
             "opening, cell " + cell + " had its wormhole replaced: " + sent));
     }
 
@@ -1085,7 +1090,7 @@ class IrisSweepCrossingTest
      * are shown the ring as the shared send always showed it, and the settle at the end does the rest.
      */
     @Test
-    void aViewerArrivingMidOpenIsShownEachRingOpenAsBefore()
+    void aViewerArrivingMidOpenIsShownEachRingOpenAsBefore() throws ReflectiveOperationException
     {
         final Player viewer = viewerAt(200.5);
         watching(viewer);
@@ -1098,6 +1103,74 @@ class IrisSweepCrossingTest
 
         assertEquals(cellsOf(rings.get(1)), new FarPlane(viewer).showingAt(0, water),
             "the ring this step opened, and only it, drawn as the wormhole");
+        assertFalse(recorded(viewer), "and no empty record filed for them, which every step used to leave");
+    }
+
+    /**
+     * Closing over a cleared gate view leaves the wormhole in the ring of a viewer behind (#429).
+     *
+     * <p>A horizon cleared for the gate view stays cleared while the iris crosses, and is nothing only for whoever
+     * is drawn the view. The closing sweep hides the iris it has just drawn by sending the opening as it was, and
+     * that was the cleared nothing for everybody: a hole in the wormhole of a viewer behind for the whole sweep,
+     * since the sweep leaves their ring alone after it. Each viewer is sent their own horizon instead.
+     */
+    @Test
+    void closingOverAClearedViewLeavesTheWormholeInTheRingOfAViewerBehind() throws ReflectiveOperationException
+    {
+        final BlockData air = mock(BlockData.class);
+        materials.when(() -> MaterialUtils.drawnAcross(eq(Material.AIR), any())).thenReturn(air);
+        final Player front = viewerAt(FRONT);
+        final Player rear = viewerAt(BEHIND);
+        watching(front, rear);
+        final FarPlane frontPlane = new FarPlane(front);
+        final FarPlane rearPlane = new FarPlane(rear);
+        final List<List<String>> rings = rings(true);
+        final Set<String> cleared = PrivateStatics.of(GateViews.class, "CLEARED");
+        final Map<UUID, Set<String>> through = PrivateStatics.of(GateViews.class, "SEES_THROUGH");
+        try
+        {
+            cleared.add(gate.getGateName());
+            through.put(front.getUniqueId(), new HashSet<>(Set.of(gate.getGateName())));
+
+            gate.toggleIrisActive(false);
+
+            assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), rearPlane.showingAt(0, water),
+                "behind, every cell of the ring is still the wormhole");
+            assertEquals(cellsOf(rings.get(1), rings.get(2)), frontPlane.showingAt(0, air),
+                "while in front, drawn the view, the rings not yet covered still show it");
+        }
+        finally
+        {
+            GateViews.clear();
+        }
+    }
+
+    /**
+     * An opening called off on a gate with no wormhole puts the real blocks back for everybody alike.
+     *
+     * <p>There is nothing to layer, so the call-off is the one shared send it always was: the same truth in every
+     * cell of the ring, in front and behind.
+     */
+    @Test
+    void anOpeningCalledOffOnAnIdleGatePutsTheSameTruthInEveryRing()
+    {
+        gate.setGateActive(false);
+        final Player front = viewerAt(FRONT);
+        final Player rear = viewerAt(BEHIND);
+        watching(front, rear);
+        final FarPlane frontPlane = new FarPlane(front);
+        final FarPlane rearPlane = new FarPlane(rear);
+        final List<List<String>> rings = rings(false);
+        startSweep(false);
+        assertEquals(cellsOf(rings.get(1), rings.get(2)), rearPlane.showingAt(0, glass), "behind, two rings still shut");
+        frontPlane.showingAt(0, glass);
+
+        StargateIrisAnimator.cancel(gate);
+
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), frontPlane.showingAt(0, truth),
+            "in front, every cell put back to what is really there");
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), rearPlane.showingAt(0, truth),
+            "and behind, the same");
     }
 
     /** Every block sent to one viewer in the ring, by cell, in order; clears what they were sent. */

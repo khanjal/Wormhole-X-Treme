@@ -769,6 +769,39 @@ class IrisLayeringTest
     }
 
     /**
+     * From behind, a wormhole closing under a shut iris leaves the iris in the ring, not the wormhole (#429).
+     *
+     * <p>Behind a layered gate the ring holds the wormhole and the iris is beyond it. Once the wormhole has gone
+     * the gate is one picture again, the iris in the ring for everybody, and nothing else on this path redraws
+     * the ring: the server's own block there is air, and the take-back only reaches the cells either side. That
+     * send is the iris call-off's, which leaves a layered gate alone; shutdown has the wormhole down first.
+     */
+    @Test
+    void aWormholeClosingUnderAShutIrisPutsTheIrisInTheRingOfAViewerBehind()
+    {
+        standAt(Z + 4);
+        gate.setGateIrisDefaultActive(false);
+        gate.setGatePlayerTeleportLocation(new Location(world, X + 0.5, Y, Z - 1.5));
+        final Stargate quiet = spy(gate);
+        doNothing().when(quiet).toggleDialLeverState(anyBoolean());
+        doNothing().when(quiet).toggleRedstoneGateActivatedPower();
+        doNothing().when(quiet).lightStargate(anyBoolean());
+        GateEvents.setDispatcherForTest(e -> { });
+        try (MockedStatic<WorldUtils> utils =
+            mockStatic(WorldUtils.class))
+        {
+            quiet.shutdownStargate(false, StargateShutdownEvent.Reason.MANUAL);
+        }
+        finally
+        {
+            GateEvents.setDispatcherForTest(null);
+        }
+
+        assertTrue(quiet.isGateIrisActive(), "the iris was left shut, against its open default");
+        verify(viewer).sendBlockChange(at(Z), eq(iris));
+    }
+
+    /**
      * Neighbouring cells take different squares of the checkerboard.
      *
      * <p>A sheet all of one ice reads as ice. It is the two of them next to each other that
@@ -822,6 +855,7 @@ class IrisLayeringTest
         glassIris(ice, packed);
         standAt(Z - 4);
 
+        // Covering, the iris is drawn as the gate's own: what is passed to draw is only read as a ring uncovers.
         StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
@@ -894,6 +928,7 @@ class IrisLayeringTest
         clearInvocations(viewer);
         StargateBlockSetup.sweepRing(gate, List.of(new Location(world, X, Y, Z)), Material.WATER, false);
 
+        verify(viewer).sendBlockChange(at(Z), eq(horizon));
         verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));
         verify(viewer, never()).sendBlockChange(
             argThat(l -> (l != null) && (l.getBlockX() == (X + 1))), any(BlockData.class));
