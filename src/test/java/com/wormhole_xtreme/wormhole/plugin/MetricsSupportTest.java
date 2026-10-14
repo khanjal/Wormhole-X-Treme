@@ -2,25 +2,32 @@ package com.wormhole_xtreme.wormhole.plugin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.CustomChart;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
 
 /**
  * bStats (#239): how counts are sent.
@@ -50,7 +57,7 @@ class MetricsSupportTest
     }
 
     /**
-     * Started once however often it is asked, with the five charts, each of which answers; stopped
+     * Started once however often it is asked, with its charts, each of which answers (a pie of gates is not sent with no gate to count); stopped
      * once, and started afresh after, as /wormhole config metrics-enabled does.
      */
     @Test
@@ -62,8 +69,11 @@ class MetricsSupportTest
         final List<CustomChart> charts = new ArrayList<>();
         try (MockedConstruction<Metrics> made = Mockito.mockConstruction(
             Metrics.class, (m, context) -> Mockito.doAnswer(call -> charts.add(call.getArgument(0)))
-                .when(m).addCustomChart(ArgumentMatchers.any())))
+                .when(m).addCustomChart(ArgumentMatchers.any()));
+            MockedStatic<Bukkit> bukkit = Mockito.mockStatic(Bukkit.class))
         {
+            final PluginManager plugins = Mockito.mock(PluginManager.class);
+            bukkit.when(Bukkit::getPluginManager).thenReturn(plugins);
             MetricsSupport.enableMetrics(plugin);
             MetricsSupport.enableMetrics(plugin);
             assertEquals(1, made.constructed().size(), "a second start while running starts nothing");
@@ -72,12 +82,21 @@ class MetricsSupportTest
             for (final CustomChart chart : charts)
             {
                 final Object json = chart.getRequestJsonObject((message, error) -> { throw new AssertionError(message, error); }, true);
-                Assertions.assertNotNull(json, "every chart answers");
-                final Matcher id = CHART_ID.matcher(json.toString());
-                Assertions.assertTrue(id.find(), json.toString());
-                ids.add(id.group(1));
+                final String id = chartId(chart);
+                ids.add(id);
+                if (List.of("gate_shapes", "portal_material").contains(id))
+                {
+                    Assertions.assertNull(json, id + " is not sent while there is no gate to count");
+                }
+                else
+                {
+                    Assertions.assertNotNull(json, id + " answers");
+                    Assertions.assertTrue(CHART_ID.matcher(json.toString()).find(), json.toString());
+                }
             }
-            assertEquals(List.of("gates", "ring_pairs", "beam_destinations", "mirrors", "gate_dial_spin"), ids,
+            assertEquals(List.of("gates", "ring_pairs", "beam_destinations", "mirrors", "gate_dial_spin",
+                "gate_view", "gate_ripple", "gate_sounds", "gate_iris_animation", "gate_shapes",
+                "portal_material", "integrations"), ids,
                 "the ids the charts on bstats.org were made with");
 
             MetricsSupport.disableMetrics();
@@ -121,5 +140,97 @@ class MetricsSupportTest
             ConfigTestSupport.clear();
             PluginTestSupport.remove();
         }
+    }
+
+    private static String chartId(final CustomChart chart) throws Exception
+    {
+        final Field field = CustomChart.class.getDeclaredField("chartId");
+        field.setAccessible(true);
+        return (String) field.get(chart);
+    }
+
+    private static Stargate gate(final String shape, final Material portal)
+    {
+        final StargateShape gateShape = Mockito.mock(StargateShape.class);
+        Mockito.when(gateShape.getShapeName()).thenReturn(shape);
+        final Stargate gate = Mockito.mock(Stargate.class);
+        Mockito.when(gate.getGateShape()).thenReturn(gateShape);
+        Mockito.when(gate.getEffectivePortalMaterialIfLoaded()).thenReturn(portal);
+        return gate;
+    }
+
+    /**
+     * A shipped shape is counted under the name the plugin ships it by, whatever capitals a server's
+     * file wrote, and every other as custom: a server's own shape file can be called anything, and
+     * a chart must neither grow a bar for each nor split one shape over several spellings.
+     */
+    @Test
+    void shapesAreCountedByNameWhenTheyShipAndAsCustomWhenTheyDoNot()
+    {
+        final Map<String, Integer> counts = MetricsSupport.shapeCounts(List.of(
+            gate("Standard", Material.WATER), gate("standard", Material.WATER),
+            gate("Minimal", Material.WATER), gate("Steve's Hideout", Material.WATER),
+            gate("Weird", Material.WATER)));
+        assertEquals(Map.of("Standard", 2, "Minimal", 1, "custom", 2), counts);
+    }
+
+    /** A gate with no shape is custom rather than a crash. */
+    @Test
+    void aGateWithNoShapeIsCustom()
+    {
+        final Stargate gate = Mockito.mock(Stargate.class);
+        assertEquals(Map.of("custom", 1), MetricsSupport.shapeCounts(List.of(gate)));
+    }
+
+    /** Water is counted as water, the others named, and any other block as other. */
+    @Test
+    void portalMaterialsAreCountedPerGateWithTheUncommonOnesAsOther()
+    {
+        final Map<String, Integer> counts = MetricsSupport.portalMaterialCounts(List.of(
+            gate("Standard", Material.WATER), gate("Standard", Material.WATER),
+            gate("Standard", Material.LAVA), gate("Standard", Material.NETHER_PORTAL),
+            gate("Standard", Material.END_GATEWAY), gate("Standard", Material.END_PORTAL),
+            gate("Standard", Material.GLASS)));
+        assertEquals(Map.of("water", 2, "lava", 1, "nether_portal", 1, "end_gateway", 1,
+            "end_portal", 1, "other", 1), counts);
+    }
+
+    /**
+     * A gate whose material only loading a chunk would tell is counted as unknown: the chart runs on
+     * the server thread, and asking every idle gate would load every one of their chunks at once.
+     */
+    @Test
+    void aGateInAnUnloadedChunkIsUnknownRatherThanLoadedToFindOut()
+    {
+        final Stargate idle = gate("Standard", null);
+        assertEquals(Map.of("unknown", 1, "water", 1), MetricsSupport.portalMaterialCounts(
+            List.of(idle, gate("Standard", Material.WATER))));
+    }
+
+    /** With no gates there is nothing to count, which the chart leaves unsent. */
+    @Test
+    void noGatesCountNothing()
+    {
+        Assertions.assertTrue(MetricsSupport.shapeCounts(List.of()).isEmpty());
+        Assertions.assertTrue(MetricsSupport.portalMaterialCounts(List.of()).isEmpty());
+    }
+
+    /** Only the plugins that are there are named, and a server with none says none. */
+    @Test
+    void integrationsNameThePluginsThatArePresentOrNone()
+    {
+        assertEquals(Map.of("Vault", 1, "dynmap", 1),
+            MetricsSupport.integrations(name -> "Vault".equals(name) || "dynmap".equals(name)));
+        assertEquals(Map.of("none", 1), MetricsSupport.integrations(name -> false));
+    }
+
+    /** A value written in by hand is other, not a bar of its own. */
+    @Test
+    void anIrisAnimationNobodyShipsIsOther()
+    {
+        assertEquals("spiral", MetricsSupport.irisAnimation("Spiral"));
+        assertEquals("instant", MetricsSupport.irisAnimation("instant"));
+        assertEquals("other", MetricsSupport.irisAnimation("wibble"));
+        assertEquals("other", MetricsSupport.irisAnimation(null));
     }
 }

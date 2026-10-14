@@ -3,7 +3,8 @@
 Setting up, building, testing and the conventions this repository keeps. The plugin's own
 documentation is in [guide/](guide/README.md) for server owners and [API.md](API.md) for plugin
 authors; how each subsystem is designed is in [GATES.md](GATES.md), [RINGS.md](RINGS.md),
-[BEAMS.md](BEAMS.md) and [MIRRORS.md](MIRRORS.md).
+[BEAMS.md](BEAMS.md) and [MIRRORS.md](MIRRORS.md); the bStats charts and their dashboard setup
+are in [BSTATS.md](BSTATS.md).
 
 ## Building and testing
 
