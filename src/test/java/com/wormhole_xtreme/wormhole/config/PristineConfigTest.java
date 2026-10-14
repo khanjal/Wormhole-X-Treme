@@ -67,7 +67,8 @@ class PristineConfigTest
     {
         try (InputStream in = PristineConfigTest.class.getClassLoader().getResourceAsStream("config-defaults-1.10.0.yml"))
         {
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            // A checkout with autocrlf has the snapshot in CRLF; the tests edit it by line.
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8).replace("\r\n", "\n");
         }
     }
 
