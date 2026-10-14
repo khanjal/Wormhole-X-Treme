@@ -12,7 +12,7 @@ dial — which is why a door in every world is practical in a way a gate in ever
 ## Contents
 
 - [The network](#the-network)
-- [The banner's look](#the-banners-look) · [A snapshot, not a subscription](#a-snapshot-not-a-subscription)
+- [The banner's look](#the-banners-look) · [A snapshot, not a subscription](#a-snapshot-not-a-subscription) · [How a capture is kept](#how-a-capture-is-kept)
 - [The sweep](#the-sweep)
 - [Saying what it is](#saying-what-it-is)
 - [The preset files](#the-preset-files) · [The library at a glance](#the-library-at-a-glance) · [What ships](#what-ships)
@@ -142,6 +142,52 @@ used to retake the capture as a side effect, so a command about the banner chang
 A **dynamic** mode that re-read the far side on approach and repainted the banner was tried and
 dropped: "we shouldn't update the banner automatically. It should be an understood command." A
 `Mode` line in an older `mirror.yml` is read and ignored, and dropped on the next save.
+
+### How a capture is kept
+
+A capture keeps only what somebody at the opening could see: the blocks, and the air seen among
+them, which is what a view carves through this world. Since #525 it keeps them the way the game
+keeps a chunk, in sections sixteen blocks a side, on the world's own section grid, and only the
+sections holding something. Each has its own palette of the states in it, and keeps whichever of
+two forms is smaller: an index for all 4096 blocks, packed at as few bits as the palette needs
+with one value left for "not kept", or a sorted list of the blocks it keeps, two bytes each, with
+an index each. A hillside's surface is mostly lists; a forest canopy or the water under a shore
+is mostly full sections. The air seen in a section is a bit a block, or nothing at all where the
+whole section is seen air or none of it is. Before, every block kept was a sorted `long`
+position and a `short` index, ten bytes, found by binary search, with the air as runs down each
+column.
+
+What it measured, on synthetic far sides built the way a capture is taken (the same rays and
+pruning), at the old caps and past them:
+
+| Far side | Kept (air) | Memory before | After | File before | After | Read before | After |
+|---|---|---|---|---|---|---|---|
+| Hills, mirror at 160 | 1.30M (1.29M) | 0.44 MB | 0.42 MB | 90 KB | 42 KB | 17-46 ms | 5-9 ms |
+| City, mirror at 160 | 153k (135k) | 0.25 MB | 0.27 MB | 55 KB | 13 KB | 7-13 ms | 4-13 ms |
+| Canopy from above, gate cut to 90 | 950k (909k) | 0.77 MB | 0.42 MB | 185 KB | 79 KB | 21-51 ms | 8-19 ms |
+| Sea from the shore, gate cut to 90 | 962k (859k) | 1.37 MB | 0.34 MB | 283 KB | 19 KB | 69 ms | 6 ms |
+| Canopy, gate uncut at 160 | 4.22M (4.13M) | 1.95 MB | 0.95 MB | 440 KB | 179 KB | 55-114 ms | 21-53 ms |
+
+A block lookup went from 30-90 ns to 5-30 ns. Building the sections from what was kept takes
+10-100 ms off the main thread, as the sorted list did.
+
+**The cap did not rise.** #525 expected kept blocks to cost ten bytes and the cap to rise four
+or five times on the same memory. But most of what a capture keeps is seen air, sky over the far
+side, which the runs already held at well under a byte; the ten bytes were only ever the blocks
+that are not air, a tenth or less of what is kept. Sections would hold four times today's cap
+in today's memory, and that is no longer what the cap bounds. A window walks every cell its
+capture keeps once a minute on the main thread, reading this world behind each seen air within
+the depth, and holds what it draws at about fifty bytes a block (`Windows.MOST_FIXED`,
+`MOST_GATE_FIXED`); neither changed. A gate's capture is already cut to what its view may draw.
+And a mirror at the default depth is never cut, since its reach is its floor. Raising
+`Captures.MOST_KEPT` or `MOST_GATE_KEPT` wants the walk measured on a server first.
+
+**Files.** A capture file is version 5 now. Versions 3 and 4 still load, into sections, and are
+written as version 5 the next time the capture is taken. An earlier build reading a version 5
+file refuses it, as it would any version it does not know: it logs "Could not read mirror
+capture" once for the file and takes that view again, writing its own version. Going back a
+release costs each mirror and gate one capture, nothing more. Times and sizes above are from a
+scratch benchmark on one desktop, not a server; the read times varied two-fold between runs.
 
 ## The sweep
 
