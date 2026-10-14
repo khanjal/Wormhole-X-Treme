@@ -379,6 +379,9 @@ where it belongs for whoever is looking:
 | Round the side, in front | the iris | nothing |
 | Round the side, behind | the horizon | nothing |
 
+The sweep keeps to the same picture for each viewer. From behind, the wormhole stays in the ring
+the whole time, and the iris arrives, or leaves, a ring at a time a block beyond it.
+
 Whatever belongs in the plane is drawn first, and the second layer follows when there is
 somewhere to put it. Walk round the gate and the two swap as you pass its plane. The second
 layer only holds while the gate is between you and it: from far enough round the side you would

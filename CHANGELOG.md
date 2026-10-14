@@ -50,6 +50,12 @@ through is a release nobody reads.
 - **`permissions-auto-fallback`**: with no Vault permissions provider the simple fallback is always on, so a server on a Bukkit-permissions plugin without Vault that had set it `false` is now in simple mode.
 - **`mirror-fog-at-depth`**: a mirror no longer pulls a viewer's fog in, and the code behind it is gone with the `fog` line in `mirror debug`.
 
+### Stargates
+
+**Fixed**
+
+- Behind an open gate, shutting or opening its iris no longer covers your wormhole for a moment before moving the iris beyond it: the wormhole stays in the ring and the iris sweeps in a block further off ([#429](https://github.com/khanjal/Wormhole-X-Treme/issues/429)). [Guide](docs/guide/GATES.md#how-it-arrives)
+
 ## 1.10.0 (2026-10-12)
 
 ### For server admins
