@@ -233,7 +233,10 @@ public final class Captures
     /** How long a read may take before it is counted lost and the file read again: a minute, for a read of a tenth of a second. */
     static final long READ_TIMEOUT_MILLIS = 60_000L;
 
-    /** The time a read's age is measured by; the field is for a test to move on. */
+    /**
+     * The time a read's age and a capture's last use are measured by, and so what {@link #unloadIdle}
+     * judges by; the field is for a test to move on. Failed retries and file ages keep the system clock.
+     */
     static LongSupplier clock = System::currentTimeMillis;
 
     /** Reads a capture's file, so a test can make a read fail; null for the usual way. */
@@ -246,7 +249,12 @@ public final class Captures
 
     private static CaptureLoader loader;
 
-    /** One read of a capture's file: its own token, told apart from any other by identity, and when it began. */
+    /**
+     * One read of a capture's file: its own token, told apart from any other by identity, and when it began.
+     *
+     * <p>Not a record: two reads begun in the same millisecond would be equal, and a stale landing after
+     * {@link #clear()} would pass for the read that replaced it.
+     */
     private static final class Reading
     {
         private final long startedAt;
@@ -632,7 +640,7 @@ public final class Captures
         final Held held = LOADED.get(key);
         if (held != null)
         {
-            held.usedAt = System.currentTimeMillis();
+            held.usedAt = clock.getAsLong();
             return held.capture;
         }
         if (ABSENT.contains(key) || loading(key))
@@ -729,8 +737,11 @@ public final class Captures
      * Puts a capture just read in memory, on the main thread, or remembers its file as unreadable.
      *
      * <p>Nothing is kept if the key was forgotten or cleared while it was read, and a capture taken
-     * meanwhile is newer than the file, so it stays; a read that failed then, likely on the file
-     * being written over by that capture, does not mark its key as having none.
+     * meanwhile is newer than the file, so it stays. That holds for a read that failed too: it does
+     * not mark its key as having none. A retake's save does not break a read (it writes a temporary
+     * file and renames it over, and on Windows it is the rename that fails, not the read), so this
+     * is for a file that was bad all along; it stays because a failed read must never override a
+     * newer capture, however rarely the two meet.
      *
      * @param capture
      *            what was read, or null if it failed
@@ -750,7 +761,7 @@ public final class Captures
         final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
         if (capture != null)
         {
-            LOADED.put(key, new Held(capture, System.currentTimeMillis()));
+            LOADED.put(key, new Held(capture, clock.getAsLong()));
             changed();
             if ((plugin != null) && plugin.isLoggable(Level.FINE))
             {
@@ -1207,7 +1218,7 @@ public final class Captures
      */
     static void install(final String key, final Capture capture)
     {
-        LOADED.put(key, new Held(capture, System.currentTimeMillis()));
+        LOADED.put(key, new Held(capture, clock.getAsLong()));
         ABSENT.remove(key);
         changed();
     }
@@ -1548,7 +1559,7 @@ public final class Captures
             }
             final Capture capture = builder.build();
             JOBS.remove(key);
-            LOADED.put(key, new Held(capture, System.currentTimeMillis()));
+            LOADED.put(key, new Held(capture, clock.getAsLong()));
             ABSENT.remove(key);
             WARNED.remove(key);
             FAILED.remove(key);

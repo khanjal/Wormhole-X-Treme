@@ -1351,12 +1351,20 @@ class CapturesTest
     {
         mirrorCaptureOnDiskOnly();
         final Pool pool = holdingPool();
+        final int[] loads = { 0 };
+        Captures.loadFilesWith(file ->
+        {
+            loads[0]++;
+            return Capture.load(file);
+        });
 
         assertNull(Captures.get(mirror), "not ready while it is read");
         assertEquals(1, pool.held.size(), "one read, on the pool");
         assertNull(Captures.get(mirror), "still not ready");
         assertEquals(1, pool.held.size(), "and no second read of the same file");
+        assertEquals(0, loads[0], "nothing read on the main thread: the file is opened only once the pool runs the read");
         pool.runHeld();
+        assertEquals(1, loads[0], "read once, by the pool");
         assertNull(Captures.get(mirror), "read, but not yet handed to the main thread");
         assertTrue(pool.held.isEmpty(), "still no second read while it waits for the main thread");
         final int before = Captures.generation();
@@ -1368,6 +1376,7 @@ class CapturesTest
         assertNotNull(capture, "served from memory, with no file left to read");
         assertFalse(capture.isAir(100, 69, -21), "the beach it captured");
         assertTrue(pool.held.isEmpty(), "and nothing read again");
+        assertEquals(1, loads[0], "not on any thread");
     }
 
     /**
@@ -1575,9 +1584,11 @@ class CapturesTest
     /**
      * A read that fails after a retake has landed does not mark the place as having no capture.
      *
-     * <p>The retake writes the file the read is reading, so the read can fail on it. Counted
-     * absent then, the place had no capture the moment the retake was let go as idle, and the
-     * next look took the room afresh although its file was fine.
+     * <p>A retake's save cannot break the read (it renames a temporary file over, and on Windows
+     * the rename is what fails), so a failure here is a file bad all along, met by a retake in
+     * flight: rare, and the guard stays because a failed read must never override a newer capture.
+     * Counted absent, the place had no capture the moment the retake was let go as idle, and the
+     * next look took the room afresh although the retake had just taken it.
      */
     @Test
     void aReadFailingAfterARetakeLandedDoesNotHideTheRetake() throws Exception
@@ -1596,7 +1607,7 @@ class CapturesTest
         assertNotNull(Captures.get(mirror), "the retake landed first");
         Captures.loadFilesWith(file ->
         {
-            throw new IOException("cut short by the retake's own write");
+            throw new IOException("a file bad all along");
         });
 
         read.forEach(Runnable::run);

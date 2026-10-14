@@ -1284,7 +1284,16 @@ public final class Capture
             }
             air.write(out);
         }
-        Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        try
+        {
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        catch (final IOException refused)
+        {
+            // Windows refuses to replace a file being read; the temporary one would be left for good.
+            Files.deleteIfExists(temp.toPath());
+            throw refused;
+        }
     }
 
     /**
