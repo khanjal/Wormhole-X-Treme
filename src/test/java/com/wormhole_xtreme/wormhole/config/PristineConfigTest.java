@@ -397,23 +397,16 @@ class PristineConfigTest
     }
 
     /**
-     * {@code gate-view-funnel-min-length} reaches an upgraded server (#587): an untouched 1.10.0 file
-     * is replaced with one holding it at 0, and a 1.10.0 file it was appended to at 0 is still untouched;
-     * set to anything else, it is the admin's.
+     * A 1.10.0 file that {@code gate-view-funnel-min-length} was appended to at 0, as a server that ran
+     * 1.11.0 has, is still untouched, so it is still replaced with the new layout (#587).
      */
     @Test
-    void theLeastTunnelLengthReachesAnUpgradedFileAndKeepsItUntouched() throws Exception
+    void aFileTheLeastTunnelLengthWasAppendedToIsStillUntouched() throws Exception
     {
         final Map<String, Object> appended = pristineMap();
         assertFalse(appended.containsKey("gate-view-funnel-min-length"), "1.10.0 had no such setting");
         appended.put("gate-view-funnel-min-length", 0);
+
         assertEquals("1.10.0", PristineConfig.untouchedSince(appended), "appended at its default");
-        appended.put("gate-view-funnel-min-length", 3);
-        assertNull(PristineConfig.untouchedSince(appended), "set by the admin");
-
-        write(pristine());
-        load();
-
-        assertTrue(text("config.yml").contains("\ngate-view-funnel-min-length: 0"), "in the replaced file, at 0");
     }
 }

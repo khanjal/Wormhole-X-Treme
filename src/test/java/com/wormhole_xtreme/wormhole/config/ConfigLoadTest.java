@@ -460,6 +460,26 @@ class ConfigLoadTest
     }
 
     /**
+     * {@code gate-view-funnel-min-length} written as words is none, the plain view it ships with, said
+     * once and left for the admin; written with a point, it is the whole number (#587).
+     */
+    @Test
+    void aLeastTunnelLengthInWordsIsNoneAndWithAPointIsTheNumber() throws Exception
+    {
+        writeConfig("gate-view-funnel-min-length: three\n");
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(0, ConfigManager.getGateViewFunnelMinLength(), "not a number: none");
+        assertTrue(configLines().contains("gate-view-funnel-min-length: three"), "left as written: " + configLines());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-funnel-min-length"));
+
+        writeConfig("gate-view-funnel-min-length: 3.0\n");
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(3, ConfigManager.getGateViewFunnelMinLength(), "a whole number written with a point");
+    }
+
+    /**
      * A switch written back keeps the comment after it, and only the line it was read from changes:
      * the enum spelling of the same key, which was not read, is left as written.
      */

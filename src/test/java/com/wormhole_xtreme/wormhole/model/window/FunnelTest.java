@@ -675,6 +675,26 @@ class FunnelTest
             "eleven square to three by four: seven straight, then eight narrowing");
     }
 
+    /**
+     * A far gate as wide but lower, with a least length: the straight run at the near opening's whole
+     * size, then only the ceiling comes down, a block a layer, the width kept all the way (#587).
+     */
+    @Test
+    void asWideButLowerRunsStraightThenOnlyTheCeilingComesDown()
+    {
+        final Funnel funnel = Funnel.of(BIG, null, farGate(95, 105, 70, 73), 16, 3, Material.WATER);
+
+        assertEquals(new Funnel.Opening(0, 10, 0, 3), funnel.far());
+        assertEquals(14, funnel.taper(), "seven straight, three fifths of eleven, then seven lower");
+        for (int layer = 1; layer <= 7; layer++)
+        {
+            assertTrue(funnel.holds(layer, 5, 10), "the top row on the straight run's layer " + layer);
+        }
+        assertFalse(funnel.holds(8, 5, 10), "the ceiling a block lower on the first layer past it");
+        assertTrue(funnel.holds(12, 0, 0) && funnel.holds(12, 10, 0), "the whole width to the end");
+        assertTrue(funnel.holds(13, 0, 3) && !funnel.holds(13, 0, 4), "the far plane four high");
+    }
+
     /** A straight tube of the opening alone draws nothing: it is the plain view, as no funnel (#587). */
     @Test
     void aStraightTubeOfOneLayerIsThePlainView()

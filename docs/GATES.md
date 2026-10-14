@@ -734,7 +734,13 @@ the room past it judged by the same lines through both ends. A small gate dialli
 tube at its own size, since its view can be no wider than the gate it is seen through. And every
 tunnel starts with a straight run before it narrows: the least length, or three fifths of this gate's
 opening by its longer side (`Funnel.RUN_TENTHS`), whichever is longer, then a block more for each block
-it narrows, at most `gate-view-funnel-length` (`Funnel.length`). The issue first put it as the longest
+it narrows, at most `gate-view-funnel-length` (`Funnel.length`). The run comes first, every layer of it
+this gate's own shape, and the narrowing after it, at the same pace as with no least length: Large to
+Standard at 3 is five layers of Large, then the same two layers of narrowing it has at 0. Where the
+longest cuts a tunnel short, the run gives way first, down to the one layer it has at 0, so Massive to
+Standard at 3 runs four layers and narrows twelve. An earlier build spread the narrowing over the whole
+length, run included, so a longer tunnel narrowed in slower, part-block steps; `holds` now starts it
+from the run's last layer (`Funnel.run`), which at 0 is the layer it always started from. The issue first put it as the longest
 of the least, a share of the size, and the narrowing length; with these shapes that cannot work. Large
 to Standard narrows to four, so a Large pair would have to be longer than a Standard pair at 3 and
 still shorter than four. Adding the run to the narrowing keeps every order: at a least of 3 a Standard
@@ -755,7 +761,16 @@ so 1 and 2 give the same lengths as 3 for every shipped gate but Minimal. The co
 drawn that many blocks deeper than it stands, so the view's depth shows that much less of it; and every
 watched gate with a view sends the tube's air and wall with it, 154 blocks for a Standard pair and 3357
 for a Massive pair, about what Grand to Standard already costs. A tube of the opening alone, at a
-`gate-view-funnel-length` of 1, is the plain view.
+`gate-view-funnel-length` of 1, is the plain view, and with `gate-view-funnel: false` there is no
+tunnel at all, so the least length does nothing.
+
+Two limits. A shallow `view-depth` (it goes down to 4, and a gate first fills to the lesser of 32 and
+it) shows the tunnel alone for any pair whose tunnel is as long as the depth, which with a least length
+is every pair; that is left to whoever lowers the depth. And the room past a straight tube is judged
+against its end's box, as a narrowing tunnel's is against the far opening's box: past a round or
+cross-shaped gate's tube, the cells beyond its corners are seen only through the collar's water at a
+slant, as round a round far gate today. The tube ends in this gate's own shape, not the far gate's
+cells, which for a pair of one shape are the same.
 
 **The least aperture.** A far opening narrower or lower than three blocks is taken as three
 (`Funnel.LEAST_APERTURE`, not a setting) for the tunnel's end and for the lines the room past it is

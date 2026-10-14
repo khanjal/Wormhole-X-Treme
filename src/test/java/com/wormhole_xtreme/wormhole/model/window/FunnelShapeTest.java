@@ -677,13 +677,42 @@ class FunnelShapeTest
     }
 
     /**
-     * At any least length up to three, a Standard pair is shorter than a Large pair, which is shorter than
-     * a Large gate onto a Standard one, which is shorter than a Massive gate onto a Standard one (#587).
+     * Large onto Standard at a least of three runs straight for five layers at Large's own shape, then
+     * narrows exactly as it does with none, four layers deeper: the run comes before the narrowing, not
+     * spread through it (#587).
+     */
+    @Test
+    void theStraightRunComesBeforeTheNarrowing() throws IOException
+    {
+        final List<int[]> large = portalOf("Large");
+        final WindowShape window = windowFor(large);
+        final List<Spot> standard = farCells(portalOf("Standard"));
+        final Funnel plain = Funnel.of(window, nearCells(window, large), standard, 16, 0, Material.WATER);
+        final Funnel run = Funnel.of(window, nearCells(window, large), standard, 16, 3, Material.WATER);
+
+        assertEquals(4, plain.taper());
+        assertEquals(8, run.taper());
+        for (int layer = 1; layer <= 5; layer++)
+        {
+            assertEquals(keysOf(large, 0), layerOf(run, layer), "Large's own shape on layer " + layer);
+        }
+        for (int layer = 1; layer <= 3; layer++)
+        {
+            assertEquals(layerOf(plain, layer), layerOf(run, layer + 4), "the narrowing's layer " + layer + ", four deeper");
+        }
+        assertTrue(layerOf(run, 6).size() < layerOf(run, 5).size(), "a step in on the first layer past the run");
+        assertTrue(layerOf(run, 7).size() < layerOf(run, 6).size(), "and another to the far opening");
+    }
+
+    /**
+     * A Standard pair is shorter than a Large pair, which is shorter than a Large gate onto a Standard one,
+     * which is shorter than a Massive gate onto a Standard one: at a least of three and of four. From five
+     * a Standard pair's run is as long as a Large pair's, three fifths of eight (#587).
      */
     @Test
     void aBiggerPairIsFurtherDownAndANarrowingOneFurtherStill() throws IOException
     {
-        for (int least = 1; least <= 3; least++)
+        for (int least = 3; least <= 4; least++)
         {
             final int[][] table = lengths(least);
             final int standardPair = table[1][1];
@@ -692,6 +721,27 @@ class FunnelShapeTest
             final int massiveToStandard = table[3][1];
             assertTrue((standardPair < largePair) && (largePair < largeToStandard) && (largeToStandard < massiveToStandard),
                 "at " + least + ": " + standardPair + ", " + largePair + ", " + largeToStandard + ", " + massiveToStandard);
+        }
+        assertEquals(lengths(5)[2][2], lengths(5)[1][1], "at five, a Standard pair is as long as a Large one");
+    }
+
+    /**
+     * Below three, the least length matters only to a Minimal gate: every other shipped opening's own run,
+     * three fifths of its longer side, is three or more (#587).
+     */
+    @Test
+    void belowThreeOnlyAMinimalGatesTunnelChanges() throws IOException
+    {
+        final int[][] three = lengths(3);
+        for (int least = 1; least <= 2; least++)
+        {
+            final int[][] table = lengths(least);
+            for (int near = 1; near < SHIPPED.length; near++)
+            {
+                assertEquals(Arrays.toString(three[near]), Arrays.toString(table[near]), SHIPPED[near] + " at " + least);
+            }
+            assertEquals((least == 1) ? "[0, 0, 0, 0, 0]" : "[2, 2, 2, 2, 2]", Arrays.toString(table[0]),
+                "Minimal at " + least + ": its run the least, and a run of one the plain view");
         }
     }
 

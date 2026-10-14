@@ -13,15 +13,16 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  * A big gate's view of a small far gate, as a tunnel with the view at its end (#583).
  *
  * <p>The tunnel runs {@code taper} layers behind the opening, the opening itself its first. The
- * next is the near opening's size still, and from it the tunnel narrows a block a layer to the far
- * one's size. It is hollow, walled two blocks thick in
+ * next is the near opening's size still (with a least length, a straight run of them), and from the
+ * last of those the tunnel narrows a block a layer to the far one's size. It is hollow, walled two blocks thick in
  * the near gate's portal material, and its last layer is the far gate's own plane, where the wall
  * ends in a collar round the far opening. The far room is drawn from the layer after, shifted that
  * much deeper ({@link WindowShape#deeper}), as much of it as the near opening sees through the far
  * one, with no wall round it.
  *
  * <p>With {@code gate-view-funnel-min-length} set (#587), a far gate as big or bigger is seen down a
- * straight tube: every layer the near opening's shape, its last too.
+ * straight tube: every layer the near opening's shape, its last too. Where the longest allowed cuts a
+ * tunnel short, the straight run gives way first, so the narrowing keeps its pace as long as it can.
  *
  * <p>Plain numbers, in the window's own terms: a layer behind the opening, a column counted
  * rightwards from its left edge, and a row up from its bottom. The far opening is where the far
@@ -120,7 +121,8 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
     }
 
     /**
-     * The funnel a window narrows to for a far gate, if it narrows at all.
+     * The funnel a window narrows to for a far gate, if it narrows at all: with no least length, as
+     * before #587.
      *
      * @param shape
      *            the near gate's window
@@ -173,17 +175,20 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         {
             return null;
         }
-        final Set<Integer> nearShape = cellsIn(shape, nearCells, null);
         // A block narrower each way is a block longer, so a Standard gate is further down a Massive one than a
         // Large.
         final int narrows = Math.max(shape.width() - ((far.right() - far.left()) + 1),
             shape.height() - ((far.top() - far.bottom()) + 1));
         final int taper = length(narrows, Math.max(shape.width(), shape.height()), longest, least);
+        if ((narrows == 0) && ((least <= 0) || (taper <= 1)))
+        {
+            return null;
+        }
+        final Set<Integer> nearShape = cellsIn(shape, nearCells, null);
         if (narrows == 0)
         {
             // As big or bigger each way: a straight tube the near opening's shape, the view no wider than it.
-            return ((least <= 0) || (taper <= 1)) ? null
-                : new Funnel(shape.width(), shape.height(), far, taper, wall, nearShape, nearShape);
+            return new Funnel(shape.width(), shape.height(), far, taper, wall, nearShape, nearShape);
         }
         // Only those inside the near opening: a far gate taller or wider than it is cut to it, as its box is.
         // One grown to the least aperture ends on all of it, not its own few cells.
@@ -363,9 +368,10 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
             return farShape.contains(cellKey(across, up));
         }
         // In whole numbers, every edge times twice the steps it narrows in, so a tie is a tie on both sides.
-        // The layer behind the opening is its size still: the narrowing starts from it.
-        final long steps = Math.max(1, plane - 1);
-        final long part = Math.max(0, layer - 1);
+        // The straight run behind the opening is its size still: the narrowing starts from its last layer.
+        final int run = run();
+        final long steps = Math.max(1, plane - run);
+        final long part = Math.max(0, layer - run);
         final long left = far.left() * part;
         final long right = ((width - 1) * steps) + ((far.right() - (width - 1L)) * part);
         final long bottom = far.bottom() * part;
@@ -409,6 +415,19 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         final long twice = 2 * (scaled - (whole * span));
         final boolean up = (twice > span) || ((twice == span) && ((whole % 2) == 1));
         return (int) (up ? (whole + 1) : whole);
+    }
+
+    /**
+     * The last layer of the straight run, where the narrowing starts: the layers before it, from the
+     * opening, are the near opening's shape. Whatever of the tunnel's length the narrowing does not need;
+     * 1 with no least length, or where the longest allowed cuts the tunnel short, as before #587.
+     *
+     * @return the layer, at least 1
+     */
+    private int run()
+    {
+        final int narrows = Math.max(width - ((far.right() - far.left()) + 1), height - ((far.top() - far.bottom()) + 1));
+        return Math.max(1, taper - narrows);
     }
 
     /**
