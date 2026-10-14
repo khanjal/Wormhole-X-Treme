@@ -466,7 +466,7 @@ public final class Windows
             final int kept = window.capture.keptReach();
             lines.add(MirrorText.field(name + " capture", "reaches " + ((kept > 0) ? Math.min(box, kept) : box) + " ahead"
                 + ((kept > 0) ? MirrorText.bad(", cut from " + box + " to fit") : "") + ", drawn to " + window.depth()
-                + " (full " + Captures.gateFillDepth(window.source.destination(), ConfigManager.getGateViewFirstDepth())
+                + " (full " + window.source.fullDepth()
                 + "), " + window.capture.secondsOld() + "s old"));
         }
         final CreatureTally tally = view.tallies.get(name);

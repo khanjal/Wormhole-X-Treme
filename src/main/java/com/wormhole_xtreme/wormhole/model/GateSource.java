@@ -225,6 +225,7 @@ public record GateSource(String name, Block anchor, WindowShape shape, List<Spot
      *
      * @return {@link Captures#gateFillDepth}
      */
+    @Override
     public int fullDepth()
     {
         return Captures.gateFillDepth(destination, step);
