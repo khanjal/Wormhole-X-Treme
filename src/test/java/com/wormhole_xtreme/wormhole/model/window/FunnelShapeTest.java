@@ -705,6 +705,29 @@ class FunnelShapeTest
     }
 
     /**
+     * Where the longest cuts a tunnel short, the straight run gives way before the narrowing: Massive onto
+     * Standard at a least of three would be ten straight and twelve narrowing; cut to sixteen, it runs four
+     * layers and narrows exactly as it does with none (#587).
+     */
+    @Test
+    void aTunnelCutShortLosesItsStraightRunFirst() throws IOException
+    {
+        final List<int[]> massive = portalOf("Massive");
+        final WindowShape window = windowFor(massive);
+        final List<Spot> standard = farCells(portalOf("Standard"));
+        final Funnel plain = Funnel.of(window, nearCells(window, massive), standard, 16, 0, Material.WATER);
+        final Funnel cut = Funnel.of(window, nearCells(window, massive), standard, 16, 3, Material.WATER);
+
+        assertEquals(13, plain.taper());
+        assertEquals(16, cut.taper());
+        assertEquals(keysOf(massive, 0), layerOf(cut, 4), "Massive's own shape to the fourth layer");
+        for (int layer = 1; layer <= 12; layer++)
+        {
+            assertEquals(layerOf(plain, layer), layerOf(cut, layer + 3), "the narrowing's layer " + layer + ", three deeper");
+        }
+    }
+
+    /**
      * A Standard pair is shorter than a Large pair, which is shorter than a Large gate onto a Standard one,
      * which is shorter than a Massive gate onto a Standard one: at a least of three and of four. From five
      * a Standard pair's run is as long as a Large pair's, three fifths of eight (#587).
