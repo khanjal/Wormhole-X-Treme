@@ -359,8 +359,22 @@ class CaptureSectionsTest
     {
         final Capture.Box box = new Capture.Box(-8, 0, -8, 24, 20, 24);
         final Capture.Builder builder = random(13, box, 20, 0.4, true);
-        final File whole = new File(dir, "whole.view");
-        builder.build().save(whole);
+        final File sections = new File(dir, "sections.view");
+        final Capture capture = builder.build();
+        capture.save(sections);
+        final File list = new File(dir, "list.view");
+        listed(builder, box, capture).save(list, 4, "far", true, 1L, -1);
+
+        for (final File whole : new File[] { sections, list })
+        {
+            assertSomeRefusedAndTheRestAnswer(whole, box, dir);
+        }
+    }
+
+    /** Changes one bit of each of many bytes of a file in turn, and reads it back each time. */
+    private static void assertSomeRefusedAndTheRestAnswer(final File whole, final Capture.Box box, final File dir)
+        throws IOException
+    {
         final byte[] bytes = unzipped(whole);
         final File wrong = new File(dir, "wrong.view");
         final Random random = new Random(13);
@@ -383,12 +397,12 @@ class CaptureSectionsTest
             }
             catch (final RuntimeException thrown)
             {
-                fail("byte " + at + " threw " + thrown, thrown);
+                fail(whole.getName() + " byte " + at + " threw " + thrown, thrown);
                 return;
             }
             answersEverywhere(read, box, at);
         }
-        assertTrue(refused > 0, "some changes are refused");
+        assertTrue(refused > 0, "some changes to " + whole.getName() + " are refused");
     }
 
     /** Asks a capture about every block of its box and visits what it keeps, failing on anything thrown. */
@@ -408,7 +422,15 @@ class CaptureSectionsTest
                     }
                 }
             }
-            capture.forEachKept((x, y, z, isAir) -> capture.nameAt(x, y, z));
+            final List<String> outside = new ArrayList<>();
+            capture.forEachKept((x, y, z, isAir) ->
+            {
+                if (!capture.contains(x, y, z))
+                {
+                    outside.add(x + "," + y + "," + z);
+                }
+            });
+            assertTrue(outside.isEmpty(), "byte " + at + " read, keeping blocks outside its box: " + outside);
         }
         catch (final RuntimeException thrown)
         {
