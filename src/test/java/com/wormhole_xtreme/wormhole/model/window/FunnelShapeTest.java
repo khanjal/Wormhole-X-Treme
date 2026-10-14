@@ -621,6 +621,62 @@ class FunnelShapeTest
     }
 
     /**
+     * Every cell of every shipped pair's tunnel at no least length, as a hash: whether the tunnel holds
+     * it, walls it, leaves it hollow and shows the room there, held or not, over every layer to a few
+     * past its end and a few blocks round the opening.
+     */
+    private static long drawingOf(final int least) throws IOException
+    {
+        long hash = 17;
+        for (final String near : SHIPPED)
+        {
+            for (final String far : SHIPPED)
+            {
+                final List<int[]> nearCells = portalOf(near);
+                final WindowShape window = windowFor(nearCells);
+                final Funnel funnel = Funnel.of(window, nearCells(window, nearCells), farCells(portalOf(far)), 16, least,
+                    Material.WATER);
+                hash = (hash * 31) + ((funnel == null) ? -1 : funnel.taper());
+                if (funnel != null)
+                {
+                    hash = (hash * 31) + funnel.far().hashCode();
+                    hash = drawingOf(funnel, hash);
+                }
+            }
+        }
+        return hash;
+    }
+
+    private static long drawingOf(final Funnel funnel, final long start)
+    {
+        long hash = start;
+        for (int layer = 0; layer <= (funnel.taper() + 4); layer++)
+        {
+            for (int across = -4; across < (funnel.width() + 4); across++)
+            {
+                for (int up = -4; up < (funnel.height() + 4); up++)
+                {
+                    final int bits = (funnel.holds(layer, across, up) ? 1 : 0) | (funnel.wall(layer, across, up) ? 2 : 0)
+                        | (funnel.hollow(layer, across, up) ? 4 : 0) | (funnel.shows(layer, across, up, 0.0) ? 8 : 0)
+                        | (funnel.shows(layer, across, up, 1.0) ? 16 : 0);
+                    hash = (hash * 31) + bits;
+                }
+            }
+        }
+        return hash;
+    }
+
+    /**
+     * With no least length, every shipped pair's tunnel is drawn cell for cell as it was before #587: the
+     * hash was recorded from the #583 code, before the straight run moved where the narrowing starts.
+     */
+    @Test
+    void noLeastLengthDrawsEveryShippedPairAsBefore() throws IOException
+    {
+        assertEquals(-5904751408123294266L, drawingOf(0),"every cell of every pair, as #583 drew it");
+    }
+
+    /**
      * At any least length up to three, a Standard pair is shorter than a Large pair, which is shorter than
      * a Large gate onto a Standard one, which is shorter than a Massive gate onto a Standard one (#587).
      */
