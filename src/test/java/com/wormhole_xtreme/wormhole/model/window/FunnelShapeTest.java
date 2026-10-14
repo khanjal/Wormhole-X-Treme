@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -557,5 +558,104 @@ class FunnelShapeTest
         assertEquals(keysOf(portalOf("Standard"), 0), layerOf(funnel, 1), "Standard's own cells on the first layer");
         assertEquals(boxOf(new Funnel.Opening(1, 3, 0, 2)), layerOf(funnel, 2), "the three by three on the second");
         assertTrue(funnel.shows(3, 2, 1, 0.0) && !funnel.shows(2, 2, 1, 0.0), "the room from the third");
+    }
+
+    /** The shipped upright shapes, smallest first. */
+    private static final String[] SHIPPED = { "Minimal", "Standard", "Large", "Massive", "Grand" };
+
+    /** Every shipped pair's tunnel length at a least length, near gate by row, far by column; 0 for the plain view. */
+    private static int[][] lengths(final int least) throws IOException
+    {
+        final int[][] table = new int[SHIPPED.length][SHIPPED.length];
+        for (int near = 0; near < SHIPPED.length; near++)
+        {
+            for (int far = 0; far < SHIPPED.length; far++)
+            {
+                final List<int[]> nearCells = portalOf(SHIPPED[near]);
+                final WindowShape window = windowFor(nearCells);
+                final Funnel funnel = Funnel.of(window, nearCells(window, nearCells), farCells(portalOf(SHIPPED[far])), 16,
+                    least, Material.WATER);
+                table[near][far] = (funnel == null) ? 0 : funnel.taper();
+            }
+        }
+        return table;
+    }
+
+    private static String rows(final int[][] table)
+    {
+        final StringBuilder text = new StringBuilder();
+        for (final int[] row : table)
+        {
+            text.append(Arrays.toString(row)).append('\n');
+        }
+        return text.toString();
+    }
+
+    /**
+     * Every shipped pair's tunnel, at {@code gate-view-funnel-length: 16}: with no least length as before
+     * #587, a pair that does not narrow the plain view; and at a least of three, the wormhole-everywhere
+     * value, as docs/GATES.md tabulates it. A change to a shipped opening changes this table.
+     *
+     * <p>Rows are the near gate, columns the far one: Minimal, Standard, Large, Massive, Grand. Minimal's
+     * opening is one by two, Standard five square, Large eight, Massive seventeen, Grand eighteen by
+     * seventeen.
+     */
+    @Test
+    void everyShippedPairsTunnelIsAsTabulated() throws IOException
+    {
+        final int[][] before = {
+            { 0, 0, 0, 0, 0 },
+            { 3, 0, 0, 0, 0 },
+            { 6, 4, 0, 0, 0 },
+            { 15, 13, 10, 0, 0 },
+            { 16, 14, 11, 2, 0 } };
+        final int[][] atThree = {
+            { 3, 3, 3, 3, 3 },
+            { 5, 3, 3, 3, 3 },
+            { 10, 8, 5, 5, 5 },
+            { 16, 16, 16, 10, 10 },
+            { 16, 16, 16, 12, 11 } };
+
+        assertEquals(rows(before), rows(lengths(0)), "no least length changes nothing");
+        assertEquals(rows(atThree), rows(lengths(3)), "at a least of three");
+    }
+
+    /**
+     * At any least length up to three, a Standard pair is shorter than a Large pair, which is shorter than
+     * a Large gate onto a Standard one, which is shorter than a Massive gate onto a Standard one (#587).
+     */
+    @Test
+    void aBiggerPairIsFurtherDownAndANarrowingOneFurtherStill() throws IOException
+    {
+        for (int least = 1; least <= 3; least++)
+        {
+            final int[][] table = lengths(least);
+            final int standardPair = table[1][1];
+            final int largePair = table[2][2];
+            final int largeToStandard = table[2][1];
+            final int massiveToStandard = table[3][1];
+            assertTrue((standardPair < largePair) && (largePair < largeToStandard) && (largeToStandard < massiveToStandard),
+                "at " + least + ": " + standardPair + ", " + largePair + ", " + largeToStandard + ", " + massiveToStandard);
+        }
+    }
+
+    /**
+     * What a straight tube costs a watched gate (#587): its air and wall are sent with the view. A pair of
+     * Standard gates at a least of three is 154 blocks; a pair of Massive ones, ten long, 3357, about what
+     * Grand onto Standard already cost.
+     */
+    @Test
+    void aMassivePairsStraightTubeIsAFewThousandBlocks() throws IOException
+    {
+        final List<int[]> massive = portalOf("Massive");
+        final WindowShape window = windowFor(massive);
+        final Funnel funnel = Funnel.of(window, nearCells(window, massive), farCells(massive), 16, 3, Material.WATER);
+        final int[] blocks = { 0, 0 };
+        funnel.forEachHollow(64, (layer, across, up) -> blocks[0]++);
+        funnel.forEachWall(64, (layer, across, up) -> blocks[1]++);
+
+        assertEquals(10, funnel.taper());
+        assertEquals(9 * 221, blocks[0], "nine layers of Massive's 221 cells");
+        assertEquals(1368, blocks[1], "and a wall two thick round each");
     }
 }

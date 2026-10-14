@@ -726,6 +726,37 @@ pair is cut short; at 1 a tunnel is the opening alone and the view is the plain 
 gate's opening, so the far room shows the view's depth less the tunnel; a depth no longer than the
 tunnel shows the tunnel alone.
 
+**A least length, so every gate keeps the wormhole look**
+([#587](https://github.com/khanjal/Wormhole-X-Treme/issues/587)). `gate-view-funnel-min-length`, 0 by
+default, leaves all of the above as it is. Above 0, a far gate as big or bigger each way is seen down a
+straight tube: every layer this gate's own opening, its last too, walled two thick the same way, with
+the room past it judged by the same lines through both ends. A small gate dialling a big one gets the
+tube at its own size, since its view can be no wider than the gate it is seen through. And every
+tunnel starts with a straight run before it narrows: the least length, or three fifths of this gate's
+opening by its longer side (`Funnel.RUN_TENTHS`), whichever is longer, then a block more for each block
+it narrows, at most `gate-view-funnel-length` (`Funnel.length`). The issue first put it as the longest
+of the least, a share of the size, and the narrowing length; with these shapes that cannot work. Large
+to Standard narrows to four, so a Large pair would have to be longer than a Standard pair at 3 and
+still shorter than four. Adding the run to the narrowing keeps every order: at a least of 3 a Standard
+pair is 3, a Large pair 5, Large to Standard 8, Massive to Standard 16. Every shipped pair at a least
+of 3, near gate down the side, far gate across (`FunnelShapeTest` holds the same table):
+
+| near \ far | Minimal | Standard | Large | Massive | Grand |
+|---|---|---|---|---|---|
+| Minimal | 3 | 3 | 3 | 3 | 3 |
+| Standard | 5 | 3 | 3 | 3 | 3 |
+| Large | 10 | 8 | 5 | 5 | 5 |
+| Massive | 16 | 16 | 16 | 10 | 10 |
+| Grand | 16 | 16 | 16 | 12 | 11 |
+
+The cap cuts Massive and Grand onto Large, Standard and Minimal (19 to 26 before it), so those three
+look alike from a Massive or Grand gate. Up to a least of 3 the run of a Standard opening is its own 3,
+so 1 and 2 give the same lengths as 3 for every shipped gate but Minimal. The costs: the far room is
+drawn that many blocks deeper than it stands, so the view's depth shows that much less of it; and every
+watched gate with a view sends the tube's air and wall with it, 154 blocks for a Standard pair and 3357
+for a Massive pair, about what Grand to Standard already costs. A tube of the opening alone, at a
+`gate-view-funnel-length` of 1, is the plain view.
+
 **The least aperture.** A far opening narrower or lower than three blocks is taken as three
 (`Funnel.LEAST_APERTURE`, not a setting) for the tunnel's end and for the lines the room past it is
 judged by: grown sideways about its middle column, the extra block of an even growth to the right,
@@ -744,7 +775,7 @@ over any block of the gate's own frame (`WindowSource.structure`); the ring is l
 the window (`Funnel.of`): on the column travellers land on and standing on the row they land on, so a
 short far gate's tunnel sits on the floor, not halfway up the big opening. Only narrower, never wider:
 a side where the far gate is as big or bigger keeps this one's, so same-size and small-to-large views
-are as they were, and a gate lying flat, a far gate turned from its arrival, or a horizon of air
+are as they were (unless `gate-view-funnel-min-length` asks for a straight tube), and a gate lying flat, a far gate turned from its arrival, or a horizon of air
 leaves the view whole, as `gate-view-funnel: false` does, and so does a tunnel of one layer, the
 opening alone, with no far opening in front of the room. Nothing of the far side is drawn in the
 tunnel, in the opening or outside what the far opening shows. Stand-ins for mobs and players in the far room are

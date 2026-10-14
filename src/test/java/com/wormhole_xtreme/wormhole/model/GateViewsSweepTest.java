@@ -37,6 +37,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Funnel;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
 
@@ -275,6 +276,41 @@ class GateViewsSweepTest
         GateViews.offerAll();
 
         sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() == null) && (window.shape().far().z() == 200)),
+            anyBoolean()));
+    }
+
+    /**
+     * A Standard gate dialling another is offered the plain view as it ships, and with
+     * {@code gate-view-funnel-min-length} set, a straight tube that long, its far side shifted to the
+     * tube's end (#587).
+     */
+    @Test
+    void aGateDiallingOneItsOwnSizeIsOfferedAStraightTubeOnlyWithALeastLength()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        opening(10, 5, 64, 5);
+        final List<Location> same = new ArrayList<>();
+        for (int x = 98; x <= 102; x++)
+        {
+            for (int y = 70; y <= 74; y++)
+            {
+                same.add(new Location(far, x, y, 199));
+            }
+        }
+        when(gate.getGateTarget().getGatePortalBlocks()).thenReturn(same);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() == null) && (window.shape().far().z() == 200)),
+            anyBoolean()));
+
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 3);
+        GateViews.offerAll();
+
+        // The opening, two layers its own shape, and the far side from the third: shifted two deeper.
+        sources.verify(() -> GateSource.offer(argThat(window -> (window.funnel() != null) && (window.funnel().taper() == 3)
+            && window.funnel().far().equals(new Funnel.Opening(0, 4, 0, 4)) && (window.shape().far().z() == (200 - 2))),
             anyBoolean()));
     }
 

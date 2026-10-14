@@ -453,4 +453,39 @@ class WindowsFunnelTest
             assertSame(water, view.get(key(BIG.behind(1, -1, 4))), "the wall beside it is drawn");
         }
     }
+
+    /**
+     * A gate dialling one its own size, with a least tunnel length, draws a straight tube: hollow the
+     * whole opening wide on every layer, walled two thick, and the far side from the layer after it,
+     * shifted that deep, where travellers land first (#587).
+     */
+    @Test
+    void aStraightTubeIsDrawnHollowAndWalledWithTheFarSideShiftedToItsEnd()
+    {
+        final List<Spot> same = new ArrayList<>();
+        for (int x = 95; x <= 105; x++)
+        {
+            for (int y = 70; y <= 80; y++)
+            {
+                same.add(new Spot(x, y, 199));
+            }
+        }
+        final Funnel funnel = Funnel.of(BIG, null, same, 16, 3, Material.WATER);
+        final Spot arrival = new Spot(100, 70, 200);
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16, 0L,
+            Integer.MAX_VALUE);
+        final Map<Long, BlockData> landing = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16, 0L,
+            Integer.MAX_VALUE);
+
+        assertEquals(7, funnel.taper(), "three fifths of eleven, to the nearest");
+        assertSame(air, view.get(key(BIG.behind(1, 0, 0))), "the first layer's corner, the opening's size");
+        assertSame(air, view.get(key(BIG.behind(6, 10, 10))), "and the last's: the tube does not narrow");
+        assertSame(water, view.get(key(BIG.behind(6, -2, 5))), "walled two thick round its last layer");
+        assertSame(water, view.get(key(BIG.behind(3, 5, -1))), "and its floor");
+        assertSame(stone, view.get(key(BIG.behind(7, 5, 0))), "the far side on the layer after it");
+        assertSame(stone, view.get(key(BIG.behind(8, -1, 5))), "widening past it as far as the tube lets it be seen");
+        assertEquals(arrival, shapeFor(funnel).farOf(15, 64, 13), "seven layers in, the middle column and bottom row");
+        assertSame(stone, landing.get(key(BIG.behind(7, 5, 0))), "where travellers land is drawn there");
+        assertNotSame(stone, landing.get(key(BIG.behind(1, 5, 0))), "not at the near opening, as the plain view drew it");
+    }
 }

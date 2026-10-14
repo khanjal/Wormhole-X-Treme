@@ -50,6 +50,12 @@ through is a release nobody reads.
 - **`permissions-auto-fallback`**: with no Vault permissions provider the simple fallback is always on, so a server on a Bukkit-permissions plugin without Vault that had set it `false` is now in simple mode.
 - **`mirror-fog-at-depth`**: a mirror no longer pulls a viewer's fog in, and the code behind it is gone with the `fog` line in `mirror debug`.
 
+### Stargates
+
+**Added**
+
+- Gates the same size, or a small gate dialling a big one, can be seen down a straight tunnel too, and every tunnel runs straight before it narrows, longer for a bigger gate ([#587](https://github.com/khanjal/Wormhole-X-Treme/issues/587)). Off until `gate-view-funnel-min-length` is set. [Details](docs/GATES.md)
+
 ## 1.10.0 (2026-10-12)
 
 ### For server admins

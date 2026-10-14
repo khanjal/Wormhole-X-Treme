@@ -124,6 +124,9 @@ public class ConfigManager
         /** The longest that tunnel may be. */
         GATE_VIEW_FUNNEL_LENGTH,
 
+        /** The shortest that tunnel is, a straight one where the far gate is as big (#587); 0 for none. */
+        GATE_VIEW_FUNNEL_MIN_LENGTH,
+
         /** Whether an open gate's horizon ripples (#579). */
         GATE_RIPPLE,
 
@@ -1111,6 +1114,19 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH);
         final int blocks = (s == null) ? 16 : s.getIntValue();
         return Math.max(1, Math.min(64, blocks));
+    }
+
+    /**
+     * The shortest a gate's tunnel is, in blocks (#587): above 0, a far gate as big or bigger is seen down
+     * a straight tube that long.
+     *
+     * @return blocks, 0 to {@link #getGateViewFunnelLength()}
+     */
+    public static int getGateViewFunnelMinLength()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH);
+        final int blocks = (s == null) ? 0 : s.getIntValue();
+        return Math.max(0, Math.min(getGateViewFunnelLength(), blocks));
     }
 
     /**
