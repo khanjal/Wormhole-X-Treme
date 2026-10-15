@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -17,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,7 +30,10 @@ import java.util.zip.GZIPOutputStream;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
+
+import com.sun.management.ThreadMXBean;
 
 /**
  * A capture kept by sections answers exactly as the sorted list it replaced did (#525).
@@ -629,6 +634,226 @@ class CaptureSectionsTest
         }
         sectionsFile(file, new Capture.Box(Integer.MAX_VALUE - 4, 0, 0, 10, 10, 10), new int[0]);
         assertThrows(IOException.class, () -> Capture.load(file), "past the end of the int range");
+    }
+
+    /**
+     * A corner at the most negative int is refused on every axis, where one at the world border's
+     * far side is read.
+     *
+     * <p>{@code Math.abs(Integer.MIN_VALUE)} is itself negative, so a check on the corner's distance
+     * from the origin let exactly that corner through.
+     */
+    @Test
+    void aCornerAtTheMostNegativeIntIsRefused(@TempDir final File dir) throws IOException
+    {
+        final File file = new File(dir, "corner.view");
+        final int border = 1 << 26;
+
+        sectionsFile(file, new Capture.Box(-border, -border, -border, 10, 10, 10), new int[0]);
+        assertEquals(1000, Capture.load(file).size(), "past the world border, but a box all the same");
+
+        for (final Capture.Box box : new Capture.Box[] { new Capture.Box(Integer.MIN_VALUE, 0, 0, 10, 10, 10),
+            new Capture.Box(0, Integer.MIN_VALUE, 0, 10, 10, 10), new Capture.Box(0, 0, Integer.MIN_VALUE, 10, 10, 10),
+            new Capture.Box(border + 1, 0, 0, 10, 10, 10) })
+        {
+            sectionsFile(file, box, new int[0]);
+            final IOException refused = assertThrows(IOException.class, () -> Capture.load(file), "corner " + box);
+            assertTrue(refused.getMessage().contains("impossible shape"), refused.getMessage());
+        }
+    }
+
+    /** Bytes the current thread has allocated while {@code read} ran. */
+    private static long allocatedBy(final Executable read)
+    {
+        final ThreadMXBean threads = (ThreadMXBean) ManagementFactory.getThreadMXBean();
+        final long before = threads.getCurrentThreadAllocatedBytes();
+        assertThrows(IOException.class, read);
+        return threads.getCurrentThreadAllocatedBytes() - before;
+    }
+
+    /**
+     * A box of too many columns is refused before its column tops are made.
+     *
+     * <p>Sixteen thousand by one by sixteen thousand passed the checks on each axis and on the volume,
+     * and a header of a few dozen bytes made 512 MB of tops; read off the main thread, the
+     * OutOfMemoryError is not caught, and the file is read again at the next look.
+     */
+    @Test
+    void aBoxOfTooManyColumnsIsRefusedBeforeItsTopsAreMade(@TempDir final File dir) throws IOException
+    {
+        final File file = new File(dir, "columns.view");
+
+        sectionsFile(file, new Capture.Box(0, 0, 0, 1024, 1, 1024), new int[0]);
+        assertEquals(1024 * 1024, Capture.load(file).size(), "a million columns, ten times the biggest capture's, is read");
+
+        sectionsFile(file, new Capture.Box(0, 0, 0, 16_384, 1, 16_384), new int[0]);
+        final long allocated = allocatedBy(() -> Capture.load(file));
+        assertTrue(allocated < (16L << 20), "refused after " + (allocated >> 20) + " MB, not the 512 its tops would take");
+    }
+
+    /**
+     * A version 4 file claiming far more blocks than it holds is refused at its end, before room is
+     * made for the count it claims.
+     *
+     * <p>A box the render distance across allows thirty-four million entries: ten bytes each, made up
+     * front, was 340 MB from one corrupt int.
+     */
+    @Test
+    void aListFileClaimingMillionsOfBlocksIsRefusedWithoutRoomForThem(@TempDir final File dir) throws IOException
+    {
+        final File file = new File(dir, "claims.view");
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(bytes))
+        {
+            out.writeInt(0x4D495257);
+            out.writeInt(4);
+            out.writeInt(3);
+            out.writeBytes("far");
+            out.writeBoolean(true);
+            out.writeBoolean(false);
+            for (final int value : new int[] { 0, 0, 0, 325, 325, 325 })
+            {
+                out.writeInt(value);
+            }
+            out.writeLong(0L);
+            out.writeInt(-1);
+            out.writeInt(1);
+            out.writeInt(13);
+            out.writeBytes("minecraft:air");
+            out.writeInt(30_000_000);
+            for (int i = 0; i < 10; i++)
+            {
+                out.writeLong(i);
+                out.writeShort(0);
+            }
+        }
+        final byte[] raw = bytes.toByteArray();
+        zip(file, raw, raw.length);
+
+        final long allocated = allocatedBy(() -> Capture.load(file));
+
+        assertTrue(allocated < (16L << 20), "refused after " + (allocated >> 20) + " MB, not the 300 the count would take");
+    }
+
+    /**
+     * A version 4 file of more blocks than room is first made for reads back identically, the room
+     * grown as it is read.
+     */
+    @Test
+    void aBigVersionFourFileReadsBackIdentically(@TempDir final File dir) throws IOException
+    {
+        final Capture.Box box = new Capture.Box(-16, 0, 0, 48, 40, 48);
+        final Capture.Builder builder = random(14, box, 6, 3.0, false);
+        final LegacyCapture list = listed(builder, box, builder.build());
+        final File four = new File(dir, "big.view");
+        list.save(four, 4, "far", true, 5L, -1);
+
+        final Capture read = Capture.load(four);
+
+        assertTrue(list.kept() > (1 << 16), "more than the first room: " + list.kept());
+        assertSameAnswers(list, read, box);
+    }
+
+    /** The palette sizes either side of each power of two a section's indices are packed for. */
+    private static int[] paletteSizes()
+    {
+        final int[] sizes = new int[28];
+        for (int i = 0; i < 20; i++)
+        {
+            sizes[i] = i + 1;
+        }
+        final int[] edges = { 255, 256, 257, 258, 511, 512, 513, 514 };
+        System.arraycopy(edges, 0, sizes, 20, edges.length);
+        return sizes;
+    }
+
+    /**
+     * A full section keeps every index of its palette for every block, at every palette size round a
+     * power of two, the highest index included.
+     *
+     * <p>A full section packs one value more than its palette, 0 being "not kept": packed at the
+     * palette's own width, a section of exactly four, eight or 256 states had its highest index spill
+     * into the next block's bits. No capture in the other tests had a section of exactly such a size.
+     */
+    @Test
+    void aFullSectionKeepsEveryIndexAtEveryPaletteSize() throws IOException
+    {
+        for (final int states : paletteSizes())
+        {
+            final short[] locals = new short[Section.BLOCKS];
+            final short[] values = new short[Section.BLOCKS];
+            for (int i = 0; i < Section.BLOCKS; i++)
+            {
+                locals[i] = (short) i;
+                values[i] = (short) ((states - 1) - (i % states));
+            }
+            final Section section = Section.of(locals, values, 0, Section.BLOCKS, null, slots(states));
+
+            assertTrue(section.full(), states + " states, every block: a full section");
+            assertEveryBlock(section, locals, values, states, "full");
+            assertEveryBlock(roundTrip(section, states), locals, values, states, "full, read back");
+        }
+    }
+
+    /** The same for a section listing its blocks, which packs at the palette's own width. */
+    @Test
+    void aListedSectionKeepsEveryIndexAtEveryPaletteSize() throws IOException
+    {
+        for (final int states : paletteSizes())
+        {
+            final short[] locals = new short[states];
+            final short[] values = new short[states];
+            for (int i = 0; i < states; i++)
+            {
+                locals[i] = (short) ((i * 7) + 3);
+                values[i] = (short) ((states - 1) - i);
+            }
+            final Section section = Section.of(locals, values, 0, states, null, slots(states));
+
+            assertFalse(section.full(), states + " states, one block each: a listed section");
+            assertEveryBlock(section, locals, values, states, "listed");
+            assertEveryBlock(roundTrip(section, states), locals, values, states, "listed, read back");
+        }
+    }
+
+    /** Scratch for {@code Section.of}: every element -1. */
+    private static int[] slots(final int states)
+    {
+        final int[] slot = new int[states];
+        Arrays.fill(slot, -1);
+        return slot;
+    }
+
+    /** Writes a section and reads it back as a whole section of a capture of {@code states} states. */
+    private static Section roundTrip(final Section section, final int states) throws IOException
+    {
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(bytes))
+        {
+            section.write(out);
+        }
+        return Section.read(new DataInputStream(new ByteArrayInputStream(bytes.toByteArray())), new File("round.view"),
+            states, new Section.Inside(0, 15, 0, 15, 0, 15));
+    }
+
+    /** Checks every block of a section: each listed one holds its value, every other none. */
+    private static void assertEveryBlock(final Section section, final short[] locals, final short[] values,
+        final int states, final String kind)
+    {
+        final int[] expected = new int[Section.BLOCKS];
+        Arrays.fill(expected, -1);
+        for (int i = 0; i < locals.length; i++)
+        {
+            expected[locals[i]] = values[i];
+        }
+        for (int local = 0; local < Section.BLOCKS; local++)
+        {
+            if (section.value(local) != expected[local])
+            {
+                fail(kind + ", " + states + " states: block " + local + " holds " + section.value(local) + ", not "
+                    + expected[local]);
+            }
+        }
     }
 
     /** A file's contents, gunzipped. */

@@ -1633,16 +1633,29 @@ public final class Capture
     /** Past this along any axis a box is no capture's; one at the render distance is about 325. */
     private static final int MOST_ACROSS = 1 << 14;
 
+    /**
+     * Past this many columns a box is no capture's, and its column tops alone would be megabytes. The
+     * biggest is a reach of 162 each way, 325 by 325, about 106 thousand; this is ten times that.
+     */
+    private static final int MOST_COLUMNS = 1 << 20;
+
     /** Past this from the origin no block is in any world: the world border is thirty million out. */
     private static final int MOST_FAR = 1 << 26;
 
-    /** Whether a box read from a file is one a capture could have. */
+    /** Whether a box read from a file is one a capture could have, so nothing is made for one that is not. */
     private static boolean possible(final Box box)
     {
         return (box.sizeX() >= 1) && (box.sizeY() >= 1) && (box.sizeZ() >= 1) && (box.sizeX() <= MOST_ACROSS)
             && (box.sizeY() <= MOST_ACROSS) && (box.sizeZ() <= MOST_ACROSS)
+            && (((long) box.sizeX() * box.sizeZ()) <= MOST_COLUMNS)
             && (((long) box.sizeX() * box.sizeY() * box.sizeZ()) <= Integer.MAX_VALUE)
-            && (Math.abs(box.minX()) <= MOST_FAR) && (Math.abs(box.minY()) <= MOST_FAR) && (Math.abs(box.minZ()) <= MOST_FAR);
+            && near(box.minX()) && near(box.minY()) && near(box.minZ());
+    }
+
+    /** Whether a box's corner is within {@link #MOST_FAR}, so its far edge cannot wrap round. */
+    private static boolean near(final int min)
+    {
+        return (min >= -MOST_FAR) && (min <= MOST_FAR);
     }
 
     /** Reads the sections a version 5 file holds, each after its place in the box's grid. */
@@ -1670,6 +1683,9 @@ public final class Capture
         return sections;
     }
 
+    /** How many entries of a version 3 or 4 file room is made for before any is read. */
+    private static final int FIRST_READ = 1 << 16;
+
     /**
      * Reads what a version 3 or 4 file holds, a sorted list of entries and the seen air a column at
      * a time, into sections: it is written as sections the next time it is saved.
@@ -1683,10 +1699,16 @@ public final class Capture
         {
             throw new IOException(file + " has an impossible number of blocks");
         }
-        final long[] cells = new long[entries];
-        final short[] values = new short[entries];
+        // Grown as they are read, so a count the file never finishes is an end of file, not an array that size.
+        long[] cells = new long[Math.min(entries, FIRST_READ)];
+        short[] values = new short[cells.length];
         for (int i = 0; i < entries; i++)
         {
+            if (i == cells.length)
+            {
+                cells = Arrays.copyOf(cells, (int) Math.min(entries, 2L * i));
+                values = Arrays.copyOf(values, cells.length);
+            }
             cells[i] = in.readLong();
             values[i] = in.readShort();
             if ((i > 0) && (cells[i] <= cells[i - 1]))
