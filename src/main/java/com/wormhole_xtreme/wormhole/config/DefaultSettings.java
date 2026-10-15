@@ -129,7 +129,7 @@ class DefaultSettings
     static final Group[] groups = {
         group("General", "",
             new Setting(ConfigKeys.LOG_LEVEL, "INFO", "How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FINE, FINER or FINEST, least to most.", SECTION),
-            new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false, "If set to true, Permissions plugin will not be attached to even if available.", SECTION),
+            new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false, "If true, gates ignore permission nodes even when a Vault permission provider is installed: anyone may use, dial and travel by gate; only operators may build one; and removing, configuring or going to one with /wormhole go is left to operators and its owner.", SECTION),
             new Setting(ConfigKeys.PETS_FOLLOW_OWNER, true, "Whether tamed wolves, cats and parrots that are following a player, not sitting, travel with them through gates, rings, beams and mirrors.", SECTION),
             new Setting(ConfigKeys.CLICKABLE_CHAT, true, "Whether a command the plugin names in chat can be clicked to run it, with hover text saying what it does. False sends plain text, as servers without Paper or Spigot do anyway.", SECTION)),
 

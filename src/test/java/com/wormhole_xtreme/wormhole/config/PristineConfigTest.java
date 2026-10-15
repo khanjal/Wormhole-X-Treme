@@ -409,4 +409,30 @@ class PristineConfigTest
 
         assertEquals("1.10.0", PristineConfig.untouchedSince(appended), "appended at its default");
     }
+
+    /**
+     * A 1.10.0 file carrying the old comment on {@code permissions-support-disable}, which named the 2011
+     * Permissions plugin, is still untouched, and comes back saying what the setting does now (#475).
+     */
+    @Test
+    void theOldPermissionsCommentDoesNotMakeAFileCustomised() throws Exception
+    {
+        final String old = "# If set to true, Permissions plugin will not be attached to even if available.\n";
+        write(pristine().replace("permissions-support-disable:", old + "permissions-support-disable:"));
+
+        load();
+
+        verifyReplaced(1);
+        final List<String> lines = Files.readAllLines(config().toPath(), StandardCharsets.UTF_8);
+        final int at = lines.indexOf("permissions-support-disable: false");
+        assertTrue(at > 0, "the setting is still written, at its default");
+        final StringBuilder comment = new StringBuilder();
+        for (int i = at - 1; (i >= 0) && lines.get(i).startsWith("# "); i--)
+        {
+            comment.insert(0, lines.get(i).substring(2) + " ");
+        }
+        assertTrue(comment.toString().contains("Vault permission provider"),
+            "the comment names what the setting overrides now, not the old plugin: " + comment);
+        assertFalse(comment.toString().contains("Permissions plugin"), "the 2011 plugin's name is gone: " + comment);
+    }
 }

@@ -233,8 +233,8 @@ Worth knowing:
 
 ### Permission backend and fallback
 
-- `permissions-support-disable` (default `false`) — never attach to an external permission
-  provider, even if one is present.
+- `permissions-support-disable` (default `false`) — keep gates in simple mode, ignoring their
+  permission nodes, even when a Vault permission provider is installed.
 - With no provider found, the plugin runs in simple mode: basic use actions keep working and
   advanced ones stay with operators and gate owners. Whether a provider is there is looked at
   startup, and again whenever `permissions-support-disable` is changed in-game.
