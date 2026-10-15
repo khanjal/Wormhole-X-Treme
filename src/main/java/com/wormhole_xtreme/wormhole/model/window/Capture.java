@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -94,6 +95,10 @@ public final class Capture
     private final int entryCount;
     private final int filledCount;
     private final int airCount;
+    /** By {@code sx * acrossZ + sz}, the sections in each stack with entries, upward, for a walk. */
+    private final int[][] entryStacks;
+    /** The same for the sections with seen air. */
+    private final int[][] airStacks;
     private BlockData standIn;
 
     /**
@@ -143,6 +148,8 @@ public final class Capture
         this.entryCount = entries;
         this.filledCount = filled;
         this.airCount = seen;
+        this.entryStacks = stacks(section -> section.entries() > 0);
+        this.airStacks = stacks(section -> section.airCount() > 0);
     }
 
     /** Raises each column's top to the highest block that is not air in one section. */
@@ -1453,50 +1460,83 @@ public final class Capture
     public void forEachKept(final Kept kept)
     {
         // Where each listed section's next column starts in its list, as its columns are met in order.
-        final int[] next = new int[sections.length];
+        walk(entryStacks, new int[sections.length], kept);
+        walk(airStacks, null, kept);
+    }
+
+    /**
+     * Visits every column of the box that has a section in a stack, x then z, and in each column
+     * those sections, upward: their entries, or with no {@code next} their seen air.
+     *
+     * @param stacks
+     *            by {@code sx * acrossZ + sz}, the sections to visit in each, upward
+     * @param next
+     *            where each listed section's next column starts; null for the air
+     */
+    private void walk(final int[][] stacks, final int[] next, final Kept kept)
+    {
         for (int x = minX; x < (minX + sizeX); x++)
         {
-            for (int z = minZ; z < (minZ + sizeZ); z++)
+            final int across = ((x >> 4) - grid.fromX) * grid.acrossZ;
+            for (int sz = 0; sz < grid.acrossZ; sz++)
             {
-                columnKept(x, z, next, kept);
+                final int[] stack = stacks[across + sz];
+                if (stack.length > 0)
+                {
+                    final int first = (grid.fromZ + sz) << 4;
+                    for (int z = Math.max(minZ, first); z <= Math.min(grid.maxZ, first + (Section.EDGE - 1)); z++)
+                    {
+                        columnKept(x, z, stack, next, kept);
+                    }
+                }
             }
         }
-        for (int x = minX; x < (minX + sizeX); x++)
+    }
+
+    /** Visits one column of a stack's sections, upward. */
+    private void columnKept(final int x, final int z, final int[] stack, final int[] next, final Kept kept)
+    {
+        final int column = Section.column(x, z);
+        for (final int index : stack)
         {
-            for (int z = minZ; z < (minZ + sizeZ); z++)
+            final int baseY = (grid.fromY + (index % grid.acrossY)) << 4;
+            if (next == null)
             {
-                columnKept(x, z, null, kept);
+                sections[index].columnAir(column, x, baseY, z, kept);
+            }
+            else
+            {
+                next[index] = sections[index].columnEntries(column, next[index], x, baseY, z, kept);
             }
         }
     }
 
     /**
-     * Visits one column's entries, upward, or with no {@code next} its seen air.
-     *
-     * @param next
-     *            where each listed section's next column starts; null for the air
+     * For each stack of sections one above another, by {@code sx * acrossZ + sz}, those of its sections
+     * that pass {@code holds}, upward: so a walk visits only columns with something to visit.
      */
-    private void columnKept(final int x, final int z, final int[] next, final Kept kept)
+    /** A stack with nothing to visit, shared. */
+    private static final int[] NO_SECTIONS = new int[0];
+
+    private int[][] stacks(final Predicate<Section> holds)
     {
-        final int column = Section.column(x, z);
-        final int bottom = grid.index(x, minY, z);
-        final int highest = grid.index(x, (minY + sizeY) - 1, z);
-        for (int index = bottom; index <= highest; index++)
+        final int[][] stacks = new int[grid.acrossX * grid.acrossZ][];
+        final int[] found = new int[grid.acrossY];
+        for (int stack = 0; stack < stacks.length; stack++)
         {
-            final Section section = sections[index];
-            if (section != null)
+            int count = 0;
+            for (int sy = 0; sy < grid.acrossY; sy++)
             {
-                final int baseY = (minY & -Section.EDGE) + ((index - bottom) * Section.EDGE);
-                if (next == null)
+                final int index = (stack * grid.acrossY) + sy;
+                if ((sections[index] != null) && holds.test(sections[index]))
                 {
-                    section.columnAir(column, x, baseY, z, kept);
-                }
-                else
-                {
-                    next[index] = section.columnEntries(column, next[index], x, baseY, z, kept);
+                    found[count] = index;
+                    count++;
                 }
             }
+            stacks[stack] = (count == 0) ? NO_SECTIONS : Arrays.copyOf(found, count);
         }
+        return stacks;
     }
 
     /**
@@ -1821,6 +1861,14 @@ public final class Capture
         for (final Section section : sections)
         {
             bytes += (section == null) ? 0L : section.bytes();
+        }
+        for (final int[][] stacks : new int[][][] { entryStacks, airStacks })
+        {
+            bytes += 16L + (stacks.length * 4L);
+            for (final int[] stack : stacks)
+            {
+                bytes += 16L + (stack.length * 4L);
+            }
         }
         return bytes;
     }

@@ -54,6 +54,8 @@ final class Section
     private final long[] packed;
     /** The blocks kept, ascending, in step with the indices; null for a full cube. */
     private final short[] positions;
+    /** For a full cube, a bit for each of its 256 columns holding an entry, so a walk skips the rest; null for a listed one. */
+    private final long[] columnsHeld;
     /** How many blocks it keeps an entry for. */
     private final int entries;
     /** How many of those are not air. */
@@ -71,6 +73,7 @@ final class Section
         this.packed = packed;
         this.positions = positions;
         this.entries = entries;
+        this.columnsHeld = ((positions == null) && (entries > 0)) ? columnsHeld(packed, bits) : null;
         this.air = canonical(air);
         this.airCount = count(this.air);
         this.filled = filledOf(palette, bits, packed, positions, entries);
@@ -179,6 +182,20 @@ final class Section
             return NO_AIR_SEEN;
         }
         return every ? ALL_AIR : air;
+    }
+
+    /** Which columns of a full cube hold an entry, a bit each. */
+    private static long[] columnsHeld(final long[] packed, final int bits)
+    {
+        final long[] held = new long[(EDGE * EDGE) / Long.SIZE];
+        for (int local = 0; local < BLOCKS; local++)
+        {
+            if (get(packed, bits, local) != 0)
+            {
+                held[local >>> 10] |= 1L << ((local >>> 4) & 63);
+            }
+        }
+        return held;
     }
 
     private static int count(final long[] air)
@@ -383,7 +400,11 @@ final class Section
         final int first = column << 4;
         if (positions == null)
         {
-            for (int y = 0; (entries > 0) && (y < EDGE); y++)
+            if ((columnsHeld == null) || ((columnsHeld[column >>> 6] & (1L << (column & 63))) == 0))
+            {
+                return from;
+            }
+            for (int y = 0; y < EDGE; y++)
             {
                 final int value = get(packed, bits, first + y);
                 if (value != 0)
@@ -413,13 +434,12 @@ final class Section
         {
             return;
         }
-        final int first = column << 4;
-        for (int y = 0; y < EDGE; y++)
+        // The column's sixteen bits, lowest first, visited a set bit at a time.
+        int inColumn = (int) ((air[column >>> 2] >>> ((column & 3) << 4)) & 0xFFFF);
+        while (inColumn != 0)
         {
-            if (airAt(first + y))
-            {
-                kept.at(x, baseY + y, z, true);
-            }
+            kept.at(x, baseY + Integer.numberOfTrailingZeros(inColumn), z, true);
+            inColumn &= inColumn - 1;
         }
     }
 
@@ -431,6 +451,10 @@ final class Section
         if (positions != null)
         {
             bytes += 16L + (positions.length * 2L);
+        }
+        if (columnsHeld != null)
+        {
+            bytes += 16L + (columnsHeld.length * 8L);
         }
         if ((air != NO_AIR_SEEN) && (air != ALL_AIR))
         {
@@ -522,6 +546,7 @@ final class Section
         this.packed = kept.packed;
         this.positions = kept.positions;
         this.entries = kept.entries;
+        this.columnsHeld = kept.columnsHeld;
         this.filled = kept.filled;
         this.air = canonical(air);
         this.airCount = count(this.air);
