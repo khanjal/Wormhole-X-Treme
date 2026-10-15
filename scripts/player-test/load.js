@@ -463,7 +463,10 @@ async function main () {
         await sleep(2000)
         seen = await viewsOf(member)
       }
-      views.push({ bot: member.name, site: member.slot.site, ...seen })
+      // Where one still not drawn stands, against its slot, so a row can say why.
+      const p = member.bot.entity.position
+      const where = seen.drawn === 0 ? ` (at ${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)}; slot ${member.slot.x},${member.slot.z})` : ''
+      views.push({ bot: member.name, site: member.slot.site, ...seen, into: seen.into + where })
     }
   }
   const sitesAfter = await siteCheck('after')
