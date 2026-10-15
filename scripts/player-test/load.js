@@ -171,8 +171,10 @@ async function setUpWorld () {
   for (const rule of ['doMobSpawning', 'spawn_mobs', 'doDaylightCycle', 'advance_time', 'doWeatherCycle',
     'advance_weather', 'logAdminCommands', 'log_admin_commands']) send(`gamerule ${rule} false`)
   if (withPlugin) {
-    for (const [key, value] of [['timeout-shutdown', 0], ['max-open-seconds', 0], ['mirror-per-world-limit', 0],
-      ['gate-view', env('GATE_VIEW', 'horizon')], ['gate-view-funnel-min-length', env('FUNNEL_MIN', 0)]]) {
+    // The gate-view settings only where there are gates: 1.10.0 has no gate-view-funnel-min-length, and
+    // a viewer run against it would stop on the unknown key.
+    const gateSettings = plan.gates ? [['gate-view', env('GATE_VIEW', 'horizon')], ['gate-view-funnel-min-length', env('FUNNEL_MIN', 0)]] : []
+    for (const [key, value] of [['timeout-shutdown', 0], ['max-open-seconds', 0], ['mirror-per-world-limit', 0], ...gateSettings]) {
       const at = logSize()
       send(`wx config ${key} ${value}`)
       await needLog(/is now/, 20, at, `wx config ${key} ${value}`)
