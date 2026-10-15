@@ -93,11 +93,64 @@ const mirrorAt = (i) => ({ name: `perfM${i}`, x: i * spacing, z: 400 })
 const GATE_FLOOR = -60
 const gateAt = (i) => ({ from: `perfS${i}`, to: `perfT${i}`, x: i * spacing, z: -400, toZ: -700 })
 
+// An open gate holds no chunk ticket, and the tickers skip a gate or mirror whose chunk is not
+// loaded, so with nobody near, idle and wanderers keep their sites force-loaded, or they would
+// measure nothing; siteCheck() says whether they were. KEEP_LOADED=0 or 1 overrides that.
+const keepLoaded = env('KEEP_LOADED', scenario === 'idle' || scenario === 'wanderers' ? '1' : '0') === '1'
+
 async function loaded (x, z, body) {
   send(`forceload add ${x - 16} ${z - 16} ${x + 16} ${z + 16}`)
   await sleep(1500)
   await body()
-  send(`forceload remove ${x - 16} ${z - 16} ${x + 16} ${z + 16}`)
+  if (!keepLoaded) send(`forceload remove ${x - 16} ${z - 16} ${x + 16} ${z + 16}`)
+}
+
+/**
+ * How many gates have their chunk loaded, and how many mirrors' chunks are, asked of the server with
+ * execute if loaded. After the run, also how many gates are still open and swept: an item dropped
+ * into each opening must come out at the far gate. The horizon is only drawn to clients, so the
+ * opening's real block is air whether it is open or not, and cannot say.
+ */
+async function siteCheck (when) {
+  const at = logSize()
+  const tag = `WXCHECK${when}`
+  if (plan.gates) {
+    for (let i = 0; i < gates; i++) {
+      const g = gateAt(i)
+      // A Standard gate built facing south at x, z opens round x - 1.5, z - 2.5.
+      send(`execute if loaded ${g.x - 2} -58 ${g.z - 3} run say ${tag} gate-loaded ${g.from}`)
+    }
+    if (when === 'after' && withPlugin) {
+      for (let i = 0; i < gates; i++) {
+        const g = gateAt(i)
+        send(`summon item ${g.x - 1.5} -57.5 ${g.z - 2.5} {Item:{id:"minecraft:diamond",count:1},Tags:["wxcheck"]}`)
+      }
+      // The entity sweep runs about once a second; asked twice, and a gate counted once.
+      for (const wait of [5000, 6000]) {
+        await sleep(wait)
+        for (let i = 0; i < gates; i++) {
+          const g = gateAt(i)
+          send(`execute if entity @e[type=item,tag=wxcheck,x=${g.x - 1.5},y=-60,z=${g.toZ - 1.5},distance=..6] run say ${tag} gate-open-${wait} ${g.from}`)
+        }
+      }
+    }
+  }
+  if (plan.mirrors) {
+    for (let i = 0; i < mirrors; i++) {
+      const m = mirrorAt(i)
+      send(`execute if loaded ${m.x} -62 ${m.z} run say ${tag} mirror-loaded ${m.name}`)
+    }
+  }
+  send(`say ${tag} done`)
+  await needLog(new RegExp(`${tag} done`), 20, at, 'checking the sites')
+  const text = fs.readFileSync(logFile).subarray(at).toString('utf8')
+  const count = (kind) => (text.match(new RegExp(`${tag} ${kind} `, 'g')) || []).length
+  const open = new Set([...text.matchAll(new RegExp(`${tag} gate-open-\\d+ (\\S+)`, 'g'))].map((m) => m[1]))
+  return {
+    gatesLoaded: count('gate-loaded'),
+    gatesOpen: when === 'after' && withPlugin && plan.gates ? open.size : null,
+    mirrorsLoaded: count('mirror-loaded')
+  }
 }
 
 async function setUpWorld () {
@@ -299,27 +352,45 @@ function behave () {
 async function viewsOf (member) {
   const from = member.heard.length
   member.bot.chat('/wormhole mirror debug -views')
-  await sleep(1500)
-  // The answer comes as one message of many lines.
-  const lines = member.heard.slice(from).flatMap((text) => text.split('\n'))
+  // The answer comes as one message of many lines; waited for, since a busy server answers late.
+  // It ends at "last redraw" for a viewer, or at "looking into: no window" for anyone else.
+  const deadline = Date.now() + 15000
+  let lines = []
+  while (Date.now() < deadline) {
+    lines = member.heard.slice(from).flatMap((text) => text.split('\n'))
+    if (lines.some((l) => /looking into:\s*no window|last redraw/.test(l))) break
+    await sleep(100)
+  }
   const into = lines.map((l) => l.match(/looking into:\s*(.*)$/)).find(Boolean)
   const drawn = lines.map((l) => l.match(/\bdrawn:\s*(\d+) blocks/)).find(Boolean)
   return { into: into ? into[1].trim() : 'no answer', drawn: drawn ? Number(drawn[1]) : 0, lines }
 }
 
+/** Whether a run is one whose bots must be drawn a window for it to measure anything. */
+function needsViews () {
+  return withPlugin && party.length > 0 && (scenario === 'viewers' ||
+    (scenario === 'gateview' && env('GATE_VIEW', 'horizon') !== 'horizon'))
+}
+
+/** Waits, up to VIEW_WAIT, for every bot to be drawn a window; returns how many were. */
 async function waitForViews () {
-  if (!withPlugin || !party.length || scenario === 'wanderers') return null
-  if (scenario === 'gateview' && env('GATE_VIEW', 'horizon') === 'horizon') return null
+  if (!needsViews()) return null
   const deadline = Date.now() + viewWait * 1000
-  let seen
+  const drawn = new Set()
+  let last = null
   do {
-    seen = await viewsOf(party[0])
-    if (seen.into !== 'no window' && seen.into !== 'no answer' && seen.drawn > 0) break
-    await sleep(8000)
+    for (const member of party) {
+      if (drawn.has(member.name)) continue
+      const seen = await viewsOf(member)
+      if (member === party[0]) last = seen
+      if (seen.drawn > 0) drawn.add(member.name)
+    }
+    if (drawn.size === party.length) break
+    await sleep(5000)
   } while (Date.now() < deadline)
-  say(`${party[0].name} after ${((Date.now() - started) / 1000).toFixed(0)}s: looking into ${seen.into}, drawn ${seen.drawn}`)
-  say(`  ${seen.lines.join('\n  ')}`)
-  return seen
+  say(`${drawn.size}/${party.length} bots drawn after ${((Date.now() - started) / 1000).toFixed(0)}s`)
+  if (last) say(`  ${party[0].name}: ${last.lines.join('\n  ')}`)
+  return { drawn: drawn.size, into: last ? last.into : null }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -347,6 +418,7 @@ async function main () {
   const firstLook = await waitForViews()
   await sleep(10000)
   const warmedAt = Date.now()
+  const sitesBefore = await siteCheck('before')
 
   for (const member of party) { member.blocks = 0; member.packets = 0; member.walked = 0 }
   let at = logSize()
@@ -373,8 +445,18 @@ async function main () {
   if (withPlugin && plan.bots && scenario !== 'wanderers') {
     for (const member of party) views.push({ bot: member.name, site: member.slot.site, ...(await viewsOf(member)) })
   }
+  const sitesAfter = await siteCheck('after')
   stop()
   const drawnBots = views.filter((x) => x.drawn > 0)
+  // A run that should have drawn every bot a window, or kept every gate open and loaded, and did
+  // not, measured something else: its row says so.
+  const invalid = []
+  if (needsViews() && drawnBots.length < party.length) invalid.push(`${drawnBots.length}/${party.length} bots drawn`)
+  for (const [when, sites] of [['before', sitesBefore], ['after', sitesAfter]]) {
+    if (sites.gatesOpen !== null && sites.gatesOpen < gates) invalid.push(`${sites.gatesOpen}/${gates} gates open ${when}`)
+    if (keepLoaded && plan.gates && sites.gatesLoaded < gates) invalid.push(`${sites.gatesLoaded}/${gates} gate chunks loaded ${when}`)
+    if (keepLoaded && plan.mirrors && sites.mirrorsLoaded < mirrors) invalid.push(`${sites.mirrorsLoaded}/${mirrors} mirror chunks loaded ${when}`)
+  }
   const out = {
     label,
     scenario,
@@ -393,8 +475,12 @@ async function main () {
       meanOfAvg: mspt.length ? mspt.reduce((s, w) => s + w[0], 0) / mspt.length : null,
       maxOfMax: mspt.length ? Math.max(...mspt.map((w) => w[1])) : null
     },
+    invalid,
     validity: {
-      firstLook: firstLook ? { into: firstLook.into, drawn: firstLook.drawn } : null,
+      keepLoaded,
+      sitesBefore,
+      sitesAfter,
+      firstLook,
       botsDrawn: views.length ? drawnBots.length : null,
       drawnBlocks: views.map((x) => x.drawn),
       looking: views.map((x) => `${x.bot}@${x.site}: ${x.into}`),
@@ -409,7 +495,8 @@ async function main () {
   if (resultFile) fs.writeFileSync(resultFile, JSON.stringify(out, null, 2) + '\n')
   for (const member of party) member.bot.quit()
   await sleep(1000)
-  process.exit(out.validity.kicked.length ? 1 : 0)
+  if (invalid.length) console.error(`[load ${label}] INVALID: ${invalid.join('; ')}`)
+  process.exit(out.validity.kicked.length || invalid.length ? 1 : 0)
 }
 
 main().catch((e) => {
@@ -426,13 +513,20 @@ function printTable (folder) {
     .sort((a, b) => a.scenario.localeCompare(b.scenario) || (a.bots + a.gates + a.mirrors) - (b.bots + b.gates + b.mirrors) ||
       `${a.gateView}${a.funnelMin}`.localeCompare(`${b.gateView}${b.funnelMin}`) || Number(a.plugin) - Number(b.plugin) ||
       a.jar.localeCompare(b.jar))
+  // Gates open/loaded and mirrors loaded, at the end of the run; older results lack it.
+  const sites = (r) => {
+    const s = r.validity.sitesAfter
+    if (!s) return '-'
+    return [r.gates ? `gates ${s.gatesOpen === null ? '-' : s.gatesOpen} open, ${s.gatesLoaded} loaded` : '', r.mirrors ? `mirrors ${s.mirrorsLoaded} loaded` : '']
+      .filter(Boolean).join('; ') || '-'
+  }
   const f = (n, d = 2) => (n === null || n === undefined ? '-' : Number(n).toFixed(d))
-  console.log('| scenario | bots | gates | mirrors | gate-view | jar | mean | p95 | p99 | max | >50ms | heap start/end/peak MB | bots drawn | blocks drawn/bot | mspt max |')
-  console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+  console.log('| scenario | bots | gates | mirrors | gate-view | jar | mean | p95 | p99 | max | >50ms | heap start/end/peak MB | bots drawn | blocks drawn/bot | mspt max | sites | valid |')
+  console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
   for (const r of rows) {
     const t = r.tick
     const drawn = r.validity.drawnBlocks.length ? Math.round(r.validity.drawnBlocks.reduce((s, x) => s + x, 0) / r.validity.drawnBlocks.length) : '-'
     const view = r.scenario === 'gateview' ? `${r.gateView}/f${r.funnelMin}` : '-'
-    console.log(`| ${r.scenario} | ${r.bots} | ${r.gates} | ${r.mirrors} | ${view} | ${r.jar} | ${f(t.mean)} | ${f(t.p95)} | ${f(t.p99)} | ${f(t.max, 1)} | ${t.over50} | ${t.heapStartMB}/${t.heapEndMB}/${t.heapPeakMB} | ${r.validity.botsDrawn === null ? '-' : `${r.validity.botsDrawn}/${r.bots}`} | ${drawn} | ${f(r.mspt.maxOfMax, 1)} |`)
+    console.log(`| ${r.scenario} | ${r.bots} | ${r.gates} | ${r.mirrors} | ${view} | ${r.jar} | ${f(t.mean)} | ${f(t.p95)} | ${f(t.p99)} | ${f(t.max, 1)} | ${t.over50} | ${t.heapStartMB}/${t.heapEndMB}/${t.heapPeakMB} | ${r.validity.botsDrawn === null ? '-' : `${r.validity.botsDrawn}/${r.bots}`} | ${drawn} | ${f(r.mspt.maxOfMax, 1)} | ${sites(r)} | ${r.invalid && r.invalid.length ? `INVALID: ${r.invalid.join('; ')}` : 'ok'} |`)
   }
 }

@@ -58,10 +58,12 @@ EOF
 log="$dir/console.log"
 
 send() { echo "$1" >> "$dir/commands.txt"; }
+# Split on spaces only, never globbed: -Xlog:gc* stays as written. Empty, it adds nothing.
+read -r -a jvm_args <<< "${BOOT_JVM_ARGS:-}"
 
 cd "$dir" || exit 2
 rm -f tail.pid
-{ tail -f commands.txt & echo $! > tail.pid; wait; } | "$java_bin" "-Xmx${BOOT_HEAP:-1G}" ${BOOT_JVM_ARGS:-} -DIReallyKnowWhatIAmDoingISwear=true \
+{ tail -f commands.txt & echo $! > tail.pid; wait; } | "$java_bin" "-Xmx${BOOT_HEAP:-1G}" ${jvm_args[@]+"${jvm_args[@]}"} -DIReallyKnowWhatIAmDoingISwear=true \
   -Dterminal.jline=false -Dterminal.ansi=false -jar "$server_jar" nogui > "$log" 2>&1 &
 server_pid=$!
 cleanup() { [[ -f tail.pid ]] && kill "$(cat tail.pid)" 2>/dev/null; kill "$server_pid" 2>/dev/null; }
