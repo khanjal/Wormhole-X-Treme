@@ -67,7 +67,7 @@ through is a release nobody reads.
 
 ### Internals
 
-- Code nothing ran any more is gone: the 2011 flat-file settings writer and reader, two empty shutdown hooks, and an unused gate-facing helper ([#475](https://github.com/khanjal/Wormhole-X-Treme/issues/475)).
+- Code nothing ran any more is gone: a flat-file settings writer and reader, empty shutdown hooks, and a gate-facing helper nothing called ([#475](https://github.com/khanjal/Wormhole-X-Treme/issues/475)).
 
 ## 1.10.0 (2026-10-12)
 
