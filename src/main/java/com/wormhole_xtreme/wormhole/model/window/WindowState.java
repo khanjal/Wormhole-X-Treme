@@ -54,6 +54,10 @@ final class WindowState
     int fixedFor;
     int fixedDepth;
     long fixedUsedAt;
+    /** What {@link Windows}' count of changes behind windows stood at when the fixed view's build began. */
+    long fixedChanges;
+    /** The tunnel the fixed view was built with, or null for none. */
+    Funnel fixedFunnel;
     /** The whole capture through this window, for an admin who asked; null until then. */
     Windows.Whole full;
     Capture fullFrom;

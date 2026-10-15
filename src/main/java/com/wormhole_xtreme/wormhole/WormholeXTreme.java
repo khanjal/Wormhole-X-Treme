@@ -46,6 +46,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.window.FarChunkHolds;
 import com.wormhole_xtreme.wormhole.model.window.StandInListener;
 import com.wormhole_xtreme.wormhole.model.window.StandIns;
+import com.wormhole_xtreme.wormhole.model.window.ViewChangeListener;
 import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
@@ -161,6 +162,8 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
         StandInListener.register(pm, tp);
+        // A view is built again when the world behind its wall changes (#609).
+        pm.registerEvents(new ViewChangeListener(), tp);
         registerDismountListener(pm, tp);
     }
 

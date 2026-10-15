@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -145,15 +144,15 @@ class WindowsFunnelTest
     {
         final Capture capture = mock(Capture.class);
         when(capture.at(anyInt(), anyInt(), anyInt())).thenReturn(stone);
-        doAnswer(call ->
+        // A view is built a step at a time (#609), through the walk rather than forEachKept: all of it in one step here.
+        when(capture.keptWalk()).thenAnswer(call -> (Capture.KeptWalk) kept ->
         {
-            final Capture.Kept kept = call.getArgument(0);
             for (final Spot cell : far)
             {
                 kept.at(cell.x(), cell.y(), cell.z(), false);
             }
-            return null;
-        }).when(capture).forEachKept(any());
+            return true;
+        });
         return capture;
     }
 
@@ -342,11 +341,11 @@ class WindowsFunnelTest
     }
 
     /**
-     * A gate's held room is let go when its funnel changes, so a new tunnel shows at once rather than
-     * after the minute a room is kept.
+     * A gate's held room is built again when its funnel changes, so a new tunnel shows as soon as it is
+     * built rather than after the minute a room was kept; the old room is drawn until then (#609).
      */
     @Test
-    void aHeldRoomIsLetGoWhenTheFunnelChanges() throws ReflectiveOperationException
+    void aHeldRoomIsBuiltAgainWhenTheFunnelChanges() throws ReflectiveOperationException
     {
         final Capture capture = solidEverywhere();
         Windows.offer(gate(funnel(16)), capture);
@@ -354,11 +353,18 @@ class WindowsFunnelTest
         final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
         final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
         final Map<Long, BlockData> room = new HashMap<>();
-        active.get("gate:Abydos").fixed = room;
-        active.get("gate:Abydos").fixedUsedAt = Windows.now();
+        final long now = Windows.now();
+        final WindowState held = active.get("gate:Abydos");
+        held.fixed = room;
+        held.fixedFrom = capture;
+        held.fixedFor = held.depth();
+        held.fixedFunnel = funnel(16);
+        held.fixedAt = now;
+        held.fixedUsedAt = now;
 
         Windows.offer(gate(funnel(16)), capture);
         assertSame(room, offered.get("gate:Abydos").fixed, "the same funnel: kept");
+        assertTrue(Windows.fixedIsFresh(offered.get("gate:Abydos"), now), "and drawn as it is");
 
         final Funnel same = funnel(16);
         final List<Spot> open = new ArrayList<>();
@@ -366,12 +372,12 @@ class WindowsFunnelTest
         final Funnel lava = new Funnel(same.width(), same.height(), same.far(), same.taper(), Material.LAVA, same.nearShape(),
             same.farShape());
         Windows.offer(new GateSource("gate:Abydos", anchor, shapeFor(lava), open, ARRIVAL, "Chulak", 16, lava), capture);
-        assertNull(offered.get("gate:Abydos").fixed, "another funnel on the same shape: built again");
-        active.get("gate:Abydos").fixed = room;
+        assertSame(room, offered.get("gate:Abydos").fixed, "another funnel on the same shape: drawn meanwhile");
+        assertFalse(Windows.fixedIsFresh(offered.get("gate:Abydos"), now), "but built again");
         Windows.offer(gate(funnel(4)), capture);
-        assertNull(offered.get("gate:Abydos").fixed, "a shorter tunnel: built again");
+        assertNull(offered.get("gate:Abydos").fixed, "a shorter tunnel moves the far side: another shape, nothing kept");
         Windows.offer(gate(null), capture);
-        assertNull(offered.get("gate:Abydos").fixed, "turned off: built again");
+        assertNull(offered.get("gate:Abydos").fixed, "turned off: another shape too");
     }
 
     /** An admin's whole view of a gate is let go with its funnel too, as its held room is. */

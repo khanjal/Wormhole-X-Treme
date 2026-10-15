@@ -255,30 +255,39 @@ class WindowsGateTest
     }
 
     /**
-     * A gate's held room is kept from sweep to sweep, and let go once a fresh capture is in.
+     * A gate's held room is kept from sweep to sweep, and across a fresh capture is drawn until it is
+     * built again from that capture.
      *
-     * <p>The fixed view is drawn only from the capture it was built from, so one carried across a
-     * new capture is never drawn, only held until it ages out. Mirrors keep theirs either way, so
-     * this is the one thing the shared offer still asks a source's walk-through answer about.
+     * <p>It used to be let go with the old capture, which cost nothing while the new one was built in
+     * the same tick. Built a few milliseconds a tick (#609), letting it go would leave the gate showing
+     * nothing for the build's length; a mirror's has always been kept across a fresh capture.
      */
     @Test
-    void aGatesHeldRoomIsKeptUntilAFreshCaptureIsIn() throws ReflectiveOperationException
+    void aGatesHeldRoomIsDrawnUntilItIsBuiltAgainFromAFreshCapture() throws ReflectiveOperationException
     {
-        Captures.install(key(), capture(32));
+        final Capture first = capture(32);
+        Captures.install(key(), first);
         assertTrue(GateSource.offer(gate, false));
         Windows.finish();
         final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
         final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
         final Map<Long, BlockData> room = new HashMap<>();
-        active.get(NAME).fixed = room;
-        active.get(NAME).fixedUsedAt = System.currentTimeMillis();
+        final long now = Windows.now();
+        final WindowState held = active.get(NAME);
+        held.fixed = room;
+        held.fixedFrom = first;
+        held.fixedFor = held.depth();
+        held.fixedAt = now;
+        held.fixedUsedAt = now;
 
         assertTrue(GateSource.offer(gate, false));
         assertSame(room, offered.get(NAME).fixed, "the same capture: the room built from it is kept");
+        assertTrue(Windows.fixedIsFresh(offered.get(NAME), now), "and drawn as it is");
 
         Captures.install(key(), capture(32));
         assertTrue(GateSource.offer(gate, false));
-        assertNull(offered.get(NAME).fixed, "a fresh capture: the old room is let go");
+        assertSame(room, offered.get(NAME).fixed, "a fresh capture: the old room is still drawn meanwhile");
+        assertFalse(Windows.fixedIsFresh(offered.get(NAME), now), "but built again from the fresh capture");
     }
 
     /** A mirror's held room, unlike a gate's, outlives a fresh capture until it is rebuilt from it. */

@@ -69,9 +69,10 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * <h2>What it costs, and what keeps that down</h2>
  *
  * <ul>
- * <li>A room is built once from the capture and kept a minute; the capture already holds only the
- * surfaces somebody at the opening could see, so a room at the render distance costs what its
- * surfaces cost.</li>
+ * <li>A room is built once from the capture, a few milliseconds a tick ({@link FixedBuilds}), and
+ * built again only when the capture changes or a block changes behind the wall; the capture
+ * already holds only the surfaces somebody at the opening could see, so a room at the render
+ * distance costs what its surfaces cost.</li>
  * <li>Clipping is one cheap bound and, for the blocks that pass it, one projection each; nothing
  * is walked or occluded.</li>
  * <li>A viewer is redrawn at most ten times a second as they move, and not at all on a sweep
@@ -131,8 +132,23 @@ public final class Windows
     /** The same for a block already drawn, so a step does not take it away and the next give it back. */
     private static final double KEPT_BESIDE = 0.15;
 
-    /** How long a walled window's fixed view is kept before the real world behind it is read again. */
+    /** How long a fixed view nobody looks through is kept. */
     private static final long FIXED_MILLIS = 60_000L;
+
+    /** How old a fixed view may get before it is built again with nothing reported changed: for what no event says (#609). */
+    static final long BACKSTOP_MILLIS = 600_000L;
+
+    /** Least time between two builds of one window's view for a change behind its wall. */
+    static final long REBUILD_GAP_MILLIS = RESAMPLE_MILLIS;
+
+    /** How far past a view's depth a changed block still counts as behind it: a door or a bed is two blocks. */
+    private static final int CHANGE_SLACK = 2;
+
+    /** How many changes behind any window have been reported, ever: the clock {@link #CHANGED} is read on. */
+    private static long changes;
+
+    /** The count {@link #changes} stood at when a block last changed behind each window, by name. */
+    private static final Map<String, Long> CHANGED = new HashMap<>();
 
     /** Most blocks one fixed view may hold; past it the depth is cut until it fits. */
     private static final int MOST_FIXED = 250_000;
@@ -503,7 +519,8 @@ public final class Windows
             return clipped + MirrorText.bad("another mirror within twice the depth");
         }
         return MirrorText.good("drawn whole") + " " + toDepth(window) + ", "
-            + ((window.fixed == null) ? 0 : window.fixed.size()) + BLOCKS;
+            + ((window.fixed == null) ? 0 : window.fixed.size()) + BLOCKS
+            + (FixedBuilds.building(window.name()) ? ", being built again" : "");
     }
 
     /**
@@ -564,6 +581,10 @@ public final class Windows
         BLIND.clear();
         FULL.clear();
         Captures.clear();
+        FixedBuilds.clear();
+        FixedRegions.clear();
+        CHANGED.clear();
+        changes = 0L;
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
         mostFixed = MOST_FIXED;
@@ -600,9 +621,8 @@ public final class Windows
             window.solidAt = previous.solidAt;
             // Every window in a loaded chunk is offered each sweep, looked at or not: a fixed view
             // nobody has used for a while is let go rather than carried for the life of the chunk.
-            // A walked-through window's also goes with the capture it was built from, and its funnel.
-            if ((previous.fixed != null) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS)
-                && (!source.walkThrough() || (previous.capture == capture)) && sameFunnel)
+            // One from another capture or funnel is still drawn until its rebuild is whole (#609).
+            if ((previous.fixed != null) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS))
             {
                 window.fixed = previous.fixed;
                 window.fixedFrom = previous.fixedFrom;
@@ -610,6 +630,8 @@ public final class Windows
                 window.fixedFor = previous.fixedFor;
                 window.fixedDepth = previous.fixedDepth;
                 window.fixedUsedAt = previous.fixedUsedAt;
+                window.fixedChanges = previous.fixedChanges;
+                window.fixedFunnel = previous.fixedFunnel;
             }
             if (FULL.containsValue(name) && sameFunnel)
             {
@@ -685,6 +707,10 @@ public final class Windows
         ACTIVE.clear();
         ACTIVE.putAll(OFFERED);
         OFFERED.clear();
+        // A window not offered this sweep has nothing to build for, and no changes to hear about.
+        FixedBuilds.retain(ACTIVE::containsKey);
+        CHANGED.keySet().retainAll(ACTIVE.keySet());
+        FixedRegions.track(ACTIVE.values(), window -> (window.fixed != null) || FixedBuilds.building(window.name()));
         final Set<World> worlds = new LinkedHashSet<>();
         ACTIVE.values().forEach(window -> worlds.add(window.anchor().getWorld()));
         final Set<UUID> seen = new HashSet<>();
@@ -778,6 +804,7 @@ public final class Windows
     public static void release(final String name)
     {
         OFFERED.remove(name);
+        FixedBuilds.cancel(name);
         if (ACTIVE.remove(name) == null)
         {
             return;
@@ -1917,19 +1944,34 @@ public final class Windows
         for (final WindowState window : seeing)
         {
             final boolean alone = walled(window) && noWindowWithin(window, apart);
-            if (!fixedIsFresh(window, now))
+            final Map<Long, BlockData> room = heldRoom(window, now, mayWork);
+            if (room != null)
             {
-                if (!mayWork)
-                {
-                    // Held whole once the server has a moment; this viewer waits meanwhile.
-                    continue;
-                }
-                fixedView(window, now);
+                (alone ? whole : clipped).put(window, new Whole(room, window.fixedDepth));
             }
-            window.fixedUsedAt = now;
-            (alone ? whole : clipped).put(window, new Whole(window.fixed, window.fixedDepth));
         }
         return new Wholes(whole, clipped);
+    }
+
+    /**
+     * A window's room as it is drawn now: its fixed view, with a build asked for when that is not
+     * fresh and the server has a moment (#609).
+     *
+     * @param mayWork
+     *            false while this second's share of work is spent: no build is asked for
+     * @return the room, the old one while its rebuild runs; null until it has one
+     */
+    static Map<Long, BlockData> heldRoom(final WindowState window, final long now, final boolean mayWork)
+    {
+        if (mayWork && !fixedIsFresh(window, now))
+        {
+            fixedView(window, now);
+        }
+        if (window.fixed != null)
+        {
+            window.fixedUsedAt = now;
+        }
+        return window.fixed;
     }
 
     /** An admin's forced view: that one mirror whole and unlimited, the rest not at all. */
@@ -2032,8 +2074,10 @@ public final class Windows
         final double near = nearDistance * nearDistance;
         for (final Map.Entry<Long, BlockData> entry : whole.blocks().entrySet())
         {
-            final long cell = entry.getKey();
-            if (wanted.containsKey(cell))
+            // The key as it is, boxed once: boxed again for every lookup, it was a redraw's most made object.
+            final Long boxed = entry.getKey();
+            final long cell = boxed;
+            if (wanted.containsKey(boxed))
             {
                 continue;
             }
@@ -2043,12 +2087,12 @@ public final class Windows
             final boolean farOff = ((dx * dx) + (dy * dy) + (dz * dz)) > near;
             // No fat eye leaves the far part as it stands.
             final Eye judge = farOff ? fat : own;
-            if ((judge != null) && judge.sees(window, cell))
+            if ((judge != null) && judge.sees(window, boxed))
             {
-                wanted.put(cell, entry.getValue());
+                wanted.put(boxed, entry.getValue());
                 if (farOff)
                 {
-                    farKept.put(cell, entry.getValue());
+                    farKept.put(boxed, entry.getValue());
                 }
             }
         }
@@ -2093,7 +2137,7 @@ public final class Windows
          * Whether a block is seen through the window from here and lands where the wall hides it,
          * counting the projection and, if it is, the block.
          */
-        boolean sees(final WindowState window, final long cell)
+        boolean sees(final WindowState window, final Long cell)
         {
             final int x = unpackX(cell);
             final int y = unpackY(cell);
@@ -2158,11 +2202,51 @@ public final class Windows
         return window.full;
     }
 
-    /** Whether a window's fixed view is there, from its current capture and depth, and not old. */
-    private static boolean fixedIsFresh(final WindowState window, final long now)
+    /**
+     * Whether a window's fixed view is the one to draw: there, from its current capture, depth and
+     * tunnel, and with nothing changed behind its wall since its build began -- or that build began
+     * too recently for another -- and not older than {@link #BACKSTOP_MILLIS}.
+     */
+    static boolean fixedIsFresh(final WindowState window, final long now)
     {
-        return (window.fixed != null) && (window.fixedFrom == window.capture)
-            && (window.fixedFor == window.depth()) && ((now - window.fixedAt) < FIXED_MILLIS);
+        if ((window.fixed == null) || (window.fixedFrom != window.capture) || (window.fixedFor != window.depth())
+            || !Objects.equals(window.fixedFunnel, window.source.funnel()))
+        {
+            return false;
+        }
+        final long age = now - window.fixedAt;
+        final boolean changed = CHANGED.getOrDefault(window.name(), 0L) > window.fixedChanges;
+        return (age < REBUILD_GAP_MILLIS) || (!changed && (age < BACKSTOP_MILLIS));
+    }
+
+    /**
+     * Notes a block behind any window changing: placed, broken, blown up, pushed, burnt, flowed into
+     * (#609). Each window whose view it lies inside is built again, a few milliseconds a tick, the
+     * old view drawn meanwhile.
+     *
+     * <p>On every block change of every world, so a block nowhere near a held view is answered from
+     * one map lookup by its chunk.
+     *
+     * @param world
+     *            the block's world
+     * @param x
+     *            block x
+     * @param y
+     *            block y
+     * @param z
+     *            block z
+     */
+    public static void changed(final World world, final int x, final int y, final int z)
+    {
+        for (final String name : FixedRegions.at(world, x, z))
+        {
+            final WindowState window = ACTIVE.get(name);
+            if ((window != null) && insideFixed(window, x, y, z, window.depth() + CHANGE_SLACK))
+            {
+                changes++;
+                CHANGED.put(name, changes);
+            }
+        }
     }
 
     /** Whether this second's share of work is spent, starting a new second's if one has begun. */
@@ -2241,53 +2325,90 @@ public final class Windows
     }
 
     /**
-     * Brings a walled window's fixed view up to date: everything behind its wall out to the depth
+     * Asks for a walled window's fixed view to be built: everything behind its wall out to the depth
      * from the middle of its opening, the same whichever eye looks.
      *
      * <p>Trimmed to each eye, a view changed with every step, and a mirror seen from close up
      * reached less far than from a step back: blocks appeared and vanished as a viewer walked.
      * In a wall there is nothing to trim -- the wall hides whatever lies beside the opening -- so
-     * the whole far side is drawn once, and kept for a minute before the real world is read again.
+     * the whole far side is drawn once, and built again when something behind the wall changes.
      * The cost is that a viewer sees the far side in place of the real world behind that wall
      * from anywhere else they can see it, a doorway round the side, while they are looking in.
      * A view past {@link #mostFixedFor} blocks is cut shallower until it fits.
+     *
+     * <p>Built a few milliseconds a tick (#609): in one go it was a tick of most of a second, once a
+     * minute per watched window. The old view, if any, is drawn until the new one is whole.
      */
     private static void fixedView(final WindowState window, final long now)
     {
-        final int configured = window.depth();
-        if (fixedIsFresh(window, now))
+        final FixedBuild running = FixedBuilds.buildFor(window.name());
+        if ((running != null) && running.buildsFor(window))
         {
             return;
         }
-        int depth = configured;
-        final int most = mostFixedFor(window);
-        Map<Long, BlockData> view = fixedTo(window, depth, now, most);
-        // Half a sphere of the depth is what was looked at, found in the capture or not.
-        workSpent += (int) Math.min(Integer.MAX_VALUE / 2.0, 2.1 * depth * depth * depth);
-        while ((view == TOO_MANY) && (depth > 4))
+        FixedRegions.index(window);
+        final FixedBuild build = new FixedBuild(window, window.depth(), mostFixedFor(window), now, changes, true);
+        if (FixedBuilds.request(build, Windows::builtLater))
         {
-            depth = Math.max(4, (depth * 3) / 4);
-            view = fixedTo(window, depth, now, most);
-            workSpent += (int) (2.1 * depth * depth * depth);
+            install(window, build);
         }
-        window.fixed = (view == TOO_MANY) ? new HashMap<>() : view;
-        window.fixedFrom = window.capture;
-        window.fixedAt = now;
-        window.fixedFor = configured;
-        window.fixedDepth = depth;
+    }
+
+    /** Puts a finished build in as a window's fixed view. */
+    private static void install(final WindowState window, final FixedBuild build)
+    {
+        window.fixed = build.view();
+        window.fixedFrom = build.window.capture;
+        window.fixedAt = build.startedAt;
+        window.fixedFor = build.configured;
+        window.fixedDepth = build.depth();
+        window.fixedChanges = build.changesSeen;
+        window.fixedFunnel = build.window.source.funnel();
+    }
+
+    /**
+     * Puts a build finished on a later tick in, if its window is still offered as it was, and
+     * redraws whoever is looking into it; a window changed meanwhile asks for another on its next look.
+     */
+    static void builtLater(final FixedBuild build)
+    {
+        final String name = build.window.name();
+        final WindowState window = ACTIVE.get(name);
+        if ((window == null) || !build.buildsFor(window))
+        {
+            return;
+        }
+        install(window, build);
+        final long now = now();
+        for (final Map.Entry<UUID, ViewerDrawing> entry : new ArrayList<>(VIEWS.entrySet()))
+        {
+            final Player player = entry.getValue().mirrors.contains(name) ? Bukkit.getPlayer(entry.getKey()) : null;
+            if (player != null)
+            {
+                update(player, player.getEyeLocation(), now, false);
+            }
+        }
     }
 
     /**
      * A walled window's view to a depth, or {@link #TOO_MANY} if it would hold more than {@code most};
-     * narrowed to its funnel, if it has one.
+     * narrowed to its funnel, if it has one. All of it at once: for an admin's whole view, and tests.
      */
     static Map<Long, BlockData> fixedTo(final WindowState window, final int depth, final long now,
         final int most)
     {
-        // A capture that never went through the seen pass keeps nothing for air: walk the volume.
-        final Map<Long, BlockData> view = window.capture.complete() ? fixedToByVolume(window, depth, now, most)
-            : fixedToByKept(window, depth, now, most);
-        return tunnelled(window, view, depth, now, most);
+        final FixedBuild build = new FixedBuild(window, depth, most, now, changes, false);
+        while (!build.step())
+        {
+            // One x of the capture, or one column of the volume, a step.
+        }
+        return build.fits() ? build.view() : TOO_MANY;
+    }
+
+    /** @return true for the view {@link #fixedTo} gives past its limit */
+    static boolean tooMany(final Map<Long, BlockData> view)
+    {
+        return view == TOO_MANY;
     }
 
     /**
@@ -2348,177 +2469,11 @@ public final class Windows
     }
 
     /**
-     * A walled window's view to a depth from what its capture kept, or {@link #TOO_MANY}.
-     *
-     * <p>Every block the capture kept that lies behind the wall within the depth of the opening's
-     * middle: the far side's block where it is not air, and air where the far side's air was seen
-     * and the real block is not empty. The capture holds only what somebody at the opening could
-     * see, so this is a walk over what is kept, not over the volume, and a view at the render
-     * distance costs what its surfaces cost.
-     */
-    private static Map<Long, BlockData> fixedToByKept(final WindowState window, final int depth, final long now,
-        final int most)
-    {
-        final WindowShape shape = window.shape;
-        final Capture capture = window.capture;
-        final World here = window.anchor().getWorld();
-        final double[] centre = centreOf(shape);
-        final int min = here.getMinHeight();
-        final int max = here.getMaxHeight();
-        final BlockData air = Bukkit.createBlockData(Material.AIR);
-        final double reach = (double) depth * depth;
-        final Map<Long, BlockData> view = new HashMap<>();
-        final boolean[] over = { false };
-        capture.forEachKept((fx, fy, fz, farAir) ->
-        {
-            if (over[0])
-            {
-                return;
-            }
-            final Spot at = shape.hereOf(fx, fy, fz);
-            final int x = at.x();
-            final int y = at.y();
-            final int z = at.z();
-            final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
-            if ((layer < 1) || (y < min) || (y >= max) || !window.showsFar(x, y, z))
-            {
-                return;
-            }
-            final double dx = (x + 0.5) - centre[0];
-            final double dy = (y + 0.5) - centre[1];
-            final double dz = (z + 0.5) - centre[2];
-            if (((dx * dx) + (dy * dy) + (dz * dz)) >= reach)
-            {
-                return;
-            }
-            if (!farAir)
-            {
-                view.put(key(x, y, z), turned(window, capture.at(fx, fy, fz)));
-            }
-            else if (!WindowSight.reallyEmpty(here, x, y, z, now))
-            {
-                view.put(key(x, y, z), air);
-            }
-            if (view.size() > most)
-            {
-                over[0] = true;
-            }
-        });
-        return over[0] ? TOO_MANY : view;
-    }
-
-    /**
-     * The same for a complete capture, whose missing entries are air: every block behind the wall
-     * within the depth, walked through the volume.
-     */
-    private static Map<Long, BlockData> fixedToByVolume(final WindowState window, final int depth, final long now,
-        final int most)
-    {
-        final Volume volume = new Volume(window, depth, now, most);
-        for (int layer = 1; layer < depth; layer++)
-        {
-            final double wide = Math.sqrt(volume.reach - ((double) layer * layer));
-            for (int across = (int) Math.floor(volume.centreAcross - wide);
-                across <= (int) Math.ceil(volume.centreAcross + wide); across++)
-            {
-                if (volume.overInColumn(layer, across, wide))
-                {
-                    return TOO_MANY;
-                }
-            }
-        }
-        return volume.view;
-    }
-
-    /** One walk through the volume behind a walled window, for {@link #fixedToByVolume}. */
-    private static final class Volume
-    {
-        private final WindowState window;
-        private final World here;
-        private final boolean alongX;
-        private final int sign;
-        private final int baseAlong;
-        private final double[] centre;
-        private final double centreAcross;
-        private final int min;
-        private final int max;
-        private final BlockData air = Bukkit.createBlockData(Material.AIR);
-        private final double reach;
-        private final long now;
-        private final int most;
-        private final Map<Long, BlockData> view = new HashMap<>();
-
-        Volume(final WindowState window, final int depth, final long now, final int most)
-        {
-            this.most = most;
-            this.window = window;
-            final WindowShape shape = window.shape;
-            this.here = window.anchor().getWorld();
-            this.alongX = shape.into().x() != 0;
-            this.sign = alongX ? shape.into().x() : shape.into().z();
-            this.baseAlong = alongX ? shape.base().x() : shape.base().z();
-            this.centre = centreOf(shape);
-            this.centreAcross = centre[alongX ? 2 : 0];
-            this.min = here.getMinHeight();
-            this.max = here.getMaxHeight();
-            this.reach = (double) depth * depth;
-            this.now = now;
-        }
-
-        /**
-         * Adds every block of one column of a layer that is inside the depth, stopping as soon as
-         * the view holds more than its limit.
-         *
-         * @return true if it does
-         */
-        boolean overInColumn(final int layer, final int across, final double wide)
-        {
-            final int along = baseAlong + (sign * layer);
-            final double offAcross = (across + 0.5) - centreAcross;
-            final int yTo = Math.min(max - 1, (int) Math.ceil(centre[1] + wide));
-            for (int y = Math.max(min, (int) Math.floor(centre[1] - wide)); y <= yTo; y++)
-            {
-                final double offY = (y + 0.5) - centre[1];
-                if (((((double) layer * layer) + (offAcross * offAcross) + (offY * offY)) < reach)
-                    && block(alongX ? along : across, y, alongX ? across : along))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        /**
-         * Adds the far side's block here where it is not air, and air where the real block is not empty.
-         *
-         * @return true if the view then holds more than its limit
-         */
-        private boolean block(final int x, final int y, final int z)
-        {
-            final Capture capture = window.capture;
-            final Spot at = window.shape.farOf(x, y, z);
-            if (!window.showsFar(x, y, z) || !capture.contains(at.x(), at.y(), at.z()))
-            {
-                return false;
-            }
-            if (!capture.isAir(at.x(), at.y(), at.z()))
-            {
-                view.put(key(x, y, z), turned(window, capture.at(at.x(), at.y(), at.z())));
-            }
-            else if (!WindowSight.reallyEmpty(here, x, y, z, now))
-            {
-                view.put(key(x, y, z), air);
-            }
-            return view.size() > most;
-        }
-    }
-
-    /**
      * The middle of a window's opening, which its depth is measured from.
      *
      * @return {@code {x, y, z}}
      */
-    private static double[] centreOf(final WindowShape shape)
+    static double[] centreOf(final WindowShape shape)
     {
         final boolean alongX = shape.into().x() != 0;
         // Halfway along the opening: for two banners, between them, a step right being (-into.z, into.x).
@@ -2536,7 +2491,7 @@ public final class Windows
      * <p>A pane's connections and a stair's facing are compass directions; drawn as captured, a
      * far side turned round showed panes that did not join. Turned once per state and window.
      */
-    private static BlockData turned(final WindowState window, final BlockData data)
+    static BlockData turned(final WindowState window, final BlockData data)
     {
         if ((data == null) || ((window.rotation == StructureRotation.NONE)
             && (window.flip == Mirror.NONE)))
@@ -2811,7 +2766,8 @@ public final class Windows
     private static double[] cover(final WindowState window, final int across, final int y,
         final Set<Long> allOpen, final Set<Long> shielded)
     {
-        final long face = WindowFace.faceKey(window.shape, across, y);
+        // Boxed once for the four lookups below, not once each.
+        final Long face = WindowFace.faceKey(window.shape, across, y);
         final boolean whole = window.openKeys.contains(face) || (shielded.contains(face) && !allOpen.contains(face));
         if (!whole && (!window.solid.contains(face) || allOpen.contains(face)))
         {
