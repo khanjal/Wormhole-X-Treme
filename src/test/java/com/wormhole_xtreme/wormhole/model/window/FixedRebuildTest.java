@@ -325,22 +325,48 @@ class FixedRebuildTest
         assertSame(old, now.fixed, "and the window, now on another capture, still holds its old room");
     }
 
-    /** The region a window is indexed under reaches its view's depth behind the opening, and not in front. */
+    /**
+     * The region a window is indexed under reaches its view's depth behind the opening, and its
+     * depth to either side, and not in front. Placed so that the sixteenth block deep and the
+     * sixteenth to the side each lie a chunk past the eighth: a region half as big would miss them.
+     */
     @Test
     void aWindowsRegionCoversItsViewAndNotTheSpaceInFront()
     {
-        final WindowState window = new WindowState(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowShape shape = WindowShape.through(new Spot(0, 64, 40), new Spot(0, 0, -1), ARRIVAL, 5, 5);
+        final WindowState window = new WindowState(gate("gate:Abydos", shape), capture(shape));
 
         FixedRegions.index(window);
 
-        final Spot deepest = SHAPE.behind(16, 2, 1);
-        final Spot wide = SHAPE.behind(1, 2 + 16, 1);
+        final Spot deepest = shape.behind(16, 2, 1);
+        final Spot wide = shape.behind(1, 2 + 16, 1);
+        assertEquals(1, deepest.z() >> 4, "sixteen deep is in the chunk past eight deep's");
+        assertEquals(1, wide.x() >> 4, "sixteen to the side is in the chunk past eight's");
         assertTrue(FixedRegions.at(world, deepest.x(), deepest.z()).contains("gate:Abydos"), "sixteen deep");
         assertTrue(FixedRegions.at(world, wide.x(), wide.z()).contains("gate:Abydos"), "sixteen to the side");
-        final Spot front = SHAPE.behind(-20, 2, 1);
+        final Spot front = shape.behind(-20, 2, 1);
         assertTrue(FixedRegions.at(world, front.x(), front.z()).isEmpty(), "twenty in front: no chunk of it");
         FixedRegions.track(List.of(window), held -> false);
         assertTrue(FixedRegions.at(world, deepest.x(), deepest.z()).isEmpty(), "forgotten once it holds no room");
         assertEquals(0, FixedRegions.indexed());
+    }
+
+    /** A window the sweep no longer offers -- its chunk unloaded, its gate shut -- has its build dropped. */
+    @Test
+    void aWindowNoLongerOfferedHasItsBuildDropped() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 0L;
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowState window = held().get("gate:Abydos");
+        Windows.heldRoom(window, Windows.now(), true);
+        assertTrue(FixedBuilds.building("gate:Abydos"), "a build under way");
+
+        // The next sweep offers only another window.
+        Windows.offer(gate("gate:Chulak", AWAY), capture(AWAY));
+        held();
+
+        assertFalse(FixedBuilds.building("gate:Abydos"), "its build dropped with it");
+        assertEquals(0, tick(), "and the ticker with nothing left to build");
     }
 }

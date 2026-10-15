@@ -95,11 +95,15 @@ class FixedBuildTest
         bukkit.close();
     }
 
+    /** A state whose copy, which a turned window turns, is a state of its own, so an unturned block shows. */
     private static BlockData state(final String name, final boolean occluding)
     {
         final BlockData data = mock(BlockData.class, withSettings().stubOnly());
         when(data.getAsString()).thenReturn(name);
         when(data.isOccluding()).thenReturn(occluding);
+        final BlockData copy = mock(BlockData.class, withSettings().stubOnly());
+        when(copy.getAsString()).thenReturn(name + " turned");
+        when(data.clone()).thenReturn(copy);
         return data;
     }
 
@@ -160,7 +164,8 @@ class FixedBuildTest
         final Map<Long, BlockData> before = LegacyFixedView.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE);
         final Map<Long, BlockData> now = Windows.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE);
         assertNotSame(LegacyFixedView.TOO_MANY, before, what);
-        assertTrue(before.containsValue(grass) && before.containsValue(air), what + ": far ground and carved air, "
+        assertTrue((before.containsValue(grass) || before.containsValue(grass.clone())) && before.containsValue(air),
+            what + ": far ground, turned or not, and carved air, "
             + before.size() + " blocks");
         assertEquals(before, now, what + ": the same blocks as the walk in one go");
     }
@@ -197,7 +202,7 @@ class FixedBuildTest
         }
     }
 
-    /** With a tunnel: the far side shifted past it, its wall and its hollow. */
+    /** With a tunnel, over what was kept and through the volume: the far side shifted past it, its wall and its hollow. */
     @Test
     void aViewWithATunnelHoldsTheBlocksTheOldWalkDid()
     {
@@ -213,9 +218,12 @@ class FixedBuildTest
         }
         final Funnel funnel = Funnel.of(big, farCells, 16, Material.WATER);
         assertNotNull(funnel, "a five-square gate onto a two by three one has a tunnel");
-        final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, true), funnel);
-        assertBuiltAsBefore(window, "through a tunnel");
-        assertTrue(Windows.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE).containsValue(water), "walled in water");
+        for (final boolean seen : new boolean[] { true, false })
+        {
+            final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, seen), funnel);
+            assertBuiltAsBefore(window, "through a tunnel, " + (seen ? "over what was kept" : "through the volume"));
+            assertTrue(Windows.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE).containsValue(water), "walled in water");
+        }
     }
 
     /**
