@@ -121,6 +121,13 @@ async function siteCheck (when) {
       send(`execute if loaded ${g.x - 2} -58 ${g.z - 3} run say ${tag} gate-loaded ${g.from}`)
     }
     if (when === 'after' && withPlugin) {
+      // Both ends loaded for the test, or an item could neither be swept nor found: a gate view
+      // run keeps only the gates its bots stand at loaded.
+      for (let i = 0; i < gates && !keepLoaded; i++) {
+        const g = gateAt(i)
+        for (const z of [g.z, g.toZ]) send(`forceload add ${g.x - 16} ${z - 16} ${g.x + 16} ${z + 16}`)
+      }
+      await sleep(keepLoaded ? 0 : 3000)
       for (let i = 0; i < gates; i++) {
         const g = gateAt(i)
         send(`summon item ${g.x - 1.5} -57.5 ${g.z - 2.5} {Item:{id:"minecraft:diamond",count:1},Tags:["wxcheck"]}`)
