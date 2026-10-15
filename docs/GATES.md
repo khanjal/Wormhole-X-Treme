@@ -837,7 +837,9 @@ maps, not the capture ([How a capture is kept](MIRRORS.md#how-a-capture-is-kept)
 
 The view itself is built from the capture a few milliseconds a tick, the old view drawn until the
 new one is whole, and built again only when the capture or the tunnel changes or a block changes
-behind the gate, at most every five seconds and at least every ten minutes; until #609 it was
+behind the gate, no sooner than five seconds (or four times its build's own steps, a few seconds
+for a view at the cap) after the last one went in, up to two minutes apart while changes keep
+coming, and at least every ten minutes; until #609 it was
 built in one go on the main thread every minute, a tick of most of a second for a deep view
 ([How the room is built](MIRRORS.md#how-the-room-is-built)).
 

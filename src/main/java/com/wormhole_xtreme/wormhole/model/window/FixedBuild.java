@@ -16,9 +16,9 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * One window's fixed view being built a step at a time (#609), so no tick holds the whole walk.
  *
  * <p>Built in one go, the walk behind a mirror's opening took 300 to 800 ms of one tick, once a
- * minute per watched window. A step is one x of the capture, or one column of the volume behind
- * the opening for a capture without seen air; {@link FixedBuilds} runs as many a tick as its budget
- * allows. The blocks are those {@link Windows#fixedTo} gives: the same cells, read the same way,
+ * minute per watched window. A step is sixteen columns of the capture at most, or one column of the
+ * volume behind the opening for a capture without seen air, or one layer of the tunnel;
+ * {@link FixedBuilds} runs as many a tick as its budget allows. The blocks are those {@link Windows#fixedTo} gives: the same cells, read the same way,
  * with the depth cut by a quarter and the walk begun again whenever the view will not fit.
  *
  * <p>The only live-world read is whether a real block behind the opening is empty, where the far
@@ -62,6 +62,8 @@ final class FixedBuild
     private boolean sawUnloaded;
     /** Blocks handed to this build in its last step, kept or walked. */
     private int cellsLastStep;
+    /** The time its steps have taken, all told, as {@link FixedBuilds} measured them. */
+    private long steppedNanos;
     /** The walk over what the capture kept, for a capture with seen air; null otherwise. */
     private Capture.KeptWalk kept;
     /** What the kept walk hands each block to, made once rather than a step at a time. */
@@ -147,6 +149,23 @@ final class FixedBuild
         return sawUnloaded;
     }
 
+    /**
+     * Counts a step's time towards the build's own.
+     *
+     * @param nanos
+     *            how long the step took
+     */
+    void addStepped(final long nanos)
+    {
+        steppedNanos += Math.max(0L, nanos);
+    }
+
+    /** @return the time its steps have taken, all told: not the time since it began, which other builds share */
+    long steppedMillis()
+    {
+        return steppedNanos / 1_000_000L;
+    }
+
     /** @return how many blocks its last step was handed, kept or walked */
     int cellsLastStep()
     {
@@ -214,13 +233,16 @@ final class FixedBuild
     }
 
     /**
-     * About how many blocks the view will hold: the room it replaces, or else its cap. Grown a doubling
-     * at a time from empty, a gate's million-block map was rehashed whole inside one step.
+     * About how many blocks the view will hold: the room it replaces, or else what the capture keeps,
+     * and never more than its cap. Grown a doubling at a time from empty, a gate's million-block map
+     * was rehashed whole inside one step; made at the cap, a small gate's first build held a table for
+     * a million.
      */
     private int expected()
     {
         final Map<Long, BlockData> before = window.fixed;
-        return Math.min(Math.min(most, MOST_PRESIZE), (before == null) ? Integer.MAX_VALUE : (before.size() + (before.size() / 8)));
+        final long guess = (before == null) ? capture.kept() : (before.size() + (before.size() / 8L));
+        return (int) Math.min(Math.min(most, MOST_PRESIZE), guess);
     }
 
     /** The capacity a hash map needs to hold this many without growing. */

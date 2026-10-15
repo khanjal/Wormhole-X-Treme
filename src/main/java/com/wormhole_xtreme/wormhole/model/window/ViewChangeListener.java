@@ -47,7 +47,7 @@ public class ViewChangeListener implements Listener
 {
     /**
      * @param event
-     *            a block placed, a bed or door's two halves included
+     *            a block placed; a bed or door's other half lies within the two blocks a change is judged with to spare
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlace(final BlockPlaceEvent event)

@@ -11,6 +11,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
+import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -54,6 +55,17 @@ final class FixedBuilds
         MORE, DONE, FAILED
     }
 
+    /** What asking for the ticker came to. */
+    private enum Ticker
+    {
+        /** Running: the build goes a tick at a time. */
+        RUNNING,
+        /** No scheduler to run it on, startup or a test: the build runs to the end as it is asked for. */
+        NONE,
+        /** The scheduler refused, the plugin disabled: no build at all, rather than all of one in this tick. */
+        REFUSED
+    }
+
     /** Static state only. */
     private FixedBuilds()
     {
@@ -78,13 +90,18 @@ final class FixedBuilds
         }
         BUILDS.put(name, build);
         DONE.put(name, done);
-        if (schedule())
+        final Ticker ticker = schedule();
+        if (ticker == Ticker.RUNNING)
+        {
+            return false;
+        }
+        BUILDS.remove(name);
+        DONE.remove(name);
+        if (ticker == Ticker.REFUSED)
         {
             return false;
         }
         // Nothing to run it a tick at a time: all of it now.
-        BUILDS.remove(name);
-        DONE.remove(name);
         Step step = Step.MORE;
         while (step == Step.MORE)
         {
@@ -148,22 +165,34 @@ final class FixedBuilds
         nanos = System::nanoTime;
     }
 
-    /** Starts the ticker if it is not running. @return false if there is no scheduler to run it on */
-    private static boolean schedule()
+    /**
+     * Starts the ticker if it is not running.
+     *
+     * <p>A scheduler that refuses -- Bukkit throws for a disabled plugin -- is not taken for no
+     * scheduler at all: a build run to the end then was the whole walk in one tick again.
+     */
+    private static Ticker schedule()
     {
         if ((task != null) && !task.isCancelled())
         {
-            return true;
+            return Ticker.RUNNING;
+        }
+        final BukkitScheduler scheduler = WormholeXTreme.getScheduler();
+        if (scheduler == null)
+        {
+            return Ticker.NONE;
         }
         try
         {
-            task = WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), FixedBuilds::tick, 1L, 1L);
+            task = scheduler.runTaskTimer(WormholeXTreme.getThisPlugin(), FixedBuilds::tick, 1L, 1L);
         }
-        catch (final RuntimeException noScheduler)
+        catch (final RuntimeException refused)
         {
             task = null;
+            return Ticker.REFUSED;
         }
-        return task != null;
+        // A test's stand-in scheduler hands back nothing: run inline, as with none.
+        return (task == null) ? Ticker.NONE : Ticker.RUNNING;
     }
 
     /** Stops the ticker once there is nothing left to build. */
@@ -217,6 +246,7 @@ final class FixedBuilds
     /** One step of a build, a failure caught: the build is then dropped, and its window keeps its old view. */
     private static Step stepOf(final FixedBuild build)
     {
+        final long from = nanos.getAsLong();
         try
         {
             return build.step() ? Step.DONE : Step.MORE;
@@ -226,6 +256,10 @@ final class FixedBuilds
             warnOnce("Could not build the view through " + build.window.name() + "; its old view stays (said once)",
                 failed);
             return Step.FAILED;
+        }
+        finally
+        {
+            build.addStepped(nanos.getAsLong() - from);
         }
     }
 

@@ -230,7 +230,9 @@ Now a room is a `FixedBuild`, stepped by `FixedBuilds` at most 4 ms a tick acros
 a step is the columns of one x in one stack of sections of the capture, sixteen at most (one
 column of the volume, for an old capture with no seen air); once the walk is done, each layer of
 the tunnel is a step, and so is the check against the cap. Its map is made the size of the room
-it replaces, or of its cap, rather than grown and rehashed whole inside a step. The builds take
+it replaces, or of what the capture keeps, up to its cap, rather than grown and rehashed whole
+inside a step; a gate's first build over a big capture holds a table for a million blocks, some
+8 to 16 MB, while it runs. The builds take
 turns, across ticks too, and one that throws is dropped and said once, its window keeping its old
 room. The real world is read once per column, its highest block and whether it is loaded, and a
 block only below that; the column is read afresh each step, since a chunk may unload between
@@ -239,11 +241,13 @@ shows its banner or horizon until then. `FixedBuildTest` builds the same rooms t
 kept in the tests as `LegacyFixedView`, and asks for the same blocks.
 
 The swap redraws nobody itself: the next sweep, within a second, finds the room changed under
-whoever looks into it. Each sweep redraws at most a quarter of a million blocks of rooms for
-viewers it has drawn before (`Windows.roomBlocksPerSweep`), and the rest keep what they see until
-the next: ten viewers of a quarter-million-block room, copied into each one's drawing and compared
-with what it was sent, measured 90 to 240 ms together on the desktop below, which once a room was
-swapped all landed in one tick.
+whoever looks into it. Once a sweep has redrawn a quarter of a million blocks of swapped-in rooms
+for viewers it had drawn before, it redraws no more for a swap (`Windows.roomBlocksPerSweep`; one
+viewer whose rooms alone are more still gets a turn), and it starts a viewer further on each
+sweep, so every one is reached. A redraw only because a drawing is five seconds old is not held to
+that share. The rest of a swap's viewers keep what they see until the next sweep. Ten viewers of a
+quarter-million-block room, each copied into the viewer's drawing and compared with what it was
+sent, measured 90 to 240 ms together on the desktop below, all in one tick once a room was swapped.
 
 A scratch benchmark of the steps, on the desktop the load test runs on (busy with other programs,
 so the times varied two-fold), against a stand-in world dearer to ask than a server: a mirror at
@@ -268,11 +272,17 @@ opening that holds a room, a couple of blocks wider, and then whether the block 
 depth and two of the opening's middle.
 
 A room is not built again for a change sooner than five seconds after it went in, measured from
-when it went in, not from when its build began; nor sooner than four times as long as its build
-took. While changes keep coming -- during a build, or within that wait after a room went in --
-the wait doubles each time, up to five minutes, and it is back to five seconds once a build sees
-none. So water flowing or a farm behind a watched window costs a build every few minutes, not one
-running for good. With no change heard, a room is built again after ten minutes, for what no
+when it went in, not from when its build began; nor sooner than four times as long as its own steps
+took, measured step by step, so windows building at once do not lengthen each other's rest. A
+mirror's steps take well under a second, so for a mirror the five seconds hold; a gate's view at
+the cap takes a second or two of steps, so it waits a few seconds more. While changes keep coming
+-- during a build, or within that wait after a room went in -- the wait doubles each time, up to
+two minutes, and it is back to five seconds once a build sees none. So water flowing or a farm
+behind a watched window costs a build every two minutes, not one running for good; the price is
+that a real change behind the same window, a block a player puts down, shows up to two minutes
+late (against one minute before #609) while the churn goes on. A change is judged against the
+depth the room was built to, two blocks to spare: one past a room cut shallower to fit leaves it
+alone, and the backstop rebuilds it should clearing those blocks let it reach deeper. With no change heard, a room is built again after ten minutes, for what no
 event reports: `/fill`, WorldEdit and other plugins' block writes, this plugin's own, a dispenser
 placing or a block popping off, and a chunk generated next to a loaded one. A room whose build
 read a chunk that was not loaded drew the far side's air there whatever stood in it, and is built

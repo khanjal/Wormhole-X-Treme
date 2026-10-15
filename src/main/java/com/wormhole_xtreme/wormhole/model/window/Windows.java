@@ -142,7 +142,7 @@ public final class Windows
     static final long REBUILD_GAP_MILLIS = RESAMPLE_MILLIS;
 
     /** The longest that wait grows to while changes keep coming: a flowing river behind the wall (#609). */
-    static final long MOST_REBUILD_WAIT_MILLIS = 300_000L;
+    static final long MOST_REBUILD_WAIT_MILLIS = 120_000L;
 
     /** How many times as long as its build took a view waits, at least, before it is built again for a change. */
     static final long BUILD_REST_FACTOR = 4L;
@@ -258,12 +258,17 @@ public final class Windows
      *
      * <p>A rebuilt room is swapped in under every viewer at once, and the next sweep redrew each of
      * them: ten viewers of a quarter-million-block room were most of a tenth of a second in one tick.
-     * Past this many blocks, a viewer already drawn keeps what they see until the next sweep.
+     * Once this many blocks of swapped-in rooms have been redrawn, the sweep redraws no more viewers
+     * for a swap, and they keep what they see until the next: one viewer whose rooms alone are more
+     * still gets its turn.
      */
     static long roomBlocksPerSweep = ROOM_BLOCKS_PER_SWEEP;
 
     /** Blocks of held rooms this sweep has redrawn so far. */
     private static long sweepRoomBlocks;
+
+    /** How many sweeps have run: where the next one starts among the viewers. */
+    private static long sweeps;
 
     /** What the time is; settable so a test can let a minute pass. */
     static LongSupplier clock = System::currentTimeMillis;
@@ -631,6 +636,7 @@ public final class Windows
         workSpent = 0;
         roomBlocksPerSweep = ROOM_BLOCKS_PER_SWEEP;
         sweepRoomBlocks = 0L;
+        sweeps = 0L;
     }
 
     /**
@@ -757,9 +763,10 @@ public final class Windows
         final Set<World> worlds = new LinkedHashSet<>();
         ACTIVE.values().forEach(window -> worlds.add(window.anchor().getWorld()));
         final Set<UUID> seen = new HashSet<>();
+        sweeps++;
         for (final World world : worlds)
         {
-            for (final Player player : world.getPlayers())
+            for (final Player player : inTurn(world.getPlayers()))
             {
                 seen.add(player.getUniqueId());
                 update(player, player.getEyeLocation(), now, true);
@@ -1058,6 +1065,20 @@ public final class Windows
         }
     }
 
+    /**
+     * A world's players, started a viewer further on each sweep, so the share of room redraws
+     * ({@link #roomBlocksPerSweep}) reaches every one in turn.
+     */
+    private static List<Player> inTurn(final List<Player> players)
+    {
+        final List<Player> turned = new ArrayList<>(players);
+        if (!turned.isEmpty())
+        {
+            Collections.rotate(turned, -(int) (sweeps % turned.size()));
+        }
+        return turned;
+    }
+
     /** Takes every view back, as the plugin stops. */
     public static void restoreAll()
     {
@@ -1196,7 +1217,7 @@ public final class Windows
             tellDrawn(id, player, view.mirrors);
             return;
         }
-        if (fromSweep && !crossed && !view.stamp.isEmpty() && roomShareSpent(wholes))
+        if (fromSweep && !crossed && !view.stamp.isEmpty() && !view.stamp.equals(stamp) && roomShareSpent(wholes))
         {
             // Rooms enough were redrawn this sweep -- a rebuilt room swapped in under many viewers at
             // once -- so this viewer keeps what they see until the next (#609).
@@ -2015,13 +2036,11 @@ public final class Windows
      */
     static Map<Long, BlockData> heldRoom(final WindowState window, final long now, final boolean mayWork)
     {
+        // Looked through now, room or not: one that goes in before the next sweep is carried by it.
+        window.fixedUsedAt = now;
         if (mayWork && !fixedIsFresh(window, now))
         {
             fixedView(window, now);
-        }
-        if (window.fixed != null)
-        {
-            window.fixedUsedAt = now;
         }
         return window.fixed;
     }
@@ -2320,13 +2339,31 @@ public final class Windows
         for (final String name : FixedRegions.at(world, x, z))
         {
             final WindowState window = ACTIVE.get(name);
-            if ((window != null) && insideFixed(window, x, y, z, window.depth() + CHANGE_SLACK))
+            if ((window != null) && insideFixed(window, x, y, z, judgedDepth(window) + CHANGE_SLACK))
             {
                 changes++;
                 CHANGED.put(name, changes);
                 FIRST_CHANGED.putIfAbsent(name, now());
             }
         }
+    }
+
+    /**
+     * How deep a change behind a window can matter: the depth its room was built to, which a cut to fit
+     * makes shallower than asked; the depth asked while a build is under way, which may reach it.
+     *
+     * <p>Judged at the depth asked, a mirror at 160 cut to 67 was made stale by a sheep 150 blocks
+     * behind its wall. A change past the cut that would let the room fit deeper waits for the backstop.
+     *
+     * @return blocks from the opening's middle
+     */
+    static int judgedDepth(final WindowState window)
+    {
+        if ((window.fixed == null) || FixedBuilds.building(window.name()))
+        {
+            return window.depth();
+        }
+        return Math.min(window.depth(), window.fixedDepth);
     }
 
     /**
@@ -2468,7 +2505,10 @@ public final class Windows
         window.fixed = build.view();
         window.fixedFrom = build.window.capture;
         window.fixedAt = now;
-        window.fixedTook = Math.max(0L, now - build.startedAt);
+        // Put in is a use: the next sweep's offer carries a room only if it was used within the minute.
+        window.fixedUsedAt = now;
+        // The build's own stepped time, not the time since it began: several builds share a tick's share.
+        window.fixedTook = build.steppedMillis();
         window.fixedFor = build.configured;
         window.fixedDepth = build.depth();
         window.fixedChanges = build.changesSeen;
@@ -2518,7 +2558,7 @@ public final class Windows
         final FixedBuild build = new FixedBuild(window, depth, most, now, changes, false);
         while (!build.step())
         {
-            // One x of the capture, or one column of the volume, a step.
+            // Sixteen columns of the capture, a column of the volume, or a layer of the tunnel, a step.
         }
         return build.fits() ? build.view() : TOO_MANY;
     }

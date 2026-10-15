@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.window;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +31,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
@@ -199,6 +201,7 @@ class FixedRebuildTest
         window.fixed = room;
         window.fixedFrom = window.capture;
         window.fixedFor = window.depth();
+        window.fixedDepth = window.depth();
         window.fixedAt = at;
         window.fixedUsedAt = at;
         return room;
@@ -487,14 +490,20 @@ class FixedRebuildTest
 
     /**
      * A block changing while a room is built leaves the new room stale once it is in, and the next
-     * rebuild waits from when it went in, not from when its build began; a build with nothing changed
-     * meanwhile stays fresh until the backstop.
+     * rebuild waits from when it went in, not from when its build began, for at least four times the
+     * build's own stepped time; a build with nothing changed meanwhile stays fresh until the backstop.
+     *
+     * <p>Each step is timed at a tenth of a second here, so the 41 steps (40 of the walk, one to check
+     * the cap) are 4.1 s of building; the seven seconds of wall time between ask and finish, which
+     * other windows' builds would share, count for nothing.
      */
     @Test
     void aChangeDuringABuildLeavesTheNewRoomStaleAfterTheWaitFromWhenItWentIn() throws ReflectiveOperationException
     {
         withTicker();
-        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        final long[] nanos = { 0L };
+        FixedBuilds.nanos = () -> nanos[0] += 100_000_000L;
+        FixedBuilds.nanosPerTick = Long.MAX_VALUE / 4;
         final long[] time = { 1_000_000L };
         Windows.clock = () -> time[0];
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
@@ -511,12 +520,13 @@ class FixedRebuildTest
 
         assertNotSame(first, window.fixed, "the new room is in");
         assertEquals(putIn, window.fixedAt, "put in when it finished");
-        assertEquals(28_000L, Windows.rebuildWait(window), "four times the seven seconds it took");
-        assertTrue(Windows.fixedIsFresh(window, putIn + 27_999L), "drawn as it is until then");
-        assertFalse(Windows.fixedIsFresh(window, putIn + 28_000L), "then built again for the change made during its build");
+        assertEquals(4_100L, window.fixedTook, "its 41 steps at a tenth of a second, not the seven seconds it waited");
+        assertEquals(16_400L, Windows.rebuildWait(window), "four times what its steps took");
+        assertTrue(Windows.fixedIsFresh(window, putIn + 16_399L), "drawn as it is until then");
+        assertFalse(Windows.fixedIsFresh(window, putIn + 16_400L), "then built again for the change made during its build");
     }
 
-    /** Changes that keep coming double the wait, to five minutes at most; a build with none meanwhile puts it back to the gap. */
+    /** Changes that keep coming double the wait, to two minutes at most; a build with none meanwhile puts it back to the gap. */
     @Test
     void theWaitDoublesWhileChangesKeepComingAndResetsOnceTheyStop() throws ReflectiveOperationException
     {
@@ -541,7 +551,8 @@ class FixedRebuildTest
         assertEquals(Windows.REBUILD_GAP_MILLIS, waits[0], "the first: the gap");
         assertEquals(2 * Windows.REBUILD_GAP_MILLIS, waits[1], "then doubled");
         assertEquals(4 * Windows.REBUILD_GAP_MILLIS, waits[2], "and doubled again");
-        assertEquals(Windows.MOST_REBUILD_WAIT_MILLIS, waits[9], "capped at five minutes");
+        assertEquals(Windows.MOST_REBUILD_WAIT_MILLIS, waits[9], "capped at two minutes");
+        assertEquals(120_000L, Windows.MOST_REBUILD_WAIT_MILLIS, "two minutes, so a real change waits no longer behind churn");
 
         time[0] += Windows.rebuildWait(window);
         Windows.heldRoom(window, time[0], true);
@@ -723,5 +734,114 @@ class FixedRebuildTest
 
         assertEquals(2, tickers.size(), "a second ticker scheduled");
         assertTrue(handed.contains("gate:Chulak"), "and it ran the build");
+    }
+
+    /**
+     * A room built between sweeps is carried by the next sweep's offer, and not built again.
+     *
+     * <p>Put in by the ticker, a first room was never marked used: the next sweep's offer, which keeps
+     * a room only if it was used within the minute, threw it away, and the window was built again,
+     * forever. A viewer standing still saw the banner for good while the ticker spent its share every
+     * tick; only a step that redrew them outside a sweep broke the loop.
+     */
+    @Test
+    void aRoomBuiltBetweenSweepsIsCarriedByTheNext() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        final Capture capture = capture(SHAPE);
+        Windows.offer(gate("gate:Abydos", SHAPE), capture);
+        final WindowState window = held().get("gate:Abydos");
+        Windows.heldRoom(window, Windows.now(), true);
+        tick();
+        final Map<Long, BlockData> room = window.fixed;
+        assertEquals(STEPS, room.size(), "built and put in by the ticker");
+
+        Windows.offer(gate("gate:Abydos", SHAPE), capture);
+        final WindowState next = held().get("gate:Abydos");
+
+        assertSame(room, next.fixed, "the same room, carried by the next sweep");
+        assertTrue(Windows.fixedIsFresh(next, Windows.now()), "and drawn as it is");
+        Windows.heldRoom(next, Windows.now(), true);
+        assertEquals(0, FixedBuilds.count(), "no build asked for again");
+    }
+
+    /**
+     * A room cut shallower to fit is made stale only by a change within the depth it was cut to, and
+     * two to spare: a sheep a hundred blocks behind a wall cut to sixty kept building it again.
+     */
+    @Test
+    void aChangePastTheDepthARoomWasCutToLeavesItAlone() throws ReflectiveOperationException
+    {
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowState window = held().get("gate:Abydos");
+        final long now = Windows.now();
+        builtAt(window, now - Windows.REBUILD_GAP_MILLIS - 1L);
+        window.fixedDepth = 8;
+        FixedRegions.index(window);
+        final Spot past = SHAPE.behind(12, 2, 2);
+        final Spot within = SHAPE.behind(9, 2, 2);
+
+        Windows.changed(world, past.x(), past.y(), past.z());
+        assertTrue(Windows.fixedIsFresh(window, now), "twelve deep, past a cut to eight and two");
+        Windows.changed(world, within.x(), within.y(), within.z());
+        assertFalse(Windows.fixedIsFresh(window, now), "nine deep is within it");
+    }
+
+    /**
+     * A scheduler that refuses -- Bukkit's for a disabled plugin -- builds nothing: taken for no
+     * scheduler at all, it built the whole room in the tick that asked, the old spike back.
+     */
+    @Test
+    void aSchedulerThatRefusesBuildsNothing() throws ReflectiveOperationException
+    {
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        when(scheduler.runTaskTimer(any(Plugin.class), any(Runnable.class), anyLong(), anyLong()))
+            .thenThrow(new IllegalPluginAccessException("Plugin attempted to register task while disabled"));
+        PluginTestSupport.scheduler(scheduler);
+        final int[] steps = new int[1];
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE, steps, false));
+        final WindowState window = held().get("gate:Abydos");
+
+        Windows.heldRoom(window, Windows.now(), true);
+
+        assertEquals(0, steps[0], "not a step walked");
+        assertEquals(0, FixedBuilds.count(), "nothing queued");
+        assertNull(window.fixed, "no room");
+    }
+
+    /**
+     * Each step reads its columns afresh: a chunk loaded when one step read it may be gone by the next,
+     * and a column remembered across the two would read a block of an unloaded chunk, loading it.
+     */
+    @Test
+    void eachStepReadsItsColumnsAfresh() throws ReflectiveOperationException
+    {
+        final boolean[] loaded = { true };
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenAnswer(call -> loaded[0]);
+        final Block solid = mock(Block.class);
+        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(200);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(solid);
+        final Spot here = SHAPE.behind(3, 2, 1);
+        final Spot far = SHAPE.farOf(here.x(), here.y(), here.z());
+        final Capture capture = mock(Capture.class);
+        when(capture.keptWalk()).thenAnswer(call ->
+        {
+            final int[] step = { 0 };
+            return (Capture.KeptWalk) kept ->
+            {
+                // The same column both steps, seen air a block apart.
+                kept.at(far.x(), far.y() + step[0], far.z(), true);
+                step[0]++;
+                return step[0] >= 2;
+            };
+        });
+        final FixedBuild build = new FixedBuild(new WindowState(gate("gate:Abydos", SHAPE), capture), 16, 1000, 0L, 0L, true);
+
+        build.step();
+        loaded[0] = false;
+        build.step();
+
+        assertTrue(build.sawUnloaded(), "the second step read the chunk as it is now: not loaded");
     }
 }
