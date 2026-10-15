@@ -550,11 +550,6 @@ public class StargateYamlManager
         return null;
     }
 
-    public static void shutdown()
-    {
-        // nothing to do for YAML
-    }
-
     /**
      * What a gate's {@code OwnerName} field should hold when it is written out.
      *

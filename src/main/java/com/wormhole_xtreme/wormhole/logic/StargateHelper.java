@@ -26,98 +26,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Lightweight, trimmed Stargate helper. Responsibilities:
- * - Provide geometry utility used by unit tests
- * - Delegate shape loading to StargateShapeRegistry
- * - Provide small stubs for legacy APIs still referenced elsewhere
+ * Gate detection: finds which loaded shape, if any, a clicked block completes, and delegates
+ * shape loading to StargateShapeRegistry.
  */
 public final class StargateHelper
 {
     private StargateHelper() { }
-
-    /**
-     * Compute the gate facing direction by analysing the spatial variance of
-     * the gate's structure blocks while excluding the DHD/dial block location.
-     * Returns null for indeterminate or invalid inputs.
-     */
-    public static BlockFace computeGateFacingFromGeometry(final Stargate gate)
-    {
-        if (gate == null)
-        {
-            return null;
-        }
-        final Block dhd = gate.getGateDialLeverBlock();
-        if (dhd == null)
-        {
-            return null;
-        }
-        final List<Location> frame = frameBlocksExcludingDhd(gate.getGateStructureBlocks(), dhd);
-        if (frame.isEmpty())
-        {
-            return null;
-        }
-
-        double sumX = 0.0;
-        double sumZ = 0.0;
-        for (final Location loc : frame)
-        {
-            sumX += loc.getBlockX();
-            sumZ += loc.getBlockZ();
-        }
-        final double meanX = sumX / frame.size();
-        final double meanZ = sumZ / frame.size();
-
-        double varX = 0.0;
-        double varZ = 0.0;
-        for (final Location loc : frame)
-        {
-            final double dx = loc.getBlockX() - meanX;
-            final double dz = loc.getBlockZ() - meanZ;
-            varX += dx * dx;
-            varZ += dz * dz;
-        }
-        // Population variance: only the relative magnitudes are compared.
-        varX = varX / frame.size();
-        varZ = varZ / frame.size();
-
-        if (Math.abs(varX - varZ) < 1e-9)
-        {
-            return null; // indeterminate
-        }
-        if (varX > varZ)
-        {
-            // Spread mainly along X, so the gate faces north or south, whichever side the DHD is on.
-            return dhd.getZ() > meanZ ? BlockFace.SOUTH : BlockFace.NORTH;
-        }
-        // Spread mainly along Z, so east or west.
-        return dhd.getX() > meanX ? BlockFace.EAST : BlockFace.WEST;
-    }
-
-    /**
-     * The gate's frame blocks with nulls and the DHD's own cell removed.
-     *
-     * <p>The DHD sits in the structure list but is off to one side of the ring, so leaving it
-     * in would drag the mean towards it and skew the spread the facing is read from.
-     *
-     * @param structure
-     *            the gate's structure blocks, possibly null
-     * @param dhd
-     *            the dial lever block to exclude
-     * @return the frame blocks to measure, never null
-     */
-    private static List<Location> frameBlocksExcludingDhd(final List<Location> structure, final Block dhd)
-    {
-        if (structure == null)
-        {
-            return List.of();
-        }
-        return structure.stream()
-            .filter(loc -> (loc != null)
-                && !((loc.getBlockX() == dhd.getX())
-                    && (loc.getBlockY() == dhd.getY())
-                    && (loc.getBlockZ() == dhd.getZ())))
-            .toList();
-    }
 
     // ---------------------------------------------------------------------
     // Delegation helpers (thin wrappers)

@@ -419,7 +419,6 @@ public class WormholeXTreme extends JavaPlugin
                 saveRings();
                 saveBeams();
                 saveMirrors();
-                StargateDBManager.shutdown();
                 disableEconomyQuietly();
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
             }

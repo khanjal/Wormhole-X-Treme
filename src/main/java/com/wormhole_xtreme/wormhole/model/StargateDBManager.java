@@ -50,12 +50,5 @@ public class StargateDBManager
         StargateYamlManager.removeStargate(s);
     }
 
-    /**
-     * Nothing to close: the YAML store holds no handles between operations.
-     */
-    public static void shutdown()
-    {
-        // Intentionally empty; see above.
-    }
 
 }

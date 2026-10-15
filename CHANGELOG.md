@@ -65,6 +65,10 @@ through is a release nobody reads.
 
 - A mirror's or gate's view no longer makes the server hitch the first time it is drawn after a restart or a while unwatched: its capture is read off the disk off the main thread, the banner or horizon showing until it is in ([#528](https://github.com/khanjal/Wormhole-X-Treme/issues/528)). [Details](docs/GATES.md#seeing-through-a-gate-experimental)
 
+### Internals
+
+- Code nothing ran any more is gone: the 2011 flat-file settings writer and reader, two empty shutdown hooks, and an unused gate-facing helper ([#475](https://github.com/khanjal/Wormhole-X-Treme/issues/475)).
+
 ## 1.10.0 (2026-10-12)
 
 ### For server admins
