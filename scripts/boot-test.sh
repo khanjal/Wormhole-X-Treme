@@ -7,15 +7,18 @@
 # ("sleep N" in BOOT_COMMANDS waits N seconds); BOOT_CLIENT, a shell command run once those are sent,
 # with BOOT_CONSOLE (append a line to send it to the console) and BOOT_LOG set, which fails the test
 # by exiting non-zero. BOOT_PORT (default 25599) and BOOT_FLOOR, the flat world's one layer (default
-# minecraft:bedrock), shape the server.
+# minecraft:bedrock), shape the server. For scripts/perf-boot.sh: BOOT_HEAP (default 1G), BOOT_JVM_ARGS,
+# BOOT_PROPERTIES (lines added to server.properties), and a plugin.jar of - for a server without the
+# plugin, which skips the checks on it.
 set -uo pipefail
 
-if [[ $# -ne 2 || ! -f "$1" || ! -f "$2" ]]; then
-  echo "usage: boot-test.sh <server.jar> <plugin.jar>, both existing files (got: $*)" >&2
+if [[ $# -ne 2 || ! -f "$1" || ( "$2" != "-" && ! -f "$2" ) ]]; then
+  echo "usage: boot-test.sh <server.jar> <plugin.jar|->, existing files (got: $*)" >&2
   exit 2
 fi
 server_jar="$(realpath "$1")"
-plugin_jar="$(realpath "$2")"
+plugin_jar=""
+[[ "$2" == "-" ]] || plugin_jar="$(realpath "$2")"
 java_bin="${JAVA:-java}"
 start_timeout="${START_TIMEOUT:-300}"
 settle_seconds="${SETTLE_SECONDS:-15}"
@@ -24,7 +27,7 @@ dir="${BOOT_DIR:-$(mktemp -d)}"
 mkdir -p "$dir/plugins"
 dir="$(cd "$dir" && pwd)"
 rm -f "$dir"/plugins/*.jar
-cp "$plugin_jar" "$dir/plugins/"
+[[ -z "$plugin_jar" ]] || cp "$plugin_jar" "$dir/plugins/"
 if [[ -n "${EXTRA_PLUGINS:-}" ]]; then
   cp "$EXTRA_PLUGINS"/*.jar "$dir/plugins/"
 fi
@@ -49,6 +52,8 @@ spawn-protection=0
 view-distance=3
 simulation-distance=3
 EOF
+# A key given twice takes its last value.
+[[ -z "${BOOT_PROPERTIES:-}" ]] || printf '%s\n' "$BOOT_PROPERTIES" >> "$dir/server.properties"
 : > "$dir/commands.txt"
 log="$dir/console.log"
 
@@ -56,7 +61,7 @@ send() { echo "$1" >> "$dir/commands.txt"; }
 
 cd "$dir" || exit 2
 rm -f tail.pid
-{ tail -f commands.txt & echo $! > tail.pid; wait; } | "$java_bin" -Xmx1G -DIReallyKnowWhatIAmDoingISwear=true \
+{ tail -f commands.txt & echo $! > tail.pid; wait; } | "$java_bin" "-Xmx${BOOT_HEAP:-1G}" ${BOOT_JVM_ARGS:-} -DIReallyKnowWhatIAmDoingISwear=true \
   -Dterminal.jline=false -Dterminal.ansi=false -jar "$server_jar" nogui > "$log" 2>&1 &
 server_pid=$!
 cleanup() { [[ -f tail.pid ]] && kill "$(cat tail.pid)" 2>/dev/null; kill "$server_pid" 2>/dev/null; }
@@ -100,10 +105,10 @@ kill -0 "$server_pid" 2>/dev/null || stopped=1
 
 failures=()
 [[ $started -eq 1 ]] || failures+=("server did not finish starting within ${start_timeout}s")
-grep -q 'Enable Completed' "$log" || failures+=("the plugin never logged Enable Completed")
+[[ -z "$plugin_jar" ]] || grep -q 'Enable Completed' "$log" || failures+=("the plugin never logged Enable Completed")
 [[ $started -eq 0 || $stopped -eq 1 ]] || failures+=("server did not exit within 120s of stop")
 [[ $client_status -eq 0 ]] || failures+=("the client exited with status $client_status")
-[[ $started -eq 1 ]] && ! grep -q 'Disabling WormholeXTreme' "$log" && failures+=("the plugin was never disabled")
+[[ $started -eq 1 && -n "$plugin_jar" ]] && ! grep -q 'Disabling WormholeXTreme' "$log" && failures+=("the plugin was never disabled")
 while IFS= read -r required; do
   [[ -z "$required" ]] || grep -qE "$required" "$log" || failures+=("never logged: $required")
 done <<< "${BOOT_REQUIRE:-}"
@@ -125,7 +130,7 @@ fi
 [[ -z "$flagged" ]] || failures+=("warnings or stack frames from the plugin:"$'\n'"$flagged")
 
 if [[ ${#failures[@]} -eq 0 ]]; then
-  echo "boot test passed: $(grep -o 'Done ([^)]*)' "$log" | head -1), Enable Completed, clean stop"
+  echo "boot test passed: $(grep -o 'Done ([^)]*)' "$log" | head -1)${plugin_jar:+, Enable Completed}, clean stop"
   exit 0
 fi
 printf 'boot test FAILED\n' >&2
