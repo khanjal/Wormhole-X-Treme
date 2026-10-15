@@ -179,6 +179,28 @@ which vanilla brings along by itself. An item and a mob dropped into a gate are 
 with no player on the server. Each is another trip in `scripts/player-test/journeys.js`: set up
 from the console, act as the player, then check where the bot is and what it sees.
 
+### Load test (local only)
+
+`scripts/perf-boot.sh` asks what the plugin costs a real server's tick (#523). It boots a fresh
+Paper server per run, sets a scenario up from the console, joins N Mineflayer bots
+(`scripts/player-test/load.js`), and records every tick with a small measuring plugin
+(`scripts/perf-tick/`, compiled at run time and installed in every run). Each run with the plugin
+has a control beside it without, and the table at the end gives mean, p95, p99 and the longest tick,
+ticks over 50 ms, the heap after a full collection at each end, and how many bots were drawn a
+window:
+
+```bash
+SCENARIO=viewers BOTS="1 10" bash scripts/perf-boot.sh
+SCENARIO=gateview BOTS=10 GATE_VIEW=behind FUNNEL_MIN="0 3" DURATION=200 bash scripts/perf-boot.sh
+JARS="none main=main.jar pr=target/WormholeXTreme.jar" SCENARIO=viewers BOTS=10 bash scripts/perf-boot.sh
+```
+
+The scenarios, the settings and the server it boots are in the script's header. Everything goes in
+`.perf/`, which git ignores. A run takes four to eight minutes, most of it the boot, the setup and
+the warm-up. It needs Node 22 and a JDK 21, and runs one server at a time with the bots on the same
+machine, so read the difference from the control, not the absolute numbers. There is no workflow
+for it.
+
 ### Facility (in progress)
 
 `scripts/facility/` is the Wormhole Research Facility: a flat test campus that a tester walks
