@@ -1518,7 +1518,25 @@ public final class Capture
                 final int first = (grid.fromZ + sz) << 4;
                 for (int z = Math.max(minZ, first); z <= Math.min(grid.maxZ, first + (Section.EDGE - 1)); z++)
                 {
-                    columnKept(x, z, stack, next, kept);
+                    columnKept(z, stack, kept);
+                }
+            }
+        }
+
+        /** Visits one column of this walk's x in a stack's sections, upward: entries, or once {@code next} is null seen air. */
+        private void columnKept(final int z, final int[] stack, final Kept kept)
+        {
+            final int column = Section.column(x, z);
+            for (final int index : stack)
+            {
+                final int baseY = (grid.fromY + (index % grid.acrossY)) << 4;
+                if (next == null)
+                {
+                    sections[index].columnAir(column, x, baseY, z, kept);
+                }
+                else
+                {
+                    next[index] = sections[index].columnEntries(column, next[index], x, baseY, z, kept);
                 }
             }
         }
@@ -1545,24 +1563,6 @@ public final class Capture
                 next = null;
             }
             return done;
-        }
-    }
-
-    /** Visits one column of a stack's sections, upward. */
-    private void columnKept(final int x, final int z, final int[] stack, final int[] next, final Kept kept)
-    {
-        final int column = Section.column(x, z);
-        for (final int index : stack)
-        {
-            final int baseY = (grid.fromY + (index % grid.acrossY)) << 4;
-            if (next == null)
-            {
-                sections[index].columnAir(column, x, baseY, z, kept);
-            }
-            else
-            {
-                next[index] = sections[index].columnEntries(column, next[index], x, baseY, z, kept);
-            }
         }
     }
 
