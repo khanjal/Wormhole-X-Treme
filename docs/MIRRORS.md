@@ -178,7 +178,21 @@ that are not air, a tenth or less of what is kept. Sections would hold four time
 in today's memory, and that is no longer what the cap bounds. A window walks every cell its
 capture keeps once a minute on the main thread, reading this world behind each seen air within
 the depth, and holds what it draws at about fifty bytes a block (`Windows.MOST_FIXED`,
-`MOST_GATE_FIXED`); neither changed. A gate's capture is already cut to what its view may draw.
+`MOST_GATE_FIXED`); sections change neither the number of cells walked nor the maps. A gate's
+capture is already cut to what its view may draw.
+
+**The walk itself got slower, then less so.** The list's walk cost what was kept. The first
+sectioned walk visited every column of the box and sixteen blocks of every section it met, and
+on the far sides above it took 3 to 14 times as long as the list's (city 0.22 ms against 3.06;
+the uncut canopy 5.9 against 18.4). A review caught it. Each capture now keeps, for each stack of
+sections, those with entries and those with seen air, so a walk skips empty stacks; a full section
+knows which of its columns hold anything; and a column's air is read as its sixteen bits, a set
+bit at a time. Measured again, with a callback that hashes each block: 1.7 to 2.3 times the list's,
+about 3 ns a block more: hills 4.9 ms against 8.4, the canopy at the gate cap 1.8 against 4.2, the
+sea 2.9 against 6.5, the uncut canopy 11 against 22. The window's own work on each block, a map
+entry and for seen air a read of this world, is tens of nanoseconds or more, so the walk's share
+is small, but it is not nothing; the runs held a column of sky as one entry, which no bitmap
+matches.
 And a mirror at the default depth is never cut, since its reach is its floor. Raising
 `Captures.MOST_KEPT` or `MOST_GATE_KEPT` wants the walk measured on a server first.
 
@@ -186,7 +200,12 @@ And a mirror at the default depth is never cut, since its reach is its floor. Ra
 written as version 5 the next time the capture is taken. An earlier build reading a version 5
 file refuses it, as it would any version it does not know: it logs "Could not read mirror
 capture" once for the file and takes that view again, writing its own version. Going back a
-release costs each mirror and gate one capture, nothing more. Times and sizes above are from a
+release costs each mirror and gate one capture, nothing more. A file is read off the main thread,
+where an OutOfMemoryError is not caught, so a header no capture could have is refused before
+anything is made for it: more than 16,384 blocks along an axis, more than a million columns (the
+biggest capture, a reach of 162 each way, is 325 by 325, about 106 thousand), or a corner past the
+world border. A version 3 or 4 file's entries are read into room grown as they come, not made for
+the count it claims. Times and sizes above are from a
 scratch benchmark on one desktop, not a server; the read times varied two-fold between runs.
 
 ## The sweep

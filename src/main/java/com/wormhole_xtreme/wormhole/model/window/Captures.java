@@ -114,9 +114,9 @@ public final class Captures
      *
      * <p>Not the capture's memory any more: kept in sections (#525), a million cells measured 0.35 to
      * 0.42 MB over synthetic jungle and sea, where the list before held them in 0.8 to 1.4. What it
-     * bounds is what draws from it, unchanged by that: a window walks every cell kept each minute on
-     * the main thread, reading this world behind each seen air, and holds what it draws at about
-     * fifty bytes a block ({@code Windows.MOST_FIXED}). A mirror at the default depth is never cut,
+     * bounds is what draws from it: a window walks every cell kept each minute on the main thread
+     * (about 4 ms a million, twice the list's), reading this world behind each seen air, and holds
+     * what it draws at about fifty bytes a block ({@code Windows.MOST_FIXED}). A mirror at the default depth is never cut,
      * its reach being its floor.
      */
     static final int MOST_KEPT = 500_000;
