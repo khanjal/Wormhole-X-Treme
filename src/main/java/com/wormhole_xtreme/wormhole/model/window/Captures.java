@@ -109,12 +109,16 @@ public final class Captures
     static final int MOST_REACH = 160;
 
     /**
-     * Most blocks that are not air a mirror's capture may keep; past it, the reach is cut until it fits.
+     * Most blocks a mirror's capture may keep, the air seen among them included; past it, the reach
+     * is cut until it fits.
      *
-     * <p>A room of hills and trees at ten chunks keeps a few hundred thousand. A jungle or an
-     * ocean bed, seen through leaves or water, could keep millions: tens of megabytes on disk,
-     * as much again in memory while a window draws from it, and a walk over all of it every
-     * minute to hold the room. Half a million is about five megabytes raw and a second's walk.
+     * <p>Not the capture's memory any more: kept in sections (#525), synthetic far sides take between
+     * about the same and a quarter of what the list did, hills 0.42 MB for 1.3 million cells against
+     * 0.44 and sea 0.34 for a million against 1.37. What it bounds is what draws from it: a window
+     * walks every cell kept each minute on the main thread (4 to 7 ms a million, about twice the
+     * list's), reading this world behind each seen air, and holds
+     * what it draws at about fifty bytes a block ({@code Windows.MOST_FIXED}). A mirror at the default depth is never cut,
+     * its reach being its floor.
      */
     static final int MOST_KEPT = 500_000;
 
@@ -197,7 +201,11 @@ public final class Captures
     /** What a mirror's capture may keep; the field is for a test to lower. */
     static int mostKept = MOST_KEPT;
 
-    /** What a gate's capture may keep: as many as its view may draw ({@code Windows.mostGateFixed}). */
+    /**
+     * What a gate's capture may keep: as many as its view may draw ({@code Windows.mostGateFixed}).
+     * Sections would hold up to four times as many in today's memory (#525), but past this a view onto a
+     * near side of solid ground is cut by its own cap anyway.
+     */
     static final int MOST_GATE_KEPT = 1_000_000;
 
     /** What a gate's capture may keep; the field is for a test to lower. */
