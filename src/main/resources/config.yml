@@ -1,10 +1,9 @@
 # Wormhole X-Treme - example config.yml
 # This sample highlights permission-related settings added in recent releases.
 
-# If true, the plugin will not attempt to attach to any external permission
-# provider (Vault/LuckPerms) even if one is available. Setting this to true
-# forces the plugin to operate in a conservative mode where advanced actions
-# require operator status.
+# If true, gates ignore permission nodes even when a Vault permission provider
+# is installed: anyone may use, dial and travel by gate, and building, removing
+# and configuring gates are left to operators and gate owners.
 permissions-support-disable: false
 
 # Whether a redstone signal on a gate that is already open pushes its shutdown back, instead

@@ -40,7 +40,7 @@ through is a release nobody reads.
 - **`view-depth` replaces `gate-view-depth`, `gate-view-full-depth` and `mirror-view-depth`**: one depth for a mirror's room and a gate's view; a file without it takes the shallower of `mirror-view-depth` and `gate-view-full-depth`, so a lowered gate depth (0 meaning its first step) now shallows mirrors too, and a gate's first step is otherwise back at 32.
 - **A `config.yml` holding a removed setting still loads**: the line is ignored and left as it is, and the log names them at startup.
 - **A `config.yml` still exactly as an earlier release wrote it is replaced** with the new grouped layout and its new defaults, the old one kept as `config.yml.bak`; a value that is not one of those defaults leaves it as it is.
-- The comment on `permissions-support-disable` says what it does: gates ignore their permission nodes even with a Vault permission provider installed. It no longer names the 2011 Permissions plugin ([#475](https://github.com/khanjal/Wormhole-X-Treme/issues/475)).
+- The comment on `permissions-support-disable` says what it does: gates ignore their permission nodes even with a Vault permission provider installed ([#475](https://github.com/khanjal/Wormhole-X-Treme/issues/475)).
 
 **Removed**
 

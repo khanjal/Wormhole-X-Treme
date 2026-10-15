@@ -50,5 +50,4 @@ public class StargateDBManager
         StargateYamlManager.removeStargate(s);
     }
 
-
 }
