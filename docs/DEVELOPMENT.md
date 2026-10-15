@@ -186,8 +186,9 @@ Paper server per run, sets a scenario up from the console, joins N Mineflayer bo
 (`scripts/player-test/load.js`), and records every tick with a small measuring plugin
 (`scripts/perf-tick/`, compiled at run time and installed in every run). Each run with the plugin
 has a control beside it without, and the table at the end gives mean, p95, p99 and the longest tick,
-ticks over 50 ms, the heap after a full collection at each end, and how many bots were drawn a
-window:
+ticks over 50 ms, the heap after a full collection at each end, how many bots were drawn a window,
+and whether the gates stayed open and the sites loaded. A run that fails those checks says
+`INVALID` in its row:
 
 ```bash
 SCENARIO=viewers BOTS="1 10" bash scripts/perf-boot.sh
@@ -195,11 +196,19 @@ SCENARIO=gateview BOTS=10 GATE_VIEW=behind FUNNEL_MIN="0 3" DURATION=200 bash sc
 JARS="none main=main.jar pr=target/WormholeXTreme.jar" SCENARIO=viewers BOTS=10 bash scripts/perf-boot.sh
 ```
 
-The scenarios, the settings and the server it boots are in the script's header. Everything goes in
-`.perf/`, which git ignores. A run takes four to eight minutes, most of it the boot, the setup and
-the warm-up. It needs Node 22 and a JDK 21, and runs one server at a time with the bots on the same
-machine, so read the difference from the control, not the absolute numbers. There is no workflow
-for it.
+The scenarios, the settings and the server it boots are in the script's header. `JARS` paths are
+relative to the current folder. `JAVA` is a path or a command on PATH, and must be Java 21 or
+newer; without it a JDK 21 is looked for in the usual folders. The first run downloads the Paper
+jar with `fetch-server.sh`, installs the bots with `npm ci`, and compiles the measuring plugin
+(javac with `-proc:none`, since the server's libraries carry annotation processors it does not
+need). Everything goes in `.perf/`, which git ignores.
+
+A gate's view is walked again once a minute, so give `gateview` a `DURATION` of 180 or more. One run
+takes four to eight minutes, most of it the boot, the setup and the warm-up: a viewer run waits for
+every mirror's room to be captured and every bot to be drawn, up to three minutes more. The default
+matrix, three scenarios at N 1 and 10 with a control beside each and four gate-view variants, is 18
+runs, about two hours. It runs one server at a time with the bots on the same machine, so read the
+difference from the control, not the absolute numbers. There is no workflow for it.
 
 ### Facility (in progress)
 
