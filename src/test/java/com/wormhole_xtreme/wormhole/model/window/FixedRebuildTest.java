@@ -844,4 +844,29 @@ class FixedRebuildTest
 
         assertTrue(build.sawUnloaded(), "the second step read the chunk as it is now: not loaded");
     }
+
+    /**
+     * A room put in counts as used when it goes in, not only when it was asked for: a build that ran
+     * longer than the minute an unused room is kept -- many windows building at once -- was otherwise
+     * thrown away by the next sweep as soon as it went in.
+     */
+    @Test
+    void aRoomPutInAfterALongBuildIsCarried() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        final long[] time = { 1_000_000L };
+        Windows.clock = () -> time[0];
+        final Capture capture = capture(SHAPE);
+        Windows.offer(gate("gate:Abydos", SHAPE), capture);
+        final WindowState window = held().get("gate:Abydos");
+        Windows.heldRoom(window, time[0], true);
+        time[0] += 61_000L;
+        tick();
+        final Map<Long, BlockData> room = window.fixed;
+
+        Windows.offer(gate("gate:Abydos", SHAPE), capture);
+
+        assertSame(room, held().get("gate:Abydos").fixed, "carried: it went in a moment ago");
+    }
 }
