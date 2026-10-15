@@ -490,6 +490,44 @@ public record Funnel(int width, int height, Opening far, int taper, Material wal
         }
     }
 
+    /**
+     * Visits the hollow cells of one layer of the tunnel, if it reaches that layer within a depth:
+     * {@link #forEachHollow} a layer at a time (#609).
+     *
+     * @param layer
+     *            the layer, from 1
+     * @param depth
+     *            the view's depth
+     * @param cell
+     *            handed each cell
+     */
+    public void hollowOn(final int layer, final int depth, final Cell cell)
+    {
+        if ((layer >= 1) && (layer < Math.min(depth, taper)))
+        {
+            hollowOfLayer(layer, cell);
+        }
+    }
+
+    /**
+     * Visits the wall's cells on one layer, if the tunnel reaches that layer within a depth:
+     * {@link #forEachWall} a layer at a time (#609).
+     *
+     * @param layer
+     *            the layer, from 1
+     * @param depth
+     *            the view's depth
+     * @param cell
+     *            handed each cell
+     */
+    public void wallOn(final int layer, final int depth, final Cell cell)
+    {
+        if ((layer >= 1) && (layer < Math.min(depth, taper)))
+        {
+            wallOfLayer(layer, cell);
+        }
+    }
+
     /** Visits the hollow cells of one layer of the tunnel, all inside the near opening. */
     private void hollowOfLayer(final int layer, final Cell cell)
     {

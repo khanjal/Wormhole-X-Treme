@@ -177,6 +177,12 @@ final class FixedRegions
         return Windows.chunkKey(chunkX, chunkZ) * 0x9E3779B97F4A7C15L;
     }
 
+    /** @return true if any window is indexed: false answers every block event with no lookup at all */
+    static boolean any()
+    {
+        return !INDEXED.isEmpty();
+    }
+
     /** @return how many windows are indexed, for a test */
     static int indexed()
     {

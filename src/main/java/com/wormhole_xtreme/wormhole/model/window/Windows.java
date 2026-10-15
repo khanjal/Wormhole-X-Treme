@@ -138,8 +138,24 @@ public final class Windows
     /** How old a fixed view may get before it is built again with nothing reported changed: for what no event says (#609). */
     static final long BACKSTOP_MILLIS = 600_000L;
 
-    /** Least time between two builds of one window's view for a change behind its wall. */
+    /** Least time between a view's being put in and its being built again for a change behind its wall. */
     static final long REBUILD_GAP_MILLIS = RESAMPLE_MILLIS;
+
+    /** The longest that wait grows to while changes keep coming: a flowing river behind the wall (#609). */
+    static final long MOST_REBUILD_WAIT_MILLIS = 300_000L;
+
+    /** How many times as long as its build took a view waits, at least, before it is built again for a change. */
+    static final long BUILD_REST_FACTOR = 4L;
+
+    /** The most a view built over a chunk that was not loaded, whose blocks there were drawn as air, waits to be built again. */
+    static final long PARTIAL_BACKSTOP_MILLIS = 60_000L;
+
+    /**
+     * The first such wait, doubled each time the build that follows still finds a chunk not loaded:
+     * the first look at a window often comes while the chunks behind it are still loading, and that
+     * room is drawn with air through them, past its cap and cut shallower.
+     */
+    static final long FIRST_PARTIAL_RETRY_MILLIS = 15_000L;
 
     /** How far past a view's depth a changed block still counts as behind it: a door or a bed is two blocks. */
     private static final int CHANGE_SLACK = 2;
@@ -149,6 +165,9 @@ public final class Windows
 
     /** The count {@link #changes} stood at when a block last changed behind each window, by name. */
     private static final Map<String, Long> CHANGED = new HashMap<>();
+
+    /** When a block first changed behind each window since its view was last put in, by name. */
+    private static final Map<String, Long> FIRST_CHANGED = new HashMap<>();
 
     /** Most blocks one fixed view may hold; past it the depth is cut until it fits. */
     private static final int MOST_FIXED = 250_000;
@@ -230,6 +249,21 @@ public final class Windows
 
     private static long workSecond;
     private static int workSpent;
+
+    /** Blocks of held rooms one sweep redraws for viewers it has drawn before, by default. */
+    private static final long ROOM_BLOCKS_PER_SWEEP = 250_000L;
+
+    /**
+     * The same, settable for a test.
+     *
+     * <p>A rebuilt room is swapped in under every viewer at once, and the next sweep redrew each of
+     * them: ten viewers of a quarter-million-block room were most of a tenth of a second in one tick.
+     * Past this many blocks, a viewer already drawn keeps what they see until the next sweep.
+     */
+    static long roomBlocksPerSweep = ROOM_BLOCKS_PER_SWEEP;
+
+    /** Blocks of held rooms this sweep has redrawn so far. */
+    private static long sweepRoomBlocks;
 
     /** What the time is; settable so a test can let a minute pass. */
     static LongSupplier clock = System::currentTimeMillis;
@@ -584,6 +618,7 @@ public final class Windows
         FixedBuilds.clear();
         FixedRegions.clear();
         CHANGED.clear();
+        FIRST_CHANGED.clear();
         changes = 0L;
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
@@ -594,6 +629,8 @@ public final class Windows
         restFactor = REST_FACTOR;
         workSecond = 0L;
         workSpent = 0;
+        roomBlocksPerSweep = ROOM_BLOCKS_PER_SWEEP;
+        sweepRoomBlocks = 0L;
     }
 
     /**
@@ -627,6 +664,10 @@ public final class Windows
                 window.fixed = previous.fixed;
                 window.fixedFrom = previous.fixedFrom;
                 window.fixedAt = previous.fixedAt;
+                window.fixedTook = previous.fixedTook;
+                window.fixedWait = previous.fixedWait;
+                window.fixedPartial = previous.fixedPartial;
+                window.fixedPartialWait = previous.fixedPartialWait;
                 window.fixedFor = previous.fixedFor;
                 window.fixedDepth = previous.fixedDepth;
                 window.fixedUsedAt = previous.fixedUsedAt;
@@ -704,12 +745,14 @@ public final class Windows
             return;
         }
         final long now = now();
+        sweepRoomBlocks = 0L;
         ACTIVE.clear();
         ACTIVE.putAll(OFFERED);
         OFFERED.clear();
         // A window not offered this sweep has nothing to build for, and no changes to hear about.
         FixedBuilds.retain(ACTIVE::containsKey);
         CHANGED.keySet().retainAll(ACTIVE.keySet());
+        FIRST_CHANGED.keySet().retainAll(ACTIVE.keySet());
         FixedRegions.track(ACTIVE.values(), window -> (window.fixed != null) || FixedBuilds.building(window.name()));
         final Set<World> worlds = new LinkedHashSet<>();
         ACTIVE.values().forEach(window -> worlds.add(window.anchor().getWorld()));
@@ -1150,6 +1193,14 @@ public final class Windows
             // Kept as drawn, so judged against what is drawn: a creature moves, or walks in, while the viewer stands still.
             showStandIns(player, view, eye, seeing, wholes, now);
             // Still told: a gate's horizon may have cleared under a view that has not changed.
+            tellDrawn(id, player, view.mirrors);
+            return;
+        }
+        if (fromSweep && !crossed && !view.stamp.isEmpty() && roomShareSpent(wholes))
+        {
+            // Rooms enough were redrawn this sweep -- a rebuilt room swapped in under many viewers at
+            // once -- so this viewer keeps what they see until the next (#609).
+            followStandIns(view);
             tellDrawn(id, player, view.mirrors);
             return;
         }
@@ -2205,8 +2256,9 @@ public final class Windows
 
     /**
      * Whether a window's fixed view is the one to draw: there, from its current capture, depth and
-     * tunnel, and with nothing changed behind its wall since its build began -- or that build began
-     * too recently for another -- and not older than {@link #BACKSTOP_MILLIS}.
+     * tunnel; younger than the backstop ({@link #BACKSTOP_MILLIS}, or {@link #PARTIAL_BACKSTOP_MILLIS}
+     * for one built over a chunk that was not loaded); and either nothing has changed behind its wall
+     * since its build began, or it was put in too recently to be built again ({@link #rebuildWait}).
      */
     static boolean fixedIsFresh(final WindowState window, final long now)
     {
@@ -2216,8 +2268,30 @@ public final class Windows
             return false;
         }
         final long age = now - window.fixedAt;
-        final boolean changed = CHANGED.getOrDefault(window.name(), 0L) > window.fixedChanges;
-        return (age < REBUILD_GAP_MILLIS) || (!changed && (age < BACKSTOP_MILLIS));
+        if (age >= (window.fixedPartial ? window.fixedPartialWait : BACKSTOP_MILLIS))
+        {
+            return false;
+        }
+        return !changedSince(window) || (age < rebuildWait(window));
+    }
+
+    /** Whether a block has changed behind a window's wall since its view's build began. */
+    private static boolean changedSince(final WindowState window)
+    {
+        return CHANGED.getOrDefault(window.name(), 0L) > window.fixedChanges;
+    }
+
+    /**
+     * How long after its view is put in a window waits before building it again for a change: the
+     * gap, longer for a view whose build took long, and longer again while changes keep coming.
+     *
+     * <p>From when the view went in, not when its build began: a build that outlasted the gap and
+     * saw a change while it ran started the next one at once, and anything churning behind a
+     * watched window -- water flowing, a farm, fire -- kept a build running for good.
+     */
+    static long rebuildWait(final WindowState window)
+    {
+        return Math.max(Math.max(REBUILD_GAP_MILLIS, window.fixedWait), BUILD_REST_FACTOR * window.fixedTook);
     }
 
     /**
@@ -2239,6 +2313,10 @@ public final class Windows
      */
     public static void changed(final World world, final int x, final int y, final int z)
     {
+        if (!FixedRegions.any())
+        {
+            return;
+        }
         for (final String name : FixedRegions.at(world, x, z))
         {
             final WindowState window = ACTIVE.get(name);
@@ -2246,8 +2324,25 @@ public final class Windows
             {
                 changes++;
                 CHANGED.put(name, changes);
+                FIRST_CHANGED.putIfAbsent(name, now());
             }
         }
+    }
+
+    /**
+     * Whether this sweep's share of room redraws is spent; if not, counts this viewer's rooms against it.
+     *
+     * @return true if the viewer is to wait for the next sweep
+     */
+    private static boolean roomShareSpent(final Wholes wholes)
+    {
+        if (sweepRoomBlocks >= roomBlocksPerSweep)
+        {
+            return true;
+        }
+        wholes.whole().values().forEach(whole -> sweepRoomBlocks += whole.blocks().size());
+        wholes.clipped().values().forEach(whole -> sweepRoomBlocks += whole.blocks().size());
+        return false;
     }
 
     /** Whether this second's share of work is spent, starting a new second's if one has begun. */
@@ -2355,39 +2450,61 @@ public final class Windows
         }
     }
 
-    /** Puts a finished build in as a window's fixed view. */
+    /**
+     * Puts a finished build in as a window's fixed view, and sets how long it waits before a change
+     * builds it again: doubled, up to {@link #MOST_REBUILD_WAIT_MILLIS}, while changes keep coming --
+     * during the build, or within the last wait after the last view went in -- and back to the gap
+     * once they stop.
+     */
     private static void install(final WindowState window, final FixedBuild build)
     {
+        final long now = now();
+        final Long firstChange = FIRST_CHANGED.remove(window.name());
+        final boolean duringBuild = CHANGED.getOrDefault(window.name(), 0L) > build.changesSeen;
+        final boolean soonAfter = (window.fixed != null) && (firstChange != null)
+            && ((firstChange - window.fixedAt) < rebuildWait(window));
+        window.fixedWait = (duringBuild || soonAfter)
+            ? Math.min(MOST_REBUILD_WAIT_MILLIS, Math.max(REBUILD_GAP_MILLIS, window.fixedWait * 2L)) : 0L;
         window.fixed = build.view();
         window.fixedFrom = build.window.capture;
-        window.fixedAt = build.startedAt;
+        window.fixedAt = now;
+        window.fixedTook = Math.max(0L, now - build.startedAt);
         window.fixedFor = build.configured;
         window.fixedDepth = build.depth();
         window.fixedChanges = build.changesSeen;
         window.fixedFunnel = build.window.source.funnel();
+        window.fixedPartialWait = partialWaitAfter(window, build.sawUnloaded());
+        window.fixedPartial = build.sawUnloaded();
     }
 
     /**
-     * Puts a build finished on a later tick in, if its window is still offered as it was, and
-     * redraws whoever is looking into it; a window changed meanwhile asks for another on its next look.
+     * How long a view just built waits to be built again for a chunk its build found not loaded: none
+     * for a view that found none, the first retry after one that did not, then twice the last.
+     */
+    private static long partialWaitAfter(final WindowState window, final boolean partial)
+    {
+        if (!partial)
+        {
+            return 0L;
+        }
+        final long next = window.fixedPartial ? (window.fixedPartialWait * 2L) : FIRST_PARTIAL_RETRY_MILLIS;
+        return Math.min(PARTIAL_BACKSTOP_MILLIS, next);
+    }
+
+    /**
+     * Puts a build finished on a later tick in, if its window is still offered as it was; a window
+     * changed meanwhile asks for another on its next look.
+     *
+     * <p>Nobody is redrawn here: the next sweep, within a second, finds the room changed and redraws
+     * whoever looks into it, as it always has. Redrawn here as well, every viewer's redraw landed in
+     * the build's own tick, on top of its share.
      */
     static void builtLater(final FixedBuild build)
     {
-        final String name = build.window.name();
-        final WindowState window = ACTIVE.get(name);
-        if ((window == null) || !build.buildsFor(window))
+        final WindowState window = ACTIVE.get(build.window.name());
+        if ((window != null) && build.buildsFor(window))
         {
-            return;
-        }
-        install(window, build);
-        final long now = now();
-        for (final Map.Entry<UUID, ViewerDrawing> entry : new ArrayList<>(VIEWS.entrySet()))
-        {
-            final Player player = entry.getValue().mirrors.contains(name) ? Bukkit.getPlayer(entry.getKey()) : null;
-            if (player != null)
-            {
-                update(player, player.getEyeLocation(), now, false);
-            }
+            install(window, build);
         }
     }
 
@@ -2404,6 +2521,12 @@ public final class Windows
             // One x of the capture, or one column of the volume, a step.
         }
         return build.fits() ? build.view() : TOO_MANY;
+    }
+
+    /** @return true if any window holds a view a changed block could make stale: the block events' first question */
+    public static boolean watchingAny()
+    {
+        return FixedRegions.any();
     }
 
     /** @return true for the view {@link #fixedTo} gives past its limit */
@@ -2430,6 +2553,29 @@ public final class Windows
         {
             return view;
         }
+        for (int layer = 1; layer < Math.min(depth, funnel.taper()); layer++)
+        {
+            tunnelLayer(window, view, layer, depth, now);
+        }
+        return (view.size() > most) ? TOO_MANY : view;
+    }
+
+    /**
+     * Draws one layer of a tunnel into a view: its wall, and its hollow where the real block is not
+     * empty. The wall and the hollow never share a cell, so a layer at a time draws what
+     * {@link #tunnelled} draws (#609).
+     *
+     * @param layer
+     *            the layer, from 1
+     */
+    static void tunnelLayer(final WindowState window, final Map<Long, BlockData> view, final int layer, final int depth,
+        final long now)
+    {
+        final Funnel funnel = window.source.funnel();
+        if (funnel == null)
+        {
+            return;
+        }
         final WindowShape shape = window.shape;
         final World here = window.anchor().getWorld();
         final int min = here.getMinHeight();
@@ -2440,23 +2586,22 @@ public final class Windows
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         // Never over the gate's own frame, such as a ring a block behind its opening.
         final Set<Spot> own = window.source.structure();
-        funnel.forEachWall(depth, (layer, across, up) ->
+        funnel.wallOn(layer, depth, (at, across, up) ->
         {
-            final Spot at = shape.behind(layer, across, up);
-            if (drawable(at, min, max, centre, reach) && !own.contains(at))
+            final Spot cell = shape.behind(at, across, up);
+            if (drawable(cell, min, max, centre, reach) && !own.contains(cell))
             {
-                view.put(key(at.x(), at.y(), at.z()), wall);
+                view.put(key(cell.x(), cell.y(), cell.z()), wall);
             }
         });
-        funnel.forEachHollow(depth, (layer, across, up) ->
+        funnel.hollowOn(layer, depth, (at, across, up) ->
         {
-            final Spot at = shape.behind(layer, across, up);
-            if (drawable(at, min, max, centre, reach) && !WindowSight.reallyEmpty(here, at.x(), at.y(), at.z(), now))
+            final Spot cell = shape.behind(at, across, up);
+            if (drawable(cell, min, max, centre, reach) && !WindowSight.reallyEmpty(here, cell.x(), cell.y(), cell.z(), now))
             {
-                view.put(key(at.x(), at.y(), at.z()), air);
+                view.put(key(cell.x(), cell.y(), cell.z()), air);
             }
         });
-        return (view.size() > most) ? TOO_MANY : view;
     }
 
     /** Whether a block is inside the world's height and within a view's depth of its opening's middle. */
@@ -2878,9 +3023,6 @@ public final class Windows
         final World here = window.anchor().getWorld();
         final int reach = WindowFace.wallReach();
         final int[] span = WindowFace.acrossSpan(shape, reach);
-        // Below the world's floor nothing stands and nothing is drawn, so it hides as wall does; read,
-        // it is void air, and a mirror near the floor was clipped to each eye for it (#609).
-        final int floor = here.getMinHeight();
         final Set<Long> solid = new HashSet<>();
         for (int across = span[0]; across <= span[1]; across++)
         {
@@ -2888,7 +3030,7 @@ public final class Windows
                 y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = WindowFace.faceKey(shape, across, y);
-                if ((y < floor) || here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
+                if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
                 {
                     solid.add(face);
                 }

@@ -52,8 +52,20 @@ final class FixedBuild
     private boolean finished;
     private boolean fits = true;
     private final boolean cutToFit;
+    /** True once the walk is done and the tunnel and the limit are next, a step each. */
+    private boolean walked;
+    /** The tunnel's next layer to draw, once the walk is done. */
+    private int tunnelLayer;
+    /** The most blocks a view's map is made room for at the start: past it, it grows. */
+    private static final int MOST_PRESIZE = 1_000_000;
+    /** Whether a column read was of a chunk not loaded, whose blocks are then drawn as air. */
+    private boolean sawUnloaded;
+    /** Blocks handed to this build in its last step, kept or walked. */
+    private int cellsLastStep;
     /** The walk over what the capture kept, for a capture with seen air; null otherwise. */
     private Capture.KeptWalk kept;
+    /** What the kept walk hands each block to, made once rather than a step at a time. */
+    private final Capture.Kept visitor = this::keptAt;
     /** The next layer and column of the volume, for a complete capture. */
     private int layer;
     private int across;
@@ -129,6 +141,18 @@ final class FixedBuild
         return fits;
     }
 
+    /** @return true if a column it read was of a chunk not loaded: worth building again sooner */
+    boolean sawUnloaded()
+    {
+        return sawUnloaded;
+    }
+
+    /** @return how many blocks its last step was handed, kept or walked */
+    int cellsLastStep()
+    {
+        return cellsLastStep;
+    }
+
     /**
      * Whether this build is still the one a window wants: from the same capture, shape, depth and funnel.
      *
@@ -148,8 +172,12 @@ final class FixedBuild
     {
         depth = to;
         reach = (double) to * to;
-        view = new HashMap<>();
+        view = new HashMap<>(capacityFor(expected()));
         over = false;
+        walked = false;
+        tunnelLayer = 1;
+        sawUnloaded = false;
+        forgetColumn();
         if (capture.complete())
         {
             kept = null;
@@ -162,32 +190,68 @@ final class FixedBuild
     }
 
     /**
-     * Walks one step: one x of the capture, or one column of the volume, and the tunnel and the
-     * check against the limit once the walk is done.
+     * Walks one step: up to sixteen columns of the capture, or one column of the volume; or, once the
+     * walk is done, the tunnel and the check against the limit.
      *
      * @return true once the view is built
      */
     boolean step()
     {
+        cellsLastStep = 0;
         if (finished)
         {
             return true;
         }
-        final boolean walked = (kept != null) ? kept.step(this::keptAt) : volumeStep();
-        if (over || walked)
+        if (walked || over)
         {
             settle();
+            return finished;
         }
-        return finished;
+        // Read afresh each step: a chunk loaded a tick ago may not be now.
+        forgetColumn();
+        walked = (kept != null) ? kept.step(visitor) : volumeStep();
+        return false;
     }
 
-    /** At the end of a walk: the tunnel drawn in, and the depth cut until the view fits. */
+    /**
+     * About how many blocks the view will hold: the room it replaces, or else its cap. Grown a doubling
+     * at a time from empty, a gate's million-block map was rehashed whole inside one step.
+     */
+    private int expected()
+    {
+        final Map<Long, BlockData> before = window.fixed;
+        return Math.min(Math.min(most, MOST_PRESIZE), (before == null) ? Integer.MAX_VALUE : (before.size() + (before.size() / 8)));
+    }
+
+    /** The capacity a hash map needs to hold this many without growing. */
+    private static int capacityFor(final int entries)
+    {
+        return (int) Math.min(1L << 30, (entries * 4L / 3L) + 1L);
+    }
+
+    /** Forgets the column last read, so the next block reads its own. */
+    private void forgetColumn()
+    {
+        columnX = Integer.MIN_VALUE;
+        columnZ = Integer.MIN_VALUE;
+    }
+
+    /**
+     * At the end of a walk, a step each: the tunnel drawn in a layer at a time, then the check against
+     * the limit, the depth cut until the view fits. Drawn whole in one step, a big gate's tunnel took
+     * tens of milliseconds.
+     */
     private void settle()
     {
-        final Map<Long, BlockData> done = over ? null : Windows.tunnelled(window, view, depth, startedAt, most);
-        if ((done != null) && !Windows.tooMany(done))
+        final Funnel funnel = window.source.funnel();
+        if (!over && (funnel != null) && (tunnelLayer < Math.min(depth, funnel.taper())))
         {
-            view = done;
+            Windows.tunnelLayer(window, view, tunnelLayer, depth, Windows.now());
+            tunnelLayer++;
+            return;
+        }
+        if (!over && (view.size() <= most))
+        {
             finished = true;
             return;
         }
@@ -204,6 +268,7 @@ final class FixedBuild
     /** One block the capture kept, as {@link Windows#fixedTo} draws it for a capture with seen air. */
     private void keptAt(final int fx, final int fy, final int fz, final boolean farAir)
     {
+        cellsLastStep++;
         if (over)
         {
             return;
@@ -292,6 +357,7 @@ final class FixedBuild
     /** One block of the volume: the far side's block where it is not air, and air where the real block is not empty. */
     private void volumeAt(final int x, final int y, final int z, final int fx, final int fy, final int fz)
     {
+        cellsLastStep++;
         if (!window.showsFar(x, y, z) || !capture.contains(fx, fy, fz))
         {
             return;
@@ -318,6 +384,7 @@ final class FixedBuild
             columnX = x;
             columnZ = z;
             columnLoaded = here.isChunkLoaded(x >> 4, z >> 4);
+            sawUnloaded |= !columnLoaded;
             columnTop = columnLoaded ? here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE) : Integer.MAX_VALUE;
         }
         return (y > columnTop) || (columnLoaded && here.getBlockAt(x, y, z).isEmpty());

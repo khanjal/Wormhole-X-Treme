@@ -1467,33 +1467,31 @@ public final class Capture
     }
 
     /**
-     * Visits every column of one x that has a section in a stack, z upward, and in each column
-     * those sections, upward: their entries, or with no {@code next} their seen air.
+     * Visits the columns of one x in one stack of sections, at most sixteen, z upward, and in each
+     * column those sections, upward: their entries, or with no {@code next} their seen air.
      *
      * @param stacks
      *            by {@code sx * acrossZ + sz}, the sections to visit in each, upward
+     * @param sz
+     *            which stack along z, from the grid's first
      * @param next
-     *            where each listed section's next column starts, carried from one x to the next; null for the air
+     *            where each listed section's next column starts, carried from one column to the next; null for the air
      */
-    private void slab(final int[][] stacks, final int x, final int[] next, final Kept kept)
+    private void stackAt(final int[][] stacks, final int x, final int sz, final int[] next, final Kept kept)
     {
-        final int across = ((x >> 4) - grid.fromX) * grid.acrossZ;
-        for (int sz = 0; sz < grid.acrossZ; sz++)
+        final int[] stack = stacks[(((x >> 4) - grid.fromX) * grid.acrossZ) + sz];
+        if (stack.length > 0)
         {
-            final int[] stack = stacks[across + sz];
-            if (stack.length > 0)
+            final int first = (grid.fromZ + sz) << 4;
+            for (int z = Math.max(minZ, first); z <= Math.min(grid.maxZ, first + (Section.EDGE - 1)); z++)
             {
-                final int first = (grid.fromZ + sz) << 4;
-                for (int z = Math.max(minZ, first); z <= Math.min(grid.maxZ, first + (Section.EDGE - 1)); z++)
-                {
-                    columnKept(x, z, stack, next, kept);
-                }
+                columnKept(x, z, stack, next, kept);
             }
         }
     }
 
     /**
-     * Starts a walk over every block kept that goes one x at a time, to be stopped between steps
+     * Starts a walk over every block kept that goes sixteen columns at a time, to be stopped between steps
      * and carried on later (#609): the blocks {@link #forEachKept} visits, in its order.
      *
      * @return the walk, at its start
@@ -1517,10 +1515,14 @@ public final class Capture
         boolean step(Kept kept);
     }
 
-    /** The walk {@link #keptWalk} gives, one x a step: every entry, then the seen air. */
+    /**
+     * The walk {@link #keptWalk} gives, a step the columns of one x in one stack of sections: every
+     * entry, then the seen air. A step at a whole x was up to a sixth of a million blocks (#609).
+     */
     private final class SlabWalk implements KeptWalk
     {
         private int x = minX;
+        private int sz;
         /** Where each listed section's next column starts; null once on the seen air. */
         private int[] next = new int[sections.length];
         private boolean done = sizeX <= 0;
@@ -1532,7 +1534,13 @@ public final class Capture
             {
                 return true;
             }
-            slab((next == null) ? airStacks : entryStacks, x, next, kept);
+            stackAt((next == null) ? airStacks : entryStacks, x, sz, next, kept);
+            sz++;
+            if (sz < grid.acrossZ)
+            {
+                return false;
+            }
+            sz = 0;
             x++;
             if (x >= (minX + sizeX))
             {

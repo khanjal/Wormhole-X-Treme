@@ -226,23 +226,61 @@ it in the walk over the kept blocks, and inside it in `WindowSight.reallyEmpty`,
 every seen air block, millions over open ground: a cache lookup each, whose column key (x xor z)
 crowded a few hash buckets.
 
-Now a room is a `FixedBuild`, stepped one x of the capture at a time (one column of the volume,
-for an old capture with no seen air) by `FixedBuilds`, at most 4 ms a tick across every window.
-The real world is read once per column, its highest block and whether it is loaded, and a block
-only below that. The old room is drawn until the new one is whole and swapped in; a window with
-none yet shows its banner or horizon until then. `FixedBuildTest` builds the same rooms the old
-walk did, kept in the tests as `LegacyFixedView`, and asks for the same blocks.
+Now a room is a `FixedBuild`, stepped by `FixedBuilds` at most 4 ms a tick across every window:
+a step is the columns of one x in one stack of sections of the capture, sixteen at most (one
+column of the volume, for an old capture with no seen air); once the walk is done, each layer of
+the tunnel is a step, and so is the check against the cap. Its map is made the size of the room
+it replaces, or of its cap, rather than grown and rehashed whole inside a step. The builds take
+turns, across ticks too, and one that throws is dropped and said once, its window keeping its old
+room. The real world is read once per column, its highest block and whether it is loaded, and a
+block only below that; the column is read afresh each step, since a chunk may unload between
+ticks. The old room is drawn until the new one is whole and swapped in; a window with none yet
+shows its banner or horizon until then. `FixedBuildTest` builds the same rooms the old walk did,
+kept in the tests as `LegacyFixedView`, and asks for the same blocks.
+
+The swap redraws nobody itself: the next sweep, within a second, finds the room changed under
+whoever looks into it. Each sweep redraws at most a quarter of a million blocks of rooms for
+viewers it has drawn before (`Windows.roomBlocksPerSweep`), and the rest keep what they see until
+the next: ten viewers of a quarter-million-block room, copied into each one's drawing and compared
+with what it was sent, measured 90 to 240 ms together on the desktop below, which once a room was
+swapped all landed in one tick.
+
+A scratch benchmark of the steps, on the desktop the load test runs on (busy with other programs,
+so the times varied two-fold), against a stand-in world dearer to ask than a server: a mirror at
+160 over hills (a capture keeping 4.2 million blocks, a room of 223 thousand cut to 67 deep) took
+21,684 steps, 0.3 to 0.5 s in all; a Massive gate over a canopy at the gate cap (4.9 million kept,
+905 thousand drawn) 17,493 steps; with a tunnel onto a Standard gate, 13,497. No step was handed
+more than 1,362 blocks, and the dearest step of a run was 2.5 to 5 ms, the tunnel's layers and the
+final check well under 1 ms each. A few runs had one step of 15 to 110 ms; the work in a step is
+bounded, so those are most likely the test JVM collecting a heap holding three such captures, not
+checked with a collection log. Before the tunnel was a layer a step, it took 11 to 27 ms in one.
 
 And it is built again only when something it depends on changes: the capture, the depth, the
-tunnel, or a block behind the wall. `ViewChangeListener` hears blocks placed, broken, exploded,
-pushed by a piston, burnt, flowed into, decayed, formed, faded, spread, changed by a creature, and
-grown into a tree, and `Windows.changed` finds the windows each could affect from one lookup by
-chunk (`FixedRegions`): the box round the half-sphere behind each opening that holds a room, a
-couple of blocks wider. A room is not built again sooner than five seconds after its last build,
-so a river behind a wall does not rebuild it every tick, and otherwise after ten minutes, for what
-no event reports: a chunk generated or reloaded, a command's fill, a block another plugin set.
-Players and creatures are not part of the room; they are drawn on their own (stand-ins, far
-players), and moving costs no rebuild.
+tunnel, or a block behind the wall. `ViewChangeListener` hears blocks placed, broken, poured or
+scooped with a bucket, exploded, pushed or pulled by a piston (both sides of each moved block
+along its line: a retracting piston's direction is the way it faces, not the way its blocks move),
+burnt, lit, flowed into, decayed, formed, faded, spread, changed by a creature, grown into or out
+of an empty block (a crop ageing is not heard: it changes nothing a room draws, and a farm would
+keep its room rebuilding), fertilised, and grown into a tree. Each handler asks first whether any
+room is held at all, before it touches the event. `Windows.changed` then finds the windows each
+could affect from one lookup by chunk (`FixedRegions`): the box round the half-sphere behind each
+opening that holds a room, a couple of blocks wider, and then whether the block is within the
+depth and two of the opening's middle.
+
+A room is not built again for a change sooner than five seconds after it went in, measured from
+when it went in, not from when its build began; nor sooner than four times as long as its build
+took. While changes keep coming -- during a build, or within that wait after a room went in --
+the wait doubles each time, up to five minutes, and it is back to five seconds once a build sees
+none. So water flowing or a farm behind a watched window costs a build every few minutes, not one
+running for good. With no change heard, a room is built again after ten minutes, for what no
+event reports: `/fill`, WorldEdit and other plugins' block writes, this plugin's own, a dispenser
+placing or a block popping off, and a chunk generated next to a loaded one. A room whose build
+read a chunk that was not loaded drew the far side's air there whatever stood in it, and is built
+again fifteen seconds on, then thirty, then every minute while it still finds one: the first look
+at a window often comes while the chunks behind it are loading, and that room was air through them,
+past its cap and cut shallower, until it was. Chunks loading are not listened for: round a window they load and
+unload constantly as players move. Players and creatures are not part of the room; they are drawn
+on their own (stand-ins, far players), and moving costs no rebuild.
 
 ## The sweep
 

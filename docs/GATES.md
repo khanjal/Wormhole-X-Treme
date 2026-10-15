@@ -924,7 +924,9 @@ five minutes later rather than every sweep. A deeper view costs more to draw as 
 the way a mirror's does at 160, so `view-depth` is the setting to lower if a gate view stutters;
 at 32 or less there is no fill. A drawn gate view may hold a million blocks before its depth is
 cut to fit, four times a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks
-out. `mirror debug` says when a view was cut, and to what. An upgraded `config.yml` without
+out. `mirror debug` says when a view was cut, and to what. While a view is built again the old
+one is still drawn, so for the length of the build both are held: some 100 to 120 MB more for a
+moment for a gate at the cap, about 14 MB for a mirror at its own. An upgraded `config.yml` without
 `view-depth` takes the shallower of its old `mirror-view-depth` and `gate-view-full-depth` (a
 full depth of 0 counting as the first step, the old `gate-view-depth` or 32), written to the file
 as `view-depth`. "What the server sends" is the world's view distance; on Paper a lower

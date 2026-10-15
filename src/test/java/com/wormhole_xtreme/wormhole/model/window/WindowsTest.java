@@ -31,6 +31,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +81,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
@@ -766,6 +768,43 @@ class WindowsTest
     }
 
     /**
+     * A room swapped in under several viewers is redrawn for them a sweep's share at a time.
+     *
+     * <p>A rebuilt room goes in under every viewer at once, and the next sweep redrew each of them: ten
+     * viewers of a quarter-million-block room were most of a tenth of a second in one tick (#609). With
+     * a share of one block, the first viewer is redrawn this sweep and the second the next.
+     */
+    @Test
+    void aRoomSwappedInUnderSeveralViewersIsRedrawnASweepsShareAtATime() throws ReflectiveOperationException
+    {
+        final Player first = playerAt(10.5, 7.5);
+        final Player second = playerAt(10.5, 6.5);
+        when(world.getPlayers()).thenReturn(List.of(first, second));
+        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(Windows.class, "VIEWS");
+        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
+        final String[] stamps = new String[4];
+
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            Windows.roomBlocksPerSweep = 1L;
+            final WindowState window = active.get("museum");
+            window.fixed = new HashMap<>(window.fixed);
+            final String before = views.get(first.getUniqueId()).stamp;
+            WindowSweep.tick();
+            stamps[0] = before;
+            stamps[1] = views.get(first.getUniqueId()).stamp;
+            stamps[2] = views.get(second.getUniqueId()).stamp;
+            WindowSweep.tick();
+            stamps[3] = views.get(second.getUniqueId()).stamp;
+        });
+
+        assertNotSame(stamps[0], stamps[1], "the first viewer is redrawn with the swapped room");
+        assertEquals(stamps[0], stamps[2], "the second waits this sweep");
+        assertEquals(stamps[1], stamps[3], "and is redrawn the next");
+    }
+
+    /**
      * Past the server's share of work for a second, a viewer keeps what they see until the next.
      *
      * <p>One redraw's budget bounds one viewer, not a server: a hundred people walking past
@@ -887,32 +926,6 @@ class WindowsTest
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
         assertFalse(drawn.containsKey(new Spot(18, 64, 12)),
             "off to the side: a viewer within the radius can see the far side through that gap");
-    }
-
-    /**
-     * The void below the world's floor counts as wall, so a mirror hung near the floor is drawn whole.
-     *
-     * <p>The wall is read sixteen blocks round the opening, and below the floor the server answers
-     * void air, which is not solid: every mirror the load test hung on a flat world's floor said
-     * "wall within 16 open at y=-79 (void_air)" and was clipped to each eye (#609). Nothing stands
-     * there and nothing of a view is drawn there. A floor four blocks under the opening here.
-     */
-    @Test
-    void theVoidBelowTheWorldsFloorCountsAsWall()
-    {
-        when(world.getMinHeight()).thenReturn(60);
-        final Block voidAir = mock(Block.class);
-        when(voidAir.getBlockData()).thenReturn(mock(BlockData.class));
-        // Only below the floor: the banner and the wall above it are read as before.
-        when(world.getBlockAt(anyInt(), ArgumentMatchers.intThat(y -> y < 60), anyInt())).thenReturn(voidAir);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(WindowSweep::tick);
-
-        final List<String> said = Windows.describe(viewer).stream().map(WindowsTest::plain).toList();
-        assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: drawn whole")),
-            "drawn whole, not clipped for the void under the floor: " + said);
     }
 
     /** The same gap is past the wall a mirror needs while the radius is eight, and it is drawn whole. */

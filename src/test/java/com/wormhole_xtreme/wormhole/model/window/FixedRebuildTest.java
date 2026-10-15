@@ -10,13 +10,18 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.HeightMap;
@@ -24,6 +29,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
@@ -61,6 +67,7 @@ class FixedRebuildTest
     private static final int STEPS = 40;
 
     private World world;
+    private WormholeXTreme plugin;
     private BlockData stone;
     private MockedStatic<Bukkit> bukkit;
     /** The ticker the builds asked for, run only while it is not cancelled. */
@@ -72,7 +79,8 @@ class FixedRebuildTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
         Windows.clear();
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
@@ -128,6 +136,15 @@ class FixedRebuildTest
     /** A capture whose walk takes {@link #STEPS} steps, each keeping one far block that shows behind the opening. */
     private Capture capture(final WindowShape shape)
     {
+        return capture(shape, new int[1], false);
+    }
+
+    /**
+     * The same, counting its own steps, its blocks seen air or not: seen air over a real block that is
+     * not empty is drawn as air, and is what reads this world.
+     */
+    private Capture capture(final WindowShape shape, final int[] counted, final boolean air)
+    {
         final Capture capture = mock(Capture.class);
         when(capture.at(anyInt(), anyInt(), anyInt())).thenReturn(stone);
         when(capture.keptWalk()).thenAnswer(call ->
@@ -137,11 +154,23 @@ class FixedRebuildTest
             {
                 final Spot here = shape.behind(1 + (step[0] % 10), step[0] / 10, 1);
                 final Spot far = shape.farOf(here.x(), here.y(), here.z());
-                kept.at(far.x(), far.y(), far.z(), false);
+                kept.at(far.x(), far.y(), far.z(), air);
                 stepsTaken++;
+                counted[0]++;
                 step[0]++;
                 return step[0] >= STEPS;
             };
+        });
+        return capture;
+    }
+
+    /** A capture whose walk throws on its first step, as a corrupt one might. */
+    private static Capture failing()
+    {
+        final Capture capture = mock(Capture.class);
+        when(capture.keptWalk()).thenAnswer(call -> (Capture.KeptWalk) kept ->
+        {
+            throw new IllegalStateException("a section that will not read");
         });
         return capture;
     }
@@ -368,5 +397,283 @@ class FixedRebuildTest
 
         assertFalse(FixedBuilds.building("gate:Abydos"), "its build dropped with it");
         assertEquals(0, tick(), "and the ticker with nothing left to build");
+    }
+
+    /**
+     * A build that throws is dropped and said once, its window keeping its old room, and every other
+     * build carries on: left at the head of the queue, it threw every tick and starved the rest.
+     */
+    @Test
+    void aBuildThatThrowsIsDroppedOnceAndTheOthersCarryOn() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        Windows.offer(gate("gate:Abydos", SHAPE), failing());
+        Windows.offer(gate("gate:Chulak", AWAY), capture(AWAY));
+        final Map<String, WindowState> held = held();
+        final long now = Windows.now();
+        final Map<Long, BlockData> old = builtAt(held.get("gate:Abydos"), now - Windows.BACKSTOP_MILLIS);
+        Windows.heldRoom(held.get("gate:Abydos"), now, true);
+        Windows.heldRoom(held.get("gate:Chulak"), now, true);
+
+        tick();
+        Windows.heldRoom(held.get("gate:Abydos"), now, true);
+        tick();
+
+        assertSame(old, held.get("gate:Abydos").fixed, "the failed window keeps its old room");
+        assertEquals(STEPS, held.get("gate:Chulak").fixed.size(), "the other window's room was built and put in");
+        assertEquals(0, FixedBuilds.count(), "nothing left in the queue");
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), anyString(), any(Throwable.class));
+    }
+
+    /** A handover that throws for one finished build does not keep the others from theirs. */
+    @Test
+    void aHandoverThatThrowsLeavesTheOthersHandedOver() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        final WindowState first = new WindowState(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowState second = new WindowState(gate("gate:Chulak", AWAY), capture(AWAY));
+        final List<String> handed = new ArrayList<>();
+        FixedBuilds.request(new FixedBuild(first, 16, 1000, 0L, 0L, true), build ->
+        {
+            throw new IllegalStateException("could not put it in");
+        });
+        FixedBuilds.request(new FixedBuild(second, 16, 1000, 0L, 0L, true), build -> handed.add(build.window.name()));
+
+        tick();
+
+        assertEquals(List.of("gate:Chulak"), handed, "the second handed over after the first threw");
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), anyString(), any(Throwable.class));
+    }
+
+    /**
+     * Builds take turns across ticks: with a share that allows one step a tick, two builds each move
+     * on every other tick, where starting from the first each tick moved only the first.
+     */
+    @Test
+    void buildsTakeTurnsAcrossTicks() throws ReflectiveOperationException
+    {
+        withTicker();
+        final long[] clock = { 0L };
+        FixedBuilds.nanos = () -> clock[0]++;
+        FixedBuilds.nanosPerTick = 2L;
+        final int[] first = new int[1];
+        final int[] second = new int[1];
+        FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Abydos", SHAPE), capture(SHAPE, first, false)), 16, 1000,
+            0L, 0L, true), build -> { });
+        FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Chulak", AWAY), capture(AWAY, second, false)), 16, 1000,
+            0L, 0L, true), build -> { });
+
+        for (int i = 0; i < 6; i++)
+        {
+            tick();
+        }
+
+        assertEquals(3, first[0], "one step every other tick for the first");
+        assertEquals(3, second[0], "and for the second");
+    }
+
+    /** Asks for a room's rebuild, notes a change in its view, and runs the build to the end. */
+    private void rebuildWithAChangeDuring(final WindowState window, final long[] time, final long building)
+    {
+        Windows.heldRoom(window, time[0], true);
+        final Spot behind = SHAPE.behind(4, 2, 1);
+        Windows.changed(world, behind.x(), behind.y(), behind.z());
+        time[0] += building;
+        tick();
+    }
+
+    /**
+     * A block changing while a room is built leaves the new room stale once it is in, and the next
+     * rebuild waits from when it went in, not from when its build began; a build with nothing changed
+     * meanwhile stays fresh until the backstop.
+     */
+    @Test
+    void aChangeDuringABuildLeavesTheNewRoomStaleAfterTheWaitFromWhenItWentIn() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        final long[] time = { 1_000_000L };
+        Windows.clock = () -> time[0];
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowState window = held().get("gate:Abydos");
+        Windows.heldRoom(window, time[0], true);
+        tick();
+        final Map<Long, BlockData> first = window.fixed;
+        assertTrue(Windows.fixedIsFresh(window, time[0] + Windows.BACKSTOP_MILLIS - 1L),
+            "nothing changed while it was built: fresh to the backstop");
+
+        time[0] += Windows.BACKSTOP_MILLIS;
+        rebuildWithAChangeDuring(window, time, 7_000L);
+        final long putIn = time[0];
+
+        assertNotSame(first, window.fixed, "the new room is in");
+        assertEquals(putIn, window.fixedAt, "put in when it finished");
+        assertEquals(28_000L, Windows.rebuildWait(window), "four times the seven seconds it took");
+        assertTrue(Windows.fixedIsFresh(window, putIn + 27_999L), "drawn as it is until then");
+        assertFalse(Windows.fixedIsFresh(window, putIn + 28_000L), "then built again for the change made during its build");
+    }
+
+    /** Changes that keep coming double the wait, to five minutes at most; a build with none meanwhile puts it back to the gap. */
+    @Test
+    void theWaitDoublesWhileChangesKeepComingAndResetsOnceTheyStop() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        final long[] time = { 1_000_000L };
+        Windows.clock = () -> time[0];
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowState window = held().get("gate:Abydos");
+        Windows.heldRoom(window, time[0], true);
+        tick();
+        final Spot behind = SHAPE.behind(4, 2, 1);
+        Windows.changed(world, behind.x(), behind.y(), behind.z());
+        final long[] waits = new long[10];
+        for (int i = 0; i < waits.length; i++)
+        {
+            time[0] += Windows.rebuildWait(window);
+            rebuildWithAChangeDuring(window, time, 0L);
+            waits[i] = Windows.rebuildWait(window);
+        }
+
+        assertEquals(Windows.REBUILD_GAP_MILLIS, waits[0], "the first: the gap");
+        assertEquals(2 * Windows.REBUILD_GAP_MILLIS, waits[1], "then doubled");
+        assertEquals(4 * Windows.REBUILD_GAP_MILLIS, waits[2], "and doubled again");
+        assertEquals(Windows.MOST_REBUILD_WAIT_MILLIS, waits[9], "capped at five minutes");
+
+        time[0] += Windows.rebuildWait(window);
+        Windows.heldRoom(window, time[0], true);
+        tick();
+        assertEquals(Windows.REBUILD_GAP_MILLIS, Windows.rebuildWait(window), "built with nothing changing meanwhile: back to the gap");
+
+        // A change a second after each room goes in, never during a build, is changes coming on too.
+        for (int i = 0; i < 2; i++)
+        {
+            time[0] += 1000L;
+            Windows.changed(world, behind.x(), behind.y(), behind.z());
+            time[0] += Windows.rebuildWait(window);
+            Windows.heldRoom(window, time[0], true);
+            tick();
+        }
+        assertEquals(2 * Windows.REBUILD_GAP_MILLIS, Windows.rebuildWait(window), "a change soon after each went in doubles it too");
+    }
+
+    /** Two changes, and a look while the rebuild runs, are one rebuild. */
+    @Test
+    void twoChangesAndALookMidBuildAreOneRebuild() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 0L;
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowState window = held().get("gate:Abydos");
+        final long now = Windows.now();
+        builtAt(window, now - Windows.REBUILD_GAP_MILLIS - 1L);
+        FixedRegions.index(window);
+        final Spot behind = SHAPE.behind(4, 2, 1);
+        Windows.changed(world, behind.x(), behind.y(), behind.z());
+        Windows.changed(world, behind.x(), behind.y() + 1, behind.z());
+
+        Windows.heldRoom(window, now, true);
+        final FixedBuild running = FixedBuilds.buildFor("gate:Abydos");
+        Windows.heldRoom(window, now, true);
+
+        assertEquals(1, FixedBuilds.count(), "one build");
+        assertSame(running, FixedBuilds.buildFor("gate:Abydos"), "the same one, not begun again");
+    }
+
+    /**
+     * Only a block inside the view's depth, two blocks to spare, counts: not one in the same chunk past
+     * it. Checked both sides of the world's origin, where a chunk's number rounds the other way.
+     */
+    @Test
+    void onlyABlockWithinTheDepthAndTwoMoreCounts() throws ReflectiveOperationException
+    {
+        for (final Spot base : new Spot[] { new Spot(10, 64, 20), new Spot(-40, 64, -40) })
+        {
+            Windows.clear();
+            final WindowShape shape = WindowShape.through(base, new Spot(0, 0, -1), ARRIVAL, 5, 5);
+            Windows.offer(gate("gate:Abydos", shape), capture(shape));
+            final WindowState window = held().get("gate:Abydos");
+            final long now = Windows.now();
+            builtAt(window, now - Windows.REBUILD_GAP_MILLIS - 1L);
+            FixedRegions.index(window);
+            // On the opening's middle column and row: depth 16, and two more.
+            final Spot outside = shape.behind(18, 2, 2);
+            final Spot inside = shape.behind(17, 2, 2);
+            assertEquals(outside.z() >> 4, inside.z() >> 4, "the same chunk, at " + base);
+
+            Windows.changed(world, outside.x(), outside.y(), outside.z());
+            assertTrue(Windows.fixedIsFresh(window, now), "eighteen deep is past it, at " + base);
+            Windows.changed(world, inside.x(), inside.y(), inside.z());
+            assertFalse(Windows.fixedIsFresh(window, now), "seventeen deep is inside, at " + base);
+        }
+    }
+
+    /** A block broken behind the wall, heard by the listener itself, makes that view stale; one in front does not. */
+    @Test
+    void aBlockBrokenBehindTheWallMakesTheViewStale() throws ReflectiveOperationException
+    {
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowState window = held().get("gate:Abydos");
+        final long now = Windows.now();
+        builtAt(window, now - Windows.REBUILD_GAP_MILLIS - 1L);
+        FixedRegions.index(window);
+        final ViewChangeListener listener = new ViewChangeListener();
+
+        listener.onBreak(breaking(SHAPE.behind(-3, 2, 1)));
+        assertTrue(Windows.fixedIsFresh(window, now), "a block in front of the wall");
+        listener.onBreak(breaking(SHAPE.behind(5, 2, 1)));
+        assertFalse(Windows.fixedIsFresh(window, now), "a block behind it");
+    }
+
+    private BlockBreakEvent breaking(final Spot at)
+    {
+        final Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        when(block.getX()).thenReturn(at.x());
+        when(block.getY()).thenReturn(at.y());
+        when(block.getZ()).thenReturn(at.z());
+        final BlockBreakEvent event = mock(BlockBreakEvent.class);
+        when(event.getBlock()).thenReturn(block);
+        return event;
+    }
+
+    /**
+     * A room built over a chunk that was not loaded drew its air there blind, and is built again
+     * fifteen seconds on, then thirty, then every minute while chunks stay unloaded, rather than at
+     * the ten-minute backstop; a build that finds them all loaded goes back to the backstop.
+     *
+     * <p>The load test's first look at a mirror came while the chunks behind it were still loading:
+     * that room was air through them, past its cap, cut a quarter shallower, and with no rebuild for
+     * ten minutes every viewer's redraw walked it.
+     */
+    @Test
+    void aRoomBuiltOverAnUnloadedChunkIsBuiltAgainSoonerThenLessOften() throws ReflectiveOperationException
+    {
+        final long[] time = { 1_000_000L };
+        Windows.clock = () -> time[0];
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE, new int[1], true));
+        final WindowState window = held().get("gate:Abydos");
+        final long[] waits = new long[4];
+        for (int i = 0; i < waits.length; i++)
+        {
+            Windows.heldRoom(window, time[0], true);
+            assertTrue(window.fixedPartial, "its build read a chunk that was not loaded");
+            waits[i] = window.fixedPartialWait;
+            assertTrue(Windows.fixedIsFresh(window, (window.fixedAt + waits[i]) - 1L), "fresh until the wait is up");
+            assertFalse(Windows.fixedIsFresh(window, window.fixedAt + waits[i]), "then built again");
+            time[0] = window.fixedAt + waits[i];
+        }
+
+        assertEquals(Windows.FIRST_PARTIAL_RETRY_MILLIS, waits[0], "fifteen seconds first");
+        assertEquals(2 * Windows.FIRST_PARTIAL_RETRY_MILLIS, waits[1], "then thirty");
+        assertEquals(Windows.PARTIAL_BACKSTOP_MILLIS, waits[3], "then a minute at most");
+
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        Windows.heldRoom(window, time[0], true);
+        assertFalse(window.fixedPartial, "every chunk loaded");
+        assertTrue(Windows.fixedIsFresh(window, (window.fixedAt + Windows.BACKSTOP_MILLIS) - 1L), "back to the backstop");
     }
 }

@@ -64,7 +64,6 @@ through is a release nobody reads.
 ### Performance
 
 - A mirror's or gate's view no longer stalls the server once a minute while somebody looks into it: its room is built a little each tick, and built again only when blocks change behind it, the old room drawn meanwhile ([#609](https://github.com/khanjal/Wormhole-X-Treme/issues/609)). [Details](docs/MIRRORS.md#how-the-room-is-built)
-- A mirror or gate near the bottom of the world is drawn whole, as any walled one is, rather than worked out again for every step a viewer takes because of the void under the floor ([#609](https://github.com/khanjal/Wormhole-X-Treme/issues/609)).
 - A mirror's or gate's view no longer makes the server hitch the first time it is drawn after a restart or a while unwatched: its capture is read off the disk off the main thread, the banner or horizon showing until it is in ([#528](https://github.com/khanjal/Wormhole-X-Treme/issues/528)). [Details](docs/GATES.md#seeing-through-a-gate-experimental)
 - Mirror and gate captures are kept in sections with palettes, as the game keeps chunks, so they take less memory and disk and read faster ([#525](https://github.com/khanjal/Wormhole-X-Treme/issues/525)). Older capture files still load and are rewritten when next taken; going back to an earlier release logs each new file as unreadable once and takes that view again. [Details](docs/MIRRORS.md#how-a-capture-is-kept)
 

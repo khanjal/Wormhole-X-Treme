@@ -254,4 +254,33 @@ class FixedBuildTest
         assertTrue(steps > 1, "a step at a time, not all at once: " + steps);
         assertTrue(Windows.tooMany(Windows.fixedTo(window, DEPTH, 0L, most)), "asked not to cut, it says too many");
     }
+
+    /**
+     * No step is handed more than sixteen columns of the capture, or one column of the volume: a step
+     * of a whole x was up to a sixth of a million blocks of a gate's capture, all in one tick (#609).
+     * The capture here is 61 across and 50 tall, so a step of an x would be up to 3050 blocks.
+     */
+    @Test
+    void noStepIsHandedMoreThanSixteenColumns()
+    {
+        final Place south = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
+        for (final boolean seen : new boolean[] { true, false })
+        {
+            final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, seen), null);
+            final FixedBuild build = new FixedBuild(window, DEPTH, Integer.MAX_VALUE, 0L, 0L, true);
+            int most = 0;
+            int steps = 0;
+            boolean done = false;
+            while (!done)
+            {
+                done = build.step();
+                most = Math.max(most, build.cellsLastStep());
+                steps++;
+            }
+            final int bound = seen ? (16 * 50) : ((2 * DEPTH) + 3);
+            assertTrue((most > 0) && (most <= bound), (seen ? "over what was kept" : "through the volume") + ": at most "
+                + most + " blocks a step, against " + bound);
+            assertTrue(steps > 61, steps + " steps, more than one an x");
+        }
+    }
 }
