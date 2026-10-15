@@ -92,7 +92,8 @@ class FixedRebuildTest
         when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(-64);
         stone = mock(BlockData.class);
         bukkit = mockStatic(Bukkit.class);
-        bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(mock(BlockData.class));
+        final BlockData air = mock(BlockData.class);
+        bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
     }
 
     @AfterEach
@@ -815,7 +816,7 @@ class FixedRebuildTest
      * and a column remembered across the two would read a block of an unloaded chunk, loading it.
      */
     @Test
-    void eachStepReadsItsColumnsAfresh() throws ReflectiveOperationException
+    void eachStepReadsItsColumnsAfresh()
     {
         final boolean[] loaded = { true };
         when(world.isChunkLoaded(anyInt(), anyInt())).thenAnswer(call -> loaded[0]);

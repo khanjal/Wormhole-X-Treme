@@ -191,8 +191,16 @@ final class FixedBuilds
             task = null;
             return Ticker.REFUSED;
         }
-        // A test's stand-in scheduler hands back nothing: run inline, as with none.
-        return (task == null) ? Ticker.NONE : Ticker.RUNNING;
+        return tickerFor(task);
+    }
+
+    /**
+     * What a ticker the scheduler handed back comes to: running, or, for a test's stand-in scheduler
+     * that hands back nothing, none, so the build runs inline as with no scheduler at all.
+     */
+    private static Ticker tickerFor(final BukkitTask started)
+    {
+        return (started == null) ? Ticker.NONE : Ticker.RUNNING;
     }
 
     /** Stops the ticker once there is nothing left to build. */

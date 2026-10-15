@@ -1467,30 +1467,6 @@ public final class Capture
     }
 
     /**
-     * Visits the columns of one x in one stack of sections, at most sixteen, z upward, and in each
-     * column those sections, upward: their entries, or with no {@code next} their seen air.
-     *
-     * @param stacks
-     *            by {@code sx * acrossZ + sz}, the sections to visit in each, upward
-     * @param sz
-     *            which stack along z, from the grid's first
-     * @param next
-     *            where each listed section's next column starts, carried from one column to the next; null for the air
-     */
-    private void stackAt(final int[][] stacks, final int x, final int sz, final int[] next, final Kept kept)
-    {
-        final int[] stack = stacks[(((x >> 4) - grid.fromX) * grid.acrossZ) + sz];
-        if (stack.length > 0)
-        {
-            final int first = (grid.fromZ + sz) << 4;
-            for (int z = Math.max(minZ, first); z <= Math.min(grid.maxZ, first + (Section.EDGE - 1)); z++)
-            {
-                columnKept(x, z, stack, next, kept);
-            }
-        }
-    }
-
-    /**
      * Starts a walk over every block kept that goes sixteen columns at a time, to be stopped between steps
      * and carried on later (#609): the blocks {@link #forEachKept} visits, in its order.
      *
@@ -1527,6 +1503,26 @@ public final class Capture
         private int[] next = new int[sections.length];
         private boolean done = sizeX <= 0;
 
+        /**
+         * Visits the columns of this walk's x in its stack of sections, at most sixteen, z upward, and in
+         * each column those sections, upward: their entries, or once {@code next} is null their seen air.
+         *
+         * @param stacks
+         *            by {@code sx * acrossZ + sz}, the sections to visit in each, upward
+         */
+        private void stackAt(final int[][] stacks, final Kept kept)
+        {
+            final int[] stack = stacks[(((x >> 4) - grid.fromX) * grid.acrossZ) + sz];
+            if (stack.length > 0)
+            {
+                final int first = (grid.fromZ + sz) << 4;
+                for (int z = Math.max(minZ, first); z <= Math.min(grid.maxZ, first + (Section.EDGE - 1)); z++)
+                {
+                    columnKept(x, z, stack, next, kept);
+                }
+            }
+        }
+
         @Override
         public boolean step(final Kept kept)
         {
@@ -1534,7 +1530,7 @@ public final class Capture
             {
                 return true;
             }
-            stackAt((next == null) ? airStacks : entryStacks, x, sz, next, kept);
+            stackAt((next == null) ? airStacks : entryStacks, kept);
             sz++;
             if (sz < grid.acrossZ)
             {
