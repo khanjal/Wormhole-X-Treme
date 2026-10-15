@@ -47,7 +47,7 @@ public class ConfigManager
     public enum ConfigKeys
     {
 
-        /** The PERMISSION SUPPORT DISABLE. */
+        /** Whether gates stay in simple mode even with a Vault permission provider installed. */
         PERMISSIONS_SUPPORT_DISABLE,
         /** Whether wormhole.use is required to travel, not merely to dial. */
         WORMHOLE_USE_IS_TELEPORT,
@@ -386,9 +386,9 @@ public class ConfigManager
     }
 
     /**
-     * Gets the Permissions plugin support status.
-     * 
-     * @return true, if Permissions plugin support is disabled.
+     * Whether gates are kept in simple mode whatever permission provider is installed.
+     *
+     * @return true if gate permission nodes are never consulted
      */
     public static boolean getPermissionsSupportDisable()
     {
