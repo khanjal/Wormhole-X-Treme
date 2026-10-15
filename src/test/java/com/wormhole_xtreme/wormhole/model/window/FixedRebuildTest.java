@@ -113,6 +113,7 @@ class FixedRebuildTest
             cancelled.add(false);
             final BukkitTask task = mock(BukkitTask.class);
             doAnswer(cancel -> cancelled.set(index, true)).when(task).cancel();
+            when(task.isCancelled()).thenAnswer(asked -> cancelled.get(index));
             return task;
         });
         PluginTestSupport.scheduler(scheduler);
@@ -675,5 +676,52 @@ class FixedRebuildTest
         Windows.heldRoom(window, time[0], true);
         assertFalse(window.fixedPartial, "every chunk loaded");
         assertTrue(Windows.fixedIsFresh(window, (window.fixedAt + Windows.BACKSTOP_MILLIS) - 1L), "back to the backstop");
+    }
+
+    /**
+     * A change that made a room stale is answered by the build it started: with nothing changed while
+     * that build ran, the new room is fresh until the backstop, not built again at the next gap.
+     */
+    @Test
+    void aChangeBeforeABuildIsAnsweredByIt() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        final long[] time = { 1_000_000L };
+        Windows.clock = () -> time[0];
+        Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
+        final WindowState window = held().get("gate:Abydos");
+        Windows.heldRoom(window, time[0], true);
+        tick();
+        final Spot behind = SHAPE.behind(4, 2, 1);
+        Windows.changed(world, behind.x(), behind.y(), behind.z());
+        time[0] += Windows.REBUILD_GAP_MILLIS;
+        Windows.heldRoom(window, time[0], true);
+        tick();
+
+        assertTrue(Windows.fixedIsFresh(window, (window.fixedAt + Windows.BACKSTOP_MILLIS) - 1L),
+            "the change before it began is in it: fresh to the backstop");
+    }
+
+    /**
+     * A ticker cancelled by something else -- the plugin disabling -- is not taken for a running one:
+     * the next build schedules its own.
+     */
+    @Test
+    void aTickerCancelledElsewhereIsReplaced() throws ReflectiveOperationException
+    {
+        withTicker();
+        FixedBuilds.nanosPerTick = 1_000_000_000L;
+        FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Abydos", SHAPE), capture(SHAPE)), 16, 1000, 0L, 0L, true),
+            build -> { });
+        cancelled.set(0, true);
+        final List<String> handed = new ArrayList<>();
+        FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Chulak", AWAY), capture(AWAY)), 16, 1000, 0L, 0L, true),
+            build -> handed.add(build.window.name()));
+
+        tick();
+
+        assertEquals(2, tickers.size(), "a second ticker scheduled");
+        assertTrue(handed.contains("gate:Chulak"), "and it ran the build");
     }
 }

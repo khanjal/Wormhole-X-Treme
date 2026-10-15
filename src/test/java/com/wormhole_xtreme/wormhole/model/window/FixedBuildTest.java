@@ -283,4 +283,39 @@ class FixedBuildTest
             assertTrue(steps > 61, steps + " steps, more than one an x");
         }
     }
+
+    /**
+     * A tunnel that takes a view past its cap, the walk itself under it, is cut as the old walk cut it:
+     * the cap is checked after the tunnel, not only during the walk.
+     */
+    @Test
+    void aTunnelThatTakesTheViewPastItsCapIsCutAsBefore()
+    {
+        final Place south = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
+        final WindowShape big = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), south, 5, 5);
+        final List<Spot> farCells = new ArrayList<>();
+        for (int x = 100; x <= 101; x++)
+        {
+            for (int y = 70; y <= 72; y++)
+            {
+                farCells.add(new Spot(x, y, 199));
+            }
+        }
+        final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, true),
+            Funnel.of(big, farCells, 16, Material.WATER));
+        final int whole = LegacyFixedView.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE).size();
+        final int[] depth = new int[1];
+        WindowSight.clear();
+        final Map<Long, BlockData> before = LegacyFixedView.cutToFit(window, DEPTH, 0L, whole - 1, depth);
+
+        final FixedBuild build = new FixedBuild(window, DEPTH, whole - 1, 0L, 0L, true);
+        while (!build.step())
+        {
+            // to the end
+        }
+
+        assertTrue(depth[0] < DEPTH, "one block under what it holds: cut, to " + depth[0]);
+        assertEquals(depth[0], build.depth(), "to the same depth");
+        assertEquals(before, build.view(), "holding the same blocks");
+    }
 }
