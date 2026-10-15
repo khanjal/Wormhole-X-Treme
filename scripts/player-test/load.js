@@ -267,19 +267,26 @@ function behave () {
         bot.setControlState('sprint', member.k % 3 === 0)
       }, 100))
     } else if (moves === 'fidget') {
+      // A step every five to nine seconds, at its own moment: bots stepping in step would line
+      // their redraws up in one tick, which no crowd of players does.
       let step = 0
+      let nextStep = Math.floor(Math.random() * 18)
+      let side = member.k % 2 === 0 ? 'left' : 'right'
       timers.push(setInterval(() => {
         const p = bot.entity.position
         if (member.last) member.walked += p.distanceTo(member.last)
         member.last = p.clone()
         // Mineflayer's yaw 0 is north.
         bot.look((Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 0.4, false).catch(() => {})
-        if (++step % 8 === 0) {
-          const side = (step / 8) % 2 === 0 ? 'left' : 'right'
-          bot.setControlState(side, true)
-          setTimeout(() => bot.setControlState(side, false), 250)
+        if (++step >= nextStep) {
+          const going = side
+          bot.setControlState(going, true)
+          setTimeout(() => bot.setControlState(going, false), 250)
+          side = side === 'left' ? 'right' : 'left'
+          step = 0
+          nextStep = 10 + Math.floor(Math.random() * 9)
         }
-      }, 500))
+      }, 450 + Math.floor(Math.random() * 100)))
     }
   }
   return () => {
