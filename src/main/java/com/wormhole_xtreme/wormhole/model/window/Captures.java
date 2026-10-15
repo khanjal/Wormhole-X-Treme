@@ -112,10 +112,11 @@ public final class Captures
      * Most blocks a mirror's capture may keep, the air seen among them included; past it, the reach
      * is cut until it fits.
      *
-     * <p>Not the capture's memory any more: kept in sections (#525), a million cells measured 0.35 to
-     * 0.42 MB over synthetic jungle and sea, where the list before held them in 0.8 to 1.4. What it
-     * bounds is what draws from it: a window walks every cell kept each minute on the main thread
-     * (about 4 ms a million, twice the list's), reading this world behind each seen air, and holds
+     * <p>Not the capture's memory any more: kept in sections (#525), synthetic far sides take between
+     * about the same and a quarter of what the list did, hills 0.42 MB for 1.3 million cells against
+     * 0.44 and sea 0.34 for a million against 1.37. What it bounds is what draws from it: a window
+     * walks every cell kept each minute on the main thread (4 to 7 ms a million, about twice the
+     * list's), reading this world behind each seen air, and holds
      * what it draws at about fifty bytes a block ({@code Windows.MOST_FIXED}). A mirror at the default depth is never cut,
      * its reach being its floor.
      */
@@ -202,7 +203,7 @@ public final class Captures
 
     /**
      * What a gate's capture may keep: as many as its view may draw ({@code Windows.mostGateFixed}).
-     * Sections would hold four times as many in today's memory (#525), but past this a view onto a
+     * Sections would hold up to four times as many in today's memory (#525), but past this a view onto a
      * near side of solid ground is cut by its own cap anyway.
      */
     static final int MOST_GATE_KEPT = 1_000_000;

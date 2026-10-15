@@ -174,8 +174,11 @@ A block lookup went from 30-90 ns to 5-30 ns. Building the sections from what wa
 **The cap did not rise.** #525 expected kept blocks to cost ten bytes and the cap to rise four
 or five times on the same memory. But most of what a capture keeps is seen air, sky over the far
 side, which the runs already held at well under a byte; the ten bytes were only ever the blocks
-that are not air, a tenth or less of what is kept. Sections would hold four times today's cap
-in today's memory, and that is no longer what the cap bounds. A window walks every cell its
+that are not air, a tenth or less of what is kept. In today's memory sections hold between about
+the same and four times today's cap, by far side: about the same over hills (0.44 MB against
+0.42), a little more in the city (0.25 against 0.27), four times over the sea (1.37 against 0.34).
+The column tops are a fixed 211 KB in a box 325 across, counted in those. And memory is no longer
+what the cap bounds. A window walks every cell its
 capture keeps once a minute on the main thread, reading this world behind each seen air within
 the depth, and holds what it draws at about fifty bytes a block (`Windows.MOST_FIXED`,
 `MOST_GATE_FIXED`); sections change neither the number of cells walked nor the maps. A gate's
@@ -188,7 +191,7 @@ the uncut canopy 5.9 against 18.4). A review caught it. Each capture now keeps, 
 sections, those with entries and those with seen air, so a walk skips empty stacks; a full section
 knows which of its columns hold anything; and a column's air is read as its sixteen bits, a set
 bit at a time. Measured again, with a callback that hashes each block: 1.7 to 2.3 times the list's,
-about 3 ns a block more: hills 4.9 ms against 8.4, the canopy at the gate cap 1.8 against 4.2, the
+3 to 6 ns a block more: hills 4.9 ms against 8.4, the canopy at the gate cap 1.8 against 4.2, the
 sea 2.9 against 6.5, the uncut canopy 11 against 22. The window's own work on each block, a map
 entry and for seen air a read of this world, is tens of nanoseconds or more, so the walk's share
 is small, but it is not nothing; the runs held a column of sky as one entry, which no bitmap

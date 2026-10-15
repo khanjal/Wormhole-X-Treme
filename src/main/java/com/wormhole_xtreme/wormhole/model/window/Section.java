@@ -573,7 +573,7 @@ final class Section
         }
         final boolean full = in.readBoolean();
         final short[] positions = full ? null : readPositions(in, file, entries, inside);
-        final int bits = full ? bitsFor(size + 1) : bitsFor(size);
+        final int bits = bitsFor(full ? (size + 1) : size);
         final long[] packed = new long[words(full ? BLOCKS : entries, bits)];
         for (int i = 0; i < packed.length; i++)
         {
@@ -635,6 +635,10 @@ final class Section
         if ((kind == EVERY_AIR) && inside.whole())
         {
             return ALL_AIR;
+        }
+        if (kind == EVERY_AIR)
+        {
+            throw new IOException(file + " has all air in a section its box only partly covers");
         }
         if (kind != SOME_AIR)
         {

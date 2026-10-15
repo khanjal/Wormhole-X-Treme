@@ -166,12 +166,6 @@ public final class Capture
         });
     }
 
-    /** A block's place in the box as one number that sorts by x, then z, then y. */
-    private static long cell(final int dx, final int dy, final int dz)
-    {
-        return (((long) dx) << 40) | (((long) dz) << 20) | dy;
-    }
-
     /**
      * Where a box's sections lie: each sixteen blocks a side, on the world's own chunk sections, so
      * a box that does not start on one is covered by sections that reach past it.
@@ -280,7 +274,7 @@ public final class Capture
          * The sections, from every entry and the air noted.
          *
          * @param cells
-         *            every entry's place in the box, as {@link #cell}, ascending
+         *            every entry's place in the box, as {@link Builder#cell}, ascending
          * @param values
          *            each one's palette index, in step
          */
@@ -391,7 +385,7 @@ public final class Capture
      */
     static final class Entries
     {
-        /** Every entry's place in the box, as {@link #cell}, ascending. */
+        /** Every entry's place in the box, as {@link Builder#cell}, ascending. */
         final long[] cells;
         /** Each entry's palette index, in step. */
         final short[] values;
@@ -1236,6 +1230,12 @@ public final class Capture
             return offset((int) (cell >>> 40), (int) (cell & 0xFFFFF), (int) ((cell >>> 20) & 0xFFFFF), sizeY, sizeZ);
         }
 
+        /** A block's place in the box as one number that sorts by x, then z, then y; {@code Assembly} and a version 4 file read it back. */
+        private static long cell(final int dx, final int dy, final int dz)
+        {
+            return (((long) dx) << 40) | (((long) dz) << 20) | dy;
+        }
+
         /** Where a block of the box is in its bit sets: x-major, then z, then y. */
         private static int offset(final int dx, final int dy, final int dz, final int sizeY,
             final int sizeZ)
@@ -1511,13 +1511,13 @@ public final class Capture
         }
     }
 
+    /** A stack with nothing to visit, shared. */
+    private static final int[] NO_SECTIONS = new int[0];
+
     /**
      * For each stack of sections one above another, by {@code sx * acrossZ + sz}, those of its sections
      * that pass {@code holds}, upward: so a walk visits only columns with something to visit.
      */
-    /** A stack with nothing to visit, shared. */
-    private static final int[] NO_SECTIONS = new int[0];
-
     private int[][] stacks(final Predicate<Section> holds)
     {
         final int[][] stacks = new int[grid.acrossX * grid.acrossZ][];
@@ -1657,9 +1657,15 @@ public final class Capture
                 throw new IOException(file + " has an impossible shape");
             }
             final String[] names = new String[count];
+            long palette = 0;
             for (int i = 0; i < count; i++)
             {
                 names[i] = readString(in);
+                palette += names[i].length();
+                if (palette > MOST_PALETTE)
+                {
+                    throw new IOException(file + " has a palette of over " + MOST_PALETTE + " characters");
+                }
             }
             final Section[] sections = (version == VERSION) ? readSections(in, file, box, count)
                 : readListed(in, file, box, count);
@@ -1765,7 +1771,7 @@ public final class Capture
         return assembly.sections(cells, values);
     }
 
-    /** Whether a {@link #cell} read from a file is inside the box. */
+    /** Whether a {@link Builder#cell} read from a file is inside the box. */
     private static boolean insideBox(final long cell, final Box box)
     {
         return ((cell >>> 40) < box.sizeX()) && (((cell >>> 20) & 0xFFFFF) < box.sizeZ()) && ((cell & 0xFFFFF) < box.sizeY());
@@ -1948,10 +1954,20 @@ public final class Capture
         out.write(bytes);
     }
 
+    /**
+     * Past this many bytes a name is no block state's, nor a world's: the longest state, every property
+     * of a redstone wire or a chiseled bookshelf, is under two hundred. Refused before room is made for
+     * it, since a file is read off the main thread, where an OutOfMemoryError is not caught.
+     */
+    private static final int MOST_NAME = 4096;
+
+    /** Past this many characters a palette is no capture's: sixty-five thousand states of a hundred and fifty. */
+    private static final int MOST_PALETTE = 1 << 24;
+
     private static String readString(final DataInputStream in) throws IOException
     {
         final int length = in.readInt();
-        if ((length < 0) || (length > 65_536))
+        if ((length < 0) || (length > MOST_NAME))
         {
             throw new IOException("string of " + length + " bytes");
         }

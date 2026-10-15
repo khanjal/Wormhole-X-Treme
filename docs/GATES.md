@@ -831,7 +831,7 @@ does not wait for it. A capture through the bigger hole sees more near ground, s
 ground a fill keeps more than an eight-by-eight one's. A gate's capture is cut to fit a million blocks
 (`MOST_GATE_KEPT`, a mirror's is 500,000), the most its view may draw, so none is kept that a view
 could not use; over open ground the fill reaches further than it did at half a million. Kept in
-sections since #525, a million cells take about 0.4 MB in memory, and could be four times as many
+sections since #525, a million cells take about 0.4 MB in memory, and between about as many and four times as many
 for what the list before took; the cap stayed, since what it now bounds is the view's walk and
 maps, not the capture ([How a capture is kept](MIRRORS.md#how-a-capture-is-kept)).
 
@@ -859,7 +859,7 @@ once rather than after its far side has been read off the disk. The capture's ow
 the main thread, the first time it is wanted after a restart or after five minutes nobody drew from
 it ([#528](https://github.com/khanjal/Wormhole-X-Treme/issues/528)): one at a mirror's cap of half a
 million blocks took about 130 ms, a hitch on the main thread, before captures were kept in
-sections (#525), which read several times faster. The horizon shows until it is in, and
+sections (#525), which read faster: about as fast for a city, two to five times for hills and canopy, ten times for the sea. The horizon shows until it is in, and
 the dial starts the read, so it is usually in before the kawoosh settles. Nothing is taken while it
 is read, since a first step taken then would overwrite a capture holding the fill; a gate removed
 meanwhile does not have it put back. A read that has not come back in a minute is counted lost and

@@ -92,7 +92,7 @@ class CaptureSectionsTest
             final int y = box.minY() + random.nextInt(box.sizeY());
             final int z = box.minZ() + random.nextInt(box.sizeZ());
             // Skewed, as a far side is: a few states are most of it.
-            final int kind = (int) (kinds * random.nextDouble() * random.nextDouble());
+            final int kind = (random.nextInt(kinds) * random.nextInt(kinds)) / kinds;
             builder.put(x, y, z, (random.nextInt(20) == 0) ? air : palette[kind]);
         }
         for (int i = 0; i < (puts / 50); i++)
@@ -504,7 +504,8 @@ class CaptureSectionsTest
         final Section read = Section.read(fullSection(1, inside), file, 2, WEST_HALF);
 
         assertEquals(1, read.value(inside), "x 7 is inside, and read");
-        assertThrows(IOException.class, () -> Section.read(fullSection(1, outside), file, 2, WEST_HALF), "x 8 is past it");
+        final DataInputStream past = fullSection(1, outside);
+        assertThrows(IOException.class, () -> Section.read(past, file, 2, WEST_HALF), "x 8 is past it");
     }
 
     /** A full section holding a different number of blocks than it says is refused. */
@@ -516,8 +517,10 @@ class CaptureSectionsTest
         final int two = Section.local(2, 1, 1);
 
         assertEquals(2, Section.read(fullSection(2, one, two), file, 2, WEST_HALF).entries(), "two said, two held");
-        assertThrows(IOException.class, () -> Section.read(fullSection(2, one), file, 2, WEST_HALF), "two said, one held");
-        assertThrows(IOException.class, () -> Section.read(fullSection(1, one, two), file, 2, WEST_HALF), "one said, two held");
+        final DataInputStream fewer = fullSection(2, one);
+        assertThrows(IOException.class, () -> Section.read(fewer, file, 2, WEST_HALF), "two said, one held");
+        final DataInputStream more = fullSection(1, one, two);
+        assertThrows(IOException.class, () -> Section.read(more, file, 2, WEST_HALF), "one said, two held");
     }
 
     /**
@@ -536,8 +539,9 @@ class CaptureSectionsTest
         assertEquals(Section.BLOCKS,
             Section.read(new DataInputStream(new ByteArrayInputStream(allAir)), file, 2, whole).airCount(),
             "a whole section can be all air");
-        assertThrows(IOException.class,
-            () -> Section.read(new DataInputStream(new ByteArrayInputStream(allAir)), file, 2, WEST_HALF));
+        final DataInputStream part = new DataInputStream(new ByteArrayInputStream(allAir));
+        final IOException refused = assertThrows(IOException.class, () -> Section.read(part, file, 2, WEST_HALF));
+        assertTrue(refused.getMessage().contains("only partly covers"), "says what is wrong: " + refused.getMessage());
     }
 
     /**
@@ -545,6 +549,13 @@ class CaptureSectionsTest
      * the given places in its grid, in the order given.
      */
     private static void sectionsFile(final File file, final Capture.Box box, final int[] places,
+        final Section... sections) throws IOException
+    {
+        sectionsFile(file, box, new String[] { "minecraft:air" }, places, sections);
+    }
+
+    /** The same, with a palette of the given names. */
+    private static void sectionsFile(final File file, final Capture.Box box, final String[] names, final int[] places,
         final Section... sections) throws IOException
     {
         final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -564,9 +575,12 @@ class CaptureSectionsTest
             out.writeInt(box.sizeZ());
             out.writeLong(0L);
             out.writeInt(-1);
-            out.writeInt(1);
-            out.writeInt(13);
-            out.writeBytes("minecraft:air");
+            out.writeInt(names.length);
+            for (final String name : names)
+            {
+                out.writeInt(name.length());
+                out.writeBytes(name);
+            }
             out.writeInt(places.length);
             for (int i = 0; i < places.length; i++)
             {
@@ -660,6 +674,48 @@ class CaptureSectionsTest
             final IOException refused = assertThrows(IOException.class, () -> Capture.load(file), "corner " + box);
             assertTrue(refused.getMessage().contains("impossible shape"), refused.getMessage());
         }
+    }
+
+    /**
+     * A block-state name longer than any block state's is refused, where one at the longest a name
+     * may be is read.
+     *
+     * <p>A name was allowed 65,536 bytes, and a palette 65,535 names: four gigabytes from a header a
+     * few megabytes gzipped, made before any section was read, off the main thread, where an
+     * OutOfMemoryError is not caught.
+     */
+    @Test
+    void aNameLongerThanAnyStateIsRefused(@TempDir final File dir) throws IOException
+    {
+        final File file = new File(dir, "name.view");
+        final Capture.Box box = new Capture.Box(0, 0, 0, 1, 1, 1);
+
+        sectionsFile(file, box, new String[] { "minecraft:air", "a".repeat(4096) }, new int[0]);
+        assertEquals(2, Capture.load(file).states(), "a name of 4096 bytes is read");
+
+        sectionsFile(file, box, new String[] { "minecraft:air", "a".repeat(4097) }, new int[0]);
+        final IOException refused = assertThrows(IOException.class, () -> Capture.load(file));
+        assertTrue(refused.getMessage().contains("4097"), refused.getMessage());
+    }
+
+    /**
+     * A palette of more characters than any capture's is refused, though each name in it is short
+     * enough: thousands of names at the longest a name may be.
+     */
+    @Test
+    void aPaletteLongerThanAnyCapturesIsRefused(@TempDir final File dir) throws IOException
+    {
+        final File file = new File(dir, "palette.view");
+        final String[] names = new String[4097];
+        for (int i = 0; i < names.length; i++)
+        {
+            names[i] = String.format("%04d", i) + "a".repeat(4092);
+        }
+
+        sectionsFile(file, new Capture.Box(0, 0, 0, 1, 1, 1), names, new int[0]);
+        final IOException refused = assertThrows(IOException.class, () -> Capture.load(file));
+
+        assertTrue(refused.getMessage().contains("palette"), refused.getMessage());
     }
 
     /** Bytes the current thread has allocated while {@code read} ran. */
