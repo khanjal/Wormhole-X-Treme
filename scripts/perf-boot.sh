@@ -15,8 +15,10 @@
 # BOTS steps N ("1 10"); DURATION is the measured seconds (120; a gate's view is walked again once a
 # minute, so give gateview 180 or more), WARMUP the seconds before it (45), after which a viewer run
 # also waits up to VIEW_WAIT (300) for every bot to be drawn a window. A viewer run whose bots were
-# not all drawn, or an idle or wanderers run whose gates were not open and loaded throughout (they
-# are kept force-loaded, since nobody is near them; KEEP_LOADED=0 lets them go), is marked INVALID.
+# not all drawn, a run whose gates were not open and loaded throughout (idle, wanderers and gateview
+# keep every site force-loaded, watched or not; KEEP_LOADED=0 lets them go), or one whose boot test
+# failed, is marked INVALID. A plugin viewer run warms up longer than its control while it waits for
+# the views, which can only understate the plugin's cost.
 # JARS, space-separated, are what runs on the server: "none" for the control, a path (relative to
 # the current folder), or label=path to compare a PR's jar with main's (default "none
 # <repo>/target/WormholeXTreme.jar"). A label is letters, digits, dot, dash or underscore, once each.
@@ -28,6 +30,9 @@
 # WX_CONFIG, "key value" pairs split by commas, sets more of Wormhole's settings.
 #
 # The server is bigger than the boot tests': view-distance 8, simulation-distance 6, a fixed 4 GB heap.
+# The heap's start and end figures are after a full collection; its peak is the high-water mark of
+# used heap sampled each second, not after GC (with -Xms4G G1 fills up before it collects).
+# BOOT_JVM_ARGS="-Xms4G -Xlog:gc" adds GC log lines, for a collection count that does mean churn.
 # Everything goes in PERF_DIR (<repo>/.perf, ignored by git): runs/<time>/ holds a server folder and
 # a JSON result per run, and the table, printed at the end, is results.md. One server at a time, the
 # bots on the same machine: on a desktop, read differences between runs, not absolute numbers.
@@ -39,7 +44,8 @@ mc="${MC:-1.21.11}"
 perf="${PERF_DIR:-$repo/.perf}"
 scenarios="${SCENARIO:-viewers wanderers gateview}"
 steps="${BOTS:-1 10}"
-jars="${JARS:-none $repo/target/WormholeXTreme.jar}"
+# An array, so a repository path with a space in it survives; JARS itself is split on spaces.
+if [[ -n "${JARS:-}" ]]; then read -r -a jars <<< "$JARS"; else jars=(none "$repo/target/WormholeXTreme.jar"); fi
 views="${GATE_VIEW:-behind open}"
 funnels="${FUNNEL_MIN:-0 3}"
 port="${BOOT_PORT:-25611}"
@@ -69,7 +75,7 @@ javac_bin="$(dirname "$java_bin")/javac"
 
 # Each jar's label names its runs, the tick log and the result files, so it must be plain and unique.
 seen_labels=" "
-for entry in $jars; do
+for entry in "${jars[@]}"; do
   path=""
   if [[ "$entry" == none ]]; then label=none
   elif [[ "$entry" == *=* ]]; then label="${entry%%=*}"; path="${entry#*=}"
@@ -138,10 +144,13 @@ run_one() {
   mkdir -p "$dir"
   # Bukkit refuses a second join from one address within 4 s by default.
   printf 'settings:\n  connection-throttle: -1\n' > "$dir/bukkit.yml"
+  # The vanilla jar, the patched server and its libraries, unpacked once for the measuring plugin:
+  # copied in, so only the first run of all downloads and patches.
+  cp -r "$tick_dir/cache" "$tick_dir/versions" "$tick_dir/libraries" "$dir/"
   echo "== $tag"
   local started=$SECONDS status=0
   JAVA="$java_bin" BOOT_DIR="$dir" BOOT_PORT="$port" BOOT_FLOOR=minecraft:grass_block \
-    BOOT_HEAP=4G BOOT_JVM_ARGS="-Xms4G" SETTLE_SECONDS=2 START_TIMEOUT=300 \
+    BOOT_HEAP=4G BOOT_JVM_ARGS="${BOOT_JVM_ARGS:--Xms4G}" SETTLE_SECONDS=2 START_TIMEOUT=300 \
     BOOT_PROPERTIES=$'view-distance=8\nsimulation-distance=6\nmax-players=200' \
     EXTRA_PLUGINS="$tick_dir/plugin" \
     BOOT_TEST_ALLOW="${BOOT_TEST_ALLOW:-No Vault/LuckPerms provider detected|Shapes framed in OBSIDIAN disagree}" \
@@ -153,11 +162,14 @@ run_one() {
   wait "$child" || status=$?
   child=""
   echo "   $((SECONDS - started))s, boot-test status $status$([[ -f "$run_dir/$tag.json" ]] || echo ', NO RESULT')"
+  # Beside the result, so the table can say a run whose boot test failed (a bot kicked, a warning
+  # from the plugin) is not ok, whatever the bots themselves found.
+  echo "$status" > "$run_dir/$tag.status"
   grep -h "INVALID" "$dir/run.log" | sed 's/^/   /' || true
   [[ "$status" -eq 0 ]] || tail -n 30 "$dir/run.log" | sed 's/^/   | /'
   if [[ "${SPARK:-0}" == 1 ]]; then cp "$dir"/plugins/spark/*.sparkprofile "$run_dir/" 2>/dev/null || true; fi
   # The world is several hundred MB; the log and the tick file are what a run leaves.
-  [[ "${KEEP_WORLDS:-0}" == 1 ]] || rm -rf "$dir"/world "$dir"/world_nether "$dir"/world_the_end "$dir"/libraries "$dir"/versions "$dir"/cache
+  [[ "${KEEP_WORLDS:-0}" == 1 ]] || rm -rf "$dir"/world "$dir"/world_nether "$dir"/world_the_end
 }
 
 for scenario in $scenarios; do
@@ -165,7 +177,7 @@ for scenario in $scenarios; do
     if [[ "$scenario" == gateview ]]; then
       for view in $views; do
         for funnel in $funnels; do
-          for entry in $jars; do
+          for entry in "${jars[@]}"; do
             # The control has no gate view to vary: once is enough.
             if [[ "$entry" == none && ( "$view" != "${views%% *}" || "$funnel" != "${funnels%% *}" ) ]]; then continue; fi
             run_one "$scenario" "$n" "$view" "$funnel" "$entry"
@@ -173,7 +185,7 @@ for scenario in $scenarios; do
         done
       done
     else
-      for entry in $jars; do run_one "$scenario" "$n" horizon 0 "$entry"; done
+      for entry in "${jars[@]}"; do run_one "$scenario" "$n" horizon 0 "$entry"; done
     fi
   done
 done

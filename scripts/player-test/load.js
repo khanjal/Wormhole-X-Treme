@@ -94,9 +94,10 @@ const GATE_FLOOR = -60
 const gateAt = (i) => ({ from: `perfS${i}`, to: `perfT${i}`, x: i * spacing, z: -400, toZ: -700 })
 
 // An open gate holds no chunk ticket, and the tickers skip a gate or mirror whose chunk is not
-// loaded, so with nobody near, idle and wanderers keep their sites force-loaded, or they would
-// measure nothing; siteCheck() says whether they were. KEEP_LOADED=0 or 1 overrides that.
-const keepLoaded = env('KEEP_LOADED', scenario === 'idle' || scenario === 'wanderers' ? '1' : '0') === '1'
+// loaded, so idle, wanderers and gateview keep every site force-loaded, both ends of each gate,
+// or they would measure only the sites a bot stands at; siteCheck() says whether they were.
+// KEEP_LOADED=0 or 1 overrides that.
+const keepLoaded = env('KEEP_LOADED', scenario === 'viewers' ? '0' : '1') === '1'
 
 async function loaded (x, z, body) {
   send(`forceload add ${x - 16} ${z - 16} ${x + 16} ${z + 16}`)
@@ -119,6 +120,7 @@ async function siteCheck (when) {
       const g = gateAt(i)
       // A Standard gate built facing south at x, z opens round x - 1.5, z - 2.5.
       send(`execute if loaded ${g.x - 2} -58 ${g.z - 3} run say ${tag} gate-loaded ${g.from}`)
+      send(`execute if loaded ${g.x - 2} -58 ${g.toZ - 3} run say ${tag} far-loaded ${g.to}`)
     }
     if (when === 'after' && withPlugin) {
       // Both ends loaded for the test, or an item could neither be swept nor found: a gate view
@@ -155,6 +157,7 @@ async function siteCheck (when) {
   const open = new Set([...text.matchAll(new RegExp(`${tag} gate-open-\\d+ (\\S+)`, 'g'))].map((m) => m[1]))
   return {
     gatesLoaded: count('gate-loaded'),
+    farLoaded: count('far-loaded'),
     gatesOpen: when === 'after' && withPlugin && plan.gates ? open.size : null,
     mirrorsLoaded: count('mirror-loaded')
   }
@@ -462,6 +465,7 @@ async function main () {
   for (const [when, sites] of [['before', sitesBefore], ['after', sitesAfter]]) {
     if (sites.gatesOpen !== null && sites.gatesOpen < gates) invalid.push(`${sites.gatesOpen}/${gates} gates open ${when}`)
     if (keepLoaded && plan.gates && sites.gatesLoaded < gates) invalid.push(`${sites.gatesLoaded}/${gates} gate chunks loaded ${when}`)
+    if (keepLoaded && plan.gates && sites.farLoaded < gates) invalid.push(`${sites.farLoaded}/${gates} far gate chunks loaded ${when}`)
     if (keepLoaded && plan.mirrors && sites.mirrorsLoaded < mirrors) invalid.push(`${sites.mirrorsLoaded}/${mirrors} mirror chunks loaded ${when}`)
   }
   const out = {
@@ -515,8 +519,17 @@ main().catch((e) => {
 
 /** Prints every result in a folder as a Markdown table, a control beside each run it controls. */
 function printTable (folder) {
+  // perf-boot.sh writes boot-test's exit status beside each result: a bot kicked, or a warning from
+  // the plugin, fails the boot test whatever the bots found.
+  const statusOf = (f) => {
+    try {
+      return fs.readFileSync(path.join(folder, f.replace(/\.json$/, '.status')), 'utf8').trim()
+    } catch {
+      return null
+    }
+  }
   const rows = fs.readdirSync(folder).filter((f) => f.endsWith('.json'))
-    .map((f) => JSON.parse(fs.readFileSync(path.join(folder, f), 'utf8')))
+    .map((f) => ({ ...JSON.parse(fs.readFileSync(path.join(folder, f), 'utf8')), bootStatus: statusOf(f) }))
     .sort((a, b) => a.scenario.localeCompare(b.scenario) || (a.bots + a.gates + a.mirrors) - (b.bots + b.gates + b.mirrors) ||
       `${a.gateView}${a.funnelMin}`.localeCompare(`${b.gateView}${b.funnelMin}`) || Number(a.plugin) - Number(b.plugin) ||
       a.jar.localeCompare(b.jar))
@@ -524,16 +537,22 @@ function printTable (folder) {
   const sites = (r) => {
     const s = r.validity.sitesAfter
     if (!s) return '-'
-    return [r.gates ? `gates ${s.gatesOpen === null ? '-' : s.gatesOpen} open, ${s.gatesLoaded} loaded` : '', r.mirrors ? `mirrors ${s.mirrorsLoaded} loaded` : '']
+    const far = s.farLoaded === undefined ? '' : `, ${s.farLoaded} far ends loaded`
+    return [r.gates ? `gates ${s.gatesOpen === null ? '-' : s.gatesOpen} open, ${s.gatesLoaded} loaded${far}` : '', r.mirrors ? `mirrors ${s.mirrorsLoaded} loaded` : '']
       .filter(Boolean).join('; ') || '-'
   }
+  const valid = (r) => {
+    const why = [...(r.invalid || [])]
+    if (r.bootStatus !== null && r.bootStatus !== '0') why.push(`boot test status ${r.bootStatus}`)
+    return why.length ? `INVALID: ${why.join('; ')}` : 'ok'
+  }
   const f = (n, d = 2) => (n === null || n === undefined ? '-' : Number(n).toFixed(d))
-  console.log('| scenario | bots | gates | mirrors | gate-view | jar | mean | p95 | p99 | max | >50ms | heap start/end/peak MB | bots drawn | blocks drawn/bot | mspt max | sites | valid |')
+  console.log('| scenario | bots | gates | mirrors | gate-view | jar | mean | p95 | p99 | max | >50ms | heap MB: start/end after GC, high-water | bots drawn | blocks drawn/bot | mspt max | sites | valid |')
   console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
   for (const r of rows) {
     const t = r.tick
     const drawn = r.validity.drawnBlocks.length ? Math.round(r.validity.drawnBlocks.reduce((s, x) => s + x, 0) / r.validity.drawnBlocks.length) : '-'
     const view = r.scenario === 'gateview' ? `${r.gateView}/f${r.funnelMin}` : '-'
-    console.log(`| ${r.scenario} | ${r.bots} | ${r.gates} | ${r.mirrors} | ${view} | ${r.jar} | ${f(t.mean)} | ${f(t.p95)} | ${f(t.p99)} | ${f(t.max, 1)} | ${t.over50} | ${t.heapStartMB}/${t.heapEndMB}/${t.heapPeakMB} | ${r.validity.botsDrawn === null ? '-' : `${r.validity.botsDrawn}/${r.bots}`} | ${drawn} | ${f(r.mspt.maxOfMax, 1)} | ${sites(r)} | ${r.invalid && r.invalid.length ? `INVALID: ${r.invalid.join('; ')}` : 'ok'} |`)
+    console.log(`| ${r.scenario} | ${r.bots} | ${r.gates} | ${r.mirrors} | ${view} | ${r.jar} | ${f(t.mean)} | ${f(t.p95)} | ${f(t.p99)} | ${f(t.max, 1)} | ${t.over50} | ${t.heapStartMB}/${t.heapEndMB}/${t.heapPeakMB} | ${r.validity.botsDrawn === null ? '-' : `${r.validity.botsDrawn}/${r.bots}`} | ${drawn} | ${f(r.mspt.maxOfMax, 1)} | ${sites(r)} | ${valid(r)} |`)
   }
 }
