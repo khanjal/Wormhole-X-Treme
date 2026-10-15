@@ -179,6 +179,45 @@ which vanilla brings along by itself. An item and a mob dropped into a gate are 
 with no player on the server. Each is another trip in `scripts/player-test/journeys.js`: set up
 from the console, act as the player, then check where the bot is and what it sees.
 
+### Load test (local only)
+
+`scripts/perf-boot.sh` asks what the plugin costs a real server's tick (#523). It boots a fresh
+Paper server per run, sets a scenario up from the console, joins N Mineflayer bots
+(`scripts/player-test/load.js`), and records every tick with a small measuring plugin
+(`scripts/perf-tick/`, compiled at run time and installed in every run). Each run with the plugin
+has a control beside it without, and the table at the end gives mean, p95, p99 and the longest tick,
+ticks over 50 ms, the heap after a full collection at each end and its high-water mark (sampled each
+second, not after a collection: with a fixed 4 GB heap G1 fills before it collects, so the peak says
+little about what is kept), how many bots were drawn a window, and whether the gates stayed open and
+every gate, both ends, and every mirror stayed loaded. Idle, wanderers and gateview keep all their
+sites force-loaded, so a gateview run at N=1 has one watched gate and three loaded but unwatched. A
+run that fails those checks, or whose boot test failed, says `INVALID` in its row:
+
+```bash
+SCENARIO=viewers BOTS="1 10" bash scripts/perf-boot.sh
+SCENARIO=gateview BOTS=10 GATE_VIEW=behind FUNNEL_MIN="0 3" DURATION=200 bash scripts/perf-boot.sh
+JARS="none main=main.jar pr=target/WormholeXTreme.jar" SCENARIO=viewers BOTS=10 bash scripts/perf-boot.sh
+```
+
+The scenarios, the settings and the server it boots are in the script's header. `JARS` paths are
+relative to the current folder. `JAVA` is a path or a command on PATH, and must be Java 21 or
+newer; without it a JDK 21 is looked for in the usual folders. The first run downloads the Paper
+jar with `fetch-server.sh`, installs the bots with `npm ci`, and has Paper download the vanilla jar
+and patch it once, for the measuring plugin to compile against (javac with `-proc:none`, since the
+server's libraries carry annotation processors it does not need). Every run copies that patched
+server in, so after the first a matrix needs no network. `BOOT_JVM_ARGS="-Xms4G -Xlog:gc"` logs each
+collection, for a count that does measure churn. Everything goes in `.perf/`, which git ignores.
+
+A gate's view is walked again once a minute, so give `gateview` a `DURATION` of 180 or more. One run
+takes four to eight minutes, most of it the boot, the setup and the warm-up: a viewer run waits for
+every mirror's room to be captured and every bot to be drawn, up to three minutes more. The default
+matrix, three scenarios at N 1 and 10 with a control beside each and four gate-view variants, is 18
+runs, about two hours. It runs one server at a time with the bots on the same machine, so read the
+difference from the control, not the absolute numbers, and only past the run-to-run noise: about
+0.5 ms of mean on this machine, from one run in each cell. Ten and thirty wanderers came out within
+that noise of their controls. A plugin viewer run warms up longer than its control while it waits
+for the views, which can only understate the plugin's cost. There is no workflow for it.
+
 ### Facility (in progress)
 
 `scripts/facility/` is the Wormhole Research Facility: a flat test campus that a tester walks

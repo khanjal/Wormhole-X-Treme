@@ -1,0 +1,12 @@
+name: WxPerfTick
+version: '1'
+main: wxperf.WxPerfTick
+api-version: '1.20'
+description: Tick timing for scripts/perf-boot.sh. Never shipped.
+commands:
+  perftick:
+    description: perftick start <label> | perftick stop
+    permission: wxperf.use
+permissions:
+  wxperf.use:
+    default: op
