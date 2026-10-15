@@ -1317,3 +1317,30 @@ Two things that follow from it, worth knowing before filing an issue:
 A release also closes its milestone: `release.yml` closes the open milestone named for the
 tag's version once the release is published, if it has no open issues. One that still does
 is left open with a warning in the run, and a tag with no such milestone is skipped.
+
+### Release plan
+
+Every open issue sits in a milestone named for the release it is planned for; so does every
+PR. The milestones are the plan and this table is a snapshot of them, so when the two differ
+the milestone wins. A new issue gets a milestone when it is filed or at the next triage, and
+moving one to a later release is how scope is cut, rather than letting a release grow.
+
+| Release | Theme | Issues |
+|---|---|---|
+| 1.11.0 | Gate views and mirror performance | [#609](https://github.com/khanjal/Wormhole-X-Treme/issues/609) mirror windows cost a long tick about once a minute; [#524](https://github.com/khanjal/Wormhole-X-Treme/issues/524) views for big gates; [#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516) the stargate view; [#309](https://github.com/khanjal/Wormhole-X-Treme/issues/309) a small mirror's stale blocks; [#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438) every player message on the shared text helper |
+| 1.12.0 | Text, localization and the tidy-up | [#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476) Paper's own text API; [#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26) localization; [#430](https://github.com/khanjal/Wormhole-X-Treme/issues/430) break up the large files; [#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50) naming residue; [#16](https://github.com/khanjal/Wormhole-X-Treme/issues/16) locator-bar ping; [#187](https://github.com/khanjal/Wormhole-X-Treme/issues/187) the logo |
+| 1.13.0 | The far side, further | [#514](https://github.com/khanjal/Wormhole-X-Treme/issues/514) nether portal views; [#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296) players and mobs in a view; [#526](https://github.com/khanjal/Wormhole-X-Treme/issues/526) scenery past the send distance |
+| 1.14.0 | Networks, stats and previews | [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280) mirror networks; [#262](https://github.com/khanjal/Wormhole-X-Treme/issues/262) mirror destinations; [#237](https://github.com/khanjal/Wormhole-X-Treme/issues/237) travel counters; [#332](https://github.com/khanjal/Wormhole-X-Treme/issues/332) ring preview |
+| 2.0.0 | The shape file and storage | [#46](https://github.com/khanjal/Wormhole-X-Treme/issues/46) the DHD as a type; [#342](https://github.com/khanjal/Wormhole-X-Treme/issues/342) the database storage decision |
+
+The order is not arbitrary:
+
+- **#438 before #476 and #26.** Adventure text and translated messages both build on every
+  message going through the one helper.
+- **#430 before 1.13.0 and 1.14.0.** The mirror and view features land in the files it splits,
+  so they are easier to review once those are smaller.
+- **#516 before #514.** A gate's destination is known, a nether portal's is not, so the gate
+  view proves the machinery the portal view reuses.
+- **#342 with #46 in 2.0.0.** Moving storage changes the data format, which is a major by the
+  rule above, and so does #46. It is a decision to take first, not a backend to add.
+- **#187 is not code.** It waits on an artist, so it can move to whichever release it is ready for.
