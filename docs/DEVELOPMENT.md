@@ -208,7 +208,8 @@ server's libraries carry annotation processors it does not need). Every run copi
 server in, so after the first a matrix needs no network. `BOOT_JVM_ARGS="-Xms4G -Xlog:gc"` logs each
 collection, for a count that does measure churn. Everything goes in `.perf/`, which git ignores.
 
-A gate's view is walked again once a minute, so give `gateview` a `DURATION` of 180 or more. One run
+Before #609 a view was built again once a minute, so to compare with a jar from before it give
+`gateview` a `DURATION` of 180 or more. One run
 takes four to eight minutes, most of it the boot, the setup and the warm-up: a viewer run waits for
 every mirror's room to be captured and every bot to be drawn, up to three minutes more. The default
 matrix, three scenarios at N 1 and 10 with a control beside each and four gate-view variants, is 18

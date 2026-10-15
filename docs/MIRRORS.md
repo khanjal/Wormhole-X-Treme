@@ -179,10 +179,10 @@ the same and four times today's cap, by far side: about the same over hills (0.4
 0.42), a little more in the city (0.25 against 0.27), four times over the sea (1.37 against 0.34).
 The column tops are a fixed 211 KB in a box 325 across, counted in those. And memory is no longer
 what the cap bounds. A window walks every cell its
-capture keeps once a minute on the main thread, reading this world behind each seen air within
-the depth, and holds what it draws at about fifty bytes a block (`Windows.MOST_FIXED`,
-`MOST_GATE_FIXED`); sections change neither the number of cells walked nor the maps. A gate's
-capture is already cut to what its view may draw.
+capture keeps when its room is built ([below](#how-the-room-is-built)), reading this world behind
+each seen air within the depth, and holds what it draws at about fifty bytes a block
+(`Windows.MOST_FIXED`, `MOST_GATE_FIXED`); sections change neither the number of cells walked nor
+the maps. A gate's capture is already cut to what its view may draw.
 
 **The walk itself got slower, then less so.** The list's walk cost what was kept. The first
 sectioned walk visited every column of the box and sixteen blocks of every section it met, and
@@ -210,6 +210,39 @@ biggest capture, a reach of 162 each way, is 325 by 325, about 106 thousand), or
 world border. A version 3 or 4 file's entries are read into room grown as they come, not made for
 the count it claims. Times and sizes above are from a
 scratch benchmark on one desktop, not a server; the read times varied two-fold between runs.
+
+### How the room is built
+
+A walled window draws its room whole, the same from every eye (`Windows.fixedView`): every block
+its capture kept that lies behind the wall within the depth of the opening's middle, and air where
+the far side's seen air lies over a real block that is not empty. That last is the only thing the
+room reads from this world, and it is why a room has to be built again at all: a block put down
+behind the wall shows through the far side's air until it is.
+
+Until #609 the room was built in one go, on the main thread, whenever it was a minute old. The
+load test (`scripts/perf-boot.sh`) found the cost: a 250 to 1400 ms tick once a minute per watched
+window, and at thirty viewers a server behind most of the time. A Java Flight Recorder profile put
+it in the walk over the kept blocks, and inside it in `WindowSight.reallyEmpty`, asked once for
+every seen air block, millions over open ground: a cache lookup each, whose column key (x xor z)
+crowded a few hash buckets.
+
+Now a room is a `FixedBuild`, stepped one x of the capture at a time (one column of the volume,
+for an old capture with no seen air) by `FixedBuilds`, at most 4 ms a tick across every window.
+The real world is read once per column, its highest block and whether it is loaded, and a block
+only below that. The old room is drawn until the new one is whole and swapped in; a window with
+none yet shows its banner or horizon until then. `FixedBuildTest` builds the same rooms the old
+walk did, kept in the tests as `LegacyFixedView`, and asks for the same blocks.
+
+And it is built again only when something it depends on changes: the capture, the depth, the
+tunnel, or a block behind the wall. `ViewChangeListener` hears blocks placed, broken, exploded,
+pushed by a piston, burnt, flowed into, decayed, formed, faded, spread, changed by a creature, and
+grown into a tree, and `Windows.changed` finds the windows each could affect from one lookup by
+chunk (`FixedRegions`): the box round the half-sphere behind each opening that holds a room, a
+couple of blocks wider. A room is not built again sooner than five seconds after its last build,
+so a river behind a wall does not rebuild it every tick, and otherwise after ten minutes, for what
+no event reports: a chunk generated or reloaded, a command's fill, a block another plugin set.
+Players and creatures are not part of the room; they are drawn on their own (stand-ins, far
+players), and moving costs no rebuild.
 
 ## The sweep
 

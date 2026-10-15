@@ -889,6 +889,32 @@ class WindowsTest
             "off to the side: a viewer within the radius can see the far side through that gap");
     }
 
+    /**
+     * The void below the world's floor counts as wall, so a mirror hung near the floor is drawn whole.
+     *
+     * <p>The wall is read sixteen blocks round the opening, and below the floor the server answers
+     * void air, which is not solid: every mirror the load test hung on a flat world's floor said
+     * "wall within 16 open at y=-79 (void_air)" and was clipped to each eye (#609). Nothing stands
+     * there and nothing of a view is drawn there. A floor four blocks under the opening here.
+     */
+    @Test
+    void theVoidBelowTheWorldsFloorCountsAsWall()
+    {
+        when(world.getMinHeight()).thenReturn(60);
+        final Block voidAir = mock(Block.class);
+        when(voidAir.getBlockData()).thenReturn(mock(BlockData.class));
+        // Only below the floor: the banner and the wall above it are read as before.
+        when(world.getBlockAt(anyInt(), ArgumentMatchers.intThat(y -> y < 60), anyInt())).thenReturn(voidAir);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(WindowSweep::tick);
+
+        final List<String> said = Windows.describe(viewer).stream().map(WindowsTest::plain).toList();
+        assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: drawn whole")),
+            "drawn whole, not clipped for the void under the floor: " + said);
+    }
+
     /** The same gap is past the wall a mirror needs while the radius is eight, and it is drawn whole. */
     @Test
     void theSameGapPastAnEightBlockRadiusLeavesTheMirrorDrawnWhole()

@@ -835,6 +835,12 @@ sections since #525, a million cells take about 0.4 MB in memory, and between ab
 for what the list before took; the cap stayed, since what it now bounds is the view's walk and
 maps, not the capture ([How a capture is kept](MIRRORS.md#how-a-capture-is-kept)).
 
+The view itself is built from the capture a few milliseconds a tick, the old view drawn until the
+new one is whole, and built again only when the capture or the tunnel changes or a block changes
+behind the gate, at most every five seconds and at least every ten minutes; until #609 it was
+built in one go on the main thread every minute, a tick of most of a second for a deep view
+([How the room is built](MIRRORS.md#how-the-room-is-built)).
+
 On the main thread, a redraw of a gate's view walks every block the view holds, up to the million
 a gate's view may hold: about 13 ms for half a million and 27 for a million, measured on their
 own, before any block is judged for the eye. A redraw rests three times as long as it took, so a

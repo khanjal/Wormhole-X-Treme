@@ -1780,8 +1780,9 @@ public final class Windows
         final Round round = new Round(seeing, allOpen, view.drawn.keySet(), budget);
         for (final WindowState window : seeing)
         {
-            // A gate's opening is walked into, and its horizon is the gate's own to draw.
-            if (window.walkThrough())
+            // A gate's opening is walked into, and its horizon is the gate's own to draw. A room still
+            // being built leaves its banner up rather than a hole into the real wall (#609).
+            if (window.walkThrough() || (wholes.of(window) == null))
             {
                 continue;
             }
@@ -2877,6 +2878,9 @@ public final class Windows
         final World here = window.anchor().getWorld();
         final int reach = WindowFace.wallReach();
         final int[] span = WindowFace.acrossSpan(shape, reach);
+        // Below the world's floor nothing stands and nothing is drawn, so it hides as wall does; read,
+        // it is void air, and a mirror near the floor was clipped to each eye for it (#609).
+        final int floor = here.getMinHeight();
         final Set<Long> solid = new HashSet<>();
         for (int across = span[0]; across <= span[1]; across++)
         {
@@ -2884,7 +2888,7 @@ public final class Windows
                 y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = WindowFace.faceKey(shape, across, y);
-                if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
+                if ((y < floor) || here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
                 {
                     solid.add(face);
                 }
