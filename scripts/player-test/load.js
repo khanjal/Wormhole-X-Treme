@@ -455,7 +455,16 @@ async function main () {
   // Whether each bot was being drawn a window, asked after the run so the asking is not measured.
   const views = []
   if (withPlugin && plan.bots && scenario !== 'wanderers') {
-    for (const member of party) views.push({ bot: member.name, site: member.slot.site, ...(await viewsOf(member)) })
+    for (const member of party) {
+      // A bot still fidgeting can be caught mid-step out of its window's sight: asked twice more,
+      // a moment apart, before it counts as never drawn (one of thirty at N=30, both jars, #609).
+      let seen = await viewsOf(member)
+      for (let retry = 0; retry < 2 && seen.drawn === 0; retry++) {
+        await sleep(2000)
+        seen = await viewsOf(member)
+      }
+      views.push({ bot: member.name, site: member.slot.site, ...seen })
+    }
   }
   const sitesAfter = await siteCheck('after')
   stop()
