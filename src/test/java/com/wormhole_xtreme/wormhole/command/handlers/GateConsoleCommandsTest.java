@@ -345,6 +345,22 @@ class GateConsoleCommandsTest
         verify(console).sendMessage(infoBody("Usage: " + GateConsoleCommands.BUILD_USAGE));
     }
 
+    /** A line in the coordinate form refused for something else gets that reason alone, not the form again. */
+    @Test
+    void aCoordinateLineRefusedForItsShapeIsNotGivenTheUsage()
+    {
+        final ConsoleCommandSender console = mock(ConsoleCommandSender.class);
+        try (MockedStatic<StargateShapeRegistry> shapes = mockStatic(StargateShapeRegistry.class))
+        {
+            shapes.when(() -> StargateShapeRegistry.isStargateShape("Nope")).thenReturn(false);
+
+            GateConsoleCommands.build(console, line("Nope", "A", "world", "0", "-60", "0", "south"));
+        }
+
+        verify(console).sendMessage(errorBody("No shape called Nope."));
+        verify(console, never()).sendMessage(infoBody("Usage: " + GateConsoleCommands.BUILD_USAGE));
+    }
+
     @Test
     void aRefusedPlacingSaysWhyInWords()
     {
