@@ -332,7 +332,8 @@ class RingConsoleCommandsTest
     {
         run(console, "ring", "create");
 
-        verify(console).sendMessage(plainContains(RingConsoleCommands.BUILD_USAGE));
+        // The whole line: the usage without its "Usage: " label, since it sits beside what it does.
+        verify(console).sendMessage(plainBody(RingConsoleCommands.BUILD_USAGE + " — works from here"));
     }
 
     /**
