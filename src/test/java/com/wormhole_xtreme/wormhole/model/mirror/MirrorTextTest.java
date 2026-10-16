@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.EnumMap;
 import java.util.Locale;
+import java.util.Map;
 
 import org.bukkit.DyeColor;
 import org.junit.jupiter.api.Test;
@@ -230,7 +232,7 @@ class MirrorTextTest
     @Test
     void theDyeTableKeepsItsExactCodes()
     {
-        final java.util.Map<DyeColor, String> codes = new java.util.EnumMap<>(DyeColor.class);
+        final Map<DyeColor, String> codes = new EnumMap<>(DyeColor.class);
         codes.put(DyeColor.WHITE, "§f");
         codes.put(DyeColor.ORANGE, "§6");
         codes.put(DyeColor.BROWN, "§6");

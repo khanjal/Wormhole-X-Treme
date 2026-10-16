@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -32,6 +33,7 @@ import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Clicking beside a gate's DHD rather than on it.
@@ -127,7 +129,7 @@ class NearbyDialSearchTest
             helper.when(() -> StargateHelper.isPossibleGateFrameMaterial(any())).thenReturn(true);
 
             assertFalse(GateInteractionHandler.findGateFromNearbyDial(clicked, player));
-            verify(player, never()).sendMessage(contains("Valid Stargate Design"));
+            verify(player, never()).sendMessage(contains("Valid design found nearby"));
         }
     }
 
@@ -152,7 +154,8 @@ class NearbyDialSearchTest
 
             assertTrue(GateInteractionHandler.findGateFromNearbyDial(clicked, player));
 
-            verify(player).sendMessage(contains("Valid Stargate Design detected via nearby click"));
+            verify(player).sendMessage(argThat((String line) -> ChatText.plain(line)
+                .equals(":: Valid design found nearby. Type /wormhole complete <name> to finish it.")));
             manager.verify(() -> StargateManager.addIncompleteStargate(player, found));
         }
     }
@@ -198,7 +201,7 @@ class NearbyDialSearchTest
             manager.when(() -> StargateManager.getGateFromBlock(existingDial)).thenReturn(found);
 
             assertFalse(GateInteractionHandler.findGateFromNearbyDial(clicked, player));
-            verify(player, never()).sendMessage(contains("Valid Stargate Design"));
+            verify(player, never()).sendMessage(contains("Valid design found nearby"));
         }
     }
 
@@ -221,7 +224,7 @@ class NearbyDialSearchTest
             assertTrue(GateInteractionHandler.findGateFromNearbyDial(clicked, player),
                 "the search still found something; the player just may not have it");
 
-            verify(player, never()).sendMessage(contains("Valid Stargate Design"));
+            verify(player, never()).sendMessage(contains("Valid design found nearby"));
             manager.verify(() -> StargateManager.addIncompleteStargate(any(), any()), never());
         }
     }

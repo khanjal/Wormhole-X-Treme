@@ -1,10 +1,10 @@
 package com.wormhole_xtreme.wormhole.utils;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /** The shared chat palette: each fragment coloured, then back to the body grey. */
 class ChatTextTest

@@ -13,8 +13,8 @@
 //    `needs` lists what to lay, "<n> <material> - <n left | done>"; `guide` marks it and says
 //    "<Shape> is built! Press its button to check it." once every cell but a dial sign is right;
 //    `place` lays it ("Placed <Shape>.") and offers the gate as a button press would.
-//  - A frame is recognised only when a button on its DHD is pressed: "Valid Stargate Design!"
-//    (or "Valid Sign Nav Stargate Design!"), then `gate complete <name> [idc=] [net=]` makes it
+//  - A frame is recognised only when a button on its DHD is pressed: "Valid stargate design."
+//    (or "Valid sign nav stargate design."), then `gate complete <name> [idc=] [net=]` makes it
 //    ("Gate successfully constructed."). A dial sign is any wall sign on the front of the :D
 //    block, and may be hung after the press but before `complete`.
 //
@@ -127,8 +127,8 @@ class GateBuilder {
     try {
       said.build = await this.preview(geom, group, { dim });
       const mark = this.heard.length;
-      said.place = await this.ask('/wormhole gate preview place', { ms: 5000, until: /Nothing placed|no gate was found|error ::|Type '\/wormhole complete/ });
-      said.offer = await this.hear(/Valid (Sign Nav )?Stargate Design/, mark, 3000);
+      said.place = await this.ask('/wormhole gate preview place', { ms: 5000, until: /Nothing placed|no gate was found|error ::|Type \/wormhole complete/ });
+      said.offer = await this.hear(/Valid (sign nav )?stargate design/i, mark, 3000);
       if (geom.sign) said.sign = await this.hangSign(geom, dim);
       said.complete = await this.complete(name, geom, { idc, net, dim, floorY });
     } catch (e) {
@@ -210,7 +210,7 @@ class GateBuilder {
       await this.probe.teleport(this.pressPoint(geom, floorY), dim);
       const pressMark = this.heard.length;
       await this.probe.press(geom.button);
-      said.offer = await this.hear(/Valid (Sign Nav )?Stargate Design/, pressMark, 4000);
+      said.offer = await this.hear(/Valid (sign nav )?stargate design/i, pressMark, 4000);
       said.complete = await this.complete(name, geom, { idc, net, dim, floorY });
     } catch (e) {
       e.said = said;

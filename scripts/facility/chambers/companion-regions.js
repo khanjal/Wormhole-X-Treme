@@ -53,7 +53,7 @@ const USE_REFUSED = /This region does not allow using gates\./;
 const BUILD_REFUSED = /This region does not allow building gates\./;
 const NO_PERMISSION = /You lack the permissions to do this\./;
 const ACTIVATED = /Gate successfully activated\./;
-const VALID_DESIGN = /Valid Stargate Design!/;
+const VALID_DESIGN = /Valid stargate design\./i;
 
 const v = (value, why) => ({ value, label: value, why });
 const CASES = [
@@ -458,7 +458,7 @@ function checks(ctx, o) {
       return [c('refused in the region\'s words: "This region does not allow building gates."', () => told(BUILD_REFUSED)),
         c('and no completion prompt', () => !told(VALID_DESIGN))];
     case 'hand build allowed':
-      return [c('the completion prompt: "Valid Stargate Design!"', () => told(VALID_DESIGN)),
+      return [c('the completion prompt: "Valid stargate design."', () => told(VALID_DESIGN)),
         c('and no region refusal', () => !told(BUILD_REFUSED))];
     case 'preview refused':
       return [c('the preview stood: "Previewing Standard. Build inside it, ..."', () => /Previewing Standard( in \w+)?\. Build inside it, then press a real button on its DHD\./.test(obs.previewTold || '')),

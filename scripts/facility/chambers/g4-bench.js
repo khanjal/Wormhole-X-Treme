@@ -201,7 +201,7 @@ module.exports = {
       const shape = o.case === 'lenient' ? 'Lab' : 'Standard';
       const blocks = () => (r.needs || []).filter((n) => !/button|sign/.test(n.material)).reduce((a, n) => a + n.count, 0);
       const laid = () => Object.entries(r.laid || {}).filter(([k]) => !['button', 'sign'].includes(k)).reduce((a, [, n]) => a + n, 0);
-      const offer = o.case === 'lenient' ? /Valid Sign Nav Stargate Design!/ : /Valid Stargate Design!/;
+      const offer = o.case === 'lenient' ? /Valid sign nav stargate design\./i : /Valid stargate design\./i;
       return [
         c(`\`needs\` listed ${shape}'s blocks`, () => blocks() > 0),
         c('Probe laid as many blocks as it listed', () => blocks() === laid()),
@@ -214,7 +214,7 @@ module.exports = {
       const r = obs.built || { said: {} };
       return [
         c('`gate preview place`: "Placed Standard."', () => /Placed Standard\./.test(r.said.place || '')),
-        c('offered: "Valid Stargate Design!"', () => /Valid Stargate Design!/.test(r.said.offer || '')),
+        c('offered: "Valid stargate design."', () => /Valid stargate design\./i.test(r.said.offer || '')),
         c('`gate complete Bench` made it, and it is listed', () => /Gate successfully constructed/.test(r.said.complete || '') && obs.listed),
       ];
     }

@@ -1,7 +1,5 @@
 package com.wormhole_xtreme.wormhole.command;
 
-import com.wormhole_xtreme.wormhole.utils.ChatText;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.contains;
@@ -13,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -26,6 +25,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What {@code /wx list} shows, and to whom.
@@ -294,7 +294,7 @@ class WXListTest
             assertTrue((i == (lines.size() - 1)) || (ChatText.plain(m).length() > 70),
                 "split on visible length, not on codes: " + m);
         }
-        final String all = lines.stream().map(ChatText::plain).collect(java.util.stream.Collectors.joining());
+        final String all = lines.stream().map(ChatText::plain).collect(Collectors.joining());
         for (final String n : names)
         {
             assertEquals(1, all.split(n, -1).length - 1, n + " appears exactly once");

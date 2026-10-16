@@ -907,8 +907,8 @@ public final class GateInteractionHandler
                 return;
             }
             StargateManager.addIncompleteStargate(player, nearbyGate);
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Valid Stargate Design detected via nearby click! Type '/wormhole complete <name>' to complete.");
+            player.sendMessage(ChatText.info("Valid design found nearby. Type " + ChatText.command("/wormhole complete")
+                + " " + ChatText.name("<name>") + " to finish it."));
         }
         else
         {
