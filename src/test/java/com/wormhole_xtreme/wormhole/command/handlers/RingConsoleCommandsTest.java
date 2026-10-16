@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainBody;
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,7 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -39,10 +41,13 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
+import com.wormhole_xtreme.wormhole.model.ring.RingOrientation;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
@@ -50,6 +55,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Pairing and firing rings by coordinates and id, with nobody standing in them.
@@ -187,8 +193,9 @@ class RingConsoleCommandsTest
         verify(slabOf(NEAR_Z)).setType(Material.AIR, false);
         verify(slabOf(FAR_Z)).setType(Material.AIR, false);
         yaml.verify(() -> RingYamlManager.saveWorld(WORLD));
-        verify(console).sendMessage(contains("Ring pair " + pair.getId() + " is live and public. Arrivals at"
-            + " 100.5 64 100.5 and 100.5 64 120.5. Fire it with /wormhole ring fire " + pair.getId() + "."));
+        verify(console).sendMessage(plainBody("Ring pair " + pair.getId() + " is live and public. Arrivals at"
+            + " 100.5 64 100.5 and 100.5 64 120.5."));
+        verify(console).sendMessage(plainBody("Fire it with /wormhole ring fire " + pair.getId() + "."));
     }
 
     /** A command block's ~ counts from its own block, so a map names both circles relative to itself. */
@@ -213,7 +220,7 @@ class RingConsoleCommandsTest
     {
         run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "140");
 
-        verify(console).sendMessage("No ring of slabs here. Lay a circle of slabs and stand inside it. (at 100 64 140)");
+        verify(console).sendMessage(plainBody("No ring of slabs here. Lay a circle of slabs and stand inside it. (at 100 64 140)"));
         assertTrue(pairs().isEmpty());
         verify(slabOf(NEAR_Z), never()).setType(any(Material.class), anyBoolean());
     }
@@ -226,7 +233,7 @@ class RingConsoleCommandsTest
 
         run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
-        verify(console).sendMessage("Those two rings are 20 blocks apart on the ground, and rings reach 10.");
+        verify(console).sendMessage(plainBody("Those two rings are 20 blocks apart on the ground, and rings reach 10."));
         assertTrue(pairs().isEmpty());
     }
 
@@ -237,9 +244,9 @@ class RingConsoleCommandsTest
         run(console, "ring", "build", "nether", "100", "64", "100", "100", "64", "120");
         run(console, "ring", "build", WORLD, "100", "64", "100", "~", "64", "120");
 
-        verify(console).sendMessage("Usage: " + RingConsoleCommands.BUILD_USAGE);
-        verify(console).sendMessage("No world called nether is loaded.");
-        verify(console).sendMessage("~ counts from a command block or player; from here, give whole numbers.");
+        verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.BUILD_USAGE));
+        verify(console).sendMessage(plainBody("No world called nether is loaded."));
+        verify(console).sendMessage(plainBody("~ counts from a command block or player; from here, give whole numbers."));
         assertTrue(pairs().isEmpty());
     }
 
@@ -252,7 +259,7 @@ class RingConsoleCommandsTest
 
         run(player, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
-        verify(player).sendMessage(contains("needs " + RingPermissions.ADMIN));
+        verify(player).sendMessage(plainContains("needs " + RingPermissions.ADMIN));
         assertTrue(pairs().isEmpty());
 
         when(player.hasPermission(RingPermissions.ADMIN)).thenReturn(Boolean.TRUE);
@@ -274,12 +281,12 @@ class RingConsoleCommandsTest
             run(console, "ring", "fire", pair.getId());
 
             transit.verify(() -> RingTransit.start(pair, null, false));
-            verify(console).sendMessage("Ring pair " + pair.describe() + " is counting down.");
+            verify(console).sendMessage(plainBody("Ring pair " + pair.describe() + " is counting down."));
 
             transit.when(() -> RingTransit.start(pair, null, false)).thenReturn(Boolean.FALSE);
             run(console, "ring", "fire", pair.getId());
 
-            verify(console).sendMessage(contains("did not fire"));
+            verify(console).sendMessage(plainContains("did not fire"));
         }
     }
 
@@ -308,7 +315,7 @@ class RingConsoleCommandsTest
             transit.verify(() -> RingTransit.start(pair, null, false), times(3));
         }
         run(console, "ring", "fire", WORLD, "100", "64", "110");
-        verify(console).sendMessage("No ring at 100 64 110 in world.");
+        verify(console).sendMessage(plainBody("No ring at 100 64 110 in world."));
     }
 
     @Test
@@ -317,8 +324,10 @@ class RingConsoleCommandsTest
         run(console, "ring", "fire", "nothere");
         run(console, "ring", "fire");
 
-        verify(console).sendMessage("No ring pair nothere.");
-        verify(console).sendMessage("Usage: " + RingConsoleCommands.FIRE_USAGE);
+        // Raw, not plain: the refusal opens with the error header and the id is aqua, as a name.
+        verify(console).sendMessage(ChatText.ERROR_HEADER + "There is no ring pair called " + ChatText.NAME_COLOUR
+            + "nothere" + ChatText.BODY_COLOUR + ".");
+        verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.FIRE_USAGE));
     }
 
     /** The other verbs are still a player's, and the console is told which ones it can use. */
@@ -327,7 +336,8 @@ class RingConsoleCommandsTest
     {
         run(console, "ring", "create");
 
-        verify(console).sendMessage(contains(RingConsoleCommands.BUILD_USAGE));
+        // The whole line: the usage without its "Usage: " label, since it sits beside what it does.
+        verify(console).sendMessage(plainBody(RingConsoleCommands.BUILD_USAGE + " — works from here"));
     }
 
     /**
@@ -345,7 +355,7 @@ class RingConsoleCommandsTest
 
         run(asThemselves, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
-        verify(asThemselves).sendMessage(contains("needs " + RingPermissions.ADMIN));
+        verify(asThemselves).sendMessage(plainContains("needs " + RingPermissions.ADMIN));
         assertTrue(pairs().isEmpty());
 
         final ProxiedCommandSender fromAMap = mock(ProxiedCommandSender.class);
@@ -368,10 +378,91 @@ class RingConsoleCommandsTest
 
         run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
-        verify(console).sendMessage(contains("A player has laid that circle, or one beside it, as the first end of a"
+        verify(console).sendMessage(plainContains("A player has laid that circle, or one beside it, as the first end of a"
             + " pair they are building. (at 100 64 100)"));
         assertTrue(pairs().isEmpty());
         verify(slabOf(NEAR_Z), never()).setType(any(Material.class), anyBoolean());
+    }
+
+    /** A refusal of one circle, under the error header, ending with where it looked. */
+    private static String refusedAt(final String where)
+    {
+        return argThat((String line) -> (line != null)
+            && ChatText.plain(line).startsWith(ChatText.plain(ChatText.ERROR_HEADER))
+            && ChatText.plain(line).endsWith(" (at " + where + ")"));
+    }
+
+    /** A word that is not a coordinate shows the usage, before any world or block is read. */
+    @Test
+    void aWordThatIsNotACoordinateShowsTheUsage()
+    {
+        run(console, "ring", "build", WORLD, "100", "64", "north", "100", "64", "120");
+
+        verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.BUILD_USAGE));
+        assertTrue(pairs().isEmpty());
+    }
+
+    /** A circle that overlaps a ring already paired there is refused, saying which circle. */
+    @Test
+    void aCircleOverAnExistingRingIsRefusedNamingWhere()
+    {
+        final Ring there = RingTemplate.detect(new BukkitBlockProbe(world), X, Y, NEAR_Z, 5, Material.GLOWSTONE).getRing();
+        RingManager.addPair(new RingPair("bbbb0001", WORLD, there,
+            new Ring(X, Y, 400, RingPattern.ODD, RingOrientation.FLOOR, Material.STONE_SLAB, Material.GLOWSTONE)), 5);
+
+        run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+        verify(console).sendMessage(refusedAt("100 64 100"));
+        assertEquals(1, pairs().size(), "only the pair that was already there");
+    }
+
+    /** A circle laid over a stargate is refused, saying which circle. */
+    @Test
+    void aCircleOverAStargateIsRefusedNamingWhere()
+    {
+        final Block gateBlock = blockAt(X, Y, FAR_Z);
+        final Stargate gate = new Stargate();
+        gate.setGateName("inthemiddle");
+        StargateManager.addBlockIndex(gateBlock, gate);
+        try
+        {
+            run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+            verify(console).sendMessage(plainBody(RingCommand.OVERLAPS_GATE + " (at 100 64 120)"));
+            assertTrue(pairs().isEmpty());
+        }
+        finally
+        {
+            StargateManager.removeBlockIndex(gateBlock);
+        }
+    }
+
+    /** A circle with no room above its pad is refused, saying which circle. */
+    @Test
+    void aCircleWithNoRoomAboveIsRefusedNamingWhere()
+    {
+        final Block roof = blockAt(X, Y + 2, FAR_Z);
+        when(roof.getType()).thenReturn(Material.STONE);
+        when(roof.isPassable()).thenReturn(Boolean.FALSE);
+
+        run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+        verify(console).sendMessage(refusedAt("100 64 120"));
+        assertTrue(pairs().isEmpty());
+    }
+
+    /** Firing by coordinates names a world that is not loaded, and shows the usage for a bad word. */
+    @Test
+    void firingByCoordinatesSaysWhatIsWrongWithThem()
+    {
+        run(console, "ring", "fire", "nether", "100", "64", "110");
+        run(console, "ring", "fire", WORLD, "here", "64", "110");
+        run(console, "ring", "fire", WORLD, "~", "64", "110");
+
+        verify(console).sendMessage(plainBody("No world called nether is loaded."));
+        verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.FIRE_USAGE));
+        // Raw: it is a refusal, so the error header, not the plain one.
+        verify(console).sendMessage(ChatText.error("~ counts from a command block or player; from here, give whole numbers."));
     }
 
     /** A circle laid at the same place in another world is no reason to refuse this one. */

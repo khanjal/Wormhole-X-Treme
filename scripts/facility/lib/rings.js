@@ -117,7 +117,7 @@ class RingKit {
     const reply = /You have no transport rings\.|, (PUBLIC|PRIVATE), /;
     const text = await this.ask('/wormhole ring list', { ms: 10000, until: reply, settle: 300 });
     if (!reply.test(text)) throw new Error(`ring list was not answered within 10 s (heard: ${text || 'nothing'})`);
-    const ids = [...text.matchAll(/\((\w{8})\)|^(\w{8}) —|\/ (\w{8}) —/g)].map((m) => m[1] || m[2] || m[3]);
+    const ids = [...text.matchAll(/\((\w{8})\)|^(?::: )?(\w{8}) —|\/ (?::: )?(\w{8}) —/g)].map((m) => m[1] || m[2] || m[3]);
     return { text, ids };
   }
 }

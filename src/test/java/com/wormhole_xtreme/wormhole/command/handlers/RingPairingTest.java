@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -8,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -38,6 +38,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The rules for joining a second ring to the one already waiting.
@@ -166,7 +167,9 @@ class RingPairingTest
         // point is that the configured default was read, not that the field holds something.
         assertEquals(RingAccess.PUBLIC, pair.getAccess(), "and opens as the config says");
         assertNull(stillWaiting(), "nothing is left waiting once the pair exists");
-        verify(player).sendMessage(contains("is live"));
+        // Raw: the pair's id is a name, so aqua, on an info line rather than an error.
+        verify(player).sendMessage(ChatText.HEADER + "Ring pair " + ChatText.NAME_COLOUR + pair.getId()
+            + ChatText.BODY_COLOUR + " is live. Step into either end.");
     }
 
     /**
@@ -216,7 +219,7 @@ class RingPairingTest
         pairWith(waitingAt(0, 64, 0, WORLD), ringAt(20, 64, 0));
 
         assertEquals(RingAccess.PRIVATE, registered().getAccess());
-        verify(player).sendMessage(contains("/wormhole ring allow"));
+        verify(player).sendMessage(plainContains("/wormhole ring allow"));
     }
 
     /**
@@ -234,7 +237,7 @@ class RingPairingTest
 
         assertNull(registered(), "no pair is made across worlds");
         assertNotNull(stillWaiting(), "and the first end is still waiting");
-        verify(player).sendMessage(contains("Your first ring is in " + ELSEWHERE
+        verify(player).sendMessage(plainContains("Your first ring is in " + ELSEWHERE
             + ", and this one is in " + WORLD));
     }
 
@@ -249,7 +252,7 @@ class RingPairingTest
 
         assertNull(registered());
         assertNotNull(stillWaiting());
-        verify(player).sendMessage(contains("are 100 blocks apart on the ground, and rings reach 64"));
+        verify(player).sendMessage(plainContains("are 100 blocks apart on the ground, and rings reach 64"));
     }
 
     /**
@@ -295,7 +298,7 @@ class RingPairingTest
     {
         pairWith(waitingAt(0, -64, 0, WORLD), ringAt(20, 336, 0));
         assertNull(registered(), "400 blocks above is too far");
-        verify(player).sendMessage(contains("are 400 blocks apart in height, and rings reach 384"));
+        verify(player).sendMessage(plainContains("are 400 blocks apart in height, and rings reach 384"));
 
         RingManager.clear();
         pairWith(waitingAt(0, 336, 0, WORLD), ringAt(20, -64, 0));
@@ -335,7 +338,7 @@ class RingPairingTest
 
         assertNull(registered(), "a ring is not paired with itself");
         assertNotNull(stillWaiting(), "and the end already laid is still waiting for a partner");
-        verify(player).sendMessage(contains("That is the ring you already laid"));
+        verify(player).sendMessage(plainContains("That is the ring you already laid"));
     }
 
     /**
@@ -427,7 +430,7 @@ class RingPairingTest
 
         pairWith(waitingAt(0, 64, 0, WORLD), ringAt(0, 64, 20));
 
-        verify(player).sendMessage(contains("Your first ring is not free any more"));
+        verify(player).sendMessage(plainContains("Your first ring is not free any more"));
         assertEquals(1, RingManager.getAllPairs().size(), "only the pair that was already there");
     }
 }

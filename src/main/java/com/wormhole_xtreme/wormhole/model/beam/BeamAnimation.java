@@ -14,6 +14,7 @@ import org.bukkit.potion.PotionEffectType;
 import com.wormhole_xtreme.wormhole.PetEscort;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -160,8 +161,7 @@ public final class BeamAnimation
             // isActive, not isFrozen: the envelope runs before the traveller is frozen at
             // all, and a second beam must not be allowed to start on top of it during that
             // window either.
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "You're already beaming somewhere.");
+            player.sendMessage(ChatText.error("You're already beaming somewhere."));
             return false;
         }
         // Terrain drifts away from the coordinates a destination was recorded at -- dug
@@ -453,8 +453,7 @@ public final class BeamAnimation
             if (frame.marks().finished())
             {
                 BeamFreeze.clear(player);
-                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + "Beamed to " + destinationName + ".");
+                player.sendMessage(ChatText.info("Beamed to " + ChatText.name(destinationName) + "."));
                 return true;
             }
             return false;
@@ -467,8 +466,7 @@ public final class BeamAnimation
         {
             BeamFreeze.markActive(player);
             BeamSounds.playCharge(origin);
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Beaming to " + destinationName + "...");
+            player.sendMessage(ChatText.info("Beaming to " + ChatText.name(destinationName) + "..."));
         }
 
         /**
@@ -580,8 +578,8 @@ public final class BeamAnimation
             BeamFreeze.clear(player);
             try
             {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                    + "Something went wrong mid-beam; you have been freed rather than left stuck.");
+                player.sendMessage(ChatText.error("Something went wrong mid-beam; you have been freed rather than "
+                    + "left stuck."));
             }
             catch (final RuntimeException ignored) { /* the freeze is already cleared either way */ }
         }

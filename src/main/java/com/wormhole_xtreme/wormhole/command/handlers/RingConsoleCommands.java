@@ -24,6 +24,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingSurvey;
 import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Pairing and firing transport rings by coordinates and id, with nobody standing in them.
@@ -35,9 +36,7 @@ public final class RingConsoleCommands
 {
     static final String BUILD_USAGE = "/wormhole ring build <world> <x1> <y1> <z1> <x2> <y2> <z2>";
 
-    static final String FIRE_USAGE = "/wormhole ring fire <id | world x y z>";
-
-    private static final String USAGE = "Usage: ";
+    static final String FIRE_USAGE = "/wormhole ring fire <id>|<world> <x> <y> <z>";
 
     private static final String RING_PAIR = "Ring pair ";
 
@@ -81,7 +80,8 @@ public final class RingConsoleCommands
     {
         if ((CommandHandlerUtils.issuer(sender) instanceof Player player) && !RingPermissions.has(player, RingPermissions.ADMIN))
         {
-            sender.sendMessage("Building and firing rings by coordinates and id needs " + RingPermissions.ADMIN + ".");
+            sender.sendMessage(ChatText.error("Building and firing rings by coordinates and id needs "
+                + ChatText.value(RingPermissions.ADMIN) + "."));
             return;
         }
         if (BUILD.equals(verb))
@@ -119,6 +119,7 @@ public final class RingConsoleCommands
         final List<String> notAPair = RingCommand.whyNotAPair(a, b);
         if (!notAPair.isEmpty())
         {
+            // Finished lines, each built by ChatText.
             notAPair.forEach(sender::sendMessage);
             return;
         }
@@ -129,31 +130,39 @@ public final class RingConsoleCommands
         RingCommand.consumeTemplate(world, b, sender.getName());
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world.getName());
-        sender.sendMessage(RING_PAIR + pair.getId() + " is live and public. Arrivals at " + arrival(a) + " and "
-            + arrival(b) + ". Fire it with /wormhole ring fire " + pair.getId() + ".");
+        sender.sendMessage(ChatText.info(RING_PAIR + ChatText.name(pair.getId()) + " is live and public. Arrivals at "
+            + ChatText.value(arrival(a)) + " and " + ChatText.value(arrival(b)) + "."));
+        sender.sendMessage(ChatText.info("Fire it with " + ChatText.command("/wormhole ring fire " + pair.getId()) + "."));
     }
 
-    /** What is wrong with a build line before any block is read; null if nothing. */
+    /** What is wrong with a build line before any block is read, as the line to send; null if nothing. */
     static String whyNotReadable(final CommandSender sender, final String[] args)
     {
         if (args.length != BUILD_WORDS)
         {
-            return USAGE + BUILD_USAGE;
+            return ChatText.info(ChatText.usage(BUILD_USAGE));
         }
         for (int i = 3; i < BUILD_WORDS; i++)
         {
             if (!Coordinates.isCoordinate(args[i]))
             {
-                return USAGE + BUILD_USAGE;
+                return ChatText.info(ChatText.usage(BUILD_USAGE));
             }
         }
         final World world = Bukkit.getWorld(args[2]);
         if (world == null)
         {
-            return "No world called " + args[2] + " is loaded.";
+            return noWorld(args[2]);
         }
         final String first = Coordinates.whyNotReadable(sender, world, args[3], args[4], args[5]);
-        return (first != null) ? first : Coordinates.whyNotReadable(sender, world, args[6], args[7], args[8]);
+        final String why = (first != null) ? first : Coordinates.whyNotReadable(sender, world, args[6], args[7], args[8]);
+        return (why == null) ? null : ChatText.error(why);
+    }
+
+    /** @return the error for a world name that is not loaded */
+    private static String noWorld(final String name)
+    {
+        return ChatText.error("No world called " + ChatText.name(name) + " is loaded.");
     }
 
     /**
@@ -162,12 +171,12 @@ public final class RingConsoleCommands
      */
     private static Ring ringAt(final CommandSender sender, final World world, final int[] at)
     {
-        final String where = " (at " + at[0] + " " + at[1] + " " + at[2] + ")";
+        final String where = " (at " + ChatText.value(at[0] + " " + at[1] + " " + at[2]) + ")";
         final RingTemplate.Result found = RingTemplate.detect(new BukkitBlockProbe(world), at[0], at[1], at[2],
             ConfigManager.getRingReach(), ConfigManager.getRingDefaultLight());
         if (!found.isSuccess())
         {
-            sender.sendMessage(RingCommand.explain(found.getFailure()) + where);
+            sender.sendMessage(ChatText.error(RingCommand.explain(found.getFailure()) + where));
             return null;
         }
         final Ring ring = found.getRing();
@@ -175,26 +184,26 @@ public final class RingConsoleCommands
             RingManager.checkPlacement(ring, world.getName(), ConfigManager.getRingMinSeparation());
         if (refusal != null)
         {
-            sender.sendMessage(RingCommand.explain(refusal) + where);
+            sender.sendMessage(ChatText.error(RingCommand.explain(refusal) + where));
             return null;
         }
         // A player's first end, waiting for its partner, would otherwise be taken out from under them.
         if (RingManager.checkAgainstPending(ring, world.getName(), ConfigManager.getRingMinSeparation()) != null)
         {
-            sender.sendMessage("A player has laid that circle, or one beside it, as the first end of a pair they"
-                + " are building." + where);
+            sender.sendMessage(ChatText.error("A player has laid that circle, or one beside it, as the first end of a"
+                + " pair they are building." + where));
             return null;
         }
         if (RingCommand.touchesGate(world, ring))
         {
-            sender.sendMessage("That circle overlaps a stargate. Rings and gates cannot share blocks." + where);
+            sender.sendMessage(ChatText.error(RingCommand.OVERLAPS_GATE + where));
             return null;
         }
         final RingBlockage roomFor =
             RingSurvey.survey(new BukkitGround(world), ring, ConfigManager.getRingMaxCeilingDrop());
         if (roomFor != null)
         {
-            sender.sendMessage(RingCommand.explain(roomFor) + where);
+            sender.sendMessage(ChatText.error(RingCommand.explain(roomFor) + where));
             return null;
         }
         return ring;
@@ -222,11 +231,11 @@ public final class RingConsoleCommands
         }
         if (RingTransit.start(pair, null, false))
         {
-            sender.sendMessage(RING_PAIR + pair.describe() + " is counting down.");
+            sender.sendMessage(ChatText.info(RING_PAIR + ChatText.name(pair.describe()) + " is counting down."));
             return;
         }
-        sender.sendMessage(RING_PAIR + pair.describe() + " did not fire: it is already cycling or cooling"
-            + " down, an end is blocked, or its world is not loaded.");
+        sender.sendMessage(ChatText.error(RING_PAIR + ChatText.name(pair.describe()) + " did not fire: it is already"
+            + " cycling or cooling down, an end is blocked, or its world is not loaded."));
     }
 
     /** The pair {@code ring fire <id>} names, or null with the reason sent. */
@@ -234,13 +243,13 @@ public final class RingConsoleCommands
     {
         if (args.length != 3)
         {
-            sender.sendMessage(USAGE + FIRE_USAGE);
+            sender.sendMessage(ChatText.info(ChatText.usage(FIRE_USAGE)));
             return null;
         }
         final RingPair pair = RingManager.getPair(args[2]);
         if (pair == null)
         {
-            sender.sendMessage("No ring pair " + args[2] + ".");
+            sender.sendMessage(ChatText.error("There is no ring pair called " + ChatText.name(args[2]) + "."));
         }
         return pair;
     }
@@ -251,18 +260,18 @@ public final class RingConsoleCommands
         final World world = Bukkit.getWorld(args[2]);
         if (world == null)
         {
-            sender.sendMessage("No world called " + args[2] + " is loaded.");
+            sender.sendMessage(noWorld(args[2]));
             return null;
         }
         if (!Coordinates.isCoordinate(args[3]) || !Coordinates.isCoordinate(args[4]) || !Coordinates.isCoordinate(args[5]))
         {
-            sender.sendMessage(USAGE + FIRE_USAGE);
+            sender.sendMessage(ChatText.info(ChatText.usage(FIRE_USAGE)));
             return null;
         }
         final String unreadable = Coordinates.whyNotReadable(sender, world, args[3], args[4], args[5]);
         if (unreadable != null)
         {
-            sender.sendMessage(unreadable);
+            sender.sendMessage(ChatText.error(unreadable));
             return null;
         }
         final int[] at = Coordinates.resolve(sender, args[3], args[4], args[5]);
@@ -273,7 +282,8 @@ public final class RingConsoleCommands
         }
         if (end == null)
         {
-            sender.sendMessage("No ring at " + at[0] + " " + at[1] + " " + at[2] + " in " + world.getName() + ".");
+            sender.sendMessage(ChatText.error("No ring at " + ChatText.value(at[0] + " " + at[1] + " " + at[2]) + " in "
+                + ChatText.name(world.getName()) + "."));
             return null;
         }
         return end.getPair();

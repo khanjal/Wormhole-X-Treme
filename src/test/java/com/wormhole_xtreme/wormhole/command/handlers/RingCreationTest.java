@@ -1,12 +1,12 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -224,7 +224,9 @@ class RingCreationTest
         create();
 
         assertNull(waiting(), "a ceiling ring over a shaft should not be held as an end");
-        verify(builder).sendMessage(contains("10 blocks above its floor"));
+        verify(builder).sendMessage(plainContains("10 blocks above its floor"));
+        // The setting by the name /wormhole config accepts, not a key that does not exist.
+        verify(builder).sendMessage(plainContains("raise /wormhole config ring-max-ceiling-drop <blocks>."));
     }
 
     /**
@@ -246,7 +248,7 @@ class RingCreationTest
         create();
 
         assertNull(waiting(), "a ring over a hole should not be held as an end");
-        verify(builder).sendMessage(contains("hole in its floor"));
+        verify(builder).sendMessage(plainContains("hole in its floor"));
     }
 
     /** A circle of slabs becomes the first end, held until its partner is laid. */
@@ -258,7 +260,7 @@ class RingCreationTest
         assertNotNull(waiting(), "the end is held");
         assertEquals(WORLD, waiting().worldName(), "in the world it was laid in");
         yaml.verify(RingYamlManager::savePending);
-        verify(builder).sendMessage(contains("First ring noted"));
+        verify(builder).sendMessage(plainContains("First ring noted"));
     }
 
     /**
@@ -279,7 +281,7 @@ class RingCreationTest
                 .setType(ArgumentMatchers.any(Material.class),
                     ArgumentMatchers.anyBoolean());
         }
-        verify(builder).sendMessage(contains("slabs stay put"));
+        verify(builder).sendMessage(plainContains("slabs stay put"));
     }
 
     /** Building rings at all needs the node. */
@@ -291,7 +293,7 @@ class RingCreationTest
         assertTrue(create());
 
         assertNull(waiting(), "nothing was held");
-        verify(builder).sendMessage(contains("may not build transport rings"));
+        verify(builder).sendMessage(plainContains("may not build transport rings"));
     }
 
     /**
@@ -308,7 +310,7 @@ class RingCreationTest
         assertTrue(create());
 
         assertNull(waiting());
-        verify(builder).sendMessage(contains("No ring"));
+        verify(builder).sendMessage(plainContains("No ring"));
     }
 
     /**
@@ -329,7 +331,7 @@ class RingCreationTest
         assertTrue(create());
 
         assertNull(waiting(), "nothing was held");
-        verify(builder).sendMessage(contains("more than one kind of slab"));
+        verify(builder).sendMessage(plainContains("more than one kind of slab"));
     }
 
     /**
@@ -351,7 +353,7 @@ class RingCreationTest
         assertTrue(create());
 
         assertNull(waiting(), "nothing was held");
-        verify(builder).sendMessage(contains("filled in"));
+        verify(builder).sendMessage(plainContains("filled in"));
     }
 
     /**
@@ -381,7 +383,7 @@ class RingCreationTest
         assertTrue(create());
 
         assertNull(waiting(), "nothing was held");
-        verify(builder).sendMessage(contains("another ring close by"));
+        verify(builder).sendMessage(plainContains("another ring close by"));
     }
 
     /**
@@ -399,7 +401,7 @@ class RingCreationTest
         assertTrue(create());
 
         assertNull(waiting(), "nothing is held, so nothing is owed a second circle");
-        verify(builder).sendMessage(contains("which is the limit"));
+        verify(builder).sendMessage(plainContains("which is the limit"));
         yaml.verify(RingYamlManager::savePending, never());
     }
 
@@ -448,7 +450,7 @@ class RingCreationTest
             assertTrue(create());
 
             assertNull(waiting(), "nothing was held");
-            verify(builder).sendMessage(contains("overlaps a stargate"));
+            verify(builder).sendMessage(plainContains("overlaps a stargate"));
         }
         finally
         {

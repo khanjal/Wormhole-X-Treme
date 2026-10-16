@@ -42,6 +42,14 @@ class ChatTextTest
             ChatText.usage("/wormhole gate edit <gate> <field> [value]"));
     }
 
+    /** The same words without the {@code Usage: } in front, for a list of commands beside what each does. */
+    @Test
+    void aUsageBodyIsTheUsageLineWithoutItsLabel()
+    {
+        assertEquals("§f/wormhole§7 §fring§7 §fremove§7 [id]", ChatText.usageBody("/wormhole ring remove [id]"));
+        assertEquals("Usage: §f/wormhole§7 §fring§7 §fremove§7 [id]", ChatText.usage("/wormhole ring remove [id]"));
+    }
+
     /** A required value inside an optional part stays grey with the rest of it, brackets and all. */
     @Test
     void everythingInsideAnOptionalPartStaysGrey()

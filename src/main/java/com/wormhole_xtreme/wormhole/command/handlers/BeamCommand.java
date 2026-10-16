@@ -17,6 +17,7 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPermissions;
 import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Handler for {@code /wormhole beam}.
@@ -63,6 +64,14 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
  */
 public class BeamCommand implements SubCommand
 {
+    private static final String TO_USAGE = ChatText.info(ChatText.usage("/wormhole beam to <name>"));
+    private static final String EDIT_USAGE = ChatText.info(ChatText.usage("/wormhole beam admin set|remove|cost <name>"));
+    private static final String GOTO_USAGE =
+        ChatText.info(ChatText.usage("/wormhole beam admin goto <player|destination>|<x> <y> <z> [world]"));
+    private static final String SEND_USAGE =
+        ChatText.info(ChatText.usage("/wormhole beam admin send <player> <player|destination>|<x> <y> <z> [world]"));
+    private static final String PLACE_USAGE = ChatText.info(ChatText.usage("/wormhole beam place <list|set|remove> [name]"));
+
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
     @Override
@@ -70,9 +79,8 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "/wormhole beam to <name>, beam list, beam admin set|remove|cost|goto|send, "
-                + "beam place [list|set <name>|remove <name>]");
+            sender.sendMessage(TO_USAGE);
+            sender.sendMessage(ChatText.info("Or " + ChatText.usageBody("/wormhole beam list|place|admin") + "."));
             return true;
         }
 
@@ -87,7 +95,7 @@ public class BeamCommand implements SubCommand
 
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Beaming is a player-only command.");
+            sender.sendMessage(ChatText.error("Beaming is a player-only command."));
             return true;
         }
         final Player player = (Player) sender;
@@ -96,7 +104,7 @@ public class BeamCommand implements SubCommand
         {
             if (args.length < 3)
             {
-                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "/wormhole beam to <name>");
+                player.sendMessage(TO_USAGE);
                 return true;
             }
             travelTo(player, args[2]);
@@ -112,8 +120,8 @@ public class BeamCommand implements SubCommand
             place(player, args);
             return true;
         }
-        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Unknown beam command. Try /wormhole beam to <name>.");
+        player.sendMessage(ChatText.error("Unknown beam command."));
+        player.sendMessage(TO_USAGE);
         return true;
     }
 
@@ -129,8 +137,8 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamTravel.travelTo(player, name))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "No destination named \"" + name + "\" among your places or the public list.");
+            player.sendMessage(ChatText.error("No destination named " + ChatText.name(name)
+                + " among your places or the public list."));
         }
     }
 
@@ -150,7 +158,7 @@ public class BeamCommand implements SubCommand
             {
                 names.append(", ");
             }
-            names.append(destination.name());
+            names.append(ChatText.name(destination.name()));
             // Only an override is worth saying anything about -- the default cost is
             // already visible via /wormhole config BEAM_ECONOMY_USE_COST, and repeating it
             // next to every destination that hasn't been given one of its own would just be
@@ -158,20 +166,20 @@ public class BeamCommand implements SubCommand
             final Double cost = destination.cost();
             if (cost != null)
             {
-                names.append(cost <= 0 ? " (free)" : " (" + cost + ")");
+                names.append(cost <= 0 ? " (free)" : " (" + ChatText.value(String.valueOf(cost)) + ")");
             }
         }
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + (names.isEmpty() ? "No public beam destinations are set." : "Beam destinations: " + names));
+        player.sendMessage(ChatText.info(names.isEmpty()
+            ? "No public beam destinations are set." : ("Beam destinations: " + names)));
     }
 
     private void admin(final CommandSender sender, final String[] args)
     {
         if (args.length < 3)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "/wormhole beam admin set|remove|cost <name>, goto <player|destination>|<x> <y> <z> [world], "
-                + "send <player> <player|destination>|<x> <y> <z> [world]");
+            sender.sendMessage(EDIT_USAGE);
+            sender.sendMessage(GOTO_USAGE);
+            sender.sendMessage(SEND_USAGE);
             return;
         }
         final String action = args[2].toLowerCase(Locale.ROOT);
@@ -192,8 +200,8 @@ public class BeamCommand implements SubCommand
         // admin actions a non-player sender can reach.
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "/wormhole beam admin set|remove|cost is player-only.");
+            sender.sendMessage(ChatText.error(ChatText.command("/wormhole beam admin set|remove|cost")
+                + " is player-only."));
             return;
         }
         final Player player = (Player) sender;
@@ -204,8 +212,7 @@ public class BeamCommand implements SubCommand
         }
         if (args.length < 4)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "/wormhole beam admin set|remove|cost <name>");
+            player.sendMessage(EDIT_USAGE);
             return;
         }
         final String name = args[3];
@@ -224,8 +231,9 @@ public class BeamCommand implements SubCommand
             {
                 BeamYamlManager.saveAll();
             }
-            player.sendMessage((removed ? ConfigManager.MessageStrings.NORMAL_HEADER : ConfigManager.MessageStrings.ERROR_HEADER).toString()
-                + (removed ? "Removed public beam destination \"" + name + "\"." : "No public beam destination named \"" + name + "\"."));
+            final String said = removed
+                ? ChatText.info("Removed public beam destination " + ChatText.name(name) + ".") : noPublic(name);
+            player.sendMessage(said);
             return;
         }
         if ("cost".equals(action))
@@ -233,8 +241,13 @@ public class BeamCommand implements SubCommand
             setCost(player, args, name);
             return;
         }
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "/wormhole beam admin set|remove|cost <name>");
+        player.sendMessage(EDIT_USAGE);
+    }
+
+    /** @return the error for a public destination name that matches none */
+    private static String noPublic(final String name)
+    {
+        return ChatText.error("No public beam destination named " + ChatText.name(name) + ".");
     }
 
     /**
@@ -248,15 +261,13 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 5)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "/wormhole beam admin cost <name> <amount|-default>");
+            player.sendMessage(ChatText.info(ChatText.usage("/wormhole beam admin cost <name> <amount|-default>")));
             return;
         }
         final BeamDestination existing = BeamManager.getPublicDestination(name);
         if (existing == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "No public beam destination named \"" + name + "\".");
+            player.sendMessage(noPublic(name));
             return;
         }
         final String raw = args[4];
@@ -273,22 +284,21 @@ public class BeamCommand implements SubCommand
             }
             catch (final NumberFormatException e)
             {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                    + "\"" + raw + "\" is not a number, or \"default\".");
+                player.sendMessage(ChatText.error(ChatText.bad(raw) + " is not a number. Give an amount, or "
+                    + ChatText.command("-default") + "."));
                 return;
             }
             if (newCost < 0)
             {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Cost cannot be negative.");
+                player.sendMessage(ChatText.error("Cost cannot be negative."));
                 return;
             }
         }
         BeamManager.setPublicDestination(existing.withCost(newCost));
         BeamYamlManager.saveAll();
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + (newCost == null
-                ? "\"" + name + "\" now uses the configured default beam cost."
-                : "\"" + name + "\" now costs " + newCost + " to beam to."));
+        player.sendMessage(ChatText.info(ChatText.name(name) + (newCost == null
+            ? " now uses the configured default beam cost."
+            : (" now costs " + ChatText.value(String.valueOf(newCost)) + " to beam to."))));
     }
 
     /**
@@ -302,9 +312,9 @@ public class BeamCommand implements SubCommand
     {
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "goto moves you -- there's nowhere for console or a command block to beam from. "
-                + "Use send to move a player instead.");
+            sender.sendMessage(ChatText.error(ChatText.command("goto") + " moves you, and there is nowhere for console"
+                + " or a command block to beam from."));
+            sender.sendMessage(SEND_USAGE);
             return;
         }
         final Player player = (Player) sender;
@@ -315,8 +325,7 @@ public class BeamCommand implements SubCommand
         }
         if (args.length < 4)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "/wormhole beam admin goto <player|destination>|<x> <y> <z> [world]");
+            player.sendMessage(GOTO_USAGE);
             return;
         }
         final Location destination = resolveDestination(player, args, 3,
@@ -350,15 +359,13 @@ public class BeamCommand implements SubCommand
         }
         if (args.length < 5)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "/wormhole beam admin send <player> <player|destination>|<x> <y> <z> [world]");
+            sender.sendMessage(SEND_USAGE);
             return;
         }
         final Player target = Bukkit.getPlayerExact(args[3]);
         if (target == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "No online player named \"" + args[3] + "\".");
+            sender.sendMessage(ChatText.error("No online player named " + ChatText.name(args[3]) + "."));
             return;
         }
         final Location destination = resolveDestination(sender, args, 4,
@@ -373,10 +380,10 @@ public class BeamCommand implements SubCommand
         // The target already hears BeamAnimation's own messages; this is for whoever sent
         // them, who is very often not the same person (console, a command block, or a
         // different admin) and would otherwise have no idea whether it worked.
-        sender.sendMessage((started ? ConfigManager.MessageStrings.NORMAL_HEADER : ConfigManager.MessageStrings.ERROR_HEADER).toString()
-            + (started
-                ? "Beaming " + target.getName() + " to " + label + "."
-                : target.getName() + " is already beaming somewhere."));
+        final String said = started
+            ? ChatText.info("Beaming " + ChatText.name(target.getName()) + " to " + ChatText.name(label) + ".")
+            : ChatText.error(ChatText.name(target.getName()) + " is already beaming somewhere.");
+        sender.sendMessage(said);
     }
 
     /**
@@ -415,8 +422,8 @@ public class BeamCommand implements SubCommand
         {
             return resolveCoordinates(sender, args, start, defaultWorld, defaultYaw, defaultPitch);
         }
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Expected a player name, a public destination name, or <x> <y> <z> [world].");
+        sender.sendMessage(ChatText.error("Expected a player name, a public destination name, or "
+            + ChatText.usageBody("<x> <y> <z> [world]") + "."));
         return null;
     }
 
@@ -448,8 +455,8 @@ public class BeamCommand implements SubCommand
         final BeamDestination destination = BeamManager.getPublicDestination(name);
         if (destination == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "No online player or public beam destination named \"" + name + "\".");
+            sender.sendMessage(ChatText.error("No online player or public beam destination named "
+                + ChatText.name(name) + "."));
             return null;
         }
         final Location located = destination.toLocation();
@@ -458,9 +465,8 @@ public class BeamCommand implements SubCommand
             // The destination outlived the world it was recorded in, or that world just
             // isn't loaded right now. Saying so beats "no such destination", which would
             // send someone looking for a typo in a name that is actually fine.
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Beam destination \"" + destination.name() + "\" is in world \""
-                + destination.point().worldName() + "\", which is not loaded.");
+            sender.sendMessage(ChatText.error("Beam destination " + ChatText.name(destination.name()) + " is in world "
+                + ChatText.name(destination.point().worldName()) + ", which is not loaded."));
             return null;
         }
         return located;
@@ -500,8 +506,7 @@ public class BeamCommand implements SubCommand
             world = Bukkit.getWorld(args[start + 3]);
             if (world == null)
             {
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                    + "No world named \"" + args[start + 3] + "\".");
+                sender.sendMessage(ChatText.error("No world named " + ChatText.name(args[start + 3]) + "."));
                 return null;
             }
         }
@@ -520,8 +525,7 @@ public class BeamCommand implements SubCommand
         }
         catch (final NumberFormatException e)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "\"" + raw + "\" is not a valid coordinate.");
+            sender.sendMessage(ChatText.error(ChatText.bad(raw) + " is not a valid coordinate."));
             return null;
         }
     }
@@ -546,8 +550,7 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "/wormhole beam place list|set <name>|remove <name>");
+            player.sendMessage(PLACE_USAGE);
             return;
         }
         final String sub = args[2].toLowerCase(Locale.ROOT);
@@ -569,9 +572,9 @@ public class BeamCommand implements SubCommand
         // Travel used to be reachable here too ("beam place <name>"), but that meant the same
         // destination could be reached two different ways depending on whether it was public
         // or private. "to" is the one place travel happens now, whatever the destination is.
-        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Unknown. Try /wormhole beam place list|set <name>|remove <name>, "
-            + "or /wormhole beam to <name> to travel.");
+        player.sendMessage(ChatText.error("Unknown place command. To travel, use "
+            + ChatText.usageBody("/wormhole beam to <name>") + "."));
+        player.sendMessage(PLACE_USAGE);
     }
 
     private static void setPublic(final Player player, final String name)
@@ -582,8 +585,7 @@ public class BeamCommand implements SubCommand
         }
         BeamManager.setPublicDestination(BeamDestination.fromLocation(name, player.getLocation()));
         BeamYamlManager.saveAll();
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Public beam destination \"" + name + "\" set to your current location.");
+        player.sendMessage(ChatText.info("Public beam destination " + ChatText.name(name) + " set to your current location."));
     }
 
     /** Refuses a new name starting with a dash, since words that do are options. */
@@ -593,8 +595,8 @@ public class BeamCommand implements SubCommand
         {
             return false;
         }
-        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "A beam destination's name cannot start with '-'; words that do are options.");
+        player.sendMessage(ChatText.error("A beam destination's name cannot start with " + ChatText.bad("-")
+            + "; words that do are options."));
         return true;
     }
 
@@ -607,10 +609,9 @@ public class BeamCommand implements SubCommand
             {
                 names.append(", ");
             }
-            names.append(place.name());
+            names.append(ChatText.name(place.name()));
         }
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + (names.isEmpty() ? "You have no places set." : "Your places: " + names));
+        player.sendMessage(ChatText.info(names.isEmpty() ? "You have no places set." : ("Your places: " + names)));
     }
 
     private void setPlace(final Player player, final String[] args)
@@ -622,7 +623,7 @@ public class BeamCommand implements SubCommand
         }
         if (args.length < 4)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "/wormhole beam place set <name>");
+            player.sendMessage(ChatText.info(ChatText.usage("/wormhole beam place set <name>")));
             return;
         }
         final String name = args[3];
@@ -632,15 +633,14 @@ public class BeamCommand implements SubCommand
         }
         BeamManager.setPlace(player.getUniqueId(), BeamDestination.fromLocation(name, player.getLocation()));
         BeamYamlManager.saveAll();
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Place \"" + name + "\" set to your current location.");
+        player.sendMessage(ChatText.info("Place " + ChatText.name(name) + " set to your current location."));
     }
 
     private void removePlace(final Player player, final String[] args)
     {
         if (args.length < 4)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "/wormhole beam place remove <name>");
+            player.sendMessage(ChatText.info(ChatText.usage("/wormhole beam place remove <name>")));
             return;
         }
         final String name = args[3];
@@ -649,7 +649,9 @@ public class BeamCommand implements SubCommand
         {
             BeamYamlManager.saveAll();
         }
-        player.sendMessage((removed ? ConfigManager.MessageStrings.NORMAL_HEADER : ConfigManager.MessageStrings.ERROR_HEADER).toString()
-            + (removed ? "Removed place \"" + name + "\"." : "You have no place named \"" + name + "\"."));
+        final String said = removed
+            ? ChatText.info("Removed place " + ChatText.name(name) + ".")
+            : ChatText.error("You have no place named " + ChatText.name(name) + ".");
+        player.sendMessage(said);
     }
 }

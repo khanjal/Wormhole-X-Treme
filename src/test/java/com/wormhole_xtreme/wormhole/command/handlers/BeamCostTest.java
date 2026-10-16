@@ -1,11 +1,11 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -106,7 +106,7 @@ class BeamCostTest
 
         assertEquals(Double.valueOf(12.5), costOf(NAME), "the override is stored");
         yaml.verify(BeamYamlManager::saveAll);
-        verify(admin).sendMessage(contains("now costs 12.5"));
+        verify(admin).sendMessage(plainContains("now costs 12.5"));
     }
 
     /**
@@ -139,7 +139,7 @@ class BeamCostTest
         assertTrue(cost(NAME, "-default"));
 
         assertNull(costOf(NAME), "unpriced again, so the configured default applies");
-        verify(admin).sendMessage(contains("configured default"));
+        verify(admin).sendMessage(plainContains("configured default"));
     }
 
     /** Said however it is capitalised, since nobody types command words carefully. */
@@ -167,7 +167,7 @@ class BeamCostTest
         assertTrue(cost(NAME, "-1"));
 
         assertEquals(Double.valueOf(9.0), costOf(NAME), "the price is left as it was");
-        verify(admin).sendMessage(contains("cannot be negative"));
+        verify(admin).sendMessage(plainContains("cannot be negative"));
     }
 
     /** Something that is not a number says so, and quotes back what was typed. */
@@ -177,7 +177,7 @@ class BeamCostTest
         assertTrue(cost(NAME, "cheap"));
 
         assertNull(costOf(NAME), "nothing was stored");
-        verify(admin).sendMessage(contains("\"cheap\" is not a number"));
+        verify(admin).sendMessage(plainContains("cheap is not a number. Give an amount, or -default."));
         yaml.verify(BeamYamlManager::saveAll, never());
     }
 
@@ -188,7 +188,7 @@ class BeamCostTest
         assertTrue(cost("nosuchplace", "5"));
 
         assertNull(BeamManager.getPublicDestination("nosuchplace"), "nothing was created");
-        verify(admin).sendMessage(contains("No public beam destination named"));
+        verify(admin).sendMessage(plainContains("No public beam destination named"));
         yaml.verify(BeamYamlManager::saveAll, never());
     }
 
@@ -198,7 +198,7 @@ class BeamCostTest
     {
         assertTrue(cost(NAME));
 
-        verify(admin).sendMessage(contains("<amount|-default>"));
+        verify(admin).sendMessage(plainContains("<amount|-default>"));
         yaml.verify(BeamYamlManager::saveAll, never());
     }
 
@@ -232,6 +232,6 @@ class BeamCostTest
         assertTrue(cost(NAME, "5"));
 
         assertNull(costOf(NAME), "nothing was priced");
-        verify(admin).sendMessage(contains("permission"));
+        verify(admin).sendMessage(plainContains("permission"));
     }
 }

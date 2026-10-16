@@ -1,11 +1,11 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -27,6 +27,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPermissions;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * A player's own beam places, which nobody else can see or reach.
@@ -111,7 +112,7 @@ class BeamPlacesTest
         assertTrue(place(player, "set", "-home"));
 
         assertNull(BeamManager.getPlace(UUID.fromString(MINE), "-home"), "not kept");
-        verify(player).sendMessage(contains("cannot start with '-'"));
+        verify(player).sendMessage(plainContains("cannot start with -"));
     }
 
     /** Setting a place records where the player is standing, under their own name for it. */
@@ -125,7 +126,7 @@ class BeamPlacesTest
         assertEquals(10.5, saved.point().x(), 1.0e-9, "where they were standing");
         assertEquals(20.5, saved.point().z(), 1.0e-9);
         yaml.verify(BeamYamlManager::saveAll);
-        verify(player).sendMessage(contains("Place \"home\" set"));
+        verify(player).sendMessage(plainContains("Place home set"));
     }
 
     /**
@@ -152,7 +153,7 @@ class BeamPlacesTest
     void listingShowsYourOwnPlacesAndSaysSoWhenThereAreNone()
     {
         place(player, "list");
-        verify(player).sendMessage(contains("no places set"));
+        verify(player).sendMessage(plainContains("no places set"));
 
         place(player, "set", "home");
         place(player, "set", "mine");
@@ -176,8 +177,8 @@ class BeamPlacesTest
 
         place(player, "list");
 
-        verify(player).sendMessage(contains("no places set"));
-        verify(player, never()).sendMessage(contains("secretbase"));
+        verify(player).sendMessage(plainContains("no places set"));
+        verify(player, never()).sendMessage(plainContains("secretbase"));
     }
 
     /** Removing takes it off and writes the change out. */
@@ -191,7 +192,7 @@ class BeamPlacesTest
 
         assertNull(BeamManager.getPlace(UUID.fromString(MINE), "home"));
         yaml.verify(BeamYamlManager::saveAll);
-        verify(player).sendMessage(contains("Removed place \"home\""));
+        verify(player).sendMessage(plainContains("Removed place home."));
     }
 
     /** Removing one you never had says so, and writes nothing. */
@@ -201,7 +202,7 @@ class BeamPlacesTest
         assertTrue(place(player, "remove", "nosuchplace"));
 
         yaml.verify(BeamYamlManager::saveAll, never());
-        verify(player).sendMessage(contains("no place named"));
+        verify(player).sendMessage(plainContains("no place named"));
     }
 
     /** Making a new place needs the node. */
@@ -213,7 +214,7 @@ class BeamPlacesTest
         assertTrue(place(player, "set", "home"));
 
         assertNull(BeamManager.getPlace(UUID.fromString(MINE), "home"), "nothing was kept");
-        verify(player).sendMessage(contains("permission"));
+        verify(player).sendMessage(plainContains("permission"));
     }
 
     /**
@@ -244,7 +245,7 @@ class BeamPlacesTest
 
         assertTrue(place(player, "list"));
 
-        verify(player).sendMessage(contains("Your places: home"));
+        verify(player).sendMessage(plainContains("Your places: home"));
     }
 
     /** A subcommand nobody recognises points at the ones that exist, and at travel. */
@@ -253,8 +254,26 @@ class BeamPlacesTest
     {
         assertTrue(place(player, "teleport", "home"));
 
-        verify(player).sendMessage(contains("list|set <name>|remove <name>"));
-        verify(player).sendMessage(contains("beam to <name> to travel"));
+        verify(player).sendMessage(plainContains("Usage: /wormhole beam place <list|set|remove> [name]"));
+        verify(player).sendMessage(plainContains("To travel, use /wormhole beam to <name>."));
+    }
+
+    /**
+     * The refusal is an error line, with what to type in white and the name to fill in aqua.
+     *
+     * <p>Raw rather than plain: this is the one place a colour slip shows, since every other test
+     * here reads the words alone.
+     */
+    @Test
+    void anUnknownSubcommandColoursWhatToTypeAndTheNameToFillIn()
+    {
+        place(player, "teleport", "home");
+
+        final String w = ChatText.COMMAND_COLOUR;
+        final String b = ChatText.BODY_COLOUR;
+        verify(player).sendMessage(ChatText.ERROR_HEADER + "Unknown place command. To travel, use "
+            + w + "/wormhole" + b + " " + w + "beam" + b + " " + w + "to" + b + " "
+            + ChatText.NAME_COLOUR + "<name>" + b + ".");
     }
 
     /** Asking for a place with no name shows what the command takes. */
@@ -263,7 +282,7 @@ class BeamPlacesTest
     {
         assertTrue(place(player, "set"));
 
-        verify(player).sendMessage(contains("place set <name>"));
+        verify(player).sendMessage(plainContains("place set <name>"));
         yaml.verify(BeamYamlManager::saveAll, never());
     }
 }
