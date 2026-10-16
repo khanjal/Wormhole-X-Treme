@@ -1,9 +1,9 @@
 package com.wormhole_xtreme.wormhole.command;
 
-import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.bad;
-import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.command;
-import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.good;
-import static com.wormhole_xtreme.wormhole.model.preview.PreviewText.name;
+import static com.wormhole_xtreme.wormhole.utils.ChatText.bad;
+import static com.wormhole_xtreme.wormhole.utils.ChatText.command;
+import static com.wormhole_xtreme.wormhole.utils.ChatText.good;
+import static com.wormhole_xtreme.wormhole.utils.ChatText.name;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,8 +37,8 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.preview.BuildGuide;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
-import com.wormhole_xtreme.wormhole.model.preview.PreviewText;
 import com.wormhole_xtreme.wormhole.utils.ChatLine;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
@@ -369,7 +369,7 @@ public class Build implements CommandExecutor
             {
                 return GatePreviews.Control.NOT_LOOKING;
             }
-            final List<String> who = new ArrayList<>(audience.names().stream().map(PreviewText::name).toList());
+            final List<String> who = new ArrayList<>(audience.names().stream().map(ChatText::name).toList());
             if (audience.everyone())
             {
                 who.add(0, "everyone in this world");
@@ -518,7 +518,7 @@ public class Build implements CommandExecutor
         player.sendMessage(header + name(list.shape()) + " needs:");
         for (final BuildGuide.Need need : list.needs())
         {
-            player.sendMessage(header + "  " + need.count() + " " + PreviewText.material(need.name()) + " - "
+            player.sendMessage(header + "  " + need.count() + " " + ChatText.material(need.name()) + " - "
                 + ((need.toPlace() == 0) ? good("done") : need.toPlace() + " left"));
         }
         if (list.blocked() > 0)
@@ -528,7 +528,7 @@ public class Build implements CommandExecutor
         if (!list.detectable())
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No material group uses "
-                + PreviewText.material(list.frame().name().toLowerCase(Locale.ROOT))
+                + ChatText.material(list.frame().name().toLowerCase(Locale.ROOT))
                 + " for a frame, so this gate would not be found.");
         }
         return null;
@@ -645,7 +645,7 @@ public class Build implements CommandExecutor
             .map(MaterialGroup::getName)
             .filter(shape::acceptsMaterialGroup)
             .sorted(String.CASE_INSENSITIVE_ORDER)
-            .map(PreviewText::name)
+            .map(ChatText::name)
             .collect(Collectors.joining(", "));
     }
 

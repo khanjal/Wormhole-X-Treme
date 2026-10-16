@@ -25,14 +25,14 @@ import com.wormhole_xtreme.wormhole.utils.ActionBar;
  */
 public final class RingMessages
 {
-    /** Colour codes matching the plugin's own message headers. */
-    private static final String NORMAL = ChatText.HEADING_COLOUR + ":: " + ChatText.BODY_COLOUR;
+    /** The plugin's own message header. */
+    private static final String NORMAL = ChatText.HEADER;
 
     /** Warmer colour for the moment of transport itself. */
-    private static final String ACTIVE = ChatText.HEADING_COLOUR + ":: " + ChatText.NAME_COLOUR;
+    private static final String ACTIVE = ChatText.status(ChatText.NAME_COLOUR);
 
-    /** Error colouring, as the gate messages use. */
-    private static final String ERROR = ChatText.HEADING_COLOUR + ":: §5";
+    /** The same {@code :: error ::} header the gate messages use. */
+    private static final String ERROR = ChatText.ERROR_HEADER;
 
     private RingMessages() {}
 

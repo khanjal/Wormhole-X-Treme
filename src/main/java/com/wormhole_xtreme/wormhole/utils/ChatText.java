@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.utils;
 
 import java.util.regex.Pattern;
 
+import org.bukkit.ChatColor;
+
 /**
  * The colours that pick out the parts of a chat line, each returning to the body grey.
  *
@@ -31,11 +33,36 @@ public final class ChatText
     /** Something wrong or refused. */
     public static final String BAD_COLOUR = "§c";
 
+    /** What a line opens with: {@code :: } and then the body grey. */
+    public static final String HEADER = HEADING_COLOUR + ":: " + BODY_COLOUR;
+
+    /** What a refusal opens with: {@code :: error :: } and then the body grey. */
+    public static final String ERROR_HEADER = HEADING_COLOUR + ":: " + ChatColor.DARK_PURPLE + "error "
+        + HEADING_COLOUR + ":: " + BODY_COLOUR;
+
     private static final Pattern CODE = Pattern.compile("§.");
 
     /** Static helpers only. */
     private ChatText()
     {
+    }
+
+    /** @return a line opening with {@link #HEADER}, for a body that starts in the body grey */
+    public static String info(final String body)
+    {
+        return HEADER + body;
+    }
+
+    /** @return a line opening with {@link #ERROR_HEADER} */
+    public static String error(final String body)
+    {
+        return ERROR_HEADER + body;
+    }
+
+    /** @return a line opening with {@code :: } whose body sets its own colour from the first word */
+    public static String status(final String body)
+    {
+        return HEADING_COLOUR + ":: " + body;
     }
 
     /** @return something to type: a command or an option */

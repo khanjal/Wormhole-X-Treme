@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -174,13 +175,13 @@ public final class ChatLine
      *            legacy text
      * @param before
      *            the colour in force before it
-     * @return the last colour code in it, {@code §r} included, or {@code before} if it has none
+     * @return the last colour code in it, {@code r} after the colour character included, or {@code before} if it has none
      */
     static String lastColour(final String text, final String before)
     {
         for (int i = text.length() - 2; i >= 0; i--)
         {
-            if (text.charAt(i) == '§' && ("0123456789abcdefr".indexOf(Character.toLowerCase(text.charAt(i + 1))) >= 0))
+            if (text.charAt(i) == ChatColor.COLOR_CHAR && ("0123456789abcdefr".indexOf(Character.toLowerCase(text.charAt(i + 1))) >= 0))
             {
                 return text.substring(i, i + 2);
             }

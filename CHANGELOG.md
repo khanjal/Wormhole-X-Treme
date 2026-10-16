@@ -57,6 +57,10 @@ through is a release nobody reads.
 
 - Gates the same size, or a small gate dialling a big one, can be seen down a straight tunnel too, and every tunnel runs straight before it narrows, longer for a bigger gate ([#587](https://github.com/khanjal/Wormhole-X-Treme/issues/587)). Off until `gate-view-funnel-min-length` is set. [Details](docs/GATES.md)
 
+**Changed**
+
+- Every message to a player is coloured by one shared palette ([#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438)): `/wx list` shows gate names in aqua with the network name in aqua, a transport ring that turns you away opens with `:: error ::` like a gate does, and the lines after a valid design or locked chevrons say what to type next in the same colours.
+
 **Fixed**
 
 - Behind an open gate, shutting or opening its iris no longer covers your wormhole for a moment before moving the iris beyond it: the wormhole stays in the ring and the iris sweeps in a block further off ([#429](https://github.com/khanjal/Wormhole-X-Treme/issues/429)). [Guide](docs/guide/GATES.md#how-it-arrives)

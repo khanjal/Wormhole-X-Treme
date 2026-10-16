@@ -28,6 +28,7 @@ import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 
 /**
@@ -257,10 +258,10 @@ public class ConfigManager
     {
 
         /** The error header. */
-        ERROR_HEADER("\u00A73:: \u00A75error \u00A73:: \u00A77"),
+        ERROR_HEADER(ChatText.ERROR_HEADER),
 
         /** The normal header. */
-        NORMAL_HEADER("\u00A73:: \u00A77"),
+        NORMAL_HEADER(ChatText.HEADER),
 
         /** The permission no. */
         PERMISSION_NO(ERROR_HEADER + "You lack the permissions to do this."),

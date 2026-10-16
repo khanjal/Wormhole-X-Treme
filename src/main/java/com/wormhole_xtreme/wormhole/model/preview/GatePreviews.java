@@ -57,6 +57,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.WooshSequence;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.Sounds;
@@ -1430,7 +1431,7 @@ public final class GatePreviews
             if (built && clear && !preview.finished())
             {
                 owner.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + PreviewText.good(preview.shape().getShapeName() + " is built!") + " Press its button to check it.");
+                    + ChatText.good(preview.shape().getShapeName() + " is built!") + " Press its button to check it.");
             }
             preview.finished(built && clear);
         }

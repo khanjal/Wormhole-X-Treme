@@ -220,4 +220,35 @@ class MirrorTextTest
         assertEquals("§cmissing§f", MirrorText.bad("missing"));
         assertEquals("§aready§f", MirrorText.good("ready"));
     }
+
+    /**
+     * Each dye maps to its chat colour, whatever the table is built from.
+     *
+     * <p>Every other dye test compares against {@code MirrorText} itself, so a swapped pair in
+     * the table would keep passing. Brown and orange share gold, light grey is the body grey.
+     */
+    @Test
+    void theDyeTableKeepsItsExactCodes()
+    {
+        final java.util.Map<DyeColor, String> codes = new java.util.EnumMap<>(DyeColor.class);
+        codes.put(DyeColor.WHITE, "§f");
+        codes.put(DyeColor.ORANGE, "§6");
+        codes.put(DyeColor.BROWN, "§6");
+        codes.put(DyeColor.MAGENTA, "§d");
+        codes.put(DyeColor.PINK, "§d");
+        codes.put(DyeColor.LIGHT_BLUE, "§b");
+        codes.put(DyeColor.YELLOW, "§e");
+        codes.put(DyeColor.LIME, "§a");
+        codes.put(DyeColor.GRAY, "§8");
+        codes.put(DyeColor.BLACK, "§8");
+        codes.put(DyeColor.CYAN, "§3");
+        codes.put(DyeColor.PURPLE, "§5");
+        codes.put(DyeColor.BLUE, "§9");
+        codes.put(DyeColor.GREEN, "§2");
+        codes.put(DyeColor.RED, "§c");
+        codes.put(DyeColor.LIGHT_GRAY, "§7");
+        assertEquals(DyeColor.values().length, codes.size(), "the table must name every dye");
+        codes.forEach((colour, code) -> assertTrue(MirrorText.dye(colour).startsWith(code + colour.name()
+            .toLowerCase(Locale.ROOT).replace('_', ' ')), colour + " should be written in " + code));
+    }
 }

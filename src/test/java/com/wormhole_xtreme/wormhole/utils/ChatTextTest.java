@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -56,5 +58,25 @@ class ChatTextTest
             ChatText.usage("/wormhole regen <gate> | -all"));
         assertEquals("Usage: §f/wormhole§7 §fcooldown§7 §b<seconds>§7 or §b<true|false>§7",
             ChatText.usage("/wormhole cooldown <seconds> or <true|false>"));
+    }
+
+    /** The exact codes behind the shared headers, which every other test reads through {@link ChatText#plain}. */
+    @Test
+    void theHeadersAreTheExactColoursAPlayerSees()
+    {
+        assertEquals("§3:: §7", ChatText.HEADER);
+        assertEquals("§3:: §5error §3:: §7", ChatText.ERROR_HEADER);
+        assertEquals("§3:: §7Done.", ChatText.info("Done."));
+        assertEquals("§3:: §5error §3:: §7No.", ChatText.error("No."));
+        assertEquals("§3:: §b", ChatText.status(ChatText.NAME_COLOUR));
+        assertEquals("§3:: Hi", ChatText.status("Hi"));
+    }
+
+    /** The config enum predates ChatText; it must keep handing back the very same headers. */
+    @Test
+    void theConfigHeadersAreTheSharedOnes()
+    {
+        assertEquals(ChatText.HEADER, ConfigManager.MessageStrings.NORMAL_HEADER.toString());
+        assertEquals(ChatText.ERROR_HEADER, ConfigManager.MessageStrings.ERROR_HEADER.toString());
     }
 }
