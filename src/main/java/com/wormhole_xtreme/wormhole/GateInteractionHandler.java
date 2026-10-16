@@ -282,12 +282,12 @@ public final class GateInteractionHandler
         if (!newGate.isGateSignPowered())
         {
             player.sendMessage(ChatText.info("Valid stargate design."));
-            player.sendMessage(completeHint("<name>"));
+            player.sendMessage(completeHint(NAME_PLACEHOLDER));
             return;
         }
         player.sendMessage(ChatText.info("Valid sign nav stargate design."));
         final String signName = newGate.getGateName();
-        player.sendMessage(completeHint(signName.isEmpty() ? "<name>" : signName));
+        player.sendMessage(completeHint(signName.isEmpty() ? NAME_PLACEHOLDER : signName));
     }
 
     /** What to type to finish a gate; {@code name} is the sign's own, or {@code <name>} to be filled in. */
@@ -296,6 +296,9 @@ public final class GateInteractionHandler
         return ChatText.info("Type " + ChatText.command("/wormhole complete") + " " + ChatText.name(name)
             + " [idc=IDC] [net=NET] to finish it.");
     }
+
+    /** What a hint shows where the player picks the gate's name. */
+    private static final String NAME_PLACEHOLDER = "<name>";
 
     /** The facings tried when nothing says which way the gate is built. */
     private static final BlockFace[] ALL_FACINGS = new BlockFace[] {
@@ -908,7 +911,7 @@ public final class GateInteractionHandler
             }
             StargateManager.addIncompleteStargate(player, nearbyGate);
             player.sendMessage(ChatText.info("Valid design found nearby. Type " + ChatText.command("/wormhole complete")
-                + " " + ChatText.name("<name>") + " to finish it."));
+                + " " + ChatText.name(NAME_PLACEHOLDER) + " to finish it."));
         }
         else
         {

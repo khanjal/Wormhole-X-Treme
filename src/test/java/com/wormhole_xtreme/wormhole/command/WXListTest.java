@@ -285,7 +285,7 @@ class WXListTest
 
         list();
 
-        final List<String> lines = messages().stream().filter(m -> m.matches(".*gate[0-9][0-9].*")).toList();
+        final List<String> lines = messages().stream().filter(m -> m.contains("gate0") || m.contains("gate1") || m.contains("gate2")).toList();
         assertTrue(lines.size() > 1, "thirty gates are more than one line");
         for (int i = 0; i < lines.size(); i++)
         {
