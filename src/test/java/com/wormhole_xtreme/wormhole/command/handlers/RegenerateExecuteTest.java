@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.errorBody;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -785,7 +786,8 @@ class RegenerateExecuteTest
         runWithFill(gate, new GateRederivation.Fill(List.of(), List.of(gap, gap, gap, gap, gap), List.of(), 4),
             "regen", "Lithium", "-fill");
 
-        verify(sender).sendMessage(said("5 blocks are missing, more than the 4 -fill will place"));
+        verify(sender).sendMessage(errorBody("Not filling Lithium: 5 blocks are missing, more than the 4 -fill will place."
+            + " Check the shape, and where it is laid."));
     }
 
     /** A solid block in the frame is named, and left for a person. */
@@ -798,7 +800,8 @@ class RegenerateExecuteTest
         runWithFill(gate, new GateRederivation.Fill(List.of(), List.of(stone), List.of(stone), 4),
             "regen", "Lithium", "-fill");
 
-        verify(sender).sendMessage(said("5998 141 3 holds STONE. Clear it, or place the block yourself."));
+        verify(sender).sendMessage(errorBody("Not filling Lithium: 5998 141 3 holds STONE. Clear it, or place the block"
+            + " yourself."));
     }
 
     /** -fill with no gate named is refused: the click form cannot fill, and saying so beats ignoring it. */

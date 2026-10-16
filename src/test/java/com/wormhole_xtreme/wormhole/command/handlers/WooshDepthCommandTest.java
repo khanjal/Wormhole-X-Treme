@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.infoBody;
 import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -115,6 +116,7 @@ class WooshDepthCommandTest
 
         verify(sender, Mockito.atLeastOnce())
             .sendMessage(plainContains("/wormhole wooshdepth"));
+        verify(sender, Mockito.atLeastOnce()).sendMessage(infoBody("Usage: /wormhole wooshdepth <gate> [depth]"));
     }
 
     /** A gate nobody built is refused by name. */

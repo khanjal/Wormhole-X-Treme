@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.infoBody;
 import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -106,7 +107,7 @@ class CustomCommandTest
     {
         assertTrue(run("custom"), "false would have Bukkit print plugin.yml's usage after this one");
 
-        verify(sender).sendMessage(plainContains("Usage: /wormhole custom"));
+        verify(sender).sendMessage(infoBody("Usage: /wormhole custom <gate|-all|-clean> [true|false|-confirm]"));
     }
 
     /** Naming a gate nobody built is refused. */

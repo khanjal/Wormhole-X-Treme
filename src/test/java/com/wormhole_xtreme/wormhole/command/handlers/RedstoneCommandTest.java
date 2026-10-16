@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.infoBody;
 import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -110,6 +111,8 @@ class RedstoneCommandTest
 
         verify(sender, Mockito.atLeastOnce())
             .sendMessage(plainContains("/wormhole redstone"));
+        // Under the plain header: the usage says how to type it, it is not the refusal (#438).
+        verify(sender, Mockito.atLeastOnce()).sendMessage(infoBody("Usage: /wormhole redstone <gate> [true|false]"));
     }
 
     /** A gate nobody built is refused, and nothing is changed on the way past. */

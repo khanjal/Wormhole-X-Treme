@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.infoBody;
 import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -530,7 +531,7 @@ class GateConsoleCommandsTest
             GateConsoleCommands.dial(console, line("Abydos", "Chulak", "open", "extra"));
             GateConsoleCommands.dial(console, line("Nowhere", "Chulak"));
 
-            verify(console, times(2)).sendMessage(plainContains("Usage: " + GateConsoleCommands.DIAL_USAGE));
+            verify(console, times(2)).sendMessage(infoBody("Usage: " + GateConsoleCommands.DIAL_USAGE));
             verify(console).sendMessage(plainContains("No gate called Nowhere."));
             dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
