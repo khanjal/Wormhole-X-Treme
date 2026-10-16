@@ -40,7 +40,9 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * {@code status}), and a line constant any {@code static final String} initialised the same way:
  * both are found by reading their own definitions, so there is no list of them to keep. Each
  * passes bare only in its own file, and as {@code Class.name} elsewhere: a {@code USAGE} in one
- * command is not vouched for by another command's {@code USAGE}.
+ * command is not vouched for by another command's {@code USAGE}. Two limits, on purpose: a lone
+ * variable is not followed back to where it was built, and only a send's first argument is read
+ * (the text a {@code ChatLine} goes on to add is not).
  *
  * <p>This replaces the per-area guards the earlier steps of #438 added (ring and beam, then the
  * gate commands); their wrappers and method-reference allowances are kept here.

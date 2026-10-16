@@ -336,7 +336,7 @@ class WormholeXTremeBlockListener implements Listener
         final String name = (stargate != null) ? stargate.getGateName() : "unknown";
         try
         {
-            player.sendMessage(ChatText.error("You cannot build inside the gate '" + ChatText.name(name) + "'."));
+            player.sendMessage(ChatText.error("You cannot build inside the gate " + ChatText.name(name) + "."));
         }
         catch (final RuntimeException ignore)
         {

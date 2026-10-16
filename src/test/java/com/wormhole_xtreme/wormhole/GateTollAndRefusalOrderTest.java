@@ -508,7 +508,7 @@ class GateTollAndRefusalOrderTest
         walkIn();
 
         verify(walker).sendMessage(contains("Cross-world travel is disabled"));
-        verify(walker, never()).sendMessage(contains("Remote Iris"));
+        verify(walker, never()).sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
         verify(walker, never()).teleport(any(Location.class));
     }
 
