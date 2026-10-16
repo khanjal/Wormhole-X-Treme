@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What a gate trip costs: asked before the trip, taken only once it has happened.
@@ -55,8 +56,8 @@ final class GateFare
         if (fare > 0)
         {
             EconomySupport.charge(player, fare);
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_CHARGED.toString()
-                + fare + " " + EconomySupport.currencyName(fare));
+            player.sendMessage(ChatText.info("Charged "
+                + ChatText.value(fare + " " + EconomySupport.currencyName(fare)) + "."));
         }
     }
 }

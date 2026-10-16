@@ -950,7 +950,7 @@ class WormholeXTremeVehicleListener implements Listener
         if (st.getGateTarget().isGateIrisActive())
         {
             // The one thing the empty-cart path above cannot do: there is nobody to tell.
-            p.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Remote Iris is locked!");
+            p.sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
             bounceOffClosedIris(st, veh);
             return false;
         }
@@ -1099,8 +1099,7 @@ class WormholeXTremeVehicleListener implements Listener
         final boolean cooldown = ConfigManager.isUseCooldownEnabled();
         if (cooldown && StargateRestrictions.isPlayerUseCooldown(p))
         {
-            p.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED.toString());
-            p.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
+            p.sendMessage(StargateRestrictions.cooldownRefusal(p));
             return false;
         }
         if (GateFare.affordable(p) < 0)

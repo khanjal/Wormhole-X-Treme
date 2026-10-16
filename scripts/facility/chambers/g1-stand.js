@@ -520,8 +520,8 @@ async function dialBySign(ctx, o, geom, target) {
       // The sign's front: a left click is a punch at that face (block_dig's face: 2 north, 3 south, 4 west, 5 east).
       const face = { '0,-1': 2, '0,1': 3, '-1,0': 4, '1,0': 5 }[`${geom.normal.x},${geom.normal.z}`];
       if (o.dial === 'sign left') await probe.punch(sign, face); else await probe.rightClick(sign, { dir: new (require('vec3').Vec3)(geom.normal.x, 0, geom.normal.z) });
-      await until(async () => /Dialer set to: |No available target/.test(chatSince(ctx, mark)), 2000, 2);
-      obs.signSteps.push((/Dialer set to: (\S+)/.exec(chatSince(ctx, mark)) || [])[1] || chatSince(ctx, mark));
+      await until(async () => /Dialer set to |No other gate on this network/.test(chatSince(ctx, mark)), 2000, 2);
+      obs.signSteps.push((/Dialer set to (\w+)\./.exec(chatSince(ctx, mark)) || [])[1] || chatSince(ctx, mark));
     }
   }
   obs.signShows = signShows(await signText(ctx, sign));
@@ -964,7 +964,7 @@ function checks(ctx, o) {
   if (signDial(o) && o.dial !== 'console') {
     list.push(c(`the dial sign was turned to ${destOf(o)} (»${destOf(o)}«)`, () => obs.signShows === destOf(o)));
     if (o.dial === 'sign right' || o.dial === 'sign left') {
-      list.push(c(`each click answered "Dialer set to: <gate>"`, () => obs.signSteps.length > 0 && obs.signSteps.every((s) => /^[A-Za-z]+$/.test(s))));
+      list.push(c(`each click answered "Dialer set to <gate>."`, () => obs.signSteps.length > 0 && obs.signSteps.every((s) => /^[A-Za-z]+$/.test(s))));
     }
     if (o.dial === 'redstone' && o.shape === 'custom') list.push(c('pulses on [RS] turned the sign', () => obs.signSteps.length > 0));
     if (o.dial !== 'redstone') list.push(c('the DHD dialled what the sign showed: "Stargates connected!"', () => /Stargates connected!/.test(obs.dial || '')));
@@ -980,12 +980,12 @@ function checks(ctx, o) {
   if (t === 'walk' || PETS[t]) {
     if (o['own iris'] === 'shut') {
       // The shut iris is drawn solid on the client, so a player walks into it and stops; the
-      // plugin's "Iris is locked!" is only for a client that gets into the opening regardless.
+      // plugin's "This gate's iris is closed." is only for a client that gets into the opening regardless.
       list.push(c('the Stand\'s own iris was shut at its lever', () => obs.ownIrisShut === true));
       list.push(c('Probe did not cross', () => obs.probeAt && obs.probeAt.dim === O && obs.probeAt.d > 5));
       list.push(c('Probe was stopped at the iris, in front of the Stand', () => obs.probeAt && obs.probeAt.home < 2));
     } else if (stopped) {
-      list.push(c('Probe was told "Remote Iris is locked!"', () => /Remote Iris is locked!/.test(obs.walkChat || '')));
+      list.push(c('Probe was told "The far gate\'s iris is closed."', () => /The far gate's iris is closed\./.test(obs.walkChat || '')));
       list.push(c('Probe was put back at the Stand', () => obs.probeAt && obs.probeAt.dim === O && obs.probeAt.home < 3));
     } else {
       list.push(c(`Probe came out of ${dest}`, () => obs.probeAt && obs.probeAt.d < 1.5));

@@ -112,7 +112,7 @@ bot sees, not the plugin's state: the opening filling and emptying, and where th
 | `atlantis` | Builds two gates as a player does, `gate build Standard Atlantis` on a DHD button, `preview place`, `gate complete`; the frame is lapis, the chevrons light as sea lanterns, and it travels |
 | `horizontal` | Two `Horizontal` gates flat in the floor; steps off into the opening after the kawoosh and comes out at the partner's arrival point |
 | `lava` | A gate whose portal is set to lava; lava fills the opening after the kawoosh, it still travels, and the far gate shows nether portal |
-| `iris` | Shuts a gate's iris at its lever and sees stone drawn across it; a dial without the code is refused; with the code it opens, and with the iris shut again walking in bounces it back ("Remote Iris is locked!"); opened, it travels |
+| `iris` | Shuts a gate's iris at its lever and sees stone drawn across it; a dial without the code is refused; with the code it opens, and with the iris shut again walking in bounces it back ("The far gate's iris is closed."); opened, it travels |
 | `mirror` | Makes two banners mirrors and waits for their rooms to be captured (15 seconds or so); the first's view is drawn with no gold behind its wall; right-clicked, it shows the second's room (a gold block); punched, it puts the bot at the second |
 | `boat` | Gets into a boat on a lane of blue ice and drives it into an open gate; out at the partner still in the boat, and still in it two seconds later |
 | `minecart` | Sits in a minecart on a rail line whose end stops short of the opening; powering the first rail launches it, it rolls off the end into the gate, and it must be on the far gate's line, still in the cart, a moment later |
@@ -849,7 +849,7 @@ What stage 2 found about the harness itself:
   datapack's tick function catches anything new that appears at the far exit, and says whether it
   is the same entity.
 - The portal and the iris are drawn to each client over air. A shut iris is solid to the client,
-  so a player walking into it is stopped in front, not told "Iris is locked!".
+  so a player walking into it is stopped in front, not told "This gate's iris is closed.".
 - Mineflayer 4.39 misses a dismount (the server empties the vehicle's passenger list, which it does
   not read) and stops its physics ticks while riding; the probe handles both.
 - An empty boat on land stops within two blocks of a push, so the boat cell starts close.

@@ -42,6 +42,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChatMatchers;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
@@ -387,7 +388,7 @@ class VehicleGateEntryTest
 
             verify(cart).teleport(any(Location.class));
             verify(rider, times(1)).sendMessage(ArgumentMatchers.anyString());
-            verify(rider).sendMessage(ArgumentMatchers.endsWith("Arrived at dst"));
+            verify(rider).sendMessage(ChatMatchers.infoBody("Arrived at dst."));
         }
         finally
         {
@@ -416,7 +417,7 @@ class VehicleGateEntryTest
             rollIn();
 
             assertNull(src.getGateTarget(), "the gate shut behind the cart");
-            verify(rider).sendMessage(ArgumentMatchers.endsWith("Arrived at dst"));
+            verify(rider).sendMessage(ChatMatchers.infoBody("Arrived at dst."));
         }
         finally
         {
@@ -928,7 +929,7 @@ class VehicleGateEntryTest
         }
 
         verify(rider).sendMessage(ArgumentMatchers.contains("Cross-world travel is disabled"));
-        verify(rider, never()).sendMessage(ArgumentMatchers.contains("Remote Iris"));
+        verify(rider, never()).sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
     }
 
     /** The rule is about crossing worlds: a cart in one world goes on as ever with it on. */

@@ -1430,8 +1430,8 @@ public final class GatePreviews
         {
             if (built && clear && !preview.finished())
             {
-                owner.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + ChatText.good(preview.shape().getShapeName() + " is built!") + " Press its button to check it.");
+                owner.sendMessage(ChatText.info(ChatText.good(preview.shape().getShapeName() + " is built!")
+                    + " Press its button to check it."));
             }
             preview.finished(built && clear);
         }

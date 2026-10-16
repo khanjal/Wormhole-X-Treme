@@ -19,6 +19,8 @@ import org.bukkit.Material;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatMatchers;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Unit tests for `WormholeXTremeBlockListener` protection logic.
@@ -72,6 +74,11 @@ class WormholeXTremeBlockListenerTest
         listener.onBlockBreak(ev);
 
         assertTrue(ev.isCancelled(), "Breaking a block that is part of a registered gate should be cancelled");
+        // The refusal names the gate, and the next line says what to type instead (#438).
+        verify(player).sendMessage(ChatText.ERROR_HEADER + "This block is part of the gate " + ChatText.NAME_COLOUR
+            + "gateA" + ChatText.BODY_COLOUR + ".");
+        verify(player).sendMessage(ChatMatchers.infoBody(
+            "Remove the gate first with /wormhole remove gateA; add -all to break its blocks too."));
 
         StargateManager.removeStargate(gate);
     }

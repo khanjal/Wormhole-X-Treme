@@ -15,6 +15,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Tests for {@link StargateLifecycle}.
@@ -332,5 +333,8 @@ class StargateLifecycleTest
                 "an unrelated gate's timeout");
         assertSame(gate2, StargateManager.removeActivatedStargate(player),
             "gate2's own pending activation must still be in the map for its own timeout to find later");
+        // Under the plugin's header, with the gate's name in aqua: it used to be a bare "Gate: Gate1 ..." (#438).
+        verify(player).sendMessage(ChatText.HEADER + "Gate " + ChatText.NAME_COLOUR + "Gate1" + ChatText.BODY_COLOUR
+            + " timed out and deactivated.");
     }
 }

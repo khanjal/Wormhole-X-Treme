@@ -61,6 +61,7 @@ through is a release nobody reads.
 
 - Every message to a player is coloured by one shared palette ([#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438)): `/wx list` shows gate and network names in aqua with grey separators, a transport ring that turns you away opens with `:: error ::` like a gate does, and the lines after a valid design or locked chevrons say what to type next in the same colours, with the optional `[idc=IDC] [net=NET]` part now grey rather than gold.
 - Every `gate`, `mirror`, `config` and other admin command answers with `::` or `:: error ::` and the same colours, a gate name it cannot find gets one reply saying `/wormhole list` shows them, and a list of options goes on a line of its own; `/wormhole owner` now reads `Abydos is now owned by Ada.` and `/wormhole remove` `Removed Abydos.` ([#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438)).
+- The last plain lines a gate traveller saw open with `::` too: a dial sign click reads `Dialer set to Abydos.`, a timeout `Gate Abydos timed out and deactivated.`, a gate cooldown is one line, `You must wait 28 seconds before using a stargate again.`, and a shut far iris reads `The far gate's iris is closed.` ([#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438)).
 
 **Fixed**
 

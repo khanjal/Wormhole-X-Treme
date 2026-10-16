@@ -701,7 +701,7 @@ const lava = {
  * Cimmeria dials Tollan, whose iris has a code, 1234, and a lever. With Tollan's iris shut, the
  * bot sees it drawn in stone across Tollan's opening, and a dial without the code is refused. With
  * the code the dial opens it; then the bot shuts it again at Tollan's lever, and walking into
- * Cimmeria must bounce it back ("Remote Iris is locked!"), not take it to Tollan. It opens the
+ * Cimmeria must bounce it back ("The far gate's iris is closed."), not take it to Tollan. It opens the
  * iris at the lever, and then walking in must take it to Tollan.
  */
 const iris = {
@@ -768,13 +768,13 @@ const iris = {
     await teleport(...cimmeria.stand, 180)
     messages()
     narrate('Walking into Cimmeria with Tollan\'s iris shut; should bounce back')
-    await walk(cimmeria.into, () => near(tollan.arrival, 1.5) || heard.some((line) => line.includes('Remote Iris is locked')), 10)
+    await walk(cimmeria.into, () => near(tollan.arrival, 1.5) || heard.some((line) => line.includes("far gate's iris is closed")), 10)
     await sleep(2000)
     if (near(tollan.arrival, 3)) throw new Error('came out at Tollan through a shut iris')
-    if (!heard.some((line) => line.includes('Remote Iris is locked'))) {
+    if (!heard.some((line) => line.includes("far gate's iris is closed"))) {
       throw new Error(`walking in was not refused by the iris (heard ${JSON.stringify(heard)}); ${where()}`)
     }
-    narrate('Bounced: "Remote Iris is locked!"')
+    narrate('Bounced: "The far gate\'s iris is closed."')
 
     await this.flipIris(tollan, 'water', 'opening the iris')
     await teleport(...cimmeria.stand, 180)

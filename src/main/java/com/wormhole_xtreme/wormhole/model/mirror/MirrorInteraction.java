@@ -261,7 +261,7 @@ public final class MirrorInteraction
      */
     private static void say(final Player player, final String message)
     {
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER + message);
+        player.sendMessage(ChatText.info(message));
     }
 
     /**

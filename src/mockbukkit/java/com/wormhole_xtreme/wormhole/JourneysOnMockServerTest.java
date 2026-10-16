@@ -41,6 +41,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -395,7 +396,7 @@ class JourneysOnMockServerTest
         walk(p, into);
         ticks(20);
 
-        assertTrue(p.messages().stream().anyMatch(m -> m.contains("Remote Iris is locked")), "not told of the iris");
+        assertTrue(p.messages().stream().anyMatch(m -> ChatText.plain(m).contains("The far gate's iris is closed.")), "not told of the iris");
         assertSame(world, p.getWorld());
         assertTrue(p.getLocation().distance(far.getGatePlayerTeleportLocation()) > 20,
             "went through a shut iris to " + p.getLocation());
@@ -570,7 +571,7 @@ class JourneysOnMockServerTest
         ticks(5);
         final List<String> told = p.messages();
         assertSame(far, home.getGateDialSignTarget(), "the second step is not Target: " + told);
-        assertTrue(told.stream().anyMatch(m -> m.contains("Dialer set to: Target")), "not told: " + told);
+        assertTrue(told.stream().anyMatch(m -> ChatText.plain(m).contains("Dialer set to Target.")), "not told: " + told);
         final String shown = PlainTextComponentSerializer.plainText()
             .serialize(((Sign) home.getGateDialSignBlock().getState()).getSide(Side.FRONT).line(2));
         assertTrue(shown.contains("Target"), "the sign's selected line reads \"" + shown + "\"");

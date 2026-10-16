@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class StargateRestrictions.
@@ -91,6 +92,32 @@ public class StargateRestrictions
             return (cooldown >= elapsedTime) ? cooldown - elapsedTime : removePlayerUseCooldown(player);
         }
         return -1;
+    }
+
+    /**
+     * What a player still under the gate cooldown is told.
+     *
+     * @param player
+     *            the player refused
+     * @return one error line saying how long is left
+     */
+    public static String cooldownRefusal(final Player player)
+    {
+        return cooldownRefusal(checkPlayerUseCooldownRemaining(player));
+    }
+
+    /**
+     * What a player still under the gate cooldown is told: one line, where there used to be a
+     * refusal and a "Current Wait" line under it (#438).
+     *
+     * @param seconds
+     *            how long is left
+     * @return the error line
+     */
+    public static String cooldownRefusal(final long seconds)
+    {
+        return ChatText.error("You must wait " + ChatText.value(seconds + ((seconds == 1) ? " second" : " seconds"))
+            + " before using a stargate again.");
     }
 
     // The player-use cooldown group map was removed; per-player cooldowns are tracked via

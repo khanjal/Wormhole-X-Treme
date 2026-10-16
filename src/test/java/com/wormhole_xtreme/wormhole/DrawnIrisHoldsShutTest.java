@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.contains;
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -152,7 +152,7 @@ class DrawnIrisHoldsShutTest
         final PlayerMoveEvent event = walkIntoTheOpening();
 
         assertTrue(event.isCancelled(), "cancelling the move is what holds them out");
-        verify(player).sendMessage(contains("Iris"));
+        verify(player).sendMessage(plainContains("This gate's iris is closed."));
     }
 
     /**
@@ -170,7 +170,7 @@ class DrawnIrisHoldsShutTest
         final PlayerMoveEvent event = walkIntoTheOpening();
 
         assertFalse(event.isCancelled(), "the blocks refuse this one, not the listener");
-        verify(player, never()).sendMessage(contains("Iris"));
+        verify(player, never()).sendMessage(plainContains("iris is closed"));
     }
 
     /**

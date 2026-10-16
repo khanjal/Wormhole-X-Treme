@@ -322,7 +322,7 @@ Signs repaint when next written — a dial sign on the next click, a name sign o
 ## The iris
 
 An iris closes over a gate to block travel. Anyone walking into a gate whose far end has its iris
-closed is bounced back with "Remote Iris is locked!", and walking into a gate whose own iris is
+closed is bounced back with "The far gate's iris is closed.", and walking into a gate whose own iris is
 closed gets you nowhere at all, dialled or idle.
 
 ![The iris closed, in each of the four palettes](../images/gates/standard-palettes-iris.png)

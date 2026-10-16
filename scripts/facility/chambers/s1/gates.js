@@ -299,8 +299,8 @@ function checks(obs, o) {
   if (o.case === 'timeout-activate') {
     list.push(c('the DHD lit the gate: "Gate successfully activated."', () => /Gate successfully activated\./.test(obs.told || '')),
       c('its chevrons were lit a second later', () => obs.litAt1s > 0),
-      c(`"Gate: ${GATE} timed out and deactivated." about three seconds after the press`, () => {
-        if (new RegExp(`Gate: ${GATE} timed out and deactivated\\.`).test(obs.told || '') && obs.tookMs >= 2500 && obs.tookMs <= 6000) return true;
+      c(`"Gate ${GATE} timed out and deactivated." about three seconds after the press`, () => {
+        if (new RegExp(`Gate ${GATE} timed out and deactivated\\.`).test(obs.told || '') && obs.tookMs >= 2500 && obs.tookMs <= 6000) return true;
         throw new Error(`after ${obs.tookMs} ms: ${obs.told}`);
       }),
       c('and its chevrons went dark', () => obs.litAfter === 0));
@@ -308,9 +308,8 @@ function checks(obs, o) {
     list.push(c(`${GATE} dialled Relay and opened`, () => /Stargates connected/.test(obs.dial || '') && obs.drawn === true),
       c('Probe walked through to Relay', () => obs.first === true),
       c('the gate was opened again', () => obs.again && /Stargates connected/.test(obs.again.dial || '') && obs.again.drawn === true),
-      c('and refused Probe: "You must wait longer before using a stargate."', () => /You must wait longer before using a stargate\./.test(obs.told || '')),
-      c('with "Current Wait (in seconds): N", N 30 or under', () => {
-        const m = /Current Wait \(in seconds\): (\d+)/.exec(obs.told || '');
+      c('and refused Probe: "You must wait N seconds before using a stargate again.", N 30 or under', () => {
+        const m = /You must wait (\d+) seconds? before using a stargate again\./.exec(obs.told || '');
         return m && Number(m[1]) > 0 && Number(m[1]) <= 30;
       }),
       c('and did not carry it', () => obs.second === false));
