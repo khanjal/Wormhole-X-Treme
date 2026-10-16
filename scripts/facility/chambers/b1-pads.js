@@ -126,7 +126,7 @@ module.exports = {
     const watcher = obs.watcher ? (obs.watcher === p2.name ? p2 : ctx.probe) : null;
     const name = obs.name;
     const command = o.kind === 'go' ? `/wormhole go ${name}` : `/wormhole beam to ${name}`;
-    const refusal = o.kind === 'another\'s place' ? /No destination named "[^"]+" among your places or the public list\./ : null;
+    const refusal = o.kind === 'another\'s place' ? /No destination named \S+ among your places or the public list\./ : null;
     obs.beam = await follow(traveller, async () => traveller.bot.chat(command), { name, watcher, refusal });
     if (o.traveller === 'horse') {
       const pad = PADS[o.destination];
@@ -156,10 +156,10 @@ module.exports = {
     const pad = PADS[o.destination];
     const name = padName(o);
     const b = () => obs.beam || {};
-    const list = [c(`${name} was saved: "${obs.savedKind === 'public' ? 'Public beam destination' : 'Place'} "${name}" set to your current location."`,
-      () => new RegExp(`"${name}" set to your current location\\.`).test(obs.saved || ''))];
+    const list = [c(`${name} was saved: "${obs.savedKind === 'public' ? 'Public beam destination' : 'Place'} ${name} set to your current location."`,
+      () => new RegExp(` ${name} set to your current location\\.`).test(obs.saved || ''))];
     if (o.kind === 'another\'s place') {
-      list.push(c(`Probe2 was refused: "No destination named "${name}" among your places or the public list."`, () => b().refused));
+      list.push(c(`Probe2 was refused: "No destination named ${name} among your places or the public list."`, () => b().refused));
       list.push(c('and stayed on the start pad', () => b().at && flat(b().at, { x: START.x + 0.5, z: START.z + 0.5 }) < 1));
       return list;
     }

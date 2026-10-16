@@ -71,6 +71,12 @@ through is a release nobody reads.
 
 - A small mirror no longer leaves torch flames, candle and campfire smoke or fire hanging past its opening as you move: what it draws in the block ring around the opening is drawn unlit ([#309](https://github.com/khanjal/Wormhole-X-Treme/issues/309)).
 
+### Transport rings and beaming
+
+**Changed**
+
+- Every `ring` and `beam` reply opens with `::` or `:: error ::` and colours names, blocks, numbers and what to type, as gates do; usage lines read `Usage: /wormhole ring fire <id>|<world> <x> <y> <z>`, beam names are no longer in quotes, and a beam on cooldown says how long is left in one line ([#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438)).
+
 ### Performance
 
 - A mirror's or gate's view no longer stalls the server while somebody looks into it ([#609](https://github.com/khanjal/Wormhole-X-Treme/issues/609)). [Details](docs/MIRRORS.md#how-the-room-is-built)

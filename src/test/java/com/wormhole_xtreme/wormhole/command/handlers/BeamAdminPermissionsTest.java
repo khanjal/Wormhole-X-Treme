@@ -1,11 +1,11 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -107,7 +107,7 @@ class BeamAdminPermissionsTest
     {
         assertTrue(run(admin, "goto", "100", "64", "100"));
 
-        verify(admin).sendMessage(contains("permission"));
+        verify(admin).sendMessage(plainContains("permission"));
     }
 
     /**
@@ -124,7 +124,7 @@ class BeamAdminPermissionsTest
 
         assertTrue(run(admin, "goto", "100", "64", "100"));
 
-        verify(admin).sendMessage(contains("permission"));
+        verify(admin).sendMessage(plainContains("permission"));
     }
 
     /** Nor the other way about: the teleport node does not open the destination list. */
@@ -135,7 +135,7 @@ class BeamAdminPermissionsTest
 
         assertTrue(run(admin, "set", "hub"));
 
-        verify(admin).sendMessage(contains("permission"));
+        verify(admin).sendMessage(plainContains("permission"));
         assertNull(BeamManager.getPublicDestination("hub"), "nothing was added to the list");
     }
 
@@ -145,7 +145,7 @@ class BeamAdminPermissionsTest
     {
         assertTrue(run(console, "send", "Grace", "100", "64", "100"));
 
-        verify(console).sendMessage(contains("permission"));
+        verify(console).sendMessage(plainContains("permission"));
     }
 
     /**
@@ -161,7 +161,7 @@ class BeamAdminPermissionsTest
 
         assertTrue(run(console, "goto", "100", "64", "100"));
 
-        verify(console).sendMessage(contains("nowhere for console"));
+        verify(console).sendMessage(plainContains("nowhere for console"));
     }
 
     /**
@@ -177,7 +177,7 @@ class BeamAdminPermissionsTest
 
         assertTrue(run(console, "set", "hub"));
 
-        verify(console).sendMessage(contains("player-only"));
+        verify(console).sendMessage(plainContains("player-only"));
     }
 
     /** {@code create} records the destination as well, the alias gate and mirror also take. */
@@ -225,7 +225,7 @@ class BeamAdminPermissionsTest
 
         assertNull(BeamManager.getPublicDestination("hub"));
         yaml.verify(BeamYamlManager::saveAll);
-        verify(admin).sendMessage(contains("Removed public beam destination"));
+        verify(admin).sendMessage(plainContains("Removed public beam destination"));
     }
 
     /**
@@ -242,7 +242,7 @@ class BeamAdminPermissionsTest
         assertTrue(run(admin, "remove", "nosuchplace"));
 
         yaml.verify(BeamYamlManager::saveAll, never());
-        verify(admin).sendMessage(contains("No public beam destination named"));
+        verify(admin).sendMessage(plainContains("No public beam destination named"));
     }
 
     /** An action nobody recognises shows what the command does take. */
@@ -253,7 +253,7 @@ class BeamAdminPermissionsTest
 
         assertTrue(run(admin, "frobnicate", "hub"));
 
-        verify(admin).sendMessage(contains("set|remove|cost"));
+        verify(admin).sendMessage(plainContains("set|remove|cost"));
         assertTrue(BeamManager.getAllPublicDestinations().isEmpty(), "and changes nothing");
     }
 
@@ -263,7 +263,7 @@ class BeamAdminPermissionsTest
     {
         assertTrue(run(console));
 
-        verify(console).sendMessage(contains("goto"));
+        verify(console).sendMessage(plainContains("goto"));
         verify(console, never()).hasPermission(anyString());
     }
 
@@ -275,7 +275,7 @@ class BeamAdminPermissionsTest
 
         assertTrue(run(admin, "set"));
 
-        verify(admin).sendMessage(contains("set|remove|cost <name>"));
+        verify(admin).sendMessage(plainContains("set|remove|cost <name>"));
         assertTrue(BeamManager.getAllPublicDestinations().isEmpty(), "and sets nothing");
     }
 }

@@ -43,10 +43,10 @@ class RingMessagesTest
         return said.getAllValues();
     }
 
-    /** The two lines joined, for the cases that only care that a phrase appears somewhere. */
+    /** The two lines joined as a player reads them, for the cases that only care that a phrase appears somewhere. */
     private static String refusalText(final RingBlockage why)
     {
-        return String.join(" ", refusalFor(why, "Base"));
+        return ChatText.plain(String.join(" ", refusalFor(why, "Base")));
     }
 
     /**
@@ -119,11 +119,19 @@ class RingMessagesTest
     @Test
     void aRefusalNamesWhichEndIsAtFault()
     {
-        assertTrue(refusalFor(RingBlockage.NO_GROUND, "Tower").get(0).contains("The Tower end"),
+        assertTrue(ChatText.plain(refusalFor(RingBlockage.NO_GROUND, "Tower").get(0)).contains("The Tower end"),
             "the far end is usually somewhere else entirely, so it has to be named");
         assertTrue(refusalFor(RingBlockage.NO_GROUND, "").get(0)
             .contains("The other end of these rings"),
             "an unnamed end still has to read as a sentence");
+    }
+
+    /** The end at fault is a name, in the palette's aqua, and the line goes back to grey after it. */
+    @Test
+    void theEndAtFaultIsColouredAsAName()
+    {
+        assertEquals(ChatText.ERROR_HEADER + "The " + ChatText.NAME_COLOUR + "Tower" + ChatText.BODY_COLOUR
+            + " end has a hole in its floor.", refusalFor(RingBlockage.NO_GROUND, "Tower").get(0));
     }
 
     /** Every reason produces its own wording, so none of them is a copy of another. */

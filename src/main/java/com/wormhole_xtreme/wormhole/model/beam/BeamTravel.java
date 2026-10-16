@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Resolves a name to a beam destination and sends the player there -- shared by
@@ -68,8 +69,8 @@ public final class BeamTravel
         final Location stored = destination.toLocation();
         if (stored == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "That destination's world is not currently loaded.");
+            player.sendMessage(ChatText.error(ChatText.name(destination.name()) + " is in world "
+                + ChatText.name(destination.point().worldName()) + ", which is not loaded."));
             return true;
         }
         // Terrain drift away from a destination's recorded coordinates is corrected by
@@ -81,10 +82,9 @@ public final class BeamTravel
         {
             // Not ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED -- its wording
             // names a stargate specifically, which would be wrong here.
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "You must wait longer before beaming again.");
-            player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString()
-                + BeamCooldown.remainingSeconds(player));
+            final long wait = BeamCooldown.remainingSeconds(player);
+            player.sendMessage(ChatText.error("You must wait longer before beaming again: "
+                + ChatText.value(String.valueOf(wait)) + ((wait == 1) ? " second." : " seconds.")));
             return true;
         }
 
@@ -93,9 +93,7 @@ public final class BeamTravel
         {
             // Not ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS -- same reason: its
             // wording says "this gate."
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Insufficient funds to beam -- costs " + useCost + " "
-                + EconomySupport.currencyName(useCost) + ".");
+            player.sendMessage(ChatText.error("You cannot afford this beam. It costs " + cost(useCost) + "."));
             return true;
         }
         if (useCost > 0)
@@ -105,8 +103,7 @@ public final class BeamTravel
             // genuine surprise. A hard confirm-before-travelling step felt like more
             // friction than gate travel has ever needed for the same kind of cost, so this
             // is the middle ground -- seen, not gated on.
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "This will cost " + useCost + " " + EconomySupport.currencyName(useCost) + ".");
+            player.sendMessage(ChatText.info("This will cost " + cost(useCost) + "."));
         }
 
         // BeamAnimation.start already refuses (and messages) a player who is mid-beam, so
@@ -117,8 +114,7 @@ public final class BeamTravel
             if (useCost > 0)
             {
                 EconomySupport.charge(player, useCost);
-                player.sendMessage(ConfigManager.MessageStrings.ECONOMY_CHARGED.toString()
-                    + useCost + " " + EconomySupport.currencyName(useCost));
+                player.sendMessage(ChatText.info("Charged " + cost(useCost) + "."));
             }
             if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled())
             {
@@ -126,6 +122,12 @@ public final class BeamTravel
             }
         });
         return true;
+    }
+
+    /** @return an amount and its currency, for a message */
+    private static String cost(final double amount)
+    {
+        return ChatText.value(amount + " " + EconomySupport.currencyName(amount));
     }
 
     /**

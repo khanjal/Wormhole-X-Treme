@@ -95,7 +95,7 @@ module.exports = {
       obs.places = await kit.places(p2);
       obs.beam = await follow(p2, say(p2, '/wormhole beam to Den'), { name: 'Den' });
     } else if (a === 'another\'s place') {
-      obs.beam = await follow(p2, say(p2, '/wormhole beam to Den'), { name: 'Den', refusal: /No destination named "Den" among your places or the public list\./ });
+      obs.beam = await follow(p2, say(p2, '/wormhole beam to Den'), { name: 'Den', refusal: /No destination named Den among your places or the public list\./ });
     } else if (a === 'go to a gate as op') {
       obs.beam = await follow(probe, say(probe, '/wormhole go Relay'), { name: 'Relay' });
     } else if (a === 'go to a gate as player') {
@@ -106,7 +106,7 @@ module.exports = {
       obs.cooldownFrom = Date.now();
       if (who === p2) cooldownFrom = obs.cooldownFrom;
       await who.teleport(STAND);
-      obs.second = await follow(who, say(who, '/wormhole beam to Dock'), { name: 'Dock', refusal: /You must wait longer before beaming again\./ });
+      obs.second = await follow(who, say(who, '/wormhole beam to Dock'), { name: 'Dock', refusal: /You must wait longer before beaming again: \d+ seconds?\./ });
       const wait = (obs.second.told.map((t) => /Current Wait \(in seconds\): (\d+)/.exec(t)).find(Boolean) || [])[1];
       obs.wait = wait === undefined ? null : Number(wait);
       if (obs.second.refused) {
@@ -126,7 +126,7 @@ module.exports = {
     const b = (x = obs.beam) => x || {};
     const at = (x, p, r = 1) => x.at && flat(x.at, p) < r && Math.abs(x.at.y - p.y) < 0.6;
     const stayed = (x) => c('and stayed where it was', () => b(x).at && flat(b(x).at, STAND) < 1);
-    const list = [c('Dock was saved as a public destination', () => /Public beam destination "Dock" set to your current location\./.test(obs.dock || ''))];
+    const list = [c('Dock was saved as a public destination', () => /Public beam destination Dock set to your current location\./.test(obs.dock || ''))];
     if (a === 'send to public') {
       list.push(c('the console was told "Beaming Probe2 to Dock."', () => /Beaming Probe2 to Dock\./.test(obs.console || '')));
       list.push(c('Probe2 was beamed to Dock, facing 90° as saved', () => b().done && at(b(), centre(DOCK)) && Math.abs(b().yaw - 90) <= 5));
@@ -137,7 +137,7 @@ module.exports = {
       list.push(c('the console was told "Beaming Probe2 to ..."', () => /Beaming Probe2 to /.test(obs.console || '')));
       list.push(c('Probe2 landed at those coordinates in the nether', () => b().done && b().dim === campus.NETHER && at(b(), { x: NETHER_SPOT.x + 0.5, y: NETHER_SPOT.y, z: NETHER_SPOT.z + 0.5 })));
     } else if (a === 'send to nobody') {
-      list.push(c('the console was told: No online player named "Nobody".', () => /No online player named "Nobody"\./.test(obs.console || '')));
+      list.push(c('the console was told: No online player named Nobody.', () => /No online player named Nobody\./.test(obs.console || '')));
     } else if (a === 'goto as op') {
       list.push(c('Probe was beamed to Dock', () => b().done && at(b(), centre(DOCK))));
     } else if (a === 'goto as player') {
@@ -147,12 +147,12 @@ module.exports = {
       list.push(c('Probe2 was told "You lack the permissions to do this."', () => /You lack the permissions to do this\./.test(obs.said || '')));
       list.push(c('and Dock2 is not on the public list', () => /Beam destinations:/.test(obs.listed || '') && !/Dock2/.test(obs.listed || '')));
     } else if (a === 'own place') {
-      list.push(c('Den was saved as Probe2\'s place', () => /Place "Den" set to your current location\./.test(obs.den || '')));
+      list.push(c('Den was saved as Probe2\'s place', () => /Place Den set to your current location\./.test(obs.den || '')));
       list.push(c('Probe2\'s places list Den', () => /Den/.test(obs.places || '')));
       list.push(c('Probe2 was beamed to Den', () => b().done && at(b(), centre(DEN))));
     } else if (a === 'another\'s place') {
-      list.push(c('Den was saved as Probe\'s place', () => /Place "Den" set to your current location\./.test(obs.den || '')));
-      list.push(c('Probe2 was refused: No destination named "Den" among your places or the public list.', () => b().refused));
+      list.push(c('Den was saved as Probe\'s place', () => /Place Den set to your current location\./.test(obs.den || '')));
+      list.push(c('Probe2 was refused: No destination named Den among your places or the public list.', () => b().refused));
       list.push(stayed());
     } else if (a === 'go to a gate as op') {
       const relay = require('./relay').farGates().Relay.geom.arrival;
@@ -162,7 +162,7 @@ module.exports = {
       list.push(stayed());
     } else if (a === 'cooldown') {
       list.push(c('the first beam went', () => b(obs.first).done && at(b(obs.first), centre(DOCK))));
-      list.push(c('the second was refused: "You must wait longer before beaming again."', () => b(obs.second).refused));
+      list.push(c('the second was refused: "You must wait longer before beaming again: N seconds."', () => b(obs.second).refused));
       list.push(c(`with "Current Wait (in seconds): N", N at most ${COOLDOWN}`, () => obs.wait !== null && obs.wait > 0 && obs.wait <= COOLDOWN));
       list.push(stayed(obs.second));
       list.push(c('once the wait was over, it went', () => b(obs.third).done && at(b(obs.third), centre(DOCK))));

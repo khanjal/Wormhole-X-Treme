@@ -32,6 +32,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Everything a player does to a transport ring that is not walking into one.
@@ -53,7 +54,13 @@ public class RingCommand implements SubCommand
     private static final String ALLOW = "allow";
     /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
     static final int MAX_LINK_HEIGHT = 384;
-    private static final String NOT_YOUR_PAIR = "That is not your ring pair.";
+    private static final String NOT_YOUR_PAIR = ChatText.error("That is not your ring pair.");
+    private static final String CANCEL = "/wormhole ring cancel";
+    /** What {@link ChatText#usage} puts in front of the line. */
+    private static final String USAGE_PREFIX = "Usage: ";
+    /** Why a circle on a gate is refused, as a body for an error line. */
+    static final String OVERLAPS_GATE = "That circle overlaps a stargate. Rings and gates cannot share blocks.";
+    private static final String STAND_IN_ONE = ChatText.error("Stand in a ring, or name a pair by its id.");
 
     /* (non-Javadoc)
      * @see com.wormhole_xtreme.wormhole.command.SubCommand#execute(org.bukkit.command.CommandSender, java.lang.String[])
@@ -71,8 +78,9 @@ public class RingCommand implements SubCommand
         }
         if (!(sender instanceof Player))
         {
-            sender.sendMessage("Transport rings are built and edited in the world, so this is a player command. From"
-                + " here, " + RingConsoleCommands.BUILD_USAGE + " and " + RingConsoleCommands.FIRE_USAGE + " work.");
+            sender.sendMessage(ChatText.error("Rings are built and edited in the world, so this is a player command."));
+            sender.sendMessage(helpLine(RingConsoleCommands.BUILD_USAGE, "works from here"));
+            sender.sendMessage(helpLine(RingConsoleCommands.FIRE_USAGE, "works from here"));
             return true;
         }
         final Player player = (Player) sender;
@@ -126,7 +134,7 @@ public class RingCommand implements SubCommand
     {
         if (!RingPermissions.has(player, RingPermissions.BUILD))
         {
-            player.sendMessage("You may not build transport rings.");
+            player.sendMessage(ChatText.error("You may not build transport rings."));
             return;
         }
 
@@ -139,7 +147,7 @@ public class RingCommand implements SubCommand
             ConfigManager.getRingDefaultLight());
         if (!found.isSuccess())
         {
-            player.sendMessage(explain(found.getFailure()));
+            player.sendMessage(ChatText.error(explain(found.getFailure())));
             return;
         }
 
@@ -149,19 +157,19 @@ public class RingCommand implements SubCommand
             RingManager.checkPlacement(ring, world, ConfigManager.getRingMinSeparation());
         if (refusal != null)
         {
-            player.sendMessage(explain(refusal));
+            player.sendMessage(ChatText.error(explain(refusal)));
             return;
         }
         if (touchesGate(player.getWorld(), ring))
         {
-            player.sendMessage("That circle overlaps a stargate. Rings and gates cannot share blocks.");
+            player.sendMessage(ChatText.error(OVERLAPS_GATE));
             return;
         }
         final RingBlockage roomFor = RingSurvey.survey(new BukkitGround(player.getWorld()), ring,
             ConfigManager.getRingMaxCeilingDrop());
         if (roomFor != null)
         {
-            player.sendMessage(explain(roomFor));
+            player.sendMessage(ChatText.error(explain(roomFor)));
             return;
         }
 
@@ -192,7 +200,8 @@ public class RingCommand implements SubCommand
         {
             // Checked here rather than at the second end, so nobody builds two rings and
             // only then finds out they were never going to be allowed the pair.
-            player.sendMessage("You already have " + quota + " ring pairs, which is the limit.");
+            player.sendMessage(ChatText.error("You already have " + ChatText.value(String.valueOf(quota))
+                + " ring pairs, which is the limit."));
             return;
         }
         RingManager.setPending(player.getUniqueId(), ring, world);
@@ -201,10 +210,10 @@ public class RingCommand implements SubCommand
         // mean a crash or a restart between the two halves cost somebody a circle of slabs
         // for a ring that never existed — and leaving them costs nothing, since an unpaired
         // ring does not work anyway.
-        player.sendMessage("First ring noted, in " + ring.getRingMaterial()
-            + ". Lay the other one and run this again to pair them.");
-        player.sendMessage("Its slabs stay put until the pair is finished. "
-            + "Run /wormhole ring cancel to forget it.");
+        player.sendMessage(ChatText.info("First ring noted, in " + ChatText.material(String.valueOf(ring.getRingMaterial()))
+            + ". Lay the other end and run " + ChatText.command("/wormhole ring create") + " in it."));
+        player.sendMessage(ChatText.info("Its slabs stay put until the pair is finished. Run "
+            + ChatText.command(CANCEL) + " to forget it."));
     }
 
     /**
@@ -231,9 +240,9 @@ public class RingCommand implements SubCommand
         {
             // Said here rather than discovered later. Rings do not cross worlds, and finding
             // that out after laying a second circle of slabs is a poor way to learn it.
-            player.sendMessage("Both ends have to be in the same world. Your first ring is in "
-                + waiting.worldName() + ", and this one is in " + world + ".");
-            player.sendMessage("Run /wormhole ring cancel to give up on that one.");
+            player.sendMessage(ChatText.error("Both ends have to be in the same world. Your first ring is in "
+                + ChatText.name(waiting.worldName()) + ", and this one is in " + ChatText.name(world) + "."));
+            player.sendMessage(ChatText.info("Run " + ChatText.command(CANCEL) + " to give up on that one."));
             return;
         }
         // A pair built over the waiting end since it was laid, from the console, would share its circle.
@@ -241,8 +250,8 @@ public class RingCommand implements SubCommand
             RingManager.checkPlacement(waiting.ring(), world, ConfigManager.getRingMinSeparation());
         if (taken != null)
         {
-            player.sendMessage("Your first ring is not free any more: " + explain(taken));
-            player.sendMessage("Run /wormhole ring cancel to give up on it.");
+            player.sendMessage(ChatText.error("Your first ring is not free any more: " + explain(taken)));
+            player.sendMessage(ChatText.info("Run " + ChatText.command(CANCEL) + " to give up on it."));
             return;
         }
         final List<String> refused = whyNotAPair(waiting.ring(), ring);
@@ -266,15 +275,15 @@ public class RingCommand implements SubCommand
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world);
 
-        player.sendMessage("Ring pair " + pair.getId() + " is live. Step into either end.");
-        player.sendMessage("It is " + pair.getAccess()
+        player.sendMessage(ChatText.info("Ring pair " + ChatText.name(pair.getId()) + " is live. Step into either end."));
+        player.sendMessage(ChatText.info("It is " + ChatText.value(String.valueOf(pair.getAccess()))
             + (pair.getAccess() == RingAccess.PRIVATE
-                ? " — use /wormhole ring allow <player> to let others in." : "."));
+                ? ". Use " + ChatText.command("/wormhole ring allow <player>") + " to let others in." : ".")));
     }
 
     /**
-     * Why two ends cannot be a pair, as the lines to tell the builder, or none if they can be.
-     * The world is the caller's to check: a player is told where their first end is.
+     * Why two ends cannot be a pair, as the finished lines to tell the builder, or none if they
+     * can be. The world is the caller's to check: a player is told where their first end is.
      *
      * @param first
      *            the end built first
@@ -290,15 +299,15 @@ public class RingCommand implements SubCommand
         final int maxDistance = ConfigManager.getRingMaxLinkDistance();
         if ((maxDistance > 0) && (first.anchorDistanceSquared(second) > ((long) maxDistance * maxDistance)))
         {
-            return List.of("Those two rings are " + apart(first, second) + " blocks apart on the ground, and rings"
-                + " reach " + maxDistance + ".", "Build a stargate for a trip that long — rings are for getting "
-                + "around one place.");
+            return List.of(ChatText.error("Those two rings are " + ChatText.value(String.valueOf(apart(first, second)))
+                + " blocks apart on the ground, and rings reach " + ChatText.value(String.valueOf(maxDistance)) + "."),
+                ChatText.info("Build a stargate for a trip that long. Rings are for getting around one place."));
         }
         final int climb = Math.abs(first.getAnchorY() - second.getAnchorY());
         if (climb > MAX_LINK_HEIGHT)
         {
-            return List.of("Those two rings are " + climb + " blocks apart in height, and rings reach " + MAX_LINK_HEIGHT
-                + ".");
+            return List.of(ChatText.error("Those two rings are " + ChatText.value(String.valueOf(climb))
+                + " blocks apart in height, and rings reach " + ChatText.value(String.valueOf(MAX_LINK_HEIGHT)) + "."));
         }
         if ((first.getAnchorX() == second.getAnchorX()) && (first.getAnchorY() == second.getAnchorY())
             && (first.getAnchorZ() == second.getAnchorZ()))
@@ -306,7 +315,7 @@ public class RingCommand implements SubCommand
             // The first ring's slabs are still lying there, so running the command again in
             // the same circle finds the same ring. Pairing it with itself would make a
             // transport that goes nowhere.
-            return List.of("That is the ring you already laid. Go and build the other end.");
+            return List.of(ChatText.error("That is the ring you already laid. Go and build the other end."));
         }
         return List.of();
     }
@@ -474,24 +483,22 @@ public class RingCommand implements SubCommand
      *
      * @param failure
      *            what detection objected to
-     * @return something the player can act on
+     * @return something the player can act on, as the body of an error line
      */
     static String explain(final RingTemplate.Failure failure)
     {
         if (failure == RingTemplate.Failure.MIXED_MATERIALS)
         {
-            return "That ring is built from more than one kind of slab. Use just one — "
-                + "whichever you pick is what the rings will be made of.";
+            return "That ring is built from more than one kind of slab. Use one kind; the rings are made of it.";
         }
         if (failure == RingTemplate.Failure.MIXED_HALVES)
         {
             return "Some of those slabs rest on the floor and others hang from the ceiling. "
-                + "A ring has to be one or the other.";
+                + "Use all bottom or all top slabs.";
         }
         if (failure == RingTemplate.Failure.INTERIOR_NOT_CLEAR)
         {
-            return "That circle is filled in. Lay only the ring itself and leave the middle "
-                + "clear — that is where people stand.";
+            return "That circle is filled in. Lay only the ring and leave the middle clear to stand in.";
         }
         return "No ring of slabs here. Lay a circle of slabs and stand inside it.";
     }
@@ -508,7 +515,7 @@ public class RingCommand implements SubCommand
      *
      * @param blockage
      *            what the survey found
-     * @return what to tell the builder
+     * @return what to tell the builder, as the body of an error line
      */
     static String explain(final RingBlockage blockage)
     {
@@ -517,29 +524,25 @@ public class RingCommand implements SubCommand
             // Read here rather than at the top: every other branch is a fact about the rings
             // themselves, and reading config for them would make them need a loaded server.
             final int maxDrop = ConfigManager.getRingMaxCeilingDrop();
-            return "That ring is more than " + maxDrop + " blocks above its floor. A ceiling "
-                + "ring drops its rings all the way down and they stack up from there, so it "
-                + "needs a floor within " + maxDrop + " blocks — lower the ring, raise the "
-                + "floor, or set ring.max-ceiling-drop higher.";
+            return "That ring is more than " + ChatText.value(String.valueOf(maxDrop)) + " blocks above its floor. "
+                + "Lower the ring, raise the floor, or raise " + ChatText.command("ring.max-ceiling-drop") + ".";
         }
         if (blockage == RingBlockage.CEILING_TOO_LOW)
         {
-            return "That ring has no room between it and the floor. The rings need at least "
-                + Ring.MIN_CEILING_DROP + " blocks below the ceiling to fall through.";
+            return "That ring has no room between it and the floor. Leave at least "
+                + ChatText.value(String.valueOf(Ring.MIN_CEILING_DROP)) + " blocks below it for the rings to fall.";
         }
         if (blockage == RingBlockage.NO_HEADROOM)
         {
-            return "There is not enough clear air for the rings. They stand " + Ring.STACK_HEIGHT
-                + " blocks tall around whoever arrives, so they need " + Ring.STACK_HEIGHT
-                + " blocks above the pad — more than a person needs to stand in it.";
+            return "There is not enough clear air for the rings. They need "
+                + ChatText.value(String.valueOf(Ring.STACK_HEIGHT)) + " clear blocks above the pad.";
         }
         if (blockage == RingBlockage.NO_GROUND)
         {
-            return "That ring has a hole in its floor. There has to be something under it to "
-                + "stand on.";
+            return "That ring has a hole in its floor. Fill it so there is something to stand on.";
         }
-        return "There is something built inside that ring. Clear the inside of the circle and "
-            + "try again — what is built around it does not matter.";
+        return "There is something built inside that ring. Clear the inside; what is built around it "
+            + "does not matter.";
     }
 
     /**
@@ -547,7 +550,7 @@ public class RingCommand implements SubCommand
      *
      * @param refusal
      *            what placement objected to
-     * @return something the player can act on
+     * @return something the player can act on, as the body of an error line
      */
     static String explain(final RingManager.Refusal refusal)
     {
@@ -574,13 +577,13 @@ public class RingCommand implements SubCommand
         final RingManager.PendingRing waiting = RingManager.clearPending(player.getUniqueId());
         if (waiting == null)
         {
-            player.sendMessage("You have no half-built ring pair.");
+            player.sendMessage(ChatText.error("You have no half-built ring pair."));
             return;
         }
         RingYamlManager.savePending();
         // Nothing to give back: an unfinished pair never took the slabs in the first place.
-        player.sendMessage("Forgotten. The circle you laid is still there, so you can pair it "
-            + "later or take the slabs back yourself.");
+        player.sendMessage(ChatText.info("Forgotten. The circle you laid is still there, so you can pair it "
+            + "later or take the slabs back yourself."));
     }
 
     /**
@@ -596,14 +599,13 @@ public class RingCommand implements SubCommand
             {
                 continue;
             }
-            player.sendMessage(pair.describe() + " — " + pair.getWorldName() + ", "
-                + pair.getAccess() + ", " + pair.getEndA().getStyle() + "/"
-                + pair.getEndB().getStyle());
+            player.sendMessage(ChatText.info(ChatText.name(pair.describe()) + " — " + ChatText.name(pair.getWorldName())
+                + ", " + pair.getAccess() + ", " + pair.getEndA().getStyle() + "/" + pair.getEndB().getStyle()));
             shown++;
         }
         if (shown == 0)
         {
-            player.sendMessage("You have no transport rings.");
+            player.sendMessage(ChatText.info("You have no transport rings."));
         }
     }
 
@@ -632,11 +634,11 @@ public class RingCommand implements SubCommand
         // laid out as the ring they were, which is also the template for building it again
         // somewhere else. Nobody should have to re-mine a circle they already paid for.
         final int returned = returnTemplates(pair, player.getName());
-        player.sendMessage("Removed both ends of " + pair.getId()
-            + (returned > 0 ? (" and put " + returned + " slabs back.") : "."));
+        player.sendMessage(ChatText.info("Removed both ends of " + ChatText.name(pair.getId())
+            + (returned > 0 ? (" and put " + ChatText.value(String.valueOf(returned)) + " slabs back.") : ".")));
         if (returned == 0)
         {
-            player.sendMessage("Its world is not loaded, so the slabs were left where they are.");
+            player.sendMessage(ChatText.info("Its world is not loaded, so the slabs were left where they are."));
         }
     }
 
@@ -655,7 +657,7 @@ public class RingCommand implements SubCommand
         final RingPair pair = (named != null) ? named : standingIn(player);
         if (pair == null)
         {
-            player.sendMessage("Stand in a ring, or name a pair by its id.");
+            player.sendMessage(STAND_IN_ONE);
             return;
         }
         // "edit" with no field at all still has to reach the usage line, not index past the end.
@@ -663,8 +665,8 @@ public class RingCommand implements SubCommand
         final boolean noValue = args.length <= (fieldAt + 1);
         if (noField || (noValue && !"reset".equalsIgnoreCase(args[fieldAt])))
         {
-            player.sendMessage("Usage: /wormhole ring edit [id] "
-                + "<ring|light|flash|built|name|access|style|reset> [value]");
+            player.sendMessage(ChatText.info(ChatText.usage("/wormhole ring edit [id] "
+                + "<ring|light|flash|built|name|access|style|reset> [value]")));
             return;
         }
         if (!RingPermissions.mayManage(player, pair))
@@ -738,7 +740,9 @@ public class RingCommand implements SubCommand
             setStyle(player, pair, only, value);
             return;
         }
-        player.sendMessage("Fields are: ring, light, flash, built, name, access, style, reset.");
+        player.sendMessage(ChatText.error("Fields are: " + ChatText.command("ring") + ", " + ChatText.command("light")
+            + ", " + ChatText.command("flash") + ", " + ChatText.command("built") + ", " + ChatText.command("name") + ", "
+            + ChatText.command("access") + ", " + ChatText.command("style") + ", " + ChatText.command("reset") + "."));
     }
 
     /**
@@ -760,15 +764,15 @@ public class RingCommand implements SubCommand
         {
             // Naming both ends the same would defeat the point: the name exists so a
             // traveller can be told where they are going, which differs by end.
-            player.sendMessage("Stand in the ring you want to name — naming a pair by id "
-                + "would call both ends the same thing.");
+            player.sendMessage(ChatText.error("Stand in the ring you want to name. Naming a pair by id "
+                + "would call both ends the same thing."));
             return;
         }
         only.setName(value);
         // Tolerates null as well as empty: edit only ever passes one or the other, but as a
         // method in its own right this no longer has its single caller in view.
-        saved(player, pair, ((value == null) || value.isEmpty())
-            ? "Name cleared." : ("This ring is now " + value + "."));
+        saved(player, pair, ChatText.info(((value == null) || value.isEmpty())
+            ? "Name cleared." : ("This ring is now " + ChatText.name(value) + ".")));
     }
 
     /**
@@ -790,10 +794,11 @@ public class RingCommand implements SubCommand
         }
         catch (final IllegalArgumentException e)
         {
-            player.sendMessage("Access is public or private.");
+            player.sendMessage(ChatText.error("Access is " + ChatText.command("public") + " or "
+                + ChatText.command("private") + "."));
             return;
         }
-        saved(player, pair, "Access set to " + pair.getAccess() + ".");
+        saved(player, pair, ChatText.info("Access set to " + ChatText.value(String.valueOf(pair.getAccess())) + "."));
     }
 
     /**
@@ -812,8 +817,9 @@ public class RingCommand implements SubCommand
         final RingStyle chosen = RingStyle.parse(value);
         if (chosen == null)
         {
-            player.sendMessage("Style is fast (rings climb together) or slow "
-                + "(one at a time). 'concurrent' and 'sequential' work too.");
+            player.sendMessage(ChatText.error("Style is " + ChatText.command("fast") + " (rings climb together) or "
+                + ChatText.command("slow") + " (one at a time); " + ChatText.command("concurrent") + " and "
+                + ChatText.command("sequential") + " work too."));
             return;
         }
         if (only != null)
@@ -825,7 +831,7 @@ public class RingCommand implements SubCommand
             pair.getEndA().setStyle(chosen);
             pair.getEndB().setStyle(chosen);
         }
-        saved(player, pair, "Style set to " + chosen + ".");
+        saved(player, pair, ChatText.info("Style set to " + ChatText.value(String.valueOf(chosen)) + "."));
     }
 
     /**
@@ -860,14 +866,14 @@ public class RingCommand implements SubCommand
             ring.setFlashMaterial(ConfigManager.getRingDefaultFlash());
             ring.setStyle(ConfigManager.getRingDefaultStyle());
         }
-        player.sendMessage("Reset to "
-            + ((only != null) ? (only.getBuiltMaterial() + " rings")
+        player.sendMessage(ChatText.info("Reset to "
+            + ((only != null) ? (ChatText.material(String.valueOf(only.getBuiltMaterial())) + " rings")
                 : "the slab each end was laid in")
-            + ", " + ConfigManager.getRingDefaultLight() + " pad, "
-            + ConfigManager.getRingDefaultFlash() + " flash, "
-            + ConfigManager.getRingDefaultStyle() + " deploy"
-            + ((only != null) ? " for this end." : " for both ends."));
-        player.sendMessage("Access, allow list, names and owner are untouched.");
+            + ", " + ChatText.material(String.valueOf(ConfigManager.getRingDefaultLight())) + " pad, "
+            + ChatText.material(String.valueOf(ConfigManager.getRingDefaultFlash())) + " flash, "
+            + ChatText.value(String.valueOf(ConfigManager.getRingDefaultStyle())) + " deploy"
+            + ((only != null) ? " for this end." : " for both ends.")));
+        player.sendMessage(ChatText.info("Access, allow list, names and owner are untouched."));
         RingYamlManager.saveWorld(pair.getWorldName());
     }
 
@@ -888,8 +894,8 @@ public class RingCommand implements SubCommand
             // Refused rather than accepted quietly: the rise is built out of slab halves,
             // and a full block would cost the animation its half-block movement, which is
             // the whole visual effect.
-            player.sendMessage("The travelling ring has to be a slab — that is what lets it "
-                + "move half a block at a time.");
+            player.sendMessage(ChatText.error("The travelling ring has to be a slab, so it can move half a block "
+                + "at a time."));
             return;
         }
         if (only != null)
@@ -901,7 +907,7 @@ public class RingCommand implements SubCommand
             pair.getEndA().setRingMaterial(material);
             pair.getEndB().setRingMaterial(material);
         }
-        saved(player, pair, "Ring material set to " + material + ".");
+        saved(player, pair, ChatText.info("Ring material set to " + ChatText.material(String.valueOf(material)) + "."));
     }
 
     /**
@@ -928,8 +934,7 @@ public class RingCommand implements SubCommand
         final Material material = Material.matchMaterial(value);
         if (!Ring.isUsableAsRing(material))
         {
-            player.sendMessage("The laid-in slab has to be a slab — that is what reset would "
-                + "put back.");
+            player.sendMessage(ChatText.error("The laid-in slab has to be a slab, since reset puts it back."));
             return;
         }
         if (only != null)
@@ -941,7 +946,7 @@ public class RingCommand implements SubCommand
             pair.getEndA().setBuiltMaterial(material);
             pair.getEndB().setBuiltMaterial(material);
         }
-        saved(player, pair, "Built material set to " + material + ".");
+        saved(player, pair, ChatText.info("Built material set to " + ChatText.material(String.valueOf(material)) + "."));
     }
 
     /**
@@ -960,7 +965,7 @@ public class RingCommand implements SubCommand
         final Material material = Material.matchMaterial(value);
         if ((material == null) || !material.isBlock())
         {
-            player.sendMessage("That is not a block.");
+            player.sendMessage(ChatText.error(ChatText.bad(value) + " is not a block."));
             return;
         }
         for (final Ring ring : (only != null)
@@ -975,8 +980,8 @@ public class RingCommand implements SubCommand
                 ring.setLightMaterial(material);
             }
         }
-        saved(player, pair, (flash ? "Transport light set to " : "Pad light set to ")
-            + material + ".");
+        saved(player, pair, ChatText.info((flash ? "Transport light set to " : "Pad light set to ")
+            + ChatText.material(String.valueOf(material)) + "."));
     }
 
     /**
@@ -991,7 +996,7 @@ public class RingCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage("Usage: /wormhole ring " + (allowing ? ALLOW : "deny") + " <player> [id]");
+            player.sendMessage(ChatText.info(ChatText.usage("/wormhole ring " + (allowing ? ALLOW : "deny") + " <player> [id]")));
             return;
         }
         final RingPair pair = target(player, args, 3);
@@ -1007,20 +1012,21 @@ public class RingCommand implements SubCommand
         final OfflinePlayer subject = findPlayer(args[2]);
         if (subject == null)
         {
-            player.sendMessage("No player called " + args[2] + " has been on this server.");
+            player.sendMessage(neverSeen(args[2]));
             return;
         }
         final String uuid = subject.getUniqueId().toString();
+        final String who = ChatText.name(args[2]);
         if (allowing)
         {
-            saved(player, pair, pair.allow(uuid)
-                ? (args[2] + " may now use " + pair.getId() + ".")
-                : (args[2] + " could already use it."));
+            saved(player, pair, ChatText.info(pair.allow(uuid)
+                ? (who + " may now use " + ChatText.name(pair.getId()) + ".")
+                : (who + " could already use it.")));
             return;
         }
-        saved(player, pair, pair.deny(uuid)
-            ? (args[2] + " may no longer use " + pair.getId() + ".")
-            : (args[2] + " was not on the list."));
+        saved(player, pair, ChatText.info(pair.deny(uuid)
+            ? (who + " may no longer use " + ChatText.name(pair.getId()) + ".")
+            : (who + " was not on the list.")));
     }
 
     /**
@@ -1037,7 +1043,7 @@ public class RingCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage("Usage: /wormhole ring owner <player> [id]");
+            player.sendMessage(ChatText.info(ChatText.usage("/wormhole ring owner <player> [id]")));
             return;
         }
         final RingPair pair = target(player, args, 3);
@@ -1047,26 +1053,27 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage("That is not your ring pair to give away.");
+            player.sendMessage(ChatText.error("That is not your ring pair to give away."));
             return;
         }
         final OfflinePlayer subject = findPlayer(args[2]);
         if (subject == null)
         {
-            player.sendMessage("No player called " + args[2] + " has been on this server.");
+            player.sendMessage(neverSeen(args[2]));
             return;
         }
         final String uuid = subject.getUniqueId().toString();
         if (pair.isOwnedBy(uuid))
         {
-            player.sendMessage(args[2] + " already owns that pair.");
+            player.sendMessage(ChatText.error(ChatText.name(args[2]) + " already owns that pair."));
             return;
         }
 
         final int quota = ConfigManager.getRingMaxPairsPerPlayer();
         if ((quota > 0) && (RingManager.countPairsOwnedBy(uuid) >= quota))
         {
-            player.sendMessage(args[2] + " already has " + quota + " ring pairs, which is the limit.");
+            player.sendMessage(ChatText.error(ChatText.name(args[2]) + " already has "
+                + ChatText.value(String.valueOf(quota)) + " ring pairs, which is the limit."));
             return;
         }
 
@@ -1076,9 +1083,15 @@ public class RingCommand implements SubCommand
         // for somebody should not be left with standing access to it afterwards, and a
         // player who wants to keep using one they gave away can be added back by its new
         // owner — which is their call to make, not ours.
-        saved(player, pair, "Handed " + pair.getId() + " to " + args[2]
+        saved(player, pair, ChatText.info("Handed " + ChatText.name(pair.getId()) + " to " + ChatText.name(args[2])
             + (pair.getAccess() == RingAccess.PRIVATE
-                ? ". It is private, so you no longer have access to it yourself." : "."));
+                ? ". It is private, so you no longer have access to it yourself." : ".")));
+    }
+
+    /** @return the error for a name the server has never seen */
+    private static String neverSeen(final String name)
+    {
+        return ChatText.error("No player called " + ChatText.name(name) + " has been on this server.");
     }
 
     /**
@@ -1097,14 +1110,14 @@ public class RingCommand implements SubCommand
             final RingPair named = RingManager.getPair(args[idAt]);
             if (named == null)
             {
-                player.sendMessage("There is no ring pair called " + args[idAt] + ".");
+                player.sendMessage(ChatText.error("There is no ring pair called " + ChatText.name(args[idAt]) + "."));
             }
             return named;
         }
         final RingPair here = standingIn(player);
         if (here == null)
         {
-            player.sendMessage("Stand in a ring, or name a pair by its id.");
+            player.sendMessage(STAND_IN_ONE);
         }
         return here;
     }
@@ -1216,15 +1229,30 @@ public class RingCommand implements SubCommand
      */
     private static void help(final Player player)
     {
-        player.sendMessage("/wormhole ring create — lay a circle of slabs, stand in it, run this twice to pair");
-        player.sendMessage("/wormhole ring cancel — forget a half-built pair");
-        player.sendMessage("/wormhole ring list — your pairs");
-        player.sendMessage("/wormhole ring remove [id] — remove both ends");
-        player.sendMessage("/wormhole ring edit [id] <ring|light|flash|name|access|style> <value>");
-        player.sendMessage("/wormhole ring allow|deny <player> [id] — who may use a private pair");
-        player.sendMessage("/wormhole ring owner <player> [id] — hand a pair to somebody else");
-        player.sendMessage(RingConsoleCommands.BUILD_USAGE + " — pair two laid circles by coordinates (admin)");
-        player.sendMessage(RingConsoleCommands.FIRE_USAGE + " — fire a pair with nobody in it (admin)");
+        player.sendMessage(helpLine("/wormhole ring create", "stand in a circle of slabs; run it at each end to pair"));
+        player.sendMessage(helpLine("/wormhole ring cancel", "forget a half-built pair"));
+        player.sendMessage(helpLine("/wormhole ring list", "your pairs"));
+        player.sendMessage(helpLine("/wormhole ring remove [id]", "remove both ends"));
+        player.sendMessage(helpLine("/wormhole ring edit [id] <ring|light|flash|built|name|access|style|reset> [value]",
+            "change one setting"));
+        player.sendMessage(helpLine("/wormhole ring allow|deny <player> [id]", "who may use a private pair"));
+        player.sendMessage(helpLine("/wormhole ring owner <player> [id]", "hand a pair to somebody else"));
+        player.sendMessage(helpLine(RingConsoleCommands.BUILD_USAGE, "pair two laid circles by coordinates (admin)"));
+        player.sendMessage(helpLine(RingConsoleCommands.FIRE_USAGE, "fire a pair with nobody in it (admin)"));
+    }
+
+    /**
+     * One line of the verb list: the usage coloured as {@link ChatText#usage} colours it, then what it does.
+     *
+     * @param usage
+     *            what to type
+     * @param what
+     *            what it does
+     * @return the finished line
+     */
+    static String helpLine(final String usage, final String what)
+    {
+        return ChatText.info(ChatText.usage(usage).substring(USAGE_PREFIX.length()) + " — " + what);
     }
 
     /**

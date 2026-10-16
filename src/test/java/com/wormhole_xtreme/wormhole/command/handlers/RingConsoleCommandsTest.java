@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainBody;
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,7 +9,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -50,6 +51,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Pairing and firing rings by coordinates and id, with nobody standing in them.
@@ -187,8 +189,9 @@ class RingConsoleCommandsTest
         verify(slabOf(NEAR_Z)).setType(Material.AIR, false);
         verify(slabOf(FAR_Z)).setType(Material.AIR, false);
         yaml.verify(() -> RingYamlManager.saveWorld(WORLD));
-        verify(console).sendMessage(contains("Ring pair " + pair.getId() + " is live and public. Arrivals at"
-            + " 100.5 64 100.5 and 100.5 64 120.5. Fire it with /wormhole ring fire " + pair.getId() + "."));
+        verify(console).sendMessage(plainBody("Ring pair " + pair.getId() + " is live and public. Arrivals at"
+            + " 100.5 64 100.5 and 100.5 64 120.5."));
+        verify(console).sendMessage(plainBody("Fire it with /wormhole ring fire " + pair.getId() + "."));
     }
 
     /** A command block's ~ counts from its own block, so a map names both circles relative to itself. */
@@ -213,7 +216,7 @@ class RingConsoleCommandsTest
     {
         run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "140");
 
-        verify(console).sendMessage("No ring of slabs here. Lay a circle of slabs and stand inside it. (at 100 64 140)");
+        verify(console).sendMessage(plainBody("No ring of slabs here. Lay a circle of slabs and stand inside it. (at 100 64 140)"));
         assertTrue(pairs().isEmpty());
         verify(slabOf(NEAR_Z), never()).setType(any(Material.class), anyBoolean());
     }
@@ -226,7 +229,7 @@ class RingConsoleCommandsTest
 
         run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
-        verify(console).sendMessage("Those two rings are 20 blocks apart on the ground, and rings reach 10.");
+        verify(console).sendMessage(plainBody("Those two rings are 20 blocks apart on the ground, and rings reach 10."));
         assertTrue(pairs().isEmpty());
     }
 
@@ -237,9 +240,9 @@ class RingConsoleCommandsTest
         run(console, "ring", "build", "nether", "100", "64", "100", "100", "64", "120");
         run(console, "ring", "build", WORLD, "100", "64", "100", "~", "64", "120");
 
-        verify(console).sendMessage("Usage: " + RingConsoleCommands.BUILD_USAGE);
-        verify(console).sendMessage("No world called nether is loaded.");
-        verify(console).sendMessage("~ counts from a command block or player; from here, give whole numbers.");
+        verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.BUILD_USAGE));
+        verify(console).sendMessage(plainBody("No world called nether is loaded."));
+        verify(console).sendMessage(plainBody("~ counts from a command block or player; from here, give whole numbers."));
         assertTrue(pairs().isEmpty());
     }
 
@@ -252,7 +255,7 @@ class RingConsoleCommandsTest
 
         run(player, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
-        verify(player).sendMessage(contains("needs " + RingPermissions.ADMIN));
+        verify(player).sendMessage(plainContains("needs " + RingPermissions.ADMIN));
         assertTrue(pairs().isEmpty());
 
         when(player.hasPermission(RingPermissions.ADMIN)).thenReturn(Boolean.TRUE);
@@ -274,12 +277,12 @@ class RingConsoleCommandsTest
             run(console, "ring", "fire", pair.getId());
 
             transit.verify(() -> RingTransit.start(pair, null, false));
-            verify(console).sendMessage("Ring pair " + pair.describe() + " is counting down.");
+            verify(console).sendMessage(plainBody("Ring pair " + pair.describe() + " is counting down."));
 
             transit.when(() -> RingTransit.start(pair, null, false)).thenReturn(Boolean.FALSE);
             run(console, "ring", "fire", pair.getId());
 
-            verify(console).sendMessage(contains("did not fire"));
+            verify(console).sendMessage(plainContains("did not fire"));
         }
     }
 
@@ -308,7 +311,7 @@ class RingConsoleCommandsTest
             transit.verify(() -> RingTransit.start(pair, null, false), times(3));
         }
         run(console, "ring", "fire", WORLD, "100", "64", "110");
-        verify(console).sendMessage("No ring at 100 64 110 in world.");
+        verify(console).sendMessage(plainBody("No ring at 100 64 110 in world."));
     }
 
     @Test
@@ -317,8 +320,10 @@ class RingConsoleCommandsTest
         run(console, "ring", "fire", "nothere");
         run(console, "ring", "fire");
 
-        verify(console).sendMessage("No ring pair nothere.");
-        verify(console).sendMessage("Usage: " + RingConsoleCommands.FIRE_USAGE);
+        // Raw, not plain: the refusal opens with the error header and the id is aqua, as a name.
+        verify(console).sendMessage(ChatText.ERROR_HEADER + "There is no ring pair called " + ChatText.NAME_COLOUR
+            + "nothere" + ChatText.BODY_COLOUR + ".");
+        verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.FIRE_USAGE));
     }
 
     /** The other verbs are still a player's, and the console is told which ones it can use. */
@@ -327,7 +332,7 @@ class RingConsoleCommandsTest
     {
         run(console, "ring", "create");
 
-        verify(console).sendMessage(contains(RingConsoleCommands.BUILD_USAGE));
+        verify(console).sendMessage(plainContains(RingConsoleCommands.BUILD_USAGE));
     }
 
     /**
@@ -345,7 +350,7 @@ class RingConsoleCommandsTest
 
         run(asThemselves, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
-        verify(asThemselves).sendMessage(contains("needs " + RingPermissions.ADMIN));
+        verify(asThemselves).sendMessage(plainContains("needs " + RingPermissions.ADMIN));
         assertTrue(pairs().isEmpty());
 
         final ProxiedCommandSender fromAMap = mock(ProxiedCommandSender.class);
@@ -368,7 +373,7 @@ class RingConsoleCommandsTest
 
         run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
 
-        verify(console).sendMessage(contains("A player has laid that circle, or one beside it, as the first end of a"
+        verify(console).sendMessage(plainContains("A player has laid that circle, or one beside it, as the first end of a"
             + " pair they are building. (at 100 64 100)"));
         assertTrue(pairs().isEmpty());
         verify(slabOf(NEAR_Z), never()).setType(any(Material.class), anyBoolean());

@@ -1,9 +1,9 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -108,7 +108,7 @@ class RingEditTest
     {
         assertTrue(edit("access", "private"));
 
-        verify(player).sendMessage(contains("Stand in a ring, or name a pair by its id"));
+        verify(player).sendMessage(plainContains("Stand in a ring, or name a pair by its id"));
     }
 
     /** Naming a pair by id works from anywhere. */
@@ -153,7 +153,7 @@ class RingEditTest
 
         assertTrue(edit("aaaa0001", "access", "sideways"));
 
-        verify(player).sendMessage(contains("Access is public or private"));
+        verify(player).sendMessage(plainContains("Access is public or private"));
         assertEquals(RingAccess.PUBLIC, pair.getAccess(), "the old value stands");
     }
 
@@ -170,7 +170,7 @@ class RingEditTest
 
         assertTrue(edit("aaaa0001", "name", "Mineshaft"));
 
-        verify(player).sendMessage(contains("Stand in the ring you want to name"));
+        verify(player).sendMessage(plainContains("Stand in the ring you want to name"));
     }
 
     /** Standing in an end, name sets that end only. */
@@ -212,7 +212,7 @@ class RingEditTest
 
         assertTrue(edit("aaaa0001", "style", "diagonal"));
 
-        verify(player).sendMessage(contains("Style is fast"));
+        verify(player).sendMessage(plainContains("Style is fast"));
     }
 
     /** A field nobody recognises gets the list of the ones that exist. */
@@ -223,7 +223,7 @@ class RingEditTest
 
         assertTrue(edit("aaaa0001", "colour", "red"));
 
-        verify(player).sendMessage(contains("Fields are:"));
+        verify(player).sendMessage(plainContains("Fields are:"));
     }
 
     /** {@code edit} with no field at all reaches the usage line rather than an index error. */
@@ -235,7 +235,7 @@ class RingEditTest
 
         assertTrue(edit());
 
-        verify(player).sendMessage(contains("Usage: /wormhole ring edit"));
+        verify(player).sendMessage(plainContains("Usage: /wormhole ring edit"));
     }
 
     /** {@code reset} is the one field that needs no value. */
@@ -246,7 +246,7 @@ class RingEditTest
 
         assertTrue(edit("aaaa0001", "reset"));
 
-        verify(player, never()).sendMessage(contains("Usage:"));
+        verify(player, never()).sendMessage(plainContains("Usage:"));
     }
 
     /** Somebody else's pair is not editable. */
@@ -259,7 +259,7 @@ class RingEditTest
 
         assertTrue(edit("aaaa0001", "access", "private"));
 
-        verify(player).sendMessage(contains("not your ring pair"));
+        verify(player).sendMessage(plainContains("not your ring pair"));
         assertEquals(RingAccess.PUBLIC, pair.getAccess());
     }
 
