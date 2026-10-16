@@ -31,8 +31,6 @@ final class FixedBuild
     final WindowState window;
     /** The depth asked for; the view may be cut shallower to fit. */
     final int configured;
-    /** When it was asked for: a change in the world after this calls for another. */
-    final long startedAt;
     /** What {@link Windows#changes} stood at when it was asked for. */
     final long changesSeen;
     /** The most blocks the view may hold. */
@@ -94,19 +92,15 @@ final class FixedBuild
      *            how far from the opening's middle the view reaches, at most
      * @param most
      *            the most blocks it may hold
-     * @param startedAt
-     *            now
      * @param changesSeen
      *            what the count of changes behind windows stands at
      * @param cutToFit
      *            true to cut the depth until the view fits; false to stop at the first walk, too many or not
      */
-    FixedBuild(final WindowState window, final int depth, final int most, final long startedAt, final long changesSeen,
-        final boolean cutToFit)
+    FixedBuild(final WindowState window, final int depth, final int most, final long changesSeen, final boolean cutToFit)
     {
         this.window = window;
         this.configured = depth;
-        this.startedAt = startedAt;
         this.changesSeen = changesSeen;
         this.most = most;
         this.cutToFit = cutToFit;

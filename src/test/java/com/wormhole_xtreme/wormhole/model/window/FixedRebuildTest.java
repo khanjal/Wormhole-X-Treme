@@ -440,11 +440,11 @@ class FixedRebuildTest
         final WindowState first = new WindowState(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState second = new WindowState(gate("gate:Chulak", AWAY), capture(AWAY));
         final List<String> handed = new ArrayList<>();
-        FixedBuilds.request(new FixedBuild(first, 16, 1000, 0L, 0L, true), build ->
+        FixedBuilds.request(new FixedBuild(first, 16, 1000, 0L, true), build ->
         {
             throw new IllegalStateException("could not put it in");
         });
-        FixedBuilds.request(new FixedBuild(second, 16, 1000, 0L, 0L, true), build -> handed.add(build.window.name()));
+        FixedBuilds.request(new FixedBuild(second, 16, 1000, 0L, true), build -> handed.add(build.window.name()));
 
         tick();
 
@@ -466,9 +466,9 @@ class FixedRebuildTest
         final int[] first = new int[1];
         final int[] second = new int[1];
         FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Abydos", SHAPE), capture(SHAPE, first, false)), 16, 1000,
-            0L, 0L, true), build -> { });
+            0L, true), build -> { });
         FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Chulak", AWAY), capture(AWAY, second, false)), 16, 1000,
-            0L, 0L, true), build -> { });
+            0L, true), build -> { });
 
         for (int i = 0; i < 6; i++)
         {
@@ -724,11 +724,11 @@ class FixedRebuildTest
     {
         withTicker();
         FixedBuilds.nanosPerTick = 1_000_000_000L;
-        FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Abydos", SHAPE), capture(SHAPE)), 16, 1000, 0L, 0L, true),
+        FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Abydos", SHAPE), capture(SHAPE)), 16, 1000, 0L, true),
             build -> { });
         cancelled.set(0, true);
         final List<String> handed = new ArrayList<>();
-        FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Chulak", AWAY), capture(AWAY)), 16, 1000, 0L, 0L, true),
+        FixedBuilds.request(new FixedBuild(new WindowState(gate("gate:Chulak", AWAY), capture(AWAY)), 16, 1000, 0L, true),
             build -> handed.add(build.window.name()));
 
         tick();
@@ -837,7 +837,7 @@ class FixedRebuildTest
                 return step[0] >= 2;
             };
         });
-        final FixedBuild build = new FixedBuild(new WindowState(gate("gate:Abydos", SHAPE), capture), 16, 1000, 0L, 0L, true);
+        final FixedBuild build = new FixedBuild(new WindowState(gate("gate:Abydos", SHAPE), capture), 16, 1000, 0L, true);
 
         build.step();
         loaded[0] = false;

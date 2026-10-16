@@ -175,7 +175,7 @@ class WindowsFunnelTest
     @Test
     void aViewWalkedThroughTheVolumeIsAHollowWalledTunnelThenTheRoom()
     {
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel(16)), solidEverywhere()), 16, 0L,
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel(16)), solidEverywhere()), 16,
             Integer.MAX_VALUE);
 
         assertSame(air, view.get(key(TUNNEL)), "the tunnel is hollow, though the far side is stone everywhere");
@@ -204,7 +204,7 @@ class WindowsFunnelTest
     {
         final Funnel funnel = funnel(16);
         final WindowShape shape = shapeFor(funnel);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16, 0L,
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16,
             Integer.MAX_VALUE);
         int stones = 0;
         int walls = 0;
@@ -245,7 +245,7 @@ class WindowsFunnelTest
     {
         final Funnel funnel = funnel(16);
         final Spot arrival = new Spot(100, 70, 200);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16, 0L,
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16,
             Integer.MAX_VALUE);
 
         assertEquals(arrival, shapeFor(funnel).farOf(15, 64, 11), "nine layers in, on the middle column and bottom row");
@@ -259,7 +259,7 @@ class WindowsFunnelTest
         final Funnel funnel = funnel(16);
         final WindowShape shape = shapeFor(funnel);
         final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel),
-            keptAtFar(farOf(shape, INSIDE, OUTSIDE, TUNNEL))), 16, 0L, Integer.MAX_VALUE);
+            keptAtFar(farOf(shape, INSIDE, OUTSIDE, TUNNEL))), 16, Integer.MAX_VALUE);
 
         assertSame(stone, view.get(key(INSIDE)), "kept inside the room");
         assertSame(water, view.get(key(WALL)), "walled");
@@ -270,10 +270,10 @@ class WindowsFunnelTest
     @Test
     void withNoFunnelTheWholeViewIsDrawnAndNoWall()
     {
-        final Map<Long, BlockData> walked = Windows.fixedTo(new WindowState(gate(null), solidEverywhere()), 16, 0L,
+        final Map<Long, BlockData> walked = Windows.fixedTo(new WindowState(gate(null), solidEverywhere()), 16,
             Integer.MAX_VALUE);
         final Map<Long, BlockData> kept = Windows.fixedTo(new WindowState(gate(null), keptAtFar(farOf(BIG, INSIDE, OUTSIDE))),
-            16, 0L, Integer.MAX_VALUE);
+            16, Integer.MAX_VALUE);
 
         assertSame(stone, walked.get(key(OUTSIDE)), "same-size and small-to-large views are as they were");
         assertSame(stone, walked.get(key(WALL)), "and nothing is walled");
@@ -478,9 +478,9 @@ class WindowsFunnelTest
         }
         final Funnel funnel = Funnel.of(BIG, null, same, 16, 3, Material.WATER);
         final Spot arrival = new Spot(100, 70, 200);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16, 0L,
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16,
             Integer.MAX_VALUE);
-        final Map<Long, BlockData> landing = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16, 0L,
+        final Map<Long, BlockData> landing = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16,
             Integer.MAX_VALUE);
 
         assertEquals(7, funnel.taper(), "three fifths of eleven, to the nearest");

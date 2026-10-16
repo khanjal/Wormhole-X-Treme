@@ -162,7 +162,7 @@ class FixedBuildTest
     {
         WindowSight.clear();
         final Map<Long, BlockData> before = LegacyFixedView.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE);
-        final Map<Long, BlockData> now = Windows.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE);
+        final Map<Long, BlockData> now = Windows.fixedTo(window, DEPTH, Integer.MAX_VALUE);
         assertNotSame(LegacyFixedView.TOO_MANY, before, what);
         assertTrue((before.containsValue(grass) || before.containsValue(grass.clone())) && before.containsValue(air),
             what + ": far ground, turned or not, and carved air, "
@@ -222,7 +222,7 @@ class FixedBuildTest
         {
             final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, seen), funnel);
             assertBuiltAsBefore(window, "through a tunnel, " + (seen ? "over what was kept" : "through the volume"));
-            assertTrue(Windows.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE).containsValue(water), "walled in water");
+            assertTrue(Windows.fixedTo(window, DEPTH, Integer.MAX_VALUE).containsValue(water), "walled in water");
         }
     }
 
@@ -241,7 +241,7 @@ class FixedBuildTest
         WindowSight.clear();
         final Map<Long, BlockData> before = LegacyFixedView.cutToFit(window, DEPTH, 0L, most, depth);
 
-        final FixedBuild build = new FixedBuild(window, DEPTH, most, 0L, 0L, true);
+        final FixedBuild build = new FixedBuild(window, DEPTH, most, 0L, true);
         int steps = 0;
         while (!build.step())
         {
@@ -252,7 +252,7 @@ class FixedBuildTest
         assertEquals(depth[0], build.depth(), "cut to the same depth");
         assertEquals(before, build.view(), "holding the same blocks");
         assertTrue(steps > 1, "a step at a time, not all at once: " + steps);
-        assertTrue(Windows.tooMany(Windows.fixedTo(window, DEPTH, 0L, most)), "asked not to cut, it says too many");
+        assertTrue(Windows.tooMany(Windows.fixedTo(window, DEPTH, most)), "asked not to cut, it says too many");
     }
 
     /**
@@ -267,7 +267,7 @@ class FixedBuildTest
         for (final boolean seen : new boolean[] { true, false })
         {
             final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, seen), null);
-            final FixedBuild build = new FixedBuild(window, DEPTH, Integer.MAX_VALUE, 0L, 0L, true);
+            final FixedBuild build = new FixedBuild(window, DEPTH, Integer.MAX_VALUE, 0L, true);
             int most = 0;
             int steps = 0;
             boolean done = false;
@@ -308,7 +308,7 @@ class FixedBuildTest
         WindowSight.clear();
         final Map<Long, BlockData> before = LegacyFixedView.cutToFit(window, DEPTH, 0L, whole - 1, depth);
 
-        final FixedBuild build = new FixedBuild(window, DEPTH, whole - 1, 0L, 0L, true);
+        final FixedBuild build = new FixedBuild(window, DEPTH, whole - 1, 0L, true);
         while (!build.step())
         {
             // to the end

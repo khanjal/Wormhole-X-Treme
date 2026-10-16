@@ -2009,7 +2009,7 @@ public final class Windows
     {
         if (fullName != null)
         {
-            return fullOnly(seeing, now, fullName);
+            return fullOnly(seeing, fullName);
         }
         final Map<WindowState, Whole> whole = new HashMap<>();
         final Map<WindowState, Whole> clipped = new HashMap<>();
@@ -2040,20 +2040,20 @@ public final class Windows
         window.fixedUsedAt = now;
         if (mayWork && !fixedIsFresh(window, now))
         {
-            fixedView(window, now);
+            fixedView(window);
         }
         return window.fixed;
     }
 
     /** An admin's forced view: that one mirror whole and unlimited, the rest not at all. */
-    private static Wholes fullOnly(final List<WindowState> seeing, final long now, final String fullName)
+    private static Wholes fullOnly(final List<WindowState> seeing, final String fullName)
     {
         final Map<WindowState, Whole> whole = new HashMap<>();
         for (final WindowState window : seeing)
         {
             if (window.name().equals(fullName))
             {
-                whole.put(window, fullView(window, now));
+                whole.put(window, fullView(window));
             }
         }
         return new Wholes(whole, new HashMap<>());
@@ -2255,7 +2255,7 @@ public final class Windows
      * <p>Reaches every corner of the capture's box from the opening's middle, and is capped by
      * nothing: an admin asked to see all of it.
      */
-    private static Whole fullView(final WindowState window, final long now)
+    private static Whole fullView(final WindowState window)
     {
         if ((window.full != null) && (window.fullFrom == window.capture))
         {
@@ -2267,7 +2267,7 @@ public final class Windows
         final int dy = Math.max(Math.abs(box[1] - far.y()), Math.abs(box[4] - far.y())) + 1;
         final int dz = Math.max(Math.abs(box[2] - far.z()), Math.abs(box[5] - far.z())) + 1;
         final int depth = (int) Math.ceil(Math.sqrt(((double) dx * dx) + ((double) dy * dy) + ((double) dz * dz))) + 1;
-        final Map<Long, BlockData> blocks = fixedTo(window, depth, now, Integer.MAX_VALUE);
+        final Map<Long, BlockData> blocks = fixedTo(window, depth, Integer.MAX_VALUE);
         window.full = new Whole((blocks == TOO_MANY) ? new HashMap<>() : blocks, depth);
         window.fullFrom = window.capture;
         return window.full;
@@ -2472,7 +2472,7 @@ public final class Windows
      * <p>Built a few milliseconds a tick (#609): in one go it was a tick of most of a second, once a
      * minute per watched window. The old view, if any, is drawn until the new one is whole.
      */
-    private static void fixedView(final WindowState window, final long now)
+    private static void fixedView(final WindowState window)
     {
         final FixedBuild running = FixedBuilds.buildFor(window.name());
         if ((running != null) && running.buildsFor(window))
@@ -2480,7 +2480,7 @@ public final class Windows
             return;
         }
         FixedRegions.index(window);
-        final FixedBuild build = new FixedBuild(window, window.depth(), mostFixedFor(window), now, changes, true);
+        final FixedBuild build = new FixedBuild(window, window.depth(), mostFixedFor(window), changes, true);
         if (FixedBuilds.request(build, Windows::builtLater))
         {
             install(window, build);
@@ -2552,10 +2552,9 @@ public final class Windows
      * A walled window's view to a depth, or {@link #TOO_MANY} if it would hold more than {@code most};
      * narrowed to its funnel, if it has one. All of it at once: for an admin's whole view, and tests.
      */
-    static Map<Long, BlockData> fixedTo(final WindowState window, final int depth, final long now,
-        final int most)
+    static Map<Long, BlockData> fixedTo(final WindowState window, final int depth, final int most)
     {
-        final FixedBuild build = new FixedBuild(window, depth, most, now, changes, false);
+        final FixedBuild build = new FixedBuild(window, depth, most, changes, false);
         while (!build.step())
         {
             // Sixteen columns of the capture, a column of the volume, or a layer of the tunnel, a step.
