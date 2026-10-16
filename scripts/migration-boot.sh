@@ -53,8 +53,8 @@ add require 'Imported 0 gates'
 if [[ "$variant" == "enriched" ]]; then
   add commands 'wx idc Vanadium'
   add commands 'wx idc Potassium'
-  add require 'IDC for gate: Vanadium is:vanadium23'
-  add require 'IDC for gate: Potassium is:k19'
+  add require 'IDC for Vanadium is vanadium23\.'
+  add require 'IDC for Potassium is k19\.'
 fi
 echo "== first boot: import ($variant)"
 BOOT_COMMANDS="$commands" BOOT_REQUIRE="$require" bash "$here/boot-test.sh" "$1" "$2"
@@ -66,7 +66,7 @@ require=""
 add require "\\] $imported Wormholes loaded"
 if [[ "$variant" == "enriched" ]]; then
   add commands 'wx idc Silver'
-  add require 'IDC for gate: Silver is:ag47'
+  add require 'IDC for Silver is ag47\.'
 fi
 echo "== second boot: reload"
 BOOT_COMMANDS="$commands" BOOT_REQUIRE="$require" bash "$here/boot-test.sh" "$1" "$2"
@@ -115,7 +115,7 @@ if [[ ${#failures[@]} -eq 0 && "$variant" == "real" && -n "${4:-}" ]]; then
   elif compgen -G "$deps/CoreProtect*.jar" > /dev/null; then
     echo "== third boot: take a gate down beside CoreProtect"
     EXTRA_PLUGINS="$deps" BOOT_CONFIG='coreprotect-enabled: true' BOOT_COMMANDS=$'wx gate regen Vanadium -fill\nwx gate remove Vanadium -destroy' \
-      BOOT_REQUIRE=$'Logging gate and ring construction to CoreProtect\nWormhole Removed: Vanadium' \
+      BOOT_REQUIRE=$'Logging gate and ring construction to CoreProtect\nRemoved Vanadium\.' \
       bash "$here/boot-test.sh" "$1" "$2" || failures+=("the CoreProtect boot failed")
     # The hook line appears on the first change, which regen makes; the removals are what -destroy logs.
     python3 - "$dir/plugins/CoreProtect/database.db" <<'EOF' || failures+=("CoreProtect holds no removals from the plugin")

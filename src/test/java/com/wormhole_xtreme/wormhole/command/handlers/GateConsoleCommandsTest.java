@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.errorBody;
 import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.infoBody;
 import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -319,14 +320,45 @@ class GateConsoleCommandsTest
         }
     }
 
-    /** A line of four words or more that is not quite the coordinate form is answered with that form's usage. */
+    /** A line of four words or more that is not quite the coordinate form is refused as not that form. */
     @Test
     void aNearMissCoordinateLineIsToldTheCoordinateUsage()
     {
-        assertTrue(refusal("Standard", "A", "world", "0.5", "-60", "0", "south").startsWith("Usage: /wormhole gate build <shape> <name> <world>"),
+        assertEquals(GateConsoleCommands.NOT_COORDINATES, refusal("Standard", "A", "world", "0.5", "-60", "0", "south"),
             "a fraction for x is not the coordinate form, and the player form would not help");
-        assertTrue(refusal("Standard", "A", "world", "0", "-60", "0").startsWith("Usage: /wormhole gate build <shape> <name>"),
+        assertEquals(GateConsoleCommands.NOT_COORDINATES, refusal("Standard", "A", "world", "0", "-60", "0"),
             "six words is one short");
+    }
+
+    /**
+     * The refusal says what was wrong under the error header, and the form to type follows as an
+     * ordinary usage line, as every other usage line is (#438).
+     */
+    @Test
+    void aNearMissIsRefusedAsAnErrorThenGivenTheUsageAsInfo()
+    {
+        final ConsoleCommandSender console = mock(ConsoleCommandSender.class);
+
+        GateConsoleCommands.build(console, line("Standard", "A", "world", "0.5", "-60", "0", "south"));
+
+        verify(console).sendMessage(errorBody(GateConsoleCommands.NOT_COORDINATES));
+        verify(console).sendMessage(infoBody("Usage: " + GateConsoleCommands.BUILD_USAGE));
+    }
+
+    /** A line in the coordinate form refused for something else gets that reason alone, not the form again. */
+    @Test
+    void aCoordinateLineRefusedForItsShapeIsNotGivenTheUsage()
+    {
+        final ConsoleCommandSender console = mock(ConsoleCommandSender.class);
+        try (MockedStatic<StargateShapeRegistry> shapes = mockStatic(StargateShapeRegistry.class))
+        {
+            shapes.when(() -> StargateShapeRegistry.isStargateShape("Nope")).thenReturn(false);
+
+            GateConsoleCommands.build(console, line("Nope", "A", "world", "0", "-60", "0", "south"));
+        }
+
+        verify(console).sendMessage(errorBody("No shape called Nope."));
+        verify(console, never()).sendMessage(infoBody("Usage: " + GateConsoleCommands.BUILD_USAGE));
     }
 
     @Test

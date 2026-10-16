@@ -53,6 +53,10 @@ public final class GateConsoleCommands
 
     static final String DIAL_USAGE = "/wormhole gate dial <from> <to> [idc]";
 
+    /** Why four or more words that are not the coordinate form are refused; the usage line follows it. */
+    static final String NOT_COORDINATES = "Those words are not a gate to build at coordinates: give whole numbers or ~ for "
+        + "x y z, then a facing.";
+
     private GateConsoleCommands()
     {
     }
@@ -91,6 +95,10 @@ public final class GateConsoleCommands
         if (refused != null)
         {
             sender.sendMessage(ChatText.error(refused));
+            if (!isCoordinateBuild(rest))
+            {
+                sender.sendMessage(ChatText.info(ChatText.usage(BUILD_USAGE)));
+            }
             return;
         }
         // A player needs build rights on the network as well, as completing a gate asks; the console
@@ -291,7 +299,7 @@ public final class GateConsoleCommands
     {
         if (!isCoordinateBuild(rest))
         {
-            return ChatText.usage(BUILD_USAGE);
+            return NOT_COORDINATES;
         }
         if (!StargateShapeRegistry.isStargateShape(rest[0]))
         {
