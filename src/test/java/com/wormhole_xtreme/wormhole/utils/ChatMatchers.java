@@ -22,13 +22,16 @@ public final class ChatMatchers
         return ArgumentMatchers.argThat((String line) -> (line != null) && ChatText.plain(line).contains(text));
     }
 
-    /** @return a matcher for a line whose plain text is {@code text} after the {@code :: } or error header */
+    /**
+     * @return a matcher for a line that opens with the {@code :: } or error header and whose plain
+     *         text after it is {@code text}; a line with no header does not match
+     */
     public static String plainBody(final String text)
     {
-        return ArgumentMatchers.argThat((String line) -> (line != null) && body(line).equals(text));
+        return ArgumentMatchers.argThat((String line) -> (line != null) && text.equals(body(line)));
     }
 
-    /** @return the plain text of a line without its header */
+    /** @return the plain text of a line after its header, or null if it has none */
     public static String body(final String line)
     {
         final String plain = ChatText.plain(line);
@@ -38,6 +41,6 @@ public final class ChatMatchers
             return plain.substring(error.length());
         }
         final String header = ChatText.plain(ChatText.HEADER);
-        return plain.startsWith(header) ? plain.substring(header.length()) : plain;
+        return plain.startsWith(header) ? plain.substring(header.length()) : null;
     }
 }
