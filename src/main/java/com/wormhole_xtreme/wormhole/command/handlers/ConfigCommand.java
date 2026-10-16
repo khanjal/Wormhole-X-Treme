@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Reads and writes any setting, by name.
@@ -55,19 +56,29 @@ public class ConfigCommand implements SubCommand
                 listMatching(sender, name);
                 return true;
             }
-            sender.sendMessage(described);
+            // The name and value on one line, what it is for on the next.
+            for (final String line : described.split(System.lineSeparator()))
+            {
+                sender.sendMessage(ChatText.info(line.strip()));
+            }
             return true;
         }
 
         final String value = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+        final String refused = ConfigManager.settingRefusal(name, value);
+        if (refused != null)
+        {
+            sender.sendMessage(ChatText.error(refused));
+            return true;
+        }
         final String result = ConfigManager.applySetting(name, value);
         if (result == null)
         {
-            sender.sendMessage("No setting called " + name + ".");
+            sender.sendMessage(ChatText.error("No setting called " + ChatText.command(name) + "."));
             listMatching(sender, name);
             return true;
         }
-        sender.sendMessage(result);
+        sender.sendMessage(ChatText.info(result));
         return true;
     }
 
@@ -84,21 +95,21 @@ public class ConfigCommand implements SubCommand
         final List<String> names = ConfigManager.settingNamesMatching(needle);
         if (names.isEmpty())
         {
-            sender.sendMessage("No setting matches \"" + needle + "\".");
+            sender.sendMessage(ChatText.error("No setting matches " + ChatText.command(needle) + "."));
             return;
         }
         final StringBuilder found = new StringBuilder();
         for (int i = 0; (i < names.size()) && (i < TOO_MANY_TO_LIST); i++)
         {
-            found.append(found.isEmpty() ? "" : ", ").append(names.get(i));
+            found.append(found.isEmpty() ? "" : ", ").append(ChatText.command(names.get(i)));
         }
-        sender.sendMessage(found.toString());
+        sender.sendMessage(ChatText.info(found.toString()));
         if (names.size() > TOO_MANY_TO_LIST)
         {
-            sender.sendMessage("...and " + (names.size() - TOO_MANY_TO_LIST)
-                + " more. Type part of a name to narrow it down.");
+            sender.sendMessage(ChatText.info("...and " + ChatText.value(String.valueOf(names.size() - TOO_MANY_TO_LIST))
+                + " more. Type part of a name to narrow it down."));
         }
-        sender.sendMessage("/wormhole config <name> shows one, "
-            + "/wormhole config <name> <value> changes it.");
+        sender.sendMessage(ChatText.info(ChatText.usageBody("/wormhole config <name>") + " shows one, "
+            + ChatText.usageBody("/wormhole config <name> <value>") + " changes it."));
     }
 }

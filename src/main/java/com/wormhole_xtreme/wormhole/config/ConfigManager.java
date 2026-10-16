@@ -252,7 +252,11 @@ public class ConfigManager
     }
 
     /**
-     * The Enum StringTypes.
+     * Whole lines said in more than one place, each built by {@link ChatText} with its header.
+     *
+     * <p>A line naming what the player typed is built where it is sent, so the name can be
+     * coloured (#438). Three still have a name or number appended by a caller: {@link #GATE_ARRIVED},
+     * {@link #PLAYER_USE_COOLDOWN_WAIT_TIME} and {@link #ECONOMY_CHARGED}.
      */
     public enum MessageStrings
     {
@@ -264,76 +268,61 @@ public class ConfigManager
         NORMAL_HEADER(ChatText.HEADER),
 
         /** The permission no. */
-        PERMISSION_NO(ERROR_HEADER + "You lack the permissions to do this."),
+        PERMISSION_NO(ChatText.error("You lack the permissions to do this.")),
 
         /** The target is self. */
-        TARGET_IS_SELF(ERROR_HEADER + "Can't dial own gate without solar flare"),
+        TARGET_IS_SELF(ChatText.error("A gate cannot dial itself.")),
 
         /** The target invalid. */
-        TARGET_INVALID(ERROR_HEADER + "Invalid gate target."),
+        TARGET_INVALID(ChatText.error("Invalid gate target.")),
 
         /** The target is active. */
-        TARGET_IS_ACTIVE(ERROR_HEADER + "Target gate is currently active."),
+        TARGET_IS_ACTIVE(ChatText.error("Target gate is currently active.")),
 
         /** The far gate is in another world, and same-world-only is on. */
-        CROSS_WORLD_DISABLED(ERROR_HEADER + "Cross-world travel is disabled on this server."),
+        CROSS_WORLD_DISABLED(ChatText.error("Cross-world travel is disabled on this server.")),
 
         /** The gate not active. */
-        GATE_NOT_ACTIVE(ERROR_HEADER + "No gate activated to dial."),
+        GATE_NOT_ACTIVE(ChatText.error("No gate activated to dial. Press a DHD first.")),
 
         /** The gate remove active. */
-        GATE_REMOVE_ACTIVE(ERROR_HEADER + "Gate remotely activated."),
+        GATE_REMOVE_ACTIVE(ChatText.error("Gate remotely activated.")),
 
         /** The gate shutdown. */
-        GATE_SHUTDOWN(NORMAL_HEADER + "Gate successfully shutdown."),
+        GATE_SHUTDOWN(ChatText.info("Gate shut down.")),
 
         /** The gate activated. */
-        GATE_ACTIVATED(NORMAL_HEADER + "Gate successfully activated."),
+        GATE_ACTIVATED(ChatText.info("Gate successfully activated.")),
 
         /** The gate deactivated. */
-        GATE_DEACTIVATED(NORMAL_HEADER + "Gate successfully deactivated."),
+        GATE_DEACTIVATED(ChatText.info("Gate successfully deactivated.")),
 
         /** The gate dialed. */
-        GATE_CONNECTED(NORMAL_HEADER + "Stargates connected."),
+        GATE_CONNECTED(ChatText.info("Stargates connected.")),
 
         /** Said to a player arriving through a gate, before the destination gate's name. */
-        GATE_ARRIVED(NORMAL_HEADER + "Arrived at "),
+        GATE_ARRIVED(ChatText.info("Arrived at ")),
 
         /** The construct success. */
-        CONSTRUCT_SUCCESS(NORMAL_HEADER + "Gate successfully constructed."),
-
-        /** The construct name invalid. */
-        CONSTRUCT_NAME_INVALID(ERROR_HEADER + "Gate name invalid: "),
-
-        /** The construct name too long. */
-        CONSTRUCT_NAME_TOO_LONG(ERROR_HEADER + "Gate name too long: "),
-
-        /** The construct name taken. */
-        CONSTRUCT_NAME_TAKEN(ERROR_HEADER + "Gate name already taken: "),
-
-        /** The request invalid. */
-        REQUEST_INVALID(ERROR_HEADER + "Invalid Request"),
+        CONSTRUCT_SUCCESS(ChatText.info("Gate successfully constructed.")),
 
         /** The gate not specified. */
-        GATE_NOT_SPECIFIED(ERROR_HEADER + "No gate name specified."),
+        GATE_NOT_SPECIFIED(ChatText.error("No gate name specified.")),
 
         /** The player use cooldown restricted. */
-        PLAYER_USE_COOLDOWN_RESTRICTED(ERROR_HEADER + "You must wait longer before using a stargate."),
+        PLAYER_USE_COOLDOWN_RESTRICTED(ChatText.error("You must wait longer before using a stargate.")),
 
         /** The player use cooldown wait time. */
-        PLAYER_USE_COOLDOWN_WAIT_TIME(ERROR_HEADER + "Current Wait (in seconds): "),
+        PLAYER_USE_COOLDOWN_WAIT_TIME(ChatText.error("Current Wait (in seconds): ")),
 
         /** Player recently arrived at gate. */
-        PLAYER_RECENT_ARRIVAL(ERROR_HEADER + "You can't enter an incoming wormhole"),
+        PLAYER_RECENT_ARRIVAL(ChatText.error("You can't enter an incoming wormhole.")),
 
         /** Insufficient funds message. */
-        ECONOMY_INSUFFICIENT_FUNDS(ERROR_HEADER + "Insufficient funds to use this gate."),
+        ECONOMY_INSUFFICIENT_FUNDS(ChatText.error("Insufficient funds to use this gate.")),
 
         /** Charged for gate use message (prefix; amount and currency appended at runtime). */
-        ECONOMY_CHARGED(NORMAL_HEADER + "Charged "),
-
-        /** Charged for gate build message (prefix; amount and currency appended at runtime). */
-        ECONOMY_BUILD_CHARGED(NORMAL_HEADER + "Gate build cost charged: ");
+        ECONOMY_CHARGED(ChatText.info("Charged "));
 
         /** The m. */
         private final String m;
@@ -1824,6 +1813,22 @@ public class ConfigManager
         }
         return setting.getName().name() + " = " + setting.getValue()
             + System.lineSeparator() + "  " + setting.getDescription();
+    }
+
+    /**
+     * Why a value would be refused for a setting, without changing anything.
+     *
+     * @param name
+     *            the setting name, in any case
+     * @param raw
+     *            the value as typed
+     * @return the refusal, or null if the value would be taken or there is no such setting
+     */
+    public static String settingRefusal(final String name, final String raw)
+    {
+        final Setting setting = settingNamed(name);
+        return (setting == null) ? null
+            : ParsedSetting.read(setting.getName(), setting.getValue(), raw).getRefusal();
     }
 
     /**

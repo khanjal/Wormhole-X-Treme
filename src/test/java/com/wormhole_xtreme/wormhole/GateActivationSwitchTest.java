@@ -1,10 +1,10 @@
 package com.wormhole_xtreme.wormhole;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -295,8 +295,8 @@ class GateActivationSwitchTest
 
         GateInteractionHandler.forceClearStaleActivation(gate, player);
 
-        verify(player).sendMessage(contains("was activated by: someoneElse"));
-        verify(activator).sendMessage(contains("force-cleared by: tester"));
+        verify(player).sendMessage(plainContains("someoneElse had activated it"));
+        verify(activator).sendMessage(plainContains("was cleared by tester."));
     }
 
     /**

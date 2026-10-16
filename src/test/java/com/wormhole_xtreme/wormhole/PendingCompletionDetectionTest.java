@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -221,7 +222,7 @@ class PendingCompletionDetectionTest
             click();
         }
 
-        verify(player).sendMessage(contains("Construction Failed after interactive detection"));
+        verify(player).sendMessage(plainContains("Completing the gate failed after it was detected"));
         assertNull(Complete.getPendingCompletion(player), "the click is spent either way");
     }
 
