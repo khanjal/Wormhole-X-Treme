@@ -81,35 +81,48 @@ class RingBeamChatGuardTest
         {
             final String source = Files.readString(ROOT.resolve(name), StandardCharsets.UTF_8);
             read++;
-            final Matcher send = SENDS.matcher(source);
-            while (send.find())
-            {
-                sends++;
-                final Matcher built = BUILT.matcher(source).region(send.end(), source.length());
-                if (!built.lookingAt())
-                {
-                    offences.add(name + ":" + lineOf(source, send.start()));
-                }
-            }
-            final Matcher ref = SEND_REF.matcher(source);
-            while (ref.find())
-            {
-                sends++;
-                final int from = source.lastIndexOf('\n', ref.start()) + 1;
-                final int to = source.indexOf('\n', ref.end());
-                final Matcher each = SENDS_EACH.matcher(source.substring(from, (to < 0) ? source.length() : to));
-                final boolean known = each.find() && SENT_COLLECTIONS.contains(name + " " + each.group(1));
-                if (!known)
-                {
-                    offences.add(name + ":" + lineOf(source, ref.start()) + " (method reference)");
-                }
-            }
+            sends += checkArguments(name, source, offences) + checkReferences(name, source, offences);
         }
         assertEquals(FILES.size(), read, "every file should be read, from " + ROOT.toAbsolutePath());
         assertTrue(sends > 100, "these files send well over a hundred lines between them; found only " + sends
             + ", so the pattern no longer matches how they send");
         assertTrue(offences.isEmpty(), "a line sent without ChatText -- build it with ChatText.info or "
             + "ChatText.error: " + offences);
+    }
+
+    /** Checks each line passed to a send; @return how many there were */
+    private static int checkArguments(final String name, final String source, final List<String> offences)
+    {
+        int sends = 0;
+        final Matcher send = SENDS.matcher(source);
+        while (send.find())
+        {
+            sends++;
+            if (!BUILT.matcher(source).region(send.end(), source.length()).lookingAt())
+            {
+                offences.add(name + ":" + lineOf(source, send.start()));
+            }
+        }
+        return sends;
+    }
+
+    /** Checks each {@code ::sendMessage} against the allowed collections; @return how many there were */
+    private static int checkReferences(final String name, final String source, final List<String> offences)
+    {
+        int sends = 0;
+        final Matcher ref = SEND_REF.matcher(source);
+        while (ref.find())
+        {
+            sends++;
+            final int from = source.lastIndexOf('\n', ref.start()) + 1;
+            final int to = source.indexOf('\n', ref.end());
+            final Matcher each = SENDS_EACH.matcher(source.substring(from, (to < 0) ? source.length() : to));
+            if (!(each.find() && SENT_COLLECTIONS.contains(name + " " + each.group(1))))
+            {
+                offences.add(name + ":" + lineOf(source, ref.start()) + " (method reference)");
+            }
+        }
+        return sends;
     }
 
     private static int lineOf(final String source, final int at)
