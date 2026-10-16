@@ -40,7 +40,7 @@ class GateCommandChatGuardTest
 
     /** Where a line to send begins: the argument to sendMessage, a ChatLine, or Build's action list. */
     private static final Pattern SENDS = Pattern.compile(
-        "(?:\\.sendMessage\\(|\\bChatLine\\.of\\(|\\bactionList\\((?!final ))\\s*");
+        "(?:\\.sendMessage\\(|\\bChatLine\\.of\\(|\\bactionList\\((?!final ))\\s*+");
 
     /**
      * What that argument may start with: a line-opening ChatText call, a whole MessageStrings
@@ -49,11 +49,11 @@ class GateCommandChatGuardTest
      */
     private static final Pattern BUILT = Pattern.compile(
         "ChatText\\.(?:info|error|status)\\("
-            + "|ConfigManager\\.MessageStrings\\.(?!ERROR_HEADER|NORMAL_HEADER)\\w+\\.toString\\(\\)\\s*\\)"
-            + "|CommandUtilities\\.(?:noGateCalled\\(|INTERNAL_ERROR\\s*\\))"
+            + "|ConfigManager\\.MessageStrings\\.(?!ERROR_HEADER|NORMAL_HEADER)\\w++\\.toString\\(\\)\\s*+\\)"
+            + "|CommandUtilities\\.(?:noGateCalled\\(|INTERNAL_ERROR\\s*+\\))"
             + "|RegionFlags\\.BUILD_REFUSED\\b"
             + "|completeHint\\("
-            + "|\\w+\\s*\\)");
+            + "|\\w++\\s*+\\)");
 
     @Test
     void everyGateCommandLineIsBuiltByChatText() throws IOException

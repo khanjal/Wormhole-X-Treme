@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -14,8 +15,10 @@ import java.util.Set;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ActionBar;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
@@ -164,6 +167,42 @@ class RingMessagesTest
                     why + " should open with the gate error header, not " + line);
                 assertFalse(ChatText.plain(line).isEmpty());
             }
+        }
+    }
+
+    /**
+     * The action-bar lines carry the plugin's header, and the destination and seconds in their
+     * palette colours.
+     *
+     * <p>These replace themselves above the hotbar, so the header is the only thing marking them
+     * as the plugin's rather than the server's. {@link ActionBar} is mocked: the real one goes
+     * through {@code player.spigot()}, which a bare mock cannot answer.
+     */
+    @Test
+    void theActionBarLinesOpenWithTheHeaderAndColourTheirParts()
+    {
+        final Player player = mock(Player.class);
+        try (MockedStatic<ActionBar> bar = mockStatic(ActionBar.class))
+        {
+            RingMessages.engaged(player, "Tower");
+            RingMessages.engaged(player, "");
+            RingMessages.stoodDown(player);
+            RingMessages.committed(List.of(new BukkitRingPassenger(player)));
+            RingMessages.recharging(player, 2500L);
+            RingMessages.recharging(player, 400L);
+            RingMessages.busy(player);
+
+            bar.verify(() -> ActionBar.send(player, ChatText.HEADER + "Transport rings engaging — travelling to "
+                + ChatText.NAME_COLOUR + "Tower" + ChatText.BODY_COLOUR + ". Step clear to cancel."));
+            bar.verify(() -> ActionBar.send(player, ChatText.info("Transport rings engaging. Step clear to cancel.")));
+            bar.verify(() -> ActionBar.send(player, ChatText.info("Transport rings powering down.")));
+            bar.verify(() -> ActionBar.send(player, ChatText.HEADING_COLOUR + ":: " + ChatText.NAME_COLOUR
+                + "Rings deploying. Hold still."));
+            bar.verify(() -> ActionBar.send(player, ChatText.HEADER + "Rings recharging. Ready in "
+                + ChatText.COMMAND_COLOUR + "3" + ChatText.BODY_COLOUR + " seconds."));
+            bar.verify(() -> ActionBar.send(player, ChatText.info("Rings recharging. Ready in "
+                + ChatText.value("1") + " second.")));
+            bar.verify(() -> ActionBar.send(player, ChatText.info("Rings are already in use.")));
         }
     }
 

@@ -43,7 +43,7 @@ class RingBeamChatGuardTest
 
     /** Where a line to send begins: the argument to sendMessage, and to the wrappers that send one. */
     private static final Pattern SENDS = Pattern.compile(
-        "(?:\\.sendMessage\\(|\\bsaved\\(\\w+, \\w+, |\\bstatus\\(\\w+, |\\bstatusAll\\(\\w+, )\\s*");
+        "(?:\\.sendMessage\\(|\\bsaved\\(\\w++, \\w++, |\\bstatus\\(\\w++, |\\bstatusAll\\(\\w++, )\\s*+");
 
     /**
      * What that argument may start with: a line-opening ChatText call, a whole MessageStrings
@@ -52,9 +52,9 @@ class RingBeamChatGuardTest
      */
     private static final Pattern BUILT = Pattern.compile(
         "ChatText\\.(?:info|error|status)\\("
-            + "|ConfigManager\\.MessageStrings\\.(?!ERROR_HEADER|NORMAL_HEADER)\\w+\\.toString\\(\\)\\s*\\)"
+            + "|ConfigManager\\.MessageStrings\\.(?!ERROR_HEADER|NORMAL_HEADER)\\w++\\.toString\\(\\)\\s*+\\)"
             + "|(?:helpLine|neverSeen|noPublic|noWorld)\\("
-            + "|\\w+\\s*\\)");
+            + "|\\w++\\s*+\\)");
 
     /**
      * The collections a method reference may send, by file: both hold what

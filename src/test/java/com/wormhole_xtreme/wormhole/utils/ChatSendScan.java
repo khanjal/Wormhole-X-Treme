@@ -17,7 +17,7 @@ final class ChatSendScan
     private static final Pattern SEND_REF = Pattern.compile("::sendMessage\\b");
 
     /** A method reference that sends whatever a collection holds, with the collection it reads. */
-    private static final Pattern SENDS_EACH = Pattern.compile("(\\w+)\\.forEach\\(\\w+::sendMessage\\)");
+    private static final Pattern SENDS_EACH = Pattern.compile("\\b(\\w++)\\.forEach\\(\\w++::sendMessage\\)");
 
     private ChatSendScan()
     {
