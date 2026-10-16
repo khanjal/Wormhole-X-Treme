@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
@@ -27,14 +26,14 @@ import org.junit.jupiter.api.Test;
  * whole {@code MessageStrings} message, comes from one of the few helpers here that return a
  * finished line, or is a single variable, which the reader of that file can see was built from
  * ChatText. A {@code ::sendMessage} method reference passes only for a collection named in
- * {@link #SENT_COLLECTIONS}. The {@code sendMessage} guard over every file is #438's last PR;
+ * {@link #SENT_COLLECTIONS}. {@link GateCommandChatGuardTest} covers the rest of the commands;
  * this covers only these six.
  */
 class RingBeamChatGuardTest
 {
     private static final Path ROOT = Paths.get("src", "main", "java", "com", "wormhole_xtreme", "wormhole");
 
-    private static final List<String> FILES = List.of(
+    static final List<String> FILES = List.of(
         "command/handlers/RingCommand.java",
         "command/handlers/RingConsoleCommands.java",
         "model/ring/RingMessages.java",
@@ -57,12 +56,6 @@ class RingBeamChatGuardTest
             + "|(?:helpLine|neverSeen|noPublic|noWorld)\\("
             + "|\\w+\\s*\\)");
 
-    /** A method reference that sends whatever a collection holds, with the collection it reads. */
-    private static final Pattern SENDS_EACH = Pattern.compile("(\\w+)\\.forEach\\(\\w+::sendMessage\\)");
-
-    /** Any method reference to sendMessage, so one that is not a known forEach is still seen. */
-    private static final Pattern SEND_REF = Pattern.compile("::sendMessage\\b");
-
     /**
      * The collections a method reference may send, by file: both hold what
      * {@code RingCommand.whyNotAPair} returns, which builds each line with ChatText.
@@ -81,52 +74,13 @@ class RingBeamChatGuardTest
         {
             final String source = Files.readString(ROOT.resolve(name), StandardCharsets.UTF_8);
             read++;
-            sends += checkArguments(name, source, offences) + checkReferences(name, source, offences);
+            sends += ChatSendScan.checkArguments(name, source, SENDS, BUILT, offences)
+                + ChatSendScan.checkReferences(name, source, SENT_COLLECTIONS, offences);
         }
         assertEquals(FILES.size(), read, "every file should be read, from " + ROOT.toAbsolutePath());
         assertTrue(sends > 100, "these files send well over a hundred lines between them; found only " + sends
             + ", so the pattern no longer matches how they send");
         assertTrue(offences.isEmpty(), "a line sent without ChatText -- build it with ChatText.info or "
             + "ChatText.error: " + offences);
-    }
-
-    /** Checks each line passed to a send; @return how many there were */
-    private static int checkArguments(final String name, final String source, final List<String> offences)
-    {
-        int sends = 0;
-        final Matcher send = SENDS.matcher(source);
-        while (send.find())
-        {
-            sends++;
-            if (!BUILT.matcher(source).region(send.end(), source.length()).lookingAt())
-            {
-                offences.add(name + ":" + lineOf(source, send.start()));
-            }
-        }
-        return sends;
-    }
-
-    /** Checks each {@code ::sendMessage} against the allowed collections; @return how many there were */
-    private static int checkReferences(final String name, final String source, final List<String> offences)
-    {
-        int sends = 0;
-        final Matcher ref = SEND_REF.matcher(source);
-        while (ref.find())
-        {
-            sends++;
-            final int from = source.lastIndexOf('\n', ref.start()) + 1;
-            final int to = source.indexOf('\n', ref.end());
-            final Matcher each = SENDS_EACH.matcher(source.substring(from, (to < 0) ? source.length() : to));
-            if (!(each.find() && SENT_COLLECTIONS.contains(name + " " + each.group(1))))
-            {
-                offences.add(name + ":" + lineOf(source, ref.start()) + " (method reference)");
-            }
-        }
-        return sends;
-    }
-
-    private static int lineOf(final String source, final int at)
-    {
-        return (int) source.substring(0, at).chars().filter(c -> c == '\n').count() + 1;
     }
 }
