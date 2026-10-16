@@ -25,14 +25,8 @@ import com.wormhole_xtreme.wormhole.utils.ActionBar;
  */
 public final class RingMessages
 {
-    /** The plugin's own message header. */
-    private static final String NORMAL = ChatText.HEADER;
-
     /** Warmer colour for the moment of transport itself. */
-    private static final String ACTIVE = ChatText.status(ChatText.NAME_COLOUR);
-
-    /** The same {@code :: error ::} header the gate messages use. */
-    private static final String ERROR = ChatText.ERROR_HEADER;
+    private static final String ACTIVE = ChatText.NAME_COLOUR;
 
     private RingMessages() {}
 
@@ -84,8 +78,8 @@ public final class RingMessages
     {
         final String where = (destination == null) || destination.isEmpty()
             ? "Transport rings engaging."
-            : ("Transport rings engaging — travelling to " + destination + ".");
-        status(player, NORMAL + where + " Step clear to cancel.");
+            : ("Transport rings engaging — travelling to " + ChatText.name(destination) + ".");
+        status(player, ChatText.info(where + " Step clear to cancel."));
     }
 
     /**
@@ -98,8 +92,8 @@ public final class RingMessages
      */
     public static void counting(final List<RingPassenger> passengers, final int seconds)
     {
-        statusAll(passengers, NORMAL + "Transport in " + seconds
-            + (seconds == 1 ? " second" : " seconds") + "...");
+        statusAll(passengers, ChatText.info("Transport in " + ChatText.value(String.valueOf(seconds))
+            + (seconds == 1 ? " second" : " seconds") + "..."));
     }
 
     /**
@@ -110,7 +104,7 @@ public final class RingMessages
      */
     public static void stoodDown(final Player player)
     {
-        status(player, NORMAL + "Transport rings powering down.");
+        status(player, ChatText.info("Transport rings powering down."));
     }
 
     /**
@@ -121,7 +115,7 @@ public final class RingMessages
      */
     public static void committed(final List<RingPassenger> passengers)
     {
-        statusAll(passengers, ACTIVE + "Rings deploying. Hold still.");
+        statusAll(passengers, ChatText.status(ACTIVE + "Rings deploying. Hold still."));
     }
 
     /**
@@ -134,9 +128,10 @@ public final class RingMessages
      */
     public static void arrived(final Player player, final String destination)
     {
-        status(player, ACTIVE + ((destination == null) || destination.isEmpty()
+        // Already in the name colour, so the destination needs nothing of its own.
+        status(player, ChatText.status(ACTIVE + ((destination == null) || destination.isEmpty()
             ? "Transport complete."
-            : ("Arrived at " + destination + ".")));
+            : ("Arrived at " + destination + "."))));
     }
 
     /**
@@ -153,8 +148,8 @@ public final class RingMessages
     public static void recharging(final Player player, final long millisLeft)
     {
         final long seconds = Math.max(1L, (millisLeft + 999L) / 1000L);
-        status(player, NORMAL + "Rings recharging. Ready in " + seconds
-            + (seconds == 1 ? " second." : " seconds."));
+        status(player, ChatText.info("Rings recharging. Ready in " + ChatText.value(String.valueOf(seconds))
+            + (seconds == 1 ? " second." : " seconds.")));
     }
 
     /**
@@ -176,24 +171,22 @@ public final class RingMessages
         final RingBlockage why)
     {
         final String which = ((destination == null) || destination.isEmpty())
-            ? "The other end of these rings" : ("The " + destination + " end");
-        player.sendMessage(ERROR + which + reason(why));
+            ? "The other end of these rings" : ("The " + ChatText.name(destination) + " end");
+        player.sendMessage(ChatText.error(which + reason(why)));
         if ((why == RingBlockage.CEILING_TOO_HIGH) || (why == RingBlockage.CEILING_TOO_LOW))
         {
-            player.sendMessage(ERROR + "A ceiling ring drops its rings to the floor and they "
-                + "stack up from there, so it needs one near enough to reach.");
+            player.sendMessage(ChatText.error("A ceiling ring drops its rings to the floor, so it needs one "
+                + "near enough to reach."));
             return;
         }
         if (why == RingBlockage.NO_HEADROOM)
         {
-            player.sendMessage(ERROR + "The rings stand " + Ring.STACK_HEIGHT + " blocks tall "
-                + "around whoever arrives, so they need " + Ring.STACK_HEIGHT
-                + " blocks of clear air above the pad -- more than a person needs to stand "
-                + "in it.");
+            player.sendMessage(ChatText.error("The rings need " + ChatText.value(String.valueOf(Ring.STACK_HEIGHT))
+                + " blocks of clear air above the pad."));
             return;
         }
-        player.sendMessage(ERROR + "Clear the inside of that ring and try again. What is "
-            + "built around it does not matter.");
+        player.sendMessage(ChatText.error("Clear the inside of that ring and try again. What is "
+            + "built around it does not matter."));
     }
 
     /**
@@ -232,7 +225,7 @@ public final class RingMessages
      */
     public static void busy(final Player player)
     {
-        status(player, NORMAL + "Rings are already in use.");
+        status(player, ChatText.info("Rings are already in use."));
     }
 
     /**
@@ -246,6 +239,6 @@ public final class RingMessages
      */
     public static void notYours(final Player player)
     {
-        player.sendMessage(ERROR + "These transport rings are private.");
+        player.sendMessage(ChatText.error("These transport rings are private."));
     }
 }

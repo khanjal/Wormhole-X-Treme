@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -7,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -200,7 +200,7 @@ class RingRemovalTest
             "the end they were standing in");
         assertEquals(pair.getEndB().perimeterBlocks().size(), slabsLaidOn(pair.getEndB()),
             "and the far one");
-        verify(owner).sendMessage(contains("put " + expected + " slabs back"));
+        verify(owner).sendMessage(plainContains("put " + expected + " slabs back"));
     }
 
     /**
@@ -255,7 +255,7 @@ class RingRemovalTest
 
         final int expected = pair.getEndA().perimeterBlocks().size()
             + pair.getEndB().perimeterBlocks().size() - 1;
-        verify(owner).sendMessage(contains("put " + expected + " slabs back"));
+        verify(owner).sendMessage(plainContains("put " + expected + " slabs back"));
     }
 
     /**
@@ -310,10 +310,10 @@ class RingRemovalTest
         assertTrue(remove(PAIR_ID));
 
         assertNull(RingManager.getPair(PAIR_ID), "the pair is still removed");
-        verify(owner).sendMessage(contains("world is not loaded"));
+        verify(owner).sendMessage(plainContains("world is not loaded"));
         // And the removal line does not claim a number: "put 0 slabs back" reads as though
         // something happened, which is the opposite of what the follow-up is there to say.
-        verify(owner, never()).sendMessage(contains("slabs back"));
+        verify(owner, never()).sendMessage(plainContains("slabs back"));
     }
 
     /** A pair somebody else owns is not theirs to remove. */
@@ -325,7 +325,7 @@ class RingRemovalTest
         assertTrue(remove(PAIR_ID));
 
         assertNotNull(RingManager.getPair(PAIR_ID), "still there");
-        verify(owner).sendMessage(contains("not your ring pair"));
+        verify(owner).sendMessage(plainContains("not your ring pair"));
         yaml.verify(() -> RingYamlManager.saveWorld(anyString()), never());
     }
 
@@ -336,6 +336,6 @@ class RingRemovalTest
         assertTrue(remove("nosuchpair"));
 
         assertNotNull(RingManager.getPair(PAIR_ID), "the real one is untouched");
-        verify(owner).sendMessage(contains("There is no ring pair called nosuchpair"));
+        verify(owner).sendMessage(plainContains("There is no ring pair called nosuchpair"));
     }
 }

@@ -1,10 +1,10 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -190,7 +190,7 @@ class RingOwnershipTransferTest
 
         assertFalse(RingPermissions.mayUse(owner, pair),
             "handing over a private pair hands over the use of it");
-        verify(owner).sendMessage(contains("no longer have access"));
+        verify(owner).sendMessage(plainContains("no longer have access"));
     }
 
     /**
@@ -212,7 +212,7 @@ class RingOwnershipTransferTest
         assertTrue(run(owner, "owner", "Grace", PAIR_ID));
 
         assertEquals(OWNER, pair.getOwner(), "the pair stays where it was");
-        verify(owner).sendMessage(contains("already has 2 ring pairs"));
+        verify(owner).sendMessage(plainContains("already has 2 ring pairs"));
     }
 
     /**
@@ -243,7 +243,7 @@ class RingOwnershipTransferTest
 
         assertTrue(run(owner, "allow", "Ghost", PAIR_ID));
 
-        verify(owner).sendMessage(contains("has been on this server"));
+        verify(owner).sendMessage(plainContains("has been on this server"));
         yaml.verify(() -> RingYamlManager.saveWorld(anyString()), never());
     }
 
@@ -261,7 +261,7 @@ class RingOwnershipTransferTest
 
         assertTrue(run(owner, "owner", "Grace", PAIR_ID));
 
-        verify(owner).sendMessage(contains("already owns that pair"));
+        verify(owner).sendMessage(plainContains("already owns that pair"));
         yaml.verify(() -> RingYamlManager.saveWorld(anyString()), never());
     }
 
@@ -274,7 +274,7 @@ class RingOwnershipTransferTest
         assertTrue(run(owner, "owner", "Ghost", PAIR_ID));
 
         assertEquals(OWNER, pair.getOwner());
-        verify(owner).sendMessage(contains("has been on this server"));
+        verify(owner).sendMessage(plainContains("has been on this server"));
     }
 
     /** And not by somebody it does not belong to. */
@@ -285,7 +285,7 @@ class RingOwnershipTransferTest
 
         assertTrue(run(owner, "owner", "Grace", PAIR_ID));
 
-        verify(owner).sendMessage(contains("not your ring pair to give away"));
+        verify(owner).sendMessage(plainContains("not your ring pair to give away"));
     }
 
     /** Letting somebody in adds them, and says so by name and id. */
@@ -294,7 +294,7 @@ class RingOwnershipTransferTest
     {
         assertTrue(run(owner, "allow", "Grace", PAIR_ID));
 
-        verify(owner).sendMessage(contains("Grace may now use " + PAIR_ID));
+        verify(owner).sendMessage(plainContains("Grace may now use " + PAIR_ID));
         yaml.verify(() -> RingYamlManager.saveWorld(WORLD));
     }
 
@@ -311,7 +311,7 @@ class RingOwnershipTransferTest
 
         assertTrue(run(owner, "allow", "Grace", PAIR_ID));
 
-        verify(owner).sendMessage(contains("could already use it"));
+        verify(owner).sendMessage(plainContains("could already use it"));
     }
 
     /** Denying takes them off again. */
@@ -322,7 +322,7 @@ class RingOwnershipTransferTest
 
         assertTrue(run(owner, "deny", "Grace", PAIR_ID));
 
-        verify(owner).sendMessage(contains("Grace may no longer use " + PAIR_ID));
+        verify(owner).sendMessage(plainContains("Grace may no longer use " + PAIR_ID));
     }
 
     /** Denying somebody who was never on it says that rather than nothing. */
@@ -331,7 +331,7 @@ class RingOwnershipTransferTest
     {
         assertTrue(run(owner, "deny", "Grace", PAIR_ID));
 
-        verify(owner).sendMessage(contains("was not on the list"));
+        verify(owner).sendMessage(plainContains("was not on the list"));
     }
 
     /** The access list is not somebody else's to change either. */
@@ -342,7 +342,7 @@ class RingOwnershipTransferTest
 
         assertTrue(run(owner, "allow", "Grace", PAIR_ID));
 
-        verify(owner, never()).sendMessage(contains("may now use"));
+        verify(owner, never()).sendMessage(plainContains("may now use"));
     }
 
     /**
@@ -369,6 +369,6 @@ class RingOwnershipTransferTest
     {
         assertTrue(run(owner, "allow", "Grace", "nosuchpair"));
 
-        verify(owner).sendMessage(contains("There is no ring pair called nosuchpair"));
+        verify(owner).sendMessage(plainContains("There is no ring pair called nosuchpair"));
     }
 }

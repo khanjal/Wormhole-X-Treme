@@ -65,6 +65,12 @@ through is a release nobody reads.
 
 - Behind an open gate, shutting or opening its iris no longer covers your wormhole for a moment before moving the iris beyond it: the wormhole stays in the ring and the iris sweeps in a block further off ([#429](https://github.com/khanjal/Wormhole-X-Treme/issues/429)). [Guide](docs/guide/GATES.md#how-it-arrives)
 
+### Transport rings and beaming
+
+**Changed**
+
+- Every `ring` and `beam` reply opens with `::` or `:: error ::` and colours names, blocks, numbers and what to type, as gates do; usage lines read `Usage: /wormhole ring fire <id>|<world> <x> <y> <z>`, beam names are no longer in quotes, and a beam on cooldown says how long is left in one line ([#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438)).
+
 ### Performance
 
 - A mirror's or gate's view no longer stalls the server while somebody looks into it ([#609](https://github.com/khanjal/Wormhole-X-Treme/issues/609)). [Details](docs/MIRRORS.md#how-the-room-is-built)

@@ -38,7 +38,7 @@ const TRIALS = {
   dial: { node: 'wormhole.use.dialer', allowed: /Gate successfully activated\./ },
   preview: { node: 'wormhole.build.preview', allowed: /Previewing Standard( in \w+)?\. Build inside it, then press a real button on its DHD\./ },
   config: { node: 'wormhole.config', allowed: /GATE_SOUND_VOLUME = / },
-  admin: { node: 'wormhole.beam.admin', allowed: /Public beam destination "PermDock" set to your current location\./ },
+  admin: { node: 'wormhole.beam.admin', allowed: /Public beam destination PermDock set to your current location\./ },
 };
 
 const v = (value, why) => ({ value, label: value, why });

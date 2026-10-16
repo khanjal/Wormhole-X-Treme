@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -41,7 +42,7 @@ class BeamCommandTest
     {
         final CommandSender sender = mock(CommandSender.class);
         assertNull(command.parseCoordinate(sender, "not-a-number"));
-        verify(sender).sendMessage(contains("not-a-number"));
+        verify(sender).sendMessage(plainContains("not-a-number"));
     }
 
     @Test
@@ -106,7 +107,7 @@ class BeamCommandTest
 
         assertNull(command.resolveDestination(sender, args, 3, null, 0f, 0f));
 
-        verify(sender).sendMessage(contains("high"));
+        verify(sender).sendMessage(plainContains("high"));
     }
 
     @Test
@@ -116,6 +117,6 @@ class BeamCommandTest
         final String[] args = { "beam", "admin", "goto", "100", "64" };
         final Location result = command.resolveDestination(sender, args, 3, null, 0f, 0f);
         assertNull(result, "two bare numbers are neither a player name nor a full x/y/z");
-        verify(sender).sendMessage(contains("Expected a player name"));
+        verify(sender).sendMessage(plainContains("Expected a player name"));
     }
 }
