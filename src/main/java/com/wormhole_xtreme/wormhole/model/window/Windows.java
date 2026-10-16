@@ -2143,7 +2143,6 @@ public final class Windows
         final Eye fat, final Map<Long, BlockData> wanted, final Map<Long, BlockData> farKept)
     {
         final double near = nearDistance * nearDistance;
-        final int openCells = window.open.size();
         for (final Map.Entry<Long, BlockData> entry : whole.blocks().entrySet())
         {
             // The key as it is, boxed once: boxed again for every lookup, it was a redraw's most made object.
@@ -2161,12 +2160,10 @@ public final class Windows
             final Eye judge = farOff ? fat : own;
             if ((judge != null) && judge.sees(window, boxed))
             {
-                final BlockData drawn = EdgeEffects.drawn(openCells, window.shape, unpackX(cell), unpackY(cell),
-                    unpackZ(cell), entry.getValue());
-                wanted.put(boxed, drawn);
+                wanted.put(boxed, entry.getValue());
                 if (farOff)
                 {
-                    farKept.put(boxed, drawn);
+                    farKept.put(boxed, entry.getValue());
                 }
             }
         }
