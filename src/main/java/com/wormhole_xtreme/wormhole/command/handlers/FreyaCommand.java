@@ -11,6 +11,7 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Handler for '/wormhole freya', a hidden toggle for a companion only you can see.
@@ -34,8 +35,7 @@ public class FreyaCommand implements SubCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Only a player can do that.");
+            sender.sendMessage(ChatText.error("Only a player can do that."));
             return true;
         }
 
@@ -55,7 +55,7 @@ public class FreyaCommand implements SubCommand
             return true;
         }
         FreyaCompanion.removeFor(player.getUniqueId());
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "She curls up somewhere else.");
+        player.sendMessage(ChatText.info("She curls up somewhere else."));
         return true;
     }
 
@@ -94,18 +94,15 @@ public class FreyaCommand implements SubCommand
         if (FreyaCompanion.isAway(player.getUniqueId()))
         {
             // Asleep or hunted: the listener brings her once that is over.
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "She will be along soon.");
+            player.sendMessage(ChatText.info("She will be along soon."));
             return;
         }
         if (FreyaCompanion.spawnFor(player) == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "She did not come. Try again somewhere else.");
+            player.sendMessage(ChatText.error("She did not come. Try again somewhere else."));
             return;
         }
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + FreyaCompanion.NAME + " pads over and sits down beside you.");
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + ChatColor.ITALIC + FreyaCompanion.YEARS);
+        player.sendMessage(ChatText.info(ChatText.name(FreyaCompanion.NAME) + " pads over and sits down beside you."));
+        player.sendMessage(ChatText.info(ChatColor.ITALIC + FreyaCompanion.YEARS));
     }
 }

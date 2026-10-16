@@ -1,9 +1,9 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -97,7 +97,7 @@ class GateEditIrisAnimationTest
             assertEquals("rows", alpha.getGateIrisAnimation());
             db.verify(() -> StargateDBManager.saveStargate(alpha), never());
         }
-        verify(sender).sendMessage(contains("instant"));
+        verify(sender).sendMessage(plainContains("instant"));
     }
 
     /** Asked with no value, it says how the iris crosses and where that comes from. */
@@ -108,7 +108,7 @@ class GateEditIrisAnimationTest
 
         run("gate", "edit", "alpha", "iris-animation");
 
-        verify(sender).sendMessage(contains("alpha's iris crosses as columns"));
+        verify(sender).sendMessage(plainContains("alpha's iris crosses as columns"));
     }
 
     /** Tab completion offers the four styles, instant and default. */

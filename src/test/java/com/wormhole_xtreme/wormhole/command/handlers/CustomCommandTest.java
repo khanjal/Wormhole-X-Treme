@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -105,7 +106,7 @@ class CustomCommandTest
     {
         assertTrue(run("custom"), "false would have Bukkit print plugin.yml's usage after this one");
 
-        verify(sender).sendMessage(contains("/wormhole custom"));
+        verify(sender).sendMessage(plainContains("Usage: /wormhole custom"));
     }
 
     /** Naming a gate nobody built is refused. */
@@ -114,7 +115,7 @@ class CustomCommandTest
     {
         assertTrue(run("custom", "nowhere", "true"));
 
-        verify(sender).sendMessage(contains("Invalid"));
+        verify(sender).sendMessage(plainContains("No gate called nowhere."));
         assertNothingSaved();
     }
 
@@ -126,7 +127,7 @@ class CustomCommandTest
 
         assertTrue(run("custom", "alpha"));
 
-        verify(sender).sendMessage(contains("Stargate is custom: false"));
+        verify(sender).sendMessage(plainContains("alpha custom mode: false."));
         assertFalse(s.isGateCustom(), "asking must not change it");
         assertNothingSaved();
     }
@@ -156,7 +157,7 @@ class CustomCommandTest
 
         assertTrue(run("custom", "shapeless", "true"));
 
-        verify(sender).sendMessage(contains("No gate shape to base custom data off of"));
+        verify(sender).sendMessage(plainContains("has no gate shape to base custom data on"));
         assertFalse(s.isGateCustom(), "and it is not turned on regardless");
         assertNothingSaved();
     }
@@ -174,7 +175,7 @@ class CustomCommandTest
 
         assertTrue(run("custom", "alpha", "yes"));
 
-        verify(sender).sendMessage(contains("Invalid boolean option: yes"));
+        verify(sender).sendMessage(plainContains("Custom mode is true or false, not yes."));
         assertFalse(s.isGateCustom());
         assertNothingSaved();
     }
@@ -205,7 +206,7 @@ class CustomCommandTest
         chosen.setGateCustomIrisMaterial(Material.GLASS);
 
         assertTrue(run("custom", "-clean"));
-        verify(sender).sendMessage(contains("1 gate(s) carry"));
+        verify(sender).sendMessage(plainContains("1 gate(s) carry"));
         verify(sender).sendMessage(contains("alpha"));
         verify(sender, never()).sendMessage(contains("beta"));
         assertNothingSaved();
@@ -233,6 +234,6 @@ class CustomCommandTest
         assertSaved(one);
         assertSaved(two);
         db.verify(() -> StargateDBManager.saveStargate(shapeless), never());
-        verify(sender, never()).sendMessage(contains("Invalid"));
+        verify(sender).sendMessage(plainContains("Custom mode set to true on every gate with a shape."));
     }
 }

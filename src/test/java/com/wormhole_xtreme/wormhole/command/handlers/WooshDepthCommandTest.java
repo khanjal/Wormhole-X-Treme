@@ -1,9 +1,9 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -114,7 +114,7 @@ class WooshDepthCommandTest
         assertTrue(run("wooshdepth", "alpha", "3", "extra"));
 
         verify(sender, Mockito.atLeastOnce())
-            .sendMessage(contains("/wormhole wooshdepth"));
+            .sendMessage(plainContains("/wormhole wooshdepth"));
     }
 
     /** A gate nobody built is refused by name. */
@@ -123,7 +123,7 @@ class WooshDepthCommandTest
     {
         assertTrue(run("wooshdepth", "nowhere", "3"));
 
-        verify(sender).sendMessage(contains("Invalid gate target"));
+        verify(sender).sendMessage(plainContains("No gate called nowhere."));
         assertNothingSaved();
     }
 
@@ -137,7 +137,7 @@ class WooshDepthCommandTest
 
         assertTrue(run("wooshdepth", "plain", "3"));
 
-        verify(sender).sendMessage(contains("not in custom mode"));
+        verify(sender).sendMessage(plainContains("not in custom mode"));
         assertNothingSaved();
         assertEquals(-1, gate.getGateCustomWooshDepth(), "still unset; -1 is the sentinel, 0 is a real depth");
     }
@@ -153,7 +153,7 @@ class WooshDepthCommandTest
         assertEquals(4, gate.getGateCustomWooshDepth());
         assertEquals(16, gate.getGateCustomWooshDepthSquared(),
             "the square is kept alongside so the animation does not compute it per block");
-        verify(sender).sendMessage(contains("woosh depth set to: 4"));
+        verify(sender).sendMessage(plainContains("woosh depth set to: 4"));
         assertSaved(gate);
     }
 
@@ -183,7 +183,7 @@ class WooshDepthCommandTest
 
         assertTrue(run("wooshdepth", "alpha", "6"));
 
-        verify(sender).sendMessage(contains("Invalid woosh depth: 6"));
+        verify(sender).sendMessage(plainContains("Invalid woosh depth: 6"));
         assertEquals(2, gate.getGateCustomWooshDepth(), "the old depth stands");
         assertNothingSaved();
     }
@@ -197,7 +197,7 @@ class WooshDepthCommandTest
 
         assertTrue(run("wooshdepth", "alpha", "deep"));
 
-        verify(sender).sendMessage(contains("Invalid woosh depth: deep"));
+        verify(sender).sendMessage(plainContains("Invalid woosh depth: deep"));
         assertNothingSaved();
         assertEquals(2, gate.getGateCustomWooshDepth());
     }
@@ -211,7 +211,7 @@ class WooshDepthCommandTest
 
         assertTrue(run("wooshdepth", "alpha"));
 
-        verify(sender).sendMessage(contains("woosh depth is currently: 3"));
+        verify(sender).sendMessage(plainContains("woosh depth is currently: 3"));
         assertNothingSaved();
         assertEquals(3, gate.getGateCustomWooshDepth());
     }
@@ -232,7 +232,7 @@ class WooshDepthCommandTest
 
         assertTrue(run("wooshdepth", "alpha", "4"));
 
-        verify(sender).sendMessage(contains("shape defines its own woosh waves"));
+        verify(sender).sendMessage(plainContains("shape draws its own woosh"));
     }
 
     /** A gate whose shape authors no waves gets no note, because depth really does drive it. */
@@ -243,7 +243,7 @@ class WooshDepthCommandTest
 
         assertTrue(run("wooshdepth", "alpha", "4"));
 
-        verify(sender, never()).sendMessage(contains("shape defines its own woosh waves"));
+        verify(sender, never()).sendMessage(plainContains("shape draws its own woosh"));
     }
 
     /** A player without the admin node may not touch it. */
@@ -259,7 +259,7 @@ class WooshDepthCommandTest
 
         assertTrue(new WooshDepthCommand().execute(player, new String[] {"wooshdepth", "alpha", "5"}));
 
-        verify(player).sendMessage(contains("ermission"));
+        verify(player).sendMessage(plainContains("ermission"));
         assertNothingSaved();
         assertEquals(-1, gate.getGateCustomWooshDepth(), "still unset; -1 is the sentinel, 0 is a real depth");
     }

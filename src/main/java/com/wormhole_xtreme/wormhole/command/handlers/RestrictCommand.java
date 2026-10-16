@@ -3,7 +3,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Handler for '/wormhole restrict', which no longer restricts anything.
@@ -29,10 +29,9 @@ public class RestrictCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Build restriction was removed and this command no longer does anything.");
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Gate building is controlled by the wormhole.build permission instead.");
+        sender.sendMessage(ChatText.error("Build restriction was removed and this command no longer does anything."));
+        sender.sendMessage(ChatText.info("Gate building is controlled by the " + ChatText.command("wormhole.build")
+            + " permission instead."));
         return true;
     }
 

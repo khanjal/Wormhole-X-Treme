@@ -1,11 +1,11 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -118,7 +118,7 @@ class MaterialCommandTest
         assertTrue(new MaterialCommand(Kind.PORTAL).execute(sender, new String[] { "portalmaterial", "alpha", "stone" }));
 
         assertNull(gate.getGateCustomPortalMaterial());
-        verify(sender).sendMessage(contains("Invalid portal material: stone"));
+        verify(sender).sendMessage(plainContains("Invalid portal material: stone"));
         db.verify(() -> StargateDBManager.saveStargate(any()), never());
     }
 
@@ -130,7 +130,7 @@ class MaterialCommandTest
 
         assertTrue(new MaterialCommand(Kind.LIGHT).execute(sender, new String[] { "lightmaterial", "alpha" }));
 
-        verify(sender).sendMessage(contains("light material is currently"));
+        verify(sender).sendMessage(plainContains("light material is currently"));
         db.verify(() -> StargateDBManager.saveStargate(any()), never());
     }
 

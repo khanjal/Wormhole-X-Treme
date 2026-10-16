@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
@@ -110,15 +111,13 @@ class MirrorSettingsCommandTest
     }
 
     /**
-     * A list row carries its colour from its first character.
+     * A list row opens with the header, as every other line this command sends does (#438).
      *
-     * <p>These rows are the one thing this command sends without the header, so nothing else
-     * puts them in the body colour. A row that starts with an uncoloured indent renders those
-     * first characters in the default white -- which is what the code did while its own comment
-     * claimed otherwise.
+     * <p>The rows were the one thing sent without it, so each had to carry its own body colour,
+     * and a row that started with an uncoloured indent rendered it in the default white.
      */
     @Test
-    void everyListRowStartsInTheBodyColour()
+    void everyListRowOpensWithTheHeader()
     {
         run("mirror", "list");
 
@@ -129,8 +128,8 @@ class MirrorSettingsCommandTest
         assertFalse(rows.isEmpty(), "the one mirror should have been listed");
         for (final String row : rows)
         {
-            assertTrue(row.startsWith(MirrorText.BODY_COLOUR),
-                "a row has to open in the body colour, indent included: " + row);
+            assertTrue(row.startsWith(ChatText.HEADER + "  " + MirrorText.NAME_COLOUR),
+                "a row opens with the header, then its indent and the mirror's name: " + row);
         }
     }
 

@@ -1,10 +1,10 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -123,7 +123,7 @@ class ValidateCommandTest
     {
         assertFalse(run("validate"));
 
-        verify(sender).sendMessage(contains("No gate name specified"));
+        verify(sender).sendMessage(plainContains("No gate name specified"));
     }
 
     /** A gate nobody built is named back, the same way {@code regenerate} handles it. */
@@ -132,7 +132,7 @@ class ValidateCommandTest
     {
         assertTrue(run("validate", "nowhere"));
 
-        verify(sender).sendMessage(contains("nowhere"));
+        verify(sender).sendMessage(plainContains("nowhere"));
     }
 
     /** A gate with nothing missing says so by name, since this was asked about it directly. */
@@ -143,7 +143,7 @@ class ValidateCommandTest
 
         assertTrue(run("validate", "alpha"));
 
-        verify(sender).sendMessage(contains("alpha is standing where it says it is"));
+        verify(sender).sendMessage(plainContains("alpha is standing where it says it is"));
     }
 
     /** A frame turned to air is exactly what GateIntegrity was built to catch. See #54. */
@@ -161,7 +161,7 @@ class ValidateCommandTest
 
         assertTrue(run("validate", "alpha"));
 
-        verify(sender).sendMessage(contains("alpha: 2 frame blocks missing"));
+        verify(sender).sendMessage(plainContains("alpha: 2 frame blocks missing"));
     }
 
     /** The DHD sign case the 2011 report and #54 both describe: gone, and now said out loud. */
@@ -174,7 +174,7 @@ class ValidateCommandTest
 
         assertTrue(run("validate", "alpha"));
 
-        verify(sender).sendMessage(contains("alpha: dial sign missing"));
+        verify(sender).sendMessage(plainContains("alpha: dial sign missing"));
     }
 
     /** A dial sign still in place is not reported as missing. */
@@ -187,7 +187,7 @@ class ValidateCommandTest
 
         assertTrue(run("validate", "alpha"));
 
-        verify(sender).sendMessage(contains("is standing where it says it is"));
+        verify(sender).sendMessage(plainContains("is standing where it says it is"));
     }
 
     /** Both problems at once are joined into one line, not reported twice. */
@@ -202,7 +202,7 @@ class ValidateCommandTest
 
         assertTrue(run("validate", "alpha"));
 
-        verify(sender).sendMessage(contains(
+        verify(sender).sendMessage(plainContains(
             "alpha: 1 frame block missing; dial sign missing"));
     }
 
@@ -221,9 +221,9 @@ class ValidateCommandTest
 
         assertTrue(run("validate", "-all"));
 
-        verify(sender).sendMessage(contains("Checked 2 gates. 1 has something missing."));
-        verify(sender).sendMessage(contains("broken: 1 frame block missing"));
-        verify(sender, never()).sendMessage(contains("clean is standing"));
+        verify(sender).sendMessage(plainContains("Checked 2 gates. 1 has something missing."));
+        verify(sender).sendMessage(plainContains("broken: 1 frame block missing"));
+        verify(sender, never()).sendMessage(plainContains("clean is standing"));
     }
 
     /** Nothing broken is still worth a summary line, just with nothing under it. */
@@ -234,7 +234,7 @@ class ValidateCommandTest
 
         assertTrue(run("validate", "-all"));
 
-        verify(sender).sendMessage(contains("Checked 1 gate. 0 have something missing."));
+        verify(sender).sendMessage(plainContains("Checked 1 gate. 0 have something missing."));
     }
 
     /** A player without the admin node may not validate anything. */
@@ -250,6 +250,6 @@ class ValidateCommandTest
 
         assertTrue(new ValidateCommand().execute(player, new String[] {"validate", "alpha"}));
 
-        verify(player).sendMessage(contains("ermission"));
+        verify(player).sendMessage(plainContains("ermission"));
     }
 }

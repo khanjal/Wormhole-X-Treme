@@ -1,9 +1,9 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -105,7 +105,7 @@ class GateEditSpinTest
             assertEquals(DialSpinPattern.LAP, alpha.getGateDialSpin());
             db.verify(() -> StargateDBManager.saveStargate(alpha), never());
         }
-        verify(sender).sendMessage(contains("pegasus"));
+        verify(sender).sendMessage(plainContains("pegasus"));
     }
 
     /** Asked with no value, it says what the gate dials with and where that comes from. */
@@ -116,7 +116,7 @@ class GateEditSpinTest
 
         run("gate", "edit", "alpha", "spin");
 
-        verify(sender).sendMessage(contains("alpha dials with chase"));
+        verify(sender).sendMessage(plainContains("alpha dials with chase"));
     }
 
     /** Tab completion offers every pattern and default. */

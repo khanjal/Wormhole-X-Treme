@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -150,7 +151,7 @@ class MirrorStampCommandTest
         verify(sender, atLeastOnce())
             .sendMessage(contains("no look called '" + MirrorText.NAME_COLOUR + "chartreuse"));
         verify(sender, atLeastOnce())
-            .sendMessage(contains("There are " + loaded + " to choose from"));
+            .sendMessage(plainContains("There are " + loaded + " to choose from"));
         verify(sender, atLeastOnce()).sendMessage(contains("press tab"));
     }
 
@@ -354,8 +355,8 @@ class MirrorStampCommandTest
 
         assertTrue(run("mirror", "set", "-stamp"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] -stamp [<look>]"));
-        verify(sender, atLeastOnce()).sendMessage(contains(loaded + " looks to choose from"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("set [<name>] -stamp [<look>]"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains(loaded + " looks to choose from"));
         verify(sender, atLeastOnce()).sendMessage(contains("press tab"));
     }
 
@@ -451,7 +452,7 @@ class MirrorStampCommandTest
 
         assertTrue(run("mirror", "set", "-stamp"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] -stamp [<look>]"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("set [<name>] -stamp [<look>]"));
     }
 
     @Test

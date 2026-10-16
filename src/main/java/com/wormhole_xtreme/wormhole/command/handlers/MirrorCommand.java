@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
@@ -21,7 +22,6 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
@@ -38,6 +38,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * {@code /wormhole mirror} -- making mirrors, and choosing how they start and look.
@@ -83,9 +84,6 @@ public class MirrorCommand implements SubCommand
 {
     /** How every "this banner is now a mirror" line opens. */
     private static final String MIRROR_IS = "Mirror ";
-
-    /** How every usage line opens, outside the colouring. */
-    private static final String USAGE = "Usage: ";
 
     /**
      * How long the bar-separated look list may get before a message counts it instead.
@@ -179,13 +177,11 @@ public class MirrorCommand implements SubCommand
 
     private static void usage(final CommandSender sender)
     {
-        say(sender, USAGE + MirrorText.command(
-            "/wormhole mirror <" + String.join("|", VERBS) + ">"));
-        say(sender, "A mirror is a wall banner. Make one with " + MirrorText.name(CREATE)
-            + " while looking at it;");
-        say(sender, "right-click it to choose another mirror, and punch it to go through.");
-        say(sender, MirrorText.name(SET) + " changes one thing it has: "
-            + String.join(", ", PROPERTIES) + ".");
+        say(sender, ChatText.usage("/wormhole mirror " + String.join("|", VERBS)));
+        say(sender, "A mirror is a wall banner. Make one with " + MirrorText.command(CREATE) + " while looking at it.");
+        say(sender, "Right-click a mirror to choose another, and punch it to go through.");
+        say(sender, MirrorText.command(SET) + " changes one thing it has: "
+            + Arrays.stream(PROPERTIES).map(MirrorText::command).collect(Collectors.joining(", ")) + ".");
     }
 
     /**
@@ -207,7 +203,7 @@ public class MirrorCommand implements SubCommand
         {
             if (args.length > at)
             {
-                say(sender, MirrorText.quoted(args[at]) + " is not something a mirror has.");
+                refuse(sender, MirrorText.quoted(args[at]) + " is not something a mirror has.");
             }
             saySetUsage(sender);
             return;
@@ -247,8 +243,8 @@ public class MirrorCommand implements SubCommand
         {
             return true;
         }
-        say(sender, "A mirror's name cannot start with " + MirrorText.quoted("-")
-            + "; words that do are options, like " + MirrorText.name(START) + ".");
+        refuse(sender, "A mirror's name cannot start with " + MirrorText.command("-")
+            + "; words that do are options, like " + MirrorText.command(START) + ".");
         return false;
     }
 
@@ -320,7 +316,7 @@ public class MirrorCommand implements SubCommand
         final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(base, name, width) : null;
         if (refused != null)
         {
-            say(sender, refused);
+            refuse(sender, refused);
             return;
         }
         sayWhereToClick(sender, block);
@@ -350,10 +346,9 @@ public class MirrorCommand implements SubCommand
         }
         if (!byThatName.name().equalsIgnoreCase(onThisBanner.name()))
         {
-            say(sender, "This banner is already " + MirrorText.quoted(onThisBanner.name())
+            refuse(sender, "This banner is already " + MirrorText.quoted(onThisBanner.name())
                 + ", and " + MirrorText.quoted(name) + " is a mirror somewhere else.");
-            say(sender, "Renaming this one would leave that one on no banner. Remove one of"
-                + " them first.");
+            say(sender, "Renaming this one would leave that one on no banner. Remove one of them first.");
             return true;
         }
         say(sender, MIRROR_IS + MirrorText.quoted(onThisBanner.name()) + " is already this"
@@ -487,8 +482,8 @@ public class MirrorCommand implements SubCommand
             say(sender, MIRROR_IS + MirrorText.quoted(previous) + " is " + MirrorText.quoted(name) + " now.");
             return;
         }
-        say(sender, MIRROR_IS + MirrorText.quoted(name) + " is this banner. Walk up to it to see its reflection;");
-        say(sender, "right-click it to choose another mirror, and punch it to go through.");
+        say(sender, MIRROR_IS + MirrorText.quoted(name) + " is this banner. Walk up to it to see its reflection.");
+        say(sender, "Right-click it to choose another mirror, and punch it to go through.");
         warnIfTooNear(sender, mirror);
     }
 
@@ -506,9 +501,10 @@ public class MirrorCommand implements SubCommand
             return;
         }
         final long apart = Math.round(Math.sqrt(MirrorPlacement.squaredApartOf(mirror, near)));
-        say(sender, "It is " + apart + " blocks from " + MirrorText.quoted(near.name()) + ". Mirrors nearer than "
-            + (long) MirrorPlacement.apartToDrawWhole() + " -- twice view-depth -- are not drawn whole:");
-        say(sender, "each shows only what a viewer sees through it, which costs more as people walk past.");
+        say(sender, "It is " + MirrorText.VALUE_COLOUR + apart + MirrorText.BODY_COLOUR + " blocks from "
+            + MirrorText.quoted(near.name()) + ". Mirrors nearer than " + MirrorText.VALUE_COLOUR
+            + (long) MirrorPlacement.apartToDrawWhole() + MirrorText.BODY_COLOUR + " (twice view-depth) are not drawn whole.");
+        say(sender, "Each shows only what a viewer sees through it, which costs more as people walk past.");
     }
 
     /**
@@ -574,7 +570,7 @@ public class MirrorCommand implements SubCommand
         }
         else
         {
-            say(sender, "That banner could not be stamped.");
+            refuse(sender, "That banner could not be stamped.");
         }
     }
 
@@ -616,9 +612,8 @@ public class MirrorCommand implements SubCommand
         final Place destination = mirror.destination();
         if (destination == null)
         {
-            say(sender, MirrorText.quoted(mirror.name())
-                + " does not go anywhere yet, so there is nothing");
-            say(sender, "to look at. Point it first, or name a look: "
+            refuse(sender, MirrorText.quoted(mirror.name()) + " does not go anywhere yet, so there is nothing to look at.");
+            say(sender, "Point it first, or name a look: "
                 + MirrorText.command("/wormhole mirror stamp",
                     mirror.name() + " " + firstPresetName()));
             return;
@@ -626,7 +621,7 @@ public class MirrorCommand implements SubCommand
         final MirrorView view = MirrorView.look(destination);
         if (view == null)
         {
-            say(sender, MirrorText.name(destination.worldName())
+            refuse(sender, MirrorText.name(destination.worldName())
                 + " is not loaded, so the far side cannot be"
                 + " read. Name a look instead, or try again once that world is up.");
             return;
@@ -641,7 +636,7 @@ public class MirrorCommand implements SubCommand
         final MirrorPreset preset = look.preset();
         if (preset == null)
         {
-            say(sender, "No mirror looks are loaded, so there is nothing to stamp with."
+            refuse(sender, "No mirror looks are loaded, so there is nothing to stamp with."
                 + " Check the server log for what went wrong reading shapes/mirror.");
             return;
         }
@@ -654,7 +649,7 @@ public class MirrorCommand implements SubCommand
         }
         else
         {
-            say(sender, "That banner could not be stamped.");
+            refuse(sender, "That banner could not be stamped.");
         }
     }
 
@@ -722,15 +717,14 @@ public class MirrorCommand implements SubCommand
         final String[] names = MirrorPresetRegistry.names();
         if (looksFitInAMessage(names))
         {
-            say(sender, USAGE + MirrorText.command(
-                "/wormhole mirror set [<name>] -stamp [" + String.join("|", names) + "]"));
+            say(sender, ChatText.usage("/wormhole mirror set [<name>] -stamp [" + String.join("|", names) + "]"));
             return;
         }
-        say(sender, USAGE + MirrorText.command("/wormhole mirror set [<name>] -stamp [<look>]"));
+        say(sender, ChatText.usage("/wormhole mirror set [<name>] -stamp [<look>]"));
         if (names.length > 0)
         {
-            say(sender, names.length + " looks to choose from -- press tab for the list, or"
-                + " leave it out to sample the far side.");
+            say(sender, MirrorText.VALUE_COLOUR + names.length + MirrorText.BODY_COLOUR + " looks to choose from: press"
+                + " tab for the list, or leave it out to sample the far side.");
         }
     }
 
@@ -751,15 +745,15 @@ public class MirrorCommand implements SubCommand
         final String[] names = MirrorPresetRegistry.names();
         if (names.length == 0)
         {
-            say(sender, "There are no looks loaded at all -- check the server log for what"
+            refuse(sender, "There are no looks loaded at all. Check the server log for what"
                 + " went wrong reading shapes/mirror.");
             return;
         }
         final String opening = "There is no look called " + MirrorText.quoted(presetName) + ".";
-        say(sender, looksFitInAMessage(names)
+        refuse(sender, looksFitInAMessage(names)
             ? opening + " Try one of: " + MirrorText.names(names)
-            : opening + " There are " + names.length + " to choose from -- press tab for the"
-                + " list.");
+            : opening + " There are " + MirrorText.VALUE_COLOUR + names.length + MirrorText.BODY_COLOUR
+                + " to choose from; press tab for the list.");
     }
 
     /**
@@ -796,7 +790,7 @@ public class MirrorCommand implements SubCommand
         final World world = Bukkit.getWorld(at.worldName());
         if (world == null)
         {
-            say(sender, MirrorText.quoted(mirror.name()) + " is in "
+            refuse(sender, MirrorText.quoted(mirror.name()) + " is in "
                 + MirrorText.name(at.worldName())
                 + ", which is not loaded, so its banner cannot be stamped.");
             return null;
@@ -805,7 +799,7 @@ public class MirrorCommand implements SubCommand
         if (!isBanner(block))
         {
             // create with a name that exists moves that mirror to the banner being looked at.
-            say(sender, MirrorText.quoted(mirror.name()) + " is not a banner any more. Put one"
+            refuse(sender, MirrorText.quoted(mirror.name()) + " is not a banner any more. Put one"
                 + " back, or run " + MirrorText.command("/wormhole mirror create " + mirror.name())
                 + " looking at a banner that is there.");
             return null;
@@ -850,7 +844,7 @@ public class MirrorCommand implements SubCommand
         }
         if (first.name().equalsIgnoreCase(mirror.name()))
         {
-            say(sender, "A mirror starts on its own room already; " + MirrorText.name(NONE)
+            refuse(sender, "A mirror starts on its own room already; " + MirrorText.command(NONE)
                 + " is the way to say so.");
             return;
         }
@@ -890,7 +884,7 @@ public class MirrorCommand implements SubCommand
             return;
         }
         // request() answers true for a capture already being taken, so this is the one way it fails.
-        say(sender, MirrorText.quoted(mirror.name()) + "'s room cannot be captured now: "
+        refuse(sender, MirrorText.quoted(mirror.name()) + "'s room cannot be captured now: "
             + MirrorText.name(mirror.destination().worldName()) + " is not loaded.");
     }
 
@@ -915,10 +909,7 @@ public class MirrorCommand implements SubCommand
     /**
      * Every mirror and where it goes.
      *
-     * <p>The rows are sent without the header the rest of this command uses, so they carry
-     * their own body colour -- from the first character, indent included. An uncoloured line
-     * arrives white, and a column of white would make the mirror names stop standing out at
-     * exactly the moment there are several to pick between.
+     * <p>A row a line of its own, under the header as every other line here.
      */
     private static void list(final CommandSender sender)
     {
@@ -926,7 +917,7 @@ public class MirrorCommand implements SubCommand
         for (final QuantumMirror mirror : MirrorManager.all())
         {
             final String key = Captures.keyFor(mirror);
-            lines.add(MirrorText.BODY_COLOUR + "  " + MirrorText.name(mirror.name()) + " -- "
+            lines.add("  " + MirrorText.name(mirror.name()) + " -- "
                 + MirrorText.name(mirror.banner().worldName()) + " -> " + showing(mirror)
                 + settingsOf(mirror) + ((key == null) ? "" : (", capture " + key)));
         }
@@ -936,8 +927,8 @@ public class MirrorCommand implements SubCommand
                 + MirrorText.command("/wormhole mirror create <name>") + ".");
             return;
         }
-        say(sender, lines.size() + " mirror(s):");
-        lines.forEach(sender::sendMessage);
+        say(sender, MirrorText.VALUE_COLOUR + lines.size() + MirrorText.BODY_COLOUR + " mirror(s):");
+        lines.forEach(line -> say(sender, line));
     }
 
     /** What a mirror shows right now, for the list. */
@@ -989,20 +980,20 @@ public class MirrorCommand implements SubCommand
         final World world = Bukkit.getWorld(args[3]);
         if (world == null)
         {
-            say(sender, "No world called " + MirrorText.name(args[3]) + " is loaded.");
+            refuse(sender, "No world called " + MirrorText.name(args[3]) + " is loaded.");
             return null;
         }
         final String unreadable = Coordinates.whyNotReadable(sender, world, args[4], args[5], args[6]);
         if (unreadable != null)
         {
-            say(sender, unreadable);
+            refuse(sender, unreadable);
             return null;
         }
         final int[] at = Coordinates.resolve(sender, args[4], args[5], args[6]);
         final Block block = world.getBlockAt(at[0], at[1], at[2]);
         if (!isBanner(block))
         {
-            say(sender, "The block at " + at[0] + " " + at[1] + " " + at[2] + " is "
+            refuse(sender, "The block at " + at[0] + " " + at[1] + " " + at[2] + " is "
                 + MirrorText.name(block.getType().name().toLowerCase(Locale.ROOT)) + ", not a banner.");
             return null;
         }
@@ -1034,10 +1025,10 @@ public class MirrorCommand implements SubCommand
         }
         if (exact == null)
         {
-            say(player, "Look at the banner you want to use, within six blocks.");
+            refuse(player, "Look at the banner you want to use, within six blocks.");
             return null;
         }
-        say(player, "That is a "
+        refuse(player, "That is a "
             + MirrorText.name(exact.getType().name().toLowerCase(Locale.ROOT))
             + ", not a banner. A mirror has to be a banner hung on a wall.");
         return null;
@@ -1133,8 +1124,8 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        say(sender, "That one stands on a post, so click near its base to travel -- the cloth"
-            + " above it cannot be clicked. A banner on a wall works anywhere on it.");
+        say(sender, "That one stands on a post, so click near its base to travel; the cloth above it cannot be clicked.");
+        say(sender, "A banner on a wall works anywhere on it.");
     }
 
     /**
@@ -1159,7 +1150,7 @@ public class MirrorCommand implements SubCommand
         final QuantumMirror mirror = MirrorManager.byName(name);
         if (mirror == null)
         {
-            say(sender, "There is no mirror called " + MirrorText.quoted(name) + ".");
+            refuse(sender, "There is no mirror called " + MirrorText.quoted(name) + ".");
         }
         return mirror;
     }
@@ -1182,7 +1173,7 @@ public class MirrorCommand implements SubCommand
      */
     private static void sayUsage(final CommandSender sender, final String form)
     {
-        say(sender, USAGE + MirrorText.command("/wormhole mirror " + form));
+        say(sender, ChatText.usage("/wormhole mirror " + form));
     }
 
 
@@ -1232,9 +1223,9 @@ public class MirrorCommand implements SubCommand
         final QuantumMirror mirror = MirrorManager.at(BlockPlace.of(block));
         if (mirror == null)
         {
-            say(sender, "That banner is not a mirror. Name it with "
-                + MirrorText.command("/wormhole mirror create <name>") + " first, or");
-            say(sender, "name the mirror you meant.");
+            refuse(sender, "That banner is not a mirror.");
+            say(sender, "Make it one with " + ChatText.usageBody("/wormhole mirror create <name>")
+                + ", or name the mirror you meant.");
         }
         return mirror;
     }
@@ -1245,7 +1236,7 @@ public class MirrorCommand implements SubCommand
         {
             return player;
         }
-        say(sender, "That has to be run in game -- it depends on where you are standing.");
+        refuse(sender, "That has to be run in game: it depends on where you are standing.");
         return null;
     }
 
@@ -1371,6 +1362,11 @@ public class MirrorCommand implements SubCommand
 
     private static void say(final CommandSender sender, final String message)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER + message);
+        sender.sendMessage(ChatText.info(message));
+    }
+
+    private static void refuse(final CommandSender sender, final String message)
+    {
+        sender.sendMessage(ChatText.error(message));
     }
 }

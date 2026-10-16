@@ -13,6 +13,7 @@ import org.bukkit.command.CommandSender;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.command.WXIDC;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -20,6 +21,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * One command for every per-gate setting.
@@ -54,8 +56,6 @@ public class GateEditCommand implements SubCommand
          */
         boolean apply(CommandSender sender, String gate, String value);
     }
-
-    private static final String NO_GATE_CALLED = "No gate called ";
 
     /** The fields, in the order they are offered. */
     private static final String OWNER = "owner";
@@ -116,30 +116,36 @@ public class GateEditCommand implements SubCommand
             StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + NO_GATE_CALLED + gateName + ".");
+            sender.sendMessage(CommandUtilities.noGateCalled(gateName));
             return true;
         }
-        final String animations = String.join(", ", irisAnimationNames());
+        final String animations = options(irisAnimationNames());
         if ((value == null) || value.isEmpty())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gate.getGateName()
-                + "'s iris crosses as " + gate.getEffectiveIrisAnimation() + irisAnimationSource(gate)
-                + ". Animations are: " + animations + ".");
+            sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + "'s iris crosses as "
+                + ChatText.value(gate.getEffectiveIrisAnimation()) + irisAnimationSource(gate) + "."));
+            sender.sendMessage(ChatText.info("Animations are: " + animations + "."));
             return true;
         }
         final boolean clear = DEFAULT.equalsIgnoreCase(value.trim());
         final String animation = clear ? null : ConfigManager.parseIrisAnimation(value);
         if ((animation == null) && !clear)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No iris animation called " + value
-                + ". Animations are: " + animations + ".");
+            sender.sendMessage(ChatText.error("No iris animation called " + ChatText.command(value) + "."));
+            sender.sendMessage(ChatText.info("Animations are: " + animations + "."));
             return true;
         }
         gate.setGateIrisAnimation(animation);
         StargateDBManager.saveStargate(gate);
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gate.getGateName()
-            + "'s iris now crosses as " + gate.getEffectiveIrisAnimation() + irisAnimationSource(gate) + ".");
+        sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + "'s iris now crosses as "
+            + ChatText.value(gate.getEffectiveIrisAnimation()) + irisAnimationSource(gate) + "."));
         return true;
+    }
+
+    /** Values to type, each white, for a line that lists them. */
+    private static String options(final List<String> values)
+    {
+        return values.stream().map(ChatText::command).collect(Collectors.joining(", "));
     }
 
     /** Where a gate's iris animation comes from, when not its own. */
@@ -151,7 +157,7 @@ public class GateEditCommand implements SubCommand
         }
         final MaterialGroup group = gate.getGateMaterialGroup();
         return ((group != null) && (group.getIrisAnimation() != null))
-            ? " (from group " + group.getName() + ")" : " (the server default)";
+            ? " (from group " + ChatText.name(group.getName()) + ")" : " (the server default)";
     }
 
     /**
@@ -192,27 +198,27 @@ public class GateEditCommand implements SubCommand
             StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + NO_GATE_CALLED + gateName + ".");
+            sender.sendMessage(CommandUtilities.noGateCalled(gateName));
             return true;
         }
         if ((value == null) || value.isEmpty())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gate.getGateName()
-                + " dials with " + spinName(gate.getEffectiveDialSpin()) + spinSource(gate)
-                + ". Patterns are: " + String.join(", ", spinNames()) + ".");
+            sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " dials with "
+                + ChatText.value(spinName(gate.getEffectiveDialSpin())) + spinSource(gate) + "."));
+            sender.sendMessage(ChatText.info("Patterns are: " + options(spinNames()) + "."));
             return true;
         }
         final DialSpinPattern pattern = DEFAULT.equalsIgnoreCase(value.trim()) ? null : DialSpinPattern.parse(value);
         if ((pattern == null) && !DEFAULT.equalsIgnoreCase(value.trim()))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No ring pattern called " + value
-                + ". Patterns are: " + String.join(", ", spinNames()) + ".");
+            sender.sendMessage(ChatText.error("No ring pattern called " + ChatText.command(value) + "."));
+            sender.sendMessage(ChatText.info("Patterns are: " + options(spinNames()) + "."));
             return true;
         }
         gate.setGateDialSpin(pattern);
         StargateDBManager.saveStargate(gate);
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gate.getGateName()
-            + " now dials with " + spinName(gate.getEffectiveDialSpin()) + spinSource(gate) + ".");
+        sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " now dials with "
+            + ChatText.value(spinName(gate.getEffectiveDialSpin())) + spinSource(gate) + "."));
         return true;
     }
 
@@ -225,7 +231,7 @@ public class GateEditCommand implements SubCommand
         }
         final MaterialGroup group = gate.getGateMaterialGroup();
         return ((group != null) && (group.getDialSpin() != null))
-            ? " (from group " + group.getName() + ")" : " (the server default)";
+            ? " (from group " + ChatText.name(group.getName()) + ")" : " (the server default)";
     }
 
     private static String spinName(final DialSpinPattern pattern)
@@ -275,16 +281,16 @@ public class GateEditCommand implements SubCommand
             StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(NO_GATE_CALLED + gateName + ".");
+            sender.sendMessage(CommandUtilities.noGateCalled(gateName));
             return true;
         }
         if ((value == null) || value.isEmpty())
         {
             final MaterialGroup current =
                 gate.getGateMaterialGroup();
-            sender.sendMessage(gate.getGateName() + " is on group "
-                + (current == null ? "(none)" : current.getName()) + ". Groups are: "
-                + String.join(", ", groupNames()) + ".");
+            sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " is on group "
+                + (current == null ? "(none)" : ChatText.name(current.getName())) + "."));
+            sender.sendMessage(ChatText.info("Groups are: " + groupList() + "."));
             return true;
         }
         // A dash, as options take, so a group an admin named "default" can still be chosen.
@@ -293,23 +299,29 @@ public class GateEditCommand implements SubCommand
             gate.chooseGateMaterialGroup(null);
             StargateDBManager.saveStargate(gate);
             final MaterialGroup byFrame = gate.getGateMaterialGroup();
-            sender.sendMessage(gate.getGateName() + " follows its frame again: group "
-                + ((byFrame == null) ? "(none)" : byFrame.getName()) + ".");
+            sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " follows its frame again: group "
+                + ((byFrame == null) ? "(none)" : ChatText.name(byFrame.getName())) + "."));
             return true;
         }
         final MaterialGroup group =
             MaterialGroupRegistry.getGroup(value);
         if (group == null)
         {
-            sender.sendMessage("No material group called " + value + ". Groups are: "
-                + String.join(", ", groupNames()) + ".");
+            sender.sendMessage(ChatText.error("No material group called " + ChatText.name(value) + "."));
+            sender.sendMessage(ChatText.info("Groups are: " + groupList() + "."));
             return true;
         }
         gate.chooseGateMaterialGroup(group);
         StargateDBManager.saveStargate(gate);
-        sender.sendMessage(gate.getGateName() + " is now on group " + group.getName()
-            + ". Its frame blocks are untouched -- this changes what the gate draws.");
+        sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " is now on group "
+            + ChatText.name(group.getName()) + ". Its frame blocks are untouched; this changes what the gate draws."));
         return true;
+    }
+
+    /** The material groups, each aqua, for a line that lists them. */
+    private static String groupList()
+    {
+        return groupNames().stream().map(ChatText::name).collect(Collectors.joining(", "));
     }
 
     /**
@@ -380,8 +392,8 @@ public class GateEditCommand implements SubCommand
         // args: gate edit <gate> <field> [value]
         if (args.length < 4)
         {
-            sender.sendMessage("Usage: /wormhole gate edit <gate> <"
-                + String.join("|", FIELDS.keySet()) + "> [value]");
+            sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate edit <gate> <field> [value]")));
+            sender.sendMessage(ChatText.info("Fields are: " + options(fieldNames()) + "."));
             return true;
         }
         final String gate = args[2];
@@ -389,8 +401,8 @@ public class GateEditCommand implements SubCommand
         final Field handler = FIELDS.get(field);
         if (handler == null)
         {
-            sender.sendMessage("No such field: " + args[3] + ". Fields are: "
-                + String.join(", ", FIELDS.keySet()) + ".");
+            sender.sendMessage(ChatText.error("No field called " + ChatText.command(args[3]) + "."));
+            sender.sendMessage(ChatText.info("Fields are: " + options(fieldNames()) + "."));
             return true;
         }
         // Most fields report their current value when given nothing, so an absent value is

@@ -1,9 +1,9 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -109,7 +109,7 @@ class RedstoneCommandTest
         Assertions.assertTrue(run("redstone", "alpha", "true", "extra"));
 
         verify(sender, Mockito.atLeastOnce())
-            .sendMessage(contains("/wormhole redstone"));
+            .sendMessage(plainContains("/wormhole redstone"));
     }
 
     /** A gate nobody built is refused, and nothing is changed on the way past. */
@@ -118,7 +118,7 @@ class RedstoneCommandTest
     {
         assertTrue(run("redstone", "nowhere", "true"));
 
-        verify(sender).sendMessage(contains("Invalid gate target"));
+        verify(sender).sendMessage(plainContains("No gate called nowhere."));
         assertNothingSaved();
     }
 
@@ -130,7 +130,7 @@ class RedstoneCommandTest
 
         assertTrue(run("redstone", "alpha"));
 
-        verify(sender).sendMessage(contains("is redstone powered: false"));
+        verify(sender).sendMessage(plainContains("is redstone powered: false"));
         assertFalse(g.isGateRedstonePowered(), "reading must not turn it on");
         assertNothingSaved();
     }
@@ -145,7 +145,7 @@ class RedstoneCommandTest
 
         assertTrue(g.isGateRedstonePowered(), "the gate is wired now");
         assertSaved(g);
-        verify(sender).sendMessage(contains("is redstone powered: true"));
+        verify(sender).sendMessage(plainContains("is redstone powered: true"));
     }
 
     /** And off again, so the setting is not one-way. */
@@ -158,7 +158,7 @@ class RedstoneCommandTest
 
         assertFalse(g.isGateRedstonePowered(), "the gate is unwired now");
         assertSaved(g);
-        verify(sender).sendMessage(contains("is redstone powered: false"));
+        verify(sender).sendMessage(plainContains("is redstone powered: false"));
     }
 
     /**
@@ -176,7 +176,7 @@ class RedstoneCommandTest
 
         assertTrue(g.isGateRedstonePowered(), "still wired: nothing was set");
         assertNothingSaved();
-        verify(sender).sendMessage(contains("Invalid boolean option: yes"));
-        verify(sender, never()).sendMessage(contains("is redstone powered"));
+        verify(sender).sendMessage(plainContains("Redstone power is true or false, not yes."));
+        verify(sender, never()).sendMessage(plainContains("is redstone powered"));
     }
 }

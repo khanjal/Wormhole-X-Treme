@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -7,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -30,6 +30,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Who a gate belongs to, and who is allowed to change that.
@@ -119,7 +120,7 @@ class OwnerCommandTest
 
         assertEquals("Ada", s.getGateOwnerName());
         assertEquals("Ada", s.getGateOwner());
-        verify(sender).sendMessage(contains("Owned by: Ada"));
+        verify(sender).sendMessage(plainContains("is owned by Ada."));
         assertNothingSaved();
     }
 
@@ -134,7 +135,7 @@ class OwnerCommandTest
 
         assertTrue(run("owner", "alpha"));
 
-        verify(sender).sendMessage(contains("ermission"));
+        verify(sender).sendMessage(plainContains("ermission"));
         assertNothingSaved();
     }
 
@@ -144,7 +145,7 @@ class OwnerCommandTest
     {
         assertFalse(run("owner"), "returning false is what prints the usage line");
 
-        verify(sender).sendMessage(contains("gate"));
+        verify(sender).sendMessage(plainContains("gate"));
     }
 
     /** A gate nobody has built is named back to the player rather than silently ignored. */
@@ -153,7 +154,7 @@ class OwnerCommandTest
     {
         assertTrue(run("owner", "nowhere"));
 
-        verify(sender).sendMessage(contains("nowhere"));
+        verify(sender).sendMessage(plainContains("nowhere"));
     }
 
     /** Asked about a gate, it reports the owner and changes nothing. */
@@ -164,7 +165,8 @@ class OwnerCommandTest
 
         assertTrue(run("owner", "alpha"));
 
-        verify(sender).sendMessage(contains("Owned by: Ada"));
+        verify(sender).sendMessage(ChatText.HEADER + ChatText.NAME_COLOUR + "alpha" + ChatText.BODY_COLOUR
+            + " is owned by " + ChatText.NAME_COLOUR + "Ada" + ChatText.BODY_COLOUR + ".");
         assertEquals("Ada", s.getGateOwner(), "asking must not reassign");
         assertNothingSaved();
     }
@@ -249,7 +251,7 @@ class OwnerCommandTest
 
         assertEquals(id.toString(), s.getGateOwner(), "the UUID is what is stored");
         assertEquals("Grace", s.getGateOwnerName());
-        verify(sender).sendMessage(contains("Now owned by: Grace"));
+        verify(sender).sendMessage(plainContains("is now owned by Grace."));
         assertSaved(s);
     }
 

@@ -9,6 +9,7 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Handler for '/wormhole activate_timeout' and '/wormhole timeout' (shutdown_timeout)
@@ -74,9 +75,9 @@ public class TimeoutsCommand implements SubCommand
     {
         if (args.length != 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Current " + label + " is: " + read.getAsInt());
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + range(floor));
+            sender.sendMessage(ChatText.info("Current " + ChatText.command(label) + " is: "
+                + ChatText.value(String.valueOf(read.getAsInt())) + " seconds."));
+            sender.sendMessage(ChatText.info(range(floor)));
             return;
         }
 
@@ -97,8 +98,8 @@ public class TimeoutsCommand implements SubCommand
         }
 
         write.accept(timeout);
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + label + " set to: " + read.getAsInt());
+        sender.sendMessage(ChatText.info(ChatText.command(label) + " set to: "
+            + ChatText.value(String.valueOf(read.getAsInt())) + " seconds."));
     }
 
     /**
@@ -116,9 +117,8 @@ public class TimeoutsCommand implements SubCommand
     private static void reject(final CommandSender sender, final String label,
                                   final String typed, final int floor)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Invalid " + label + ": " + typed);
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + range(floor));
+        sender.sendMessage(ChatText.error("Invalid " + ChatText.command(label) + ": " + ChatText.command(typed) + "."));
+        sender.sendMessage(ChatText.info(range(floor)));
     }
 
     /**
@@ -130,7 +130,8 @@ public class TimeoutsCommand implements SubCommand
      */
     private static String range(final int floor)
     {
-        return "Valid timeout is between " + floor + " and " + MAX_SECONDS + " seconds.";
+        return "Valid timeout is between " + ChatText.value(String.valueOf(floor)) + " and "
+            + ChatText.value(String.valueOf(MAX_SECONDS)) + " seconds.";
     }
 
 }

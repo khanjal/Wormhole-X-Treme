@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -13,7 +14,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.contains;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +44,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Building a gate from a line of words, with nobody standing there.
@@ -59,7 +60,11 @@ class GateConsoleCommandsTest
         return words;
     }
 
-    /** Runs the line check with one 3D shape called Standard, one world, and one gate called Taken. */
+    /**
+     * Runs the line check with one 3D shape called Standard, one world, and one gate called Taken.
+     *
+     * @return the refusal as a player reads it, colour codes stripped, or null
+     */
     private static String refusal(final String... words)
     {
         try (MockedStatic<StargateShapeRegistry> shapes = mockStatic(StargateShapeRegistry.class);
@@ -76,7 +81,8 @@ class GateConsoleCommandsTest
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Flat")).thenReturn(flat);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             gates.when(() -> StargateManager.getStargate("Taken")).thenReturn(new Stargate());
-            return GateConsoleCommands.whyNotBuildable(mock(ConsoleCommandSender.class), words);
+            final String why = GateConsoleCommands.whyNotBuildable(mock(ConsoleCommandSender.class), words);
+            return (why == null) ? null : ChatText.plain(why);
         }
     }
 
@@ -113,7 +119,7 @@ class GateConsoleCommandsTest
         assertEquals("Flat is a flat shape; only a 3D shape can be built from coordinates.",
             refusal("Flat", "A", "world", "0", "0", "0", "south"),
             "a 2D shape has no blueprint to place, and saying it does not exist would be wrong");
-        assertTrue(refusal("Standard", "-A", "world", "0", "0", "0", "south").contains("cannot start with '-'"),
+        assertTrue(refusal("Standard", "-A", "world", "0", "0", "0", "south").contains("cannot start with -;"),
             "a dash word is an option, so no gate may be called one");
         assertTrue(refusal("Standard", "Averylongname", "world", "0", "0", "0", "south").contains("too long"));
         assertEquals("A gate called Taken is already here.", refusal("Standard", "Taken", "world", "0", "0", "0", "south"));
@@ -213,7 +219,7 @@ class GateConsoleCommandsTest
 
             GateConsoleCommands.dial(console, line("Abydos", "Chulak"));
 
-            verify(console).sendMessage(contains("Abydos is already open."));
+            verify(console).sendMessage(plainContains("Abydos is already open."));
             dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
@@ -278,10 +284,10 @@ class GateConsoleCommandsTest
         final GateBlueprint.Part frame =
             GateBlueprint.Part.FRAME;
 
-        assertEquals("part of it would be below the world's floor at -64.", GateConsoleCommands.outsideHeight(world,
-            List.of(new GateBlueprint.Cell(0, -65, 0, frame, 0))));
-        assertEquals("part of it would be above the world's build height of 320.", GateConsoleCommands.outsideHeight(world,
-            List.of(new GateBlueprint.Cell(0, 320, 0, frame, 0))));
+        assertEquals("part of it would be below the world's floor at -64.", ChatText.plain(GateConsoleCommands.outsideHeight(
+            world, List.of(new GateBlueprint.Cell(0, -65, 0, frame, 0)))));
+        assertEquals("part of it would be above the world's build height of 320.", ChatText.plain(
+            GateConsoleCommands.outsideHeight(world, List.of(new GateBlueprint.Cell(0, 320, 0, frame, 0)))));
         assertNull(GateConsoleCommands.outsideHeight(world,
             List.of(new GateBlueprint.Cell(0, -64, 0, frame, 0),
                 new GateBlueprint.Cell(0, 319, 0, frame, 0))),
@@ -307,7 +313,7 @@ class GateConsoleCommandsTest
 
             GateConsoleCommands.dial(console, line("Abydos", "Chulak"));
 
-            verify(console).sendMessage(contains("Abydos is being dialled."));
+            verify(console).sendMessage(plainContains("Abydos is being dialled."));
             dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
@@ -327,7 +333,7 @@ class GateConsoleCommandsTest
     {
         final GatePreviews.Placed inTheWay = new GatePreviews.Placed(GatePreviews.Outcome.IN_THE_WAY,
             List.of("stone at 0 0 0"), null, null);
-        assertEquals("in the way: stone at 0 0 0.", GateConsoleCommands.why(inTheWay));
+        assertEquals("in the way: stone at 0 0 0.", ChatText.plain(GateConsoleCommands.why(inTheWay)));
         assertEquals("part of it is in a chunk that is not loaded.", GateConsoleCommands.why(
             new GatePreviews.Placed(GatePreviews.Outcome.NOT_LOADED, List.of(), null, null)));
     }
@@ -405,7 +411,7 @@ class GateConsoleCommandsTest
 
             building.build("Standard", "Abydos", "world", "0", "-60", "0", "south");
 
-            verify(building.console).sendMessage(contains("Standard has no DHD to build it from."));
+            verify(building.console).sendMessage(plainContains("Standard has no DHD to build it from."));
             building.nothingPlaced();
         }
     }
@@ -422,7 +428,7 @@ class GateConsoleCommandsTest
 
             building.build("Standard", "Abydos", "world", "0", "-60", "0", "south");
 
-            verify(building.console).sendMessage(contains("Standard dials by sign"));
+            verify(building.console).sendMessage(plainContains("Standard dials by sign"));
             building.nothingPlaced();
         }
     }
@@ -437,7 +443,7 @@ class GateConsoleCommandsTest
 
             building.build("Standard", "Abydos", "world", "0", "-60", "0", "south");
 
-            verify(building.console).sendMessage(contains("Not built: part of it would be below the world's floor at -64."));
+            verify(building.console).sendMessage(plainContains("Not built: part of it would be below the world's floor at -64."));
             building.nothingPlaced();
         }
     }
@@ -455,7 +461,7 @@ class GateConsoleCommandsTest
 
             building.build("Standard", "Abydos", "world", "0", "-60", "0", "south");
 
-            verify(building.console).sendMessage(contains("Not built: part of it is outside the world border."));
+            verify(building.console).sendMessage(plainContains("Not built: part of it is outside the world border."));
             building.gates.verify(() -> StargateManager.completeStargate(any(Stargate.class), any(), any(), any(), any()),
                 never());
         }
@@ -488,7 +494,7 @@ class GateConsoleCommandsTest
             building.previews.verify(() -> GatePreviews.builtAt(building.world, 0, -60, 0));
             building.gates.verify(() -> StargateManager.completeStargate(gate, (Player) null,
                 "Abydos", "open", "Traders"));
-            verify(building.console).sendMessage(contains("Built Abydos at 0 -60 0 in world. Opening centred on"
+            verify(building.console).sendMessage(plainContains("Built Abydos at 0 -60 0 in world. Opening centred on"
                 + " -1.5 -57.5 -2.5; arrivals at -1.5 -60.0 -1.5."));
         }
     }
@@ -524,8 +530,8 @@ class GateConsoleCommandsTest
             GateConsoleCommands.dial(console, line("Abydos", "Chulak", "open", "extra"));
             GateConsoleCommands.dial(console, line("Nowhere", "Chulak"));
 
-            verify(console, times(2)).sendMessage(contains("Usage: " + GateConsoleCommands.DIAL_USAGE));
-            verify(console).sendMessage(contains("No gate called Nowhere."));
+            verify(console, times(2)).sendMessage(plainContains("Usage: " + GateConsoleCommands.DIAL_USAGE));
+            verify(console).sendMessage(plainContains("No gate called Nowhere."));
             dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
@@ -550,7 +556,7 @@ class GateConsoleCommandsTest
 
             building.build("Standard", "Abydos", "world", "~-2", "~1", "~-3", "south");
 
-            verify(commandBlock).sendMessage(contains("Not built: part of it is outside the world border."));
+            verify(commandBlock).sendMessage(plainContains("Not built: part of it is outside the world border."));
         }
     }
 

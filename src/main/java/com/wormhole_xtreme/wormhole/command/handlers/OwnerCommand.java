@@ -10,8 +10,10 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 
 /**
  * Handler for the '/wormhole owner' admin command.
@@ -41,13 +43,13 @@ public class OwnerCommand implements SubCommand
         final Stargate s = StargateManager.getStargate(args[1]);
         if (s == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_INVALID.toString() + "\"" + args[1] + "\"");
+            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
             return true;
         }
 
         if (args.length == 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate: " + s.getGateName() + " Owned by: " + s.getGateOwnerName());
+            sender.sendMessage(ChatText.info(ChatText.name(s.getGateName()) + " is owned by " + owner(s) + "."));
             return true;
         }
         if (args.length == 3)
@@ -55,9 +57,16 @@ public class OwnerCommand implements SubCommand
             assignOwner(s, args[2]);
             s.setupGateSign(true);
             StargateDBManager.saveStargate(s);
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate: " + s.getGateName() + " Now owned by: " + s.getGateOwnerName());
+            sender.sendMessage(ChatText.info(ChatText.name(s.getGateName()) + " is now owned by " + owner(s) + "."));
         }
         return true;
+    }
+
+    /** Who owns the gate, as a name, or "no one". */
+    private static String owner(final Stargate s)
+    {
+        final String name = s.getGateOwnerName();
+        return ((name == null) || name.isEmpty()) ? "no one" : ChatText.name(name);
     }
 
     /**
