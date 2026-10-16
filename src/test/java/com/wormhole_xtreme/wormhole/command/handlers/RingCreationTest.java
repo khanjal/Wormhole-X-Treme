@@ -225,6 +225,8 @@ class RingCreationTest
 
         assertNull(waiting(), "a ceiling ring over a shaft should not be held as an end");
         verify(builder).sendMessage(plainContains("10 blocks above its floor"));
+        // The setting by the name /wormhole config accepts, not a key that does not exist.
+        verify(builder).sendMessage(plainContains("raise /wormhole config ring-max-ceiling-drop <blocks>."));
     }
 
     /**

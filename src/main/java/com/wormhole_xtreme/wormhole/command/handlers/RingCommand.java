@@ -55,7 +55,8 @@ public class RingCommand implements SubCommand
     /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
     static final int MAX_LINK_HEIGHT = 384;
     private static final String NOT_YOUR_PAIR = ChatText.error("That is not your ring pair.");
-    private static final String CANCEL = "/wormhole ring cancel";    /** Why a circle on a gate is refused, as a body for an error line. */
+    private static final String CANCEL = "/wormhole ring cancel";
+    /** Why a circle on a gate is refused, as a body for an error line. */
     static final String OVERLAPS_GATE = "That circle overlaps a stargate. Rings and gates cannot share blocks.";
     private static final String STAND_IN_ONE = ChatText.error("Stand in a ring, or name a pair by its id.");
 
@@ -522,7 +523,8 @@ public class RingCommand implements SubCommand
             // themselves, and reading config for them would make them need a loaded server.
             final int maxDrop = ConfigManager.getRingMaxCeilingDrop();
             return "That ring is more than " + ChatText.value(String.valueOf(maxDrop)) + " blocks above its floor. "
-                + "Lower the ring, raise the floor, or raise " + ChatText.command("ring.max-ceiling-drop") + ".";
+                + "Lower the ring, raise the floor, or raise "
+                + ChatText.usageBody("/wormhole config ring-max-ceiling-drop <blocks>") + ".";
         }
         if (blockage == RingBlockage.CEILING_TOO_LOW)
         {
