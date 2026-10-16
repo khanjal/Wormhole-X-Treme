@@ -171,8 +171,10 @@ async function setUpWorld () {
   for (const rule of ['doMobSpawning', 'spawn_mobs', 'doDaylightCycle', 'advance_time', 'doWeatherCycle',
     'advance_weather', 'logAdminCommands', 'log_admin_commands']) send(`gamerule ${rule} false`)
   if (withPlugin) {
-    for (const [key, value] of [['timeout-shutdown', 0], ['max-open-seconds', 0], ['mirror-per-world-limit', 0],
-      ['gate-view', env('GATE_VIEW', 'horizon')], ['gate-view-funnel-min-length', env('FUNNEL_MIN', 0)]]) {
+    // The gate-view settings only where there are gates: 1.10.0 has no gate-view-funnel-min-length, and
+    // a viewer run against it would stop on the unknown key.
+    const gateSettings = plan.gates ? [['gate-view', env('GATE_VIEW', 'horizon')], ['gate-view-funnel-min-length', env('FUNNEL_MIN', 0)]] : []
+    for (const [key, value] of [['timeout-shutdown', 0], ['max-open-seconds', 0], ['mirror-per-world-limit', 0], ...gateSettings]) {
       const at = logSize()
       send(`wx config ${key} ${value}`)
       await needLog(/is now/, 20, at, `wx config ${key} ${value}`)
@@ -453,7 +455,19 @@ async function main () {
   // Whether each bot was being drawn a window, asked after the run so the asking is not measured.
   const views = []
   if (withPlugin && plan.bots && scenario !== 'wanderers') {
-    for (const member of party) views.push({ bot: member.name, site: member.slot.site, ...(await viewsOf(member)) })
+    for (const member of party) {
+      // A bot still fidgeting can be caught mid-step out of its window's sight: asked twice more,
+      // a moment apart, before it counts as never drawn (one of thirty at N=30, both jars, #609).
+      let seen = await viewsOf(member)
+      for (let retry = 0; retry < 2 && seen.drawn === 0; retry++) {
+        await sleep(2000)
+        seen = await viewsOf(member)
+      }
+      // Where one still not drawn stands, against its slot, so a row can say why.
+      const p = member.bot.entity.position
+      const where = seen.drawn === 0 ? ` (at ${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)}; slot ${member.slot.x},${member.slot.z})` : ''
+      views.push({ bot: member.name, site: member.slot.site, ...seen, into: seen.into + where })
+    }
   }
   const sitesAfter = await siteCheck('after')
   stop()

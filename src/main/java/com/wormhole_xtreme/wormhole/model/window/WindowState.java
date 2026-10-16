@@ -50,10 +50,23 @@ final class WindowState
     /** Everything behind a walled window, drawn whatever the eye; null until first wanted. */
     Map<Long, BlockData> fixed;
     Capture fixedFrom;
+    /** When the fixed view was put in. */
     long fixedAt;
     int fixedFor;
     int fixedDepth;
     long fixedUsedAt;
+    /** What {@link Windows}' count of changes behind windows stood at when the fixed view's build began. */
+    long fixedChanges;
+    /** The tunnel the fixed view was built with, or null for none. */
+    Funnel fixedFunnel;
+    /** How long the fixed view's build took, from asked to put in. */
+    long fixedTook;
+    /** How long after it was put in a change waits before building it again, while changes keep coming; 0 for the gap. */
+    long fixedWait;
+    /** Whether its build read a chunk that was not loaded, drawn as air there: built again sooner. */
+    boolean fixedPartial;
+    /** How long after it was put in a view built over a chunk not loaded is built again. */
+    long fixedPartialWait;
     /** The whole capture through this window, for an admin who asked; null until then. */
     Windows.Whole full;
     Capture fullFrom;

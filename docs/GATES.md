@@ -835,6 +835,14 @@ sections since #525, a million cells take about 0.4 MB in memory, and between ab
 for what the list before took; the cap stayed, since what it now bounds is the view's walk and
 maps, not the capture ([How a capture is kept](MIRRORS.md#how-a-capture-is-kept)).
 
+The view itself is built from the capture a few milliseconds a tick, the old view drawn until the
+new one is whole, and built again only when the capture or the tunnel changes or a block changes
+behind the gate, no sooner than five seconds (or four times its build's own steps, a few seconds
+for a view at the cap) after the last one went in, up to two minutes apart while changes keep
+coming, and at least every ten minutes; until #609 it was
+built in one go on the main thread every minute, a tick of most of a second for a deep view
+([How the room is built](MIRRORS.md#how-the-room-is-built)).
+
 On the main thread, a redraw of a gate's view walks every block the view holds, up to the million
 a gate's view may hold: about 13 ms for half a million and 27 for a million, measured on their
 own, before any block is judged for the eye. A redraw rests three times as long as it took, so a
@@ -918,7 +926,9 @@ five minutes later rather than every sweep. A deeper view costs more to draw as 
 the way a mirror's does at 160, so `view-depth` is the setting to lower if a gate view stutters;
 at 32 or less there is no fill. A drawn gate view may hold a million blocks before its depth is
 cut to fit, four times a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks
-out. `mirror debug` says when a view was cut, and to what. An upgraded `config.yml` without
+out. `mirror debug` says when a view was cut, and to what. While a view is built again the old
+one is still drawn, so for the length of the build both are held: some 100 to 120 MB more for a
+moment for a gate at the cap, about 14 MB for a mirror at its own. An upgraded `config.yml` without
 `view-depth` takes the shallower of its old `mirror-view-depth` and `gate-view-full-depth` (a
 full depth of 0 counting as the first step, the old `gate-view-depth` or 32), written to the file
 as `view-depth`. "What the server sends" is the world's view distance; on Paper a lower

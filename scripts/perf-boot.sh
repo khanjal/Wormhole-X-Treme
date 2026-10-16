@@ -12,8 +12,8 @@
 #   wanderers  N bots walking at random by spawn, GATES (4) open gates and MIRRORS mirrors far off
 #   gateview   N bots in front of GATES (4) open gates, for each GATE_VIEW (behind open) and
 #              FUNNEL_MIN (0 3), gate-view-funnel-min-length
-# BOTS steps N ("1 10"); DURATION is the measured seconds (120; a gate's view is walked again once a
-# minute, so give gateview 180 or more), WARMUP the seconds before it (45), after which a viewer run
+# BOTS steps N ("1 10"); DURATION is the measured seconds (120; before #609 a view was built again once
+# a minute, so give gateview 180 or more to compare with such a jar), WARMUP the seconds before it (45), after which a viewer run
 # also waits up to VIEW_WAIT (300) for every bot to be drawn a window. A viewer run whose bots were
 # not all drawn, a run whose gates were not open and loaded throughout (idle, wanderers and gateview
 # keep every site force-loaded, watched or not; KEEP_LOADED=0 lets them go), or one whose boot test

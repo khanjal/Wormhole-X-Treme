@@ -141,7 +141,8 @@ for about thirty blocks, as in the game.
 **Checking a mirror.** `/wormhole mirror debug <name>` says what its capture is and how your view
 of it is drawn; `-all` lists every fact, green where it is drawn whole and red for whatever trims
 or stops it — a gap in the wall, another mirror too near, a missing capture file. `-full` draws
-the whole capture for you alone, wherever you stand. `mirror debug -off` turns views off for you,
+the whole capture for you alone, wherever you stand; any other mirror you look into meanwhile
+keeps its banner. A room being built shows the mirror's banner until it is ready. `mirror debug -off` turns views off for you,
 so you see the world as it is, and `-on` puts them back. `mirror debug -views` needs no mirror:
 it lists every view you are being drawn, including a gate's (`gate-view`), with how far that gate's
 capture reaches, whether it was cut to fit, how deep it is drawn and how old it is. `debug` is not

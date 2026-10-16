@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -145,15 +144,15 @@ class WindowsFunnelTest
     {
         final Capture capture = mock(Capture.class);
         when(capture.at(anyInt(), anyInt(), anyInt())).thenReturn(stone);
-        doAnswer(call ->
+        // A view is built a step at a time (#609), through the walk rather than forEachKept: all of it in one step here.
+        when(capture.keptWalk()).thenAnswer(call -> (Capture.KeptWalk) kept ->
         {
-            final Capture.Kept kept = call.getArgument(0);
             for (final Spot cell : far)
             {
                 kept.at(cell.x(), cell.y(), cell.z(), false);
             }
-            return null;
-        }).when(capture).forEachKept(any());
+            return true;
+        });
         return capture;
     }
 
@@ -176,7 +175,7 @@ class WindowsFunnelTest
     @Test
     void aViewWalkedThroughTheVolumeIsAHollowWalledTunnelThenTheRoom()
     {
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel(16)), solidEverywhere()), 16, 0L,
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel(16)), solidEverywhere()), 16,
             Integer.MAX_VALUE);
 
         assertSame(air, view.get(key(TUNNEL)), "the tunnel is hollow, though the far side is stone everywhere");
@@ -205,7 +204,7 @@ class WindowsFunnelTest
     {
         final Funnel funnel = funnel(16);
         final WindowShape shape = shapeFor(funnel);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16, 0L,
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16,
             Integer.MAX_VALUE);
         int stones = 0;
         int walls = 0;
@@ -246,7 +245,7 @@ class WindowsFunnelTest
     {
         final Funnel funnel = funnel(16);
         final Spot arrival = new Spot(100, 70, 200);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16, 0L,
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16,
             Integer.MAX_VALUE);
 
         assertEquals(arrival, shapeFor(funnel).farOf(15, 64, 11), "nine layers in, on the middle column and bottom row");
@@ -260,7 +259,7 @@ class WindowsFunnelTest
         final Funnel funnel = funnel(16);
         final WindowShape shape = shapeFor(funnel);
         final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel),
-            keptAtFar(farOf(shape, INSIDE, OUTSIDE, TUNNEL))), 16, 0L, Integer.MAX_VALUE);
+            keptAtFar(farOf(shape, INSIDE, OUTSIDE, TUNNEL))), 16, Integer.MAX_VALUE);
 
         assertSame(stone, view.get(key(INSIDE)), "kept inside the room");
         assertSame(water, view.get(key(WALL)), "walled");
@@ -271,10 +270,10 @@ class WindowsFunnelTest
     @Test
     void withNoFunnelTheWholeViewIsDrawnAndNoWall()
     {
-        final Map<Long, BlockData> walked = Windows.fixedTo(new WindowState(gate(null), solidEverywhere()), 16, 0L,
+        final Map<Long, BlockData> walked = Windows.fixedTo(new WindowState(gate(null), solidEverywhere()), 16,
             Integer.MAX_VALUE);
         final Map<Long, BlockData> kept = Windows.fixedTo(new WindowState(gate(null), keptAtFar(farOf(BIG, INSIDE, OUTSIDE))),
-            16, 0L, Integer.MAX_VALUE);
+            16, Integer.MAX_VALUE);
 
         assertSame(stone, walked.get(key(OUTSIDE)), "same-size and small-to-large views are as they were");
         assertSame(stone, walked.get(key(WALL)), "and nothing is walled");
@@ -342,11 +341,11 @@ class WindowsFunnelTest
     }
 
     /**
-     * A gate's held room is let go when its funnel changes, so a new tunnel shows at once rather than
-     * after the minute a room is kept.
+     * A gate's held room is built again when its funnel changes, so a new tunnel shows as soon as it is
+     * built rather than after the minute a room was kept; the old room is drawn until then (#609).
      */
     @Test
-    void aHeldRoomIsLetGoWhenTheFunnelChanges() throws ReflectiveOperationException
+    void aHeldRoomIsBuiltAgainWhenTheFunnelChanges() throws ReflectiveOperationException
     {
         final Capture capture = solidEverywhere();
         Windows.offer(gate(funnel(16)), capture);
@@ -354,11 +353,18 @@ class WindowsFunnelTest
         final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
         final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
         final Map<Long, BlockData> room = new HashMap<>();
-        active.get("gate:Abydos").fixed = room;
-        active.get("gate:Abydos").fixedUsedAt = Windows.now();
+        final long now = Windows.now();
+        final WindowState held = active.get("gate:Abydos");
+        held.fixed = room;
+        held.fixedFrom = capture;
+        held.fixedFor = held.depth();
+        held.fixedFunnel = funnel(16);
+        held.fixedAt = now;
+        held.fixedUsedAt = now;
 
         Windows.offer(gate(funnel(16)), capture);
         assertSame(room, offered.get("gate:Abydos").fixed, "the same funnel: kept");
+        assertTrue(Windows.fixedIsFresh(offered.get("gate:Abydos"), now), "and drawn as it is");
 
         final Funnel same = funnel(16);
         final List<Spot> open = new ArrayList<>();
@@ -366,12 +372,12 @@ class WindowsFunnelTest
         final Funnel lava = new Funnel(same.width(), same.height(), same.far(), same.taper(), Material.LAVA, same.nearShape(),
             same.farShape());
         Windows.offer(new GateSource("gate:Abydos", anchor, shapeFor(lava), open, ARRIVAL, "Chulak", 16, lava), capture);
-        assertNull(offered.get("gate:Abydos").fixed, "another funnel on the same shape: built again");
-        active.get("gate:Abydos").fixed = room;
+        assertSame(room, offered.get("gate:Abydos").fixed, "another funnel on the same shape: drawn meanwhile");
+        assertFalse(Windows.fixedIsFresh(offered.get("gate:Abydos"), now), "but built again");
         Windows.offer(gate(funnel(4)), capture);
-        assertNull(offered.get("gate:Abydos").fixed, "a shorter tunnel: built again");
+        assertNull(offered.get("gate:Abydos").fixed, "a shorter tunnel moves the far side: another shape, nothing kept");
         Windows.offer(gate(null), capture);
-        assertNull(offered.get("gate:Abydos").fixed, "turned off: built again");
+        assertNull(offered.get("gate:Abydos").fixed, "turned off: another shape too");
     }
 
     /** An admin's whole view of a gate is let go with its funnel too, as its held room is. */
@@ -472,9 +478,9 @@ class WindowsFunnelTest
         }
         final Funnel funnel = Funnel.of(BIG, null, same, 16, 3, Material.WATER);
         final Spot arrival = new Spot(100, 70, 200);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16, 0L,
+        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16,
             Integer.MAX_VALUE);
-        final Map<Long, BlockData> landing = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16, 0L,
+        final Map<Long, BlockData> landing = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16,
             Integer.MAX_VALUE);
 
         assertEquals(7, funnel.taper(), "three fifths of eleven, to the nearest");

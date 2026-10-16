@@ -31,6 +31,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +81,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
@@ -763,6 +765,116 @@ class WindowsTest
         });
 
         assertFalse(Windows.holdsFixedView("museum"), "let go a minute after the last look");
+    }
+
+    /**
+     * A room swapped in under several viewers is redrawn for them a sweep's share at a time.
+     *
+     * <p>A rebuilt room goes in under every viewer at once, and the next sweep redrew each of them: ten
+     * viewers of a quarter-million-block room were most of a tenth of a second in one tick (#609). With
+     * a share of one block, one viewer is redrawn this sweep and the other the next.
+     */
+    @Test
+    void aRoomSwappedInUnderSeveralViewersIsRedrawnASweepsShareAtATime() throws ReflectiveOperationException
+    {
+        final Player first = playerAt(10.5, 7.5);
+        final Player second = playerAt(10.5, 6.5);
+        when(world.getPlayers()).thenReturn(List.of(first, second));
+        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(Windows.class, "VIEWS");
+        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
+        final int[] redrawn = new int[2];
+
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            Windows.roomBlocksPerSweep = 1L;
+            final WindowState window = active.get("museum");
+            window.fixed = new HashMap<>(window.fixed);
+            final String before = views.get(first.getUniqueId()).stamp;
+            WindowSweep.tick();
+            redrawn[0] = changedFrom(before, views, first, second);
+            WindowSweep.tick();
+            redrawn[1] = changedFrom(before, views, first, second);
+        });
+
+        assertEquals(1, redrawn[0], "one viewer redrawn with the swapped room this sweep");
+        assertEquals(2, redrawn[1], "and the other the next");
+    }
+
+    /** How many of these viewers' drawings no longer carry a stamp. */
+    private static int changedFrom(final String stamp, final Map<UUID, ViewerDrawing> views, final Player... players)
+    {
+        int changed = 0;
+        for (final Player player : players)
+        {
+            if (!stamp.equals(views.get(player.getUniqueId()).stamp))
+            {
+                changed++;
+            }
+        }
+        return changed;
+    }
+
+    /**
+     * With a room swapped in before every sweep, every viewer still gets a turn: started from the same
+     * viewer every sweep, the share went to the first in line each time, and the rest saw a new room
+     * only when they moved.
+     */
+    @Test
+    void roomsSwappedInEverySweepStillReachEveryViewer() throws ReflectiveOperationException
+    {
+        final Player first = playerAt(10.5, 7.5);
+        final Player second = playerAt(10.5, 6.5);
+        when(world.getPlayers()).thenReturn(List.of(first, second));
+        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(Windows.class, "VIEWS");
+        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
+        final boolean[] reached = new boolean[2];
+
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            Windows.roomBlocksPerSweep = 1L;
+            for (int sweep = 0; sweep < 4; sweep++)
+            {
+                final WindowState window = active.get("museum");
+                window.fixed = new HashMap<>(window.fixed);
+                final String firstBefore = views.get(first.getUniqueId()).stamp;
+                final String secondBefore = views.get(second.getUniqueId()).stamp;
+                WindowSweep.tick();
+                reached[0] |= !firstBefore.equals(views.get(first.getUniqueId()).stamp);
+                reached[1] |= !secondBefore.equals(views.get(second.getUniqueId()).stamp);
+            }
+        });
+
+        assertTrue(reached[0] && reached[1], "both viewers redrawn at least once: " + reached[0] + ", " + reached[1]);
+    }
+
+    /**
+     * A viewer's room redrawn only because its drawing is old, with nothing swapped in, is not held to
+     * the share: charged for it, ten viewers' every-five-seconds redraws spent the share by themselves.
+     */
+    @Test
+    void aResampleIsNotHeldToTheShare() throws ReflectiveOperationException
+    {
+        final Player first = playerAt(10.5, 7.5);
+        final Player second = playerAt(10.5, 6.5);
+        when(world.getPlayers()).thenReturn(List.of(first, second));
+        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(Windows.class, "VIEWS");
+        final long[] composed = new long[4];
+
+        withServer(() ->
+        {
+            WindowSweep.tick();
+            Windows.roomBlocksPerSweep = 1L;
+            composed[0] = views.get(first.getUniqueId()).composedAt;
+            composed[1] = views.get(second.getUniqueId()).composedAt;
+            paused += Windows.RESAMPLE_MILLIS + 1L;
+            WindowSweep.tick();
+            composed[2] = views.get(first.getUniqueId()).composedAt;
+            composed[3] = views.get(second.getUniqueId()).composedAt;
+        });
+
+        assertTrue((composed[2] > composed[0]) && (composed[3] > composed[1]), "both redrawn in the one sweep");
     }
 
     /**
