@@ -1,11 +1,11 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -113,7 +113,7 @@ class WXRemoveTest
     {
         assertTrue(remove(console, "nowhere"));
 
-        verify(console).sendMessage(contains("Gate does not exist: nowhere"));
+        verify(console).sendMessage(plainContains("No gate called nowhere."));
     }
 
     /** A named gate is removed, and its blocks are left alone. */
@@ -128,7 +128,7 @@ class WXRemoveTest
 
             util.verify(() -> CommandUtilities.gateRemove(eq(gate), eq(false), eq(true), any()));
         }
-        verify(console).sendMessage(contains("Wormhole Removed: alpha"));
+        verify(console).sendMessage(plainContains("Removed alpha."));
     }
 
     /** {@code -destroy} as the second word takes the blocks down too. */
@@ -191,6 +191,6 @@ class WXRemoveTest
             util.verify(() -> CommandUtilities.gateRemove(any(), anyBoolean(), anyBoolean(), any()),
                 never());
         }
-        verify(player).sendMessage(contains("ermission"));
+        verify(player).sendMessage(plainContains("ermission"));
     }
 }

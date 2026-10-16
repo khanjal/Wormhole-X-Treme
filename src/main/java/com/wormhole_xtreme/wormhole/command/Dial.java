@@ -77,7 +77,7 @@ public class Dial implements CommandExecutor
         if (target == null)
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+            player.sendMessage(CommandUtilities.noGateCalled(args[0]));
             return;
         }
         final String targetnetwork = CommandUtilities.getGateNetwork(target);
@@ -85,7 +85,8 @@ public class Dial implements CommandExecutor
         if ( !startnetwork.equals(targetnetwork))
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString() + " Not on same network.");
+            player.sendMessage(ChatText.error("Invalid gate target. " + ChatText.name(target.getGateName())
+                + " is not on this gate's network."));
             return;
         }
         if (StargateRestrictions.isCrossWorldRefused(start.getGateWorld(), target.getGateWorld()))
@@ -102,7 +103,8 @@ public class Dial implements CommandExecutor
         if (target.isGateIrisActive())
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Remote Iris is active; provide the IDC to unlock.");
+            player.sendMessage(ChatText.error("Remote Iris is active. Dial again with its " + ChatText.command("IDC")
+                + " after the gate's name."));
             return;
         }
 
@@ -126,7 +128,7 @@ public class Dial implements CommandExecutor
             && (args.length >= 2) && target.getGateIrisDeactivationCode().equals(args[1]))
         {
             target.toggleIrisActive(false);
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "IDC accepted. Iris has been deactivated.");
+            player.sendMessage(ChatText.info("IDC accepted. Iris has been deactivated."));
         }
     }
 
@@ -210,8 +212,7 @@ public class Dial implements CommandExecutor
                     return true;
                 }
                 // One short line, not plugin.yml's usage block (#325).
-                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + ChatText.usage(USAGE));
+                sender.sendMessage(ChatText.info(ChatText.usage(USAGE)));
                 return true;
             }
         });

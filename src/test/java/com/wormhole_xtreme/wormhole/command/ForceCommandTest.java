@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +32,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Forcing gates shut.
@@ -106,7 +108,21 @@ class ForceCommandTest
 
             util.verify(() -> CommandUtilities.closeGate(any(), anyBoolean()), never());
         }
-        verify(console).sendMessage(contains("Invalid gate target"));
+        verify(console).sendMessage(plainContains("No gate called"));
+    }
+
+    /**
+     * The refusal every gate command gives a name it cannot find, in the palette (#438): the
+     * name aqua, the command that lists the real ones white, both back to the body grey.
+     */
+    @Test
+    void anUnknownGateIsNamedInAquaWithTheListCommandInWhite()
+    {
+        force(console, "nowhere");
+
+        verify(console).sendMessage(ChatText.ERROR_HEADER + "No gate called " + ChatText.NAME_COLOUR + "nowhere"
+            + ChatText.BODY_COLOUR + ". " + ChatText.COMMAND_COLOUR + "/wormhole list" + ChatText.BODY_COLOUR
+            + " shows them.");
     }
 
     /** A named gate is closed, and only that one. */
@@ -123,7 +139,7 @@ class ForceCommandTest
             util.verify(() -> CommandUtilities.closeGate(eq(alpha), eq(true)));
             util.verify(() -> CommandUtilities.closeGate(eq(bravo), anyBoolean()), never());
         }
-        verify(console).sendMessage(contains("alpha has been closed"));
+        verify(console).sendMessage(plainContains("alpha has been closed"));
     }
 
     /**
@@ -171,7 +187,7 @@ class ForceCommandTest
             util.verify(() -> CommandUtilities.closeGate(eq(bravo), eq(true)));
             util.verify(() -> CommandUtilities.closeGate(any(), anyBoolean()), times(2));
         }
-        verify(console).sendMessage(contains("All gates have been deactivated"));
+        verify(console).sendMessage(plainContains("All gates have been closed"));
     }
 
     /** A player without the admin node closes nothing. */

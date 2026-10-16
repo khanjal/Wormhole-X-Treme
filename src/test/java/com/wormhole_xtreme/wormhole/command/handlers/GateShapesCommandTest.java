@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -35,7 +36,7 @@ class GateShapesCommandTest
     {
         final CommandSender sender = mock(CommandSender.class);
         assertTrue(new GateShapesCommand().execute(sender, new String[] { "gate", "shapes" }));
-        verify(sender).sendMessage(contains("/wormhole gate shapes"));
+        verify(sender).sendMessage(plainContains("/wormhole gate shapes"));
     }
 
     @Test
@@ -43,7 +44,7 @@ class GateShapesCommandTest
     {
         final CommandSender sender = mock(CommandSender.class);
         assertTrue(new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "frobnicate" }));
-        verify(sender).sendMessage(contains("No such shapes command"));
+        verify(sender).sendMessage(plainContains("No such shapes command"));
     }
 
     @Test
@@ -51,7 +52,7 @@ class GateShapesCommandTest
     {
         final CommandSender sender = mock(CommandSender.class);
         assertTrue(new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "validate" }));
-        verify(sender).sendMessage(contains("/wormhole gate shapes validate"));
+        verify(sender).sendMessage(plainContains("/wormhole gate shapes validate"));
     }
 
     @Test
@@ -60,7 +61,7 @@ class GateShapesCommandTest
         final CommandSender sender = mock(CommandSender.class);
         assertTrue(new GateShapesCommand().execute(sender,
             new String[] { "gate", "shapes", "validate", "DefinitelyNotARealShape" }));
-        verify(sender).sendMessage(contains("problem"));
+        verify(sender).sendMessage(plainContains("problem"));
     }
 
     // reload with no name calls StargateShapeRegistry.reloadAllShapes(), which re-scans and

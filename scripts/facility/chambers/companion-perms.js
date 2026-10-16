@@ -133,7 +133,7 @@ function checks(ctx, o) {
       c('but not an operator\'s wormhole.config', () => obs.holds && obs.holds['wormhole.config'] === false)];
   }
   const holds = new Set(o.case === 'default' ? [] : nodesOf(o.case));
-  const list = [hooked, c(`${GATE} was built and is Probe's`, () => /Built /.test(obs.build || '') && /Now owned by: Probe\b/.test(obs.owner || ''))];
+  const list = [hooked, c(`${GATE} was built and is Probe's`, () => /Built /.test(obs.build || '') && /is now owned by Probe\b/.test(obs.owner || ''))];
   for (const [trial, t] of Object.entries(TRIALS)) {
     const said = () => (obs.told && obs.told[trial]) || '';
     if (holds.has(t.node)) {

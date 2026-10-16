@@ -8,9 +8,9 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class Force.
@@ -77,8 +77,7 @@ public class Force implements CommandExecutor
         {
             CommandUtilities.closeGate(gate, true);
         }
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "All gates have been deactivated, darkened, and have had their iris (if any) opened.");
+        sender.sendMessage(ChatText.info("All gates have been closed, darkened and their irises opened."));
     }
 
     /**
@@ -97,12 +96,11 @@ public class Force implements CommandExecutor
         final Stargate gate = StargateManager.getStargate(name);
         if (gate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+            sender.sendMessage(CommandUtilities.noGateCalled(name));
             return false;
         }
         CommandUtilities.closeGate(gate, true);
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + name + " has been closed, darkened, and has had its iris (if any) opened.");
+        sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " has been closed, darkened and its iris opened."));
         return true;
     }
 

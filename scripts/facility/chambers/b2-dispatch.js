@@ -99,7 +99,7 @@ module.exports = {
     } else if (a === 'go to a gate as op') {
       obs.beam = await follow(probe, say(probe, '/wormhole go Relay'), { name: 'Relay' });
     } else if (a === 'go to a gate as player') {
-      obs.beam = await follow(p2, say(p2, '/wormhole go Relay'), { name: 'Relay', refusal: /No gate or beam destination named: Relay/ });
+      obs.beam = await follow(p2, say(p2, '/wormhole go Relay'), { name: 'Relay', refusal: /No gate or beam destination called Relay\./ });
     } else if (a === 'cooldown' || a === 'op skips cooldown') {
       const who = a === 'cooldown' ? p2 : probe;
       obs.first = await follow(who, say(who, '/wormhole beam to Dock'), { name: 'Dock' });
@@ -158,7 +158,7 @@ module.exports = {
       const relay = require('./relay').farGates().Relay.geom.arrival;
       list.push(c('Probe was beamed to the Relay gate\'s arrival', () => b().done && at(b(), relay, 1.5)));
     } else if (a === 'go to a gate as player') {
-      list.push(c('Probe2 was told "No gate or beam destination named: Relay"', () => b().refused));
+      list.push(c('Probe2 was told "No gate or beam destination called Relay."', () => b().refused));
       list.push(stayed());
     } else if (a === 'cooldown') {
       list.push(c('the first beam went', () => b(obs.first).done && at(b(obs.first), centre(DOCK))));

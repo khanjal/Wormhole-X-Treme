@@ -13,6 +13,7 @@ import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class WXIDC.
@@ -52,7 +53,7 @@ public class WXIDC implements CommandExecutor
         final Stargate s = StargateManager.getStargate(a[0]);
         if (s == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid Stargate: " + a[0]);
+            sender.sendMessage(CommandUtilities.noGateCalled(a[0]));
             return;
         }
         // Before the iris is described: any player can reach this command, not only its owner.
@@ -64,7 +65,8 @@ public class WXIDC implements CommandExecutor
         if (s.isGateSignPowered() || (s.getGateIrisLeverBlock() == null))
         {
             // Nothing to unlock, so a code set here would never be asked for.
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
+            sender.sendMessage(ChatText.error("Iris not available: " + ChatText.name(s.getGateName())
+                + " dials by sign or has no iris lever."));
             return;
         }
         if (a.length >= 2)
@@ -74,7 +76,10 @@ public class WXIDC implements CommandExecutor
             StargateDBManager.saveStargate(s);
         }
         // Always shown, whether or not anything was changed.
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());
+        final String code = s.getGateIrisDeactivationCode();
+        sender.sendMessage(ChatText.info(((code == null) || code.isEmpty())
+            ? ChatText.name(s.getGateName()) + " has no IDC."
+            : "IDC for " + ChatText.name(s.getGateName()) + " is " + ChatText.value(code) + "."));
     }
 
     /**

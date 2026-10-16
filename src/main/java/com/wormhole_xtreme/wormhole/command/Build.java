@@ -164,19 +164,17 @@ public class Build implements CommandExecutor
         }
         if (args[0].startsWith("-"))
         {
-            actionList(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Preview options moved to ").send(player);
+            actionList(ChatText.error("Preview options moved to ")).send(player);
             return;
         }
         if (args.length > 2)
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + USAGE + command("/wormhole gate build <shape> [group]"));
+            player.sendMessage(ChatText.info(ChatText.usage("/wormhole gate build <shape> [group]")));
             return;
         }
         if (!StargateShapeRegistry.isStargateShape(args[0]))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No shape called " + name(args[0])
-                + ".");
+            player.sendMessage(ChatText.error("No shape called " + name(args[0]) + "."));
             return;
         }
         final StargateShape shape = StargateShapeRegistry.getStargateShape(args[0]);
@@ -186,8 +184,8 @@ public class Build implements CommandExecutor
             group = MaterialGroupRegistry.getGroup(args[1]);
             if ((group == null) || !shape.acceptsMaterialGroup(group.getName()))
             {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + name(args[0])
-                    + " has no group " + name(args[1]) + ". Try " + groupsFor(shape) + ".");
+                player.sendMessage(ChatText.error(name(args[0]) + " has no group " + name(args[1]) + ". Try "
+                    + groupsFor(shape) + "."));
                 return;
             }
         }
@@ -198,8 +196,7 @@ public class Build implements CommandExecutor
         StargateManager.addPlayerBuilderShape(player, shape);
         if (!mayPreview || !(shape instanceof Stargate3DShape shape3d))
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Building " + name(args[0])
-                + ". Press the button on its DHD when it is done.");
+            player.sendMessage(ChatText.info("Building " + name(args[0]) + ". Press the button on its DHD when it is done."));
             return;
         }
         preview(player, shape3d, group);
@@ -207,35 +204,34 @@ public class Build implements CommandExecutor
 
     private static void preview(final Player player, final Stargate3DShape shape, final MaterialGroup group)
     {
-        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         final Block looked = player.getTargetBlockExact(DHD_REACH);
         final BlockFace dhdFacing = (looked == null) ? null : wallFacing(looked);
         final GatePreviews.Shown shown = (dhdFacing == null) ? GatePreviews.show(player, shape, group)
             : GatePreviews.showOn(player, shape, group, looked, dhdFacing);
-        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
         switch (shown)
         {
             case SHOWN ->
             {
-                player.sendMessage(header + "Previewing " + name(shape.getShapeName())
+                player.sendMessage(ChatText.info("Previewing " + name(shape.getShapeName())
                     + ((group == null) ? "" : " in " + name(group.getName()))
                     + ((dhdFacing == null) ? ". Build inside it, then press a real button on its DHD."
-                        : " on your DHD. Finish it, then press the button."));
-                actionList(header + "Look at it and use ").send(player);
+                        : " on your DHD. Finish it, then press the button.")));
+                actionList(ChatText.info("Look at it and use ")).send(player);
             }
-            case OVER_LIMIT -> overLimit(player, error);
-            case NO_DHD -> player.sendMessage(error + name(shape.getShapeName()) + " has no DHD, so it cannot be previewed.");
+            case OVER_LIMIT -> overLimit(player);
+            case NO_DHD -> player.sendMessage(ChatText.error(name(shape.getShapeName())
+                + " has no DHD, so it cannot be previewed."));
         }
     }
 
-    private static void overLimit(final Player player, final String error)
+    private static void overLimit(final Player player)
     {
         if (ConfigManager.getGatePreviewMaxBlocks() == 0)
         {
-            player.sendMessage(error + "Previews are off on this server.");
+            player.sendMessage(ChatText.error("Previews are off on this server."));
             return;
         }
-        linkHint(ChatLine.of(error + "Too many preview blocks on the server. Clear one with "), CLEAR).text(".")
+        linkHint(ChatLine.of(ChatText.error("Too many preview blocks on the server. Clear one with ")), CLEAR).text(".")
             .send(player);
     }
 
@@ -283,7 +279,7 @@ public class Build implements CommandExecutor
             final String[] arguments = CommandUtilities.commandEscaper(args);
             if ((arguments.length < 1) || (arguments.length > 3))
             {
-                actionList(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE).send(player);
+                actionList(ChatText.info(USAGE)).send(player);
                 return true;
             }
             option(player, arguments, mayPreview);
@@ -297,8 +293,7 @@ public class Build implements CommandExecutor
         final String option = args[0].toLowerCase(Locale.ROOT);
         if (!ACCEPTED.contains(option))
         {
-            buttons(ChatLine.of(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No preview action "
-                + name(args[0]) + ". Try ")).send(player);
+            buttons(ChatLine.of(ChatText.error("No preview action " + name(args[0]) + ". Try "))).send(player);
             return;
         }
         if (CLEAR.equals(option))
@@ -334,10 +329,10 @@ public class Build implements CommandExecutor
     /** {@code material <group>} or {@code material -<role> <block>}; null once it has answered itself. */
     private static GatePreviews.Control material(final Player player, final String[] args)
     {
-        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
         // Named with their dash, the way they are offered and documented, so the usage line
         // teaches the form that cannot be mistaken for a material group's name.
-        final String roles = Arrays.stream(Role.values()).map(Role::option).collect(Collectors.joining(", "));
+        final String roles = Arrays.stream(Role.values()).map(Role::option).map(ChatText::command)
+            .collect(Collectors.joining(", "));
         if (args.length == 2)
         {
             final MaterialGroup group = MaterialGroupRegistry.getGroup(args[1]);
@@ -349,7 +344,7 @@ public class Build implements CommandExecutor
         final Role role = (args.length == 3) ? Role.named(args[1]) : null;
         if (role == null)
         {
-            ChatLine.of(error + USAGE).suggest(hint(MATERIAL + " <group>"), PREVIEW_COMMAND + MATERIAL + " ")
+            ChatLine.of(ChatText.info(USAGE)).suggest(hint(MATERIAL + " <group>"), PREVIEW_COMMAND + MATERIAL + " ")
                 .text(" or ").suggest(hint(MATERIAL + " -<role> <block>"), PREVIEW_COMMAND + MATERIAL + " -")
                 .text(". Roles: " + roles + ".").send(player);
             return null;
@@ -361,7 +356,6 @@ public class Build implements CommandExecutor
     /** {@code share [<player>|-all]}; null once it has answered itself. */
     private static GatePreviews.Control share(final Player player, final String[] args)
     {
-        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         if (args.length == 1)
         {
             final GatePreviews.Audience audience = GatePreviews.audience(player);
@@ -374,7 +368,7 @@ public class Build implements CommandExecutor
             {
                 who.add(0, "everyone in this world");
             }
-            player.sendMessage(header + (who.isEmpty()
+            player.sendMessage(ChatText.info(who.isEmpty()
                 ? "Only you see it. " + hint(SHARE + " <player>") + " or " + hint(SHARE + " " + ALL) + " shows it."
                 : "Shown to " + String.join(", ", who) + "."));
             return null;
@@ -386,8 +380,7 @@ public class Build implements CommandExecutor
         final Player with = player.getServer().getPlayerExact(args[1]);
         if (with == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No player called " + name(args[1])
-                + " is online.");
+            player.sendMessage(ChatText.error("No player called " + name(args[1]) + " is online."));
             return null;
         }
         return tellShared(player, GatePreviews.share(player, with), with);
@@ -395,22 +388,21 @@ public class Build implements CommandExecutor
 
     private static GatePreviews.Control tellShared(final Player player, final GatePreviews.Shared done, final Player with)
     {
-        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         switch (done)
         {
             case NOT_LOOKING -> {
                 return GatePreviews.Control.NOT_LOOKING;
             }
-            case SELF -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "You already see it.");
+            case SELF -> player.sendMessage(ChatText.error("You already see it."));
             case SHARED -> {
-                player.sendMessage(header + "Showing it to " + name(with.getName()) + ". " + hint(SHARE + " "
-                    + with.getName()) + " again stops.");
-                with.sendMessage(header + name(player.getName()) + " is showing you a gate preview.");
+                player.sendMessage(ChatText.info("Showing it to " + name(with.getName()) + ". " + hint(SHARE + " "
+                    + with.getName()) + " again stops."));
+                with.sendMessage(ChatText.info(name(player.getName()) + " is showing you a gate preview."));
             }
-            case UNSHARED -> player.sendMessage(header + "Stopped showing it to " + name(with.getName()) + ".");
-            case SHARED_ALL -> player.sendMessage(header + "Showing it to everyone in this world. " + hint(SHARE + " "
-                + ALL) + " again stops.");
-            case UNSHARED_ALL -> player.sendMessage(header + "Stopped showing it to everyone.");
+            case UNSHARED -> player.sendMessage(ChatText.info("Stopped showing it to " + name(with.getName()) + "."));
+            case SHARED_ALL -> player.sendMessage(ChatText.info("Showing it to everyone in this world. " + hint(SHARE + " "
+                + ALL) + " again stops."));
+            case UNSHARED_ALL -> player.sendMessage(ChatText.info("Stopped showing it to everyone."));
         }
         return null;
     }
@@ -420,29 +412,29 @@ public class Build implements CommandExecutor
     {
         // Filling in a gate already there regenerates it, which is an admin's to do, as regen is.
         final GatePreviews.Placed placed = GatePreviews.place(player, CommandHandlerUtils.hasConfigPermission(player));
-        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
         switch (placed.outcome())
         {
             case NOT_LOOKING -> {
                 return GatePreviews.Control.NOT_LOOKING;
             }
-            case NOT_FINDABLE -> player.sendMessage(error + "No material group uses that frame block, so the gate "
-                + "would not be found. Nothing placed.");
-            case NOT_LOADED -> player.sendMessage(error + "Part of it is in an unloaded chunk. Move closer. Nothing placed.");
-            case OUTSIDE_BORDER -> player.sendMessage(error + "Part of it is outside the world border. Nothing placed.");
+            case NOT_FINDABLE -> player.sendMessage(ChatText.error("No material group uses that frame block, so the gate "
+                + "would not be found. Nothing placed."));
+            case NOT_LOADED -> player.sendMessage(ChatText.error("Part of it is in an unloaded chunk. Move closer. "
+                + "Nothing placed."));
+            case OUTSIDE_BORDER -> player.sendMessage(ChatText.error("Part of it is outside the world border. "
+                + "Nothing placed."));
             case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.BUILD_REFUSED + " Nothing placed.");
-            case IN_THE_WAY -> linkHint(ChatLine.of(error + "Nothing placed. In the way: "
-                + bad(String.join(", ", placed.inTheWay())) + ". "), GUIDE).text(" marks them.").send(player);
-            case NOT_FOUND -> linkHint(ChatLine.of(error + "Placed, but no gate was found in it. "), GUIDE)
+            case IN_THE_WAY -> linkHint(ChatLine.of(ChatText.error("Nothing placed. In the way: "
+                + bad(String.join(", ", placed.inTheWay())) + ". ")), GUIDE).text(" marks them.").send(player);
+            case NOT_FOUND -> linkHint(ChatLine.of(ChatText.error("Placed, but no gate was found in it. ")), GUIDE)
                 .text(" shows what is wrong.").send(player);
             case PLACED -> {
-                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + good("Placed " + placed.gate().getGateShape().getShapeName() + "."));
+                player.sendMessage(ChatText.info(good("Placed " + placed.gate().getGateShape().getShapeName() + ".")));
                 GateInteractionHandler.offerNewGate(player, placed.button(), placed.gate());
             }
             case REPAIRED -> {
-                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + good("Filled in " + placed.gate().getGateName() + "'s missing blocks.") + " Regenerating it.");
+                player.sendMessage(ChatText.info(good("Filled in " + placed.gate().getGateName() + "'s missing blocks.")
+                    + " Regenerating it."));
                 RegenerateCommand.regenerateAt(player, placed.gate(),
                     placed.button(), null, false);
             }
@@ -453,11 +445,10 @@ public class Build implements CommandExecutor
     /** {@code layer [<n>|-next|-all]}; null once it has answered itself. */
     private static GatePreviews.Control layers(final Player player, final String[] args)
     {
-        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
         final int asked = layerAsked(args);
         if (asked < GatePreviews.NEXT_LAYER)
         {
-            ChatLine.of(error + USAGE).suggest(hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"),
+            ChatLine.of(ChatText.info(USAGE)).suggest(hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"),
                 PREVIEW_COMMAND + LAYER + " ").send(player);
             return null;
         }
@@ -468,18 +459,18 @@ public class Build implements CommandExecutor
         }
         if (!layers.valid())
         {
-            player.sendMessage(error + "It has only " + layers.of() + " layer" + ((layers.of() == 1) ? "" : "s") + ".");
+            player.sendMessage(ChatText.error("It has only " + ChatText.value(String.valueOf(layers.of())) + " layer"
+                + ((layers.of() == 1) ? "" : "s") + "."));
         }
         else if (layers.shown() == GatePreviews.ALL_LAYERS)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Showing all " + layers.of()
-                + " layers.");
+            player.sendMessage(ChatText.info("Showing all " + ChatText.value(String.valueOf(layers.of())) + " layers."));
         }
         else
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Showing layer "
-                + ((layers.shown() == 1) ? "1" : "1-" + layers.shown()) + " of " + layers.of() + ". "
-                + hint(LAYER) + " for the next.");
+            player.sendMessage(ChatText.info("Showing layer "
+                + ChatText.value((layers.shown() == 1) ? "1" : "1-" + layers.shown()) + " of "
+                + ChatText.value(String.valueOf(layers.of())) + ". " + hint(LAYER) + " for the next."));
         }
         return null;
     }
@@ -514,22 +505,22 @@ public class Build implements CommandExecutor
         {
             return GatePreviews.Control.NOT_LOOKING;
         }
-        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
-        player.sendMessage(header + name(list.shape()) + " needs:");
+        player.sendMessage(ChatText.info(name(list.shape()) + " needs:"));
         for (final BuildGuide.Need need : list.needs())
         {
-            player.sendMessage(header + "  " + need.count() + " " + ChatText.material(need.name()) + " - "
-                + ((need.toPlace() == 0) ? good("done") : need.toPlace() + " left"));
+            player.sendMessage(ChatText.info("  " + ChatText.value(String.valueOf(need.count())) + " "
+                + ChatText.material(need.name()) + " - "
+                + ((need.toPlace() == 0) ? good("done") : ChatText.value(String.valueOf(need.toPlace())) + " left")));
         }
         if (list.blocked() > 0)
         {
-            player.sendMessage(header + "  " + bad(list.blocked() + " in the way") + " in the opening");
+            player.sendMessage(ChatText.info("  " + bad(list.blocked() + " in the way") + " in the opening"));
         }
         if (!list.detectable())
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No material group uses "
+            player.sendMessage(ChatText.error("No material group uses "
                 + ChatText.material(list.frame().name().toLowerCase(Locale.ROOT))
-                + " for a frame, so this gate would not be found.");
+                + " for a frame, so this gate would not be found."));
         }
         return null;
     }
@@ -544,7 +535,7 @@ public class Build implements CommandExecutor
      */
     static ChatLine actionList(final String before)
     {
-        return buttons(ChatLine.of(before + hint("<action>") + ": "));
+        return buttons(ChatLine.of(before).text(hint("<action>") + ": "));
     }
 
     /**
@@ -616,26 +607,31 @@ public class Build implements CommandExecutor
                 + " turns it off.";
             case GUIDE_OFF -> "Guide off.";
         };
-        player.sendMessage((refused ? ConfigManager.MessageStrings.ERROR_HEADER : ConfigManager.MessageStrings.NORMAL_HEADER)
-            .toString() + text);
+        if (refused)
+        {
+            player.sendMessage(ChatText.error(text));
+            return;
+        }
+        player.sendMessage(ChatText.info(text));
     }
 
     private static void clear(final Player player, final String[] args)
     {
-        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         if ((args.length == 2) && ALL.equalsIgnoreCase(args[1]))
         {
             final int cleared = GatePreviews.clearAll(player);
-            player.sendMessage(header + "Cleared " + cleared + " preview" + ((cleared == 1) ? "" : "s") + ".");
+            player.sendMessage(ChatText.info("Cleared " + ChatText.value(String.valueOf(cleared)) + " preview"
+                + ((cleared == 1) ? "" : "s") + "."));
             return;
         }
         if (GatePreviews.clearLookedAt(player))
         {
-            player.sendMessage(header + "Cleared. " + GatePreviews.countOf(player.getUniqueId()) + " left.");
+            player.sendMessage(ChatText.info("Cleared. " + ChatText.value(String.valueOf(GatePreviews.countOf(
+                player.getUniqueId()))) + " left."));
             return;
         }
-        linkHint(ChatLine.of(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Look at a preview to clear it, or use "), CLEAR + " " + ALL).text(".").send(player);
+        linkHint(ChatLine.of(ChatText.error("Look at a preview to clear it, or use ")), CLEAR + " " + ALL).text(".")
+            .send(player);
     }
 
     /** The group names a shape may be built in, for an error message. */

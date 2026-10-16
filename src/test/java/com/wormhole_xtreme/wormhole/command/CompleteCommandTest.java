@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -180,7 +181,7 @@ class CompleteCommandTest
         assertNotNull(pending, "the command should be waiting for the DHD click");
         assertEquals("Fresh", pending[0]);
         assertEquals("Private", pending[2], "the network given on the command line is kept");
-        verify(player).sendMessage(contains("click the DHD"));
+        verify(player).sendMessage(plainContains("Click the DHD"));
 
         Complete.removePendingCompletion(player);
     }
@@ -209,7 +210,7 @@ class CompleteCommandTest
             new Complete().onCommand(player, null, "wormhole", new String[] {"Fresh"});
         }
 
-        verify(player).sendMessage(contains("found incomplete: \"Partial\""));
+        verify(player).sendMessage(plainContains("Completing Partial failed"));
         StargateManager.removeIncompleteStargate(player);
     }
 
@@ -330,7 +331,7 @@ class CompleteCommandTest
 
         assertNull(Complete.getPendingCompletion(player), "nothing left waiting, and no gate called -cancel");
         verify(player).sendMessage(contains("Gate completion cancelled."));
-        verify(player).sendMessage(contains("'/wormhole gate complete -cancel'"));
+        verify(player).sendMessage(plainContains("Run /wormhole gate complete -cancel to cancel."));
     }
 
     /** -help gives the usage, and makes nothing; help is a name like any other. */
@@ -342,7 +343,7 @@ class CompleteCommandTest
         new Complete().onCommand(player, null, "wormhole", new String[] { "-help" });
 
         assertNull(Complete.getPendingCompletion(player));
-        verify(player).sendMessage(contains("Usage: /wormhole complete <name>"));
+        verify(player).sendMessage(plainContains("Usage: /wormhole complete <name>"));
 
         new Complete().onCommand(player, null, "wormhole", new String[] { "help" });
         assertEquals("help", Complete.getPendingCompletion(player)[0], "a gate called help, waiting for its DHD");
@@ -358,6 +359,6 @@ class CompleteCommandTest
         new Complete().onCommand(player, null, "wormhole", new String[] { "-gate" });
 
         assertNull(Complete.getPendingCompletion(player));
-        verify(player).sendMessage(contains("cannot start with '-'"));
+        verify(player).sendMessage(plainContains("cannot start with -;"));
     }
 }

@@ -5,10 +5,10 @@ import java.util.Locale;
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * {@code /wormhole gate shapes <reload|validate> [name]} -- checking and reloading a shape
@@ -42,7 +42,7 @@ public class GateShapesCommand implements SubCommand
         // args: [0]=gate [1]=shapes [2]=<reload|validate> [3]=name (optional for reload)
         if (args.length < 3)
         {
-            sender.sendMessage("/wormhole gate shapes <reload [name]|validate <name>>");
+            sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes reload|validate [name]")));
             return true;
         }
 
@@ -58,14 +58,15 @@ public class GateShapesCommand implements SubCommand
         {
             if (name == null)
             {
-                sender.sendMessage("/wormhole gate shapes validate <name>");
+                sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes validate <name>")));
                 return true;
             }
             report(sender, name, StargateShapeRegistry.validateShapeFile(fileName(name)), false);
             return true;
         }
 
-        sender.sendMessage("No such shapes command: " + action + ". Try reload or validate.");
+        sender.sendMessage(ChatText.error("No such shapes command: " + ChatText.command(action) + ". Try "
+            + ChatText.command("reload") + " or " + ChatText.command("validate") + "."));
         return true;
     }
 
@@ -74,8 +75,7 @@ public class GateShapesCommand implements SubCommand
         if (name == null)
         {
             StargateShapeRegistry.reloadAllShapes();
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Reloaded every shape in the shapes/gate directory.");
+            sender.sendMessage(ChatText.info("Reloaded every shape in the shapes/gate directory."));
             return;
         }
         report(sender, name, StargateShapeRegistry.reloadShapeFile(fileName(name)), true);
@@ -96,18 +96,17 @@ public class GateShapesCommand implements SubCommand
     {
         if (result.isValid())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + fileName(name) + ": OK" + (wasReload ? " -- loaded as \"" + result.getShapeName() + "\"." : "."));
+            sender.sendMessage(ChatText.info(ChatText.name(fileName(name)) + ": " + ChatText.good("OK")
+                + (wasReload ? ", loaded as " + ChatText.name(result.getShapeName()) + "." : ".")));
             return;
         }
 
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + fileName(name) + ": " + result.getProblems().size() + " problem"
-            + (result.getProblems().size() == 1 ? "" : "s") + " found"
-            + (wasReload ? " -- the previously loaded version is unchanged." : "."));
+        sender.sendMessage(ChatText.error(ChatText.name(fileName(name)) + ": "
+            + ChatText.bad(result.getProblems().size() + " problem" + (result.getProblems().size() == 1 ? "" : "s"))
+            + " found" + (wasReload ? "; the version loaded before is unchanged." : ".")));
         for (final String problem : result.getProblems())
         {
-            sender.sendMessage("  - " + problem);
+            sender.sendMessage(ChatText.info("  - " + problem));
         }
     }
 }

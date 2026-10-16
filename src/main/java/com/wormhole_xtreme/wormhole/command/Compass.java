@@ -16,6 +16,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class Compass.
@@ -55,9 +56,8 @@ public class Compass implements CommandExecutor
                     return;
                 }
             }
-            player.sendMessage("You have no ordinary compass, so nothing you are carrying will "
-                + "show this. The heading is set and waiting -- a plain compass will point at "
-                + "it. Lodestone and recovery compasses follow their own targets instead.");
+            player.sendMessage(ChatText.info("Carry a plain " + ChatText.material("compass")
+                + " to see it; lodestone and recovery compasses follow their own targets."));
         }
         catch (final RuntimeException ignored)
         {
@@ -103,8 +103,7 @@ public class Compass implements CommandExecutor
     private static boolean resetCompass(final Player player)
     {
         player.setCompassTarget(player.getWorld().getSpawnLocation());
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Compass back to normal -- it points at world spawn again.");
+        player.sendMessage(ChatText.info("Compass back to normal: it points at world spawn again."));
         warnIfNothingWillShowIt(player);
         return true;
     }
@@ -135,12 +134,12 @@ public class Compass implements CommandExecutor
             if (closest != null)
             {
                 player.setCompassTarget(closest.getGatePlayerTeleportLocation());
-                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Compass set to wormhole: " + closest.getGateName());
+                player.sendMessage(ChatText.info("Compass set to wormhole " + ChatText.name(closest.getGateName()) + "."));
                 warnIfNothingWillShowIt(player);
             }
             else
             {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No wormholes to track!");
+                player.sendMessage(ChatText.error("No wormholes to track."));
             }
         }
         else

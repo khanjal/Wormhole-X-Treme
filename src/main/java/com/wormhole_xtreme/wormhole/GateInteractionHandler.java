@@ -327,7 +327,7 @@ public final class GateInteractionHandler
             Stargate found = detectAnyFacing(clickedBlock, resolveClickDirection(clickedBlock, direction));
             if (found == null)
             {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate detected at clicked block. Try clicking the DHD button/lever again.");
+                player.sendMessage(ChatText.error("No gate detected at the clicked block. Click the DHD's button or lever again."));
                 logDetectionDiagnostics(player, clickedBlock);
                 return true;
             }
@@ -341,7 +341,7 @@ public final class GateInteractionHandler
             // a DHD that answered with silence.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Interactive /wormhole complete failed for " + player.getName(), e);
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Completing the gate failed. Check server logs.");
+            player.sendMessage(ChatText.error("Completing the gate failed. Check server logs."));
             Complete.removePendingCompletion(player);
         }
         return true;
@@ -399,7 +399,7 @@ public final class GateInteractionHandler
         }
         StargateManager.addIncompleteStargate(player, found);
         Complete.completeAndCharge(player, pending[0], pending[1], pending[2],
-            "Construction Failed after interactive detection. Check server log.", null);
+            "Completing the gate failed after it was detected. Check the server log.", null);
     }
 
     /** Reports what is around the clicked block when detection found nothing. */
@@ -560,21 +560,22 @@ public final class GateInteractionHandler
 
         if (activator == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate deactivated.");
+            player.sendMessage(ChatText.info("Gate deactivated."));
             return;
         }
 
         try
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate deactivated (was activated by: " + activator.getName() + ").");
+            player.sendMessage(ChatText.info("Gate deactivated; " + ChatText.name(activator.getName()) + " had activated it."));
             if (activator.isOnline())
             {
-                activator.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Your pending gate activation was force-cleared by: " + player.getName());
+                activator.sendMessage(ChatText.info("Your pending gate activation was cleared by "
+                    + ChatText.name(player.getName()) + "."));
             }
         }
         catch (final Exception e)
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate deactivated.");
+            player.sendMessage(ChatText.info("Gate deactivated."));
         }
     }
 
@@ -622,7 +623,7 @@ public final class GateInteractionHandler
 
         if (stargate.dialStargate(target, false))
         {
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Stargates connected!");
+            player.sendMessage(ChatText.info("Stargates connected!"));
             return true;
         }
         player.sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
@@ -643,8 +644,7 @@ public final class GateInteractionHandler
         //Activate Stargate
         player.sendMessage(ConfigManager.MessageStrings.GATE_ACTIVATED.toString());
         player.sendMessage(ChatText.info("Chevrons locked."));
-        player.sendMessage(ChatText.info("Type " + ChatText.command("/dial") + " " + ChatText.name("<gatename>")
-            + " [idc] to dial."));
+        player.sendMessage(ChatText.info("Type " + ChatText.usageBody("/dial <gate> [idc]") + " to dial."));
         StargateManager.addActivatedStargate(player, stargate);
         stargate.startActivationTimer(player);
         stargate.lightAllChevrons();

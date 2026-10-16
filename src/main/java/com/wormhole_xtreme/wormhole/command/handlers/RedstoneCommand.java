@@ -4,20 +4,19 @@ import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Handler for '/wormhole redstone'
  */
 public class RedstoneCommand implements SubCommand
 {
-    private static final String USAGE = "Command: /wormhole redstone [stargate] <boolean>";
-    private static final String VALID_OPTIONS = "Valid boolean options are: true and false";
+    private static final String USAGE = "/wormhole redstone <gate> [true|false]";
 
 
     // Bukkit reads the boolean as "handled"; every path here has handled it.
@@ -46,7 +45,7 @@ public class RedstoneCommand implements SubCommand
             : null;
         if (stargate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
             sendUsage(sender);
             return true;
         }
@@ -54,7 +53,8 @@ public class RedstoneCommand implements SubCommand
         if (args.length == 2)
         {
             reportWiring(sender, args[1], stargate);
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + VALID_OPTIONS);
+            sender.sendMessage(ChatText.info("Change it with " + ChatText.command("true") + " or "
+                + ChatText.command("false") + "."));
             return true;
         }
 
@@ -74,8 +74,8 @@ public class RedstoneCommand implements SubCommand
      */
     private static void reportWiring(final CommandSender sender, final String name, final Stargate stargate)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + name + " is redstone powered: " + stargate.isGateRedstonePowered());
+        sender.sendMessage(ChatText.info(ChatText.name(name) + " is redstone powered: "
+            + ChatText.value(String.valueOf(stargate.isGateRedstonePowered())) + "."));
     }
 
     /**
@@ -99,7 +99,8 @@ public class RedstoneCommand implements SubCommand
     {
         if (!CommandUtilities.isBoolean(value))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid boolean option: " + value);
+            sender.sendMessage(ChatText.error("Redstone power is " + ChatText.command("true") + " or "
+                + ChatText.command("false") + ", not " + ChatText.command(value) + "."));
             sendUsage(sender);
             return;
         }
@@ -110,15 +111,14 @@ public class RedstoneCommand implements SubCommand
     }
 
     /**
-     * The two lines every refusal ends with.
+     * The usage line every refusal ends with.
      *
      * @param sender
      *            who asked
      */
     private static void sendUsage(final CommandSender sender)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_OPTIONS);
+        sender.sendMessage(ChatText.info(ChatText.usage(USAGE)));
     }
 
 }

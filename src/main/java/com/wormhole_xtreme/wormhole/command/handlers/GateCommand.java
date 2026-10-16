@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
 
@@ -18,7 +19,6 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.command.WXList;
 import com.wormhole_xtreme.wormhole.command.WXRemove;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
@@ -82,7 +82,7 @@ public class GateCommand implements SubCommand
         // rather than letting the dispatcher say gate's, or Bukkit plugin.yml's (#325).
         if (!dispatch(sender, args, verb) && USAGES.containsKey(verb))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + ChatText.usage(USAGES.get(verb)));
+            sender.sendMessage(ChatText.info(ChatText.usage(USAGES.get(verb))));
         }
         return true;
     }
@@ -136,8 +136,7 @@ public class GateCommand implements SubCommand
     /** {@code /wormhole gate} alone: the verbs, grouped by job. */
     private static void sendVerbList(final CommandSender sender)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + ChatText.usage("/wormhole gate <verb> ..."));
+        sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate <verb> ...")));
         for (final String[] job : JOBS)
         {
             final List<String> verbs = new ArrayList<>();
@@ -145,7 +144,7 @@ public class GateCommand implements SubCommand
             {
                 verbs.add(ChatText.command(job[i]));
             }
-            sender.sendMessage("  " + ChatText.heading(job[0] + ":") + " " + String.join(", ", verbs));
+            sender.sendMessage(ChatText.info("  " + ChatText.heading(job[0] + ":") + " " + String.join(", ", verbs)));
         }
     }
 
@@ -241,8 +240,8 @@ public class GateCommand implements SubCommand
             return new Force().onCommand(sender, null, verb, rest);
         }
 
-        sender.sendMessage("No such gate command: " + args[1] + ". Try one of: "
-            + String.join(", ", VERBS) + ".");
+        sender.sendMessage(ChatText.error("No such gate command: " + ChatText.command(args[1]) + ". Try one of: "
+            + VERBS.stream().map(ChatText::command).collect(Collectors.joining(", ")) + "."));
         return true;
     }
 
@@ -269,19 +268,19 @@ public class GateCommand implements SubCommand
             LegacyDatabaseImporter.importGates();
         if (result.getProblem() != null)
         {
-            sender.sendMessage(result.getProblem());
+            sender.sendMessage(ChatText.error(result.getProblem()));
             return;
         }
-        sender.sendMessage("Imported " + result.getImported() + " gate"
-            + (result.getImported() == 1 ? "" : "s") + ". The old database is untouched.");
+        sender.sendMessage(ChatText.info("Imported " + ChatText.value(String.valueOf(result.getImported())) + " gate"
+            + (result.getImported() == 1 ? "" : "s") + ". The old database is untouched."));
         if (result.getMovedExits() > 0)
         {
-            sender.sendMessage(result.getMovedExits() + " of those had an arrival point old "
-                + "enough to sit inside the portal, and were moved clear of it.");
+            sender.sendMessage(ChatText.info(ChatText.value(String.valueOf(result.getMovedExits()))
+                + " of those had an arrival point inside the portal, and were moved clear of it."));
         }
         for (final String skipped : result.getSkipped())
         {
-            sender.sendMessage("  skipped " + skipped);
+            sender.sendMessage(ChatText.info("  " + ChatText.bad("skipped") + " " + skipped));
         }
     }
 }

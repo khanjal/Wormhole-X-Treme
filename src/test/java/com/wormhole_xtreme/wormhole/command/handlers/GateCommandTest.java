@@ -1,9 +1,9 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -92,8 +92,8 @@ class GateCommandTest
     {
         assertTrue(run("gate", "teleport"));
 
-        verify(sender).sendMessage(contains("No such gate command: teleport"));
-        verify(sender).sendMessage(contains("Try one of:"));
+        verify(sender).sendMessage(plainContains("No such gate command: teleport"));
+        verify(sender).sendMessage(plainContains("Try one of:"));
     }
 
     /**
@@ -107,7 +107,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "edit", "alpha", "bogusfield"));
 
-        verify(sender).sendMessage(contains("No such field: bogusfield"));
+        verify(sender).sendMessage(plainContains("No field called bogusfield."));
     }
 
     /** {@code shapes} takes the same unrebuilt shape {@code edit} does. */
@@ -116,7 +116,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "shapes", "bogusaction"));
 
-        verify(sender).sendMessage(contains("No such shapes command: bogusaction"));
+        verify(sender).sendMessage(plainContains("No such shapes command: bogusaction"));
     }
 
     /**
@@ -129,7 +129,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "regenerate", "nowhere"));
 
-        verify(sender).sendMessage(contains("nowhere"));
+        verify(sender).sendMessage(plainContains("nowhere"));
     }
 
     /** The {@code regen} alias reaches the same handler, rebuilt the same way. */
@@ -138,7 +138,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "regen"), "answered here, so Bukkit's usage block does not follow");
 
-        verify(sender).sendMessage(contains("No gate name specified"));
+        verify(sender).sendMessage(plainContains("No gate name specified"));
         verify(sender).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Usage: /wormhole gate regen <gate|-all>")));
     }
 
@@ -158,7 +158,7 @@ class GateCommandTest
 
         assertEquals(run("gate", "complete", "Home"), aliased,
             "create is complete under another name, so the router must answer identically");
-        verify(sender, never()).sendMessage(contains("No such gate command"));
+        verify(sender, never()).sendMessage(plainContains("No such gate command"));
     }
 
     /**
@@ -172,7 +172,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "validate", "nowhere"));
 
-        verify(sender).sendMessage(contains("nowhere"));
+        verify(sender).sendMessage(plainContains("nowhere"));
     }
 
     /** With nothing after the verb, validate's own rebuilt array is still a valid one. */
@@ -181,7 +181,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "validate"));
 
-        verify(sender).sendMessage(contains("No gate name specified"));
+        verify(sender).sendMessage(plainContains("No gate name specified"));
         verify(sender).sendMessage(ArgumentMatchers.<String>argThat((String s) -> ChatText.plain(s).contains("Usage: /wormhole gate validate <gate|-all>")));
     }
 
@@ -200,7 +200,7 @@ class GateCommandTest
     {
         assertTrue(run("gate", "remove", "ghost"));
 
-        verify(sender).sendMessage(contains("Gate does not exist: ghost"));
+        verify(sender).sendMessage(plainContains("No gate called ghost."));
     }
 
     /** Import was written with no permission check at all; this is the fix, not a re-check. */
@@ -215,6 +215,6 @@ class GateCommandTest
 
         assertTrue(new GateCommand().execute(player, new String[] {"gate", "import"}));
 
-        verify(player).sendMessage(contains("ermission"));
+        verify(player).sendMessage(plainContains("ermission"));
     }
 }

@@ -30,6 +30,15 @@ const LOG_LINE = /^\[(\d\d:\d\d:\d\d) (INFO|WARN|ERROR|DEBUG)\]: ?(.*)$/;
 // replies that matter here carry no prefix.
 const ASYNC_NOISE = /^\*+$|You are running the latest build|release\(s\) behind|recommended that you update|papermc\.io\/downloads|You are running a development version|Download the new version|Can't keep up! Is the server overloaded\?|^\[PaperVersionFetcher\] |Error obtaining version information|^\[(BlueMap|squaremap|Pl3xMap)\] /;
 
+// The plugin opens each line it sends with `:: ` or `:: error :: `, coloured (#438). A reader of a
+// console command's output wants the words, so run() takes the colour codes and that header off.
+const PLUGIN_HEADER = /^:: (?:error :: )?/;
+
+/** A console line as its reader wants it: no colour codes, and no plugin header. */
+function plainLine(text) {
+  return text.replace(/\u00a7./g, '').replace(PLUGIN_HEADER, '');
+}
+
 /** Gamerule names: camelCase before 1.21.11, snake_case from it. Only one form is ever sent. */
 const GAMERULES = {
   daylight: ['doDaylightCycle', 'advance_time'],
@@ -570,7 +579,7 @@ class Server extends EventEmitter {
     // A player's chat line can land between a command and its fence; it is not the command's.
     const own = lines.filter((l) => !l.includes(holder) && !CHAT.test(l)).map((l) => {
       const m = LOG_LINE.exec(l);
-      return m ? { level: m[2], text: m[3] } : { level: 'INFO', text: l };
+      return m ? { level: m[2], text: plainLine(m[3]) } : { level: 'INFO', text: plainLine(l) };
     }).filter((l) => !ASYNC_NOISE.test(l.text));
     const errors = own.filter((l) => l.level === 'WARN' || l.level === 'ERROR' || COMMAND_ERROR.test(l.text));
     return { lines: own.map((l) => l.text), errors: errors.map((l) => l.text) };

@@ -6,12 +6,13 @@ import java.util.stream.IntStream;
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Handler for '/wormhole wooshdepth'
@@ -26,10 +27,11 @@ public class WooshDepthCommand implements SubCommand
     private static final int MAX_DEPTH = 5;
 
     /** Said with the usage line every time the command is refused for its shape. */
-    private static final String VALID_RANGE = "Valid depth: " + MIN_DEPTH + " - " + MAX_DEPTH;
+    private static final String VALID_RANGE = ChatText.info("Depth is " + ChatText.value(String.valueOf(MIN_DEPTH))
+        + " to " + ChatText.value(String.valueOf(MAX_DEPTH)) + ".");
 
     /** Said whenever the words given do not name a gate and a depth. */
-    private static final String USAGE = "Command: /wormhole wooshdepth [stargate] <depth>";
+    private static final String USAGE = ChatText.info(ChatText.usage("/wormhole wooshdepth <gate> [depth]"));
 
     /**
      * The depths this command accepts, for tab completion.
@@ -66,14 +68,14 @@ public class WooshDepthCommand implements SubCommand
         final Stargate stargate = StargateManager.getStargate(args[1]);
         if (stargate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
             sendUsage(sender);
             return true;
         }
         if (!stargate.isGateCustom())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Stargate is not in custom mode. Set it with the '/wormhole custom' command");
+            sender.sendMessage(ChatText.error(ChatText.name(stargate.getGateName()) + " is not in custom mode. Turn it on with "
+                + ChatText.command("/wormhole custom " + stargate.getGateName() + " true") + "."));
             return true;
         }
 
@@ -97,8 +99,8 @@ public class WooshDepthCommand implements SubCommand
      */
     private static void sendUsage(final CommandSender sender)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_RANGE);
+        sender.sendMessage(USAGE);
+        sender.sendMessage(VALID_RANGE);
     }
 
     /**
@@ -113,9 +115,9 @@ public class WooshDepthCommand implements SubCommand
      */
     private static void reportDepth(final CommandSender sender, final String name, final Stargate stargate)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + name + " woosh depth is currently: " + stargate.getGateCustomWooshDepth());
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + VALID_RANGE);
+        sender.sendMessage(ChatText.info(ChatText.name(name) + " woosh depth is currently: "
+            + ChatText.value(String.valueOf(stargate.getGateCustomWooshDepth())) + "."));
+        sender.sendMessage(VALID_RANGE);
         warnIfShapeOwnsTheWaves(sender, stargate);
     }
 
@@ -156,8 +158,8 @@ public class WooshDepthCommand implements SubCommand
         // Kept alongside so the animation does not square it per block.
         stargate.setGateCustomWooshDepthSquared(wooshDepth * wooshDepth);
         StargateDBManager.saveStargate(stargate);
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + name + " woosh depth set to: " + stargate.getGateCustomWooshDepth());
+        sender.sendMessage(ChatText.info(ChatText.name(name) + " woosh depth set to: "
+            + ChatText.value(String.valueOf(stargate.getGateCustomWooshDepth())) + "."));
         warnIfShapeOwnsTheWaves(sender, stargate);
     }
 
@@ -171,8 +173,8 @@ public class WooshDepthCommand implements SubCommand
      */
     private static void rejectDepth(final CommandSender sender, final String typed)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid woosh depth: " + typed);
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + VALID_RANGE);
+        sender.sendMessage(ChatText.error("Invalid woosh depth: " + ChatText.command(typed) + "."));
+        sender.sendMessage(VALID_RANGE);
     }
 
     /**
@@ -192,9 +194,8 @@ public class WooshDepthCommand implements SubCommand
     {
         if ((stargate.getGateWooshBlocks() != null) && !stargate.getGateWooshBlocks().isEmpty())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Note: this gate's shape defines its own woosh waves, so depth will not change "
-                + "how it looks -- it still sets how far protection reaches from the gate.");
+            sender.sendMessage(ChatText.info("This gate's shape draws its own woosh, so depth sets only how far its "
+                + "protection reaches."));
         }
     }
 

@@ -7,7 +7,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * /wormhole refresh — puts the player in refresh mode.
@@ -58,7 +58,7 @@ public class Refresh implements CommandExecutor
     {
         if (!(sender instanceof Player))
         {
-            sender.sendMessage("This command can only be used by a player.");
+            sender.sendMessage(ChatText.error("Only a player can do that: it waits for a click on a DHD."));
             return true;
         }
         final Player player = (Player) sender;
@@ -67,8 +67,7 @@ public class Refresh implements CommandExecutor
             return true;
         }
         addPendingRefresh(player);
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Click the DHD of the gate to regenerate it.");
+        player.sendMessage(ChatText.info("Click the DHD of the gate to regenerate it."));
         return true;
     }
 }

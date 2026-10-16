@@ -64,8 +64,8 @@ function checks(obs) {
     throw new Error(`told: ${t(k) || 'nothing'}`);
   });
   // GO is denied a non-op, and the name is then looked up as a beam destination.
-  const noGo = c(`go is no gate to a non-op: "No gate or beam destination named: ${GATE}"`, () => {
-    if (t('go').includes(`No gate or beam destination named: ${GATE}`)) return true;
+  const noGo = c(`go is no gate to a non-op: "No gate or beam destination called ${GATE}."`, () => {
+    if (t('go').includes(`No gate or beam destination called ${GATE}.`)) return true;
     throw new Error(`told: ${t('go') || 'nothing'}`);
   });
   return [

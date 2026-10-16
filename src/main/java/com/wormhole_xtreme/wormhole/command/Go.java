@@ -7,13 +7,13 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamAnimation;
 import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class Go.
@@ -78,8 +78,7 @@ public class Go implements CommandExecutor
             return true;
         }
 
-        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "No gate or beam destination named: " + args[0]);
+        player.sendMessage(ChatText.error("No gate or beam destination called " + ChatText.name(args[0]) + "."));
         return true;
     }
 

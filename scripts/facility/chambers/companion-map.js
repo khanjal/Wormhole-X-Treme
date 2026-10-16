@@ -631,7 +631,7 @@ function checksJson(ctx, o) {
           && (line.points || []).some((p) => at({ ...p, y: null }, centre, 1)) && (line.points || []).some((p) => at({ ...p, y: null }, GATES.MapB.centre, 1)))];
       if (o.case === 'dial') list.push(c('shut: both idle and the line gone', () => obs.shut && obs.shut.ok));
       else {
-        list.push(c('removed: "Wormhole Removed: MapA"', () => /Wormhole Removed: MapA/.test(obs.removed || '')),
+        list.push(c('removed: "Removed MapA."', () => /Removed MapA\./.test(obs.removed || '')),
           c('its point, its area and the line are gone, MapB still drawn', () => obs.gone && obs.gone.ok));
       }
       return list;
@@ -690,7 +690,7 @@ function checksJson(ctx, o) {
       const h = obs.held || {};
       const labels = (layer) => (s ? inLayer(s.s, layer, 'points').map((m) => (m.label || '').toLowerCase()) : null);
       return [built,
-        c('MapB was removed before the stop', () => /Wormhole Removed: MapB/.test(obs.removedB || '')),
+        c('MapB was removed before the stop', () => /Removed MapB\./.test(obs.removedB || '')),
         c('after the restart, every gate the plugin holds is drawn once, and nothing else', () => same(labels(L.gates), h.gates)),
         c('MapB is not among them', () => s && !s.gate('MapB').length),
         c('every ring end is drawn once', () => s && inLayer(s.s, L.rings, 'points').length === (h.rings || []).length),
@@ -741,7 +741,7 @@ function checks(ctx, o) {
       if (o.case === 'dial') {
         list.push(c('shut: both idle and the line gone', () => obs.shut && obs.shut.ok));
       } else {
-        list.push(c('removed: "Wormhole Removed: MapA"', () => /Wormhole Removed: MapA/.test(obs.removed || '')),
+        list.push(c('removed: "Removed MapA."', () => /Removed MapA\./.test(obs.removed || '')),
           c('its point, its area and the line are gone', () => obs.gone && obs.gone.ok));
       }
       return list;
@@ -755,7 +755,7 @@ function checks(ctx, o) {
     }
     case 'rename':
       return [built,
-        c('the gate was renamed', () => !/No such field/.test(obs.rename || '')),
+        c('the gate was renamed', () => !/No field called/.test(obs.rename || '')),
         c('its point is labelled MapZ, and nothing is left under MapA', () => obs.after && obs.after.ok)];
     case 'escaped':
       return [built,
@@ -804,7 +804,7 @@ function checks(ctx, o) {
       const s = obs.after || {};
       const h = obs.held || {};
       return [built,
-        c('MapB was removed before the stop', () => /Wormhole Removed: MapB/.test(obs.removedB || '')),
+        c('MapB was removed before the stop', () => /Removed MapB\./.test(obs.removedB || '')),
         c('after the restart, every gate the plugin holds is drawn once, and nothing else', () => s.gates && same(Object.keys(s.gates), h.gates)),
         c('MapB is not among them', () => s.gates && !s.gates.mapb),
         c('every ring end likewise', () => s.rings && same(Object.keys(s.rings), h.rings)),

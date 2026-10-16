@@ -9,11 +9,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * WormholeXTreme Commands and command specific methods.
@@ -303,8 +303,24 @@ public class CommandUtilities
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing command", t);
             // Everyone is told the same thing, console included: the failure is logged
             // server-side, and neither a player nor an operator can act on more than that.
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
+            sender.sendMessage(INTERNAL_ERROR);
             return true;
         }
+    }
+
+    /** What a command that threw tells whoever ran it. */
+    public static final String INTERNAL_ERROR = ChatText.error("An internal error occurred. Check server logs.");
+
+    /**
+     * The refusal for a gate name that matches no gate.
+     *
+     * @param name
+     *            the name as typed
+     * @return an error line naming it, and where to find the names there are
+     */
+    public static String noGateCalled(final String name)
+    {
+        return ChatText.error("No gate called " + ChatText.name(name) + ". " + ChatText.command("/wormhole list")
+            + " shows them.");
     }
 }

@@ -31,6 +31,20 @@ public final class ChatMatchers
         return ArgumentMatchers.argThat((String line) -> (line != null) && text.equals(body(line)));
     }
 
+    /** @return {@link #plainBody}, for a line under the {@code :: } header only, not the error one */
+    public static String infoBody(final String text)
+    {
+        return ArgumentMatchers.argThat((String line) -> (line != null) && line.startsWith(ChatText.HEADER)
+            && text.equals(body(line)));
+    }
+
+    /** @return {@link #plainBody}, for a line under the {@code :: error ::} header only */
+    public static String errorBody(final String text)
+    {
+        return ArgumentMatchers.argThat((String line) -> (line != null) && line.startsWith(ChatText.ERROR_HEADER)
+            && text.equals(body(line)));
+    }
+
     /** @return the plain text of a line after its header, or null if it has none */
     public static String body(final String line)
     {

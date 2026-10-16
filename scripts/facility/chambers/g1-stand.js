@@ -110,9 +110,9 @@ function buildGroup(o) {
   return o.shape === 'custom' ? 'Diamond' : null;
 }
 const EXPECTED_REFUSAL = {
-  self: /Can't dial own gate without solar flare/,
+  self: /A gate cannot dial itself\./,
   busy: /Target gate is currently active\./,
-  'shut no code': /Remote Iris is active; provide the IDC to unlock\./,
+  'shut no code': /Remote Iris is active\. Dial again with its IDC after the gate's name\./,
 };
 
 /** What a combination cannot be, with the reason; the self-test expects REFUSED:<reason>. */
@@ -461,7 +461,7 @@ async function runTrip(ctx, o) {
     await probe.press(geom.button);
     await until(async () => /Gate successfully activated/.test(chatSince(ctx, mark)), 3000);
     probe.bot.chat(`/dial ${target}${idc ? ` ${idc}` : ''}`);
-    await until(async () => /Stargates connected|Target gate|solar flare|Remote Iris is active|Invalid gate/.test(chatSince(ctx, mark)), 5000);
+    await until(async () => /Stargates connected|Target gate|cannot dial itself|Remote Iris is active|No gate called|Invalid gate/.test(chatSince(ctx, mark)), 5000);
     obs.dial = chatSince(ctx, mark);
     await probe.teleport(start, O);
   } else {
@@ -534,7 +534,7 @@ async function dialBySign(ctx, o, geom, target) {
     obs.dial = 'a lever by [RD] pulled';
   } else {
     await probe.press(geom.button);
-    await until(async () => /Stargates connected|Invalid gate target|remotely activated|lack the permissions/.test(chatSince(ctx, mark)), 4000);
+    await until(async () => /Stargates connected|Invalid gate target|No gate called|remotely activated|lack the permissions/.test(chatSince(ctx, mark)), 4000);
     obs.dial = chatSince(ctx, mark);
   }
   await probe.teleport(front(geom, 8), O);

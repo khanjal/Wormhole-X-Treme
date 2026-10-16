@@ -15,6 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.command.Complete;
 import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.command.Dial;
@@ -31,6 +32,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Building and dialling gates by name and coordinates, with nobody standing there.
@@ -50,6 +52,10 @@ public final class GateConsoleCommands
         "/wormhole gate build <shape> <name> <world> <x> <y> <z> <facing> [net=NET] [idc=IDC]";
 
     static final String DIAL_USAGE = "/wormhole gate dial <from> <to> [idc]";
+
+    /** Why four or more words that are not the coordinate form are refused; the usage line follows it. */
+    static final String NOT_COORDINATES = "Those words are not a gate to build at coordinates: give whole numbers or ~ for "
+        + "x y z, then a facing.";
 
     private GateConsoleCommands()
     {
@@ -85,11 +91,14 @@ public final class GateConsoleCommands
         {
             return;
         }
-        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
         final String refused = whyNotBuildable(sender, rest);
         if (refused != null)
         {
-            sender.sendMessage(error + refused);
+            sender.sendMessage(ChatText.error(refused));
+            if (!isCoordinateBuild(rest))
+            {
+                sender.sendMessage(ChatText.info(ChatText.usage(BUILD_USAGE)));
+            }
             return;
         }
         // A player needs build rights on the network as well, as completing a gate asks; the console
@@ -107,13 +116,13 @@ public final class GateConsoleCommands
         final GateGrid grid = GateGrid.fromActivationHolder(shape, at[0], at[1], at[2], facing);
         if (grid == null)
         {
-            sender.sendMessage(error + rest[0] + " has no DHD to build it from.");
+            sender.sendMessage(ChatText.error(ChatText.name(rest[0]) + " has no DHD to build it from."));
             return;
         }
         if (GateBlueprint.of(shape, grid).stream().anyMatch(cell -> cell.part() == GateBlueprint.Part.DIAL_SIGN))
         {
-            sender.sendMessage(error + rest[0] + " dials by sign, and a sign cannot be placed for it here. Build a"
-                + " shape with a DHD button.");
+            sender.sendMessage(ChatText.error(ChatText.name(rest[0]) + " dials by sign, and a sign cannot be placed for it"
+                + " here. Build a shape with a DHD button."));
             return;
         }
         MaterialGroup group = MaterialGroupRegistry.getDefaultGroup();
@@ -125,7 +134,7 @@ public final class GateConsoleCommands
         final String outOfHeight = outsideHeight(world, cellsOf(shape, grid));
         if (outOfHeight != null)
         {
-            sender.sendMessage(error + "Not built: " + outOfHeight);
+            sender.sendMessage(ChatText.error("Not built: " + outOfHeight));
             return;
         }
         // A player is held to the regions it would stand in, as building it by hand would be.
@@ -139,17 +148,17 @@ public final class GateConsoleCommands
         final GatePreviews.Placed placed = GatePreviews.placeAt(world, shape, group, grid);
         if (placed.outcome() != GatePreviews.Outcome.PLACED)
         {
-            sender.sendMessage(error + "Not built: " + why(placed));
+            sender.sendMessage(ChatText.error("Not built: " + why(placed)));
             return;
         }
         // A preview anyone had standing there is now built; take it down, as a DHD press does.
         GatePreviews.builtAt(world, placed.button().getX(), placed.button().getY(), placed.button().getZ());
         StargateManager.completeStargate(placed.gate(), null, rest[1], options[0], options[1]);
         // Where to drop something through it and where it comes out, for whoever is scripting this.
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Built " + rest[1] + " at "
-            + at[0] + " " + at[1] + " " + at[2] + " in " + world.getName() + ". Opening centred on "
-            + openingCentre(placed.gate()) + "; arrivals at " + where(placed.gate().getGatePlayerTeleportLocation())
-            + ".");
+        sender.sendMessage(ChatText.info("Built " + ChatText.name(rest[1]) + " at "
+            + ChatText.value(at[0] + " " + at[1] + " " + at[2]) + " in " + ChatText.name(world.getName())
+            + ". Opening centred on " + ChatText.value(openingCentre(placed.gate())) + "; arrivals at "
+            + ChatText.value(where(placed.gate().getGatePlayerTeleportLocation())) + "."));
     }
 
     /** The middle of a gate's opening, block centres averaged, as "x y z" to one decimal. */
@@ -196,27 +205,25 @@ public final class GateConsoleCommands
         }
         if ((rest.length < 2) || (rest.length > 3))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Usage: " + DIAL_USAGE);
+            sender.sendMessage(ChatText.info(ChatText.usage(DIAL_USAGE)));
             return;
         }
         final Stargate start = StargateManager.getStargate(rest[0]);
         if (start == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate called " + rest[0] + ".");
+            sender.sendMessage(CommandUtilities.noGateCalled(rest[0]));
             return;
         }
         // A refused dial puts the start gate out, which would cut off a connection it already has.
         if (start.isGateActive() || (start.getGateTarget() != null))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + start.getGateName()
-                + " is already open.");
+            sender.sendMessage(ChatText.error(ChatText.name(start.getGateName()) + " is already open."));
             return;
         }
         // Its DHD pressed by a player who has not dialled yet: their /dial would find it taken and shut it.
         if (start.isGateLightsActive())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + start.getGateName()
-                + " is being dialled.");
+            sender.sendMessage(ChatText.error(ChatText.name(start.getGateName()) + " is being dialled."));
             return;
         }
         // A player needs the right to dial from that gate, as /dial asks.
@@ -275,44 +282,46 @@ public final class GateConsoleCommands
         {
             if (cell.y() < world.getMinHeight())
             {
-                return "part of it would be below the world's floor at " + world.getMinHeight() + ".";
+                return "part of it would be below the world's floor at " + ChatText.value(String.valueOf(world.getMinHeight()))
+                    + ".";
             }
             if (cell.y() >= world.getMaxHeight())
             {
-                return "part of it would be above the world's build height of " + world.getMaxHeight() + ".";
+                return "part of it would be above the world's build height of "
+                    + ChatText.value(String.valueOf(world.getMaxHeight())) + ".";
             }
         }
         return null;
     }
 
-    /** What is wrong with the line, before the world is looked at for room; null if nothing. */
+    /** What is wrong with the line, before the world is looked at for room, as an error body; null if nothing. */
     static String whyNotBuildable(final CommandSender sender, final String[] rest)
     {
         if (!isCoordinateBuild(rest))
         {
-            return "Usage: " + BUILD_USAGE;
+            return NOT_COORDINATES;
         }
         if (!StargateShapeRegistry.isStargateShape(rest[0]))
         {
-            return "No shape called " + rest[0] + ".";
+            return "No shape called " + ChatText.name(rest[0]) + ".";
         }
         if (!(StargateShapeRegistry.getStargateShape(rest[0]) instanceof Stargate3DShape))
         {
-            return rest[0] + " is a flat shape; only a 3D shape can be built from coordinates.";
+            return ChatText.name(rest[0]) + " is a flat shape; only a 3D shape can be built from coordinates.";
         }
         final String badName = Complete.whyNotAName(rest[1]);
         if (badName != null)
         {
-            return badName.replace(ConfigManager.MessageStrings.ERROR_HEADER.toString(), "");
+            return badName;
         }
         if (StargateManager.getStargate(rest[1]) != null)
         {
-            return "A gate called " + rest[1] + " is already here.";
+            return "A gate called " + ChatText.name(rest[1]) + " is already here.";
         }
         final World world = Bukkit.getWorld(rest[2]);
         if (world == null)
         {
-            return "No world called " + rest[2] + " is loaded.";
+            return "No world called " + ChatText.name(rest[2]) + " is loaded.";
         }
         final String unreadable = Coordinates.whyNotReadable(sender, world, rest[3], rest[4], rest[5]);
         if (unreadable != null)
@@ -322,13 +331,15 @@ public final class GateConsoleCommands
         final String face = rest[6].toUpperCase(Locale.ROOT);
         if (!("NORTH".equals(face) || "SOUTH".equals(face) || "EAST".equals(face) || "WEST".equals(face)))
         {
-            return "Facing must be north, south, east or west, not " + rest[6] + ".";
+            return "Facing must be " + ChatText.command("north") + ", " + ChatText.command("south") + ", "
+                + ChatText.command("east") + " or " + ChatText.command("west") + ", not " + ChatText.command(rest[6]) + ".";
         }
         for (int i = BUILD_WORDS; i < rest.length; i++)
         {
             if (!(rest[i].startsWith("net=") || rest[i].startsWith("idc=")))
             {
-                return "Unknown option " + rest[i] + "; only net= and idc= follow the facing.";
+                return "Unknown option " + ChatText.command(rest[i]) + "; only " + ChatText.command("net=") + " and "
+                    + ChatText.command("idc=") + " follow the facing.";
             }
         }
         return null;
@@ -361,7 +372,7 @@ public final class GateConsoleCommands
             case NOT_FINDABLE -> "no material group uses its frame block, so the gate would not be found.";
             case NOT_LOADED -> "part of it is in a chunk that is not loaded.";
             case OUTSIDE_BORDER -> "part of it is outside the world border.";
-            case IN_THE_WAY -> "in the way: " + String.join(", ", placed.inTheWay()) + ".";
+            case IN_THE_WAY -> "in the way: " + ChatText.bad(String.join(", ", placed.inTheWay())) + ".";
             case NOT_FOUND -> "its blocks were placed, but no gate was found in them.";
             default -> "it could not be placed (" + placed.outcome() + ").";
         };

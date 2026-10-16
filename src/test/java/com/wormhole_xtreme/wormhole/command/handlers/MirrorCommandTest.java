@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -53,6 +54,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
@@ -308,7 +310,7 @@ class MirrorCommandTest
 
         verify(console).sendMessage(contains("The block at 5 64 5 is " + MirrorText.name("stone") + ", not a banner."));
         verify(console).sendMessage(contains("No world called " + MirrorText.name("nether") + " is loaded."));
-        verify(console).sendMessage(contains("create <name> [<world> <x> <y> <z>]"));
+        verify(console).sendMessage(plainContains("create <name> [<world> <x> <y> <z>]"));
         verify(console).sendMessage(contains("~ counts from a command block or player"));
         assertNull(MirrorManager.byName("museum"));
     }
@@ -330,8 +332,8 @@ class MirrorCommandTest
         run(player, "mirror", "create", "museum");
 
         assertNotNull(MirrorManager.byName("museum"), "made anyway: it works, only not drawn whole");
-        verify(player).sendMessage(contains("It is 11 blocks from"));
-        verify(player).sendMessage(contains("nearer than 64"));
+        verify(player).sendMessage(plainContains("It is 11 blocks from"));
+        verify(player).sendMessage(plainContains("nearer than 64"));
     }
 
     /**
@@ -680,7 +682,7 @@ class MirrorCommandTest
 
         assertNull(MirrorManager.byName("lobby").start(), "the banner looked at is left alone");
         assertNull(MirrorManager.byName("hub").start());
-        verify(player, atLeastOnce()).sendMessage(contains("-start <mirror|-none>"));
+        verify(player, atLeastOnce()).sendMessage(plainContains("-start <mirror|-none>"));
     }
 
     /** Removing gives the banner back. */
@@ -742,7 +744,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "remove"));
 
         verify(player, atLeastOnce()).sendMessage(contains("not a mirror"));
-        verify(player, atLeastOnce()).sendMessage(contains("mirror create"));
+        verify(player, atLeastOnce()).sendMessage(plainContains("mirror create"));
     }
 
     /**
@@ -759,7 +761,7 @@ class MirrorCommandTest
 
         assertTrue(run(console, "mirror", "remove"));
 
-        verify(console, atLeastOnce()).sendMessage(contains("remove [<name>]"));
+        verify(console, atLeastOnce()).sendMessage(plainContains("remove [<name>]"));
         verify(console, never()).sendMessage(contains("run in game"));
     }
 
@@ -825,7 +827,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror"));
 
         verify(player, atLeastOnce())
-            .sendMessage(contains("Usage: " + MirrorText.COMMAND_COLOUR + "/wormhole mirror"));
+            .sendMessage(contains(ChatText.usage("/wormhole mirror")));
     }
 
     /**
@@ -1037,7 +1039,7 @@ class MirrorCommandTest
 
         assertTrue(run(player, "mirror", "create"));
 
-        verify(player, atLeastOnce()).sendMessage(contains("create <name>"));
+        verify(player, atLeastOnce()).sendMessage(plainContains("create <name>"));
     }
 
     /**
@@ -1054,7 +1056,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set"));
         assertTrue(run(player, "mirror", "set", "museum"));
 
-        verify(player, atLeast(2)).sendMessage(contains("set [<name>] <-stamp|-start|-capture>"));
+        verify(player, atLeast(2)).sendMessage(plainContains("set [<name>] <-stamp|-start|-capture>"));
     }
 
     /** A property without its dash is not a property any more, and says so. */
@@ -1079,7 +1081,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set", "museum", "colour", "blue"));
 
         verify(player, atLeastOnce()).sendMessage(contains("is not something a mirror has"));
-        verify(player, atLeastOnce()).sendMessage(contains("set [<name>] <-stamp|-start|-capture>"));
+        verify(player, atLeastOnce()).sendMessage(plainContains("set [<name>] <-stamp|-start|-capture>"));
     }
 
     /**
@@ -1097,7 +1099,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "start", "museum", "hub"));
 
         assertNull(MirrorManager.byName("museum").start(), "nothing changed");
-        verify(player, atLeastOnce()).sendMessage(contains("<create|set|remove|list>"));
+        verify(player, atLeastOnce()).sendMessage(plainContains("mirror create|set|remove|list"));
     }
 
     /**
@@ -1128,7 +1130,7 @@ class MirrorCommandTest
 
         assertTrue(run(console, "mirror", "set", "-capture"));
 
-        verify(console, atLeastOnce()).sendMessage(contains("set [<name>] -capture"));
+        verify(console, atLeastOnce()).sendMessage(plainContains("set [<name>] -capture"));
     }
 
     /**

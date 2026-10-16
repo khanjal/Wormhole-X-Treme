@@ -1,10 +1,10 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +21,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Setting the two gate timeouts.
@@ -90,7 +91,9 @@ class TimeoutsCommandTest
         assertTrue(run("activate_timeout", "45"));
 
         assertEquals(45, ConfigManager.getTimeoutActivate());
-        verify(sender).sendMessage(contains("activate_timeout set to: 45"));
+        // The setting white, as something to type; the value white beside it; the rest grey.
+        verify(sender).sendMessage(ChatText.HEADER + ChatText.COMMAND_COLOUR + "activate_timeout" + ChatText.BODY_COLOUR
+            + " set to: " + ChatText.COMMAND_COLOUR + "45" + ChatText.BODY_COLOUR + " seconds.");
     }
 
     /** Below its floor is refused, and the old value stands. */
@@ -103,7 +106,7 @@ class TimeoutsCommandTest
             "refused and explained: no usage line after it (#325)");
 
         assertEquals(30, ConfigManager.getTimeoutActivate());
-        verify(sender).sendMessage(contains("Invalid activate_timeout: 5"));
+        verify(sender).sendMessage(plainContains("Invalid activate_timeout: 5"));
     }
 
     /**
@@ -119,7 +122,7 @@ class TimeoutsCommandTest
         assertEquals(0, ConfigManager.getTimeoutShutdown());
 
         assertTrue(run("activate_timeout", "0"));
-        verify(sender).sendMessage(contains("Invalid activate_timeout: 0"));
+        verify(sender).sendMessage(plainContains("Invalid activate_timeout: 0"));
     }
 
     /** Above the ceiling is refused for both. */
@@ -131,7 +134,7 @@ class TimeoutsCommandTest
         assertTrue(run("shutdown_timeout", "61"));
 
         assertEquals(30, ConfigManager.getTimeoutShutdown());
-        verify(sender).sendMessage(contains("Invalid shutdown_timeout: 61"));
+        verify(sender).sendMessage(plainContains("Invalid shutdown_timeout: 61"));
     }
 
     /** A word that is not a number is refused the same way as one out of range. */
@@ -143,7 +146,7 @@ class TimeoutsCommandTest
         assertTrue(run("activate_timeout", "soon"));
 
         assertEquals(30, ConfigManager.getTimeoutActivate());
-        verify(sender).sendMessage(contains("Invalid activate_timeout: soon"));
+        verify(sender).sendMessage(plainContains("Invalid activate_timeout: soon"));
     }
 
     /** Asked with no value, it reports the current one and changes nothing. */
@@ -155,7 +158,7 @@ class TimeoutsCommandTest
         assertTrue(run("activate_timeout"));
 
         assertEquals(25, ConfigManager.getTimeoutActivate());
-        verify(sender).sendMessage(contains("Current activate_timeout is: 25"));
+        verify(sender).sendMessage(plainContains("Current activate_timeout is: 25"));
     }
 
     /** {@code timeout} is the short spelling of {@code shutdown_timeout}. */
@@ -165,7 +168,7 @@ class TimeoutsCommandTest
         assertTrue(run("timeout", "42"));
 
         assertEquals(42, ConfigManager.getTimeoutShutdown());
-        verify(sender).sendMessage(contains("shutdown_timeout set to: 42"));
+        verify(sender).sendMessage(plainContains("shutdown_timeout set to: 42"));
     }
 
     /** Each timeout quotes its own range back, since they differ. */
@@ -173,10 +176,10 @@ class TimeoutsCommandTest
     void eachTimeoutQuotesItsOwnRange()
     {
         run("activate_timeout");
-        verify(sender).sendMessage(contains("between 10 and 60"));
+        verify(sender).sendMessage(plainContains("between 10 and 60"));
 
         run("shutdown_timeout");
-        verify(sender).sendMessage(contains("between 0 and 60"));
+        verify(sender).sendMessage(plainContains("between 0 and 60"));
     }
 
     /** A player without the admin node may not change either. */
@@ -192,7 +195,7 @@ class TimeoutsCommandTest
 
         assertTrue(new TimeoutsCommand().execute(player, new String[] {"activate_timeout", "45"}));
 
-        verify(player).sendMessage(contains("ermission"));
+        verify(player).sendMessage(plainContains("ermission"));
         assertEquals(30, ConfigManager.getTimeoutActivate(), "and nothing is changed");
     }
 }

@@ -402,7 +402,7 @@ function checks(ctx, o) {
     case 'member refused':
     case 'owner refused':
       return [built,
-        ...(o.case === 'owner refused' ? [c('Guarded is owned by Probe2', () => /Now owned by: Probe2/.test(obs.owner || ''))] : []),
+        ...(o.case === 'owner refused' ? [c('Guarded is owned by Probe2', () => /is now owned by Probe2\b/.test(obs.owner || ''))] : []),
         c('refused in the region\'s words: "This region does not allow using gates."', () => told(USE_REFUSED)),
         c('and nothing lit: no "Gate successfully activated."', () => !told(ACTIVATED))];
     case 'op allowed':
@@ -418,7 +418,7 @@ function checks(ctx, o) {
         c('and no region refusal', () => !told(USE_REFUSED))];
     case 'no nodes':
       return [built,
-        c('Guarded is owned by Probe', () => /Now owned by: Probe\b/.test(obs.owner || '')),
+        c('Guarded is owned by Probe', () => /is now owned by Probe\b/.test(obs.owner || '')),
         c('Probe2 is told the no-permission message: "You lack the permissions to do this."', () => told(NO_PERMISSION)),
         c('not the region\'s', () => !told(USE_REFUSED)),
         c('and nothing lit', () => !told(ACTIVATED))];

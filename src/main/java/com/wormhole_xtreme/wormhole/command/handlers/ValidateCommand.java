@@ -11,6 +11,8 @@ import com.wormhole_xtreme.wormhole.model.GateIntegrity;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Handler for '/wormhole gate validate' -- the third of the four things #54 asked for.
@@ -44,8 +46,7 @@ public class ValidateCommand implements SubCommand
         final Stargate gate = StargateManager.getStargate(args[1]);
         if (gate == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_INVALID.toString()
-                + "\"" + args[1] + "\"");
+            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
             return true;
         }
         report(sender, gate, true);
@@ -75,9 +76,9 @@ public class ValidateCommand implements SubCommand
                 broken.add(gate);
             }
         }
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Checked " + checked + " gate" + (checked == 1 ? "" : "s") + ". "
-            + broken.size() + " " + (broken.size() == 1 ? "has" : "have") + " something missing.");
+        sender.sendMessage(ChatText.info("Checked " + ChatText.value(String.valueOf(checked)) + " gate"
+            + (checked == 1 ? "" : "s") + ". " + ChatText.value(String.valueOf(broken.size())) + " "
+            + (broken.size() == 1 ? "has" : "have") + " something missing."));
         for (final Stargate gate : broken)
         {
             report(sender, gate, false);
@@ -110,8 +111,7 @@ public class ValidateCommand implements SubCommand
         {
             if (sayIfClean)
             {
-                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + gate.getGateName() + " is standing where it says it is.");
+                sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " is standing where it says it is."));
             }
             return;
         }
@@ -129,7 +129,6 @@ public class ValidateCommand implements SubCommand
             }
             problems.append("dial sign missing");
         }
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + gate.getGateName() + ": " + problems + ".");
+        sender.sendMessage(ChatText.error(ChatText.name(gate.getGateName()) + ": " + ChatText.bad(problems.toString()) + "."));
     }
 }

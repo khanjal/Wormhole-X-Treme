@@ -8,16 +8,18 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Handler for the three per-gate material overrides.
@@ -184,7 +186,7 @@ public class MaterialCommand implements SubCommand
 
         if (!StargateManager.isStargate(args[1]))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
             usage(sender);
             return true;
         }
@@ -192,32 +194,31 @@ public class MaterialCommand implements SubCommand
         final Stargate stargate = StargateManager.getStargate(args[1]);
         if (!stargate.isGateCustom())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Stargate is not in custom mode. Set it with the '/wormhole custom' command");
+            sender.sendMessage(ChatText.error(ChatText.name(stargate.getGateName()) + " is not in custom mode. Turn it on with "
+                + ChatText.command("/wormhole custom " + stargate.getGateName() + " true") + "."));
             return true;
         }
 
         if (args.length == 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + args[1] + " " + kind.noun + " material is currently: " + kind.getter.apply(stargate));
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + validMaterials());
+            sender.sendMessage(ChatText.info(ChatText.name(args[1]) + " " + kind.noun + " material is currently: "
+                + ChatText.material(String.valueOf(kind.getter.apply(stargate))) + "."));
+            sender.sendMessage(ChatText.info(validMaterials()));
             return true;
         }
 
         final Material material = parse(args[2]);
         if ((material == null) || !kind.allowed.contains(material))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Invalid " + kind.noun + " material: " + args[2]);
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + validMaterials());
+            sender.sendMessage(ChatText.error("Invalid " + kind.noun + " material: " + ChatText.material(args[2]) + "."));
+            sender.sendMessage(ChatText.info(validMaterials()));
             return true;
         }
 
         kind.setter.accept(stargate, material);
         StargateDBManager.saveStargate(stargate);
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + args[1] + " " + kind.noun + " material set to: " + kind.getter.apply(stargate));
+        sender.sendMessage(ChatText.info(ChatText.name(args[1]) + " " + kind.noun + " material set to: "
+            + ChatText.material(String.valueOf(kind.getter.apply(stargate))) + "."));
         return true;
     }
 
@@ -251,7 +252,8 @@ public class MaterialCommand implements SubCommand
      */
     private String validMaterials()
     {
-        return "Valid materials are: " + String.join(", ", kind.allowedNames());
+        return "Valid materials are: " + kind.allowedNames().stream().map(ChatText::material)
+            .collect(Collectors.joining(", ")) + ".";
     }
 
     /**
@@ -262,9 +264,8 @@ public class MaterialCommand implements SubCommand
      */
     private void usage(final CommandSender sender)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Command: /wormhole " + kind.command + " <gate> [material]");
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + validMaterials());
+        sender.sendMessage(ChatText.info(ChatText.usage("/wormhole " + kind.command + " <gate> [material]")));
+        sender.sendMessage(ChatText.info(validMaterials()));
     }
 
 }

@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -111,7 +112,7 @@ class DialCommandTest
 
         dial("here");
 
-        verify(player).sendMessage(contains("own gate"));
+        verify(player).sendMessage(plainContains("A gate cannot dial itself."));
         assertNull(StargateManager.removeActivatedStargate(player),
             "the activation should have been spent by the refusal");
     }
@@ -125,7 +126,7 @@ class DialCommandTest
 
         dial("nowhere");
 
-        verify(player).sendMessage(contains("Invalid"));
+        verify(player).sendMessage(plainContains("No gate called nowhere."));
         assertNull(StargateManager.removeActivatedStargate(player));
     }
 
@@ -143,7 +144,7 @@ class DialCommandTest
 
         dial("there");
 
-        verify(player).sendMessage(contains("Not on same network"));
+        verify(player).sendMessage(plainContains("there is not on this gate's network."));
     }
 
     /** A remote iris that is closed, with no IDC offered, stops the dial and explains why. */
