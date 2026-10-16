@@ -82,9 +82,8 @@ public final class BeamTravel
         {
             // Not ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED -- its wording
             // names a stargate specifically, which would be wrong here.
-            final long wait = BeamCooldown.remainingSeconds(player);
             player.sendMessage(ChatText.error("You must wait longer before beaming again: "
-                + ChatText.value(String.valueOf(wait)) + ((wait == 1) ? " second." : " seconds.")));
+                + seconds(BeamCooldown.remainingSeconds(player)) + "."));
             return true;
         }
 
@@ -122,6 +121,12 @@ public final class BeamTravel
             }
         });
         return true;
+    }
+
+    /** @return a count of seconds, for a message */
+    private static String seconds(final long count)
+    {
+        return ChatText.value(String.valueOf(count)) + ((count == 1) ? " second" : " seconds");
     }
 
     /** @return an amount and its currency, for a message */
