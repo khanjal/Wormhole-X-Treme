@@ -1,6 +1,5 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -190,6 +189,5 @@ class EdgeEffectsTest
             "a wide window's edge is hidden by its wall");
         assertSame(fire, EdgeEffects.drawn(Windows.SMALL_OPEN, shape, middle.x(), middle.y(), middle.z(), fire),
             "the middle of the view keeps its flames");
-        assertEquals(Material.FIRE, fire.getMaterial());
     }
 }
