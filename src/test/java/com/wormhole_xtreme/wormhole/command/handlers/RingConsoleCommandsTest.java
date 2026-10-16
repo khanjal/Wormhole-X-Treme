@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -40,10 +41,13 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
+import com.wormhole_xtreme.wormhole.model.ring.RingOrientation;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
@@ -378,6 +382,86 @@ class RingConsoleCommandsTest
             + " pair they are building. (at 100 64 100)"));
         assertTrue(pairs().isEmpty());
         verify(slabOf(NEAR_Z), never()).setType(any(Material.class), anyBoolean());
+    }
+
+    /** A refusal of one circle, under the error header, ending with where it looked. */
+    private static String refusedAt(final String where)
+    {
+        return argThat((String line) -> (line != null)
+            && ChatText.plain(line).startsWith(ChatText.plain(ChatText.ERROR_HEADER))
+            && ChatText.plain(line).endsWith(" (at " + where + ")"));
+    }
+
+    /** A word that is not a coordinate shows the usage, before any world or block is read. */
+    @Test
+    void aWordThatIsNotACoordinateShowsTheUsage()
+    {
+        run(console, "ring", "build", WORLD, "100", "64", "north", "100", "64", "120");
+
+        verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.BUILD_USAGE));
+        assertTrue(pairs().isEmpty());
+    }
+
+    /** A circle that overlaps a ring already paired there is refused, saying which circle. */
+    @Test
+    void aCircleOverAnExistingRingIsRefusedNamingWhere()
+    {
+        final Ring there = RingTemplate.detect(new BukkitBlockProbe(world), X, Y, NEAR_Z, 5, Material.GLOWSTONE).getRing();
+        RingManager.addPair(new RingPair("bbbb0001", WORLD, there,
+            new Ring(X, Y, 400, RingPattern.ODD, RingOrientation.FLOOR, Material.STONE_SLAB, Material.GLOWSTONE)), 5);
+
+        run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+        verify(console).sendMessage(refusedAt("100 64 100"));
+        assertEquals(1, pairs().size(), "only the pair that was already there");
+    }
+
+    /** A circle laid over a stargate is refused, saying which circle. */
+    @Test
+    void aCircleOverAStargateIsRefusedNamingWhere()
+    {
+        final Block gateBlock = blockAt(X, Y, FAR_Z);
+        final Stargate gate = new Stargate();
+        gate.setGateName("inthemiddle");
+        StargateManager.addBlockIndex(gateBlock, gate);
+        try
+        {
+            run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+            verify(console).sendMessage(plainBody(RingCommand.OVERLAPS_GATE + " (at 100 64 120)"));
+            assertTrue(pairs().isEmpty());
+        }
+        finally
+        {
+            StargateManager.removeBlockIndex(gateBlock);
+        }
+    }
+
+    /** A circle with no room above its pad is refused, saying which circle. */
+    @Test
+    void aCircleWithNoRoomAboveIsRefusedNamingWhere()
+    {
+        final Block roof = blockAt(X, Y + 2, FAR_Z);
+        when(roof.getType()).thenReturn(Material.STONE);
+        when(roof.isPassable()).thenReturn(Boolean.FALSE);
+
+        run(console, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+
+        verify(console).sendMessage(refusedAt("100 64 120"));
+        assertTrue(pairs().isEmpty());
+    }
+
+    /** Firing by coordinates names a world that is not loaded, and shows the usage for a bad word. */
+    @Test
+    void firingByCoordinatesSaysWhatIsWrongWithThem()
+    {
+        run(console, "ring", "fire", "nether", "100", "64", "110");
+        run(console, "ring", "fire", WORLD, "here", "64", "110");
+        run(console, "ring", "fire", WORLD, "~", "64", "110");
+
+        verify(console).sendMessage(plainBody("No world called nether is loaded."));
+        verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.FIRE_USAGE));
+        verify(console).sendMessage(plainBody("~ counts from a command block or player; from here, give whole numbers."));
     }
 
     /** A circle laid at the same place in another world is no reason to refuse this one. */
