@@ -52,6 +52,7 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
 public class RingCommand implements SubCommand
 {
     private static final String ALLOW = "allow";
+    private static final String RESET = "reset";
     /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
     static final int MAX_LINK_HEIGHT = 384;
     private static final String NOT_YOUR_PAIR = ChatText.error("That is not your ring pair.");
@@ -662,7 +663,7 @@ public class RingCommand implements SubCommand
         // "edit" with no field at all still has to reach the usage line, not index past the end.
         final boolean noField = args.length <= fieldAt;
         final boolean noValue = args.length <= (fieldAt + 1);
-        if (noField || (noValue && !"reset".equalsIgnoreCase(args[fieldAt])))
+        if (noField || (noValue && !RESET.equalsIgnoreCase(args[fieldAt])))
         {
             player.sendMessage(ChatText.info(ChatText.usage("/wormhole ring edit [id] "
                 + "<ring|light|flash|built|name|access|style|reset> [value]")));
@@ -729,7 +730,7 @@ public class RingCommand implements SubCommand
             setAccess(player, pair, value);
             return;
         }
-        if ("reset".equals(field))
+        if (RESET.equals(field))
         {
             reset(player, pair, only);
             return;
@@ -741,7 +742,7 @@ public class RingCommand implements SubCommand
         }
         player.sendMessage(ChatText.error("Fields are: " + ChatText.command("ring") + ", " + ChatText.command("light")
             + ", " + ChatText.command("flash") + ", " + ChatText.command("built") + ", " + ChatText.command("name") + ", "
-            + ChatText.command("access") + ", " + ChatText.command("style") + ", " + ChatText.command("reset") + "."));
+            + ChatText.command("access") + ", " + ChatText.command("style") + ", " + ChatText.command(RESET) + "."));
     }
 
     /**
@@ -1229,7 +1230,7 @@ public class RingCommand implements SubCommand
     private static void help(final Player player)
     {
         player.sendMessage(helpLine("/wormhole ring create", "stand in a circle of slabs; run it at each end to pair"));
-        player.sendMessage(helpLine("/wormhole ring cancel", "forget a half-built pair"));
+        player.sendMessage(helpLine(CANCEL, "forget a half-built pair"));
         player.sendMessage(helpLine("/wormhole ring list", "your pairs"));
         player.sendMessage(helpLine("/wormhole ring remove [id]", "remove both ends"));
         player.sendMessage(helpLine("/wormhole ring edit [id] <ring|light|flash|built|name|access|style|reset> [value]",

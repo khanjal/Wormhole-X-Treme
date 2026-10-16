@@ -44,7 +44,7 @@ class RingBeamChatGuardTest
 
     /** Where a line to send begins: the argument to sendMessage, and to the wrappers that send one. */
     private static final Pattern SENDS = Pattern.compile(
-        "(?:\\.sendMessage\\(|\\bsaved\\(\\w+, \\w+, |\\bstatus\\(\\w+, |\\bstatusAll\\(\\w+, )\\s*");
+        "(?:\\.sendMessage\\(|\\bsaved\\(\\w++, \\w++, |\\bstatus\\(\\w++, |\\bstatusAll\\(\\w++, )\\s*+");
 
     /**
      * What that argument may start with: a line-opening ChatText call, a whole MessageStrings
@@ -53,12 +53,12 @@ class RingBeamChatGuardTest
      */
     private static final Pattern BUILT = Pattern.compile(
         "ChatText\\.(?:info|error|status)\\("
-            + "|ConfigManager\\.MessageStrings\\.(?!ERROR_HEADER|NORMAL_HEADER)\\w+\\.toString\\(\\)\\s*\\)"
+            + "|ConfigManager\\.MessageStrings\\.(?!ERROR_HEADER|NORMAL_HEADER)\\w++\\.toString\\(\\)\\s*+\\)"
             + "|(?:helpLine|neverSeen|noPublic|noWorld)\\("
-            + "|\\w+\\s*\\)");
+            + "|\\w++\\s*+\\)");
 
     /** A method reference that sends whatever a collection holds, with the collection it reads. */
-    private static final Pattern SENDS_EACH = Pattern.compile("(\\w+)\\.forEach\\(\\w+::sendMessage\\)");
+    private static final Pattern SENDS_EACH = Pattern.compile("\\b(\\w++)\\.forEach\\(\\w++::sendMessage\\)");
 
     /** Any method reference to sendMessage, so one that is not a known forEach is still seen. */
     private static final Pattern SEND_REF = Pattern.compile("::sendMessage\\b");
