@@ -139,7 +139,7 @@ function checks(obs, o) {
   if (o.case === 'unknown setting') {
     return [
       c('"No setting called no-such-setting."', () => (obs.lines || []).includes('No setting called no-such-setting.')),
-      c('and "No setting matches "no-such-setting"."', () => (obs.lines || []).includes('No setting matches "no-such-setting".')),
+      c('and "No setting matches no-such-setting."', () => (obs.lines || []).includes('No setting matches no-such-setting.')),
     ];
   }
   if (o.case === 'saved') {

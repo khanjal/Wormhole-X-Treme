@@ -534,7 +534,7 @@ async function dialBySign(ctx, o, geom, target) {
     obs.dial = 'a lever by [RD] pulled';
   } else {
     await probe.press(geom.button);
-    await until(async () => /Stargates connected|Invalid gate target|remotely activated|lack the permissions/.test(chatSince(ctx, mark)), 4000);
+    await until(async () => /Stargates connected|Invalid gate target|No gate called|remotely activated|lack the permissions/.test(chatSince(ctx, mark)), 4000);
     obs.dial = chatSince(ctx, mark);
   }
   await probe.teleport(front(geom, 8), O);
