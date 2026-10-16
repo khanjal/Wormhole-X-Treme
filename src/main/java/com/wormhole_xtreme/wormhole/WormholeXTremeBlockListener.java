@@ -18,6 +18,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 
+import com.wormhole_xtreme.wormhole.command.WXRemove;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
@@ -282,7 +283,7 @@ class WormholeXTremeBlockListener implements Listener
         {
             player.sendMessage(ChatText.error("This block is part of the gate " + ChatText.name(name) + "."));
             player.sendMessage(ChatText.info("Remove the gate first with " + ChatText.command("/wormhole remove")
-                + " " + ChatText.name(name) + "; add " + ChatText.command("-all") + " to break its blocks too."));
+                + " " + ChatText.name(name) + "; add " + ChatText.command(WXRemove.DESTROY) + " to break its blocks too."));
         }
         catch (final RuntimeException ignore)
         {

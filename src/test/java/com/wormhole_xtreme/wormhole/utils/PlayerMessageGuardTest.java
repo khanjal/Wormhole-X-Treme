@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,9 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * from ChatText; or is one of the transport sends in {@link #TRANSPORT}. A line helper is any
  * {@code String} method whose body opens {@code return ChatText.info(} (or {@code error},
  * {@code status}), and a line constant any {@code static final String} initialised the same way:
- * both are found by reading their own definitions, so there is no list of them to keep.
+ * both are found by reading their own definitions, so there is no list of them to keep. Each
+ * passes bare only in its own file, and as {@code Class.name} elsewhere: a {@code USAGE} in one
+ * command is not vouched for by another command's {@code USAGE}.
  *
  * <p>This replaces the per-area guards the earlier steps of #438 added (ring and beam, then the
  * gate commands); their wrappers and method-reference allowances are kept here.
@@ -89,34 +92,41 @@ class PlayerMessageGuardTest
     void everyPlayerLineIsBuiltByChatText() throws IOException
     {
         final Map<String, String> sources = readAll();
+        // Each as Class.name, the class being the file's own: a name means one thing in its own
+        // file and only Class.name anywhere else, so a USAGE here is not vouched for by another
+        // file's USAGE.
         final TreeSet<String> helpers = new TreeSet<>();
         final TreeSet<String> constants = new TreeSet<>();
-        for (final String source : sources.values())
+        for (final Map.Entry<String, String> file : sources.entrySet())
         {
-            collect(LINE_HELPER, source, helpers);
-            collect(LINE_CONSTANT, source, constants);
+            collect(LINE_HELPER, file, helpers);
+            collect(LINE_CONSTANT, file, constants);
         }
         final String common = "ChatText\\.(?:info|error|status)\\("
             + "|(?:ConfigManager\\.)?MessageStrings\\.\\w++\\.toString\\(\\)\\s*+\\)"
-            + "|(?:\\w++\\.)?(?:" + String.join("|", helpers) + ")\\("
-            + "|(?:\\w++\\.)?(?:" + String.join("|", constants) + ")\\s*+\\)"
+            + alternatives(helpers, "\\(") + alternatives(constants, "\\s*+\\)")
             + "|[a-z]\\w*+\\s*+\\)";
         final List<String> offences = new ArrayList<>();
         int sends = 0;
         for (final Map.Entry<String, String> file : sources.entrySet())
         {
             final String name = file.getKey();
+            final String owner = owner(name) + ".";
             final String transport = TRANSPORT.get(name);
-            final Pattern built = Pattern.compile((transport == null) ? common : (common + "|" + transport));
+            final String own = alternatives(unqualified(helpers, owner), "\\(")
+                + alternatives(unqualified(constants, owner), "\\s*+\\)");
+            final Pattern built = Pattern.compile(common + own + ((transport == null) ? "" : ("|" + transport)));
             sends += ChatSendScan.checkArguments(name, file.getValue(), SENDS, built, offences)
                 + ChatSendScan.checkReferences(name, file.getValue(), SENT_COLLECTIONS, offences);
         }
         assertTrue(sources.size() > 250, "every main source file should be read, from " + ROOT.toAbsolutePath()
             + "; read only " + sources.size());
-        assertTrue(helpers.containsAll(List.of("noGateCalled", "helpLine", "approach", "cooldownRefusal")),
+        assertTrue(helpers.containsAll(List.of("CommandUtilities.noGateCalled", "RingCommand.helpLine",
+            "MirrorText.approach", "StargateRestrictions.cooldownRefusal")),
             "the line helpers should be found by their own definitions; found only " + helpers);
-        assertTrue(constants.containsAll(List.of("INTERNAL_ERROR", "BUILD_REFUSED", "USE_REFUSED")),
-            "the line constants should be found by their own definitions; found only " + constants);
+        assertTrue(constants.containsAll(List.of("CommandUtilities.INTERNAL_ERROR", "RegionFlags.BUILD_REFUSED",
+            "RegionFlags.USE_REFUSED")), "the line constants should be found by their own definitions; found only "
+            + constants);
         assertTrue(sends > 450, "the plugin sends well over four hundred lines; found only " + sends
             + ", so the pattern no longer matches how it sends");
         assertTrue(offences.isEmpty(), "a line sent without ChatText -- build it with ChatText.info or "
@@ -156,12 +166,33 @@ class PlayerMessageGuardTest
         return sources;
     }
 
-    private static void collect(final Pattern definition, final String source, final TreeSet<String> into)
+    /** Adds each definition in a file as {@code Class.name}, the class named by the file. */
+    private static void collect(final Pattern definition, final Map.Entry<String, String> file,
+        final TreeSet<String> into)
     {
-        final Matcher found = definition.matcher(source);
+        final Matcher found = definition.matcher(file.getValue());
         while (found.find())
         {
-            into.add(found.group(1));
+            into.add(owner(file.getKey()) + "." + found.group(1));
         }
+    }
+
+    /** @return the class a file under {@link #ROOT} declares: its name without the folders or {@code .java} */
+    private static String owner(final String file)
+    {
+        return file.substring(file.lastIndexOf('/') + 1, file.length() - ".java".length());
+    }
+
+    /** @return the names among {@code qualified} that {@code owner} (as {@code Class.}) declares, without it */
+    private static List<String> unqualified(final TreeSet<String> qualified, final String owner)
+    {
+        return qualified.stream().filter(q -> q.startsWith(owner)).map(q -> q.substring(owner.length())).toList();
+    }
+
+    /** @return {@code |(?:a|b)} and then {@code after}, each name's dot escaped; nothing for no names */
+    private static String alternatives(final Collection<String> names, final String after)
+    {
+        return names.isEmpty() ? ""
+            : ("|(?:" + String.join("|", names.stream().map(n -> n.replace(".", "\\.")).toList()) + ")" + after);
     }
 }

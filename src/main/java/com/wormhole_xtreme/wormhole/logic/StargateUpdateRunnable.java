@@ -133,7 +133,7 @@ public class StargateUpdateRunnable implements Runnable
                     }
                     else
                     {
-                        player.sendMessage(ChatText.error("No other gate on this network to dial."));
+                        player.sendMessage(ChatText.error("No other gates to dial."));
                     }
                 }
                 break;

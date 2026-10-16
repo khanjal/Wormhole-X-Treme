@@ -78,7 +78,7 @@ class WormholeXTremeBlockListenerTest
         verify(player).sendMessage(ChatText.ERROR_HEADER + "This block is part of the gate " + ChatText.NAME_COLOUR
             + "gateA" + ChatText.BODY_COLOUR + ".");
         verify(player).sendMessage(ChatMatchers.infoBody(
-            "Remove the gate first with /wormhole remove gateA; add -all to break its blocks too."));
+            "Remove the gate first with /wormhole remove gateA; add -destroy to break its blocks too."));
 
         StargateManager.removeStargate(gate);
     }

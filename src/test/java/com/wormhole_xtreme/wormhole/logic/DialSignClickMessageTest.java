@@ -59,6 +59,6 @@ class DialSignClickMessageTest
     {
         new StargateUpdateRunnable(gate, player, ActionToTake.DIAL_SIGN_CLICK).run();
 
-        verify(player).sendMessage(ChatMatchers.errorBody("No other gate on this network to dial."));
+        verify(player).sendMessage(ChatMatchers.errorBody("No other gates to dial."));
     }
 }

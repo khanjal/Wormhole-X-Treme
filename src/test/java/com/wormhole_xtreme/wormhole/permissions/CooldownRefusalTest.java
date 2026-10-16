@@ -29,4 +29,16 @@ class CooldownRefusalTest
         assertEquals("You must wait 1 second before using a stargate again.",
             ChatMatchers.body(StargateRestrictions.cooldownRefusal(1L)), "not \"1 seconds\"");
     }
+
+    /**
+     * The refusal is decided before the time left is read, so a cooldown that runs out in between
+     * reads 0, or -1 once its entry is gone; the player is still refused, so it says one second.
+     */
+    @Test
+    void aCooldownThatRanOutMidCheckStillSaysOneSecond()
+    {
+        final String oneSecond = "You must wait 1 second before using a stargate again.";
+        assertEquals(oneSecond, ChatMatchers.body(StargateRestrictions.cooldownRefusal(0L)), "not \"0 seconds\"");
+        assertEquals(oneSecond, ChatMatchers.body(StargateRestrictions.cooldownRefusal(-1L)), "not \"-1 seconds\"");
+    }
 }

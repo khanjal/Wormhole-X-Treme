@@ -520,7 +520,7 @@ async function dialBySign(ctx, o, geom, target) {
       // The sign's front: a left click is a punch at that face (block_dig's face: 2 north, 3 south, 4 west, 5 east).
       const face = { '0,-1': 2, '0,1': 3, '-1,0': 4, '1,0': 5 }[`${geom.normal.x},${geom.normal.z}`];
       if (o.dial === 'sign left') await probe.punch(sign, face); else await probe.rightClick(sign, { dir: new (require('vec3').Vec3)(geom.normal.x, 0, geom.normal.z) });
-      await until(async () => /Dialer set to |No other gate on this network/.test(chatSince(ctx, mark)), 2000, 2);
+      await until(async () => /Dialer set to |No other gates to dial/.test(chatSince(ctx, mark)), 2000, 2);
       obs.signSteps.push((/Dialer set to (\w+)\./.exec(chatSince(ctx, mark)) || [])[1] || chatSince(ctx, mark));
     }
   }

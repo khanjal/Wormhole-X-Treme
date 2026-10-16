@@ -110,14 +110,14 @@ public class StargateRestrictions
      * What a player still under the gate cooldown is told: one line, where there used to be a
      * refusal and a "Current Wait" line under it (#438).
      *
-     * @param seconds
-     *            how long is left
+     * @param remaining
+     *            how long is left; a cooldown that ran out between the check and this says 1, not 0 or -1
      * @return the error line
      */
-    public static String cooldownRefusal(final long seconds)
+    public static String cooldownRefusal(final long remaining)
     {
-        return ChatText.error("You must wait " + ChatText.value(seconds + ((seconds == 1) ? " second" : " seconds"))
-            + " before using a stargate again.");
+        return ChatText.error("You must wait "
+            + ChatText.value((remaining > 1) ? (remaining + " seconds") : "1 second") + " before using a stargate again.");
     }
 
     // The player-use cooldown group map was removed; per-player cooldowns are tracked via
