@@ -19,6 +19,9 @@ public class TimeoutsCommand implements SubCommand
     /** Past a minute a gate is holding a wormhole open long enough to be somebody else's problem. */
     private static final int MAX_SECONDS = 60;
 
+    /** How a line about seconds ends. */
+    private static final String SECONDS = " seconds.";
+
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -76,7 +79,7 @@ public class TimeoutsCommand implements SubCommand
         if (args.length != 2)
         {
             sender.sendMessage(ChatText.info("Current " + ChatText.command(label) + " is: "
-                + ChatText.value(String.valueOf(read.getAsInt())) + " seconds."));
+                + ChatText.value(String.valueOf(read.getAsInt())) + SECONDS));
             sender.sendMessage(ChatText.info(range(floor)));
             return;
         }
@@ -99,7 +102,7 @@ public class TimeoutsCommand implements SubCommand
 
         write.accept(timeout);
         sender.sendMessage(ChatText.info(ChatText.command(label) + " set to: "
-            + ChatText.value(String.valueOf(read.getAsInt())) + " seconds."));
+            + ChatText.value(String.valueOf(read.getAsInt())) + SECONDS));
     }
 
     /**
@@ -131,7 +134,7 @@ public class TimeoutsCommand implements SubCommand
     private static String range(final int floor)
     {
         return "Valid timeout is between " + ChatText.value(String.valueOf(floor)) + " and "
-            + ChatText.value(String.valueOf(MAX_SECONDS)) + " seconds.";
+            + ChatText.value(String.valueOf(MAX_SECONDS)) + SECONDS;
     }
 
 }

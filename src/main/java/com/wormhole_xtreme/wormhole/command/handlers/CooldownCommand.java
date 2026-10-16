@@ -31,6 +31,9 @@ public class CooldownCommand implements SubCommand
     /** Longest cooldown accepted, in seconds. An hour. */
     private static final int MAX_SECONDS = 3600;
 
+    /** How a line about seconds ends. */
+    private static final String SECONDS = " seconds.";
+
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
     @Override
@@ -85,13 +88,13 @@ public class CooldownCommand implements SubCommand
         if ((seconds < MIN_SECONDS) || (seconds > MAX_SECONDS))
         {
             sender.sendMessage(ChatText.error("Invalid cooldown time: " + ChatText.command(args[1]) + ". Give "
-                + range() + " seconds."));
+                + range() + SECONDS));
             return true;
         }
 
         ConfigManager.setUseCooldownSeconds(seconds);
         sender.sendMessage(ChatText.info("Wormhole cooldown time set to: "
-            + ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())) + " seconds."));
+            + ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())) + SECONDS));
         return true;
     }
 
@@ -132,7 +135,7 @@ public class CooldownCommand implements SubCommand
             + range() + "."));
         sender.sendMessage(ChatText.info(ChatText.usage("/wormhole cooldown true|false") + " switches cooldowns on or off."));
         sender.sendMessage(ChatText.info("Cooldowns enabled: " + ChatText.value(String.valueOf(ConfigManager.isUseCooldownEnabled()))
-            + ", currently " + ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())) + " seconds."));
+            + ", currently " + ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())) + SECONDS));
     }
 
 }
