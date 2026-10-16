@@ -104,7 +104,7 @@ async function buildGate(ctx, { idc = null, net = null } = {}) {
 
 /** The checks that Sys was built and is Probe's. */
 function builtChecks(obs) {
-  return [c(`${GATE} was built and is Probe's`, () => /Built /.test(obs.built || '') && /Now owned by: Probe\b/.test(obs.owner || ''))];
+  return [c(`${GATE} was built and is Probe's`, () => /Built /.test(obs.built || '') && /is now owned by Probe\b/.test(obs.owner || ''))];
 }
 
 /** Walks `probe` into Sys's opening, towards the Relay; returns whether it came out there. */

@@ -379,7 +379,7 @@ function checks(obs, o) {
       }));
   } else if (o.case === 'sign colour bad') {
     list.push(c(`the name sign written again shows the name in the default colour, dark_aqua`, () => {
-      if (/Now owned by: Probe/.test(obs.rewritten || '') && coloured(`-${GATE}-`, 'dark_aqua')) return true;
+      if (/is now owned by Probe\b/.test(obs.rewritten || '') && coloured(`-${GATE}-`, 'dark_aqua')) return true;
       throw new Error(obs.sign);
     }));
     list.push(c('refused, naming the sixteen colours, and the setting unchanged', () => {

@@ -230,7 +230,7 @@ class Transit {
     const t0 = Date.now();
     await p2.teleport({ x: k.x + 0.5, y: 0, z: k.z + 1.5, yaw: 180 });
     await p2.press(k);
-    const asked = await trip.until(async () => trip.said(heard, /Type \/dial <gatename>/, t0), 5000);
+    const asked = await trip.until(async () => trip.said(heard, /Type \/dial <gate>/, t0), 5000);
     if (!asked) return { ok: false, detail: `pressing the DHD did not ask for /dial (told: ${recent(heard, t0)})` };
     p2.bot.chat('/dial Ops');
     const connected = await trip.until(async () => trip.said(heard, /Stargates connected\./, t0), 5000);
