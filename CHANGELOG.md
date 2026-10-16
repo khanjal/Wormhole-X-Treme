@@ -67,12 +67,6 @@ through is a release nobody reads.
 
 - Behind an open gate, shutting or opening its iris no longer covers your wormhole for a moment before moving the iris beyond it: the wormhole stays in the ring and the iris sweeps in a block further off ([#429](https://github.com/khanjal/Wormhole-X-Treme/issues/429)). [Guide](docs/guide/GATES.md#how-it-arrives)
 
-### Quantum mirrors
-
-**Fixed**
-
-- A small mirror no longer leaves torch flames, candle and campfire smoke or fire hanging past its opening as you move: what it draws in the block ring around the opening is drawn unlit ([#309](https://github.com/khanjal/Wormhole-X-Treme/issues/309)).
-
 ### Transport rings and beaming
 
 **Changed**
