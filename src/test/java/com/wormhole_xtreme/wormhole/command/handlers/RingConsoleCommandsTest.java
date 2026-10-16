@@ -461,7 +461,8 @@ class RingConsoleCommandsTest
 
         verify(console).sendMessage(plainBody("No world called nether is loaded."));
         verify(console).sendMessage(plainBody("Usage: " + RingConsoleCommands.FIRE_USAGE));
-        verify(console).sendMessage(plainBody("~ counts from a command block or player; from here, give whole numbers."));
+        // Raw: it is a refusal, so the error header, not the plain one.
+        verify(console).sendMessage(ChatText.error("~ counts from a command block or player; from here, give whole numbers."));
     }
 
     /** A circle laid at the same place in another world is no reason to refuse this one. */
