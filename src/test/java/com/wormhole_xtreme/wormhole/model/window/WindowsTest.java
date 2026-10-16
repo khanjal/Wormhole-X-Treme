@@ -3383,6 +3383,7 @@ class WindowsTest
     {
         final BlockData data = mock(BlockData.class);
         when(data.getAsString()).thenReturn(name);
+        when(data.getMaterial()).thenReturn(Material.STONE);
         return data;
     }
 

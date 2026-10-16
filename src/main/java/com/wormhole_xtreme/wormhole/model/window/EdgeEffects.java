@@ -85,12 +85,7 @@ final class EdgeEffects
      */
     static BlockData quieted(final BlockData data)
     {
-        final Material material = data.getMaterial();
-        if (material == null)
-        {
-            return data;
-        }
-        final String name = material.name();
+        final String name = data.getMaterial().name();
         if (name.endsWith("FIRE") && !name.endsWith("CAMPFIRE"))
         {
             return Bukkit.createBlockData(Material.AIR);

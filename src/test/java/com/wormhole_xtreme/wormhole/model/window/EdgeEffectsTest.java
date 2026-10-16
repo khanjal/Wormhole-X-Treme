@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -117,10 +118,10 @@ class EdgeEffectsTest
     @Test
     void aWallTorchKeepsItsWallAndFacing()
     {
-        final Directional was = mock(Directional.class, org.mockito.Mockito.withSettings().extraInterfaces(BlockData.class));
+        final Directional was = mock(Directional.class, withSettings().extraInterfaces(BlockData.class));
         when(((BlockData) was).getMaterial()).thenReturn(Material.SOUL_WALL_TORCH);
         when(was.getFacing()).thenReturn(BlockFace.EAST);
-        final BlockData out = mock(BlockData.class, org.mockito.Mockito.withSettings()
+        final BlockData out = mock(BlockData.class, withSettings()
             .extraInterfaces(Directional.class, Lightable.class));
         bukkit.when(() -> Bukkit.createBlockData(Material.REDSTONE_WALL_TORCH)).thenReturn(out);
         assertSame(out, EdgeEffects.quieted((BlockData) was));
