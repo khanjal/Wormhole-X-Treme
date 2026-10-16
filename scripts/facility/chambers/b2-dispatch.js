@@ -107,7 +107,7 @@ module.exports = {
       if (who === p2) cooldownFrom = obs.cooldownFrom;
       await who.teleport(STAND);
       obs.second = await follow(who, say(who, '/wormhole beam to Dock'), { name: 'Dock', refusal: /You must wait longer before beaming again: \d+ seconds?\./ });
-      const wait = (obs.second.told.map((t) => /Current Wait \(in seconds\): (\d+)/.exec(t)).find(Boolean) || [])[1];
+      const wait = (obs.second.told.map((t) => /before beaming again: (\d+) seconds?\./.exec(t)).find(Boolean) || [])[1];
       obs.wait = wait === undefined ? null : Number(wait);
       if (obs.second.refused) {
         await ticks(Math.ceil(((obs.wait || COOLDOWN) + 1) * 20));
@@ -163,7 +163,7 @@ module.exports = {
     } else if (a === 'cooldown') {
       list.push(c('the first beam went', () => b(obs.first).done && at(b(obs.first), centre(DOCK))));
       list.push(c('the second was refused: "You must wait longer before beaming again: N seconds."', () => b(obs.second).refused));
-      list.push(c(`with "Current Wait (in seconds): N", N at most ${COOLDOWN}`, () => obs.wait !== null && obs.wait > 0 && obs.wait <= COOLDOWN));
+      list.push(c(`with N at most ${COOLDOWN}`, () => obs.wait !== null && obs.wait > 0 && obs.wait <= COOLDOWN));
       list.push(stayed(obs.second));
       list.push(c('once the wait was over, it went', () => b(obs.third).done && at(b(obs.third), centre(DOCK))));
     } else if (a === 'op skips cooldown') {

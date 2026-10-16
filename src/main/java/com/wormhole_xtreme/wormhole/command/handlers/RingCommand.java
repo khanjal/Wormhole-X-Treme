@@ -55,10 +55,7 @@ public class RingCommand implements SubCommand
     /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
     static final int MAX_LINK_HEIGHT = 384;
     private static final String NOT_YOUR_PAIR = ChatText.error("That is not your ring pair.");
-    private static final String CANCEL = "/wormhole ring cancel";
-    /** What {@link ChatText#usage} puts in front of the line. */
-    private static final String USAGE_PREFIX = "Usage: ";
-    /** Why a circle on a gate is refused, as a body for an error line. */
+    private static final String CANCEL = "/wormhole ring cancel";    /** Why a circle on a gate is refused, as a body for an error line. */
     static final String OVERLAPS_GATE = "That circle overlaps a stargate. Rings and gates cannot share blocks.";
     private static final String STAND_IN_ONE = ChatText.error("Stand in a ring, or name a pair by its id.");
 
@@ -278,7 +275,7 @@ public class RingCommand implements SubCommand
         player.sendMessage(ChatText.info("Ring pair " + ChatText.name(pair.getId()) + " is live. Step into either end."));
         player.sendMessage(ChatText.info("It is " + ChatText.value(String.valueOf(pair.getAccess()))
             + (pair.getAccess() == RingAccess.PRIVATE
-                ? ". Use " + ChatText.command("/wormhole ring allow <player>") + " to let others in." : ".")));
+                ? ". Use " + ChatText.usageBody("/wormhole ring allow <player>") + " to let others in." : ".")));
     }
 
     /**
@@ -1252,7 +1249,7 @@ public class RingCommand implements SubCommand
      */
     static String helpLine(final String usage, final String what)
     {
-        return ChatText.info(ChatText.usage(usage).substring(USAGE_PREFIX.length()) + " — " + what);
+        return ChatText.info(ChatText.usageBody(usage) + " — " + what);
     }
 
     /**

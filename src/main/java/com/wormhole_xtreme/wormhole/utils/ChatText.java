@@ -118,11 +118,27 @@ public final class ChatText
      */
     public static String usage(final String line)
     {
-        final StringBuilder out = new StringBuilder("Usage:");
+        return "Usage: " + usageBody(line);
+    }
+
+    /**
+     * The words of a usage line coloured as {@link #usage} colours them, without the
+     * {@code Usage: } in front: for a line that lists a command beside what it does.
+     *
+     * @param line
+     *            the usage, as {@code /wormhole ring remove [id]}
+     * @return the line, coloured, ending in the body colour
+     */
+    public static String usageBody(final String line)
+    {
+        final StringBuilder out = new StringBuilder();
         int optional = 0;
         for (final String word : line.trim().split("\\s+"))
         {
-            out.append(' ');
+            if (!out.isEmpty())
+            {
+                out.append(' ');
+            }
             final int opened = optional;
             optional += count(word, '[') - count(word, ']');
             if ((opened > 0) || word.startsWith("[") || "|".equals(word) || "or".equals(word))

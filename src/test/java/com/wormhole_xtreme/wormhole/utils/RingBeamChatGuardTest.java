@@ -23,10 +23,12 @@ import org.junit.jupiter.api.Test;
  * source of the files that were moved and refuses a line that starts as anything else: a bare
  * string, a name or count concatenated straight in, or a helper's text sent without a header.
  *
- * <p>A line passes if it starts with {@code ChatText.}, with a {@code MessageStrings} constant
- * (built from ChatText), with one of the few helpers here that return a finished line, or is a
- * single variable, which the reader of that file can see was built from ChatText. The
- * {@code sendMessage} guard over every file is #438's last PR; this covers only these six.
+ * <p>A line passes if it opens with {@code ChatText.info}, {@code error} or {@code status}, is a
+ * whole {@code MessageStrings} message, comes from one of the few helpers here that return a
+ * finished line, or is a single variable, which the reader of that file can see was built from
+ * ChatText. A {@code ::sendMessage} method reference passes only for a collection named in
+ * {@link #SENT_COLLECTIONS}. The {@code sendMessage} guard over every file is #438's last PR;
+ * this covers only these six.
  */
 class RingBeamChatGuardTest
 {
@@ -44,9 +46,30 @@ class RingBeamChatGuardTest
     private static final Pattern SENDS = Pattern.compile(
         "(?:\\.sendMessage\\(|\\bsaved\\(\\w+, \\w+, |\\bstatus\\(\\w+, |\\bstatusAll\\(\\w+, )\\s*");
 
-    /** What that argument may start with. */
+    /**
+     * What that argument may start with: a line-opening ChatText call, a whole MessageStrings
+     * message other than a bare header, a helper that returns a finished line, or a lone variable.
+     * A header constant or a fragment ({@code ChatText.name(x) + "..."}) does not open a line.
+     */
     private static final Pattern BUILT = Pattern.compile(
-        "ChatText\\.|ConfigManager\\.MessageStrings\\.|(?:helpLine|neverSeen|noPublic|noWorld)\\(|\\w+\\s*\\)");
+        "ChatText\\.(?:info|error|status)\\("
+            + "|ConfigManager\\.MessageStrings\\.(?!ERROR_HEADER|NORMAL_HEADER)\\w+\\.toString\\(\\)\\s*\\)"
+            + "|(?:helpLine|neverSeen|noPublic|noWorld)\\("
+            + "|\\w+\\s*\\)");
+
+    /** A method reference that sends whatever a collection holds, with the collection it reads. */
+    private static final Pattern SENDS_EACH = Pattern.compile("(\\w+)\\.forEach\\(\\w+::sendMessage\\)");
+
+    /** Any method reference to sendMessage, so one that is not a known forEach is still seen. */
+    private static final Pattern SEND_REF = Pattern.compile("::sendMessage\\b");
+
+    /**
+     * The collections a method reference may send, by file: both hold what
+     * {@code RingCommand.whyNotAPair} returns, which builds each line with ChatText.
+     */
+    private static final List<String> SENT_COLLECTIONS = List.of(
+        "command/handlers/RingCommand.java refused",
+        "command/handlers/RingConsoleCommands.java notAPair");
 
     @Test
     void everyRingAndBeamLineIsBuiltByChatText() throws IOException
@@ -65,8 +88,20 @@ class RingBeamChatGuardTest
                 final Matcher built = BUILT.matcher(source).region(send.end(), source.length());
                 if (!built.lookingAt())
                 {
-                    final int line = (int) source.substring(0, send.start()).chars().filter(c -> c == '\n').count() + 1;
-                    offences.add(name + ":" + line);
+                    offences.add(name + ":" + lineOf(source, send.start()));
+                }
+            }
+            final Matcher ref = SEND_REF.matcher(source);
+            while (ref.find())
+            {
+                sends++;
+                final int from = source.lastIndexOf('\n', ref.start()) + 1;
+                final int to = source.indexOf('\n', ref.end());
+                final Matcher each = SENDS_EACH.matcher(source.substring(from, (to < 0) ? source.length() : to));
+                final boolean known = each.find() && SENT_COLLECTIONS.contains(name + " " + each.group(1));
+                if (!known)
+                {
+                    offences.add(name + ":" + lineOf(source, ref.start()) + " (method reference)");
                 }
             }
         }
@@ -75,5 +110,10 @@ class RingBeamChatGuardTest
             + ", so the pattern no longer matches how they send");
         assertTrue(offences.isEmpty(), "a line sent without ChatText -- build it with ChatText.info or "
             + "ChatText.error: " + offences);
+    }
+
+    private static int lineOf(final String source, final int at)
+    {
+        return (int) source.substring(0, at).chars().filter(c -> c == '\n').count() + 1;
     }
 }

@@ -80,8 +80,7 @@ public class BeamCommand implements SubCommand
         if (args.length < 2)
         {
             sender.sendMessage(TO_USAGE);
-            sender.sendMessage(ChatText.info("Or " + ChatText.command("/wormhole beam list") + ", "
-                + ChatText.command("place") + " or " + ChatText.command("admin") + "."));
+            sender.sendMessage(ChatText.info("Or " + ChatText.usageBody("/wormhole beam list|place|admin") + "."));
             return true;
         }
 
@@ -424,7 +423,7 @@ public class BeamCommand implements SubCommand
             return resolveCoordinates(sender, args, start, defaultWorld, defaultYaw, defaultPitch);
         }
         sender.sendMessage(ChatText.error("Expected a player name, a public destination name, or "
-            + ChatText.name("<x> <y> <z>") + " [world]."));
+            + ChatText.usageBody("<x> <y> <z> [world]") + "."));
         return null;
     }
 
@@ -573,8 +572,8 @@ public class BeamCommand implements SubCommand
         // Travel used to be reachable here too ("beam place <name>"), but that meant the same
         // destination could be reached two different ways depending on whether it was public
         // or private. "to" is the one place travel happens now, whatever the destination is.
-        player.sendMessage(ChatText.error("Unknown place command. To travel, use " + ChatText.command("/wormhole beam to")
-            + " " + ChatText.name("<name>") + "."));
+        player.sendMessage(ChatText.error("Unknown place command. To travel, use "
+            + ChatText.usageBody("/wormhole beam to <name>") + "."));
         player.sendMessage(PLACE_USAGE);
     }
 

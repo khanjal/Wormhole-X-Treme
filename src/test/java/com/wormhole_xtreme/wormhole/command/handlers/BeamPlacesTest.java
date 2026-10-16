@@ -269,9 +269,11 @@ class BeamPlacesTest
     {
         place(player, "teleport", "home");
 
+        final String w = ChatText.COMMAND_COLOUR;
+        final String b = ChatText.BODY_COLOUR;
         verify(player).sendMessage(ChatText.ERROR_HEADER + "Unknown place command. To travel, use "
-            + ChatText.COMMAND_COLOUR + "/wormhole beam to" + ChatText.BODY_COLOUR + " "
-            + ChatText.NAME_COLOUR + "<name>" + ChatText.BODY_COLOUR + ".");
+            + w + "/wormhole" + b + " " + w + "beam" + b + " " + w + "to" + b + " "
+            + ChatText.NAME_COLOUR + "<name>" + b + ".");
     }
 
     /** Asking for a place with no name shows what the command takes. */
