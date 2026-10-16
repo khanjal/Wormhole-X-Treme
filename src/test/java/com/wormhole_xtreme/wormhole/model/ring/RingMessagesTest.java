@@ -15,6 +15,9 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
+
 /**
  * What a player is told when the ring they walked into will not fire.
  *
@@ -134,5 +137,34 @@ class RingMessagesTest
         }
         assertEquals(RingBlockage.values().length, seen.size(),
             "two reasons with the same words would make the enum pointless to a player");
+    }
+
+    /**
+     * A ring refusal opens with the same {@code :: error ::} header a gate refusal does.
+     *
+     * <p>It used to be {@code ::} and then dark purple body text, so the same kind of message
+     * looked different depending on what refused.
+     */
+    @Test
+    void everyRefusalOpensWithTheGateErrorHeader()
+    {
+        for (final RingBlockage why : RingBlockage.values())
+        {
+            for (final String line : refusalFor(why, "Base"))
+            {
+                assertTrue(line.startsWith(ConfigManager.MessageStrings.ERROR_HEADER.toString()),
+                    why + " should open with the gate error header, not " + line);
+                assertFalse(ChatText.plain(line).isEmpty());
+            }
+        }
+    }
+
+    /** The private-ring refusal goes to chat under the same error header. */
+    @Test
+    void aPrivateRingRefusalOpensWithTheErrorHeaderToo()
+    {
+        final Player player = mock(Player.class);
+        RingMessages.notYours(player);
+        verify(player).sendMessage(ChatText.error("These transport rings are private."));
     }
 }

@@ -29,6 +29,7 @@ import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -276,20 +277,28 @@ public final class GateInteractionHandler
      * player can still give it a network and an IDC; the only difference is that its sign may
      * already carry the name, in which case the suggested command is filled in.
      */
-    private static void announceValidDesign(final Player player, final Stargate newGate)
+    static void announceValidDesign(final Player player, final Stargate newGate)
     {
-        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         if (!newGate.isGateSignPowered())
         {
-            player.sendMessage(header + "Valid Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
-            player.sendMessage(header + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
+            player.sendMessage(ChatText.info("Valid stargate design."));
+            player.sendMessage(completeHint(NAME_PLACEHOLDER));
             return;
         }
-        player.sendMessage(header + "Valid Sign Nav Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
+        player.sendMessage(ChatText.info("Valid sign nav stargate design."));
         final String signName = newGate.getGateName();
-        final String name = signName.isEmpty() ? "<name>" : signName;
-        player.sendMessage(header + "Type \'\u00A7F/wormhole complete \u00A7B" + name + " \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
+        player.sendMessage(completeHint(signName.isEmpty() ? NAME_PLACEHOLDER : signName));
     }
+
+    /** What to type to finish a gate; {@code name} is the sign's own, or {@code <name>} to be filled in. */
+    static String completeHint(final String name)
+    {
+        return ChatText.info("Type " + ChatText.command("/wormhole complete") + " " + ChatText.name(name)
+            + " [idc=IDC] [net=NET] to finish it.");
+    }
+
+    /** What a hint shows where the player picks the gate's name. */
+    private static final String NAME_PLACEHOLDER = "<name>";
 
     /** The facings tried when nothing says which way the gate is built. */
     private static final BlockFace[] ALL_FACINGS = new BlockFace[] {
@@ -633,8 +642,9 @@ public final class GateInteractionHandler
     {
         //Activate Stargate
         player.sendMessage(ConfigManager.MessageStrings.GATE_ACTIVATED.toString());
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Chevrons Locked! \u00A73:: \u00A7B<required> \u00A76[optional]");
-        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Type \'\u00A7F/dial \u00A7B<gatename> \u00A76[idc]\u00A77\'");
+        player.sendMessage(ChatText.info("Chevrons locked."));
+        player.sendMessage(ChatText.info("Type " + ChatText.command("/dial") + " " + ChatText.name("<gatename>")
+            + " [idc] to dial."));
         StargateManager.addActivatedStargate(player, stargate);
         stargate.startActivationTimer(player);
         stargate.lightAllChevrons();
@@ -900,8 +910,8 @@ public final class GateInteractionHandler
                 return;
             }
             StargateManager.addIncompleteStargate(player, nearbyGate);
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Valid Stargate Design detected via nearby click! Type '/wormhole complete <name>' to complete.");
+            player.sendMessage(ChatText.info("Valid design found nearby. Type " + ChatText.command("/wormhole complete")
+                + " " + ChatText.name(NAME_PLACEHOLDER) + " to finish it."));
         }
         else
         {

@@ -22,6 +22,7 @@ import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.utils.ActionBar;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -271,7 +272,7 @@ public final class MirrorInteraction
      */
     private static void hint(final Player player, final String message)
     {
-        ActionBar.send(player, "§3:: " + message);
+        ActionBar.send(player, ChatText.status(message));
         // Or the approach line replaces it at the next sweep, before it can be read.
         MirrorSignpost.hold(player);
     }

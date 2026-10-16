@@ -15,6 +15,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class WXList.
@@ -24,7 +25,7 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 public class WXList implements CommandExecutor
 {
 
-    /** Past this many characters a message is truncated by the client rather than wrapped. */
+    /** Past this many visible characters a message is truncated by the client rather than wrapped. */
     private static final int LINE_BUDGET = 75;
 
     /* (non-Javadoc)
@@ -58,13 +59,13 @@ public class WXList implements CommandExecutor
         final String filterNet = (args.length > 0) ? args[0].trim() : null;
         final ArrayList<Stargate> gates = gatesOn(filterNet);
 
-        final String header = filterNet != null
-            ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
-            : "Available gates \u00A73::";
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + header);
+        final String header = (filterNet != null)
+            ? "Gates on network " + ChatText.name(filterNet) + ChatText.heading(" ::")
+            : "Available gates " + ChatText.heading("::");
+        sender.sendMessage(ChatText.info(header));
         if (gates.isEmpty())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "No gates found.");
+            sender.sendMessage(ChatText.info("No gates found."));
         }
         sendGateNames(sender, gates);
     }
@@ -102,17 +103,22 @@ public class WXList implements CommandExecutor
     private static void sendGateNames(final CommandSender sender, final List<Stargate> gates)
     {
         StringBuilder sb = new StringBuilder();
+        int visible = 0;
         for (int i = 0; i < gates.size(); i++)
         {
-            sb.append("\u00A77").append(gates.get(i).getGateName());
+            final String gateName = gates.get(i).getGateName();
+            sb.append(ChatText.name(gateName));
+            visible += gateName.length();
             if (i != (gates.size() - 1))
             {
-                sb.append("\u00A78, ");
+                sb.append(", ");
+                visible += 2;
             }
-            if (sb.length() >= LINE_BUDGET)
+            if (visible >= LINE_BUDGET)
             {
                 sender.sendMessage(sb.toString());
                 sb = new StringBuilder();
+                visible = 0;
             }
         }
         if (!sb.isEmpty())

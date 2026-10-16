@@ -1126,7 +1126,7 @@ function buildChecks(o, obs) {
     list.push(c('and the button (and a sign-dial shape\'s sign)', () => (b.laid || {}).button === 1 && (!signDial(o) || (b.laid || {}).sign === 1)));
     list.push(c(`the guide said "${shape} is built! Press its button to check it."`, () => new RegExp(`${shape} is built!`).test(s.built || '')));
   }
-  const offer = signDial(o) && o.built === 'hand' ? /Valid Sign Nav Stargate Design!/ : /Valid Stargate Design!/;
+  const offer = signDial(o) && o.built === 'hand' ? /Valid sign nav stargate design\./i : /Valid stargate design\./i;
   list.push(c(`its button offered it: "${offer.source.replace(/\\/g, '')}"`, () => offer.test(s.offer || '')));
   list.push(c('`gate complete Stand` made it: "Gate successfully constructed."', () => /Gate successfully constructed/.test(s.complete || '')));
   if (signDial(o)) list.push(c('its dial sign is live, showing a destination (»...«)', () => Boolean(signShows(obs.signAfterBuild))));

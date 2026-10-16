@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import java.util.Locale;
 
+import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
 
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -14,16 +15,9 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  * name of a mirror and the name of a world gives a reader no way to tell which of those three
  * is which without reading the sentence around them, which is the job colour is for.
  *
- * <p>The three colours are not new. They are what this plugin already uses when it tells
- * somebody how to finish a stargate, in {@code GateInteractionHandler}:
- *
- * <pre>
- * Type '&#167;F/wormhole complete &#167;B&lt;name&gt; &#167;6[idc=IDC] [net=NET]&#167;7' to complete.
- * </pre>
- *
- * <p>White for the command, aqua for the name, and that is the whole reason for reusing them
- * rather than picking nicer ones: a player who has learned that white means "type this" at a
- * gate should not have to learn it again at a banner.
+ * <p>It builds on {@link ChatText}, the one palette for every feature: white for the
+ * command, aqua for the name. A player who has learned that white means "type this" at a gate
+ * should not have to learn it again at a banner.
  *
  * <ul>
  * <li>White -- a line meant to be typed as it stands.</li>
@@ -167,8 +161,8 @@ public final class MirrorText
      */
     public static String approach(final String name, final String worldName)
     {
-        return ChatText.HEADING_COLOUR + ":: " + NAME_COLOUR + name + BODY_COLOUR + " -- punch to travel to "
-            + NAME_COLOUR + worldName + BODY_COLOUR + ", right-click for another.";
+        return ChatText.status(NAME_COLOUR + name + BODY_COLOUR + " -- punch to travel to "
+            + NAME_COLOUR + worldName + BODY_COLOUR + ", right-click for another.");
     }
 
     /**
@@ -180,7 +174,7 @@ public final class MirrorText
      */
     public static String reflection(final String name)
     {
-        return ChatText.HEADING_COLOUR + ":: " + NAME_COLOUR + name + BODY_COLOUR + " -- right-click to choose a mirror.";
+        return ChatText.status(NAME_COLOUR + name + BODY_COLOUR + " -- right-click to choose a mirror.");
     }
 
     /**
@@ -262,18 +256,18 @@ public final class MirrorText
     {
         return switch (colour)
         {
-            case WHITE -> "§f";
-            case ORANGE, BROWN -> "§6";
-            case MAGENTA, PINK -> "§d";
-            case LIGHT_BLUE -> "§b";
-            case YELLOW -> "§e";
-            case LIME -> "§a";
-            case GRAY, BLACK -> "§8";
-            case CYAN -> "§3";
-            case PURPLE -> "§5";
-            case BLUE -> "§9";
-            case GREEN -> "§2";
-            case RED -> "§c";
+            case WHITE -> ChatColor.WHITE.toString();
+            case ORANGE, BROWN -> ChatColor.GOLD.toString();
+            case MAGENTA, PINK -> ChatColor.LIGHT_PURPLE.toString();
+            case LIGHT_BLUE -> ChatColor.AQUA.toString();
+            case YELLOW -> ChatColor.YELLOW.toString();
+            case LIME -> ChatColor.GREEN.toString();
+            case GRAY, BLACK -> ChatColor.DARK_GRAY.toString();
+            case CYAN -> ChatColor.DARK_AQUA.toString();
+            case PURPLE -> ChatColor.DARK_PURPLE.toString();
+            case BLUE -> ChatColor.BLUE.toString();
+            case GREEN -> ChatColor.DARK_GREEN.toString();
+            case RED -> ChatColor.RED.toString();
             // LIGHT_GRAY lands here too, and is right to: it is the body colour already.
             default -> BODY_COLOUR;
         };

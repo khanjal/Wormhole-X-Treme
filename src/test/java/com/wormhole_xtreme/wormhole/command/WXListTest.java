@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -24,6 +25,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What {@code /wx list} shows, and to whom.
@@ -231,5 +233,71 @@ class WXListTest
 
         verify(player).sendMessage(contains("ermission"));
         verify(player, never()).sendMessage(contains("alpha"));
+    }
+
+    /** Names are aqua, as every gate name is; the commas between them stay the body grey. */
+    @Test
+    void gateNamesAreAquaAndTheCommasAreGrey()
+    {
+        gate("zulu", null);
+        gate("yankee", null);
+
+        list();
+
+        final String line = messages().stream().filter(m -> m.contains("zulu")).findFirst().orElseThrow();
+        assertTrue(line.contains(ChatText.name("zulu")), line);
+        assertTrue(line.contains(ChatText.name("yankee")), line);
+        assertTrue(line.contains(ChatText.BODY_COLOUR + ", "), "the comma sits in the body colour: " + line);
+    }
+
+    /** The header names the network in aqua and reads the same without colour. */
+    @Test
+    void theHeaderNamesTheNetworkOrSaysAvailable()
+    {
+        gate("alpha", "secret");
+
+        list("secret");
+        list();
+
+        final List<String> plain = messages().stream().map(ChatText::plain).toList();
+        assertTrue(plain.contains(":: Gates on network secret ::"), plain.toString());
+        assertTrue(plain.contains(":: Available gates ::"), plain.toString());
+        assertTrue(messages().contains(ChatText.info("Gates on network " + ChatText.name("secret")
+            + ChatText.heading(" ::"))), "the network is a name, so aqua");
+    }
+
+    /**
+     * Colour codes do not count towards the line budget, and no name is lost to the split.
+     *
+     * <p>Codes are invisible, so counting them would break a list into lines half the length the
+     * client can show. Each message is therefore bounded by its visible length, and every name
+     * reaches the sender exactly once.
+     */
+    @Test
+    void aLongListSplitsOnVisibleLengthAndKeepsEveryName()
+    {
+        final List<String> names = new ArrayList<>();
+        for (int i = 0; i < 30; i++)
+        {
+            names.add("gate" + String.format("%02d", i));
+            gate(names.get(i), null);
+        }
+
+        list();
+
+        final List<String> lines = messages().stream().filter(m -> m.contains("gate0") || m.contains("gate1") || m.contains("gate2")).toList();
+        assertTrue(lines.size() > 1, "thirty gates are more than one line");
+        for (int i = 0; i < lines.size(); i++)
+        {
+            final String m = lines.get(i);
+            assertTrue(ChatText.plain(m).length() < 90, "a line past the budget is cut by the client: " + m);
+            assertTrue((i == (lines.size() - 1)) || (ChatText.plain(m).length() > 70),
+                "split on visible length, not on codes: " + m);
+        }
+        final String all = lines.stream().map(ChatText::plain).collect(Collectors.joining());
+        for (final String n : names)
+        {
+            assertEquals(1, all.split(n, -1).length - 1, n + " appears exactly once");
+        }
     }
 }
