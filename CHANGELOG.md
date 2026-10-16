@@ -59,7 +59,7 @@ through is a release nobody reads.
 
 **Changed**
 
-- Every message to a player is coloured by one shared palette ([#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438)): `/wx list` shows gate names in aqua with the network name in aqua, a transport ring that turns you away opens with `:: error ::` like a gate does, and the lines after a valid design or locked chevrons say what to type next in the same colours.
+- Every message to a player is coloured by one shared palette ([#438](https://github.com/khanjal/Wormhole-X-Treme/issues/438)): `/wx list` shows gate and network names in aqua with grey separators, a transport ring that turns you away opens with `:: error ::` like a gate does, and the lines after a valid design or locked chevrons say what to type next in the same colours, with the optional `[idc=IDC] [net=NET]` part now grey rather than gold.
 
 **Fixed**
 

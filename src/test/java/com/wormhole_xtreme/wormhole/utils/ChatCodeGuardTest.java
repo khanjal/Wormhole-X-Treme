@@ -37,7 +37,8 @@ class ChatCodeGuardTest
     private static final List<Pattern> FORMS = List.of(
         Pattern.compile("\\\\u+00[aA]7"),
         Pattern.compile("\\\\0?247"),
-        Pattern.compile("\\(char\\)\\s*(0[xX][aA]7|167)\\b"),
+        Pattern.compile("\\(char\\)\\s*(0[xX][aA]7|0?247|167)\\b"),
+        Pattern.compile("Character\\.toString\\(\\s*(0[xX][aA]7|0?247|167)\\s*\\)"),
         Pattern.compile("translateAlternateColorCodes"));
 
     /** The one file allowed to hold the codes. */
