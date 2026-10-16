@@ -19,6 +19,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class Complete.
@@ -51,24 +52,31 @@ public class Complete implements CommandExecutor, TabCompleter
         pendingCompletions.remove(p);
     }
 
+    /** What {@code /wormhole complete} takes. */
+    private static final String USAGE = "/wormhole complete <name> [idc=<code>] [net=<network>]";
+
+    /** The longest gate name there is room for. */
+    private static final int LONGEST_NAME = 11;
+
     /**
      * Why a gate cannot be called this, or null if it can. Not whether the name is taken.
      *
      * @param name
      *            the name asked for
-     * @return the message to send, or null
+     * @return the body of an error line, or null
      */
     public static String whyNotAName(final String name)
     {
         // Words starting with a dash are options, so a gate may not be called one.
         if (name.startsWith("-"))
         {
-            return ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "A gate name cannot start with '-'; words that do are options, like " + CANCEL + ".";
+            return "A gate name cannot start with " + ChatText.command("-") + "; words that do are options, like "
+                + ChatText.command(CANCEL) + ".";
         }
-        if (name.length() >= 12)
+        if (name.length() > LONGEST_NAME)
         {
-            return ConfigManager.MessageStrings.CONSTRUCT_NAME_TOO_LONG.toString() + "\"" + name + "\"";
+            return "Gate name " + ChatText.name(name) + " is too long. Use at most "
+                + ChatText.value(String.valueOf(LONGEST_NAME)) + " characters.";
         }
         return null;
     }
@@ -88,14 +96,13 @@ public class Complete implements CommandExecutor, TabCompleter
                 || (StargateManager.getIncompleteStargateName(player) != null);
             removePendingCompletion(player);
             StargateManager.removeIncompleteStargate(player);
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + (waiting ? "Gate completion cancelled." : "There was no gate completion to cancel."));
+            player.sendMessage(ChatText.info(waiting ? "Gate completion cancelled." : "There was no gate completion to cancel."));
             return;
         }
         final String badName = whyNotAName(name);
         if (badName != null)
         {
-            player.sendMessage(badName);
+            player.sendMessage(ChatText.error(badName));
             return;
         }
 
@@ -110,7 +117,7 @@ public class Complete implements CommandExecutor, TabCompleter
         }
         if (StargateManager.getStargate(name) != null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_TAKEN.toString() + "\"" + name + "\"");
+            player.sendMessage(ChatText.error("A gate called " + ChatText.name(name) + " already exists. Pick another name."));
             return;
         }
 
@@ -179,10 +186,10 @@ public class Complete implements CommandExecutor, TabCompleter
         final String network)
     {
         addPendingCompletion(player, name, idc, network);
-        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
-        player.sendMessage(header + "Please click the DHD lever/button to complete the gate.");
-        player.sendMessage(header + "Optional parameters: idc=<code> net=<network> (example: /wormhole gate complete " + name + " idc=1234 net=Private)");
-        player.sendMessage(header + "Type '/wormhole gate complete " + CANCEL + "' to cancel.");
+        player.sendMessage(ChatText.info("Click the DHD lever or button of the gate to complete it."));
+        player.sendMessage(ChatText.info("Add " + ChatText.command("idc=<code>") + " or " + ChatText.command("net=<network>")
+            + " after " + ChatText.name(name) + " to set its iris code or network."));
+        player.sendMessage(ChatText.info("Run " + ChatText.command("/wormhole gate complete " + CANCEL) + " to cancel."));
     }
 
     /** Finishes the gate this player already has part-built, charging for it if the server does. */
@@ -191,7 +198,7 @@ public class Complete implements CommandExecutor, TabCompleter
     {
         rereadDesign(player);
         completeAndCharge(player, name, idc, network,
-            "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.",
+            "Completing " + ChatText.name(incompleteName) + " failed. Check the server log for details.",
             "/wormhole complete failed for player " + player.getName() + " - incomplete gate exists: " + incompleteName);
     }
 
@@ -246,7 +253,7 @@ public class Complete implements CommandExecutor, TabCompleter
      * it found, and the click cannot, because the click is what found the gate.
      *
      * @param onRefused
-     *            what to tell the player if the gate will not complete
+     *            what to tell the player if the gate will not complete, as the body of an error line
      * @param refusedLog
      *            what to log alongside it, or null to log nothing
      * @return true if the gate was completed
@@ -264,7 +271,7 @@ public class Complete implements CommandExecutor, TabCompleter
         }
         if (!StargateManager.completeStargate(player, name, idc, network))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + onRefused);
+            player.sendMessage(ChatText.error(onRefused));
             if (refusedLog != null)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, refusedLog);
@@ -275,8 +282,8 @@ public class Complete implements CommandExecutor, TabCompleter
         if (buildCost > 0)
         {
             EconomySupport.charge(player, buildCost);
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_BUILD_CHARGED.toString()
-                + buildCost + " " + EconomySupport.currencyName(buildCost));
+            player.sendMessage(ChatText.info("Charged " + ChatText.value(buildCost + " " + EconomySupport.currencyName(buildCost))
+                + " to build it."));
         }
         return true;
     }
@@ -295,8 +302,9 @@ public class Complete implements CommandExecutor, TabCompleter
                 if (CommandUtilities.playerCheck(sender))
                 {
                     final Player player = (Player) sender;
-                    player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
-                    player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Example: /wormhole complete MyGate idc=1234 net=Private (alias: '/wx complete').");
+                    player.sendMessage(ChatText.info(ChatText.usage(USAGE)));
+                    player.sendMessage(ChatText.info("For example " + ChatText.command("/wormhole complete MyGate idc=1234 net=Private")
+                        + ". " + ChatText.command("/wx complete") + " works too."));
                 }
                 return true;
             }
@@ -311,7 +319,7 @@ public class Complete implements CommandExecutor, TabCompleter
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole complete", e);
                     final Player player = (Player) sender;
-                    player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid arguments. Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
+                    player.sendMessage(ChatText.error("Those arguments did not work. " + ChatText.usage(USAGE)));
                     return true;
                 }
             }

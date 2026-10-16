@@ -116,14 +116,14 @@ public class WXList implements CommandExecutor
             }
             if (visible >= LINE_BUDGET)
             {
-                sender.sendMessage(sb.toString());
+                sender.sendMessage(ChatText.info(sb.toString()));
                 sb = new StringBuilder();
                 visible = 0;
             }
         }
         if (!sb.isEmpty())
         {
-            sender.sendMessage(sb.toString());
+            sender.sendMessage(ChatText.info(sb.toString()));
         }
     }
 }

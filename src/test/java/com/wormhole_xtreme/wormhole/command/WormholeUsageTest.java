@@ -85,6 +85,20 @@ class WormholeUsageTest
         verify(console).sendMessage(plainContaining("Other: /wormhole compass [reset]"));
     }
 
+    /**
+     * Each job's line opens with the header like every other line (#438), then the job in the
+     * heading colour and the usage coloured as a usage line is, without its {@code Usage:}.
+     */
+    @Test
+    void eachJobLineOpensWithTheHeaderThenTheJobInTheHeadingColour()
+    {
+        command.onCommand(console, null, "wormhole", new String[0]);
+
+        verify(console).sendMessage(ChatText.HEADER + ChatText.HEADING_COLOUR + "Other:" + ChatText.BODY_COLOUR + " "
+            + ChatText.COMMAND_COLOUR + "/wormhole" + ChatText.BODY_COLOUR + " " + ChatText.COMMAND_COLOUR + "compass"
+            + ChatText.BODY_COLOUR + " [reset]");
+    }
+
     /** A player without wormhole.config is shown only what the dispatcher would let them run. */
     @Test
     void aPlayerWithoutTheConfigNodeIsListedOnlyWhatTheyMayRun()

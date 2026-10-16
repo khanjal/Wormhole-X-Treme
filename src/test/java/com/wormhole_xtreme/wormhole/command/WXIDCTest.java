@@ -1,10 +1,10 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -120,7 +120,7 @@ class WXIDCTest
     {
         assertTrue(idc(console, "nowhere"));
 
-        verify(console).sendMessage(contains("Invalid Stargate: nowhere"));
+        verify(console).sendMessage(plainContains("No gate called nowhere."));
     }
 
     /** Asked with only a name, it reports the code and changes nothing. */
@@ -132,7 +132,7 @@ class WXIDCTest
 
         assertTrue(idc(console, "alpha"));
 
-        verify(console).sendMessage(contains("is:secret"));
+        verify(console).sendMessage(plainContains(" is secret."));
         assertEquals("secret", s.getGateIrisDeactivationCode(), "asking must not change it");
         db.verify(() -> StargateDBManager.saveStargate(s), never());
     }
@@ -146,7 +146,7 @@ class WXIDCTest
         assertTrue(idc(console, "alpha", "hunter2"));
 
         assertEquals("hunter2", s.getGateIrisDeactivationCode());
-        verify(console).sendMessage(contains("is:hunter2"));
+        verify(console).sendMessage(plainContains(" is hunter2."));
     }
 
     /**
@@ -179,7 +179,7 @@ class WXIDCTest
 
         assertTrue(new GateEditCommand().execute(console, new String[] { "gate", "edit", "alpha", "idc" }));
 
-        verify(console).sendMessage(contains("is:secret"));
+        verify(console).sendMessage(plainContains(" is secret."));
         assertEquals("secret", s.getGateIrisDeactivationCode(), "asking must not clear it");
         db.verify(() -> StargateDBManager.saveStargate(s), never());
     }
@@ -247,7 +247,7 @@ class WXIDCTest
 
         assertTrue(idc(console, "noiris", "hunter2"));
 
-        verify(console).sendMessage(contains("Iris not available"));
+        verify(console).sendMessage(plainContains("Iris not available"));
         assertEquals("", s.getGateIrisDeactivationCode(), "and nothing is stored");
     }
 
@@ -260,7 +260,7 @@ class WXIDCTest
 
         assertTrue(idc(console, "signy", "hunter2"));
 
-        verify(console).sendMessage(contains("Iris not available"));
+        verify(console).sendMessage(plainContains("Iris not available"));
         assertEquals("", s.getGateIrisDeactivationCode());
     }
 
@@ -280,7 +280,7 @@ class WXIDCTest
 
         assertTrue(idc(stranger, "alpha", "mine-now"));
 
-        verify(stranger).sendMessage(contains("ermission"));
+        verify(stranger).sendMessage(plainContains("ermission"));
         assertEquals("secret", s.getGateIrisDeactivationCode(), "somebody else's code is untouched");
         db.verify(() -> StargateDBManager.saveStargate(s), never());
     }
@@ -340,7 +340,7 @@ class WXIDCTest
 
         assertEquals("mine", s.getGateIrisDeactivationCode(),
             "the owner holds no node, so only the handler's own owner check can have let them in");
-        verify(player).sendMessage(contains("is:mine"));
+        verify(player).sendMessage(plainContains(" is mine."));
     }
 
     /** And through the older {@code /wormhole idc}, which is hidden but still answers. */
@@ -356,7 +356,7 @@ class WXIDCTest
         wormhole(player, "idc", "alpha", "mine");
 
         assertEquals("mine", s.getGateIrisDeactivationCode());
-        verify(player).sendMessage(contains("is:mine"));
+        verify(player).sendMessage(plainContains(" is mine."));
     }
 
     /**
@@ -376,8 +376,8 @@ class WXIDCTest
 
         wormhole(stranger, "gate", "edit", "noiris", "idc", "x");
 
-        verify(stranger).sendMessage(contains("You lack the permissions"));
-        verify(stranger, never()).sendMessage(contains("Iris not available"));
+        verify(stranger).sendMessage(plainContains("You lack the permissions"));
+        verify(stranger, never()).sendMessage(plainContains("Iris not available"));
     }
 
     /** Opening the door to owners must not open it to everybody. */
@@ -391,7 +391,7 @@ class WXIDCTest
 
         wormhole(stranger, "gate", "edit", "alpha", "idc", "mine-now");
 
-        verify(stranger).sendMessage(contains("You lack the permissions"));
+        verify(stranger).sendMessage(plainContains("You lack the permissions"));
         assertEquals("secret", s.getGateIrisDeactivationCode(), "somebody else's code is untouched");
     }
 
@@ -412,7 +412,7 @@ class WXIDCTest
 
         wormhole(player, "gate", "edit", "alpha", "group", "anything");
 
-        verify(player).sendMessage(contains("You lack the permissions"));
+        verify(player).sendMessage(plainContains("You lack the permissions"));
     }
 
     /** gate edit's own front door, which the dispatcher otherwise stands in front of. */
@@ -426,7 +426,7 @@ class WXIDCTest
 
         new GateEditCommand().execute(player, new String[] { "gate", "edit", "alpha", "group", "anything" });
 
-        verify(player).sendMessage(contains("You lack the permissions"));
-        verify(player, never()).sendMessage(contains("No material group"));
+        verify(player).sendMessage(plainContains("You lack the permissions"));
+        verify(player, never()).sendMessage(plainContains("No material group"));
     }
 }

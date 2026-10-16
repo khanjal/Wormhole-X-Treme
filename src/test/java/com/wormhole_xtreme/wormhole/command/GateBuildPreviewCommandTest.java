@@ -351,7 +351,7 @@ class GateBuildPreviewCommandTest
         verify(player).sendMessage(saying("Standard needs:"));
         verify(player).sendMessage(saying("18 obsidian - 4 left"));
         verify(player).sendMessage(saying("1 button or lever - done"));
-        verify(player).sendMessage(contains("18 \u00A7eobsidian\u00A77 - 4 left"));
+        verify(player).sendMessage(contains("\u00A7f18\u00A77 \u00A7eobsidian\u00A77 - \u00A7f4\u00A77 left"));
         verify(player).sendMessage(contains("\u00A7ebutton\u00A77 or \u00A7elever\u00A77 - \u00A7adone\u00A77"));
         verify(player).sendMessage(saying("2 in the way in the opening"));
         verify(player).sendMessage(saying("No material group uses gold_block for a frame"));

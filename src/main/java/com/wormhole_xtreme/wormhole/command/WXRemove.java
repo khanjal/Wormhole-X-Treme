@@ -13,6 +13,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The Class WXRemove.
@@ -38,8 +39,7 @@ public class WXRemove implements CommandExecutor
         {
             WormholeXTreme.getThisPlugin().prettyLog(
                 Level.WARNING, "Error executing /wx remove", t);
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "An error occurred while removing the gate. Check server logs.");
+            sender.sendMessage(ChatText.error("An error occurred while removing the gate. Check server logs."));
             return true;
         }
     }
@@ -65,8 +65,7 @@ public class WXRemove implements CommandExecutor
         final Stargate s = StargateManager.getStargate(a[0]);
         if (s == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Gate does not exist: " + a[0] + ". Remember proper capitalization.");
+            sender.sendMessage(CommandUtilities.noGateCalled(a[0]));
             return true;
         }
         if (CommandUtilities.playerCheck(sender)
@@ -79,8 +78,7 @@ public class WXRemove implements CommandExecutor
         final boolean destroy = (a.length == 2) && a[1].equalsIgnoreCase(DESTROY);
         CommandUtilities.gateRemove(s, destroy, true,
             CommandUtilities.playerCheck(sender) ? (Player) sender : null);
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + "Wormhole Removed: " + s.getGateName());
+        sender.sendMessage(ChatText.info("Removed " + ChatText.name(s.getGateName()) + "."));
         return true;
     }
 

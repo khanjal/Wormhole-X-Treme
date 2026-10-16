@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import java.util.Arrays;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -38,7 +40,7 @@ public class Wormhole implements CommandExecutor
      */
     static void sendCommandList(final CommandSender sender, final boolean mayConfigure)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Wormhole X-Treme commands:");
+        sender.sendMessage(ChatText.info("Wormhole X-Treme commands:"));
         for (final String[] group : GROUPS)
         {
             final SubCommands.Entry entry = SubCommands.find(group[1]);
@@ -62,8 +64,7 @@ public class Wormhole implements CommandExecutor
             }
             if (usage != null)
             {
-                sender.sendMessage(ChatText.heading(group[0] + ":") + " "
-                    + ChatText.usage(usage).substring("Usage: ".length()));
+                sender.sendMessage(ChatText.info(ChatText.heading(group[0] + ":") + " " + ChatText.usageBody(usage)));
             }
         }
     }
@@ -105,8 +106,7 @@ public class Wormhole implements CommandExecutor
                     // handler already said; the usage of the command they typed is what helps (#325).
                     if (!entry.run(sender, a))
                     {
-                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                            + ChatText.usage(entry.getUsage()));
+                        sender.sendMessage(ChatText.info(ChatText.usage(entry.getUsage())));
                     }
                     return true;
                 }
@@ -121,8 +121,9 @@ public class Wormhole implements CommandExecutor
                 return true;
             }
 
-            sender.sendMessage(ConfigManager.MessageStrings.REQUEST_INVALID.toString() + ": " + a[0]);
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid commands: " + valid);
+            sender.sendMessage(ChatText.error("No command called " + ChatText.command(a[0]) + ". Try one of these:"));
+            sender.sendMessage(ChatText.info(Arrays.stream(valid.split(", ")).map(ChatText::command)
+                .collect(Collectors.joining(", "))));
             return true;
         }
         catch (final RuntimeException t)
@@ -130,7 +131,7 @@ public class Wormhole implements CommandExecutor
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole command", t);
             // Everyone is told the same thing, console included: the failure is logged
             // server-side, and neither a player nor an operator can act on more than that.
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
+            sender.sendMessage(CommandUtilities.INTERNAL_ERROR);
             return true;
         }
     }
