@@ -24,7 +24,6 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
-import com.wormhole_xtreme.wormhole.model.beam.BeamPermissions;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPoint;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
