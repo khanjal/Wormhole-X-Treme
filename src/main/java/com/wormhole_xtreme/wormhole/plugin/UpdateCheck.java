@@ -131,8 +131,8 @@ public final class UpdateCheck implements Listener
     {
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Wormhole X-Treme " + release.version()
             + " is available (running " + running + "): " + release.url());
-        final String line = ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Wormhole X-Treme "
-            + ChatText.value(release.version()) + " is available (running " + running + "): " + release.url();
+        final String line = ChatText.info("Wormhole X-Treme " + ChatText.value(release.version())
+            + " is available (running " + running + "): " + release.url());
         plugin.getServer().getPluginManager().registerEvents(new UpdateCheck(line), plugin);
     }
 

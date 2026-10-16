@@ -648,6 +648,6 @@ class GateBuildPreviewCommandTest
 
             run("gate", "preview", "place");
         }
-        verify(player).sendMessage(RegionFlags.BUILD_REFUSED + " Nothing placed.");
+        verify(player).sendMessage(RegionFlags.BUILD_REFUSED_NOTHING_PLACED);
     }
 }

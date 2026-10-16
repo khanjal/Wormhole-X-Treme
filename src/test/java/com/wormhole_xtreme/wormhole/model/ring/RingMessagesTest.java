@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.ActionBar;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
@@ -163,7 +162,7 @@ class RingMessagesTest
         {
             for (final String line : refusalFor(why, "Base"))
             {
-                assertTrue(line.startsWith(ConfigManager.MessageStrings.ERROR_HEADER.toString()),
+                assertTrue(line.startsWith(ChatText.ERROR_HEADER),
                     why + " should open with the gate error header, not " + line);
                 assertFalse(ChatText.plain(line).isEmpty());
             }

@@ -80,7 +80,7 @@ public final class BeamTravel
 
         if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled() && BeamCooldown.isActive(player))
         {
-            // Not ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED -- its wording
+            // Not StargateRestrictions.cooldownRefusal -- its wording
             // names a stargate specifically, which would be wrong here.
             player.sendMessage(ChatText.error("You must wait longer before beaming again: "
                 + seconds(BeamCooldown.remainingSeconds(player)) + "."));

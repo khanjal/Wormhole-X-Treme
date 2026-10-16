@@ -5,11 +5,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Reads a source file for the lines it sends, for the guards that hold each feature's chat to
- * {@link ChatText} (#438).
+ * Reads a source file for the lines it sends, for {@link PlayerMessageGuardTest}, which holds the
+ * plugin's chat to {@link ChatText} (#438).
  *
- * <p>Each guard says where a line to send begins in its files and what that line may start
- * with; this finds every such place and names the ones that start with anything else.
+ * <p>The guard says where a line to send begins and what that line may start with; this finds
+ * every such place and names the ones that start with anything else.
  */
 final class ChatSendScan
 {

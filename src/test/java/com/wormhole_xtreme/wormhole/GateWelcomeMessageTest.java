@@ -1,12 +1,12 @@
 package com.wormhole_xtreme.wormhole;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -40,6 +40,7 @@ import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * A player coming out of a gate is told where they are, once, and only if the server asked for it.
@@ -156,8 +157,8 @@ class GateWelcomeMessageTest
 
         final ArgumentCaptor<String> said = ArgumentCaptor.forClass(String.class);
         verify(player, times(1)).sendMessage(said.capture());
-        assertEquals("§3:: §7Arrived at Abydos", said.getValue(),
-            "the far gate's name, not the gate walked into (Earth)");
+        assertEquals(ChatText.HEADER + "Arrived at " + ChatText.NAME_COLOUR + "Abydos" + ChatText.BODY_COLOUR + ".",
+            said.getValue(), "the far gate's name in aqua, not the gate walked into (Earth)");
     }
 
     /**
@@ -179,7 +180,7 @@ class GateWelcomeMessageTest
         PetTestSupport.runEscorts(scheduler);
 
         verify(wolf).teleport(any(Location.class));
-        verify(player, times(1)).sendMessage(contains("Arrived at Abydos"));
+        verify(player, times(1)).sendMessage(plainContains("Arrived at Abydos."));
         verify(wolf, never()).sendMessage(anyString());
     }
 

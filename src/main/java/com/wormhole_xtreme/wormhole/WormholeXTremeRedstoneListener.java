@@ -435,7 +435,7 @@ class WormholeXTremeRedstoneListener implements Listener
         final Player activator = StargateManager.removeActivatorForStargate(stargate);
         if (activator != null)
         {
-            activator.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate deactivated.");
+            activator.sendMessage(ConfigManager.MessageStrings.GATE_DEACTIVATED.toString());
         }
     }
 

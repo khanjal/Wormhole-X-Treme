@@ -423,7 +423,7 @@ public class Build implements CommandExecutor
                 + "Nothing placed."));
             case OUTSIDE_BORDER -> player.sendMessage(ChatText.error("Part of it is outside the world border. "
                 + "Nothing placed."));
-            case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.BUILD_REFUSED + " Nothing placed.");
+            case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.BUILD_REFUSED_NOTHING_PLACED);
             case IN_THE_WAY -> linkHint(ChatLine.of(ChatText.error("Nothing placed. In the way: "
                 + bad(String.join(", ", placed.inTheWay())) + ". ")), GUIDE).text(" marks them.").send(player);
             case NOT_FOUND -> linkHint(ChatLine.of(ChatText.error("Placed, but no gate was found in it. ")), GUIDE)

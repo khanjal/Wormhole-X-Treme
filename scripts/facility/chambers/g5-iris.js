@@ -260,7 +260,7 @@ module.exports = {
     }
     return [
       c('the iris is shut', () => obs.irisShut === true),
-      c(`refused: "You cannot build inside the gate '${g.name}'."`, () => new RegExp(`You cannot build inside the gate '${g.name}'`).test(obs.placeSaid || '')),
+      c(`refused: "You cannot build inside the gate ${g.name}."`, () => new RegExp(`You cannot build inside the gate ${g.name}\\.`).test(obs.placeSaid || '')),
       c('and the opening cell is still air', () => obs.cellAfter),
     ];
   },

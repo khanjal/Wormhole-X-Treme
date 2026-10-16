@@ -1,8 +1,11 @@
 package com.wormhole_xtreme.wormhole;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainBody;
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
@@ -37,6 +40,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.times;
@@ -62,6 +66,9 @@ class GateTollAndRefusalOrderTest
     private static final String FAR_WORLD = "nether";
     private static final int BX = 10, BY = 64, BZ = 20;
     private static final double FARE = 25.0;
+
+    /** What only the cooldown refusal says. */
+    private static final String COOLDOWN_WORDS = "before using a stargate again";
 
     private World world;
     private World farWorld;
@@ -133,6 +140,9 @@ class GateTollAndRefusalOrderTest
             .thenCallRealMethod();
         restrictions.when(() -> StargateRestrictions.isCrossWorldRefused(any(World.class), any(World.class)))
             .thenCallRealMethod();
+        // The wording itself, so a refusal for the cooldown reads as it would on a server.
+        restrictions.when(() -> StargateRestrictions.cooldownRefusal(any(Player.class))).thenCallRealMethod();
+        restrictions.when(() -> StargateRestrictions.cooldownRefusal(anyLong())).thenCallRealMethod();
     }
 
     @AfterEach
@@ -251,7 +261,7 @@ class GateTollAndRefusalOrderTest
         walkIn();
 
         verify(walker, atLeastOnce()).sendMessage(contains("permission"));
-        verify(walker, never()).sendMessage(contains("cooldown"));
+        verify(walker, never()).sendMessage(plainContains(COOLDOWN_WORDS));
     }
 
     /** A player still on cooldown is told how long is left. */
@@ -265,7 +275,7 @@ class GateTollAndRefusalOrderTest
 
         walkIn();
 
-        verify(walker, atLeastOnce()).sendMessage(contains("28"));
+        verify(walker, atLeastOnce()).sendMessage(plainBody("You must wait 28 seconds before using a stargate again."));
         verify(walker, never()).teleport(any(Location.class));
     }
 
@@ -291,7 +301,7 @@ class GateTollAndRefusalOrderTest
 
         walkIn();
 
-        verify(walker, atLeastOnce()).sendMessage(contains("Remote Iris is locked"));
+        verify(walker, atLeastOnce()).sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
         verify(walker).teleport(home);
         verify(walker).setNoDamageTicks(5);
     }
@@ -407,7 +417,8 @@ class GateTollAndRefusalOrderTest
         walkIn();
 
         economy.verify(() -> EconomySupport.charge(walker, FARE));
-        verify(walker, atLeastOnce()).sendMessage(contains("credits"));
+        verify(walker).sendMessage(ChatText.HEADER + "Charged " + ChatText.COMMAND_COLOUR + "25.0 credits"
+            + ChatText.BODY_COLOUR + ".");
     }
 
     /**
@@ -497,7 +508,7 @@ class GateTollAndRefusalOrderTest
         walkIn();
 
         verify(walker).sendMessage(contains("Cross-world travel is disabled"));
-        verify(walker, never()).sendMessage(contains("Remote Iris"));
+        verify(walker, never()).sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
         verify(walker, never()).teleport(any(Location.class));
     }
 
@@ -512,7 +523,7 @@ class GateTollAndRefusalOrderTest
         walkIn();
 
         verify(walker).sendMessage(contains("Cross-world travel is disabled"));
-        verify(walker, never()).sendMessage(contains("You must wait longer"));
+        verify(walker, never()).sendMessage(plainContains(COOLDOWN_WORDS));
     }
 
     /**

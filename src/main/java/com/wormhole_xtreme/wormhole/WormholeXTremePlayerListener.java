@@ -59,6 +59,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
@@ -298,7 +299,7 @@ class WormholeXTremePlayerListener implements Listener
             return false;
         }
         return refuseWithReminder(player, stargate,
-            ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Iris is locked!");
+            ChatText.error("This gate's iris is closed."));
     }
 
     /**
@@ -629,9 +630,7 @@ class WormholeXTremePlayerListener implements Listener
         }
         if (ConfigManager.isUseCooldownEnabled() && StargateRestrictions.isPlayerUseCooldown(player))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED.toString());
-            player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString()
-                + StargateRestrictions.checkPlayerUseCooldownRemaining(player));
+            player.sendMessage(StargateRestrictions.cooldownRefusal(player));
             return true;
         }
         // The cooldown is not spent here. It is set once the traveller has actually gone,
@@ -657,7 +656,7 @@ class WormholeXTremePlayerListener implements Listener
     private static boolean bounceOffRemoteIris(final PlayerMoveEvent event, final Player player,
                                                final Stargate stargate)
     {
-        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Remote Iris is locked!");
+        player.sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
         player.setNoDamageTicks(5);
         event.setFrom(stargate.getGatePlayerTeleportLocation());
         event.setTo(stargate.getGatePlayerTeleportLocation());
@@ -869,8 +868,7 @@ class WormholeXTremePlayerListener implements Listener
         if (!moved)
         {
             // Not split from the mount: sending the player on alone would leave it here.
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "What you are riding could not be sent through.");
+            player.sendMessage(ChatText.error("What you are riding could not be sent through."));
             return false;
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerTeleport: teleported "

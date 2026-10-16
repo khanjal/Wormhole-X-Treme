@@ -11,7 +11,7 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  * Colouring for the things a mirror says.
  *
  * <p>Every line a mirror sends used to arrive in one colour: the grey that
- * {@code NORMAL_HEADER} leaves behind. A paragraph of grey containing a command to type, the
+ * {@link ChatText#HEADER} leaves behind. A paragraph of grey containing a command to type, the
  * name of a mirror and the name of a world gives a reader no way to tell which of those three
  * is which without reading the sentence around them, which is the job colour is for.
  *

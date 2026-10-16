@@ -255,17 +255,10 @@ public class ConfigManager
      * Whole lines said in more than one place, each built by {@link ChatText} with its header.
      *
      * <p>A line naming what the player typed is built where it is sent, so the name can be
-     * coloured (#438). Three still have a name or number appended by a caller: {@link #GATE_ARRIVED},
-     * {@link #PLAYER_USE_COOLDOWN_WAIT_TIME} and {@link #ECONOMY_CHARGED}.
+     * coloured (#438), so each one here is sent as it stands, with nothing appended.
      */
     public enum MessageStrings
     {
-
-        /** The error header. */
-        ERROR_HEADER(ChatText.ERROR_HEADER),
-
-        /** The normal header. */
-        NORMAL_HEADER(ChatText.HEADER),
 
         /** The permission no. */
         PERMISSION_NO(ChatText.error("You lack the permissions to do this.")),
@@ -300,29 +293,20 @@ public class ConfigManager
         /** The gate dialed. */
         GATE_CONNECTED(ChatText.info("Stargates connected.")),
 
-        /** Said to a player arriving through a gate, before the destination gate's name. */
-        GATE_ARRIVED(ChatText.info("Arrived at ")),
-
         /** The construct success. */
         CONSTRUCT_SUCCESS(ChatText.info("Gate successfully constructed.")),
 
         /** The gate not specified. */
         GATE_NOT_SPECIFIED(ChatText.error("No gate name specified.")),
 
-        /** The player use cooldown restricted. */
-        PLAYER_USE_COOLDOWN_RESTRICTED(ChatText.error("You must wait longer before using a stargate.")),
-
-        /** The player use cooldown wait time. */
-        PLAYER_USE_COOLDOWN_WAIT_TIME(ChatText.error("Current Wait (in seconds): ")),
-
         /** Player recently arrived at gate. */
         PLAYER_RECENT_ARRIVAL(ChatText.error("You can't enter an incoming wormhole.")),
 
-        /** Insufficient funds message. */
-        ECONOMY_INSUFFICIENT_FUNDS(ChatText.error("Insufficient funds to use this gate.")),
+        /** Said to a traveller, walking or riding, turned back by the far gate's shut iris. */
+        REMOTE_IRIS_CLOSED(ChatText.error("The far gate's iris is closed.")),
 
-        /** Charged for gate use message (prefix; amount and currency appended at runtime). */
-        ECONOMY_CHARGED(ChatText.info("Charged "));
+        /** Insufficient funds message. */
+        ECONOMY_INSUFFICIENT_FUNDS(ChatText.error("Insufficient funds to use this gate."));
 
         /** The m. */
         private final String m;

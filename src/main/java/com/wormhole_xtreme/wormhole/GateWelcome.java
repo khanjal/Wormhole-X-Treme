@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Tells a player which gate they have just come out of, when {@code show-gate-welcome-message} is on.
@@ -27,7 +28,7 @@ final class GateWelcome
     {
         if ((traveller instanceof Player player) && (destination != null) && ConfigManager.isShowGateWelcomeMessage())
         {
-            player.sendMessage(ConfigManager.MessageStrings.GATE_ARRIVED.toString() + destination.getGateName());
+            player.sendMessage(ChatText.info("Arrived at " + ChatText.name(destination.getGateName()) + "."));
         }
     }
 }

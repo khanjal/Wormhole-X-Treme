@@ -14,6 +14,7 @@ import org.bukkit.plugin.Plugin;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Where a region lets a player build and use gates, through WorldGuard's {@code wormhole-build}
@@ -30,12 +31,16 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 public final class RegionFlags
 {
     /** Told to a player a region refuses a gate's use. */
-    public static final String USE_REFUSED =
-        ConfigManager.MessageStrings.ERROR_HEADER.toString() + "This region does not allow using gates.";
+    public static final String USE_REFUSED = ChatText.error("This region does not allow using gates.");
+
+    /** Why a region refuses a gate's building, before anything said after it. */
+    private static final String BUILD_REFUSAL = "This region does not allow building gates.";
 
     /** Told to a player a region refuses a gate's building. */
-    public static final String BUILD_REFUSED =
-        ConfigManager.MessageStrings.ERROR_HEADER.toString() + "This region does not allow building gates.";
+    public static final String BUILD_REFUSED = ChatText.error(BUILD_REFUSAL);
+
+    /** Told to a player whose {@code gate build} placed nothing because a region refuses it. */
+    public static final String BUILD_REFUSED_NOTHING_PLACED = ChatText.error(BUILD_REFUSAL + " Nothing placed.");
 
     /** What a region can refuse, each its own WorldGuard flag. */
     public enum Action

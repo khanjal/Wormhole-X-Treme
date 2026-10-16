@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /** The shared chat palette: each fragment coloured, then back to the body grey. */
 class ChatTextTest
@@ -78,13 +77,5 @@ class ChatTextTest
         assertEquals("§3:: §5error §3:: §7No.", ChatText.error("No."));
         assertEquals("§3:: §b", ChatText.status(ChatText.NAME_COLOUR));
         assertEquals("§3:: Hi", ChatText.status("Hi"));
-    }
-
-    /** The config enum predates ChatText; it must keep handing back the very same headers. */
-    @Test
-    void theConfigHeadersAreTheSharedOnes()
-    {
-        assertEquals(ChatText.HEADER, ConfigManager.MessageStrings.NORMAL_HEADER.toString());
-        assertEquals(ChatText.ERROR_HEADER, ConfigManager.MessageStrings.ERROR_HEADER.toString());
     }
 }

@@ -18,7 +18,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.command.WXRemove;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
@@ -281,10 +281,9 @@ class WormholeXTremeBlockListener implements Listener
         }
         try
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "This block is part of the registered gate '" + name + "'.");
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Run '/wormhole remove " + name + "' to remove the gate first (use -all to also destroy blocks).");
+            player.sendMessage(ChatText.error("This block is part of the gate " + ChatText.name(name) + "."));
+            player.sendMessage(ChatText.info("Remove the gate first with " + ChatText.command("/wormhole remove")
+                + " " + ChatText.name(name) + "; add " + ChatText.command(WXRemove.DESTROY) + " to break its blocks too."));
         }
         catch (final RuntimeException ignore)
         {
@@ -314,7 +313,8 @@ class WormholeXTremeBlockListener implements Listener
             event.setCancelled(true);
             // Above the hotbar: a player holding the button down would otherwise fill their chat.
             ActionBar.send(player,
-                ChatText.status("That is part of a mirror. /wormhole mirror remove takes one down."));
+                ChatText.info("That is part of a mirror. " + ChatText.command("/wormhole mirror remove")
+                    + " takes one down."));
             return;
         }
         final Stargate stargate = StargateManager.getGateFromBlock(block);
@@ -336,8 +336,7 @@ class WormholeXTremeBlockListener implements Listener
         final String name = (stargate != null) ? stargate.getGateName() : "unknown";
         try
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "You cannot build inside the gate '" + name + "'.");
+            player.sendMessage(ChatText.error("You cannot build inside the gate " + ChatText.name(name) + "."));
         }
         catch (final RuntimeException ignore)
         {
