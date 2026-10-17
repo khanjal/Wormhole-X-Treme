@@ -82,6 +82,7 @@ through is a release nobody reads.
 ### Internals
 
 - Code nothing ran any more is gone: a flat-file settings writer and reader, empty shutdown hooks, and a gate-facing helper nothing called ([#475](https://github.com/khanjal/Wormhole-X-Treme/issues/475)).
+- Collections are built with the diamond (`new ArrayList<>()`) instead of repeating their type arguments, in `src/main` and the tests ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 
 ## 1.10.0 (2026-10-12)
 

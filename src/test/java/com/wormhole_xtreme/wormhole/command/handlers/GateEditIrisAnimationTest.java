@@ -45,7 +45,7 @@ class GateEditIrisAnimationTest
     @AfterEach
     void tearDown() throws Exception
     {
-        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
         {
             if (s != null)
             {

@@ -91,7 +91,7 @@ class HorizonRippleHooksTest
         final Block empty = mock(Block.class);
         when(empty.getType()).thenReturn(Material.AIR);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(empty);
-        when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(new ArrayList<Entity>());
+        when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(new ArrayList<>());
         watcher = mock(Player.class);
         when(watcher.getUniqueId()).thenReturn(UUID.randomUUID());
         when(watcher.isOnline()).thenReturn(true);

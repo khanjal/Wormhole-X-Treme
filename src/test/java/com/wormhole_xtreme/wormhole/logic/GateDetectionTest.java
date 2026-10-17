@@ -787,7 +787,7 @@ class GateDetectionTest
             {
                 continue;
             }
-            final Set<String> lit = new HashSet<String>();
+            final Set<String> lit = new HashSet<>();
             final List<List<Integer[]>> waves = layer.getLayerLightPositions();
             if (waves != null)
             {

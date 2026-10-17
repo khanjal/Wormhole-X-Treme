@@ -46,7 +46,7 @@ class GateTabCompletionTest
         // Shapes are read off disk when the plugin enables, so the registry is empty in a
         // test JVM. It is a shared static, so put back whatever the rest of the suite had, and
         // start from empty so a shape another class left behind cannot join an exact list.
-        savedShapes = new HashMap<String, StargateShape>(
+        savedShapes = new HashMap<>(
             StargateShapeRegistry.getStargateShapes());
         StargateShapeRegistry.getStargateShapes().clear();
         StargateShapeRegistry.getStargateShapes().put("Standard", new StargateShape());
