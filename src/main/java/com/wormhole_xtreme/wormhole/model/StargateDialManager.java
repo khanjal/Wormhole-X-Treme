@@ -8,7 +8,6 @@ import java.util.logging.Level;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
-import org.bukkit.ChatColor;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 
@@ -21,6 +20,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
+import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
@@ -166,9 +166,9 @@ class StargateDialManager
         final List<Stargate> others = dialPeers(gate);
 
         final SignSide face = gate.getGateDialSign().getSide(Side.FRONT);
-        final ChatColor nameColor = SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA);
-        final ChatColor selectedColor = SignStyle.resolveColor(ConfigManager.getSignColorSelected(), ChatColor.DARK_GREEN);
-        final ChatColor neighbourColor = SignStyle.resolveColor(ConfigManager.getSignColorNeighbour(), ChatColor.GRAY);
+        final ChatColour nameColor = SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColour.DARK_AQUA);
+        final ChatColour selectedColor = SignStyle.resolveColor(ConfigManager.getSignColorSelected(), ChatColour.DARK_GREEN);
+        final ChatColour neighbourColor = SignStyle.resolveColor(ConfigManager.getSignColorNeighbour(), ChatColour.GRAY);
         face.setGlowingText(ConfigManager.isSignGlowingText());
 
         // Line 0: always this gate's name.
@@ -266,10 +266,10 @@ class StargateDialManager
             final SignSide idle = gate.getGateDialSign().getSide(Side.FRONT);
             idle.setGlowingText(ConfigManager.isSignGlowingText());
             idle.setLine(0, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA),
+                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColour.DARK_AQUA),
                 gate.getGateName()));
             idle.setLine(1, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
+                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColour.GRAY),
                 gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public"));
             idle.setLine(2, "");
             idle.setLine(3, "");

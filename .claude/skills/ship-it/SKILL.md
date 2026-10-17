@@ -127,7 +127,7 @@ gh api repos/khanjal/Wormhole-X-Treme/actions/jobs/<job-id>/logs | grep "\[WARNI
 ```
 
 The Paper and Purpur jobs do not list plain deprecations: Paper deprecates the Spigot text API
-this jar has to call (`ChatColor`, the BungeeCord action bar, `getDescription`), so the
+this jar has to call (the BungeeCord action bar, `getDescription`), so the
 `paper-api` profile turns `showDeprecation` off. The Spigot jobs still list them. Paper jobs
 still list "marked for removal" warnings, which javac reports separately, and any one of those
 always needs fixing.
