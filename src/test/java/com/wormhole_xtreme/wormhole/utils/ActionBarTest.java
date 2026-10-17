@@ -93,8 +93,8 @@ class ActionBarTest
 
         final ArgumentCaptor<Component> said = ArgumentCaptor.forClass(Component.class);
         verify((Audience) player).sendActionBar(said.capture());
-        assertEquals(LINE, LegacyComponentSerializer.legacySection().serialize(said.getValue()),
-            "the line as its caller coloured it");
+        assertEquals(LegacyComponentSerializer.legacySection().deserialize(LINE), said.getValue(),
+            "the line's colour codes read as colours, not sent as text");
         verify(player, never()).spigot();
     }
 
