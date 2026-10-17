@@ -1261,7 +1261,7 @@ symbol, and one was fixable in a line.
     subcommand argument, and the gate gallery writes `*-dialled.svg`. Renaming any of these
     breaks live servers, saved data, or command blocks.
   - **Attributes defined by a spec.** SVG and CSS use `fill`, `stop-color`, `color`.
-- **`CHANGELOG-ORIGINAL-2011.md`, `LICENSE` and `gpl.txt` are verbatim.** Historical record and
+- **The 0.x entries of `CHANGELOG.md`, `LICENSE` and `gpl.txt` are verbatim.** Historical record and
   licence text written by other people. Never reflow, respell or tidy them.
 - **The galleries are generated.** The gate, ring, beam and mirror drawings in `docs/images/` and
   the tables between the `<!-- ...:start -->` markers in the design documents come from
