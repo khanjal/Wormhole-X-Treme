@@ -714,7 +714,7 @@ class StargateBlockSetup
      * know what needs taking back.
      */
     private static final Map<UUID, Set<String>> DRAWN =
-        new ConcurrentHashMap<UUID, Set<String>>();
+        new ConcurrentHashMap<>();
 
     /**
      * Sends a client-side-only appearance for every portal block of {@code gate}.

@@ -931,7 +931,7 @@ public class ConfigurationYAML
                                            final Map<String, String> values,
                                            final Set<String> updated)
     {
-        final List<String> out = new ArrayList<String>(lines.size());
+        final List<String> out = new ArrayList<>(lines.size());
         for (final String line : lines)
         {
             final int colon = line.indexOf(':');
@@ -999,7 +999,7 @@ public class ConfigurationYAML
                 return;
             }
 
-            final Set<String> updated = new HashSet<String>();
+            final Set<String> updated = new HashSet<>();
             final List<String> rewritten =
                 updateSettingLines(Files.readAllLines(file.toPath()), values, updated);
 

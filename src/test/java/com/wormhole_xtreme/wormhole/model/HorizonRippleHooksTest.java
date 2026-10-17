@@ -24,7 +24,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -91,7 +90,7 @@ class HorizonRippleHooksTest
         final Block empty = mock(Block.class);
         when(empty.getType()).thenReturn(Material.AIR);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(empty);
-        when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(new ArrayList<Entity>());
+        when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(new ArrayList<>());
         watcher = mock(Player.class);
         when(watcher.getUniqueId()).thenReturn(UUID.randomUUID());
         when(watcher.isOnline()).thenReturn(true);

@@ -100,7 +100,7 @@ public class StargateShape
      * A shape restricts this only when a palette would make it ambiguous against
      * another shape with the same frame layout.
      */
-    private final Set<String> shapeMaterialGroups = new HashSet<String>();
+    private final Set<String> shapeMaterialGroups = new HashSet<>();
 
     /** The shape woosh ticks. */
     private int shapeWooshTicks = 3;

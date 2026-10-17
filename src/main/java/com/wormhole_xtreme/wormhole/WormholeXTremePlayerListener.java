@@ -1351,7 +1351,7 @@ class WormholeXTremePlayerListener implements Listener
      * definition never goes anywhere different to notice.
      */
     private static final Map<UUID, RecentGateRefusal> recentGateRefusals =
-        new ConcurrentHashMap<UUID, RecentGateRefusal>();
+        new ConcurrentHashMap<>();
 
     /** How long a refusal stays remembered before the same gate is worth mentioning again. */
     private static final long GATE_REFUSAL_REMINDER_MILLIS = 2000L;

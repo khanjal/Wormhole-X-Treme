@@ -588,7 +588,7 @@ public final class RingTransit
      */
     private static Set<Chunk> chunksOf(final World world, final RingPair pair)
     {
-        final Set<Chunk> chunks = new HashSet<Chunk>();
+        final Set<Chunk> chunks = new HashSet<>();
         for (final Ring ring : new Ring[] { pair.getEndA(), pair.getEndB() })
         {
             for (final int[] block : ring.perimeterBlocks())

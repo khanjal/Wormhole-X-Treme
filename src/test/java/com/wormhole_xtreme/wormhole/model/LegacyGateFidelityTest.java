@@ -103,7 +103,7 @@ class LegacyGateFidelityTest
 
     private static List<String> allAt(final List<Location> locations)
     {
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final Location l : locations)
         {
             out.add(at(l));
