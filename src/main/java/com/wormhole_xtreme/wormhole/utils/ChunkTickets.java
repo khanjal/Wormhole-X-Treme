@@ -32,8 +32,6 @@ public final class ChunkTickets
      * nothing, and a ticket that went with its world, unloaded and loaded again under the same
      * UID while counted here, is taken again rather than trusted to the count.
      *
-     * @param chunk
-     *            the chunk
      */
     public static void hold(final Chunk chunk)
     {
@@ -76,8 +74,6 @@ public final class ChunkTickets
     /**
      * Which chunk this is.
      *
-     * @param chunk
-     *            the chunk
      * @return its key
      */
     private static Key keyOf(final Chunk chunk)

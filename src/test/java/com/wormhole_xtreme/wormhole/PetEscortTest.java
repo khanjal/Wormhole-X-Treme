@@ -484,8 +484,6 @@ class PetEscortTest
     /**
      * The chunk every location in a world falls in, which says where it is.
      *
-     * @param world
-     *            the world
      * @return the chunk
      */
     private static Chunk chunkOf(final World world)

@@ -304,8 +304,6 @@ public final class StandIns
      * has loaded: never in front of the opening, where it would walk out into the viewer's room, and
      * never in a tunnel or outside the room at its end.
      *
-     * @param window
-     *            the window
      * @param at
      *            where the stand-in would stand
      * @return true if it may stand there
@@ -319,8 +317,6 @@ public final class StandIns
      * The same, a block deeper, and a block wider at a funnel's edge, for a stand-in already shown, so
      * one at the room's edge is not taken away and spawned again as its creature wanders across it.
      *
-     * @param window
-     *            the window
      * @param at
      *            where the stand-in would stand
      * @param held

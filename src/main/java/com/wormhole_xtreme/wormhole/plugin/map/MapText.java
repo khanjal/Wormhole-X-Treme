@@ -123,8 +123,6 @@ final class MapText
     /**
      * A gate's description: its name, and its network and owner when it has them.
      *
-     * @param gate
-     *            the gate
      * @return the markup
      */
     static String gate(final GateMark gate)
@@ -174,8 +172,6 @@ final class MapText
     /**
      * A quantum mirror's description.
      *
-     * @param mirror
-     *            the mirror
      * @return the markup
      */
     static String mirror(final MirrorMark mirror)
@@ -198,8 +194,6 @@ final class MapText
     /**
      * Escapes text for a map's HTML, so a gate or player name cannot add markup.
      *
-     * @param text
-     *            the text
      * @return it, safe to put in HTML
      */
     static String escape(final String text)
