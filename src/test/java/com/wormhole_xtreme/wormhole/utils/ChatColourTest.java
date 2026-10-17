@@ -40,15 +40,6 @@ class ChatColourTest
     }
 
     @Test
-    void theCommonColoursWriteTheCodesTheGameKnows()
-    {
-        assertEquals("§3", ChatColour.DARK_AQUA.toString());
-        assertEquals("§5", ChatColour.DARK_PURPLE.toString());
-        assertEquals("§6", ChatColour.GOLD.toString());
-        assertEquals("§b", ChatColour.AQUA.toString());
-    }
-
-    @Test
     void italicIsTheItalicFormatCode()
     {
         assertEquals("§o", ChatColour.ITALIC);

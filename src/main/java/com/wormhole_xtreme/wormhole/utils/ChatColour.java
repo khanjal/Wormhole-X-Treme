@@ -45,7 +45,7 @@ public enum ChatColour
     /** The section sign every code opens with. */
     public static final char COLOR_CHAR = '§';
 
-    /** The italic format code, which is not a colour and so not a constant. */
+    /** The italic format code, which is not a colour and so not an enum constant. */
     public static final String ITALIC = COLOR_CHAR + "o";
 
     private final String code;
