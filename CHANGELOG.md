@@ -78,6 +78,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 ### Internals
 
+- Javadoc `@param` tags that only repeated the parameter name (`@param gate` / `the gate`) are gone ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 - Collections are built with the diamond (`new ArrayList<>()`) instead of repeating their type arguments, in `src/main` and the tests ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 
 ## 1.11.0 (2026-10-17)

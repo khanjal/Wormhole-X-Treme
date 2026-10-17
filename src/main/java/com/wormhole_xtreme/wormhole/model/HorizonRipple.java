@@ -162,8 +162,6 @@ public final class HorizonRipple
     /**
      * Starts a ripple of one wave on a gate, as a crossing does, if it may have one now.
      *
-     * @param gate
-     *            the gate
      * @return true if one started
      */
     static boolean start(final Stargate gate)
@@ -174,8 +172,6 @@ public final class HorizonRipple
     /**
      * Starts a ripple on a gate, if it may have one now.
      *
-     * @param gate
-     *            the gate
      * @param waves
      *            how many waves, staggered through the same rings ({@link RippleRings#waves})
      * @return true if one started
