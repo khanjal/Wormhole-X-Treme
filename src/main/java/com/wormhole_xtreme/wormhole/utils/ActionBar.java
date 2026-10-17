@@ -124,8 +124,7 @@ public final class ActionBar
          */
         static boolean send(final Player player, final String message)
         {
-            // Object, because on Paper's API a Player already is an Audience, and Java 17 refuses
-            // a pattern that cannot fail.
+            // Object: on Paper's API a Player is already an Audience, which Java 17 refuses to pattern-match.
             final Object target = player;
             if (!(target instanceof Audience audience))
             {
