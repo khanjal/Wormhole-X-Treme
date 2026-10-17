@@ -182,7 +182,7 @@ async function selftest(fac, {
       const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0, settings: cell.settings || {} });
       const got = r.outcome === 'FAIL' ? `FAIL:${r.reason}` : r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
       const ok = got === want;
-      // A known failure whose fix this jar carries (--fixed) is expected to pass, and is not one.
+      // A cell that names a fix this jar carries (--fixed) takes its regression expectation.
       const note = cell.regressedBy && fixed.includes(cell.regressedBy) ? cell.regressionNote : cell.known;
       const knownNow = Boolean(note) && want !== 'PASS';
       const secs = ((Date.now() - t0) / 1000).toFixed(1);
