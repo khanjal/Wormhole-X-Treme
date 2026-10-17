@@ -17,7 +17,7 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 
 - **Post oldest first.** Each site treats the newest upload as current, and Spigot makes the last
   update posted the resource's download. Going oldest to newest in one sitting leaves each site on
-  1.10.0 with the history in order.
+  1.11.0 with the history in order.
 - **On Spigot, untick Notify followers for all but the newest**, or followers get one alert per
   back-filled version.
 - **Tick each version's own Minecraft range** on Modrinth, Hangar and CurseForge, from its section below, not
@@ -36,6 +36,48 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 - **Write the Markdown first, then convert it to BBCode** line for line, so the two say the same.
   The conversion is mechanical: `**bold**` to `[B]`, `` `code` `` to `[ICODE]`, a bullet list to
   `[LIST]` with `[*]` per item, a link to `[URL=…]`, and em-dashes to plain hyphens.
+
+## 1.11.0
+
+Released 2026-10-17.
+
+| Field | Value |
+|---|---|
+| Version (all four sites) | `1.11.0` |
+| Title (Spigot update title, Modrinth version title) | `1.11.0 - A steadier server, fewer settings and tidier messages` |
+| Minecraft (Modrinth game versions, Hangar platform versions) | 1.20 - 26.3 |
+
+Modrinth and Hangar changelog:
+
+````markdown
+**Upgrading from 1.10 - settings change.** A `config.yml` still exactly as 1.10 wrote it is replaced with a new grouped layout and its new defaults, the old one kept as `config.yml.bak`; one you have edited is kept as it is, and any setting 1.11 removed is ignored and named in the log. The seven ring timings and six beaming timings are now `ring-animation-speed` and `beam-animation-speed`, and `view-depth` replaces the three view depths.
+
+- **A steadier server**: looking into a mirror or a gate view no longer stalls the server, nor hitches the first time it is drawn after a restart, and captures take less memory and disk.
+- **Fewer settings**: one speed for the ring animation, one for beaming, one view depth, and the timing and housekeeping settings nobody tuned gone, their defaults kept.
+- **Tunnels between gates of the same size**: `gate-view-funnel-min-length` lets same-size gates be seen down a straight tunnel. Off until set.
+- **Tidier messages**: every gate, ring, beam, mirror and admin message uses one colour palette and says what to type next; refusals open with `:: error ::`.
+- **An iris no longer covers the wormhole** for a moment as it opens or shuts.
+- **More in bStats**: anonymous counts also say which gate shapes, portal materials, view and iris settings and optional plugins are in use. Nothing names a player, gate or place.
+
+[Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#1110-2026-10-17)
+````
+
+Spigot update message:
+
+```
+[B]Upgrading from 1.10 - settings change.[/B] A [ICODE]config.yml[/ICODE] still exactly as 1.10 wrote it is replaced with a new grouped layout and its new defaults, the old one kept as [ICODE]config.yml.bak[/ICODE]; one you have edited is kept as it is, and any setting 1.11 removed is ignored and named in the log. The seven ring timings and six beaming timings are now [ICODE]ring-animation-speed[/ICODE] and [ICODE]beam-animation-speed[/ICODE], and [ICODE]view-depth[/ICODE] replaces the three view depths.
+
+[LIST]
+[*][B]A steadier server[/B]: looking into a mirror or a gate view no longer stalls the server, nor hitches the first time it is drawn after a restart, and captures take less memory and disk.
+[*][B]Fewer settings[/B]: one speed for the ring animation, one for beaming, one view depth, and the timing and housekeeping settings nobody tuned gone, their defaults kept.
+[*][B]Tunnels between gates of the same size[/B]: [ICODE]gate-view-funnel-min-length[/ICODE] lets same-size gates be seen down a straight tunnel. Off until set.
+[*][B]Tidier messages[/B]: every gate, ring, beam, mirror and admin message uses one colour palette and says what to type next; refusals open with [ICODE]:: error ::[/ICODE].
+[*][B]An iris no longer covers the wormhole[/B] for a moment as it opens or shuts.
+[*][B]More in bStats[/B]: anonymous counts also say which gate shapes, portal materials, view and iris settings and optional plugins are in use. Nothing names a player, gate or place.
+[/LIST]
+
+[URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#1110-2026-10-17]Full changelog[/URL]
+```
 
 ## 1.10.0
 
