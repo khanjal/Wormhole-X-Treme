@@ -222,8 +222,6 @@ public final class MapScanner
     /**
      * One gate's mark.
      *
-     * @param gate
-     *            the gate
      * @param showIrisGates
      *            false to leave it out if it has an iris code
      * @return its mark, or null if it is not to be shown
@@ -275,8 +273,6 @@ public final class MapScanner
     /**
      * Whether a gate has an iris code.
      *
-     * @param gate
-     *            the gate
      * @return true if it has one
      */
     private static boolean hasIris(final Stargate gate)
@@ -290,8 +286,6 @@ public final class MapScanner
      *
      * <p>Keyed on the two names in order, so the pair's two ends make one line, not two.
      *
-     * @param gate
-     *            the gate
      * @param marks
      *            the gates being shown, so a line never leads to one that is hidden
      * @return the line, or null if there is none to draw
@@ -322,8 +316,6 @@ public final class MapScanner
     /**
      * Marks both ends of a ring pair and the line between them.
      *
-     * @param pair
-     *            the pair
      * @param marks
      *            where the ends go
      * @param links
@@ -350,8 +342,6 @@ public final class MapScanner
     /**
      * One end of a ring pair.
      *
-     * @param pair
-     *            the pair
      * @param ring
      *            the end
      * @param which
@@ -388,8 +378,6 @@ public final class MapScanner
     /**
      * A quantum mirror's mark, at the centre of its banner block.
      *
-     * @param mirror
-     *            the mirror
      * @return its mark, or null if it records no world
      */
     private static MirrorMark mirrorMark(final QuantumMirror mirror)

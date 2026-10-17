@@ -165,8 +165,6 @@ public final class PetEscort
     /**
      * Whether an entity is a following kind of pet tamed to this owner, free to come, sitting or not.
      *
-     * @param entity
-     *            an entity
      * @param ownerId
      *            the owner
      * @return true if it is theirs, alive and riding nothing

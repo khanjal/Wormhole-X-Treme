@@ -383,8 +383,6 @@ public final class SquaremapMapProvider implements MapProvider
      *            the layer id
      * @param world
      *            the world name
-     * @param marker
-     *            the marker
      */
     private static void add(final Map<String, Map<String, List<Marker>>> all, final String layer,
         final String world, final Marker marker)
@@ -417,8 +415,6 @@ public final class SquaremapMapProvider implements MapProvider
     /**
      * A straight line.
      *
-     * @param line
-     *            the line
      * @param colour
      *            its colour, as 0xRRGGBB
      * @return the marker
