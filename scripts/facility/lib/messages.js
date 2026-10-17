@@ -91,8 +91,8 @@ function report(version, { ran: ranHere, lines }, { outFile, update = false, log
     return;
   }
   log(`messages on ${version}: CHANGED, ${added.length} added, ${removed.length} removed (report only; --update-messages accepts it; the run is in ${outFile})`);
-  for (const l of removed) log(`  - ${l.replace('\t', ' | ')}`);
-  for (const l of added) log(`  + ${l.replace('\t', ' | ')}`);
+  for (const l of removed) log(`  - ${l.split('\t').join(' | ')}`);
+  for (const l of added) log(`  + ${l.split('\t').join(' | ')}`);
 }
 
 module.exports = { begin, record, collected, merge, report, normalise };
