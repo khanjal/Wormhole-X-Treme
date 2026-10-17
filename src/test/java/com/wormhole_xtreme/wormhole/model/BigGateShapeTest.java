@@ -117,7 +117,7 @@ class BigGateShapeTest
         for (final String name : new String[] { "Large", "Grand", "Massive" })
         {
             final Stargate3DShape shape = load(name);
-            final Set<Integer> orders = new TreeSet<Integer>();
+            final Set<Integer> orders = new TreeSet<>();
             for (final StargateShapeLayer layer : shape.getShapeLayers())
             {
                 if (layer == null)
@@ -132,7 +132,7 @@ class BigGateShapeTest
                     }
                 }
             }
-            final Set<Integer> expected = new TreeSet<Integer>();
+            final Set<Integer> expected = new TreeSet<>();
             for (int i = 1; i <= chevrons.get(name); i++)
             {
                 expected.add(i);
@@ -153,7 +153,7 @@ class BigGateShapeTest
         for (final String name : new String[] { "Large", "Grand", "Massive" })
         {
             final Stargate3DShape shape = load(name);
-            final Set<Integer> orders = new TreeSet<Integer>();
+            final Set<Integer> orders = new TreeSet<>();
             for (final StargateShapeLayer layer : shape.getShapeLayers())
             {
                 if (layer == null)
@@ -168,7 +168,7 @@ class BigGateShapeTest
                     }
                 }
             }
-            final Set<Integer> expected = new TreeSet<Integer>();
+            final Set<Integer> expected = new TreeSet<>();
             for (int i = 1; i <= shape.getShapeWooshDepth(); i++)
             {
                 expected.add(i);
