@@ -16,8 +16,8 @@
 //   --keep-world         keep the world from the last run instead of starting fresh
 //   --quick              self-test with the short matrix (the cells marked quick): a few minutes
 //   --cells <names>      self-test only the matrix cells whose names match (a|b, ^start, end$)
-//   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
-//                        cells are expected to pass
+//   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): cells that name one
+//                        (regressedBy) switch to their regression expectation
 //   --shards <n>         self-test: split the matrix across n servers of the version, each on its
 //                        own port and folder, run at once, with one merged report (lib/shards.js);
 //                        with --versions, versions x shards servers
