@@ -189,7 +189,7 @@ async function selftest(fac, {
       // A cell run under a setting that is meant to stop it (`because`) fails as the setting says.
       const asSet = cell.because && want !== 'PASS' ? `as set: ${cell.because}; ` : '';
       const detail = ok
-        ? `${asSet}${knownNow ? `KNOWN PLUGIN FAILURE: ${note}; ` : ''}${cell.fixedBy && !knownNow ? `fixed by #${cell.fixedBy} in this jar; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
+        ? `${asSet}${knownNow ? `KNOWN PLUGIN FAILURE: ${note}; ` : ''}${r.checks.length ? `${r.checks.filter((x) => x.ok).length}/${r.checks.length} checks true` : r.reason || ''}, ${secs} s`
         : `got ${got}${knownNow ? ` (expected the known plugin failure: ${note})` : ''}, ${secs} s`;
       check('matrix', `${label} → ${want}`, ok, detail);
       if (ok && knownNow) known.push({ label, note, version: fac.version });
