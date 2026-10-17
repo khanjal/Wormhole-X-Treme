@@ -13,7 +13,7 @@ The values a release changes. Change them here first, then carry them into the s
 
 | | |
 |---|---|
-| Version | `1.10.0` — newest release. Check which jar each site actually carries before bumping its field. |
+| Version | `1.11.0` — newest release. Check which jar each site actually carries before bumping its field. |
 | Supported Minecraft | 1.20 – 26.3 |
 | Native / compiled against | 1.20 (`pom.xml` sets `spigot-api` to `1.20.4-R0.1-SNAPSHOT`) |
 | Java, plugin | 17 |
@@ -418,7 +418,7 @@ authored under an email never linked to a GitHub account do not attach to a user
 under-reports and absence from it proves nothing. In particular it is not grounds to drop Jeremy
 Wood, whose credit rests on the original authors having listed him in their own `plugin.yml`,
 which is better evidence than a graph known to be incomplete. lirelent is separately documented at
-`CHANGELOG-ORIGINAL-2011.md:192` for distance finding and gate shape parsing.
+the 0.820 entry of `CHANGELOG.md` for distance finding and gate shape parsing.
 
 ## Licence
 
