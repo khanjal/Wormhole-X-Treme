@@ -133,6 +133,23 @@ class ActionBarTest
         verify(plugin, never()).prettyLog(any(Level.class), any(String.class));
     }
 
+    /** An Adventure that fails to link on the first line is not tried on the next: Spigot's bar carries both. */
+    @Test
+    void aPaperBarThatCannotLinkFallsBackToSpigotAndIsNotTriedAgain()
+    {
+        final Player player = paperPlayer();
+        final Player.Spigot hotbar = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(hotbar);
+        doThrow(new NoClassDefFoundError("net/kyori/adventure/text/Component")).when((Audience) player)
+            .sendActionBar(any(Component.class));
+
+        ActionBar.send(player, LINE);
+        ActionBar.send(player, LINE);
+
+        verify((Audience) player, times(1)).sendActionBar(any(Component.class));
+        verify(hotbar, times(2)).sendMessage(eq(ChatMessageType.ACTION_BAR), any(BaseComponent.class));
+    }
+
     @Test
     void somebodyWhoHasLoggedOutIsToldNothing()
     {

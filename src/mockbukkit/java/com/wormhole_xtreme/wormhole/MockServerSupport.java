@@ -43,6 +43,9 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorSettle;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviewSeam;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 /**
  * A MockBukkit server with the plugin on it, and stand-ins for the methods MockBukkit leaves
  * unimplemented that a trip through a gate, ring, beam or mirror calls.
@@ -380,7 +383,7 @@ final class MockServerSupport
             return (target == null) ? List.of() : List.of(target);
         }
 
-        /** Every chat line sent so far, colour codes stripped. */
+        /** Every chat line and action-bar line sent so far, colour codes stripped. */
         List<String> messages()
         {
             final List<String> out = new ArrayList<>();
@@ -388,6 +391,11 @@ final class MockServerSupport
             while ((m = nextMessage()) != null)
             {
                 out.add(m.replaceAll("§.", ""));
+            }
+            Component bar;
+            while ((bar = nextActionBar()) != null)
+            {
+                out.add(LegacyComponentSerializer.legacySection().serialize(bar).replaceAll("§.", ""));
             }
             return out;
         }
