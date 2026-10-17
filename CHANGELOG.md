@@ -12,6 +12,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Releases:**
 
+- [1.12.0 (unreleased)](#1120-unreleased)
 - [1.11.0 (2026-10-17)](#1110-2026-10-17)
 - [1.10.0 (2026-10-12)](#1100-2026-10-12)
 - [1.9.0 (2026-10-03)](#190-2026-10-03)
@@ -72,6 +73,12 @@ somebody else's release notes, and the record of where this fork came from.
 - [0.32 (1/26/11)](#032-12611)
 - [0.31 (1/26/11)](#031-12611)
 - [0.3 (1/26/11)](#03-12611)
+
+## 1.12.0 (unreleased)
+
+### Internals
+
+- Collections are built with the diamond (`new ArrayList<>()`) instead of repeating their type arguments, in `src/main` and the tests ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 
 ## 1.11.0 (2026-10-17)
 

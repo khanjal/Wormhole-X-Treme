@@ -464,7 +464,7 @@ public final class RingYamlManager
         out.put("OwnerName", pair.getOwnerName() == null ? "" : pair.getOwnerName());
         out.put("Created", Long.valueOf(pair.getCreated()));
         out.put("Access", pair.getAccess().name());
-        out.put("Allowed", new ArrayList<String>(pair.getAllowed()));
+        out.put("Allowed", new ArrayList<>(pair.getAllowed()));
         out.put("A", writeRing(pair.getEndA()));
         out.put("B", writeRing(pair.getEndB()));
         return out;

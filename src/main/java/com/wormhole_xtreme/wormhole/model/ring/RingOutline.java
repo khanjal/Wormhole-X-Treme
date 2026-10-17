@@ -62,7 +62,7 @@ public final class RingOutline
             return;
         }
         final World world = player.getWorld();
-        final List<int[]> blocks = new ArrayList<int[]>();
+        final List<int[]> blocks = new ArrayList<>();
         blocks.addAll(RingAnimator.openedBlocks(ring));
         blocks.addAll(RingAnimator.lightBlocks(ring));
         try

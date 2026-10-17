@@ -265,7 +265,7 @@ class GateSerializerTest
         final Stargate s1 = minimalGate(w);
         s1.getGateLightBlocks().add(null);
         s1.getGateLightBlocks().add(null);
-        final ArrayList<Location> thirdWave = new ArrayList<Location>();
+        final ArrayList<Location> thirdWave = new ArrayList<>();
         thirdWave.add(new Location(w, 1, 2, 3));
         s1.getGateLightBlocks().add(thirdWave);
 
