@@ -30,7 +30,7 @@ through is a release nobody reads.
 
 ### Internals
 
-- Chat and sign colours come from the plugin's own colour table rather than Bukkit's `ChatColor`, which Paper lists as deprecated; nothing a player sees changes ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
+- Chat and sign colours come from the plugin's own colour table rather than Bukkit's `ChatColor`; nothing a player sees changes ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 
 ## 1.11.0 (unreleased)
 

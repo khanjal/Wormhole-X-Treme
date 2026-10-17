@@ -512,7 +512,7 @@
 					<name>paper.api.version</name>
 				</property>
 			</activation>
-			<!-- Paper deprecates the Spigot text API (ChatColor, the bungee action bar, getDescription)
+			<!-- Paper deprecates the Spigot text API (the bungee action bar, getDescription)
 			     this Spigot-compiled jar has to call, so listing them here only buries a real one.
 			     The Spigot legs still list every Bukkit deprecation. -->
 			<properties>
