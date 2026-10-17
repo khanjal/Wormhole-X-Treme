@@ -219,14 +219,16 @@ module.exports = {
       await ticks(5);
       await probe.press({ x: CB.x, y: CB.y + 1, z: CB.z });
       await ticks(20);
-      obs.output = (await ctx.server.run(`data get block ${CB.x} ${CB.y} ${CB.z} LastOutput`)).lines.join(' ').replace(/§./g, '');
+      // LastOutput is a text component (ChatText's coloured segments): its plain text is the segments' text fields, in order.
+      const raw = (await ctx.server.run(`data get block ${CB.x} ${CB.y} ${CB.z} LastOutput`)).lines.join(' ');
+      obs.output = [...raw.matchAll(/text"?: ?"([^"]*)"/g)].map((m) => m[1]).join('');
       if (o.console === 'gate build') obs.listed = await kit.exists(CB_GATE.name);
       if (o.console === 'gate dial' || o.console === 'gate force') {
         await probe.teleport({ x: BAY.cx + 0.5, y: 0, z: BAY.openingAt - 9.5, yaw: 0 }, O);
         await ticks(20);
         obs.openAfter = openNow(probe, geom);
       }
-      if (o.console === 'ring build') obs.pair = (/Ring pair (\w+) is live/.exec(obs.output) || [])[1] || null;
+      if (o.console === 'ring build') obs.pair = (/ring fire (\w+)/.exec(obs.output) || [])[1] || null;
       if (o.console === 'ring fire') await ticks(240); // the cycle, so the pair can be taken down after
       if (o.console === 'mirror create') obs.mirrors = (await new mirrors.MirrorKit(ctx.server).list()).names;
       if (o.console === 'beam send') {
@@ -331,7 +333,7 @@ module.exports = {
             c('and Bay is shut', () => obs.openAfter === false),
           ]);
         case 'ring build':
-          return list.concat([c('LastOutput: "Ring pair <id> is live and public."', () => Boolean(obs.pair))]);
+          return list.concat([c('LastOutput: "Fire it with /wormhole ring fire <id>."', () => Boolean(obs.pair))]);
         case 'ring fire':
           return list.concat([c('LastOutput: "Ring pair ... is counting down."', () => /is counting down\./.test(out()))]);
         case 'mirror create':
