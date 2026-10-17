@@ -1,28 +1,38 @@
 package com.wormhole_xtreme.wormhole.utils;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -33,6 +43,8 @@ import net.md_5.bungee.api.chat.TextComponent;
  */
 class ActionBarTest
 {
+    private static final String LINE = "§3:: §7Rings in 3";
+
     @AfterEach
     void tearDown() throws ReflectiveOperationException
     {
@@ -40,9 +52,24 @@ class ActionBarTest
         PluginTestSupport.remove();
     }
 
+    /** Paper's Player is an Audience, so on Paper's API the line never reaches Spigot's bar. */
+    private static void assumeSpigot()
+    {
+        assumeFalse(ActionBarLines.PAPER, "Paper sends Adventure, not BungeeCord chat");
+    }
+
+    /** @return a player that is an Adventure audience, as every player on Paper is */
+    private static Player paperPlayer()
+    {
+        return ActionBarLines.PAPER ? mock(Player.class)
+            : mock(Player.class, withSettings().extraInterfaces(Audience.class));
+    }
+
+    /** A player who is not an Audience, as on Spigot, gets Spigot's bar. */
     @Test
     void theLineGoesAboveTheHotbar()
     {
+        assumeSpigot();
         final Player player = mock(Player.class);
         final Player.Spigot hotbar = mock(Player.Spigot.class);
         when(player.spigot()).thenReturn(hotbar);
@@ -51,6 +78,59 @@ class ActionBarTest
 
         verify(hotbar).sendMessage(eq(ChatMessageType.ACTION_BAR),
             argThat((final BaseComponent line) -> "Rings in 3".equals(((TextComponent) line).getText())));
+    }
+
+    /**
+     * Paper deprecates Spigot's action bar, so a Paper player gets Adventure's, colours intact, and
+     * Spigot's is not touched.
+     */
+    @Test
+    void aPaperPlayerGetsAdventuresActionBar()
+    {
+        final Player player = paperPlayer();
+
+        ActionBar.send(player, LINE);
+
+        final ArgumentCaptor<Component> said = ArgumentCaptor.forClass(Component.class);
+        verify((Audience) player).sendActionBar(said.capture());
+        assertEquals(LINE, LegacyComponentSerializer.legacySection().serialize(said.getValue()),
+            "the line as its caller coloured it");
+        verify(player, never()).spigot();
+    }
+
+    /** One refusal from Paper costs that line, not a second try through Spigot's bar. */
+    @Test
+    void aPaperThatRefusesTheMessageIsIgnored()
+    {
+        final Player player = paperPlayer();
+        doThrow(new IllegalStateException("refused")).when((Audience) player).sendActionBar(any(Component.class));
+
+        assertDoesNotThrow(() -> ActionBar.send(player, LINE));
+        verify(player, never()).spigot();
+    }
+
+    /**
+     * Spigot has no Adventure. Hiding {@code net.kyori} from a fresh copy of the class stands in
+     * for it: the Paper bar fails to link, and the line still goes out through Spigot's, every
+     * time, with nothing logged as missing.
+     */
+    @Test
+    void aServerWithoutAdventureStillGetsSpigotsBar() throws Throwable
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
+        final Method send = new Without("net.kyori.").loadClass(ActionBar.class.getName())
+            .getMethod("send", Player.class, String.class);
+        final Player player = paperPlayer();
+        final Player.Spigot hotbar = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(hotbar);
+
+        invoke(send, player);
+        invoke(send, player);
+
+        verify(hotbar, times(2)).sendMessage(eq(ChatMessageType.ACTION_BAR), any(BaseComponent.class));
+        verify((Audience) player, never()).sendActionBar(any(Component.class));
+        verify(plugin, never()).prettyLog(any(Level.class), any(String.class));
     }
 
     @Test
@@ -62,10 +142,12 @@ class ActionBarTest
     @Test
     void aSpigotThatRefusesTheMessageIsIgnored()
     {
+        assumeSpigot();
         final Player player = mock(Player.class);
         when(player.spigot()).thenThrow(new IllegalStateException("refused"));
 
         assertDoesNotThrow(() -> ActionBar.send(player, "Rings in 3"));
+        verify(player).spigot();
     }
 
     /**
@@ -74,6 +156,7 @@ class ActionBarTest
     @Test
     void aMissingSpigotMethodIsLoggedOnceAndNotTriedAgain() throws ReflectiveOperationException
     {
+        assumeSpigot();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
         final Player first = mock(Player.class);
@@ -88,17 +171,18 @@ class ActionBarTest
     }
 
     /**
-     * CraftBukkit has neither {@code Player.spigot()} nor BungeeCord's chat classes. Hiding
-     * {@code net.md_5} from a fresh copy of the class stands in for it: the call fails to link,
-     * which a {@code RuntimeException} catch does not stop, and before the fix every ring
-     * countdown and mirror approach on such a server threw. Said once, not on every ring tick.
+     * CraftBukkit has neither Adventure, {@code Player.spigot()} nor BungeeCord's chat classes.
+     * Hiding {@code net.kyori} and {@code net.md_5} from a fresh copy of the class stands in for
+     * it: the call fails to link, which a {@code RuntimeException} catch does not stop, and before
+     * the fix every ring countdown and mirror approach on such a server threw. Said once, not on
+     * every ring tick.
      */
     @Test
     void aServerWithoutBungeeChatIsToldOnceAndNothingBreaks() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         PluginTestSupport.install(plugin);
-        final Method send = new NoBungeeChat().loadClass(ActionBar.class.getName())
+        final Method send = new Without("net.md_5.", "net.kyori.").loadClass(ActionBar.class.getName())
             .getMethod("send", Player.class, String.class);
         final Player player = mock(Player.class);
 
@@ -121,7 +205,7 @@ class ActionBarTest
     {
         try
         {
-            send.invoke(null, player, "Rings in 3");
+            send.invoke(null, player, LINE);
         }
         catch (final InvocationTargetException thrown)
         {
@@ -129,18 +213,25 @@ class ActionBarTest
         }
     }
 
-    /** Loads its own copy of {@link ActionBar}, on a classpath with no BungeeCord chat. */
-    private static final class NoBungeeChat extends ClassLoader
+    /** Loads its own copy of {@link ActionBar}, on a classpath without the packages named. */
+    private static final class Without extends ClassLoader
     {
-        NoBungeeChat()
+        private final List<String> hidden;
+
+        /**
+         * @param hidden
+         *            package prefixes, each ending in a dot
+         */
+        Without(final String... hidden)
         {
             super(ActionBarTest.class.getClassLoader());
+            this.hidden = List.of(hidden);
         }
 
         @Override
         protected Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException
         {
-            if (name.startsWith("net.md_5."))
+            if (hidden.stream().anyMatch(name::startsWith))
             {
                 throw new ClassNotFoundException(name);
             }

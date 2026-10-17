@@ -309,6 +309,8 @@ public final class ChatLine
      * The only code naming Spigot's chat API, so a server without it fails to link this class,
      * inside {@link #sendClickable}'s try.
      */
+    // Spigot has no other clickable chat, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     private static final class SpigotChat
     {
         /** Static use only. */

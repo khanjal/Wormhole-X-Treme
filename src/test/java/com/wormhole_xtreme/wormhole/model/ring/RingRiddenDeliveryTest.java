@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +25,7 @@ import com.wormhole_xtreme.wormhole.Paper1204Riding;
 import com.wormhole_xtreme.wormhole.PetTestSupport;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.ActionBarLines;
 
 /**
  * A ring carries a ridden horse and its rider together, on a server that will not move a horse
@@ -108,8 +108,8 @@ class RingRiddenDeliveryTest
         assertEquals(200.5, stack.at().getX(), 0.001, "the horse must reach the far ring");
         verify(rider, Mockito.atLeastOnce()).teleport(any(Location.class));
         assertTrue(stack.carries(rider), "the rider must be back in the saddle at the far ring");
-        // The arrival line goes out through spigot(); the refused case below relies on that.
-        verify(rider, Mockito.atLeastOnce()).spigot();
+        // The refused case below relies on the arrival line being seen here.
+        assertTrue(ActionBarLines.attempts(rider) > 0, "the rider is told they arrived");
     }
 
     /**
@@ -135,6 +135,6 @@ class RingRiddenDeliveryTest
         assertEquals(0.5, stack.at().getX(), 0.001);
         assertTrue(stack.carries(rider), "the rider must still be on the horse");
         assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
-        verify(rider, never()).spigot();
+        assertEquals(0, ActionBarLines.attempts(rider), "nobody is told they arrived");
     }
 }
