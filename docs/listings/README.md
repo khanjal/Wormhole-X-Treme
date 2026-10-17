@@ -73,8 +73,10 @@ changes, you change it there and then carry it into whichever site files quote i
   `wormholextreme`, which is the other fork, and a badge on its slug would advertise its downloads
   as ours. (They once answered "not found"; if they still do, the API
   at `api.modrinth.com/v2/project/wormhole-x-treme` says why.) Hangar's downloads come from
-  `img.shields.io/hangar/dt/Wormhole-X-Treme`; there is no Hangar version badge, so that cell is
-  empty. CurseForge's come from `curseforge/v/1742170` and `curseforge/dt/1742170`, the numeric
+  `img.shields.io/hangar/dt/Wormhole-X-Treme`. Shields has no Hangar version badge, so that cell
+  is a `badge/dynamic/json` one reading the newest version's name off Hangar's own API
+  (`/api/v1/projects/Wormhole-X-Treme/versions?limit=1`, `$.result[0].name`); it follows Hangar by
+  itself and needs no edit at a release. CurseForge's come from `curseforge/v/1742170` and `curseforge/dt/1742170`, the numeric
   project ID from the page's About box; BukkitDev shares that row, being the same project.
 - **The name and logo are not under the GPL.** Every listing says so and links
   [`TRADEMARK.md`](../../TRADEMARK.md); more than one project carries this name.

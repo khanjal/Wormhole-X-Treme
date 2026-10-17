@@ -6,8 +6,7 @@
 //   'FAIL:<check name>'     a known plugin failure: the first false check, by name, with `known`
 //                           saying what the plugin does wrong. It is reported, never hidden, and
 //                           if the plugin is fixed the cell fails until its expectation is updated.
-// `expect` may be a function of the server version. A known failure with `fixedBy: '<issue>'` is
-// expected to PASS when run-facility is told `--fixed <issue>` (a plugin jar with the fix).
+// `expect` may be a function of the server version.
 // A cell may hold `settings` ({ setting: value }) for its run, on top of the chamber's own: an
 // ordinary trip under a setting meant to stop it, `because` saying how, fails at the check the
 // setting stops ('FAIL:<check name>'), against the same cell without it that passes.
@@ -21,15 +20,8 @@ function defaultsOf(chamber) {
 
 function expectation(cell, version, fixed = []) {
   if (cell.regressedBy && fixed.includes(cell.regressedBy)) return cell.regression;
-  if (cell.fixedBy && fixed.includes(cell.fixedBy)) return 'PASS';
   return typeof cell.expect === 'function' ? cell.expect(version) : cell.expect;
 }
-
-const CART_491 = {
-  expect: "FAIL:the cart's front never crossed the iris face",
-  known: "#491: the plugin checks only the block the cart's centre is in, so a cart is stopped half inside a shut drawn iris",
-  fixedBy: '491',
-};
 
 const P = (projectile, extra = {}) => ({ traveller: 'projectile', projectile, ...extra });
 
@@ -122,10 +114,10 @@ const G1 = [
   { name: 'g1 far iris shut after dial: arrow', values: P('arrow', { 'far iris': 'shut after dial' }), expect: 'PASS' },
   { name: 'g1 far iris shut after dial: item', values: { traveller: 'lying item', 'far iris': 'shut after dial' }, expect: 'PASS' },
   // Issue #491: a cart run at a shut iris stops flush with its face (checklist in g1-stand.js).
-  { name: '491-A cart from the front', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut' }, ...CART_491 },
-  { name: '491-B cart with a rider', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', rider: 'Probe' }, ...CART_491 },
-  { name: '491-C cart from behind', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', approach: 'behind' }, ...CART_491 },
-  { name: '491-E cart at the shut far end', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', 'iris gate': 'incoming' }, ...CART_491 },
+  { name: '491-A cart from the front', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut' }, expect: 'PASS' },
+  { name: '491-B cart with a rider', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', rider: 'Probe' }, expect: 'PASS' },
+  { name: '491-C cart from behind', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', approach: 'behind' }, expect: 'PASS' },
+  { name: '491-E cart at the shut far end', values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', 'iris gate': 'incoming' }, expect: 'PASS' },
   {
     name: '491-D boat rowed at the shut iris',
     values: { traveller: 'cart at iris', shape: 'Massive', 'own iris': 'shut', vehicle: 'boat', rider: 'Probe' },
