@@ -10,7 +10,7 @@ through is a release nobody reads.
 **Releases:**
 
 - [1.12.0 (unreleased)](#1120-unreleased)
-- [1.11.0 (unreleased)](#1110-unreleased)
+- [1.11.0 (2026-10-17)](#1110-2026-10-17)
 - [1.10.0 (2026-10-12)](#1100-2026-10-12)
 - [1.9.0 (2026-10-03)](#190-2026-10-03)
 - [1.8.1 (2026-09-28)](#181-2026-09-28)
@@ -32,7 +32,7 @@ through is a release nobody reads.
 
 - Chat and sign colours come from the plugin's own colour table rather than Bukkit's `ChatColor`; nothing a player sees changes ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 
-## 1.11.0 (unreleased)
+## 1.11.0 (2026-10-17)
 
 ### For server admins
 
