@@ -9,6 +9,7 @@ through is a release nobody reads.
 
 **Releases:**
 
+- [1.12.0 (unreleased)](#1120-unreleased)
 - [1.11.0 (unreleased)](#1110-unreleased)
 - [1.10.0 (2026-10-12)](#1100-2026-10-12)
 - [1.9.0 (2026-10-03)](#190-2026-10-03)
@@ -24,6 +25,12 @@ through is a release nobody reads.
 - [1.1.0 (2026-09-01)](#110-2026-09-01)
 - [1.0.0 (2026-05-14)](#100-2026-05-14)
 - [0.x (2011, upstream)](#0x-2011-upstream)
+
+## 1.12.0 (unreleased)
+
+### Internals
+
+- Collections are built with the diamond (`new ArrayList<>()`) instead of repeating their type arguments, in `src/main` and the tests ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 
 ## 1.11.0 (unreleased)
 
@@ -82,7 +89,6 @@ through is a release nobody reads.
 ### Internals
 
 - Code nothing ran any more is gone: a flat-file settings writer and reader, empty shutdown hooks, and a gate-facing helper nothing called ([#475](https://github.com/khanjal/Wormhole-X-Treme/issues/475)).
-- Collections are built with the diamond (`new ArrayList<>()`) instead of repeating their type arguments, in `src/main` and the tests ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 
 ## 1.10.0 (2026-10-12)
 
