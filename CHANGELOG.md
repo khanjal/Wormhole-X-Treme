@@ -10,7 +10,6 @@ through is a release nobody reads.
 **Releases:**
 
 - [1.12.0 (unreleased)](#1120-unreleased)
-- [1.12.0 (unreleased)](#1120-unreleased)
 - [1.11.0 (unreleased)](#1110-unreleased)
 - [1.10.0 (2026-10-12)](#1100-2026-10-12)
 - [1.9.0 (2026-10-03)](#190-2026-10-03)
@@ -26,11 +25,6 @@ through is a release nobody reads.
 - [1.1.0 (2026-09-01)](#110-2026-09-01)
 - [1.0.0 (2026-05-14)](#100-2026-05-14)
 - [0.x (2011, upstream)](#0x-2011-upstream)
-
-## 1.12.0 (unreleased)
-
-### Internals
-
 
 ## 1.12.0 (unreleased)
 
