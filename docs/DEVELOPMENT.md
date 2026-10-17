@@ -233,6 +233,13 @@ node scripts/facility/run-facility.js 1.21.11 --selftest   # prove it, exit 1 on
 node scripts/facility/run-facility.js --selftest --quick --versions 1.20.4,26.1.2   # in parallel
 ```
 
+A self-test also collects every message the plugin showed (its `:: ` lines, colour codes stripped,
+numbers and ids replaced) and compares them with the committed `scripts/facility/messages/<version>.snap`,
+within the cells that ran. A difference is printed as `messages on <version>: CHANGED` with `-` and `+`
+lines; it never fails the run. After a wording change you meant, run again with `--update-messages` and
+commit the snapshot. The snapshot is taken from a `--quick` run, so `transit` and `settings`, whose text
+depends on the profile, are compared only in a full run.
+
 The launcher builds the plugin with Maven (offline, on a JDK 17 it finds; `--plugin <jar>` or
 `--no-build` skip that), downloads the newest stable Paper build to
 `.local-server/paper-<version>-facility.jar` (checked against PaperMC's published size and
