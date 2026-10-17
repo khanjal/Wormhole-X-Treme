@@ -28,7 +28,7 @@ function normalise(raw) {
   const s = String(raw).replace(/§./g, '');
   const at = s.indexOf(':: ');
   if (at < 0) return null;
-  return s.slice(at).replace(/["']+$/, '').trim()
+  return s.slice(at).replace(/["']+$/, '').replace(/\s*[\r\n]+\s*/g, ' ').trim()
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, 'UUID')
     .replace(/\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{4,}\b/gi, 'ID') // a ring pair's id
     .replace(/(capture: ).*/, '$1STATE') // a capture's file and cache settle a moment after the cell

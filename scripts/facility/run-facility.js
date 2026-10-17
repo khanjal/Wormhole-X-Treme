@@ -605,7 +605,7 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
       for (const k of known) console.log(`  KNOWN  ${k.label}: ${k.note}`);
     }
     const heard = mine.filter((d) => d.report && d.report.messages).map((d) => d.report.messages);
-    if (heard.length) messageText.report(v, messageText.merge(heard), { outFile: path.join(LOCAL, 'messages', `${v}.txt`), update: Boolean(args.updateMessages) });
+    if (heard.length) reportMessages(v, messageText.merge(heard), args);
     const bad = results.filter((r) => !r.ok).length + missing.length;
     const slowest = Math.max(...mine.map((d) => (d.report ? d.report.testMs : 0))) / 1000;
     console.log(`self-test on ${v}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks (${known.length} known plugin failures); `
@@ -620,6 +620,15 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
   console.log(`\nwall ${(wall / 60).toFixed(1)} min for ${jobs.length} server(s); peak memory ${use.peakGb.toFixed(1)} GB (the servers and their launchers), `
     + `peak CPU ${use.peakCpu.toFixed(0)}%, mean ${use.meanCpu.toFixed(0)}% (the whole machine)`);
   return allOk ? 0 : 1;
+}
+
+/** The text-change report (lib/messages.js): a fault in it is told, never allowed to fail the run. */
+function reportMessages(version, heard, args) {
+  try {
+    messageText.report(version, heard, { outFile: path.join(LOCAL, 'messages', `${version}.txt`), update: Boolean(args.updateMessages) });
+  } catch (e) {
+    console.log(`messages on ${version}: not compared (${e.message})`);
+  }
 }
 
 async function main() {
@@ -919,7 +928,7 @@ async function main() {
         for (const k of results.known) console.log(`  KNOWN  ${k.label}: ${k.note}`);
       }
       // A child of --versions or --shards hands its messages to the launcher, which sees them all.
-      if (!args.report) messageText.report(version, messageText.collected(), { outFile: path.join(LOCAL, 'messages', `${version}.txt`), update: Boolean(args.updateMessages) });
+      if (!args.report) reportMessages(version, messageText.collected(), args);
       console.log(`self-test on ${version}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks (${results.known.length} known plugin failures); `
         + `self-test ${(testMs / 1000).toFixed(0)} s, generation ${buildMs} ms, ${total} chunks forceloaded`);
       if (fac.watcher) await fac.watcher.finish(`${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks, ${results.known.length} known plugin failures`);
