@@ -1,0 +1,7 @@
+# What GitHub puts in a release's generated notes (the Release workflow sets generate_release_notes).
+# A PR labelled skip-release-notes is housekeeping and is left out: a version bump, a release-prep
+# or listings PR, a process or workflow change, a lab-only change.
+changelog:
+  exclude:
+    labels:
+      - skip-release-notes
