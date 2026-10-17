@@ -45,9 +45,9 @@ Released 2026-10-17.
 |---|---|
 | Version (all four sites) | `1.11.0` |
 | Title (Spigot update title, Modrinth version title) | `1.11.0 - A steadier server, fewer settings and tidier messages` |
-| Minecraft (Modrinth game versions, Hangar platform versions) | 1.20 - 26.3 |
+| Minecraft (Modrinth game versions, Hangar platform versions, CurseForge Bukkit versions) | 1.20 - 26.3 |
 
-Modrinth and Hangar changelog:
+Modrinth, Hangar and CurseForge changelog:
 
 ````markdown
 **Upgrading from 1.10 - settings change.** A `config.yml` still exactly as 1.10 wrote it is replaced with a new grouped layout and its new defaults, the old one kept as `config.yml.bak`; one you have edited is kept as it is, and any setting 1.11 removed is ignored and named in the log. The seven ring timings and six beaming timings are now `ring-animation-speed` and `beam-animation-speed`, and `view-depth` replaces the three view depths.
