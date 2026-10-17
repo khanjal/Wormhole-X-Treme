@@ -580,7 +580,8 @@ class Server extends EventEmitter {
     // A player's chat line can land between a command and its fence; it is not the command's.
     const own = lines.filter((l) => !l.includes(holder) && !CHAT.test(l)).map((l) => {
       const m = LOG_LINE.exec(l);
-      messages.record(m ? m[3] : l);
+      // An inventory dump holds the Logbook's pages, not a reply.
+      if (!/^data get entity /.test(command)) messages.record(m ? m[3] : l);
       return m ? { level: m[2], text: plainLine(m[3]) } : { level: 'INFO', text: plainLine(l) };
     }).filter((l) => !ASYNC_NOISE.test(l.text));
     const errors = own.filter((l) => l.level === 'WARN' || l.level === 'ERROR' || COMMAND_ERROR.test(l.text));

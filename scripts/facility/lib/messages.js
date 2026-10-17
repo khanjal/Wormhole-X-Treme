@@ -6,7 +6,9 @@
 // Two taps feed it: every bot's chat and system messages (probe.js join) and every console
 // command's reply, which includes a command block's LastOutput (server.js runNow). Only the
 // plugin's own lines are kept, those with its ':: ' header, with colour codes stripped and the
-// volatile bits (numbers, ids) replaced. A snapshot line is `<cell or section>\t<message>`.
+// volatile bits (numbers, ids) replaced. A snapshot line is `<cell or section>\t<message>`. A
+// command block's LastOutput arrives as JSON, so its lines keep their `"color":...` keys: a colour
+// change there is reported, and one in chat is not.
 
 const fs = require('fs');
 const path = require('path');
@@ -17,8 +19,13 @@ let source = null;
 const ran = new Set();
 const seen = new Set();
 
-/** From here on, messages belong to this cell or section. */
-function begin(label) {
+/**
+ * From here on, messages belong to this cell or section; with no label, to none (they are
+ * dropped). `complete` is false for a section whose content depends on the run's profile (--quick,
+ * --cells, a shard): it is then left out of the comparison rather than reported as changed.
+ */
+function begin(label, complete = true) {
+  if (!label || !complete) { source = null; return; }
   source = label;
   ran.add(label);
 }
@@ -28,11 +35,11 @@ function normalise(raw) {
   const s = String(raw).replace(/§./g, '');
   const at = s.indexOf(':: ');
   if (at < 0) return null;
-  return s.slice(at).replace(/["']+$/, '').replace(/\s*[\r\n]+\s*/g, ' ').trim()
+  return s.slice(at).replace(/\s*[\r\n]+\s*/g, ' ').trim().replace(/["']+$/, '')
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, 'UUID')
-    .replace(/\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{4,}\b/gi, 'ID') // a ring pair's id
+    .replace(/\b(?=[0-9a-f]*\d)[0-9a-f]{4,}\b/g, 'ID') // a ring pair's id: lowercase hex, which may be all digits
     .replace(/(capture: ).*/, '$1STATE') // a capture's file and cache settle a moment after the cell
-    .replace(/-?\d+(?:\.\d+)?/g, 'N');
+    .replace(/(?<![\w-])-?\d+(?:\.\d+)?|\d+(?:\.\d+)?/g, 'N'); // a minus sign only when it is one, not Pad-3's hyphen
 }
 
 function record(raw) {

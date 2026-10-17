@@ -69,7 +69,8 @@ async function selftest(fac, {
   const watcher = fac.watcher || null;
   const guard = async (section, fn) => {
     const t0 = Date.now();
-    messages.begin(section);
+    // What these two say depends on the cells and routes the profile takes (messages.begin).
+    messages.begin(section, !((quick || only || shard) && (section === 'transit' || section === 'settings')));
     if (watcher) await watcher.section(section, SECTIONS[section] || '');
     try { await fn(); } catch (e) { check(section, 'threw', false, e.stack || String(e)); }
     sectionMs[section] = (sectionMs[section] || 0) + (Date.now() - t0);
@@ -175,7 +176,9 @@ async function selftest(fac, {
     for (const [i, { id, cell, label }] of planned.entries()) {
       const e = fac.entries.find((x) => x.def.id === id);
       const defaults = defaultsOf(e.chamber);
-      // Every setting a cell needs is read before the first run that needs it, and checked at the end.
+      // Every setting a cell needs is read before the first run that needs it, and checked at the end;
+      // that first read is not the cell's message.
+      messages.begin(null);
       const needs = [...(e.chamber.needs ? Object.keys((e.chamber.needs({ ...defaults, ...cell.values }) || {}).config || {}) : []), ...Object.keys(cell.settings || {})];
       for (const n of needs) { settings.add(n); if (!(n in before)) before[n] = await fac.config.get(n); }
       const want = expectation(cell, fac.version, fixed);

@@ -18,7 +18,7 @@
 //   --update-messages    self-test: accept the changes in the text players are shown (lib/messages.js)
 //                        into scripts/facility/messages/<version>.snap; without it a change is only
 //                        reported, never a FAIL
-//   --cells <names>     self-test only the matrix cells whose names match (a|b, ^start, end$)
+//   --cells <names>      self-test only the matrix cells whose names match (a|b, ^start, end$)
 //   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
 //                        cells are expected to pass
 //   --shards <n>         self-test: split the matrix across n servers of the version, each on its

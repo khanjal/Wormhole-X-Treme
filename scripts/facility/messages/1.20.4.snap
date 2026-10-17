@@ -4,7 +4,7 @@
 491-A cart from the front	:: Available gates ::
 491-A cart from the front	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
 491-A cart from the front	:: Cleared N previews.
-491-A cart from the front	:: IDC for Stand is N.
+491-A cart from the front	:: IDC for Stand is ID.
 491-A cart from the front	:: Range has been closed, darkened and its iris opened.
 491-A cart from the front	:: Range has no IDC.
 491-A cart from the front	:: Range, Relay, Stand, Standard
@@ -94,15 +94,11 @@ b2 cooldown	:: error :: No public beam destination named Dock.
 b2 cooldown	:: error :: No public beam destination named DockN.
 b2 cooldown	:: error :: You have no place named Den.
 b2 cooldown	:: error :: You must wait longer before beaming again: N seconds.
-b2 send to public	:: BEAM_USE_COOLDOWN_ENABLED = false
-b2 send to public	:: BEAM_USE_COOLDOWN_SECONDS = N
 b2 send to public	:: Beamed to Dock.
 b2 send to public	:: Beaming ProbeN to Dock.
 b2 send to public	:: Beaming to Dock...
 b2 send to public	:: Public beam destination Dock set to your current location.
 b2 send to public	:: Removed public beam destination Dock.
-b2 send to public	:: Seconds a player must wait between beams, when the cooldown above is enabled.
-b2 send to public	:: Whether beam travel has a per-player cooldown at all.
 b2 send to public	:: error :: No public beam destination named Dock.
 b2 send to public	:: error :: No public beam destination named DockN.
 b2 send to public	:: error :: You have no place named Den.
@@ -115,12 +111,11 @@ c0 target=gold_block control=lever	:: How loud gate sounds are. Volume also sets
 console	:: GATE_SOUND_VOLUME = N
 console	:: GATE_SOUND_VOLUME is now N.
 console	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
-console	:: Ops -- right-click to choose a mirror.", then ":: 'Ops' opens onto 'Optics' (N of N)."; the view opened (N blocks drawn); at Optics within N, facing N°, N s
-console	:: Ops -- right-click to choose a mirror.\\", then \\":: \'Ops\' opens onto \'Optics\' (N of N).\\"; the view opened (N blocks drawn); at Optics within N, facing N°, N s"}}},{"text":"\\n"},{"text":"mirror Optics→Ops: ","color":"black"},{"text":"not yet","color":"dark_gray","hoverEvent":{"action":"show_text","contents":{"text":"walked by the self-test"}}},{"text":"\\n"}]}', '{"text":"","extra":[{"text":"THE CONSOLE\\n\\n","bold":true},{"text":"Say ! in chat, or click [Console] on the welcome line.\\n\\n","color":"black"},{"text":"Every word is a click: ","color":"black"},{"text":"a wing tab, a chamber, an option, then Run, Stage, Reset, Watch or Again.\\n\\n","color":"black"}]}', '{"text":"","extra":[{"text":"THE CONSOLE\\n\\n","bold":true},{"text":"Typed: ","color":"black"},{"text":"!gN, !gN shape Grand, !run gN, !reset gN, !go range, !book.\\n\\n","color":"black"}]}', '{"text":"","extra":[{"text":"GETTING ABOUT\\n\\n","bold":true},{"text":"Each wing is reached by what it tests: ","color":"black"},{"text":"the gate north in the atrium, the ring pad east, the beam pad west, the mirror south.\\n\\n","color":"black"},{"text":"The tp plates under the balcony always work. ","color":"black"}]}', '{"text":"","extra":[{"text":"GETTING ABOUT\\n\\n","bold":true},{"text":"A Go in this book moves you.\\n\\n","color":"black"},{"text":"This book is replaced after every run. ","color":"black"},{"text":"!book gives you one if you have none.\\n\\n","color":"black"}]}'], wx_logbook: Nb, title: "Facility Logbook", author: "Probe"}, Count: Nb}]
+console	:: Ops -- right-click to choose a mirror.", then ":: 'Ops' opens onto 'Optics' (N of N)."; the view opened (ID blocks drawn); at Optics within N, facing N°, N s
 empty	::   Annex -- world_the_end -> its own reflection (starts on Ops), capture world_the_end_N_N_N
-empty	::   Ops -- world -> its own reflection (starts on Optics), capture world_N_N_N
-empty	::   Optics -- world -> its own reflection (starts on Ops), capture world_N_N_N
-empty	::   Range -- world_nether -> its own reflection (starts on Ops), capture world_nether_N_N_N
+empty	::   Ops -- world -> its own reflection (starts on Optics), capture world_-N_N_N
+empty	::   Optics -- world -> its own reflection (starts on Ops), capture world_-N_N_N
+empty	::   Range -- world_nether -> its own reflection (starts on Ops), capture world_nether_-N_N_-N
 empty	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
 empty	:: Available gates ::
 empty	:: Beam destinations: BeamLab, Atrium
@@ -414,8 +409,8 @@ g5 arrow at the shut iris, IrisS	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS
 g5 arrow at the shut iris, IrisS	:: Available gates ::
 g5 arrow at the shut iris, IrisS	:: Built IrisA at N N N in world. Opening centred on N N N; arrivals at N N N.
 g5 arrow at the shut iris, IrisS	:: Built IrisS at N N N in world. Opening centred on N N N; arrivals at N N N.
-g5 arrow at the shut iris, IrisS	:: IDC for IrisA is N.
-g5 arrow at the shut iris, IrisS	:: IDC for IrisS is N.
+g5 arrow at the shut iris, IrisS	:: IDC for IrisA is ID.
+g5 arrow at the shut iris, IrisS	:: IDC for IrisS is ID.
 g5 arrow at the shut iris, IrisS	:: IrisA has been closed, darkened and its iris opened.
 g5 arrow at the shut iris, IrisS	:: IrisA is now on group Atlantis. Its frame blocks are untouched; this changes what the gate draws.
 g5 arrow at the shut iris, IrisS	:: IrisA's iris now crosses as sweep (the server default).
@@ -428,8 +423,8 @@ g5 layers from the front, IrisA (ice behind glass)	:: Annex, Grand, Hall, Horizo
 g5 layers from the front, IrisA (ice behind glass)	:: Available gates ::
 g5 layers from the front, IrisA (ice behind glass)	:: Built IrisA at N N N in world. Opening centred on N N N; arrivals at N N N.
 g5 layers from the front, IrisA (ice behind glass)	:: Built IrisS at N N N in world. Opening centred on N N N; arrivals at N N N.
-g5 layers from the front, IrisA (ice behind glass)	:: IDC for IrisA is N.
-g5 layers from the front, IrisA (ice behind glass)	:: IDC for IrisS is N.
+g5 layers from the front, IrisA (ice behind glass)	:: IDC for IrisA is ID.
+g5 layers from the front, IrisA (ice behind glass)	:: IDC for IrisS is ID.
 g5 layers from the front, IrisA (ice behind glass)	:: IrisA has been closed, darkened and its iris opened.
 g5 layers from the front, IrisA (ice behind glass)	:: IrisA is now on group Atlantis. Its frame blocks are untouched; this changes what the gate draws.
 g5 layers from the front, IrisA (ice behind glass)	:: IrisA's iris now crosses as sweep (the server default).
@@ -443,8 +438,8 @@ g5 sweep steps, IrisS	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Ma
 g5 sweep steps, IrisS	:: Available gates ::
 g5 sweep steps, IrisS	:: Built IrisA at N N N in world. Opening centred on N N N; arrivals at N N N.
 g5 sweep steps, IrisS	:: Built IrisS at N N N in world. Opening centred on N N N; arrivals at N N N.
-g5 sweep steps, IrisS	:: IDC for IrisA is N.
-g5 sweep steps, IrisS	:: IDC for IrisS is N.
+g5 sweep steps, IrisS	:: IDC for IrisA is ID.
+g5 sweep steps, IrisS	:: IDC for IrisS is ID.
 g5 sweep steps, IrisS	:: IrisA has been closed, darkened and its iris opened.
 g5 sweep steps, IrisS	:: IrisA is now on group Atlantis. Its frame blocks are untouched; this changes what the gate draws.
 g5 sweep steps, IrisS	:: IrisA's iris now crosses as sweep (the server default).
@@ -457,8 +452,6 @@ g5 sweep steps, IrisS	:: Removed IrisS.
 logbook	:: GATE_SOUND_VOLUME = N
 logbook	:: GATE_SOUND_VOLUME is now N.
 logbook	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
-logbook	:: Ops -- right-click to choose a mirror.\\", then \\":: \'Ops\' opens onto \'Optics\' (N of N).\\"; the view opened (N blocks drawn); at Optics within N, facing N°, N s"}}},{"text":"\\n"},{"text":"mirror Optics→Ops: ","color":"black"},{"text":"not yet","color":"dark_gray","hoverEvent":{"action":"show_text","contents":{"text":"walked by the self-test"}}},{"text":"\\n"}]}', '{"text":"","extra":[{"text":"THE CONSOLE\\n\\n","bold":true},{"text":"Say ! in chat, or click [Console] on the welcome line.\\n\\n","color":"black"},{"text":"Every word is a click: ","color":"black"},{"text":"a wing tab, a chamber, an option, then Run, Stage, Reset, Watch or Again.\\n\\n","color":"black"}]}', '{"text":"","extra":[{"text":"THE CONSOLE\\n\\n","bold":true},{"text":"Typed: ","color":"black"},{"text":"!gN, !gN shape Grand, !run gN, !reset gN, !go range, !book.\\n\\n","color":"black"}]}', '{"text":"","extra":[{"text":"GETTING ABOUT\\n\\n","bold":true},{"text":"Each wing is reached by what it tests: ","color":"black"},{"text":"the gate north in the atrium, the ring pad east, the beam pad west, the mirror south.\\n\\n","color":"black"},{"text":"The tp plates under the balcony always work. ","color":"black"}]}', '{"text":"","extra":[{"text":"GETTING ABOUT\\n\\n","bold":true},{"text":"A Go in this book moves you.\\n\\n","color":"black"},{"text":"This book is replaced after every run. ","color":"black"},{"text":"!book gives you one if you have none.\\n\\n","color":"black"}]}'], author: "Probe", title: "Facility Logbook", wx_logbook: Nb}, Count: Nb}]
-logbook	:: Ops -- right-click to choose a mirror.\\", then \\":: \'Ops\' opens onto \'Optics\' (N of N).\\"; the view opened (N blocks drawn); at Optics within N, facing N°, N s"}}},{"text":"\\n"},{"text":"mirror Optics→Ops: ","color":"black"},{"text":"not yet","color":"dark_gray","hoverEvent":{"action":"show_text","contents":{"text":"walked by the self-test"}}},{"text":"\\n"}]}', '{"text":"","extra":[{"text":"THE CONSOLE\\n\\n","bold":true},{"text":"Say ! in chat, or click [Console] on the welcome line.\\n\\n","color":"black"},{"text":"Every word is a click: ","color":"black"},{"text":"a wing tab, a chamber, an option, then Run, Stage, Reset, Watch or Again.\\n\\n","color":"black"}]}', '{"text":"","extra":[{"text":"THE CONSOLE\\n\\n","bold":true},{"text":"Typed: ","color":"black"},{"text":"!gN, !gN shape Grand, !run gN, !reset gN, !go range, !book.\\n\\n","color":"black"}]}', '{"text":"","extra":[{"text":"GETTING ABOUT\\n\\n","bold":true},{"text":"Each wing is reached by what it tests: ","color":"black"},{"text":"the gate north in the atrium, the ring pad east, the beam pad west, the mirror south.\\n\\n","color":"black"},{"text":"The tp plates under the balcony always work. ","color":"black"}]}', '{"text":"","extra":[{"text":"GETTING ABOUT\\n\\n","bold":true},{"text":"A Go in this book moves you.\\n\\n","color":"black"},{"text":"This book is replaced after every run. ","color":"black"},{"text":"!book gives you one if you have none.\\n\\n","color":"black"}]}'], wx_logbook: Nb, title: "Facility Logbook", author: "Probe"}, Count: Nb}]
 m1 round to Range	::   /wormhole mirror debug Round -all for the rest.
 m1 round to Range	::   capture: STATE
 m1 round to Range	:: 'Round' is an ordinary banner again.
@@ -524,7 +517,6 @@ m3 stamp a look	:: mirror 'Desk' at world:N:N:N, room world N,N,N
 matrix	:: GATE_SOUND_VOLUME = N
 matrix	:: GATE_SOUND_VOLUME is now N.
 matrix	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
-players	:: Ops -- right-click to choose a mirror.\\", then \\":: \'Ops\' opens onto \'Optics\' (N of N).\\"; the view opened (N blocks drawn); at Optics within N, facing N°, N s"}}},{"text":"\\n"},{"text":"mirror Optics→Ops: ","color":"black"},{"text":"not yet","color":"dark_gray","hoverEvent":{"action":"show_text","contents":{"text":"walked by the self-test"}}},{"text":"\\n"}]}', '{"text":"","extra":[{"text":"THE CONSOLE\\n\\n","bold":true},{"text":"Say ! in chat, or click [Console] on the welcome line.\\n\\n","color":"black"},{"text":"Every word is a click: ","color":"black"},{"text":"a wing tab, a chamber, an option, then Run, Stage, Reset, Watch or Again.\\n\\n","color":"black"}]}', '{"text":"","extra":[{"text":"THE CONSOLE\\n\\n","bold":true},{"text":"Typed: ","color":"black"},{"text":"!gN, !gN shape Grand, !run gN, !reset gN, !go range, !book.\\n\\n","color":"black"}]}', '{"text":"","extra":[{"text":"GETTING ABOUT\\n\\n","bold":true},{"text":"Each wing is reached by what it tests: ","color":"black"},{"text":"the gate north in the atrium, the ring pad east, the beam pad west, the mirror south.\\n\\n","color":"black"},{"text":"The tp plates under the balcony always work. ","color":"black"}]}', '{"text":"","extra":[{"text":"GETTING ABOUT\\n\\n","bold":true},{"text":"A Go in this book moves you.\\n\\n","color":"black"},{"text":"This book is replaced after every run. ","color":"black"},{"text":"!book gives you one if you have none.\\n\\n","color":"black"}]}'], author: "Probe", title: "Facility Logbook", wx_logbook: Nb}, Count: Nb}]
 r1 swap	:: Fire it with /wormhole ring fire ID.
 r1 swap	:: ID — world, PUBLIC, CONCURRENT/CONCURRENT
 r1 swap	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
@@ -565,8 +557,6 @@ r3 shaft 20 down	:: Transport in N seconds...
 r3 shaft 20 down	:: Transport rings engaging. Step clear to cancel.
 r3 shaft 20 down	:: error :: You have no half-built ring pair.
 r4 mixed slabs	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
-r4 mixed slabs	:: RING_COOLDOWN_TICKS = N
-r4 mixed slabs	:: Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.
 r4 mixed slabs	:: error :: That ring is built from more than one kind of slab. Use one kind; the rings are made of it.
 r4 mixed slabs	:: error :: You have no half-built ring pair.
 r5 name	:: Alpha to ? (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
@@ -591,7 +581,7 @@ resets	:: Annex has been closed, darkened and its iris opened.
 resets	:: Annex has no IDC.
 resets	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
 resets	:: Available gates ::
-resets	:: Built Annex at N N N in world_the_end. Opening centred on N N N; arrivals at N N N.
+resets	:: Built Annex at ID N ID in world_the_end. Opening centred on ID.N N ID.N; arrivals at ID.N N ID.N.
 resets	:: Built Grand at N N N in world. Opening centred on N N N; arrivals at N N N.
 resets	:: Built Horizontal at N N N in world. Opening centred on N N N; arrivals at N N N.
 resets	:: Built IrisA at N N N in world. Opening centred on N N N; arrivals at N N N.
@@ -605,8 +595,8 @@ resets	:: Built Standard at N N N in world. Opening centred on N N N; arrivals a
 resets	:: Cleared N previews.
 resets	:: Grand has been closed, darkened and its iris opened.
 resets	:: Horizontal has been closed, darkened and its iris opened.
-resets	:: IDC for IrisA is N.
-resets	:: IDC for IrisS is N.
+resets	:: IDC for IrisA is ID.
+resets	:: IDC for IrisS is ID.
 resets	:: IrisA has been closed, darkened and its iris opened.
 resets	:: IrisA is now on group Atlantis. Its frame blocks are untouched; this changes what the gate draws.
 resets	:: IrisA's iris now crosses as sweep (the server default).
@@ -704,18 +694,10 @@ s1 beam sounds	:: BEAM_SOUND_VOLUME = N
 s1 beam sounds	:: Beamed to BeamLab.
 s1 beam sounds	:: Beaming to BeamLab...
 s1 beam sounds	:: Cleared N previews.
-s1 beam sounds	:: How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).
 s1 beam sounds	:: How loud beam sounds are. Volume also sets audible range: N is heard about sixteen blocks away.
 s1 beam sounds	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
-s1 beam sounds	:: RING_DEFAULT_ACCESS = PRIVATE
-s1 beam sounds	:: RING_DEFAULT_FLASH = GLOWSTONE
-s1 beam sounds	:: RING_DEFAULT_LIGHT = REDSTONE_LAMP
-s1 beam sounds	:: RING_DEFAULT_STYLE = CONCURRENT
 s1 beam sounds	:: Range, Relay, Standard
 s1 beam sounds	:: Relay has been closed, darkened and its iris opened.
-s1 beam sounds	:: What a newly built ring pair starts as: PUBLIC or PRIVATE.
-s1 beam sounds	:: What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.
-s1 beam sounds	:: What the ring pad lights up as while it is working.
 s1 beam sounds	:: error :: You have no half-built ring pair.
 s1 beam sounds	:: error :: You lack the permissions to do this.
 s1 every setting	:: ...and N more. Type part of a name to narrow it down.
@@ -759,7 +741,7 @@ s1 every setting	:: GATE_DIAL_SPIN = TOP
 s1 every setting	:: GATE_IRIS_ANIMATION = sweep
 s1 every setting	:: GATE_MATERIAL_GROUPS_AUTODISCOVER
 s1 every setting	:: GATE_MATERIAL_GROUPS_AUTODISCOVER = true
-s1 every setting	:: GATE_PREVIEW_MAX_BLOCKS = N
+s1 every setting	:: GATE_PREVIEW_MAX_BLOCKS = ID
 s1 every setting	:: GATE_PREVIEW_MINUTES = N
 s1 every setting	:: GATE_RIPPLE = false
 s1 every setting	:: GATE_SOUNDS_ENABLED = true
@@ -809,7 +791,7 @@ s1 every setting	:: MIRROR_PROXIMITY_DISTANCE = N
 s1 every setting	:: MIRROR_SHOW_ENTITIES = false
 s1 every setting	:: MIRROR_SHOW_PLAYERS = false
 s1 every setting	:: Minutes a gate preview, stood up by /wormhole gate build, stays up after its owner last used a gate build or gate preview command. At least N.
-s1 every setting	:: Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about N. N turns previews off.
+s1 every setting	:: Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about ID. N turns previews off.
 s1 every setting	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
 s1 every setting	:: PERMISSIONS_SUPPORT_DISABLE = false
 s1 every setting	:: PETS_FOLLOW_OWNER = true
@@ -939,7 +921,7 @@ s1 gate sounds	:: Built Sys at N N N in world. Opening centred on N N N; arrival
 s1 gate sounds	:: Cleared N previews.
 s1 gate sounds	:: GATE_SOUND_VOLUME = N
 s1 gate sounds	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
-s1 gate sounds	:: IDC for Sys is N.
+s1 gate sounds	:: IDC for Sys is ID.
 s1 gate sounds	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
 s1 gate sounds	:: Range, Relay, Standard
 s1 gate sounds	:: Range, Relay, Standard, Sys
@@ -982,45 +964,6 @@ s1 ring defaults	:: What a ring turns to as the transport light passes through i
 s1 ring defaults	:: What the ring pad lights up as while it is working.
 s1 ring defaults	:: error :: You have no half-built ring pair.
 s1 ring defaults	:: error :: You lack the permissions to do this.
-settings	:: BEAM_USE_COOLDOWN_ENABLED = false
-settings	:: BEAM_USE_COOLDOWN_SECONDS = N
-settings	:: GATE_SOUND_VOLUME = N
-settings	:: How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).
-settings	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
-settings	:: RING_COOLDOWN_TICKS = N
-settings	:: RING_DEFAULT_ACCESS = PRIVATE
-settings	:: RING_DEFAULT_FLASH = GLOWSTONE
-settings	:: RING_DEFAULT_LIGHT = REDSTONE_LAMP
-settings	:: RING_DEFAULT_STYLE = CONCURRENT
-settings	:: Seconds a player must wait between beams, when the cooldown above is enabled.
-settings	:: Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.
-settings	:: What a newly built ring pair starts as: PUBLIC or PRIVATE.
-settings	:: What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.
-settings	:: What the ring pad lights up as while it is working.
-settings	:: Whether beam travel has a per-player cooldown at all.
-transit	::   Annex -- world_the_end -> its own reflection (starts on Ops), capture world_the_end_N_N_N
-transit	::   Ops -- world -> Optics (starts on Optics), capture world_N_N_N
-transit	::   Optics -- world -> its own reflection (starts on Ops), capture world_N_N_N
-transit	::   Range -- world_nether -> its own reflection (starts on Ops), capture world_nether_N_N_N
-transit	:: 'Ops' opens onto 'Optics' (N of N).
-transit	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
-transit	:: Arrived at Lab.
-transit	:: Available gates ::
-transit	:: Beam destinations: BeamLab, Atrium
-transit	:: Beamed to BeamLab.
-transit	:: Beaming to BeamLab...
-transit	:: N mirror(s):
-transit	:: Ops -- right-click to choose a mirror.
-transit	:: Ops has been closed, darkened and its iris opened.
-transit	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
-transit	:: Range has been closed, darkened and its iris opened.
-transit	:: Range, Relay, Standard
-transit	:: Rings deploying. Hold still.
-transit	:: Rings recharging. Ready in N seconds.
-transit	:: Transport in N second...
-transit	:: Transport in N seconds...
-transit	:: Transport rings engaging — travelling to Lab. Step clear to cancel.
-transit	:: [Beam to BeamLab]
 tunnel 257 apart: refused	:: Build a stargate for a trip that long. Rings are for getting around one place.
 tunnel 257 apart: refused	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
 tunnel 257 apart: refused	:: error :: Those two rings are N blocks apart on the ground, and rings reach N.
