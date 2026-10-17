@@ -10,6 +10,7 @@ const path = require('path');
 const zlib = require('zlib');
 const { EventEmitter } = require('events');
 const { atLeast } = require('./version');
+const messages = require('./messages');
 
 const USER_AGENT = 'wx-facility (https://github.com/khanjal/Wormhole-X-Treme)';
 
@@ -579,6 +580,7 @@ class Server extends EventEmitter {
     // A player's chat line can land between a command and its fence; it is not the command's.
     const own = lines.filter((l) => !l.includes(holder) && !CHAT.test(l)).map((l) => {
       const m = LOG_LINE.exec(l);
+      messages.record(m ? m[3] : l);
       return m ? { level: m[2], text: plainLine(m[3]) } : { level: 'INFO', text: plainLine(l) };
     }).filter((l) => !ASYNC_NOISE.test(l.text));
     const errors = own.filter((l) => l.level === 'WARN' || l.level === 'ERROR' || COMMAND_ERROR.test(l.text));

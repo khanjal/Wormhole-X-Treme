@@ -7,6 +7,7 @@
 const mineflayer = require('mineflayer');
 const { Vec3 } = require('vec3');
 const text = require('./text');
+const messages = require('./messages');
 
 /** Resolves with the first `event` whose arguments satisfy `test`; rejects at the deadline. */
 function waitEvent(emitter, event, test, ms, what) {
@@ -35,6 +36,7 @@ function join({ host = '127.0.0.1', port, version, username, onCreate = null }) 
   // finally that stops the server) with it; keep the last one for whoever asks.
   bot.on('error', (e) => { bot.lastError = e; });
   bot.on('end', (reason) => { bot.ended = reason || 'ended'; });
+  bot.on('message', (m) => messages.record(m.toString()));
   if (onCreate) onCreate(bot);
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${username} did not spawn within 60 s`)), 60000);

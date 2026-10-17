@@ -15,7 +15,10 @@
 //   --port <n>           server port (default 25590); another port gets its own server folder
 //   --keep-world         keep the world from the last run instead of starting fresh
 //   --quick              self-test with the short matrix (the cells marked quick): a few minutes
-//   --cells <names>      self-test only the matrix cells whose names match (a|b, ^start, end$)
+//   --update-messages    self-test: accept the changes in the text players are shown (lib/messages.js)
+//                        into scripts/facility/messages/<version>.snap; without it a change is only
+//                        reported, never a FAIL
+//   --cells <names>     self-test only the matrix cells whose names match (a|b, ^start, end$)
 //   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
 //                        cells are expected to pass
 //   --shards <n>         self-test: split the matrix across n servers of the version, each on its
@@ -99,6 +102,7 @@ const wings = require('./wings');
 const { Facility, BOT } = require('./facility');
 const { selftest } = require('./selftest');
 const shards = require('./lib/shards');
+const messageText = require('./lib/messages');
 const { Config } = require('./lib/config');
 const shapes = require('./lib/shapes');
 const companions = require('./lib/companions');
@@ -173,6 +177,7 @@ function parseArgs(argv) {
       try { shards.cellMatcher(a.cells); } catch (e) { throw new Error(`--cells ${a.cells}: ${e.message}`); }
     }
     else if (x === '--quick') a.quick = true;
+    else if (x === '--update-messages') a.updateMessages = true;
     else if (x === '--fixed') a.fixed = list(value(i++));
     else if (x === '--shards') a.shards = whole('--shards', value(i++), 1);
     else if (x === '--shard') {
@@ -599,6 +604,8 @@ async function fanOutIn(work, { args, jar, versions, n, children, withNames, sto
       console.log(`known plugin failures on ${v} (expected, not hidden):`);
       for (const k of known) console.log(`  KNOWN  ${k.label}: ${k.note}`);
     }
+    const heard = mine.filter((d) => d.report && d.report.messages).map((d) => d.report.messages);
+    if (heard.length) messageText.report(v, messageText.merge(heard), { outFile: path.join(LOCAL, 'messages', `${v}.txt`), update: Boolean(args.updateMessages) });
     const bad = results.filter((r) => !r.ok).length + missing.length;
     const slowest = Math.max(...mine.map((d) => (d.report ? d.report.testMs : 0))) / 1000;
     console.log(`self-test on ${v}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks (${known.length} known plugin failures); `
@@ -911,6 +918,8 @@ async function main() {
         console.log(`known plugin failures on ${version} (expected, not hidden):`);
         for (const k of results.known) console.log(`  KNOWN  ${k.label}: ${k.note}`);
       }
+      // A child of --versions or --shards hands its messages to the launcher, which sees them all.
+      if (!args.report) messageText.report(version, messageText.collected(), { outFile: path.join(LOCAL, 'messages', `${version}.txt`), update: Boolean(args.updateMessages) });
       console.log(`self-test on ${version}: ${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks (${results.known.length} known plugin failures); `
         + `self-test ${(testMs / 1000).toFixed(0)} s, generation ${buildMs} ms, ${total} chunks forceloaded`);
       if (fac.watcher) await fac.watcher.finish(`${bad ? `${bad} FAIL` : 'all PASS'} of ${results.length} checks, ${results.known.length} known plugin failures`);
@@ -918,7 +927,7 @@ async function main() {
       if (args.report) {
         fs.writeFileSync(args.report, JSON.stringify({
           version, shard: args.shard || null, testMs, results: results.map((r) => ({ section: r.section, name: r.name, ok: r.ok, detail: r.detail })),
-          known: results.known, times: results.times, sectionMs: results.sectionMs,
+          known: results.known, times: results.times, sectionMs: results.sectionMs, messages: messageText.collected(),
         }));
       } else if (!args.cells) {
         shards.saveTimes(LOCAL, version, results.times);

@@ -27,6 +27,7 @@ const campus = require('./lib/campus');
 const { BASELINE_OWNER } = require('./facility');
 const { chamber } = require('./lib/campus');
 const text = require('./lib/text');
+const messages = require('./lib/messages');
 const { join, waitEvent } = require('./lib/probe');
 const { RingKit } = require('./lib/rings');
 
@@ -68,6 +69,7 @@ async function selftest(fac, {
   const watcher = fac.watcher || null;
   const guard = async (section, fn) => {
     const t0 = Date.now();
+    messages.begin(section);
     if (watcher) await watcher.section(section, SECTIONS[section] || '');
     try { await fn(); } catch (e) { check(section, 'threw', false, e.stack || String(e)); }
     sectionMs[section] = (sectionMs[section] || 0) + (Date.now() - t0);
@@ -179,6 +181,7 @@ async function selftest(fac, {
       const want = expectation(cell, fac.version, fixed);
       if (watcher) await watcher.cell(e, { label, values: { ...defaults, ...cell.values }, want, index: i + 1, total: planned.length });
       const t0 = Date.now();
+      messages.begin(label);
       const r = await fac.runChamber(e, { values: { ...defaults, ...cell.values }, raw: true, holdMs: 0, settings: cell.settings || {} });
       const got = r.outcome === 'FAIL' ? `FAIL:${r.reason}` : r.outcome === 'REFUSED' ? `REFUSED:${r.reason}` : r.outcome;
       const ok = got === want;
@@ -203,6 +206,7 @@ async function selftest(fac, {
       if (watcher) await watcher.result(label, { ok: ok && resetOk, known: knownNow, detail: resetOk ? detail : `${detail}; the reset left the cell not as built` });
     }
     // A Run of a staged chamber is refused, and the stage's setting stays until its Reset.
+    messages.begin('matrix');
     const c0 = fac.entries.find((x) => x.def.id === 'c0');
     const cell = MATRIX.c0[0].values;
     const [name, value] = Object.entries(c0.chamber.needs(cell).config)[0];
