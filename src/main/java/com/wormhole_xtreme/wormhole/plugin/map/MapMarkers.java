@@ -256,7 +256,6 @@ public final class MapMarkers
 
     /**
      * Starts one map listening to its plugin. One that fails is dropped, so the others still show.
-     *
      */
     private static void register(final MapProvider map)
     {
@@ -386,7 +385,6 @@ public final class MapMarkers
 
     /**
      * Stops one map listening to its plugin, whatever happens.
-     *
      */
     private static void unregister(final MapProvider map)
     {

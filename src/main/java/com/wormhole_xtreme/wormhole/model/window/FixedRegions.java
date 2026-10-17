@@ -88,7 +88,6 @@ final class FixedRegions
 
     /**
      * Indexes one window, unless it is indexed already as it is.
-     *
      */
     static void index(final WindowState window)
     {
