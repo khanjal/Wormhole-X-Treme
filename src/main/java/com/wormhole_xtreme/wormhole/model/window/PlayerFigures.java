@@ -18,7 +18,7 @@ import org.bukkit.profile.PlayerProfile;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
-import com.wormhole_xtreme.wormhole.utils.ChatColour;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What a far player's stand-in is, and how it is dressed (#296, step 2): a Mannequin wearing their
@@ -211,7 +211,7 @@ final class PlayerFigures
      */
     static String shownName(final Player player)
     {
-        final String plain = ChatColour.stripColor(player.getDisplayName()).trim();
+        final String plain = ChatText.plain(player.getDisplayName()).trim();
         return plain.isEmpty() ? player.getName() : plain;
     }
 

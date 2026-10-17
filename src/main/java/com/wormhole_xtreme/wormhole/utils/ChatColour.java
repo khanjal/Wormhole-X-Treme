@@ -61,14 +61,4 @@ public enum ChatColour
     {
         return code;
     }
-
-    /**
-     * @param text
-     *            legacy text, may be null
-     * @return the text without colour or format codes, or null when it was null
-     */
-    public static String stripColor(final String text)
-    {
-        return (text == null) ? null : ChatText.plain(text);
-    }
 }

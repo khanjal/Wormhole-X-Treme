@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -44,13 +43,5 @@ class ChatColourTest
     {
         assertEquals("§o", ChatColour.ITALIC);
         assertEquals('§', ChatColour.COLOR_CHAR);
-    }
-
-    @Test
-    void strippingRemovesEveryCodeAndLeavesTheText()
-    {
-        assertEquals("Ada the Brave", ChatColour.stripColor("§bAda §othe §lBrave§r"),
-            "a nickname's colours and formats should not reach a stand-in's name tag");
-        assertNull(ChatColour.stripColor(null));
     }
 }
