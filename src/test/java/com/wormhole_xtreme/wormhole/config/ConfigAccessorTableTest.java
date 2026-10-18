@@ -49,8 +49,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
  * accessor added later without a row fails here rather than going uncharacterised.
  *
  * <p>Every write puts a new {@link Setting} in the map rather than calling
- * {@link ConfigManager#setConfigValue}, which would change the shared default objects for
- * every test after this one.
+ * {@link ConfigManager#setConfigValue}, so each case sets exactly the keys it names.
  */
 class ConfigAccessorTableTest
 {
