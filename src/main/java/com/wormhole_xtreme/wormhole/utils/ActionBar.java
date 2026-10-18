@@ -4,6 +4,9 @@ import java.util.logging.Level;
 
 import org.bukkit.entity.Player;
 
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
@@ -20,13 +23,17 @@ import net.md_5.bungee.api.chat.TextComponent;
  * not break the thing the player came to do. The trip still happens, the mirror still works;
  * they simply do not get told about it.
  *
- * <p>CraftBukkit is such a fork: it has neither {@code Player.spigot()} nor BungeeCord's chat
- * classes, so the call fails to link rather than throwing.
+ * <p>Paper gets Adventure's action bar, Spigot BungeeCord's. CraftBukkit has neither
+ * {@code Player.spigot()} nor BungeeCord's chat classes, so the call fails to link rather than
+ * throwing.
  */
 public final class ActionBar
 {
     /** Set once the server has shown it cannot link an action bar, so it is not tried again. */
     private static volatile boolean unavailable;
+
+    /** Set once the server has shown it has no Adventure, so it is not tried again. */
+    private static volatile boolean noAdventure;
 
     /** Static use only. */
     private ActionBar()
@@ -37,6 +44,7 @@ public final class ActionBar
     static void forgetUnavailable()
     {
         unavailable = false;
+        noAdventure = false;
     }
 
     /**
@@ -55,7 +63,10 @@ public final class ActionBar
         }
         try
         {
-            SpigotBar.send(player, message);
+            if (!sentByPaper(player, message))
+            {
+                SpigotBar.send(player, message);
+            }
         }
         catch (final LinkageError missing)
         {
@@ -70,9 +81,67 @@ public final class ActionBar
     }
 
     /**
+     * @param player
+     *            who to tell
+     * @param message
+     *            what to say
+     * @return true once it is sent; false to try Spigot's instead
+     */
+    private static boolean sentByPaper(final Player player, final String message)
+    {
+        if (noAdventure)
+        {
+            return false;
+        }
+        try
+        {
+            return PaperBar.send(player, message);
+        }
+        catch (final LinkageError notPaper)
+        {
+            noAdventure = true;
+            return false;
+        }
+    }
+
+    /**
+     * The only code naming Adventure, so a server without it fails to link this class, inside
+     * {@link #sentByPaper}'s try.
+     */
+    private static final class PaperBar
+    {
+        /** Static use only. */
+        private PaperBar()
+        {
+        }
+
+        /**
+         * @param player
+         *            who to tell
+         * @param message
+         *            what to say, in legacy colour codes
+         * @return false if this player is not an Adventure audience
+         */
+        static boolean send(final Player player, final String message)
+        {
+            // Object: on Paper's API a Player is already an Audience, which Java 17 refuses to pattern-match.
+            final Object target = player;
+            if (!(target instanceof Audience audience))
+            {
+                return false;
+            }
+            final Component line = LegacyComponentSerializer.legacySection().deserialize(message);
+            audience.sendActionBar(line);
+            return true;
+        }
+    }
+
+    /**
      * The only code naming Spigot's chat API, so a server without it fails to link this class,
      * inside {@link #send}'s try, and never {@link ActionBar} in its caller.
      */
+    // Spigot has no other action bar, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     private static final class SpigotBar
     {
         /** Static use only. */
