@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -261,6 +262,13 @@ public class Complete implements CommandExecutor, TabCompleter
     public static boolean completeAndCharge(final Player player, final String name, final String idc,
         final String network, final String onRefused, final String refusedLog)
     {
+        final Stargate held = StargateManager.getIncompleteStargate(player);
+        final String tooClose = (held == null) ? null : GateSpacing.refusal(player, held);
+        if (tooClose != null)
+        {
+            player.sendMessage(ChatText.error(tooClose));
+            return false;
+        }
         final double buildCost = (ConfigManager.isEconomyEnabled() && EconomySupport.isAvailable())
             ? ConfigManager.getEconomyBuildCost()
             : 0.0;

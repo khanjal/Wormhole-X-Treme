@@ -92,6 +92,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateIrisAnimator;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
@@ -2043,6 +2044,62 @@ class GatePreviewsTest
         final List<Integer> kept = List.of(cells.get(0).x(), cells.get(0).y(), cells.get(0).z());
         assertFalse(written.contains(kept));
         assertEquals(cells.size() - 1, written.size());
+    }
+
+    private Stargate registeredGateBeside(final String name)
+    {
+        final Stargate near = new Stargate();
+        near.setGateName(name);
+        near.setGateWorld(world);
+        near.getGatePortalBlocks().add(new Location(world, 0, 64, 0));
+        StargateManager.registerStargate(near);
+        return near;
+    }
+
+    /**
+     * A preview too near another gate places nothing, even for a player allowed to repair gates:
+     * the refusal comes before a block is written, not after, so no frame is left unregistered.
+     */
+    @Test
+    void placingTooCloseToAnotherGateWritesNothing()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        GatePreviews.show(owner, standard, null);
+        ConfigTestSupport.set(ConfigKeys.MIN_GATE_DISTANCE, 500);
+        final Stargate near = registeredGateBeside("Nearby");
+        try
+        {
+            final GatePreviews.Placed placed = GatePreviews.place(owner, true);
+
+            assertEquals(GatePreviews.Outcome.TOO_CLOSE, placed.outcome());
+            assertTrue(placed.inTheWay().get(0).contains("Nearby"), placed.inTheWay().toString());
+            assertTrue(written.isEmpty(), "blocks were written before the refusal");
+        }
+        finally
+        {
+            StargateManager.removeStargate(near);
+        }
+    }
+
+    /** A preview laid over a gate already standing is a repair or an obstruction, never "too close". */
+    @Test
+    void aPreviewOverAStandingGateIsNotRefusedAsTooClose()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        GatePreviews.show(owner, standard, null);
+        ConfigTestSupport.set(ConfigKeys.MIN_GATE_DISTANCE, 500);
+        final Stargate near = registeredGateBeside("Under");
+        GatePreviews.gateAt = (w, x, y, z) -> near;
+        try
+        {
+            assertNotEquals(GatePreviews.Outcome.TOO_CLOSE, GatePreviews.place(owner, false).outcome());
+        }
+        finally
+        {
+            StargateManager.removeStargate(near);
+        }
     }
 
     /**

@@ -573,6 +573,10 @@ public final class StargateShapeRegistry
      */
     public static ShapeFileValidator.Result reloadShapeFile(final String fileName)
     {
+        if (!isPlainFileName(fileName))
+        {
+            return notAFileName(fileName);
+        }
         final String[] lines = readShapeFileLines(fileName);
         if (lines == null)
         {
@@ -592,12 +596,32 @@ public final class StargateShapeRegistry
      */
     public static ShapeFileValidator.Result validateShapeFile(final String fileName)
     {
+        if (!isPlainFileName(fileName))
+        {
+            return notAFileName(fileName);
+        }
         final String[] lines = readShapeFileLines(fileName);
         if (lines == null)
         {
             return ShapeFileValidator.Result.unreadable("No such file: " + fileName);
         }
         return ShapeFileValidator.validate(lines);
+    }
+
+    /**
+     * Whether a typed name stays in the shapes folder. A separator or a drive colon is refused
+     * rather than the resolved path checked, so a name means the same on every platform.
+     */
+    private static boolean isPlainFileName(final String fileName)
+    {
+        return (fileName != null) && !fileName.isEmpty()
+            && (fileName.indexOf('/') < 0) && (fileName.indexOf('\\') < 0) && (fileName.indexOf(':') < 0);
+    }
+
+    private static ShapeFileValidator.Result notAFileName(final String fileName)
+    {
+        return ShapeFileValidator.Result.unreadable(
+            "Not a file in the shapes folder: " + fileName + " (a name cannot hold / \\ or :)");
     }
 
     /** @return the file's lines, or null if it does not exist or could not be read */
