@@ -13,15 +13,27 @@ Untrusted input comes from **players**, who range from anyone allowed to join to
   places and mirrors.
 - Clicks, block placement and breaking, redstone, items and entities moving into a gate.
 
-Trusted input, edited by the server admin: `config.yml`, the shape files under `shapes/`, and
-the plugin's own data files under `WormholeXTremeDB/` (gates, rings, beams, mirrors). A
-malformed file should be rejected with a message, not crash the plugin, but a file an admin
-wrote on purpose to attack their own server is out of scope.
+Trusted input, edited by the server admin: `config.yml`, the shape files under `shapes/gate/`
+and `shapes/mirror/`, and the plugin's own data files under `data/` (gates, rings, beams,
+mirrors). A malformed file should be rejected with a message, not crash the plugin, but a file
+an admin wrote on purpose to attack their own server is out of scope. Players holding the
+`wormhole.config` or other admin permissions are trusted like the admin: for example,
+`/wormhole gate shapes validate|reload <name>` takes a file name from the admin and is
+not hardened against `../`. That is known and low severity, not a player-reachable hole.
+
+Names players choose are written to the filesystem only after being reduced to
+`[a-zA-Z0-9._-]` (gate and ring files, `StargateYamlManager`, `RingYamlManager`), so a
+traversal through a gate or ring name would be a real finding.
 
 ## Components that matter most / least
 Most: command parsing and permission checks (`command/`), dial and travel logic, gate and
 ring ownership and permission checks, anything that reads or writes a file whose name or
-content a player influences, and anything that runs on every tick or every move event.
+content a player influences, anything that runs on every tick or every move event, and the web
+map providers under `plugin/map/` (Dynmap, BlueMap, squaremap, Pl3xMap), which put
+player-chosen gate and mirror names into map markers that browsers render.
+
+Also in scope but lower: the one-time importers and migrations that read and move old data
+(`LegacyDatabaseImporter`, `LegacyDataFolderMigration`), which handle files from other versions.
 
 Least: the cosmetic drawing code (`model/window/`, `model/mirror/`, `model/beam/`
 animations). It matters only when it can be made to lag or crash a server.
@@ -35,7 +47,9 @@ way to run a real server in the offline image, so reason from the code: look for
 action that reaches a bad path, rather than a network attack.
 
 The only outbound requests are the optional update check (`plugin/UpdateCheck.java`), which
-calls two fixed HTTPS URLs (the Modrinth and GitHub release APIs). It has no inbound listener and opens no port.
+calls two fixed HTTPS URLs (the Modrinth and GitHub release APIs), and the shaded bStats
+metrics library (`plugin/MetricsSupport.java`), which sends anonymous usage counts to
+bStats unless the admin turns it off. It has no inbound listener and opens no port.
 
 ## How you rate severity
 - A player getting travel, building or removal they have no permission for: high.
