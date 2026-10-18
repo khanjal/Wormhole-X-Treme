@@ -29,8 +29,8 @@ import net.kyori.adventure.text.format.TextColor;
  */
 class PlayerNamesTest
 {
-    /** Paper's getter, on a player type that has it on every API build. */
-    interface PaperDisplayed extends Player
+    /** Paper's getter, on a player type that has it on every API build; public, for the isolated copy to call. */
+    public interface PaperDisplayed extends Player
     {
         Component displayName();
     }
