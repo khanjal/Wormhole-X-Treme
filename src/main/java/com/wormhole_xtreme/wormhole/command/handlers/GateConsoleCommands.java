@@ -138,19 +138,10 @@ public final class GateConsoleCommands
             sender.sendMessage(ChatText.error("Not built: " + outOfHeight));
             return;
         }
-        // A player is held to the regions it would stand in, as building it by hand would be.
-        if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
-            && !RegionFlags.mayBuild(player, locationsOf(world, cellsOf(shape, grid))))
+        final String refusedHere = refusedHere(sender, world, shape, grid);
+        if (refusedHere != null)
         {
-            sender.sendMessage(RegionFlags.BUILD_REFUSED);
-            return;
-        }
-        // And to the spacing between gates; the console and command blocks are not.
-        final String tooClose = (CommandHandlerUtils.issuer(sender) instanceof Player player)
-            ? GateSpacing.refusal(player, world, locationsOf(world, GateBlueprint.openingOf(shape, grid))) : null;
-        if (tooClose != null)
-        {
-            sender.sendMessage(ChatText.error("Not built: " + tooClose));
+            sender.sendMessage(refusedHere);
             return;
         }
         loadChunksUnder(world, shape, grid);
@@ -265,6 +256,26 @@ public final class GateConsoleCommands
                 world.getChunkAt(cx, cz);
             }
         }
+    }
+
+    /**
+     * What a player is told for a gate they may not stand here, or null. They are held to the regions it
+     * would stand in, as building it by hand would be, and to its spacing from other gates; the console and
+     * command blocks are not.
+     */
+    private static String refusedHere(final CommandSender sender, final World world, final Stargate3DShape shape,
+        final GateGrid grid)
+    {
+        if (!(CommandHandlerUtils.issuer(sender) instanceof Player player))
+        {
+            return null;
+        }
+        if (!RegionFlags.mayBuild(player, locationsOf(world, cellsOf(shape, grid))))
+        {
+            return RegionFlags.BUILD_REFUSED;
+        }
+        final String tooClose = GateSpacing.refusal(player, world, locationsOf(world, GateBlueprint.openingOf(shape, grid)));
+        return (tooClose == null) ? null : ChatText.error("Not built: " + tooClose);
     }
 
     /** Where each of these cells stands in the world. */
