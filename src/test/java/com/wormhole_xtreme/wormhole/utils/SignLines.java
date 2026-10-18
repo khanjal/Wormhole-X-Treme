@@ -25,7 +25,8 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  */
 public final class SignLines
 {
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder()
+        .character(LegacyComponentSerializer.SECTION_CHAR).hexColors().useUnusualXRepeatedCharacterHexFormat().build();
 
     /** Static use only. */
     private SignLines()

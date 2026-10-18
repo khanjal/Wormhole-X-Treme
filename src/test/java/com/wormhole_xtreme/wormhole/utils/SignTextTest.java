@@ -131,6 +131,20 @@ class SignTextTest
         }
     }
 
+    /** A hex colour, in Bukkit's {@code §x} form, survives the trip rather than becoming the nearest named colour. */
+    @Test
+    void aHexColouredLineReadsBackOnPaperWithItsHexColour() throws NoSuchMethodException
+    {
+        asOnPaper();
+        final String hex = "§x§1§2§a§b§c§dTeal";
+        final ArgumentCaptor<Component> written = ArgumentCaptor.forClass(Component.class);
+        SignText.set(side, 1, hex);
+        verify(side).line(eq(1), written.capture());
+        when(side.line(1)).thenReturn(written.getValue());
+
+        assertEquals(hex, SignText.get(side, 1), "the hex colour would be rounded to a named one");
+    }
+
     @Test
     void aServerWithoutComponentLinesReadsTheString()
     {

@@ -152,6 +152,20 @@ public final class SignText
         {
         }
 
+        /** Holds the serializer apart, so building it waits for the first line, inside a try. */
+        private static final class Legacy
+        {
+            /** Bukkit's own legacy form, hex colours included, which plain legacySection() loses. */
+            static final LegacyComponentSerializer SECTION = LegacyComponentSerializer.builder()
+                .character(LegacyComponentSerializer.SECTION_CHAR).hexColors().useUnusualXRepeatedCharacterHexFormat()
+                .build();
+
+            /** Static use only. */
+            private Legacy()
+            {
+            }
+        }
+
         /** @return Paper's methods, or null on a server without them */
         static Lookup find()
         {
@@ -173,7 +187,7 @@ public final class SignText
          */
         static Object component(final String legacyText)
         {
-            return legacyText == null ? null : LegacyComponentSerializer.legacySection().deserialize(legacyText);
+            return legacyText == null ? null : Legacy.SECTION.deserialize(legacyText);
         }
 
         /**
@@ -183,7 +197,7 @@ public final class SignText
          */
         static String legacy(final Object component)
         {
-            return component == null ? null : LegacyComponentSerializer.legacySection().serialize((Component) component);
+            return component == null ? null : Legacy.SECTION.serialize((Component) component);
         }
 
         /**
