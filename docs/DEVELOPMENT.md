@@ -1255,6 +1255,27 @@ symbol, and one was fixable in a line.
   (`RingYamlManager`), one each for beams and mirrors. A legacy SQLite database is read by
   `LegacyDatabaseImporter` from `/wormhole gate import`.
 
+## Chat messages
+
+Translatable chat text lives in `src/main/resources/lang/en.yml`, one flat `key: "template"` line
+each, read by `Messages.get(key, args...)` ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)).
+Only some messages have moved so far; the rest are still built inline, and move file by file.
+
+- **To move a message**, add its key to `en.yml`, named by area in dotted lower case
+  (`gate.build.no-shape`), and replace the concatenation with
+  `ChatText.error(Messages.get("gate.build.no-shape", ChatText.name(shape)))`. The header stays at
+  the call site, and so does each argument's colour; the sentence, its order and any colour code
+  inside it go in the template. Something a player types, such as `north` or `net=`, stays an
+  argument so it is never translated.
+- **Never reword while extracting.** The English output must be byte for byte what it was, so a
+  test asserting the old text keeps passing unchanged. Rewording is its own change.
+- **Name the key as a string literal.** `MessageKeysGuardTest` reads every `Messages.get` in
+  `src/main` and fails on a key `en.yml` lacks, a key `en.yml` holds that nothing uses, and a key
+  that is not a literal.
+- Placeholders are `{0}` to `{99}`, filled in one pass; any other brace or an apostrophe is plain
+  text, unlike `MessageFormat`. Never look a message up in a static initialiser: it would keep the
+  language it was first read in.
+
 ## Writing conventions
 
 - **British spelling, in prose and in player-facing text.** `dialled`, `dialling`, `colour`,
