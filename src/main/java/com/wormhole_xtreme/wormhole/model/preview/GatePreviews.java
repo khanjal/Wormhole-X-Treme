@@ -625,27 +625,13 @@ public final class GatePreviews
     /** Whether a gate already stands where the preview would; repairing it, or being in its way, is not spacing. */
     private static boolean standsOverAGate(final GatePreview preview)
     {
-        for (final List<Cell> part : List.of(preview.cells(), preview.opening()))
-        {
-            for (final Cell cell : part)
-            {
-                if (gateAt.at(preview.world(), cell.x(), cell.y(), cell.z()) != null)
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return footprintOf(preview).stream().anyMatch(at -> gateAt.at(preview.world(), at.getBlockX(), at.getBlockY(),
+            at.getBlockZ()) != null);
     }
 
     private static List<Location> openingBlocks(final GatePreview preview)
     {
-        final List<Location> out = new ArrayList<>(preview.opening().size());
-        for (final Cell cell : preview.opening())
-        {
-            out.add(new Location(preview.world(), cell.x(), cell.y(), cell.z()));
-        }
-        return out;
+        return preview.opening().stream().map(cell -> new Location(preview.world(), cell.x(), cell.y(), cell.z())).toList();
     }
 
     /** Every spot a preview's gate would take: its blocks and its opening. */

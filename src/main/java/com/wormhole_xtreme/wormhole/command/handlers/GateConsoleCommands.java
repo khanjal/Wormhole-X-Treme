@@ -46,6 +46,8 @@ public final class GateConsoleCommands
     /** How many words {@code build <shape> <name> <world> <x> <y> <z> <facing>} takes. */
     public static final int BUILD_WORDS = 7;
 
+    private static final String NOT_BUILT = "Not built: ";
+
     /** The player form takes at most a shape and a group, so four words or more mean coordinates. */
     public static final int SHORTEST_COORDINATE_ATTEMPT = 4;
 
@@ -135,7 +137,7 @@ public final class GateConsoleCommands
         final String outOfHeight = outsideHeight(world, cellsOf(shape, grid));
         if (outOfHeight != null)
         {
-            sender.sendMessage(ChatText.error("Not built: " + outOfHeight));
+            sender.sendMessage(ChatText.error(NOT_BUILT + outOfHeight));
             return;
         }
         final String refusedHere = refusedHere(sender, world, shape, grid);
@@ -148,7 +150,7 @@ public final class GateConsoleCommands
         final GatePreviews.Placed placed = GatePreviews.placeAt(world, shape, group, grid);
         if (placed.outcome() != GatePreviews.Outcome.PLACED)
         {
-            sender.sendMessage(ChatText.error("Not built: " + why(placed)));
+            sender.sendMessage(ChatText.error(NOT_BUILT + why(placed)));
             return;
         }
         // A preview anyone had standing there is now built; take it down, as a DHD press does.
@@ -275,7 +277,7 @@ public final class GateConsoleCommands
             return RegionFlags.BUILD_REFUSED;
         }
         final String tooClose = GateSpacing.refusal(player, world, locationsOf(world, GateBlueprint.openingOf(shape, grid)));
-        return (tooClose == null) ? null : ChatText.error("Not built: " + tooClose);
+        return (tooClose == null) ? null : ChatText.error(NOT_BUILT + tooClose);
     }
 
     /** Where each of these cells stands in the world. */
