@@ -398,9 +398,9 @@ public final class SubCommands
                 // Completing what is in config.yml: gate-sound- has to reach
                 // GATE_SOUND_KAWOOSH, or the file's own spelling completes to nothing.
                 final String typed = (args[1] == null) ? null : args[1].replace('-', '_');
-                return prefixed(typed,
-                    ConfigManager.settingNames()
-                        .toArray(new String[0]));
+                final List<String> words = ConfigManager.settingNames();
+                words.add(0, ConfigCommand.RELOAD);
+                return prefixed(typed, words.toArray(new String[0]));
             });
 
         // --- Not advertised ---------------------------------------------------

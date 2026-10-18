@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigReload;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
@@ -21,12 +22,18 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  *
  * <p>This is the one command for all of them, and it takes effect immediately: settings are
  * read where they are used, and the few read once -- a sweep's period, an integration -- are
- * applied again by {@code ConfigManager.applySetting}, so there is nothing to reload.
+ * applied again by {@code ConfigManager.applySetting}.
+ *
+ * <p>{@code /wormhole config reload} takes a hand-edited or deployed config.yml the same way,
+ * through {@link ConfigReload}, without a restart.
  */
 public class ConfigCommand implements SubCommand
 {
     /** How many settings to list before telling them to narrow it down. */
     private static final int TOO_MANY_TO_LIST = 30;
+
+    /** The word that reloads config.yml rather than naming a setting. */
+    public static final String RELOAD = "reload";
 
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
@@ -45,6 +52,11 @@ public class ConfigCommand implements SubCommand
             return true;
         }
         final String name = args[1];
+        if ((args.length == 2) && RELOAD.equalsIgnoreCase(name))
+        {
+            reload(sender);
+            return true;
+        }
         if (args.length == 2)
         {
             final String described = ConfigManager.describeSetting(name);
@@ -80,6 +92,38 @@ public class ConfigCommand implements SubCommand
         }
         sender.sendMessage(ChatText.info(result));
         return true;
+    }
+
+    /**
+     * Reloads config.yml and says what changed and what was refused.
+     *
+     * @param sender
+     *            who asked
+     */
+    private static void reload(final CommandSender sender)
+    {
+        final ConfigReload.Report report = ConfigReload.reload();
+        if (report.unreadable() != null)
+        {
+            sender.sendMessage(ChatText.error(report.unreadable() + "; no setting changed."));
+            return;
+        }
+        for (final ConfigReload.Change change : report.changes())
+        {
+            sender.sendMessage(ChatText.info(ChatText.command(change.key().name()) + ": "
+                + ChatText.value(String.valueOf(change.from())) + " -> " + ChatText.value(String.valueOf(change.to()))
+                + ((change.unapplied() == null) ? "."
+                    : ", but it could not be applied now: " + change.unapplied() + ". It applies at the next restart.")));
+        }
+        for (final ConfigReload.Rejection rejection : report.rejections())
+        {
+            sender.sendMessage(ChatText.error(rejection.refusal() + " Kept "
+                + ChatText.value(String.valueOf(rejection.kept())) + "."));
+        }
+        if (report.changes().isEmpty() && report.rejections().isEmpty())
+        {
+            sender.sendMessage(ChatText.info("Reloaded config.yml: no setting changed."));
+        }
     }
 
     /**
