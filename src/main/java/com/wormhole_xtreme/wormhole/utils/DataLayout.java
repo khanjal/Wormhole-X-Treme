@@ -15,7 +15,7 @@ import java.io.File;
  * <pre>
  * &lt;plugin folder&gt;/
  * ├── config.yml
- * ├── lang/*.yml                 chat messages, one file per language; en.yml a copy, never read
+ * ├── lang/*.yml                 optional, made by the owner: messages over the jar's for a language
  * ├── shapes/
  * │   ├── gate/*.shape           the shapes gates are built from
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with
@@ -73,7 +73,7 @@ public final class DataLayout
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "shapes", "mirror");
     }
 
-    /** @return the directory chat messages are read from, one {@code <language>.yml} each */
+    /** @return the owner's chat message files, one {@code <language>.yml} each; never created by the plugin */
     public static File lang()
     {
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "lang");

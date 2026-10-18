@@ -2,7 +2,7 @@ package com.wormhole_xtreme.wormhole.utils;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -48,7 +49,8 @@ class MessagesTest
     @AfterEach
     void tearDown() throws Exception
     {
-        Messages.load(Messages.DEFAULT_LANGUAGE, lang);
+        // A folder with nothing in it, so an en.yml a test wrote does not leak into later tests.
+        Messages.load(Messages.DEFAULT_LANGUAGE, new File(lang, "none"));
         PluginTestSupport.remove();
     }
 
@@ -117,18 +119,35 @@ class MessagesTest
         assertEquals("Compass back to normal: it points at world spawn again.", Messages.get("compass.reset"));
     }
 
-    /**
-     * English is the jar's, whatever lang/en.yml on disk says. The copy is never overwritten, so after an
-     * update an untouched old one would otherwise keep sending last version's wording.
-     */
+    /** An en.yml the owner made rewords English key by key; the keys it leaves out stay the jar's. */
     @Test
-    void anEditedEnglishCopyDoesNotChangeEnglish() throws Exception
+    void anEnglishFileTheOwnerMadeOverlaysEnglish() throws Exception
     {
         write("en.yml", "compass.none: \"Nothing to point at.\"\n");
 
         Messages.load("en", lang);
 
-        assertEquals("No wormholes to track.", Messages.get("compass.none"), "not the edited copy's text");
+        assertEquals("Nothing to point at.", Messages.get("compass.none"));
+        assertEquals("Compass back to normal: it points at world spawn again.", Messages.get("compass.reset"));
+    }
+
+    /**
+     * A language the jar ships is read from the jar, and an owner's file for it wins key by key: the
+     * plugin folder's file, then the jar's, then English. The qq fixture is in the test resources only.
+     */
+    @Test
+    void theOwnersFileOverlaysTheJarsFileForThatLanguage() throws Exception
+    {
+        Messages.load("qq", lang);
+        assertEquals("QQ none.", Messages.get("compass.none"), "the jar's qq file should be read");
+        assertEquals("QQ reset.", Messages.get("compass.reset"));
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString());
+
+        write("qq.yml", "compass.reset: \"Owner reset.\"\n");
+        Messages.load("qq", lang);
+        assertEquals("Owner reset.", Messages.get("compass.reset"), "the owner's file comes first");
+        assertEquals("QQ none.", Messages.get("compass.none"), "then the jar's file for the language");
+        assertEquals("Compass set to wormhole x.", Messages.get("compass.set", "x"), "then English");
     }
 
     /** A language with no file is English, said once in the log. */
@@ -166,20 +185,18 @@ class MessagesTest
         verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("no.such.key"));
     }
 
-    /** The bundled English is copied out for translators, and an edited copy is never overwritten. */
+    /** Loading writes nothing: the lang folder is the owner's, and is not even created. */
     @Test
-    void theBundledEnglishIsWrittenOutOnlyWhenMissing() throws Exception
+    void loadingCreatesNoLangFolder()
     {
-        final File en = new File(lang, "en.yml");
-        Messages.writeMissing(lang);
-        assertTrue(Files.readString(en.toPath(), StandardCharsets.UTF_8).contains("compass.none:"),
-            "the copy should be the bundled file");
+        final File folder = new File(lang, "lang");
+        Messages.load("en", folder);
+        Messages.load("de", folder);
+        assertFalse(folder.exists(), "load must not create " + folder);
 
-        write("en.yml", "compass.none: \"Mine.\"\n");
-        Messages.writeMissing(lang);
-        assertEquals("compass.none: \"Mine.\"\n", Files.readString(en.toPath(), StandardCharsets.UTF_8),
-            "an edited en.yml must survive a restart");
-        verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString());
+        when(plugin.getDataFolder()).thenReturn(lang);
+        Messages.load();
+        assertFalse(DataLayout.lang().exists(), "nor through the plugin folder: " + DataLayout.lang());
     }
 
     /**

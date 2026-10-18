@@ -18,7 +18,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
- * Chat text by key, from {@code lang/<language>.yml} laid over the English bundled in the jar (#26).
+ * Chat text by key, for the server's language, with English beneath it (#26).
  *
  * <p>A template holds the sentence, its colour codes and {@code {0}} to {@code {99}} for its
  * arguments; the call site colours each argument with {@link ChatText} and adds the line's header,
@@ -27,19 +27,17 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * any other brace is plain text, as it would not be under {@code MessageFormat}. A placeholder with
  * no argument is left as written.
  *
- * <p>Every key comes from the bundled English, so a stale or edited translation cannot lose one; the
- * copy of {@code en.yml} in the plugin folder is for translators and never read. A key the jar lacks
- * is sent as the key itself and logged once.
+ * <p>Each key is looked up in {@code lang/<language>.yml} in the plugin folder, if the owner made one,
+ * then in the jar's {@code /lang/<language>.yml}, then in the jar's English, so a stale or partial
+ * file cannot lose a key. Nothing is written to the plugin folder. A key the jar's English lacks is
+ * sent as the key itself and logged once.
  */
 public final class Messages
 {
     /** The language shipped, and the one any other falls back to. */
     public static final String DEFAULT_LANGUAGE = "en";
 
-    /** The languages in the jar, each copied to the plugin folder when it is not there. */
-    static final List<String> BUNDLED = List.of(DEFAULT_LANGUAGE);
-
-    /** The templates by key; the bundled English alone until {@link #load()} runs. */
+    /** The templates by key; the jar's English alone until {@link #load()} runs. */
     private static volatile Map<String, Template> templates;
 
     /** Keys already logged as missing, so a message sent every trip logs once. */
@@ -73,42 +71,40 @@ public final class Messages
         return template.format(args);
     }
 
-    /**
-     * Reads the configured language again, writing out any bundled language file the plugin folder
-     * is missing.
-     */
+    /** Reads the configured language again. */
     public static void load()
     {
         load(ConfigManager.getLanguage(), DataLayout.lang());
     }
 
     /**
-     * Reads one language from a folder over the bundled English; for English, the jar's alone.
+     * Reads one language: the plugin folder's file over the jar's, over the jar's English.
      *
      * @param language
      *            the language code, already checked to be a plain file name
      * @param directory
-     *            the {@code lang} folder
+     *            the plugin folder's {@code lang} folder, which need not exist and is never created
      */
     static void load(final String language, final File directory)
     {
-        writeMissing(directory);
-        final Map<String, String> text = readBundled();
-        // lang/en.yml is only a copy for translators: English always comes from the jar, so it is never stale.
-        if (!DEFAULT_LANGUAGE.equals(language))
+        final Map<String, String> text = readJar(DEFAULT_LANGUAGE);
+        final Map<String, String> jar = DEFAULT_LANGUAGE.equals(language) ? Map.of() : readJar(language);
+        final File file = new File(directory, language + ".yml");
+        if (!DEFAULT_LANGUAGE.equals(language) && jar.isEmpty() && !file.isFile())
         {
-            text.putAll(readTranslation(new File(directory, language + ".yml")));
+            PluginLog.log(Level.WARNING, "There is no lang/" + file.getName() + "; messages are in English.");
         }
+        text.putAll(jar);
+        text.putAll(readOverlay(file));
         templates = parse(text);
         reportedMissing.clear();
     }
 
-    /** @return a translation's text by key, empty with a warning if there is no such file or it cannot be read */
-    private static Map<String, String> readTranslation(final File file)
+    /** @return the plugin folder's file for a language, empty if there is none or it cannot be read */
+    private static Map<String, String> readOverlay(final File file)
     {
         if (!file.isFile())
         {
-            PluginLog.log(Level.WARNING, "There is no lang/" + file.getName() + "; messages are in English.");
             return Map.of();
         }
         try (InputStream in = Files.newInputStream(file.toPath()))
@@ -117,70 +113,42 @@ public final class Messages
         }
         catch (final IOException | YAMLException e)
         {
-            PluginLog.log(Level.WARNING, "Could not read lang/" + file.getName() + "; messages are in English. " + e);
+            PluginLog.log(Level.WARNING, "Could not read lang/" + file.getName() + "; it is ignored. " + e);
             return Map.of();
         }
     }
 
-    /** Copies each bundled language the folder lacks out of the jar; a file already there is left alone. */
-    static void writeMissing(final File directory)
-    {
-        try
-        {
-            Files.createDirectories(directory.toPath());
-            for (final String language : BUNDLED)
-            {
-                final File file = new File(directory, language + ".yml");
-                if (file.exists())
-                {
-                    continue;
-                }
-                try (InputStream in = bundled(language))
-                {
-                    if (in != null)
-                    {
-                        Files.copy(in, file.toPath());
-                    }
-                }
-            }
-        }
-        catch (final IOException | SecurityException e)
-        {
-            PluginLog.log(Level.WARNING, "Could not write the language files to " + directory + ". " + e);
-        }
-    }
-
-    /** @return the bundled language's file in the jar, or null if it is not there */
+    /** @return a language's file in the jar, or null if the jar has none */
     private static InputStream bundled(final String language)
     {
         return Messages.class.getResourceAsStream("/lang/" + language + ".yml");
     }
 
-    /** @return the templates, the bundled English parsed on first use when nothing has loaded */
+    /** @return the templates, the jar's English parsed on first use when nothing has loaded */
     private static Map<String, Template> templates()
     {
         Map<String, Template> loaded = templates;
         if (loaded == null)
         {
-            loaded = parse(readBundled());
+            loaded = parse(readJar(DEFAULT_LANGUAGE));
             templates = loaded;
         }
         return loaded;
     }
 
-    /** @return the bundled English, as a map the caller may add to */
-    private static Map<String, String> readBundled()
+    /** @return a language's text from the jar, empty if it has none, as a map the caller may add to */
+    private static Map<String, String> readJar(final String language)
     {
-        try (InputStream in = bundled(DEFAULT_LANGUAGE))
+        try (InputStream in = bundled(language))
         {
             if (in != null)
             {
-                return read(in, DEFAULT_LANGUAGE + ".yml");
+                return read(in, language + ".yml");
             }
         }
         catch (final IOException | YAMLException e)
         {
-            PluginLog.log(Level.SEVERE, "Could not read the bundled English messages. " + e);
+            PluginLog.log(Level.SEVERE, "Could not read the bundled " + language + " messages. " + e);
         }
         return new HashMap<>();
     }

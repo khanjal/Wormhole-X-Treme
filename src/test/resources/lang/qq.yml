@@ -1,0 +1,3 @@
+# A language the jar ships, for MessagesTest only; qq is reserved for local use.
+compass.none: "QQ none."
+compass.reset: "QQ reset."

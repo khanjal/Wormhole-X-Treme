@@ -1260,6 +1260,9 @@ symbol, and one was fixable in a line.
 Translatable chat text lives in `src/main/resources/lang/en.yml`, one flat `key: "template"` line
 each, read by `Messages.get(key, args...)` ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)).
 Only some messages have moved so far; the rest are still built inline, and move file by file.
+Another language ships as `src/main/resources/lang/<code>.yml` beside it. Each key is looked up in
+the owner's `lang/<code>.yml` in the plugin folder, then the jar's file for that language, then the
+jar's English; the plugin writes nothing to that folder.
 
 - **To move a message**, add its key to `en.yml`, named by area in dotted lower case
   (`gate.build.no-shape`), and replace the concatenation with
