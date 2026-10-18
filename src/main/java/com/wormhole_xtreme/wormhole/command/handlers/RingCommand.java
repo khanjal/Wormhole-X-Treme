@@ -58,7 +58,7 @@ public class RingCommand implements SubCommand
     static final int MAX_LINK_HEIGHT = 384;
     private static final String NOT_YOUR_PAIR = ChatText.error("That is not your ring pair.");
     private static final String CANCEL = "/wormhole ring cancel";
-    /** Why a circle on a gate is refused, in English, as the tests compare it; {@link #overlapsGate} sends it. */
+    /** Why a circle on a gate is refused, in English, for the tests to compare against; nothing sends it. */
     static final String OVERLAPS_GATE = "That circle overlaps a stargate. Rings and gates cannot share blocks.";
     private static final String STAND_IN_ONE = ChatText.error("Stand in a ring, or name a pair by its id.");
 

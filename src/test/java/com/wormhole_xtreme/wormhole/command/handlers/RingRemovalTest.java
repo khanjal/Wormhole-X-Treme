@@ -361,6 +361,21 @@ class RingRemovalTest
         verify(owner).sendMessage(ChatText.info("QQ removed " + ChatText.name(PAIR_ID) + " " + ChatText.value("1") + " one."));
     }
 
+    /** A pair in an unloaded world, and an id that names nothing, are answered in the owner's language (#26). */
+    @Test
+    void anUnloadedWorldAndAMissingPairAreSaidInTheOwnersLanguage()
+    {
+        when(owner.getLocale()).thenReturn("qq");
+        bukkit.when(() -> Bukkit.getWorld(WORLD)).thenReturn(null);
+
+        remove("nosuchpair");
+        remove(PAIR_ID);
+
+        verify(owner).sendMessage(ChatText.error("QQ no pair " + ChatText.name("nosuchpair") + "."));
+        verify(owner).sendMessage(ChatText.info("QQ removed " + ChatText.name(PAIR_ID) + "."));
+        verify(owner).sendMessage(ChatText.info("QQ not loaded."));
+    }
+
     /** More than one slab back reads the plural, in the owner's language (#26). */
     @Test
     void manySlabsBackArePluralInTheOwnersLanguage()
