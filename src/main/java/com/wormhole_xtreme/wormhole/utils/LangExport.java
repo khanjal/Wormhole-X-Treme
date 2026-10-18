@@ -109,8 +109,9 @@ public final class LangExport
         final String text = render(code, shipped);
         Files.createDirectories(directory.toPath());
         // Written whole beside it, then moved into place without replacing: a failed write leaves no
-        // half file in the way of the next export, and an existing file is never touched.
-        final Path temporary = Files.createTempFile(directory.toPath(), code, ".tmp");
+        // half file in the way of the next export, and an existing file is never touched. Not
+        // createTempFile, whose owner-only mode the move would keep.
+        final Path temporary = directory.toPath().resolve(code + YML + ".tmp");
         try
         {
             writer.write(temporary, text);

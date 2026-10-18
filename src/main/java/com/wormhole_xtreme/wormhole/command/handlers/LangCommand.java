@@ -42,7 +42,12 @@ public class LangCommand implements SubCommand
             return true;
         }
         final String code = (args.length == 3) ? ConfigManager.parseServerLanguage(args[2]) : Messages.DEFAULT_LANGUAGE;
-        if ((code == null) || LangExport.isReserved(code))
+        if ((code != null) && LangExport.isReserved(code))
+        {
+            sender.sendMessage(ChatText.error(Messages.get(sender, "lang.reserved-code", ChatText.command(args[2]))));
+            return true;
+        }
+        if (code == null)
         {
             sender.sendMessage(ChatText.error(Messages.get(sender, "lang.bad-code", ChatText.command(args[2]),
                 ChatText.value("de"), ChatText.value("pt_br"))));

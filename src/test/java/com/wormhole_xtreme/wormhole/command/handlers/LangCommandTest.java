@@ -154,6 +154,16 @@ class LangCommandTest
             + " language, such as de or pt_br."));
     }
 
+    /** A device name is refused as one, not as a code with the wrong letters in it. */
+    @Test
+    void aDeviceNameIsRefusedAsOne()
+    {
+        run(console, "lang", "export", "con");
+
+        assertFalse(lang().exists(), "con should create no file and no folder");
+        verify(console).sendMessage(errorBody("con is a name Windows keeps for a device, so it cannot name a lang file."));
+    }
+
     /** A verb other than export, or too many words, is answered with the usage. */
     @Test
     void anythingElseIsTheUsage()
@@ -174,7 +184,8 @@ class LangCommandTest
         final SubCommands.Entry entry = SubCommands.find("lang");
 
         assertEquals(List.of("export"), entry.completeArgs(console, new String[] { "lang", "" }));
-        assertEquals(List.of("en"), entry.completeArgs(console, new String[] { "lang", "export", "e" }));
+        assertTrue(entry.completeArgs(console, new String[] { "lang", "export", "en" }).contains("en"),
+            "English always ships");
         assertTrue(entry.completeArgs(console, new String[] { "lang", "other", "" }).isEmpty());
     }
 

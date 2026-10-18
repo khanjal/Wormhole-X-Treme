@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -193,6 +195,23 @@ class LangExportTest
 
         assertEquals(LangExport.Result.TRANSLATION, LangExport.export(lang, "de"));
         assertEquals(LangExport.render("de", false), Files.readString(new File(lang, "de.yml").toPath(), StandardCharsets.UTF_8));
+    }
+
+    /**
+     * The file is readable as any other file the plugin writes: a temporary file made by
+     * createTempFile is owner-only on Linux, and the move into place would keep that.
+     */
+    @Test
+    void theExportedFileHasTheFolderOrdinaryPermissions() throws IOException
+    {
+        assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"), "POSIX permissions only");
+        final File lang = new File(folder, "lang");
+        LangExport.export(lang, "de");
+        final Path plain = new File(lang, "plain.txt").toPath();
+        Files.writeString(plain, "", StandardCharsets.UTF_8);
+
+        assertEquals(Files.getPosixFilePermissions(plain), Files.getPosixFilePermissions(new File(lang, "de.yml").toPath()),
+            "the export should honour the umask as a plainly written file does");
     }
 
     /** The folder is made when missing, and a code the jar does not ship gets live English. */
