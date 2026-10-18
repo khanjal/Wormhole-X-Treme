@@ -383,7 +383,7 @@ public final class SubCommands
                 MirrorCommand.verbs()) + ">",
             new MirrorCommand(), false,
             SubCommands::completeMirror);
-        register("config", aliases("set"), "/wormhole config <setting> [value]",
+        register("config", aliases("set"), "/wormhole config <setting|" + ConfigCommand.RELOAD + "> [value]",
             new ConfigCommand(), false, (sender, args) ->
             {
                 if (args.length == 3)
@@ -397,10 +397,10 @@ public final class SubCommands
                 }
                 // Completing what is in config.yml: gate-sound- has to reach
                 // GATE_SOUND_KAWOOSH, or the file's own spelling completes to nothing.
+                // The flag is matched as typed, since its dash is not an underscore.
                 final String typed = (args[1] == null) ? null : args[1].replace('-', '_');
-                final List<String> words = ConfigManager.settingNames();
-                words.add(0, ConfigCommand.RELOAD);
-                return prefixed(typed, words.toArray(new String[0]));
+                return combine(prefixed(args[1], ConfigCommand.RELOAD),
+                    prefixed(typed, ConfigManager.settingNames().toArray(new String[0])));
             });
 
         // --- Not advertised ---------------------------------------------------

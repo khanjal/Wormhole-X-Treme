@@ -81,7 +81,7 @@ class WormholeUsageTest
 
         verify(console).sendMessage(plainContaining("Gates: /wormhole gate <"));
         verify(console).sendMessage(plainContaining("Rings: /wormhole ring <"));
-        verify(console).sendMessage(plainContaining("Settings: /wormhole config <setting> [value]"));
+        verify(console).sendMessage(plainContaining("Settings: /wormhole config <setting|-reload> [value]"));
         verify(console).sendMessage(plainContaining("Other: /wormhole compass [reset]"));
     }
 

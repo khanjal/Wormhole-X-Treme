@@ -108,14 +108,14 @@ The groups, in the order the file has them, and where each is explained:
 /wormhole config <setting>            show it, with its description
 /wormhole config <setting> <value>    change it — no reload, no restart
 /wormhole config sign                 search: every setting with "sign" in its name
-/wormhole config reload               read config.yml again, after editing or deploying it
+/wormhole config -reload              read config.yml again, after editing or deploying it
 ```
 
 Either spelling works: `gate-sound-kawoosh`, as `config.yml` has it, or `gate_sound_kawoosh`, as
 tab completion shows it. A setting with a fixed set of values refuses a bad one and names the
 options. Sound names are not checked, because a resource pack's sounds have to pass through.
 
-**After editing `config.yml` while the server is running, run `/wormhole config reload`.** The
+**After editing `config.yml` while the server is running, run `/wormhole config -reload`.** The
 plugin writes the file back from memory when it shuts down, or when a setting is changed with the
 command, so an edit it has not reloaded is overwritten. The reload reads each setting the file
 changes as startup reads it, then checks it the way the command would, and lists them. A value the
@@ -202,7 +202,7 @@ outranks a negated node.
 | `wormhole.build.mindistance.bypass` | op | Building closer to another gate than [`min-gate-distance`](GATES.md#building-a-gate) allows |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
-| `wormhole.config` | op | Settings, including `config reload`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
+| `wormhole.config` | op | Settings, including `config -reload`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
 | `wormhole.network.use.<network>` | | Using gates on that network |
 | `wormhole.network.build.<network>` | | Building gates on that network |
 

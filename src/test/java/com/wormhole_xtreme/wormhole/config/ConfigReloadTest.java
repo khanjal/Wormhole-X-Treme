@@ -25,7 +25,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 
 /**
- * {@code /wormhole config reload} takes what an admin edited into config.yml, and nothing it should not.
+ * {@code /wormhole config -reload} takes what an admin edited into config.yml, and nothing it should not.
  *
  * <p>Without it a hand-edited or deployed file meant a restart, and Bukkit's own reload is unsafe.
  * The cases here are the ways a reload could do harm instead: a broken file wiping settings, a bad
