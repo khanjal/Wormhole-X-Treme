@@ -178,9 +178,9 @@ class RingCommandMessagesTest
         assertEquals(RingCommand.OVERLAPS_GATE, RingCommand.overlapsGate(null), "the English constant the tests compare against");
     }
 
-    /** The lines create, cancel, list and remove send, each variant and plural, against the old expression. */
+    /** The lines create and the shared refusals send, each variant and plural, against the old expression. */
     @Test
-    void theCreateListAndRemoveLinesReadAsTheyDidBefore()
+    void theCreateLinesReadAsTheyDidBefore()
     {
         final String cancel = ChatText.command("/wormhole ring cancel");
         assertEquals("Rings are built and edited in the world, so this is a player command.",
@@ -224,7 +224,12 @@ class RingCommandMessagesTest
         assertEquals("It is " + ChatText.value("PRIVATE") + ". Use " + usage + " to let others in.",
             Messages.get(null, "ring.cmd.create.private", ChatText.value("PRIVATE"), usage));
         assertEquals("It is " + ChatText.value("PUBLIC") + ".", Messages.get(null, "ring.cmd.create.access", ChatText.value("PUBLIC")));
+    }
 
+    /** The lines cancel, list and remove send, each variant and plural, against the old expression. */
+    @Test
+    void theCancelListAndRemoveLinesReadAsTheyDidBefore()
+    {
         assertEquals("You have no half-built ring pair.", Messages.get(null, "ring.cmd.cancel.none"));
         assertEquals("Forgotten. The circle you laid is still there, so you can pair it "
             + "later or take the slabs back yourself.", Messages.get(null, "ring.cmd.cancel.forgotten"));
