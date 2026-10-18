@@ -20,6 +20,7 @@ import org.bukkit.scoreboard.Team;
 
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.EntityNames;
+import com.wormhole_xtreme.wormhole.utils.PlayerNames;
 
 /**
  * What a far player's stand-in is, and how it is dressed (#296, step 2): a Mannequin wearing their
@@ -208,7 +209,7 @@ final class PlayerFigures
      */
     static String shownName(final Player player)
     {
-        final String plain = ChatText.plain(player.getDisplayName()).trim();
+        final String plain = ChatText.plain(PlayerNames.display(player)).trim();
         return plain.isEmpty() ? player.getName() : plain;
     }
 

@@ -184,7 +184,7 @@ class PlayerFiguresTest
         PlayerFigures.mannequinWith(SpigotMannequin.class);
         final SkinnedPlayer player = mock(SkinnedPlayer.class);
         when(player.getName()).thenReturn("Alex");
-        when(player.getDisplayName()).thenReturn("Alex");
+        ShownNames.giveDisplayName(player, "Alex");
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         final Object profile = profileOf(player);
         when(player.getPose()).thenReturn(Pose.SNEAKING);
@@ -312,11 +312,11 @@ class PlayerFiguresTest
     void theNameShownIsTheDisplayNameWithoutColoursOrTheirNameWithoutOne()
     {
         final Player nicked = player("Alex");
-        when(nicked.getDisplayName()).thenReturn("§aSir Nick§r");
+        ShownNames.giveDisplayName(nicked, "§aSir Nick§r");
         assertEquals("Sir Nick", PlayerFigures.shownName(nicked));
 
         final Player plain = player("Alex");
-        when(plain.getDisplayName()).thenReturn("§r ");
+        ShownNames.giveDisplayName(plain, "§r ");
         assertEquals("Alex", PlayerFigures.shownName(plain), "a display name of colours alone");
     }
 
@@ -565,7 +565,7 @@ class PlayerFiguresTest
     {
         final Player player = mock(Player.class);
         when(player.getName()).thenReturn(name);
-        when(player.getDisplayName()).thenReturn(name);
+        ShownNames.giveDisplayName(player, name);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         return player;
     }
