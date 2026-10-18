@@ -46,6 +46,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Removing a ring pair, and getting the slabs back.
@@ -337,5 +338,39 @@ class RingRemovalTest
 
         assertNotNull(RingManager.getPair(PAIR_ID), "the real one is untouched");
         verify(owner).sendMessage(plainContains("There is no ring pair called nosuchpair"));
+    }
+
+    /**
+     * One slab back reads the singular, in the owner's language (#26): English reads the same either way,
+     * so only a language that tells them apart shows which was picked.
+     */
+    @Test
+    void oneSlabBackIsSingularInTheOwnersLanguage()
+    {
+        when(owner.getLocale()).thenReturn("qq");
+        final List<int[]> footprint = new ArrayList<>(pair.getEndA().perimeterBlocks());
+        footprint.addAll(pair.getEndB().perimeterBlocks());
+        // Built over, all but the first: only that one gets its slab back.
+        for (final int[] b : footprint.subList(1, footprint.size()))
+        {
+            when(blockAt(b[0], b[1], b[2]).getType()).thenReturn(Material.STONE);
+        }
+
+        remove(PAIR_ID);
+
+        verify(owner).sendMessage(ChatText.info("QQ removed " + ChatText.name(PAIR_ID) + " " + ChatText.value("1") + " one."));
+    }
+
+    /** More than one slab back reads the plural, in the owner's language (#26). */
+    @Test
+    void manySlabsBackArePluralInTheOwnersLanguage()
+    {
+        when(owner.getLocale()).thenReturn("qq");
+
+        remove(PAIR_ID);
+
+        final int expected = pair.getEndA().perimeterBlocks().size() + pair.getEndB().perimeterBlocks().size();
+        verify(owner).sendMessage(ChatText.info("QQ removed " + ChatText.name(PAIR_ID) + " "
+            + ChatText.value(String.valueOf(expected)) + " other."));
     }
 }
