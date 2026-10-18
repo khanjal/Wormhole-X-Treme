@@ -84,17 +84,9 @@ class ConfigCommandTest
     @Test
     void aValueTakenIsSaidAsAChange()
     {
-        try
-        {
-            run("config", "gate-sounds-enabled", "false");
+        run("config", "gate-sounds-enabled", "false");
 
-            verify(sender).sendMessage(infoBody("GATE_SOUNDS_ENABLED is now false."));
-        }
-        finally
-        {
-            // The command changed the shared default Setting, which outlives this test.
-            ConfigManager.setConfigValue(ConfigManager.ConfigKeys.GATE_SOUNDS_ENABLED, Boolean.TRUE);
-        }
+        verify(sender).sendMessage(infoBody("GATE_SOUNDS_ENABLED is now false."));
     }
 
     /** A name that is no setting is an error, and the search that follows finds nothing. */
