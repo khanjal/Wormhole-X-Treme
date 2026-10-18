@@ -327,6 +327,10 @@ public final class GateConsoleCommands
         {
             return "No shape called " + ChatText.name(rest[0]) + ".";
         }
+        if (!StargateShapeRegistry.isEnabled(rest[0]))
+        {
+            return ChatText.name(rest[0]) + " is turned off on this server.";
+        }
         if (!(StargateShapeRegistry.getStargateShape(rest[0]) instanceof Stargate3DShape))
         {
             return ChatText.name(rest[0]) + " is a flat shape; only a 3D shape can be built from coordinates.";

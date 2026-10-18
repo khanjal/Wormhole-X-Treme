@@ -225,7 +225,7 @@ public class Complete implements CommandExecutor, TabCompleter
                 held.getGateFacing(), held.getGateShape());
             if ((fresh == null) || !fresh.isGateSignPowered())
             {
-                final Stargate signed = StargateHelper.checkStargate(held.getGateDialLeverBlock(),
+                final Stargate signed = StargateHelper.checkNewStargate(held.getGateDialLeverBlock(),
                     held.getGateFacing());
                 if ((signed != null) && signed.isGateSignPowered())
                 {

@@ -17,6 +17,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
+import com.wormhole_xtreme.wormhole.utils.SignText;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 import java.util.ArrayList;
@@ -81,6 +82,20 @@ public final class StargateHelper
      */
     public static Stargate checkStargate(final Block clickedBlock, final BlockFace direction)
     {
+        return bestMatch(clickedBlock, direction, false);
+    }
+
+    /**
+     * Like {@link #checkStargate(Block, BlockFace)}, but a shape turned off is not tried: for a
+     * gate somebody has just built, where one already standing is found by the method above.
+     */
+    public static Stargate checkNewStargate(final Block clickedBlock, final BlockFace direction)
+    {
+        return bestMatch(clickedBlock, direction, true);
+    }
+
+    private static Stargate bestMatch(final Block clickedBlock, final BlockFace direction, final boolean enabledOnly)
+    {
         if (clickedBlock == null || direction == null)
         {
             return null;
@@ -89,6 +104,10 @@ public final class StargateHelper
         Stargate3DShape bestShape = null;
         for (final StargateShape shape : StargateShapeRegistry.getStargateShapes().values())
         {
+            if (enabledOnly && !StargateShapeRegistry.isEnabled(shape.getShapeName()))
+            {
+                continue;
+            }
             if (shape instanceof Stargate3DShape shape3D)
             {
                 final Stargate result = check3DShape(clickedBlock, direction, shape3D);
@@ -914,7 +933,7 @@ public final class StargateHelper
                     // gate is running. Re-detecting a styled sign would otherwise take the
                     // colour codes into the gate's name -- invisible characters in a name
                     // that has to be typed to dial it.
-                    final String line0 = signState.getSide(Side.FRONT).getLine(0);
+                    final String line0 = SignText.get(signState.getSide(Side.FRONT), 0);
                     final String signName = SignStyle
                         .stripFormatting(line0).trim();
                     if (!signName.isEmpty())

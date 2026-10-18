@@ -76,6 +76,12 @@ somebody else's release notes, and the record of where this fork came from.
 
 ## 1.12.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **`/wormhole gate shapes disable <shape>` and `enable`** stop and allow building a gate shape without deleting its file; gates already standing keep working. The choice is kept in `shapes/gate/disabled-shapes.txt` and survives editing, resaving and updating the shape ([#636](https://github.com/khanjal/Wormhole-X-Treme/issues/636)).
+
 ### Stargates
 
 - `min-gate-distance` (default 0, off) refuses a gate built closer than that to another in its world, before any fare, naming the nearest; `wormhole.build.mindistance.bypass` exempts ([#635](https://github.com/khanjal/Wormhole-X-Treme/issues/635)).
@@ -87,6 +93,7 @@ somebody else's release notes, and the record of where this fork came from.
 - Chat and sign colours come from the plugin's own colour table rather than Bukkit's `ChatColor`; nothing a player sees changes ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 - On Paper, ring countdowns and mirror names go above the hotbar through Paper's own action bar rather than Spigot's. Spigot keeps its own ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 - On Paper, the plugin's version is read from Paper's plugin meta, and Freya and window stand-ins are named through Paper's own name components. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
+- On Paper, gate and dial signs are written and read through Paper's own sign line components. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 
 ## 1.11.0 (2026-10-17)
 

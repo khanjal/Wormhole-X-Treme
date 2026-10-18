@@ -130,9 +130,9 @@ class PendingCompletionDetectionTest
 
         try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class))
         {
-            helper.when(() -> StargateHelper.checkStargate(any(Block.class), any(BlockFace.class)))
+            helper.when(() -> StargateHelper.checkNewStargate(any(Block.class), any(BlockFace.class)))
                 .thenReturn(null);
-            helper.when(() -> StargateHelper.checkStargate(clicked, BlockFace.WEST))
+            helper.when(() -> StargateHelper.checkNewStargate(clicked, BlockFace.WEST))
                 .thenReturn(found);
 
             click();
@@ -155,7 +155,7 @@ class PendingCompletionDetectionTest
 
         try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class))
         {
-            helper.when(() -> StargateHelper.checkStargate(any(Block.class), any(BlockFace.class)))
+            helper.when(() -> StargateHelper.checkNewStargate(any(Block.class), any(BlockFace.class)))
                 .thenReturn(null);
 
             click();
@@ -180,11 +180,11 @@ class PendingCompletionDetectionTest
 
         try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class))
         {
-            helper.when(() -> StargateHelper.checkStargate(any(Block.class), any(BlockFace.class)))
+            helper.when(() -> StargateHelper.checkNewStargate(any(Block.class), any(BlockFace.class)))
                 .thenReturn(null);
-            helper.when(() -> StargateHelper.checkStargate(clicked, BlockFace.NORTH))
+            helper.when(() -> StargateHelper.checkNewStargate(clicked, BlockFace.NORTH))
                 .thenThrow(new IllegalStateException("malformed shape"));
-            helper.when(() -> StargateHelper.checkStargate(clicked, BlockFace.WEST))
+            helper.when(() -> StargateHelper.checkNewStargate(clicked, BlockFace.WEST))
                 .thenReturn(found);
 
             click();
@@ -211,9 +211,9 @@ class PendingCompletionDetectionTest
             MockedStatic<StargateManager> mgr = mockStatic(StargateManager.class,
                 Mockito.CALLS_REAL_METHODS))
         {
-            helper.when(() -> StargateHelper.checkStargate(any(Block.class), any(BlockFace.class)))
+            helper.when(() -> StargateHelper.checkNewStargate(any(Block.class), any(BlockFace.class)))
                 .thenReturn(null);
-            helper.when(() -> StargateHelper.checkStargate(clicked, BlockFace.WEST))
+            helper.when(() -> StargateHelper.checkNewStargate(clicked, BlockFace.WEST))
                 .thenReturn(found);
             mgr.when(() -> StargateManager.completeStargate(any(), ArgumentMatchers.anyString(),
                 ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -242,9 +242,9 @@ class PendingCompletionDetectionTest
 
         try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class))
         {
-            helper.when(() -> StargateHelper.checkStargate(any(Block.class), any(BlockFace.class)))
+            helper.when(() -> StargateHelper.checkNewStargate(any(Block.class), any(BlockFace.class)))
                 .thenReturn(null);
-            helper.when(() -> StargateHelper.checkStargate(clicked, BlockFace.WEST))
+            helper.when(() -> StargateHelper.checkNewStargate(clicked, BlockFace.WEST))
                 .thenReturn(found);
 
             click();

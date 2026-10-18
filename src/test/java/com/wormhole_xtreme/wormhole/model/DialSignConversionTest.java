@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -32,15 +31,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
+import com.wormhole_xtreme.wormhole.utils.SignLines;
 
 /**
  * What survives a dial sign being restyled.
@@ -70,7 +68,7 @@ class DialSignConversionTest
     private MockedStatic<ConfigManager> config;
 
     @BeforeEach
-    void setUp()
+    void setUp() throws ReflectiveOperationException
     {
         oldFront = sideHolding(FRONT, true);
         oldBack = sideHolding(BACK, false);
@@ -130,25 +128,18 @@ class DialSignConversionTest
     }
 
     private static SignSide sideHolding(final String[] lines, final boolean glowing)
+        throws ReflectiveOperationException
     {
         final SignSide side = mock(SignSide.class);
-        when(side.getLines()).thenReturn(lines.clone());
+        SignLines.hold(side, lines.clone());
         when(side.isGlowingText()).thenReturn(Boolean.valueOf(glowing));
         return side;
     }
 
-    /** The four lines written back onto one face, in order. */
+    /** The lines written back onto one face, in order; more than four if it overran. */
     private static String[] linesWrittenTo(final SignSide side)
     {
-        final ArgumentCaptor<Integer> index = ArgumentCaptor.forClass(Integer.class);
-        final ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
-        verify(side, Mockito.atLeast(0)).setLine(index.capture(), text.capture());
-        final String[] written = { null, null, null, null };
-        for (int i = 0; i < index.getAllValues().size(); i++)
-        {
-            written[index.getAllValues().get(i).intValue()] = text.getAllValues().get(i);
-        }
-        return written;
+        return SignLines.writtenTo(side);
     }
 
     /** Both faces come back with the text that was on them. */
@@ -231,21 +222,21 @@ class DialSignConversionTest
      * lost.
      */
     @Test
-    void whatIsOnTheSignIsReadBeforeTheBlockIsChanged()
+    void whatIsOnTheSignIsReadBeforeTheBlockIsChanged() throws ReflectiveOperationException
     {
         StargateBlockSetup.matchDialSignMaterial(gate);
 
         final InOrder order = inOrder(oldFront, block, newFront);
-        order.verify(oldFront).getLines();
+        SignLines.read(order.verify(oldFront));
         order.verify(block).setType(any(Material.class), anyBoolean());
-        order.verify(newFront, atLeastOnce()).setLine(anyInt(), anyString());
+        SignLines.wrote(order.verify(newFront, atLeastOnce()));
     }
 
     /** A face with nothing on a line writes an empty line rather than a null one. */
     @Test
-    void aBlankLineIsWrittenBackAsEmptyRatherThanNull()
+    void aBlankLineIsWrittenBackAsEmptyRatherThanNull() throws ReflectiveOperationException
     {
-        when(oldFront.getLines()).thenReturn(new String[] { "kept", null, null, "also kept" });
+        SignLines.hold(oldFront, new String[] { "kept", null, null, "also kept" });
 
         StargateBlockSetup.matchDialSignMaterial(gate);
 
@@ -259,14 +250,13 @@ class DialSignConversionTest
      * fifth would throw out of a method whose whole job is not to lose the first four.
      */
     @Test
-    void aSignClaimingMoreThanFourLinesIsNotWrittenPastTheFourth()
+    void aSignClaimingMoreThanFourLinesIsNotWrittenPastTheFourth() throws ReflectiveOperationException
     {
-        when(oldFront.getLines()).thenReturn(new String[] { "a", "b", "c", "d", "e", "f" });
+        SignLines.hold(oldFront, new String[] { "a", "b", "c", "d", "e", "f" });
 
         assertDoesNotThrow(() -> StargateBlockSetup.matchDialSignMaterial(gate));
 
-        verify(newFront, never()).setLine(eq(4), anyString());
-        assertArrayEquals(new String[] { "a", "b", "c", "d" }, linesWrittenTo(newFront));
+        assertArrayEquals(new String[] { "a", "b", "c", "d" }, linesWrittenTo(newFront), "a fifth line was written");
     }
 
     /**
@@ -319,9 +309,9 @@ class DialSignConversionTest
      * worse than either alone. The other face and the handover have to happen anyway.
      */
     @Test
-    void aFaceReportingNoLinesDoesNotStopTheRestOfTheConversion()
+    void aFaceReportingNoLinesDoesNotStopTheRestOfTheConversion() throws ReflectiveOperationException
     {
-        when(oldFront.getLines()).thenReturn(null);
+        SignLines.hold(oldFront, null);
 
         StargateBlockSetup.matchDialSignMaterial(gate);
 

@@ -57,6 +57,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.WooshSequence;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
@@ -196,7 +197,9 @@ public final class GatePreviews
         /** A WorldGuard region where it would stand refuses its owner gate building, and nothing was placed. */
         NOT_ALLOWED_HERE,
         /** It would stand closer to another gate than {@code min-gate-distance} allows, and nothing was placed; {@code inTheWay} holds why. */
-        TOO_CLOSE
+        TOO_CLOSE,
+        /** An admin turned its shape off since it was shown, and nothing was placed. */
+        SHAPE_OFF
     }
 
     /**
@@ -608,6 +611,10 @@ public final class GatePreviews
         if (preview == null)
         {
             return new Placed(Outcome.NOT_LOOKING, List.of(), null, null);
+        }
+        if (!StargateShapeRegistry.isEnabled(preview.shape().getShapeName()))
+        {
+            return new Placed(Outcome.SHAPE_OFF, List.of(), null, null);
         }
         if (!RegionFlags.mayBuild(owner, footprintOf(preview)))
         {

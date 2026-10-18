@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.World;
+import org.bukkit.block.sign.SignSide;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,10 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
 import com.wormhole_xtreme.wormhole.utils.EntityNames;
 import com.wormhole_xtreme.wormhole.utils.PluginVersion;
 import com.wormhole_xtreme.wormhole.utils.ShownNames;
+import com.wormhole_xtreme.wormhole.utils.SignLines;
+import com.wormhole_xtreme.wormhole.utils.SignText;
+
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * The Paper methods the plugin reaches reflectively are really there, under the names and types looked up.
@@ -89,6 +95,26 @@ class PaperApiTest
                 .noneMatch(call -> "setCustomName".equals(call.getMethod().getName())),
                 "the name would go through the deprecated string setter on Paper");
         }
+    }
+
+    /** Gate and dial signs are written and read through Paper's {@code line} and {@code lines}, not the string methods it deprecates. */
+    @Test
+    void aSignIsWrittenAndReadThroughPapersComponentLines() throws ReflectiveOperationException
+    {
+        final SignSide side = mock(SignSide.class);
+        final String[] held = { "§3-Alpha-", "Beta", "", "" };
+        SignLines.hold(side, held);
+        when(SignSide.class.getMethod("line", int.class).invoke(side, 0))
+            .thenReturn(LegacyComponentSerializer.legacySection().deserialize("§3-Alpha-"));
+
+        SignText.set(side, 2, "§2Beta");
+
+        assertEquals("§2Beta", SignLines.writtenTo(side)[2]);
+        assertEquals("§3-Alpha-", SignText.get(side, 0));
+        assertArrayEquals(held, SignText.lines(side));
+        assertTrue(mockingDetails(side).getInvocations().stream()
+            .noneMatch(call -> call.getMethod().getName().matches("setLine|getLine|getLines")),
+            "the sign would go through the deprecated string methods on Paper");
     }
 
     /** Not on 1.20, which has no such method and where a window rightly goes without. */
