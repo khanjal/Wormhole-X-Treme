@@ -192,12 +192,13 @@ class RingMoveEventTest
     @Test
     void walkingOntoAReadyPadStartsTheCycleAndSaysWhereItGoes()
     {
+        pair.getEndB().setName("Abydos");
         withRingsStubbed(true, (transit, said, outline, sounds) ->
         {
             walkOnto();
 
             transit.verify(() -> RingTransit.start(pair, player, true));
-            said.verify(() -> RingMessages.engaged(eq(player), any()));
+            said.verify(() -> RingMessages.engaged(player, "Abydos"));
             outline.verifyNoInteractions();
             sounds.verifyNoInteractions();
         });
