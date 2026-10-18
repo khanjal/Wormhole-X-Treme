@@ -43,10 +43,11 @@ class GateShapesCommandTest
     }
 
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         StargateShapeRegistry.getStargateShapes().remove("Tollan");
         StargateShapeRegistry.setEnabled("Tollan", true);
+        PluginTestSupport.remove();
     }
 
     @Test
