@@ -373,8 +373,8 @@ public final class SubCommands
 
         // --- The shape people actually type --------------------------------
         // Everything above stays registered and keeps working; it is just no longer what is
-        // advertised. Four names now cover it: two nouns that behave alike, the settings, and
-        // the one thing that is neither.
+        // advertised. A handful of names now cover it: the nouns that behave alike, the settings,
+        // lang files, and the one thing that is none of those.
         register("gate", aliases("gates"),
             "/wormhole gate <" + String.join("|",
                 GateCommand.verbs()) + ">",
@@ -408,6 +408,10 @@ public final class SubCommands
         register("lang", aliases(), "/wormhole lang " + LangCommand.EXPORT + " [code]",
             new LangCommand(), false, (sender, args) ->
             {
+                if (!CommandHandlerUtils.hasConfigPermission(sender))
+                {
+                    return none();
+                }
                 if (args.length == 2)
                 {
                     return prefixed(args[1], LangCommand.EXPORT);

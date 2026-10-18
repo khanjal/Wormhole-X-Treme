@@ -1,9 +1,11 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -174,6 +176,23 @@ class LangExportTest
 
         assertEquals(LangExport.Result.EXISTS, LangExport.export(lang, "de"));
         assertEquals("compass.none: \"Meins.\"\n", Files.readString(mine, StandardCharsets.UTF_8));
+        assertArrayEquals(new String[] { "de.yml" }, lang.list(), "nothing else should be left beside it");
+    }
+
+    /** A write that fails part way leaves nothing behind, so it cannot block the next export as a file there. */
+    @Test
+    void aFailedWriteLeavesNoFileAndTheNextExportWorks() throws IOException
+    {
+        final File lang = new File(folder, "lang");
+
+        assertThrows(IOException.class, () -> LangExport.export(lang, "de", (file, text) -> {
+            Files.writeString(file, text.substring(0, 20), StandardCharsets.UTF_8);
+            throw new IOException("disk full");
+        }));
+        assertArrayEquals(new String[0], lang.list(), "a failed write should leave no file, whole or half");
+
+        assertEquals(LangExport.Result.TRANSLATION, LangExport.export(lang, "de"));
+        assertEquals(LangExport.render("de", false), Files.readString(new File(lang, "de.yml").toPath(), StandardCharsets.UTF_8));
     }
 
     /** The folder is made when missing, and a code the jar does not ship gets live English. */

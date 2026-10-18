@@ -11,9 +11,9 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.security.CodeSource;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -45,6 +45,15 @@ public final class LangExport
     private static final String YML = ".yml";
 
     private static final String LANG = "lang/";
+
+    /** Names Windows keeps for devices, with any extension; the codes with a digit are refused already. */
+    private static final Set<String> RESERVED = Set.of("con", "prn", "aux", "nul");
+
+    /** Writes a file's text, so a test can make the write fail. */
+    interface Writer
+    {
+        void write(Path file, String text) throws IOException;
+    }
 
     private static final String OVERLAY_HEADER = """
         # Your own wording for Wormhole X-Treme's %s messages, read over the plugin's.
@@ -80,17 +89,40 @@ public final class LangExport
      */
     public static Result export(final File directory, final String code) throws IOException
     {
+        return export(directory, code, (file, text) -> Files.writeString(file, text, StandardCharsets.UTF_8));
+    }
+
+    /**
+     * @param code
+     *            a sanitised language code
+     * @return true if Windows would read it as a device, not a file
+     */
+    public static boolean isReserved(final String code)
+    {
+        return RESERVED.contains(code);
+    }
+
+    /** As {@link #export(File, String)}, through the writer given. */
+    static Result export(final File directory, final String code, final Writer writer) throws IOException
+    {
         final boolean shipped = LangExport.class.getResource(jarPath(code)) != null;
         final String text = render(code, shipped);
         Files.createDirectories(directory.toPath());
+        // Written whole beside it, then moved into place without replacing: a failed write leaves no
+        // half file in the way of the next export, and an existing file is never touched.
+        final Path temporary = Files.createTempFile(directory.toPath(), code, ".tmp");
         try
         {
-            Files.writeString(new File(directory, code + YML).toPath(), text, StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            writer.write(temporary, text);
+            Files.move(temporary, new File(directory, code + YML).toPath());
         }
         catch (final FileAlreadyExistsException e)
         {
             return Result.EXISTS;
+        }
+        finally
+        {
+            Files.deleteIfExists(temporary);
         }
         return shipped ? Result.OVERLAY : Result.TRANSLATION;
     }

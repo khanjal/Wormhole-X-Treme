@@ -144,7 +144,7 @@ class LangCommandTest
     void aCodeThatIsNotOneWritesNothingAndMakesNoFolder()
     {
         for (final String bad : new String[] { "../x", "de/../x", "..\\x", "", "abcdefghijklmnopq", "dé", "_de", "de_",
-            "de1", "true" })
+            "de1", "true", "nul", "con", "aux", "prn" })
         {
             run(console, "lang", "export", bad);
 
@@ -176,5 +176,18 @@ class LangCommandTest
         assertEquals(List.of("export"), entry.completeArgs(console, new String[] { "lang", "" }));
         assertEquals(List.of("en"), entry.completeArgs(console, new String[] { "lang", "export", "e" }));
         assertTrue(entry.completeArgs(console, new String[] { "lang", "other", "" }).isEmpty());
+    }
+
+    /** Tab offers nothing to a player who could not run it. */
+    @Test
+    void tabOffersNothingWithoutTheNode()
+    {
+        final SubCommands.Entry entry = SubCommands.find("lang");
+        final Player player = player(false);
+
+        assertTrue(entry.completeArgs(player, new String[] { "lang", "" }).isEmpty(), "export should not be offered");
+        assertTrue(entry.completeArgs(player, new String[] { "lang", "export", "" }).isEmpty(), "nor the languages");
+        assertEquals(List.of("export"), entry.completeArgs(player(true), new String[] { "lang", "" }),
+            "a player with the node is offered it");
     }
 }

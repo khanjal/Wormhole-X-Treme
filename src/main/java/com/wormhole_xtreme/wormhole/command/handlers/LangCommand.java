@@ -38,11 +38,11 @@ public class LangCommand implements SubCommand
         if ((args.length < 2) || (args.length > 3) || !EXPORT.equalsIgnoreCase(args[1]))
         {
             sender.sendMessage(ChatText.info(Messages.get(sender, "lang.usage",
-                ChatText.usageBody("/wormhole lang export [code]"), ChatText.value("de"))));
+                ChatText.usageBody("/wormhole lang export [code]"))));
             return true;
         }
         final String code = (args.length == 3) ? ConfigManager.parseServerLanguage(args[2]) : Messages.DEFAULT_LANGUAGE;
-        if (code == null)
+        if ((code == null) || LangExport.isReserved(code))
         {
             sender.sendMessage(ChatText.error(Messages.get(sender, "lang.bad-code", ChatText.command(args[2]),
                 ChatText.value("de"), ChatText.value("pt_br"))));
