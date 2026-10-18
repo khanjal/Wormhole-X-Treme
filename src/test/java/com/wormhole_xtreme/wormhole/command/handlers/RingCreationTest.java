@@ -41,6 +41,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Laying the first ring of a pair, and everything that refuses to let you.
@@ -473,5 +474,32 @@ class RingCreationTest
             new RingPair("zzzz0009", WORLD, a, b);
         theirs.setOwner(OWNER);
         RingManager.addPair(theirs, 5);
+    }
+
+    /**
+     * The quota refusal is the singular for a limit of one and the plural otherwise, in the builder's
+     * language (#26): English reads the same either way, so only a language that tells them apart shows it.
+     */
+    @Test
+    void theQuotaRefusalIsSingularForALimitOfOneInTheBuildersLanguage()
+    {
+        when(builder.getLocale()).thenReturn("qq");
+        config.when(ConfigManager::getRingMaxPairsPerPlayer).thenReturn(Integer.valueOf(1));
+        givenTheBuilderAlreadyOwnsAPair();
+
+        create();
+
+        verify(builder).sendMessage(ChatText.error("QQ limit " + ChatText.value("1") + " one."));
+
+        config.when(ConfigManager::getRingMaxPairsPerPlayer).thenReturn(Integer.valueOf(2));
+        final RingPair second = new RingPair("zzzz0010", WORLD,
+            new Ring(1300, 64, 1300, RingPattern.ODD, RingOrientation.FLOOR, Material.STONE_SLAB, Material.GLOWSTONE),
+            new Ring(1500, 64, 1500, RingPattern.ODD, RingOrientation.FLOOR, Material.STONE_SLAB, Material.GLOWSTONE));
+        second.setOwner(OWNER);
+        RingManager.addPair(second, 5);
+
+        create();
+
+        verify(builder).sendMessage(ChatText.error("QQ limit " + ChatText.value("2") + " other."));
     }
 }

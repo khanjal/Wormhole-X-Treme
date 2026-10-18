@@ -25,6 +25,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Pairing and firing transport rings by coordinates and id, with nobody standing in them.
@@ -37,8 +38,6 @@ public final class RingConsoleCommands
     static final String BUILD_USAGE = "/wormhole ring build <world> <x1> <y1> <z1> <x2> <y2> <z2>";
 
     static final String FIRE_USAGE = "/wormhole ring fire <id>|<world> <x> <y> <z>";
-
-    private static final String RING_PAIR = "Ring pair ";
 
     private static final String BUILD = "build";
 
@@ -80,8 +79,8 @@ public final class RingConsoleCommands
     {
         if ((CommandHandlerUtils.issuer(sender) instanceof Player player) && !RingPermissions.has(player, RingPermissions.ADMIN))
         {
-            sender.sendMessage(ChatText.error("Building and firing rings by coordinates and id needs "
-                + ChatText.value(RingPermissions.ADMIN) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "ring.cmd.console.needs-admin",
+                ChatText.value(RingPermissions.ADMIN))));
             return;
         }
         if (BUILD.equals(verb))
@@ -116,7 +115,7 @@ public final class RingConsoleCommands
         {
             return;
         }
-        final List<String> notAPair = RingCommand.whyNotAPair(a, b);
+        final List<String> notAPair = RingCommand.whyNotAPair(sender, a, b);
         if (!notAPair.isEmpty())
         {
             // Finished lines, each built by ChatText.
@@ -130,9 +129,10 @@ public final class RingConsoleCommands
         RingCommand.consumeTemplate(world, b, sender.getName());
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world.getName());
-        sender.sendMessage(ChatText.info(RING_PAIR + ChatText.name(pair.getId()) + " is live and public. Arrivals at "
-            + ChatText.value(arrival(a)) + " and " + ChatText.value(arrival(b)) + "."));
-        sender.sendMessage(ChatText.info("Fire it with " + ChatText.command("/wormhole ring fire " + pair.getId()) + "."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "ring.cmd.console.built", ChatText.name(pair.getId()),
+            ChatText.value(arrival(a)), ChatText.value(arrival(b)))));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "ring.cmd.console.fire-it",
+            ChatText.command("/wormhole ring fire " + pair.getId()))));
     }
 
     /** What is wrong with a build line before any block is read, as the line to send; null if nothing. */
@@ -152,7 +152,7 @@ public final class RingConsoleCommands
         final World world = Bukkit.getWorld(args[2]);
         if (world == null)
         {
-            return noWorld(args[2]);
+            return noWorld(sender, args[2]);
         }
         final String first = Coordinates.whyNotReadable(sender, world, args[3], args[4], args[5]);
         final String why = (first != null) ? first : Coordinates.whyNotReadable(sender, world, args[6], args[7], args[8]);
@@ -160,9 +160,9 @@ public final class RingConsoleCommands
     }
 
     /** @return the error for a world name that is not loaded */
-    private static String noWorld(final String name)
+    private static String noWorld(final CommandSender sender, final String name)
     {
-        return ChatText.error("No world called " + ChatText.name(name) + " is loaded.");
+        return ChatText.error(Messages.get(sender, "ring.cmd.console.no-world", ChatText.name(name)));
     }
 
     /**
@@ -171,12 +171,12 @@ public final class RingConsoleCommands
      */
     private static Ring ringAt(final CommandSender sender, final World world, final int[] at)
     {
-        final String where = " (at " + ChatText.value(at[0] + " " + at[1] + " " + at[2]) + ")";
+        final String where = ChatText.value(at[0] + " " + at[1] + " " + at[2]);
         final RingTemplate.Result found = RingTemplate.detect(new BukkitBlockProbe(world), at[0], at[1], at[2],
             ConfigManager.getRingReach(), ConfigManager.getRingDefaultLight());
         if (!found.isSuccess())
         {
-            sender.sendMessage(ChatText.error(RingCommand.explain(found.getFailure()) + where));
+            sender.sendMessage(refusedAt(sender, RingCommand.explain(sender, found.getFailure()), where));
             return null;
         }
         final Ring ring = found.getRing();
@@ -184,29 +184,34 @@ public final class RingConsoleCommands
             RingManager.checkPlacement(ring, world.getName(), ConfigManager.getRingMinSeparation());
         if (refusal != null)
         {
-            sender.sendMessage(ChatText.error(RingCommand.explain(refusal) + where));
+            sender.sendMessage(refusedAt(sender, RingCommand.explain(sender, refusal), where));
             return null;
         }
         // A player's first end, waiting for its partner, would otherwise be taken out from under them.
         if (RingManager.checkAgainstPending(ring, world.getName(), ConfigManager.getRingMinSeparation()) != null)
         {
-            sender.sendMessage(ChatText.error("A player has laid that circle, or one beside it, as the first end of a"
-                + " pair they are building." + where));
+            sender.sendMessage(refusedAt(sender, Messages.get(sender, "ring.cmd.console.pending"), where));
             return null;
         }
         if (RingCommand.touchesGate(world, ring))
         {
-            sender.sendMessage(ChatText.error(RingCommand.OVERLAPS_GATE + where));
+            sender.sendMessage(refusedAt(sender, RingCommand.overlapsGate(sender), where));
             return null;
         }
         final RingBlockage roomFor =
             RingSurvey.survey(new BukkitGround(world), ring, ConfigManager.getRingMaxCeilingDrop());
         if (roomFor != null)
         {
-            sender.sendMessage(ChatText.error(RingCommand.explain(roomFor) + where));
+            sender.sendMessage(refusedAt(sender, RingCommand.explain(sender, roomFor), where));
             return null;
         }
         return ring;
+    }
+
+    /** @return the error for one circle refused, its reason then where it was looked for */
+    private static String refusedAt(final CommandSender sender, final String reason, final String where)
+    {
+        return ChatText.error(Messages.get(sender, "ring.cmd.console.at", reason, where));
     }
 
     /** Where a ring puts whoever arrives: the middle of its pad, as "x y z". */
@@ -231,11 +236,12 @@ public final class RingConsoleCommands
         }
         if (RingTransit.start(pair, null, false))
         {
-            sender.sendMessage(ChatText.info(RING_PAIR + ChatText.name(pair.describe()) + " is counting down."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "ring.cmd.console.counting-down",
+                ChatText.name(pair.describe()))));
             return;
         }
-        sender.sendMessage(ChatText.error(RING_PAIR + ChatText.name(pair.describe()) + " did not fire: it is already"
-            + " cycling or cooling down, an end is blocked, or its world is not loaded."));
+        sender.sendMessage(ChatText.error(Messages.get(sender, "ring.cmd.console.did-not-fire",
+            ChatText.name(pair.describe()))));
     }
 
     /** The pair {@code ring fire <id>} names, or null with the reason sent. */
@@ -249,7 +255,7 @@ public final class RingConsoleCommands
         final RingPair pair = RingManager.getPair(args[2]);
         if (pair == null)
         {
-            sender.sendMessage(ChatText.error("There is no ring pair called " + ChatText.name(args[2]) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "ring.cmd.no-pair", ChatText.name(args[2]))));
         }
         return pair;
     }
@@ -260,7 +266,7 @@ public final class RingConsoleCommands
         final World world = Bukkit.getWorld(args[2]);
         if (world == null)
         {
-            sender.sendMessage(noWorld(args[2]));
+            sender.sendMessage(noWorld(sender, args[2]));
             return null;
         }
         if (!Coordinates.isCoordinate(args[3]) || !Coordinates.isCoordinate(args[4]) || !Coordinates.isCoordinate(args[5]))
@@ -282,8 +288,8 @@ public final class RingConsoleCommands
         }
         if (end == null)
         {
-            sender.sendMessage(ChatText.error("No ring at " + ChatText.value(at[0] + " " + at[1] + " " + at[2]) + " in "
-                + ChatText.name(world.getName()) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "ring.cmd.console.no-ring-at",
+                ChatText.value(at[0] + " " + at[1] + " " + at[2]), ChatText.name(world.getName()))));
             return null;
         }
         return end.getPair();

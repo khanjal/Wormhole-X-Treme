@@ -465,6 +465,37 @@ class RingConsoleCommandsTest
         verify(console).sendMessage(ChatText.error("~ counts from a command block or player; from here, give whole numbers."));
     }
 
+    /** Build and fire answer an admin player in their own language, success or not (#26). */
+    @Test
+    void buildAndFireAnswerAPlayerInTheirLanguage()
+    {
+        final Player admin = mock(Player.class);
+        when(admin.getLocale()).thenReturn("qq");
+        when(admin.hasPermission(anyString())).thenReturn(Boolean.FALSE);
+        when(admin.hasPermission(RingPermissions.ADMIN)).thenReturn(Boolean.TRUE);
+
+        run(admin, "ring", "build", "nether", "100", "64", "100", "100", "64", "120");
+        run(admin, "ring", "build", WORLD, "100", "64", "100", "100", "64", "120");
+        final RingPair pair = pairs().get(0);
+        try (MockedStatic<RingTransit> transit = mockStatic(RingTransit.class))
+        {
+            transit.when(() -> RingTransit.start(pair, null, false)).thenReturn(Boolean.TRUE);
+            run(admin, "ring", "fire", pair.getId());
+            transit.when(() -> RingTransit.start(pair, null, false)).thenReturn(Boolean.FALSE);
+            run(admin, "ring", "fire", pair.getId());
+        }
+        run(admin, "ring", "fire", "nether", "100", "64", "110");
+        run(admin, "ring", "fire", WORLD, "100", "64", "110");
+
+        verify(admin, times(2)).sendMessage(ChatText.error("QQ no world " + ChatText.name("nether") + "."));
+        verify(admin).sendMessage(ChatText.info("QQ built " + ChatText.name(pair.getId()) + " "
+            + ChatText.value("100.5 64 100.5") + " " + ChatText.value("100.5 64 120.5") + "."));
+        verify(admin).sendMessage(ChatText.info("QQ fire " + ChatText.command("/wormhole ring fire " + pair.getId()) + "."));
+        verify(admin).sendMessage(ChatText.info("QQ counting " + ChatText.name(pair.describe()) + "."));
+        verify(admin).sendMessage(ChatText.error("QQ misfire " + ChatText.name(pair.describe()) + "."));
+        verify(admin).sendMessage(ChatText.error("QQ no ring at " + ChatText.value("100 64 110") + " " + ChatText.name(WORLD) + "."));
+    }
+
     /** A circle laid at the same place in another world is no reason to refuse this one. */
     @Test
     void aCirclePairedAtTheSamePlaceInAnotherWorldDoesNotStandInTheWay()
