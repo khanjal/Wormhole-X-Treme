@@ -57,7 +57,7 @@ public final class LangExport
     private static final String TRANSLATION_HEADER = """
         # Wormhole X-Treme messages for %s, in English until translated.
         #
-        # Translate the text in quotes and keep each {0}, {1} and § colour code. A message missing from
+        # Translate the text in quotes and keep each {0}, {1} and colour code. A message missing from
         # this file falls back to the plugin's text, English last. Run /wormhole config -reload after
         # editing. Guide: docs/guide/TRANSLATING.md
         """;
