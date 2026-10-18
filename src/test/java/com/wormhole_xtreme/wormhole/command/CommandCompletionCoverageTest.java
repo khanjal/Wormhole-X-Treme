@@ -211,15 +211,38 @@ class CommandCompletionCoverageTest
             "though a verb it does dispatch still completes, or the assertion above proves nothing");
     }
 
-    /** {@code config} offers {@code reload} beside the settings, so the word is found by tab. */
+    /**
+     * {@code config} offers {@code -reload} first, typed from nothing, a dash or part of the flag.
+     *
+     * <p>Suggestions are sorted alphabetically, so a bare {@code reload} sank among some hundred
+     * settings; {@code -} comes first. A dash typed is not read as an underscore for the flag, or {@code -r}
+     * would look for {@code _r} and offer nothing.
+     */
     @Test
-    void configOffersReloadBesideTheSettings()
+    void configOffersTheReloadFlagFirst()
     {
         ConfigTestSupport.loadDefaults();
 
-        final List<String> offered = complete("config", "config", "re");
-        assertTrue(offered.contains("reload"), "reload is offered: " + offered);
-        assertTrue(offered.contains("REDSTONE_EXTEND_OPEN_TIME"), "and the settings it shares a start with: " + offered);
+        for (final String typed : new String[] { "", "-", "-r", "-RE" })
+        {
+            final List<String> offered = complete("config", "config", typed);
+            assertEquals("-reload", offered.get(0), "typed \"" + typed + "\": " + offered);
+            assertFalse(offered.contains("reload"), "the bare word is not offered: " + offered);
+        }
+        assertTrue(complete("config", "config", "").size() > 1, "the settings come after it");
+        final List<String> re = complete("config", "config", "re");
+        assertTrue(re.contains("REDSTONE_EXTEND_OPEN_TIME"), "re still reaches the settings: " + re);
+        assertFalse(re.contains("reload"), "and not the bare word: " + re);
+    }
+
+    /** A setting is still completed from the file's own spelling, dashes and all, without the flag. */
+    @Test
+    void configCompletesASettingWrittenWithDashes()
+    {
+        ConfigTestSupport.loadDefaults();
+
+        final List<String> offered = complete("config", "config", "gate-sound-kaw");
+        assertEquals(List.of("GATE_SOUND_KAWOOSH"), offered);
     }
 
     /** The flat {@code build} name offers shapes, the same as the {@code gate build} it is short for. */

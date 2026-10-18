@@ -18,6 +18,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -28,10 +30,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 
 /**
- * What {@code /wormhole config reload} says, and who may run it (#634).
+ * What {@code /wormhole config -reload} says, and who may run it (#634).
  *
- * <p>The word has to reach the reload rather than the setting search every other single word at
- * {@code /wormhole config} goes to, which would answer that no setting matches RELOAD.
+ * <p>The flag, or the bare word it replaced, has to reach the reload rather than the setting search
+ * every other single word at {@code /wormhole config} goes to, which would answer that no setting
+ * matches RELOAD.
  */
 class ConfigReloadCommandTest
 {
@@ -60,16 +63,45 @@ class ConfigReloadCommandTest
         Files.writeString(new File(dataFolder, "config.yml").toPath(), yaml, StandardCharsets.UTF_8);
     }
 
-    /** Each change is one line, old value to new. */
-    @Test
-    void aChangeIsSaidOldToNew() throws Exception
+    /**
+     * Each change is one line, old value to new, whichever spelling reloads: the flag, or the bare
+     * word tab no longer offers, in any capitals.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = { "-reload", "-RELOAD", "reload", "Reload" })
+    void eitherSpellingReloadsAndSaysEachChangeOldToNew(final String spelling) throws Exception
     {
         ConfigTestSupport.set(ConfigKeys.GATE_SOUNDS_ENABLED, true);
         writeConfig("gate-sounds-enabled: false\n");
 
-        new ConfigCommand().execute(console, new String[] { "config", "reload" });
+        new ConfigCommand().execute(console, new String[] { "config", spelling });
 
         verify(console).sendMessage(infoBody("GATE_SOUNDS_ENABLED: true -> false."));
+    }
+
+    /** Other text with reload in it is a setting search, not a reload. */
+    @Test
+    void otherTextWithReloadInItIsASearch() throws Exception
+    {
+        ConfigTestSupport.loadDefaults();
+        ConfigTestSupport.set(ConfigKeys.GATE_SOUNDS_ENABLED, true);
+        writeConfig("gate-sounds-enabled: false\n");
+
+        new ConfigCommand().execute(console, new String[] { "config", "-reloads" });
+
+        verify(console).sendMessage(errorBody("No setting matches -reloads."));
+        assertTrue(ConfigManager.isGateSoundsEnabled(), "the file's false was not taken");
+    }
+
+    /** The settings list ends by naming the flag, which is how an admin learns it exists. */
+    @Test
+    void theSettingsListNamesTheFlag()
+    {
+        ConfigTestSupport.loadDefaults();
+
+        new ConfigCommand().execute(console, new String[] { "config" });
+
+        verify(console).sendMessage(infoBody("/wormhole config -reload re-reads config.yml."));
     }
 
     /** A refused value is an error, in the parser's words, naming the value kept. */
@@ -79,7 +111,7 @@ class ConfigReloadCommandTest
         ConfigTestSupport.set(ConfigKeys.GATE_SOUNDS_ENABLED, true);
         writeConfig("gate-sounds-enabled: loud\n");
 
-        new ConfigCommand().execute(console, new String[] { "config", "RELOAD" });
+        new ConfigCommand().execute(console, new String[] { "config", "-RELOAD" });
 
         verify(console).sendMessage(errorBody("GATE_SOUNDS_ENABLED is true or false, not \"loud\". Kept true."));
     }
@@ -91,7 +123,7 @@ class ConfigReloadCommandTest
         ConfigTestSupport.set(ConfigKeys.GATE_SOUNDS_ENABLED, true);
         writeConfig("gate-sounds-enabled: true\n");
 
-        new ConfigCommand().execute(console, new String[] { "config", "reload" });
+        new ConfigCommand().execute(console, new String[] { "config", "-reload" });
 
         verify(console).sendMessage(infoBody("Reloaded config.yml: no setting changed."));
     }
@@ -103,7 +135,7 @@ class ConfigReloadCommandTest
         ConfigTestSupport.set(ConfigKeys.GATE_SOUNDS_ENABLED, true);
         writeConfig("- not\n- settings\n");
 
-        new ConfigCommand().execute(console, new String[] { "config", "reload" });
+        new ConfigCommand().execute(console, new String[] { "config", "-reload" });
 
         verify(console).sendMessage(errorBody("config.yml is not a list of settings; no setting changed."));
     }
@@ -120,7 +152,7 @@ class ConfigReloadCommandTest
             perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG))
                 .thenReturn(false);
 
-            new ConfigCommand().execute(player, new String[] { "config", "reload" });
+            new ConfigCommand().execute(player, new String[] { "config", "-reload" });
 
             verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             assertTrue(ConfigManager.isGateSoundsEnabled(), "the file's false was not taken");

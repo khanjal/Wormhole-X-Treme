@@ -24,7 +24,7 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  * read where they are used, and the few read once -- a sweep's period, an integration -- are
  * applied again by {@code ConfigManager.applySetting}.
  *
- * <p>{@code /wormhole config reload} takes a hand-edited or deployed config.yml the same way,
+ * <p>{@code /wormhole config -reload} takes a hand-edited or deployed config.yml the same way,
  * through {@link ConfigReload}, without a restart.
  */
 public class ConfigCommand implements SubCommand
@@ -32,8 +32,11 @@ public class ConfigCommand implements SubCommand
     /** How many settings to list before telling them to narrow it down. */
     private static final int TOO_MANY_TO_LIST = 30;
 
-    /** The word that reloads config.yml rather than naming a setting. */
-    public static final String RELOAD = "reload";
+    /** The flag that reloads config.yml rather than naming a setting; the dash sorts it first in tab. */
+    public static final String RELOAD = "-reload";
+
+    /** The same without its dash, still taken but not offered. */
+    private static final String BARE_RELOAD = "reload";
 
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
@@ -52,7 +55,7 @@ public class ConfigCommand implements SubCommand
             return true;
         }
         final String name = args[1];
-        if ((args.length == 2) && RELOAD.equalsIgnoreCase(name))
+        if ((args.length == 2) && (RELOAD.equalsIgnoreCase(name) || BARE_RELOAD.equalsIgnoreCase(name)))
         {
             reload(sender);
             return true;
@@ -155,5 +158,6 @@ public class ConfigCommand implements SubCommand
         }
         sender.sendMessage(ChatText.info(ChatText.usageBody("/wormhole config <name>") + " shows one, "
             + ChatText.usageBody("/wormhole config <name> <value>") + " changes it."));
+        sender.sendMessage(ChatText.info(ChatText.usageBody("/wormhole config " + RELOAD) + " re-reads config.yml."));
     }
 }

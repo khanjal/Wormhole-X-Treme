@@ -22,7 +22,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
- * {@code /wormhole config reload}: reads config.yml again and takes each setting it changes, the
+ * {@code /wormhole config -reload}: reads config.yml again and takes each setting it changes, the
  * way {@code /wormhole config <setting> <value>} would.
  *
  * <p>The reload does not write the file, though a change it applies may, as the command's would:
