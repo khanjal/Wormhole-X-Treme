@@ -23,6 +23,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -44,6 +45,8 @@ public final class GateConsoleCommands
 {
     /** How many words {@code build <shape> <name> <world> <x> <y> <z> <facing>} takes. */
     public static final int BUILD_WORDS = 7;
+
+    private static final String NOT_BUILT = "Not built: ";
 
     /** The player form takes at most a shape and a group, so four words or more mean coordinates. */
     public static final int SHORTEST_COORDINATE_ATTEMPT = 4;
@@ -134,21 +137,20 @@ public final class GateConsoleCommands
         final String outOfHeight = outsideHeight(world, cellsOf(shape, grid));
         if (outOfHeight != null)
         {
-            sender.sendMessage(ChatText.error("Not built: " + outOfHeight));
+            sender.sendMessage(ChatText.error(NOT_BUILT + outOfHeight));
             return;
         }
-        // A player is held to the regions it would stand in, as building it by hand would be.
-        if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
-            && !RegionFlags.mayBuild(player, locationsOf(world, cellsOf(shape, grid))))
+        final String refusedHere = refusedHere(sender, world, shape, grid);
+        if (refusedHere != null)
         {
-            sender.sendMessage(RegionFlags.BUILD_REFUSED);
+            sender.sendMessage(refusedHere);
             return;
         }
         loadChunksUnder(world, shape, grid);
         final GatePreviews.Placed placed = GatePreviews.placeAt(world, shape, group, grid);
         if (placed.outcome() != GatePreviews.Outcome.PLACED)
         {
-            sender.sendMessage(ChatText.error("Not built: " + why(placed)));
+            sender.sendMessage(ChatText.error(NOT_BUILT + why(placed)));
             return;
         }
         // A preview anyone had standing there is now built; take it down, as a DHD press does.
@@ -256,6 +258,26 @@ public final class GateConsoleCommands
                 world.getChunkAt(cx, cz);
             }
         }
+    }
+
+    /**
+     * What a player is told for a gate they may not stand here, or null. They are held to the regions it
+     * would stand in, as building it by hand would be, and to its spacing from other gates; the console and
+     * command blocks are not.
+     */
+    private static String refusedHere(final CommandSender sender, final World world, final Stargate3DShape shape,
+        final GateGrid grid)
+    {
+        if (!(CommandHandlerUtils.issuer(sender) instanceof Player player))
+        {
+            return null;
+        }
+        if (!RegionFlags.mayBuild(player, locationsOf(world, cellsOf(shape, grid))))
+        {
+            return RegionFlags.BUILD_REFUSED;
+        }
+        final String tooClose = GateSpacing.refusal(player, world, locationsOf(world, GateBlueprint.openingOf(shape, grid)));
+        return (tooClose == null) ? null : ChatText.error(NOT_BUILT + tooClose);
     }
 
     /** Where each of these cells stands in the world. */

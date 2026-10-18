@@ -21,6 +21,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -215,6 +216,13 @@ public final class GateInteractionHandler
         if (RegionFlags.refusesBuild(player, newGate))
         {
             withdrawOffer(player, newGate);
+            return;
+        }
+        final String tooClose = GateSpacing.refusal(player, newGate);
+        if (tooClose != null)
+        {
+            withdrawOffer(player, newGate);
+            player.sendMessage(ChatText.error(tooClose));
             return;
         }
 
@@ -909,6 +917,12 @@ public final class GateInteractionHandler
         {
             if (RegionFlags.refusesBuild(player, nearbyGate))
             {
+                return;
+            }
+            final String tooClose = GateSpacing.refusal(player, nearbyGate);
+            if (tooClose != null)
+            {
+                player.sendMessage(ChatText.error(tooClose));
                 return;
             }
             StargateManager.addIncompleteStargate(player, nearbyGate);

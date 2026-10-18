@@ -87,6 +87,10 @@ somebody else's release notes, and the record of where this fork came from.
 
 - **`gate shapes validate` and `reload` refuse a name with `/`, `\` or `:` in it**, so they only read files in the shapes folder ([#644](https://github.com/khanjal/Wormhole-X-Treme/issues/644)).
 
+### Stargates
+
+- `min-gate-distance` (default 0, off) refuses a gate built closer than that to another in its world, before any fare, naming the nearest; `wormhole.build.mindistance.bypass` exempts ([#635](https://github.com/khanjal/Wormhole-X-Treme/issues/635)).
+
 ### Internals
 
 - Javadoc `@param` tags that only repeated the parameter name (`@param gate` / `the gate`) are gone ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).

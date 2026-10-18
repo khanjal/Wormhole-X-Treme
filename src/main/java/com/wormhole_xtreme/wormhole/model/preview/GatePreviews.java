@@ -49,6 +49,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.DrawnHorizon;
 import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.IrisSweepDriver;
@@ -195,6 +196,8 @@ public final class GatePreviews
         REPAIRED,
         /** A WorldGuard region where it would stand refuses its owner gate building, and nothing was placed. */
         NOT_ALLOWED_HERE,
+        /** It would stand closer to another gate than {@code min-gate-distance} allows, and nothing was placed; {@code inTheWay} holds why. */
+        TOO_CLOSE,
         /** An admin turned its shape off since it was shown, and nothing was placed. */
         SHAPE_OFF
     }
@@ -617,7 +620,25 @@ public final class GatePreviews
         {
             return new Placed(Outcome.NOT_ALLOWED_HERE, List.of(), null, null);
         }
+        final String tooClose = standsOverAGate(preview) ? null
+            : GateSpacing.refusal(owner, preview.world(), openingBlocks(preview));
+        if (tooClose != null)
+        {
+            return new Placed(Outcome.TOO_CLOSE, List.of(tooClose), null, null);
+        }
         return PreviewPlacer.place(preview, overAGate);
+    }
+
+    /** Whether a gate already stands where the preview would; repairing it, or being in its way, is not spacing. */
+    private static boolean standsOverAGate(final GatePreview preview)
+    {
+        return footprintOf(preview).stream().anyMatch(at -> gateAt.at(preview.world(), at.getBlockX(), at.getBlockY(),
+            at.getBlockZ()) != null);
+    }
+
+    private static List<Location> openingBlocks(final GatePreview preview)
+    {
+        return preview.opening().stream().map(cell -> new Location(preview.world(), cell.x(), cell.y(), cell.z())).toList();
     }
 
     /** Every spot a preview's gate would take: its blocks and its opening. */
