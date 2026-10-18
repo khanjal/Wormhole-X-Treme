@@ -941,13 +941,15 @@ public final class Captures
             return false;
         }
         // A retake of a capture already in memory is routine, every few minutes while somebody stands at a gate.
-        WormholeXTreme.getThisPlugin().prettyLog(LOADED.containsKey(key) ? Level.FINE : Level.INFO,
+        final Level said = LOADED.containsKey(key) ? Level.FINE : Level.INFO;
+        WormholeXTreme.getThisPlugin().prettyLog(said,
             "Capturing the far side of " + what + " in " + far.getName() + " around " + key);
         final int reach = (depth > 0) ? depth : reach(far);
         // A sift is cut to fit its budget as far back as the floor, never short of it: a mirror's view depth, a gate's first step.
         final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewFirstDepth()) : ConfigManager.getViewDepth();
         final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
         job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
+        job.said = said;
         job.blank = blank;
         JOBS.put(key, job);
         job.schedule();
@@ -1288,6 +1290,8 @@ public final class Captures
         private final int holeHeight;
         /** How far ahead it is taken, and the least a cut to fit may leave. */
         private final int reach;
+        /** The level the start was said at, so the end is said at the same one. */
+        private Level said = Level.INFO;
         /** Chunks read a tick. */
         private int perTick = CHUNKS_PER_TICK;
         /** Blocks left out of the capture: a gate's name sign, which hangs on a frame the view does not keep. */
@@ -1579,14 +1583,14 @@ public final class Captures
             }
             final Capture capture = builder.build();
             JOBS.remove(key);
-            final boolean retaken = LOADED.put(key, new Held(capture, clock.getAsLong())) != null;
+            LOADED.put(key, new Held(capture, clock.getAsLong()));
             ABSENT.remove(key);
             WARNED.remove(key);
             FAILED.remove(key);
             FAILED_AT.remove(key);
             changed();
             final int most = key.startsWith(GATE_KEY) ? mostGateKept : mostKept;
-            WormholeXTreme.getThisPlugin().prettyLog(retaken ? Level.FINE : Level.INFO, "Captured " + capture.describe()
+            WormholeXTreme.getThisPlugin().prettyLog(said, "Captured " + capture.describe()
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
                     + " blocks ahead to keep under " + most + " blocks") : ""));
             save(capture, fileOf(key));
