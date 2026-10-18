@@ -31,10 +31,10 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
-import com.wormhole_xtreme.wormhole.model.ring.RingOrientation;
-import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingMessages;
+import com.wormhole_xtreme.wormhole.model.ring.RingOrientation;
 import com.wormhole_xtreme.wormhole.model.ring.RingOutline;
+import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPhase;
 import com.wormhole_xtreme.wormhole.model.ring.RingSounds;
