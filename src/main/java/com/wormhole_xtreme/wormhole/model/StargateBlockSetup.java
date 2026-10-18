@@ -49,6 +49,7 @@ import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
+import com.wormhole_xtreme.wormhole.utils.SignText;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -220,19 +221,19 @@ class StargateBlockSetup
         final SignSide front = sign.getSide(Side.FRONT);
         // Colour codes do not count toward a sign's visible width, so the owner is still
         // truncated on the text alone -- painting it cannot push it off the sign.
-        front.setLine(0, SignStyle.paint(
+        SignText.set(front, 0, SignStyle.paint(
             SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColour.DARK_AQUA),
             "-" + gate.getGateName() + "-"));
         if (gate.getGateNetwork() != null)
         {
-            front.setLine(1, SignStyle.paint(
+            SignText.set(front, 1, SignStyle.paint(
                 SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColour.GRAY),
                 "N:" + gate.getGateNetwork().getNetworkName()));
         }
         if (gate.getGateOwner() != null)
         {
             final String ownerDisplay = gate.getGateOwnerName();
-            front.setLine(2, SignStyle.paint(
+            SignText.set(front, 2, SignStyle.paint(
                 SignStyle.resolveColor(ConfigManager.getSignColorOwner(), ChatColour.GRAY),
                 "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
                     ? ownerDisplay.substring(0, 13) : ownerDisplay)));
@@ -334,8 +335,8 @@ class StargateBlockSetup
                 return;
             }
             final Sign old = (Sign) before;
-            final String[] frontLines = old.getSide(Side.FRONT).getLines();
-            final String[] backLines = old.getSide(Side.BACK).getLines();
+            final String[] frontLines = SignText.lines(old.getSide(Side.FRONT));
+            final String[] backLines = SignText.lines(old.getSide(Side.BACK));
             final boolean frontGlows = old.getSide(Side.FRONT).isGlowingText();
             final boolean backGlows = old.getSide(Side.BACK).isGlowingText();
 
@@ -390,7 +391,7 @@ class StargateBlockSetup
         {
             for (int i = 0; i < lines.length && i < 4; i++)
             {
-                side.setLine(i, lines[i] != null ? lines[i] : "");
+                SignText.set(side, i, lines[i] != null ? lines[i] : "");
             }
         }
         side.setGlowingText(glowing);
