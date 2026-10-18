@@ -430,7 +430,7 @@ public class Build implements CommandExecutor
                 + NOTHING_PLACED));
             case OUTSIDE_BORDER -> player.sendMessage(ChatText.error("Part of it is outside the world border. "
                 + NOTHING_PLACED));
-            case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.BUILD_REFUSED_NOTHING_PLACED);
+            case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.buildRefusedNothingPlaced(player));
             case TOO_CLOSE -> player.sendMessage(ChatText.error(placed.inTheWay().get(0) + " " + NOTHING_PLACED));
             case SHAPE_OFF -> player.sendMessage(ChatText.error("That shape is turned off on this server. "
                 + NOTHING_PLACED));

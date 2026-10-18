@@ -155,6 +155,35 @@ class DrawnIrisHoldsShutTest
         verify(player).sendMessage(plainContains("This gate's iris is closed."));
     }
 
+    /** The refusal is in the walker's own client language (#26). */
+    @Test
+    void theShutIrisIsExplainedInThePlayersLanguage()
+    {
+        when(player.getLocale()).thenReturn("qq");
+
+        walkIntoTheOpening();
+
+        verify(player).sendMessage(plainContains("QQ iris."));
+    }
+
+    /**
+     * A refusal repeated a moment later is neither sent nor built (#26).
+     *
+     * <p>Someone holding forward against a shut iris sends a move every tick, and each one used to
+     * build the line before the reminder decided not to send it. Each lookup reads the client's
+     * locale once, so the locale reads count the lines built.
+     */
+    @Test
+    void aRefusalNotRepeatedIsNotLookedUp()
+    {
+        walkIntoTheOpening();
+        walkIntoTheOpening();
+        walkIntoTheOpening();
+
+        verify(player, times(1)).sendMessage(plainContains("This gate's iris is closed."));
+        verify(player, times(1)).getLocale();
+    }
+
     /**
      * A horizontal gate is left to its wall.
      *

@@ -8,6 +8,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -15,6 +16,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Where a region lets a player build and use gates, through WorldGuard's {@code wormhole-build}
@@ -30,17 +32,35 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  */
 public final class RegionFlags
 {
-    /** Told to a player a region refuses a gate's use. */
+    /** {@link #useRefused} in English, as the tests compare against it; send that method instead. */
     public static final String USE_REFUSED = ChatText.error("This region does not allow using gates.");
 
     /** Why a region refuses a gate's building, before anything said after it. */
     private static final String BUILD_REFUSAL = "This region does not allow building gates.";
 
-    /** Told to a player a region refuses a gate's building. */
+    /** {@link #buildRefused} in English, as the tests compare against it; send that method instead. */
     public static final String BUILD_REFUSED = ChatText.error(BUILD_REFUSAL);
 
-    /** Told to a player whose {@code gate build} placed nothing because a region refuses it. */
+    /** {@link #buildRefusedNothingPlaced} in English, as the tests compare against it; send that method instead. */
     public static final String BUILD_REFUSED_NOTHING_PLACED = ChatText.error(BUILD_REFUSAL + " Nothing placed.");
+
+    /** @return what a player a region refuses a gate's use is told */
+    public static String useRefused(final CommandSender player)
+    {
+        return ChatText.error(Messages.get(player, "region.use-refused"));
+    }
+
+    /** @return what a player a region refuses a gate's building is told */
+    public static String buildRefused(final CommandSender player)
+    {
+        return ChatText.error(Messages.get(player, "region.build-refused"));
+    }
+
+    /** @return what a player whose {@code gate build} placed nothing because a region refuses it is told */
+    public static String buildRefusedNothingPlaced(final CommandSender player)
+    {
+        return ChatText.error(Messages.get(player, "region.build-refused-nothing-placed"));
+    }
 
     /** What a region can refuse, each its own WorldGuard flag. */
     public enum Action
@@ -264,7 +284,7 @@ public final class RegionFlags
         {
             return false;
         }
-        player.sendMessage(USE_REFUSED);
+        player.sendMessage(useRefused(player));
         return true;
     }
 
@@ -283,7 +303,7 @@ public final class RegionFlags
         {
             return false;
         }
-        player.sendMessage(BUILD_REFUSED);
+        player.sendMessage(buildRefused(player));
         return true;
     }
 

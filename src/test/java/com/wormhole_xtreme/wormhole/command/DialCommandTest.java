@@ -147,6 +147,21 @@ class DialCommandTest
         verify(player).sendMessage(plainContains("there is not on this gate's network."));
     }
 
+    /** The refusal is in the dialler's own client language (#26). */
+    @Test
+    void aTargetOnAnotherNetworkIsRefusedInThePlayersLanguage()
+    {
+        when(player.getLocale()).thenReturn("qq");
+        final Stargate here = gate("here");
+        final Stargate there = gate("there");
+        there.setGateNetwork(StargateManager.addStargateNetwork("other"));
+        StargateManager.addActivatedStargate(player, here);
+
+        dial("there");
+
+        verify(player).sendMessage(plainContains("QQ there other network."));
+    }
+
     /** A remote iris that is closed, with no IDC offered, stops the dial and explains why. */
     @Test
     void aClosedRemoteIrisStopsTheDialUnlessTheIdcIsGiven()

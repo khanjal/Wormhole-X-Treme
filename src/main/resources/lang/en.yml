@@ -34,6 +34,53 @@ gate.build.no-arrival: "nowhere"
 
 gate.dial.already-open: "{0} is already open."
 gate.dial.being-dialled: "{0} is being dialled."
+gate.dial.other-network: "Invalid gate target. {0} is not on this gate's network."
+gate.dial.remote-iris: "Remote Iris is active. Dial again with its {0} after the gate's name."
+gate.dial.idc-accepted: "IDC accepted. Iris has been deactivated."
+
+gate.design.valid: "Valid stargate design."
+gate.design.valid-sign: "Valid sign nav stargate design."
+gate.design.complete-hint: "Type {0} {1} {2} to finish it."
+gate.design.nearby: "Valid design found nearby. Type {0} {1} to finish it."
+gate.design.none-clicked: "No gate detected at the clicked block. Click the DHD's button or lever again."
+gate.design.complete-failed: "Completing the gate failed. Check server logs."
+gate.design.complete-failed-detected: "Completing the gate failed after it was detected. Check the server log."
+
+gate.activate.deactivated: "Gate deactivated."
+gate.activate.deactivated-by: "Gate deactivated; {0} had activated it."
+gate.activate.cleared-by: "Your pending gate activation was cleared by {0}."
+gate.activate.connected: "Stargates connected!"
+gate.activate.chevrons-locked: "Chevrons locked."
+gate.activate.type-to-dial: "Type {0} to dial."
+
+gate.sign.dialer-set: "Dialer set to {0}."
+gate.sign.no-other-gates: "No other gates to dial."
+
+gate.lifecycle.timed-out: "Gate {0} timed out and deactivated."
+
+gate.walk.iris-closed: "This gate's iris is closed."
+gate.walk.ride-failed: "What you are riding could not be sent through."
+
+gate.welcome.arrived: "Arrived at {0}."
+
+gate.fare.charged: "Charged {0}."
+
+gate.restrict.cooldown: "You must wait {0} before using a stargate again."
+gate.restrict.seconds: "{0} seconds"
+gate.restrict.one-second: "1 second"
+
+gate.spacing.too-close: "Too close to {0}: {1} blocks away, and gates must be at least {2} apart."
+
+region.use-refused: "This region does not allow using gates."
+region.build-refused: "This region does not allow building gates."
+region.build-refused-nothing-placed: "This region does not allow building gates. Nothing placed."
+
+block.part-of-gate: "This block is part of the gate {0}."
+block.remove-gate-first: "Remove the gate first with {0} {1}; add {2} to break its blocks too."
+block.build-inside-gate: "You cannot build inside the gate {0}."
+block.part-of-mirror: "That is part of a mirror. {0} takes one down."
+
+preview.built: "§a{0} is built!§7 Press its button to check it."
 
 lang.usage: "{0} writes a starter lang file to the plugin folder: with no code, English, or with a language the plugin ships, its messages commented out, to reword; with any other code, the English to translate."
 lang.bad-code: "{0} is not a language code: letters and _, as a client names its language, such as {1} or {2}."

@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * The least distance between two gates, {@code min-gate-distance} (#635).
@@ -39,7 +40,7 @@ public final class GateSpacing
             return null;
         }
         final double[] at = centreOf(opening);
-        return refusal(min, world, at[0], at[1], at[2], StargateManager.getAllGatesUnsorted());
+        return refusal(player, min, world, at[0], at[1], at[2], StargateManager.getAllGatesUnsorted());
     }
 
     /** {@link #refusal(Player, World, List)} for a gate that has been found but not yet registered. */
@@ -48,9 +49,16 @@ public final class GateSpacing
         return refusal(player, gate.getGateWorld(), gate.getGatePortalBlocks());
     }
 
-    /** Why a gate whose opening is centred here is too close to one of these, or null. */
+    /** Why a gate whose opening is centred here is too close to one of these, in the server's language, or null. */
     static String refusal(final int min, final World world, final double x, final double y, final double z,
         final Collection<Stargate> gates)
+    {
+        return refusal(null, min, world, x, y, z, gates);
+    }
+
+    /** Why a gate whose opening is centred here is too close to one of these, in the player's language, or null. */
+    static String refusal(final Player player, final int min, final World world, final double x, final double y,
+        final double z, final Collection<Stargate> gates)
     {
         Stargate nearest = null;
         double nearestDistance = Double.MAX_VALUE;
@@ -73,9 +81,8 @@ public final class GateSpacing
         {
             return null;
         }
-        return "Too close to " + ChatText.name(nearest.getGateName()) + ": "
-            + ChatText.value(String.format(Locale.ROOT, "%.1f", nearestDistance)) + " blocks away, and gates must be at least "
-            + ChatText.value(String.valueOf(min)) + " apart.";
+        return Messages.get(player, "gate.spacing.too-close", ChatText.name(nearest.getGateName()),
+            ChatText.value(String.format(Locale.ROOT, "%.1f", nearestDistance)), ChatText.value(String.valueOf(min)));
     }
 
     private static boolean exempt(final Player player)
