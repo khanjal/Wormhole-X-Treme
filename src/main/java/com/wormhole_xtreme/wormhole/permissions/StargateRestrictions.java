@@ -7,6 +7,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * The Class StargateRestrictions.
@@ -103,12 +104,14 @@ public class StargateRestrictions
      */
     public static String cooldownRefusal(final Player player)
     {
-        return cooldownRefusal(checkPlayerUseCooldownRemaining(player));
+        final long remaining = checkPlayerUseCooldownRemaining(player);
+        return ChatText.error(Messages.get(player, "gate.restrict.cooldown", ChatText.value((remaining > 1)
+            ? Messages.get(player, "gate.restrict.seconds", remaining) : Messages.get(player, "gate.restrict.one-second"))));
     }
 
     /**
-     * What a player still under the gate cooldown is told: one line, where there used to be a
-     * refusal and a "Current Wait" line under it (#438).
+     * What a player still under the gate cooldown is told, in the server's language: one line, where
+     * there used to be a refusal and a "Current Wait" line under it (#438).
      *
      * @param remaining
      *            how long is left; a cooldown that ran out between the check and this says 1, not 0 or -1
@@ -116,8 +119,8 @@ public class StargateRestrictions
      */
     public static String cooldownRefusal(final long remaining)
     {
-        return ChatText.error("You must wait "
-            + ChatText.value((remaining > 1) ? (remaining + " seconds") : "1 second") + " before using a stargate again.");
+        return ChatText.error(Messages.get(null, "gate.restrict.cooldown", ChatText.value((remaining > 1)
+            ? Messages.get(null, "gate.restrict.seconds", remaining) : Messages.get(null, "gate.restrict.one-second"))));
     }
 
     // The player-use cooldown group map was removed; per-player cooldowns are tracked via

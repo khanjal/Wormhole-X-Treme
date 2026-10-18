@@ -29,6 +29,7 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ActionBar;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -281,9 +282,9 @@ class WormholeXTremeBlockListener implements Listener
         }
         try
         {
-            player.sendMessage(ChatText.error("This block is part of the gate " + ChatText.name(name) + "."));
-            player.sendMessage(ChatText.info("Remove the gate first with " + ChatText.command("/wormhole remove")
-                + " " + ChatText.name(name) + "; add " + ChatText.command(WXRemove.DESTROY) + " to break its blocks too."));
+            player.sendMessage(ChatText.error(Messages.get(player, "block.part-of-gate", ChatText.name(name))));
+            player.sendMessage(ChatText.info(Messages.get(player, "block.remove-gate-first", ChatText.command("/wormhole remove"),
+                ChatText.name(name), ChatText.command(WXRemove.DESTROY))));
         }
         catch (final RuntimeException ignore)
         {
@@ -313,8 +314,7 @@ class WormholeXTremeBlockListener implements Listener
             event.setCancelled(true);
             // Above the hotbar: a player holding the button down would otherwise fill their chat.
             ActionBar.send(player,
-                ChatText.info("That is part of a mirror. " + ChatText.command("/wormhole mirror remove")
-                    + " takes one down."));
+                ChatText.info(Messages.get(player, "block.part-of-mirror", ChatText.command("/wormhole mirror remove"))));
             return;
         }
         final Stargate stargate = StargateManager.getGateFromBlock(block);
@@ -336,7 +336,7 @@ class WormholeXTremeBlockListener implements Listener
         final String name = (stargate != null) ? stargate.getGateName() : "unknown";
         try
         {
-            player.sendMessage(ChatText.error("You cannot build inside the gate " + ChatText.name(name) + "."));
+            player.sendMessage(ChatText.error(Messages.get(player, "block.build-inside-gate", ChatText.name(name))));
         }
         catch (final RuntimeException ignore)
         {

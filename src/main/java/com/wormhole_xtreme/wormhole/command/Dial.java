@@ -16,6 +16,7 @@ import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * The Class Dial.
@@ -85,8 +86,8 @@ public class Dial implements CommandExecutor
         if ( !startnetwork.equals(targetnetwork))
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ChatText.error("Invalid gate target. " + ChatText.name(target.getGateName())
-                + " is not on this gate's network."));
+            player.sendMessage(ChatText.error(Messages.get(player, "gate.dial.other-network",
+                ChatText.name(target.getGateName()))));
             return;
         }
         if (StargateRestrictions.isCrossWorldRefused(start.getGateWorld(), target.getGateWorld()))
@@ -103,8 +104,7 @@ public class Dial implements CommandExecutor
         if (target.isGateIrisActive())
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ChatText.error("Remote Iris is active. Dial again with its " + ChatText.command("IDC")
-                + " after the gate's name."));
+            player.sendMessage(ChatText.error(Messages.get(player, "gate.dial.remote-iris", ChatText.command("IDC"))));
             return;
         }
 
@@ -128,7 +128,7 @@ public class Dial implements CommandExecutor
             && (args.length >= 2) && target.getGateIrisDeactivationCode().equals(args[1]))
         {
             target.toggleIrisActive(false);
-            player.sendMessage(ChatText.info("IDC accepted. Iris has been deactivated."));
+            player.sendMessage(ChatText.info(Messages.get(player, "gate.dial.idc-accepted")));
         }
     }
 

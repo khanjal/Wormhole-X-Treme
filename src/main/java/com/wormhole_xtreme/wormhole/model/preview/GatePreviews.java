@@ -62,6 +62,7 @@ import com.wormhole_xtreme.wormhole.model.WooshSequence;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.Sounds;
 
 /**
@@ -1458,8 +1459,7 @@ public final class GatePreviews
         {
             if (built && clear && !preview.finished())
             {
-                owner.sendMessage(ChatText.info(ChatText.good(preview.shape().getShapeName() + " is built!")
-                    + " Press its button to check it."));
+                owner.sendMessage(ChatText.info(Messages.get(owner, "preview.built", preview.shape().getShapeName())));
             }
             preview.finished(built && clear);
         }
