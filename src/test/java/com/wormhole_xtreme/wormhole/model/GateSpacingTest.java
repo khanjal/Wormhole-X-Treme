@@ -198,6 +198,29 @@ class GateSpacingTest
         assertNull(StargateManager.getStargate("Mine"));
     }
 
+    /** A sign-dial gate is held to the same spacing as a DHD gate. */
+    @Test
+    void aSignDialGateIsRefusedToo()
+    {
+        final Player player = player(false);
+        final Stargate near = gateAt("Near", world, 0);
+        StargateManager.registerStargate(near);
+        final Stargate signed = gateAt("Held", world, 5);
+        signed.setGateSignPowered(true);
+        StargateManager.addIncompleteStargate(player, signed);
+        ConfigTestSupport.set(ConfigKeys.MIN_GATE_DISTANCE, 50);
+        try
+        {
+            assertFalse(Complete.completeAndCharge(player, "Mine", "", "", "failed", null));
+        }
+        finally
+        {
+            StargateManager.removeStargate(near);
+            StargateManager.removeIncompleteStargate(player);
+        }
+        verify(player).sendMessage(plainContains("Too close to Near"));
+    }
+
     /** Somebody holding the node completes beside another gate and still pays the fare. */
     @Test
     void anExemptBuilderIsStillChargedAndCompletes()
