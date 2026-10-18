@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.World;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
 import com.wormhole_xtreme.wormhole.utils.EntityNames;
+import com.wormhole_xtreme.wormhole.utils.PlayerLocales;
 import com.wormhole_xtreme.wormhole.utils.PlayerNames;
 import com.wormhole_xtreme.wormhole.utils.PluginVersion;
 import com.wormhole_xtreme.wormhole.utils.ShownNames;
@@ -111,6 +113,19 @@ class PaperApiTest
         assertTrue(mockingDetails(player).getInvocations().stream()
             .noneMatch(call -> "getDisplayName".equals(call.getMethod().getName())),
             "the display name would be read through the deprecated string getter on Paper");
+    }
+
+    /** A player's client language is read through Paper's {@code locale()}, not the getLocale it deprecates (#26). */
+    @Test
+    void aPlayersLocaleIsReadThroughPapersLocale() throws ReflectiveOperationException
+    {
+        final Player player = mock(Player.class);
+        when(Player.class.getMethod("locale").invoke(player)).thenReturn(Locale.GERMANY);
+
+        assertEquals("de_DE", PlayerLocales.of(player));
+        assertTrue(mockingDetails(player).getInvocations().stream()
+            .noneMatch(call -> "getLocale".equals(call.getMethod().getName())),
+            "the locale would be read through the deprecated string getter on Paper");
     }
 
     /** Gate and dial signs are written and read through Paper's {@code line} and {@code lines}, not the string methods it deprecates. */

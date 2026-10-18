@@ -19,6 +19,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
@@ -97,7 +98,8 @@ public final class ConfigReload
     }
 
     /**
-     * Reloads the settings from one file.
+     * Reloads the settings from one file, and the language file whether or not {@code server-language}
+     * changed, so an edited translation is taken too.
      *
      * @param cfg
      *            the config file
@@ -144,6 +146,11 @@ public final class ConfigReload
             {
                 take(element, current, value, changes, rejections);
             }
+        }
+        // A changed language was read as it was taken; read it once either way.
+        if (changes.stream().noneMatch(change -> change.key() == ConfigKeys.SERVER_LANGUAGE))
+        {
+            Messages.load();
         }
         return new Report(null, changes, rejections);
     }

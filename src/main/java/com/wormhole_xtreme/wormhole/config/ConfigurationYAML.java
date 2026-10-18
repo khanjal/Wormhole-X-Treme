@@ -280,19 +280,31 @@ public class ConfigurationYAML
         // Level.parse throws on anything else, at the first log-level read (#647).
         if (element.getName() == ConfigManager.ConfigKeys.LOG_LEVEL)
         {
-            final ParsedSetting level = ParsedSetting.read(element.getName(), element.getValue(), read.toString());
-            if (!level.isAccepted())
-            {
-                warnOf(key, value, ", which is not a logging level; using " + element.getValue() + " until it is put right.");
-                return copyOf(element);
-            }
-            return new Setting(element.getName(), level.getValue(), element.getDescription(), SETTING_SECTION);
+            return checked(element, key, value, read, ", which is not a logging level");
+        }
+        // A bare no is a switch, and would otherwise read as English without a word (#26).
+        if (element.getName() == ConfigManager.ConfigKeys.SERVER_LANGUAGE)
+        {
+            return checked(element, key, value, read, ", which is not a language code; write one such as no in quotes");
         }
         if ((value instanceof Number) && (read instanceof Boolean))
         {
             warnOf(key, value, ", a number, where it is now true or false; read as " + read + " and written back so.");
         }
         return new Setting(element.getName(), read, element.getDescription(), SETTING_SECTION);
+    }
+
+    /** A value the command would take, in its form, or the default with a warning saying why not. */
+    private static Setting checked(final Setting element, final String key, final Object value, final Object read,
+        final String why)
+    {
+        final ParsedSetting parsed = ParsedSetting.read(element.getName(), element.getValue(), read.toString());
+        if (!parsed.isAccepted())
+        {
+            warnOf(key, value, why + "; using " + element.getValue() + " until it is put right.");
+            return copyOf(element);
+        }
+        return new Setting(element.getName(), parsed.getValue(), element.getDescription(), SETTING_SECTION);
     }
 
     /** Warns of one value in config.yml, naming it as written. */

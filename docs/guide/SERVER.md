@@ -145,6 +145,12 @@ its colours until it is next written. Nothing waits for a restart.
 |---|---|---|
 | `clickable-chat` | true | A command named in chat can be clicked: after `gate build`, each preview action is a button, with hover text saying what it does, and a refusal that names a command links it. An action that needs more, such as `material`, fills in the chat box instead of running. False sends the same lines as plain text, which is all a CraftBukkit server gets anyway |
 
+### Language
+
+| Setting | Default | What it does |
+|---|---|---|
+| `server-language` | en | The language of messages sent to the console and command blocks (and, later, the log and text the server puts in the world), such as `de` or `pt_br`. Players see their own client's language, falling back to this, then English. Only some messages are translatable so far, and sign text stays English; see [TRANSLATING.md](TRANSLATING.md) |
+
 ### Keeping gates from staying open
 
 | Setting | Default | What it does |
@@ -313,6 +319,7 @@ Gates, rings and beams make noise, all configured the same way. Tables are on ea
 ```
 plugins/WormholeXTreme/
 ├── config.yml
+├── lang/*.yml          (optional, yours)
 ├── shapes/gate/*.shape
 ├── shapes/mirror/*.mirror
 └── data/
@@ -324,7 +331,9 @@ plugins/WormholeXTreme/
 
 Back up by copying `data/`; edit anything in it by hand if you need to. There is no database to
 install or configure. Gates are one file each; rings are one file per world, and a pair that
-will not parse is logged and skipped while the rest of the world loads.
+will not parse is logged and skipped while the rest of the world loads. `lang/` is never created by
+the plugin: make it to hold your own chat messages, one file per client language, read over the
+plugin's own. See [Translating](TRANSLATING.md).
 
 The HSQLDB and SQLite backends of earlier versions are gone. Files an older build of this fork
 kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is

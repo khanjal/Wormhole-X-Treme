@@ -1,0 +1,36 @@
+# Wormhole X-Treme chat messages, in English.
+#
+# To translate, copy this file to plugins/WormholeXTreme/lang/<code>.yml, named for the client
+# language such as de or de_de, and translate the text in quotes. Keep each {0}, {1} and § colour
+# code; a message left out falls back to English. Guide: docs/guide/TRANSLATING.md
+
+compass.set: "Compass set to wormhole {0}."
+compass.none: "No wormholes to track."
+compass.reset: "Compass back to normal: it points at world spawn again."
+compass.plain-only: "Carry a plain §ecompass§7 to see it; lodestone and recovery compasses follow their own targets."
+
+gate.build.not-coordinates: "Those words are not a gate to build at coordinates: give whole numbers or ~ for x y z, then a facing."
+gate.build.no-shape: "No shape called {0}."
+gate.build.shape-off: "{0} is turned off on this server."
+gate.build.shape-flat: "{0} is a flat shape; only a 3D shape can be built from coordinates."
+gate.build.name-taken: "A gate called {0} is already here."
+gate.build.no-world: "No world called {0} is loaded."
+gate.build.facing: "Facing must be {0}, {1}, {2} or {3}, not {4}."
+gate.build.unknown-option: "Unknown option {0}; only {1} and {2} follow the facing."
+gate.build.no-dhd: "{0} has no DHD to build it from."
+gate.build.sign-dial: "{0} dials by sign, and a sign cannot be placed for it here. Build a shape with a DHD button."
+gate.build.not-built: "Not built: {0}"
+gate.build.below-floor: "part of it would be below the world's floor at {0}."
+gate.build.above-height: "part of it would be above the world's build height of {0}."
+gate.build.not-findable: "no material group uses its frame block, so the gate would not be found."
+gate.build.not-loaded: "part of it is in a chunk that is not loaded."
+gate.build.outside-border: "part of it is outside the world border."
+gate.build.in-the-way: "in the way: {0}."
+gate.build.not-found: "its blocks were placed, but no gate was found in them."
+gate.build.not-placed: "it could not be placed ({0})."
+gate.build.built: "Built {0} at {1} in {2}. Opening centred on {3}; arrivals at {4}."
+gate.build.no-opening: "nothing"
+gate.build.no-arrival: "nowhere"
+
+gate.dial.already-open: "{0} is already open."
+gate.dial.being-dialled: "{0} is being dialled."

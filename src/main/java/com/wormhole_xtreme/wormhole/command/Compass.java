@@ -17,6 +17,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * The Class Compass.
@@ -56,8 +57,7 @@ public class Compass implements CommandExecutor
                     return;
                 }
             }
-            player.sendMessage(ChatText.info("Carry a plain " + ChatText.material("compass")
-                + " to see it; lodestone and recovery compasses follow their own targets."));
+            player.sendMessage(ChatText.info(Messages.get(player, "compass.plain-only")));
         }
         catch (final RuntimeException ignored)
         {
@@ -103,7 +103,7 @@ public class Compass implements CommandExecutor
     private static boolean resetCompass(final Player player)
     {
         player.setCompassTarget(player.getWorld().getSpawnLocation());
-        player.sendMessage(ChatText.info("Compass back to normal: it points at world spawn again."));
+        player.sendMessage(ChatText.info(Messages.get(player, "compass.reset")));
         warnIfNothingWillShowIt(player);
         return true;
     }
@@ -134,12 +134,12 @@ public class Compass implements CommandExecutor
             if (closest != null)
             {
                 player.setCompassTarget(closest.getGatePlayerTeleportLocation());
-                player.sendMessage(ChatText.info("Compass set to wormhole " + ChatText.name(closest.getGateName()) + "."));
+                player.sendMessage(ChatText.info(Messages.get(player, "compass.set", ChatText.name(closest.getGateName()))));
                 warnIfNothingWillShowIt(player);
             }
             else
             {
-                player.sendMessage(ChatText.error("No wormholes to track."));
+                player.sendMessage(ChatText.error(Messages.get(player, "compass.none")));
             }
         }
         else

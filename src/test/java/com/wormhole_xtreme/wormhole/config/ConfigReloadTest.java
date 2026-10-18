@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +24,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * {@code /wormhole config -reload} takes what an admin edited into config.yml, and nothing it should not.
@@ -39,7 +41,10 @@ class ConfigReloadTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        // A reload reads lang/ too; without a data folder that would be under the working directory.
+        when(plugin.getDataFolder()).thenReturn(directory);
+        PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
     }
 
@@ -47,6 +52,9 @@ class ConfigReloadTest
     void tearDown() throws Exception
     {
         ConfigTestSupport.clear();
+        // English from a folder with no lang files, so a translation a test wrote does not leak into later tests.
+        when(WormholeXTreme.getThisPlugin().getDataFolder()).thenReturn(new File(directory, "none"));
+        Messages.load();
         PluginTestSupport.remove();
     }
 
@@ -381,5 +389,64 @@ class ConfigReloadTest
 
         assertEquals(Boolean.FALSE, valueOf(ConfigKeys.GATE_SOUNDS_ENABLED), "not reset to its default of true");
         assertFalse(report.changes().stream().anyMatch(c -> c.key() == ConfigKeys.GATE_SOUNDS_ENABLED));
+    }
+
+    private void writeGerman(final String none) throws Exception
+    {
+        final File lang = new File(directory, "lang");
+        lang.mkdirs();
+        Files.writeString(new File(lang, "de.yml").toPath(), "compass.none: \"" + none + "\"\n", StandardCharsets.UTF_8);
+    }
+
+    /** A changed language is read at once, not at the next restart (#26). */
+    @Test
+    void aChangedLanguageIsReadAtOnce() throws Exception
+    {
+        writeGerman("Keine Wurmlöcher.");
+        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, "en");
+
+        final ConfigReload.Report report = reload("server-language: de\n");
+
+        assertEquals(1, report.changes().size(), String.valueOf(report.changes()));
+        assertEquals("Keine Wurmlöcher.", Messages.get(null, "compass.none"));
+    }
+
+    /**
+     * An edited translation is read by a reload that leaves {@code server-language} as it was: that is how a
+     * translator sees their work without a restart (#26).
+     */
+    @Test
+    void anEditedTranslationIsReadWithTheLanguageUnchanged() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, "de");
+        writeGerman("Alt.");
+        Messages.load();
+        assertEquals("Alt.", Messages.get(null, "compass.none"), "the first text should be read");
+        writeGerman("Neu.");
+
+        final ConfigReload.Report report = reload("server-language: de\n");
+
+        assertEquals(List.of(), report.changes(), "language did not change");
+        assertEquals("Neu.", Messages.get(null, "compass.none"));
+    }
+
+    /**
+     * A bare {@code no} or {@code off} is a YAML switch, not the language code: the reload says to quote
+     * it and keeps the language (#26).
+     */
+    @Test
+    void aBareNoUnderLanguageIsRefusedWithAdviceToQuoteIt() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, "de");
+
+        final ConfigReload.Report report = reload("server-language: no\n");
+
+        assertEquals(1, report.rejections().size(), String.valueOf(report.rejections()));
+        assertTrue(report.rejections().get(0).refusal().contains("in quotes"), report.rejections().get(0).refusal());
+        assertEquals("de", valueOf(ConfigKeys.SERVER_LANGUAGE), "the language is kept");
+        assertEquals(List.of(), report.changes());
+
+        assertEquals(List.of(), reload("server-language: \"no\"\n").rejections(), "quoted, no is the code for Norwegian");
+        assertEquals("no", valueOf(ConfigKeys.SERVER_LANGUAGE));
     }
 }

@@ -224,6 +224,32 @@ class ParsedSettingTest
             parsed.getRefusal());
     }
 
+    /**
+     * A language is any short code, in lower case, with or without a file yet (#26); anything that could
+     * name a file outside lang/, such as a path, is refused.
+     */
+    @Test
+    void aLanguageIsAPlainCode()
+    {
+        storesAs(ConfigKeys.SERVER_LANGUAGE, "DE", "de");
+        storesAs(ConfigKeys.SERVER_LANGUAGE, " pt-br ", "pt_br");
+        storesAs(ConfigKeys.SERVER_LANGUAGE, "pt_BR", "pt_br");
+        // A client never sends a digit or an edge underscore, so no file could be named for one.
+        refuses(ConfigKeys.SERVER_LANGUAGE, "es_419");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "_de");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "de-");
+        storesAs(ConfigKeys.SERVER_LANGUAGE, "zh_tw", "zh_tw");
+        storesAs(ConfigKeys.SERVER_LANGUAGE, "en", "en");
+        // What YAML makes of a bare no or off; a code it is not.
+        refuses(ConfigKeys.SERVER_LANGUAGE, "false");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "TRUE");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "../config");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "de.yml");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "a-language-code-too-long");
+        assertTrue(refuses(ConfigKeys.SERVER_LANGUAGE, "en gb").getRefusal().contains("pt_br"),
+            "the refusal should show what a code looks like");
+    }
+
     /** A gate view level is one of the three, in any case; anything else is refused by name (#516). */
     @Test
     void aGateViewThatIsNotOneIsRefused()

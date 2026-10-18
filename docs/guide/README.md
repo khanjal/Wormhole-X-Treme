@@ -9,6 +9,7 @@ How to install, configure and use Wormhole X-Treme. Start with the page for what
 | [RINGS.md](RINGS.md) | Building and using transport rings |
 | [BEAMS.md](BEAMS.md) | Beam destinations and private places |
 | [MIRRORS.md](MIRRORS.md) | Quantum mirrors, and making a banner look like where it goes |
+| [TRANSLATING.md](TRANSLATING.md) | Chat messages in another language |
 
 These pages say what things do. Why they work that way is in the design notes beside this folder:
 [GATES.md](../GATES.md), [RINGS.md](../RINGS.md), [BEAMS.md](../BEAMS.md) and

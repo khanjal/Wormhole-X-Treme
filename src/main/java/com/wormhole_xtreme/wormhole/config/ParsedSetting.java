@@ -182,6 +182,8 @@ final class ParsedSetting
         {
             case LOG_LEVEL:
                 return readLevel(key, trimmed);
+            case SERVER_LANGUAGE:
+                return readServerLanguage(key, trimmed);
             case RING_DEFAULT_ACCESS:
                 return readAccess(key, trimmed);
             case RING_DEFAULT_STYLE:
@@ -227,6 +229,23 @@ final class ParsedSetting
             return refused(key + " is SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, "
                 + "ALL or OFF, not \"" + raw + "\".");
         }
+    }
+
+    /**
+     * Reads a language code; it need not have a file yet, since a missing one reads as English.
+     *
+     * @param key
+     *            which setting is being written
+     * @param raw
+     *            the value as typed
+     * @return the code in lower case, or the reason it was refused
+     */
+    private static ParsedSetting readServerLanguage(final ConfigKeys key, final String raw)
+    {
+        final String code = ConfigManager.parseServerLanguage(raw);
+        return (code == null)
+            ? refused(key + " is a language code such as en, de or pt_br, not \"" + raw + "\".")
+            : accepted(code);
     }
 
     /**
