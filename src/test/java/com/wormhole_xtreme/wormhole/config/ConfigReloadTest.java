@@ -41,7 +41,10 @@ class ConfigReloadTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        // A reload reads lang/ too; without a data folder that would be under the working directory.
+        when(plugin.getDataFolder()).thenReturn(directory);
+        PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
     }
 
@@ -49,6 +52,7 @@ class ConfigReloadTest
     void tearDown() throws Exception
     {
         ConfigTestSupport.clear();
+        Messages.load();
         PluginTestSupport.remove();
     }
 
@@ -385,27 +389,62 @@ class ConfigReloadTest
         assertFalse(report.changes().stream().anyMatch(c -> c.key() == ConfigKeys.GATE_SOUNDS_ENABLED));
     }
 
+    private void writeGerman(final String none) throws Exception
+    {
+        final File lang = new File(directory, "lang");
+        lang.mkdirs();
+        Files.writeString(new File(lang, "de.yml").toPath(), "compass.none: \"" + none + "\"\n", StandardCharsets.UTF_8);
+    }
+
     /** A changed language is read at once, not at the next restart (#26). */
     @Test
     void aChangedLanguageIsReadAtOnce() throws Exception
     {
-        when(WormholeXTreme.getThisPlugin().getDataFolder()).thenReturn(directory);
-        final File lang = new File(directory, "lang");
-        lang.mkdirs();
-        Files.writeString(new File(lang, "de.yml").toPath(), "compass.none: \"Keine Wurmlöcher.\"\n", StandardCharsets.UTF_8);
+        writeGerman("Keine Wurmlöcher.");
         ConfigTestSupport.set(ConfigKeys.LANGUAGE, "en");
-        try
-        {
-            final ConfigReload.Report report = reload("language: de\n");
 
-            assertEquals(1, report.changes().size(), String.valueOf(report.changes()));
-            assertEquals("Keine Wurmlöcher.", Messages.get("compass.none"));
-        }
-        finally
-        {
-            ConfigTestSupport.set(ConfigKeys.LANGUAGE, "en");
-            ConfigManager.follow(ConfigKeys.LANGUAGE);
-        }
-        assertEquals("No wormholes to track.", Messages.get("compass.none"), "and back to English");
+        final ConfigReload.Report report = reload("language: de\n");
+
+        assertEquals(1, report.changes().size(), String.valueOf(report.changes()));
+        assertEquals("Keine Wurmlöcher.", Messages.get("compass.none"));
+    }
+
+    /**
+     * An edited translation is read by a reload that leaves {@code language} as it was: that is how a
+     * translator sees their work without a restart (#26).
+     */
+    @Test
+    void anEditedTranslationIsReadWithTheLanguageUnchanged() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.LANGUAGE, "de");
+        writeGerman("Alt.");
+        Messages.load();
+        assertEquals("Alt.", Messages.get("compass.none"), "the first text should be read");
+        writeGerman("Neu.");
+
+        final ConfigReload.Report report = reload("language: de\n");
+
+        assertEquals(List.of(), report.changes(), "language did not change");
+        assertEquals("Neu.", Messages.get("compass.none"));
+    }
+
+    /**
+     * A bare {@code no} or {@code off} is a YAML switch, not the language code: the reload says to quote
+     * it and keeps the language (#26).
+     */
+    @Test
+    void aBareNoUnderLanguageIsRefusedWithAdviceToQuoteIt() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.LANGUAGE, "de");
+
+        final ConfigReload.Report report = reload("language: no\n");
+
+        assertEquals(1, report.rejections().size(), String.valueOf(report.rejections()));
+        assertTrue(report.rejections().get(0).refusal().contains("in quotes"), report.rejections().get(0).refusal());
+        assertEquals("de", valueOf(ConfigKeys.LANGUAGE), "the language is kept");
+        assertEquals(List.of(), report.changes());
+
+        assertEquals(List.of(), reload("language: \"no\"\n").rejections(), "quoted, no is the code for Norwegian");
+        assertEquals("no", valueOf(ConfigKeys.LANGUAGE));
     }
 }

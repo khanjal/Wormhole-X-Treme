@@ -332,8 +332,8 @@ plugins/WormholeXTreme/
 Back up by copying `data/`; edit anything in it by hand if you need to. There is no database to
 install or configure. Gates are one file each; rings are one file per world, and a pair that
 will not parse is logged and skipped while the rest of the world loads. `lang/` holds the chat
-messages, one file per language; `en.yml` is written there if missing, for
-[translating](TRANSLATING.md), and an edited one is never overwritten.
+messages, one file per language; `en.yml` is written there if missing, as a copy to start
+[translating](TRANSLATING.md) from, and is never read: English comes from the plugin itself.
 
 The HSQLDB and SQLite backends of earlier versions are gone. Files an older build of this fork
 kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is

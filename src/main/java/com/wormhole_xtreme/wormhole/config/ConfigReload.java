@@ -88,20 +88,18 @@ public final class ConfigReload
     }
 
     /**
-     * Reloads this server's config.yml, and the language files whether or not {@code language} changed,
-     * so an edited translation is taken too.
+     * Reloads this server's config.yml.
      *
      * @return what changed
      */
     public static Report reload()
     {
-        final Report report = reload(ConfigurationYAML.getConfigFile(ConfigManager.configuredPluginName()));
-        Messages.load();
-        return report;
+        return reload(ConfigurationYAML.getConfigFile(ConfigManager.configuredPluginName()));
     }
 
     /**
-     * Reloads the settings from one file.
+     * Reloads the settings from one file, and the language file whether or not {@code language}
+     * changed, so an edited translation is taken too.
      *
      * @param cfg
      *            the config file
@@ -148,6 +146,11 @@ public final class ConfigReload
             {
                 take(element, current, value, changes, rejections);
             }
+        }
+        // A changed language was read as it was taken; read it once either way.
+        if (changes.stream().noneMatch(change -> change.key() == ConfigKeys.LANGUAGE))
+        {
+            Messages.load();
         }
         return new Report(null, changes, rejections);
     }

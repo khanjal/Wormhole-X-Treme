@@ -15,7 +15,7 @@ import java.io.File;
  * <pre>
  * &lt;plugin folder&gt;/
  * ├── config.yml
- * ├── lang/*.yml                 chat messages, one file per language; en.yml a copy of the jar's
+ * ├── lang/*.yml                 chat messages, one file per language; en.yml a copy, never read
  * ├── shapes/
  * │   ├── gate/*.shape           the shapes gates are built from
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with

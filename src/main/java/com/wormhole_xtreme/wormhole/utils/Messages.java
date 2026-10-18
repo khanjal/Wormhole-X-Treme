@@ -27,9 +27,9 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * any other brace is plain text, as it would not be under {@code MessageFormat}. A placeholder with
  * no argument is left as written.
  *
- * <p>Every key comes from the bundled English, so a translation, or the copy of {@code en.yml} in the
- * plugin folder, that is stale or edited cannot lose one. A key in neither is sent as the key itself
- * and logged once.
+ * <p>Every key comes from the bundled English, so a stale or edited translation cannot lose one; the
+ * copy of {@code en.yml} in the plugin folder is for translators and never read. A key the jar lacks
+ * is sent as the key itself and logged once.
  */
 public final class Messages
 {
@@ -83,7 +83,7 @@ public final class Messages
     }
 
     /**
-     * Reads one language from a folder over the bundled English.
+     * Reads one language from a folder over the bundled English; for English, the jar's alone.
      *
      * @param language
      *            the language code, already checked to be a plain file name
@@ -94,24 +94,32 @@ public final class Messages
     {
         writeMissing(directory);
         final Map<String, String> text = readBundled();
-        final File file = new File(directory, language + ".yml");
-        if (file.isFile())
+        // lang/en.yml is only a copy for translators: English always comes from the jar, so it is never stale.
+        if (!DEFAULT_LANGUAGE.equals(language))
         {
-            try (InputStream in = Files.newInputStream(file.toPath()))
-            {
-                text.putAll(read(in, file.getName()));
-            }
-            catch (final IOException | YAMLException e)
-            {
-                PluginLog.log(Level.WARNING, "Could not read lang/" + file.getName() + "; messages are in English. " + e);
-            }
-        }
-        else if (!DEFAULT_LANGUAGE.equals(language))
-        {
-            PluginLog.log(Level.WARNING, "There is no lang/" + file.getName() + "; messages are in English.");
+            text.putAll(readTranslation(new File(directory, language + ".yml")));
         }
         templates = parse(text);
         reportedMissing.clear();
+    }
+
+    /** @return a translation's text by key, empty with a warning if there is no such file or it cannot be read */
+    private static Map<String, String> readTranslation(final File file)
+    {
+        if (!file.isFile())
+        {
+            PluginLog.log(Level.WARNING, "There is no lang/" + file.getName() + "; messages are in English.");
+            return Map.of();
+        }
+        try (InputStream in = Files.newInputStream(file.toPath()))
+        {
+            return read(in, file.getName());
+        }
+        catch (final IOException | YAMLException e)
+        {
+            PluginLog.log(Level.WARNING, "Could not read lang/" + file.getName() + "; messages are in English. " + e);
+            return Map.of();
+        }
     }
 
     /** Copies each bundled language the folder lacks out of the jar; a file already there is left alone. */

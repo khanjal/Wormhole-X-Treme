@@ -1778,6 +1778,7 @@ public class ConfigManager
 
     /**
      * Reads a language code as typed; letters, digits, - and _ only, since it names a file in lang/.
+     * Not true or false, which is what YAML makes of a bare {@code no} or {@code off}.
      *
      * @param raw
      *            the value as typed
@@ -1786,7 +1787,7 @@ public class ConfigManager
     public static String parseLanguage(final String raw)
     {
         final String code = (raw == null) ? "" : raw.trim().toLowerCase(Locale.ROOT);
-        return LANGUAGE_CODE.matcher(code).matches() ? code : null;
+        return (LANGUAGE_CODE.matcher(code).matches() && !"true".equals(code) && !"false".equals(code)) ? code : null;
     }
 
     /**

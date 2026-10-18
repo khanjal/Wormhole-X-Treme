@@ -36,5 +36,7 @@ compass.none: "Keine Wurmlöcher zum Verfolgen."
   message that is not text is skipped and sent in English. The same goes for the code itself:
   write `language: "no"` for Norwegian.
 
-`lang/en.yml` is read too, so editing it changes the English. It is never overwritten, so after an
-update it can hold older wording than the plugin's; delete it and restart to get the current one.
+`lang/en.yml` is a copy for translators and is never read: English always comes from the plugin
+itself, so it is current after every update. To change the English wording, copy `en.yml` to
+another code, such as `en-custom.yml`, edit that and set `language: en-custom`. `en.yml` is
+written only when missing; delete it and restart to get the current one.

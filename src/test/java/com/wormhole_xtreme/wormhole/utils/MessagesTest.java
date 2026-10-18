@@ -117,16 +117,18 @@ class MessagesTest
         assertEquals("Compass back to normal: it points at world spawn again.", Messages.get("compass.reset"));
     }
 
-    /** An edited en.yml on disk that has lost a key still sends that key's text: the jar's English is underneath. */
+    /**
+     * English is the jar's, whatever lang/en.yml on disk says. The copy is never overwritten, so after an
+     * update an untouched old one would otherwise keep sending last version's wording.
+     */
     @Test
-    void anEditedEnglishCopyCannotLoseAKey() throws Exception
+    void anEditedEnglishCopyDoesNotChangeEnglish() throws Exception
     {
         write("en.yml", "compass.none: \"Nothing to point at.\"\n");
 
         Messages.load("en", lang);
 
-        assertEquals("Nothing to point at.", Messages.get("compass.none"));
-        assertEquals("Compass back to normal: it points at world spawn again.", Messages.get("compass.reset"));
+        assertEquals("No wormholes to track.", Messages.get("compass.none"), "not the edited copy's text");
     }
 
     /** A language with no file is English, said once in the log. */

@@ -234,6 +234,10 @@ class ParsedSettingTest
         storesAs(ConfigKeys.LANGUAGE, "DE", "de");
         storesAs(ConfigKeys.LANGUAGE, " pt-br ", "pt-br");
         storesAs(ConfigKeys.LANGUAGE, "zh_tw", "zh_tw");
+        storesAs(ConfigKeys.LANGUAGE, "en", "en");
+        // What YAML makes of a bare no or off; a code it is not.
+        refuses(ConfigKeys.LANGUAGE, "false");
+        refuses(ConfigKeys.LANGUAGE, "TRUE");
         refuses(ConfigKeys.LANGUAGE, "../config");
         refuses(ConfigKeys.LANGUAGE, "de.yml");
         refuses(ConfigKeys.LANGUAGE, "a-language-code-too-long");
