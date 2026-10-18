@@ -21,9 +21,10 @@ an admin wrote on purpose to attack their own server is out of scope. Players ho
 `/wormhole gate shapes validate|reload <name>` takes a file name from the admin and is
 not hardened against `../`. That is known and low severity, not a player-reachable hole.
 
-Names players choose are written to the filesystem only after being reduced to
-`[a-zA-Z0-9._-]` (gate and ring files, `StargateYamlManager`, `RingYamlManager`), so a
-traversal through a gate or ring name would be a real finding.
+Gate names become file names only after being reduced to `[a-zA-Z0-9._-]`
+(`StargateYamlManager`). Rings are stored one file per world, and it is the world name that is
+reduced (`RingYamlManager`); a ring's own name never forms a path. Captures are keyed the
+same way. A traversal through a gate name would be a real finding.
 
 ## Components that matter most / least
 Most: command parsing and permission checks (`command/`), dial and travel logic, gate and
@@ -31,6 +32,10 @@ ring ownership and permission checks, anything that reads or writes a file whose
 content a player influences, anything that runs on every tick or every move event, and the web
 map providers under `plugin/map/` (Dynmap, BlueMap, squaremap, Pl3xMap), which put
 player-chosen gate and mirror names into map markers that browsers render.
+
+Where player-controlled text is parsed: legacy `§` colour codes on signs and chat
+(`SignText`, `ChatLine`), and the PlaceholderAPI expansion (`WormholePlaceholders`), which
+takes arbitrary parameter strings from any plugin.
 
 Also in scope but lower: the one-time importers and migrations that read and move old data
 (`LegacyDatabaseImporter`, `LegacyDataFolderMigration`), which handle files from other versions.
@@ -42,7 +47,8 @@ Out of scope: Bukkit, Paper, Vault, WorldGuard, and the other plugin APIs we cal
 under `src/test/` and `scripts/`.
 
 ## How to exercise it
-`mvn test` runs the unit tests, which mock the server API (Mockito, MockBukkit). There is no
+`mvn test` runs the unit tests, which mock the server API (Mockito). The MockBukkit tests live
+in a profile that needs a newer JDK and is not available in this image. There is no
 way to run a real server in the offline image, so reason from the code: look for a player
 action that reaches a bad path, rather than a network attack.
 
