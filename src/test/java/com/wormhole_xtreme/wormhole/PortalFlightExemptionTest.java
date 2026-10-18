@@ -75,7 +75,7 @@ class PortalFlightExemptionTest
      */
     private static Set<UUID> flightGrants() throws Exception
     {
-        return PrivateStatics.of(WormholeXTremePlayerListener.class, "portalFlightGranted");
+        return PrivateStatics.of(PortalPresence.class, "portalFlightGranted");
     }
 
     private static void clearFlightGrants() throws Exception
