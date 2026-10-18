@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +23,11 @@ import com.wormhole_xtreme.wormhole.utils.YamlMaps;
  * {@code /wormhole config reload}: reads config.yml again and takes each setting it changes, the
  * way {@code /wormhole config <setting> <value>} would.
  *
- * <p>Only values in memory change. The file is not written, a setting it leaves out keeps its value
- * rather than going back to the default, a value the command would refuse keeps the old one, and a
- * file that cannot be read changes nothing at all. Material groups are not settings and wait for a
- * restart.
+ * <p>The reload does not write the file, though a change it applies may, as the command's would:
+ * turning on {@code gate-material-groups-autodiscover} appends the groups it finds. A setting the
+ * file leaves out keeps its value rather than going back to the default, a value the command would
+ * refuse keeps the old one, and a file that cannot be read changes nothing at all. The material
+ * groups themselves are not settings and wait for a restart.
  */
 public final class ConfigReload
 {
@@ -107,9 +109,14 @@ public final class ConfigReload
             }
             map = YamlMaps.asMap(loaded);
         }
+        catch (final NoSuchFileException e)
+        {
+            return unreadable("There is no " + cfg.getName() + " in the plugin folder");
+        }
         catch (final IOException e)
         {
-            return unreadable(cfg.getName() + " could not be read: " + e);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not reload " + cfg, e);
+            return unreadable(cfg.getName() + " could not be read, as the log says");
         }
         catch (final YAMLException e)
         {
@@ -125,23 +132,37 @@ public final class ConfigReload
             final Object value = (key == null) ? null : map.get(key);
             if ((current != null) && (value != null))
             {
-                take(current, ConfigurationYAML.asKindOf(element.getValue(), value), value, changes, rejections);
+                take(element, current, value, changes, rejections);
             }
         }
         return new Report(null, changes, rejections);
     }
 
-    /** Takes one value from the file, if it is a change the command would accept. */
-    private static void take(final Setting current, final Object read, final Object written,
+    /**
+     * Takes one value from the file, in the form the command would store it, if it differs from
+     * what is set; a value already stored that the command would refuse is reported every time.
+     */
+    private static void take(final Setting element, final Setting current, final Object written,
         final List<Change> changes, final List<Rejection> rejections)
     {
-        if (Objects.equals(current.getValue(), read))
+        final ConfigKeys key = current.getName();
+        final Object read = ConfigurationYAML.asKindOf(element.getValue(), written);
+        if (read == null)
         {
+            rejections.add(new Rejection(key, key + " is " + ConfigurationYAML.kindOf(element.getValue())
+                + ", not \"" + written + "\".", current.getValue()));
             return;
         }
-        final ConfigKeys key = current.getName();
-        final ParsedSetting parsed =
-            ParsedSetting.read(key, current.getValue(), String.valueOf((read == null) ? written : read));
+        ParsedSetting parsed = ParsedSetting.read(key, current.getValue(), String.valueOf(read));
+        // YAML reads a bare off or on as a switch; startup stores its text, which reads as the default.
+        if (!parsed.isAccepted() && (written instanceof Boolean) && !(element.getValue() instanceof Boolean))
+        {
+            if (Objects.equals(current.getValue(), read))
+            {
+                return;
+            }
+            parsed = ParsedSetting.read(key, current.getValue(), String.valueOf(element.getValue()));
+        }
         if (!parsed.isAccepted())
         {
             rejections.add(new Rejection(key, parsed.getRefusal(), current.getValue()));

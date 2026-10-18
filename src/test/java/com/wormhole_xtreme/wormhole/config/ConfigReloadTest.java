@@ -155,15 +155,134 @@ class ConfigReloadTest
         assertEquals(Boolean.FALSE, valueOf(ConfigKeys.ECONOMY_ENABLED));
     }
 
-    /** A missing file is said to be unreadable rather than read as every setting absent. */
+    /**
+     * A missing file is said to be missing, in a few words, rather than read as every setting absent.
+     *
+     * <p>The exception's own text is the server's absolute path, which has no place in chat.
+     */
     @Test
-    void aMissingFileChangesNothingAndSaysWhy()
+    void aMissingFileChangesNothingAndSaysSoShortly()
     {
         ConfigTestSupport.set(ConfigKeys.ECONOMY_ENABLED, false);
 
         final ConfigReload.Report report = ConfigReload.reload(new File(directory, "config.yml"));
 
-        assertTrue(String.valueOf(report.unreadable()).contains("could not be read"), report.unreadable());
+        assertEquals("There is no config.yml in the plugin folder", report.unreadable());
+    }
+
+    /** A file using the enum spelling, or a key's old name, is read as startup reads it. */
+    @Test
+    void theEnumSpellingAndARenamedKeyAreRead() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.ECONOMY_ENABLED, false);
+        ConfigTestSupport.set(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 16);
+
+        try (MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            reload("ECONOMY_ENABLED: true\nmirror-proximity-radius: 9\n");
+        }
+
+        assertEquals(Boolean.TRUE, valueOf(ConfigKeys.ECONOMY_ENABLED));
+        assertEquals(9, valueOf(ConfigKeys.MIRROR_PROXIMITY_DISTANCE));
+    }
+
+    /** A number left under a switch is read as startup reads it, on above 0, not refused. */
+    @Test
+    void aNumberUnderASwitchIsReadAsTheSwitch() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.ECONOMY_ENABLED, false);
+
+        final ConfigReload.Report report;
+        try (MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            report = reload("economy-enabled: 1\n");
+        }
+
+        assertEquals(Boolean.TRUE, valueOf(ConfigKeys.ECONOMY_ENABLED));
+        assertEquals(List.of(), report.rejections());
+    }
+
+    /** A decimal setting takes a decimal. */
+    @Test
+    void aDecimalSettingTakesADecimal() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_SOUND_VOLUME, 1.5);
+
+        reload("gate-sound-volume: 0.5\n");
+
+        assertEquals(0.5, valueOf(ConfigKeys.GATE_SOUND_VOLUME));
+    }
+
+    /** A whole-number setting refuses a decimal as a whole number, quoting what was written. */
+    @Test
+    void aWholeNumberSettingRefusesADecimalAsAWholeNumber() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.RING_REACH, 4);
+
+        final ConfigReload.Report report = reload("ring-reach: 2.5\n");
+
+        assertEquals(List.of(new ConfigReload.Rejection(ConfigKeys.RING_REACH,
+            "RING_REACH is a whole number, not \"2.5\".", 4)), report.rejections());
+        assertEquals(4, valueOf(ConfigKeys.RING_REACH));
+    }
+
+    /**
+     * A bare {@code off} under a text setting is its default, as startup reads it, not refused as
+     * {@code "false"}, a word the admin never wrote.
+     */
+    @Test
+    void aBareOffUnderATextSettingIsItsDefault() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_ANIMATION, "spiral");
+
+        final ConfigReload.Report report = reload("gate-view: off\ngate-iris-animation: off\n");
+
+        assertEquals(List.of(), report.rejections());
+        assertEquals("horizon", valueOf(ConfigKeys.GATE_VIEW));
+        assertEquals("sweep", valueOf(ConfigKeys.GATE_IRIS_ANIMATION));
+    }
+
+    /** A bare {@code off} the server started from, stored as {@code "false"}, is no change on reload. */
+    @Test
+    void aBareOffTheServerStartedFromIsNoChange() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "false");
+
+        final ConfigReload.Report report = reload("gate-view: off\n");
+
+        assertEquals(new ConfigReload.Report(null, List.of(), List.of()), report);
+    }
+
+    /**
+     * A value startup stored as written, which the command would store differently, is taken in the
+     * command's form and reported.
+     *
+     * <p>{@code slow} is a sequential ring style to the parser and concurrent to the getter, which
+     * reads the stored text by enum name.
+     */
+    @Test
+    void aValueStoredAsWrittenIsTakenInTheCommandsForm() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.RING_DEFAULT_STYLE, "slow");
+
+        final ConfigReload.Report report = reload("ring-default-style: slow\n");
+
+        assertEquals("SEQUENTIAL", valueOf(ConfigKeys.RING_DEFAULT_STYLE));
+        assertEquals(List.of(new ConfigReload.Change(ConfigKeys.RING_DEFAULT_STYLE, "slow", "SEQUENTIAL", null)),
+            report.changes());
+    }
+
+    /** A refused value startup already stored is reported, every reload, rather than passed over as unchanged. */
+    @Test
+    void aRefusedValueAlreadyStoredIsReported() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.RING_DEFAULT_STYLE, "banana");
+
+        final ConfigReload.Report report = reload("ring-default-style: banana\n");
+
+        assertEquals(1, report.rejections().size(), report.rejections().toString());
+        assertEquals("banana", report.rejections().get(0).kept());
     }
 
     /**

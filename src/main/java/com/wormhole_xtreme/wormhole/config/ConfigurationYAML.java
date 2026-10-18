@@ -373,7 +373,7 @@ public class ConfigurationYAML
     }
 
     /** What kind a setting is, for a warning. */
-    private static String kindOf(final Object kind)
+    static String kindOf(final Object kind)
     {
         if (kind instanceof Boolean)
         {
