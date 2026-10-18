@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -111,19 +112,26 @@ class PlayerNamesTest
 
     /**
      * Spigot and CraftBukkit may have no Adventure at all. Hiding {@code net.kyori} from a fresh copy
-     * of the class stands in for that: the lookup fails to link, and the name is still read.
+     * of the class stands in for that: even given a getter to call, it fails to link its answer, and
+     * the name is still read.
      */
     @Test
     void aServerWithoutAdventureGivesTheString() throws Throwable
     {
-        final Method display = new IsolatedCopy(PlayerNames.class, "net.kyori.")
-            .loadClass(PlayerNames.class.getName()).getMethod("display", Player.class);
-        final Player plain = mock(Player.class);
-        bukkitName(plain, "§cBukkit's");
+        final IsolatedCopy copy = new IsolatedCopy(PlayerNames.class, "net.kyori.");
+        final Class<?> names = copy.loadClass(PlayerNames.class.getName());
+        final Class<?> lookup = copy.loadClass(PlayerNames.Lookup.class.getName());
+        final Method lookupWith = names.getDeclaredMethod("lookupWith", lookup);
+        final Constructor<?> made = lookup.getDeclaredConstructor(Method.class);
+        final Method display = names.getMethod("display", Player.class);
+        lookupWith.setAccessible(true);
+        made.setAccessible(true);
+        when(player.displayName()).thenReturn(Component.text("Sir Nick"));
 
         try
         {
-            assertEquals("§cBukkit's", display.invoke(null, plain));
+            lookupWith.invoke(null, made.newInstance(PaperDisplayed.class.getMethod("displayName")));
+            assertEquals("§cBukkit's", display.invoke(null, player));
         }
         catch (final InvocationTargetException thrown)
         {
