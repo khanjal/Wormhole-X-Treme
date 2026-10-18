@@ -871,7 +871,7 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             getLog().info("");
-            for (final String line : bannerLines(consoleCharset(), PluginVersion.of(this),getServer().getName()))
+            for (final String line : bannerLines(consoleCharset(), PluginVersion.of(this), getServer().getName()))
             {
                 getLog().info(line);
             }
