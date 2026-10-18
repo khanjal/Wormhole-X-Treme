@@ -41,11 +41,7 @@ public final class PlayerNames
         {
             try
             {
-                final Object name = found.get().invoke(player);
-                if (name != null)
-                {
-                    return PaperNames.legacy(name);
-                }
+                return PaperNames.legacy(found.get().invoke(player));
             }
             catch (final ReflectiveOperationException | RuntimeException | LinkageError refused)
             {

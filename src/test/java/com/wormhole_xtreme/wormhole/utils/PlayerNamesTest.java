@@ -102,7 +102,7 @@ class PlayerNamesTest
         assertEquals("§cBukkit's", PlayerNames.display(player));
     }
 
-    /** A server's player always has a component, but a mock stubbed only the Bukkit way answers null. */
+    /** A server's player always has a component, but a mock stubbed only the Bukkit way answers null, which Adventure refuses. */
     @Test
     void aMissingComponentFallsBackToTheString()
     {
