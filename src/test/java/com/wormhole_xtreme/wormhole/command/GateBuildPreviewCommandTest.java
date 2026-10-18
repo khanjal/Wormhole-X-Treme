@@ -18,6 +18,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
@@ -35,6 +36,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -72,6 +74,9 @@ class GateBuildPreviewCommandTest
     // materials is deliberately absent: it still answers, it is just not offered.
     private static final String ACTIONS = "clear activate iris material needs guide layer chevrons dhd share place";
 
+    @TempDir
+    File tempDir;
+
     private final Wormhole command = new Wormhole();
     private Player player;
     private Stargate3DShape standard;
@@ -79,7 +84,9 @@ class GateBuildPreviewCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.getDataFolder()).thenReturn(tempDir);
+        PluginTestSupport.install(plugin);
         standard = new Stargate3DShape(Files.readAllLines(
             Paths.get("src/main/resources/shapes/gate/Standard.shape")).toArray(new String[0]));
         StargateShapeRegistry.getStargateShapes().put("Standard", standard);
@@ -101,6 +108,7 @@ class GateBuildPreviewCommandTest
     void tearDown() throws Exception
     {
         StargateManager.forgetPlayer(player);
+        StargateShapeRegistry.setEnabled("Standard", true);
         StargateShapeRegistry.getStargateShapes().remove("Standard");
         MaterialGroupRegistry.load(null);
         ConfigTestSupport.clear();
@@ -138,6 +146,23 @@ class GateBuildPreviewCommandTest
         verify(player, never()).sendMessage(saying(NO_PERMISSION));
         verify(player).sendMessage(saying("Previewing Standard in Standard"));
         assertSame(standard, StargateManager.getPlayerBuilderShape(player));
+    }
+
+    /** A shape turned off cannot be chosen to build, with or without the preview node. */
+    @Test
+    void aShapeTurnedOffCannotBeBuilt()
+    {
+        assertTrue(new File(tempDir, "shapes" + File.separator + "gate").mkdirs());
+        StargateShapeRegistry.setEnabled("Standard", false);
+        when(player.hasPermission("wormhole.config")).thenReturn(true);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            run("gate", "build", "Standard");
+
+            previews.verify(() -> GatePreviews.show(any(), any(), any()), never());
+        }
+        verify(player).sendMessage(saying("Standard is turned off on this server."));
+        assertNull(StargateManager.getPlayerBuilderShape(player));
     }
 
     /** Naming a group shows the shape in that group. */

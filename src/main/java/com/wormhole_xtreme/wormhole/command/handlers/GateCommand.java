@@ -103,7 +103,7 @@ public class GateCommand implements SubCommand
         usage("/wormhole gate remove <gate> [-destroy]", REMOVE, "delete");
         usage("/wormhole gate regen <gate|-all> [-shape <shape>] [-fill] [-water]", REGEN, REGENERATE);
         usage("/wormhole gate validate <gate|-all>", VALIDATE);
-        usage("/wormhole gate shapes <reload|validate> [name]", SHAPES);
+        usage("/wormhole gate shapes <reload|validate|enable|disable> [name]", SHAPES);
     }
 
     private static void usage(final String line, final String... verbs)

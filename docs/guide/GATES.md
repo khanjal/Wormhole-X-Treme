@@ -168,6 +168,13 @@ startup, an edited one is left alone, and anything you add is loaded. Older
 **To make your own**, copy an existing `.shape` file, edit the grid, give it a unique name, and
 put it in `shapes/gate/`. Try it without restarting with `/wormhole gate shapes reload <name>`.
 
+**To stop players building a shape**, turn it off with `/wormhole gate shapes disable <name>` (say,
+`Massive` on a survival server) and back on with `enable`. A shape that is off cannot be chosen with
+`gate build`, previewed or placed, or found when a player finishes building one by hand, and it
+is left out of tab completion. Gates already standing on it keep working. The
+choice is kept in `shapes/gate/disabled-shapes.txt`, one name a line, so editing, resaving or
+updating the shape file never turns it back on.
+
 ### Shape material parameters
 
 Shapes describe geometry; appearance comes from the [material group](#material-groups), so the
@@ -627,6 +634,8 @@ the setting does not touch them.
 |---|---|
 | `gate shapes reload [name]` | Reload shape files without a restart |
 | `gate shapes validate <name>` | Check a shape file |
+| `gate shapes disable <name>` | Stop new gates being built from a shape; gates already built keep working |
+| `gate shapes enable <name>` | Allow building from it again |
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
 
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),

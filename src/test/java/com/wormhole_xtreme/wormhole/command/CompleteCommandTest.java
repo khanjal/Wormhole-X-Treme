@@ -288,7 +288,7 @@ class CompleteCommandTest
             answer.accept(helper.when(() -> StargateHelper.checkStargate(
                 ArgumentMatchers.any(), ArgumentMatchers.any(),
                 ArgumentMatchers.any())));
-            helper.when(() -> StargateHelper.checkStargate(
+            helper.when(() -> StargateHelper.checkNewStargate(
                 ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(anyShape);
             mgr.when(() -> StargateManager.completeStargate(ArgumentMatchers.any(),
                 ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
