@@ -86,6 +86,7 @@ somebody else's release notes, and the record of where this fork came from.
 **Fixed**
 
 - **`gate shapes validate` and `reload` refuse a name with `/`, `\` or `:` in it**, so they only read files in the shapes folder ([#644](https://github.com/khanjal/Wormhole-X-Treme/issues/644)).
+- **`log-level: off` no longer stops the plugin loading**: a bare `off` is the level `OFF`, `/wormhole config log-level off` is written back in quotes, and a value that is no level is the default, said once ([#647](https://github.com/khanjal/Wormhole-X-Treme/issues/647)).
 
 ### Stargates
 
