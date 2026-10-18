@@ -18,7 +18,7 @@ English until they are moved over, a few at a time. Command usage and help lines
    them wherever your language's word order needs them.
 5. Keep each `§` colour code, around the same words. `§7` is the body grey every line returns to.
 6. Set `language: <code>` in `config.yml`, or run `/wormhole config language <code>`.
-7. After editing the file again, run `/wormhole config reload`.
+7. After editing the file again, run `/wormhole config -reload`.
 
 ```yaml
 # lang/de.yml
