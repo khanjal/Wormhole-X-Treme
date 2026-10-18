@@ -83,6 +83,10 @@ somebody else's release notes, and the record of where this fork came from.
 - **`/wormhole config reload` reads `config.yml` again** after it is edited or deployed, without a restart: it lists each setting it changed, names any value it refused and keeps the old one, and a file that cannot be read changes nothing. It does not write the file, apart from what turning `gate-material-groups-autodiscover` on does, as with the command; edited material groups still wait for a restart ([#634](https://github.com/khanjal/Wormhole-X-Treme/issues/634)). [Guide](docs/guide/SERVER.md#configuration)
 - **`/wormhole gate shapes disable <shape>` and `enable`** stop and allow building a gate shape without deleting its file; gates already standing keep working. The choice is kept in `shapes/gate/disabled-shapes.txt` and survives editing, resaving and updating the shape ([#636](https://github.com/khanjal/Wormhole-X-Treme/issues/636)).
 
+**Fixed**
+
+- **`gate shapes validate` and `reload` refuse a name with `/`, `\` or `:` in it**, so they only read files in the shapes folder ([#644](https://github.com/khanjal/Wormhole-X-Treme/issues/644)).
+
 ### Internals
 
 - Javadoc `@param` tags that only repeated the parameter name (`@param gate` / `the gate`) are gone ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
