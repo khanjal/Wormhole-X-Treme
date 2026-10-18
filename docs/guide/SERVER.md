@@ -208,7 +208,7 @@ outranks a negated node.
 | `wormhole.build.mindistance.bypass` | op | Building closer to another gate than [`min-gate-distance`](GATES.md#building-a-gate) allows |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
-| `wormhole.config` | op | Settings, including `config -reload`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
+| `wormhole.config` | op | Settings, including `config -reload` and `lang export`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
 | `wormhole.network.use.<network>` | | Using gates on that network |
 | `wormhole.network.build.<network>` | | Building gates on that network |
 
@@ -273,6 +273,7 @@ a dashed word is always the option and a bare word is always a name.
 | `beam …` | [Beam commands](BEAMS.md#commands) |
 | `mirror …` | [Mirror commands](MIRRORS.md#commands) |
 | `config …` | [Configuration](#configuration) |
+| `lang export [code]` | [Translating](TRANSLATING.md): writes a starter `lang/<code>.yml`, never over one there |
 | `compass` | Points your compass at the nearest gate; `compass reset` points it back at spawn |
 
 `compass` works without a compass in hand — the heading is stored against you. It says so when

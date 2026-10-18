@@ -1265,8 +1265,11 @@ language (`de`, `de_de`). A player reads their client's locale, read on every ca
 `PlayerLocales` (Paper's `locale()` by reflection, Bukkit's `getLocale()` elsewhere) and sanitised to
 `[a-z_]`: `de_de`, then `de`, then `server-language`, then English, key by key. Any other recipient,
 or `null`, starts at `server-language`. Each code is the jar's file with the owner's
-`lang/<code>.yml` from the plugin folder over it; the plugin writes nothing to that folder, and
-reads it only on load and reload. Parsed languages are cached per code, never per player, and the
+`lang/<code>.yml` from the plugin folder over it; only `/wormhole lang export` (`LangExport`) writes
+to that folder, never over a file, and it is read only on load and reload. The export copies the
+jar's file line by line, so every message in it must stay one `key: "text"` line, which
+`LangExportTest` checks; tab completion lists the jar's languages from the plugin's own jar, or
+from `target/classes` in tests. Parsed languages are cached per code, never per player, and the
 client codes seen are remembered up to a bound. Sign text is not localised.
 
 - **To move a message**, add its key to `en.yml`, named by area in dotted lower case
