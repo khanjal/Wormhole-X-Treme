@@ -552,8 +552,8 @@ class ConfigLoadTest
     }
 
     /**
-     * {@code /wormhole config log-level off} is written so it reads back as OFF (#647): written bare,
-     * the next start read it as the switch false and failed to load.
+     * {@code /wormhole config log-level off} is written in quotes, so any reader takes the word and not
+     * a switch (#647). Only the file line guards the quoting: a bare off now reads back as OFF anyway.
      */
     @Test
     void aLevelOfOffIsWrittenSoItReadsBack() throws Exception
@@ -569,7 +569,7 @@ class ConfigLoadTest
 
         assertTrue(configLines().contains("log-level: \"OFF\""), "written in quotes: " + configLines());
         assertEquals("OFF", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.LOG_LEVEL).getValue(),
-            "read back as the word, not the switch YAML makes of it bare");
+            "and read back as the level");
     }
 
     /**

@@ -1178,7 +1178,7 @@ public class ConfigurationYAML
         return constantName.toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
-    /** The words YAML 1.1 reads as true or false, in any capitals. */
+    /** The words YAML 1.1 reads as true or false, in any capitals; y and n are not to SnakeYAML, and quoted harmlessly. */
     private static final Set<String> SWITCH_WORDS = Set.of("y", "n", "yes", "no", "true", "false", "on", "off");
 
     private static String formatValueForYaml(final Object value)
