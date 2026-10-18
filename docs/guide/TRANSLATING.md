@@ -7,7 +7,8 @@ not a player use `server-language` (later, the log and text the server puts in t
 **Only some messages are translatable so far** ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)):
 `/wormhole compass`, building or dialling a gate by coordinates from the console, and building,
 dialling and travelling through a gate: `/dial`, the DHD, the dial sign, the iris, the toll, the
-cooldown and the region refusals. The rest are
+cooldown and the region refusals; and what transport rings tell the people standing in them. The
+rest are
 English until they are moved over, a few at a time. Command usage and help lines come later, and
 **sign text stays English for now**: a sign is read by everyone who walks past, whatever their
 language.
