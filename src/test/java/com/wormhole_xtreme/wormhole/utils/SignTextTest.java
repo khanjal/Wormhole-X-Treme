@@ -32,9 +32,9 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  *
  * <p>Spigot's API, which most legs compile against, has no {@code line(int, Component)}, so these
  * tests install a stand-in type declaring Paper's three methods, found by reflection exactly as
- * the server's are.
+ * the server's are. The fallback tests stub and verify the string methods Paper deprecates,
+ * hence the suppression.
  */
-// Spigot's API has only the methods Paper deprecates, and the fallback is what is tested.
 @SuppressWarnings("deprecation")
 class SignTextTest
 {
