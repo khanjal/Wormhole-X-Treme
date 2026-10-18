@@ -86,12 +86,14 @@ class ShapeEnabledFlagTest
         assertTrue(lines.contains("massive"), "got " + lines);
     }
 
-    /** A reload clears the registry and reads the folder again; the switch has to be read with it. */
+    /** A restart starts with nothing in memory and reads the folder; the switch has to be read with it. */
     @Test
     void aShapeStaysOffAfterShapesReloadAndStillLoads()
     {
         StargateShapeRegistry.loadShapes(shapes);
         StargateShapeRegistry.setEnabled("Massive", false);
+        StargateShapeRegistry.readDisabled(new File(tempDir, "none"));
+        assertTrue(StargateShapeRegistry.isEnabled("Massive"), "memory forgotten, as at startup");
 
         StargateShapeRegistry.reloadAllShapes();
 
@@ -106,6 +108,7 @@ class ShapeEnabledFlagTest
     {
         StargateShapeRegistry.loadShapes(shapes);
         StargateShapeRegistry.setEnabled("Massive", false);
+        StargateShapeRegistry.readDisabled(new File(tempDir, "none"));
         final File massive = new File(shapes, "Massive.shape");
         Files.writeString(massive.toPath(), "# edited by hand\n" + Files.readString(massive.toPath()),
             StandardCharsets.UTF_8);
