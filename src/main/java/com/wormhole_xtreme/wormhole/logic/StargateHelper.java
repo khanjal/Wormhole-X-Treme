@@ -17,6 +17,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
+import com.wormhole_xtreme.wormhole.utils.SignText;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 import java.util.ArrayList;
@@ -914,7 +915,7 @@ public final class StargateHelper
                     // gate is running. Re-detecting a styled sign would otherwise take the
                     // colour codes into the gate's name -- invisible characters in a name
                     // that has to be typed to dial it.
-                    final String line0 = signState.getSide(Side.FRONT).getLine(0);
+                    final String line0 = SignText.get(signState.getSide(Side.FRONT), 0);
                     final String signName = SignStyle
                         .stripFormatting(line0).trim();
                     if (!signName.isEmpty())

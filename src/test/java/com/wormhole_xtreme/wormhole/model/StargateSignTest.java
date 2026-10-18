@@ -1,7 +1,5 @@
 package com.wormhole_xtreme.wormhole.model;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -21,6 +19,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.SignLines;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 
@@ -173,7 +172,8 @@ class StargateSignTest
 
         gate.setupGateSign(true);
 
-        verify(frontSide).setLine(eq(0), contains("-Alpha-"));
+        final String top = SignLines.writtenTo(frontSide)[0];
+        Assertions.assertTrue(top != null && top.contains("-Alpha-"), "top line: " + top);
     }
 
     /**
@@ -197,8 +197,9 @@ class StargateSignTest
 
         // Thirteen characters exactly: the line carries the 13-character prefix and not the
         // 14-character one, so widening or narrowing the limit fails this either way.
-        verify(frontSide).setLine(eq(2), contains("O:AVeryLongOwne"));
-        verify(frontSide, never()).setLine(eq(2), contains("AVeryLongOwner"));
+        final String owner = SignLines.writtenTo(frontSide)[2];
+        Assertions.assertTrue(owner != null && owner.contains("O:AVeryLongOwne"), "owner line: " + owner);
+        Assertions.assertFalse(owner.contains("AVeryLongOwner"), "owner line: " + owner);
     }
 
     /** A gate on no network gets no network line, rather than an empty one. */
@@ -213,7 +214,7 @@ class StargateSignTest
 
         gate.setupGateSign(true);
 
-        verify(frontSide, never()).setLine(eq(1), any());
+        Assertions.assertNull(SignLines.writtenTo(frontSide)[1], "a network line was written");
     }
 
     // ------------------------------------------------------------------

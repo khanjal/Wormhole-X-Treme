@@ -23,6 +23,7 @@ import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
+import com.wormhole_xtreme.wormhole.utils.SignText;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -172,13 +173,13 @@ class StargateDialManager
         face.setGlowingText(ConfigManager.isSignGlowingText());
 
         // Line 0: always this gate's name.
-        face.setLine(0, SignStyle.paint(nameColor, "-" + gate.getGateName() + "-"));
+        SignText.set(face, 0, SignStyle.paint(nameColor, "-" + gate.getGateName() + "-"));
 
         if (others.isEmpty())
         {
-            face.setLine(1, "");
-            face.setLine(2, SignStyle.paint(neighbourColor, "No Other Gates"));
-            face.setLine(3, "");
+            SignText.set(face, 1, "");
+            SignText.set(face, 2, SignStyle.paint(neighbourColor, "No Other Gates"));
+            SignText.set(face, 3, "");
             gate.getGateDialSign().update(true, false);
             gate.setGateDialSignTarget(null);
             return;
@@ -213,17 +214,17 @@ class StargateDialManager
         if (others.size() == 1)
         {
             // Only one other gate: no prev/next context needed.
-            face.setLine(1, "");
-            face.setLine(2, SignStyle.paint(selectedColor, selected(current)));
-            face.setLine(3, "");
+            SignText.set(face, 1, "");
+            SignText.set(face, 2, SignStyle.paint(selectedColor, selected(current)));
+            SignText.set(face, 3, "");
         }
         else
         {
             final int prevIdx = (idx - 1 + others.size()) % others.size();
             final int nextIdx = (idx + 1) % others.size();
-            face.setLine(1, SignStyle.paint(neighbourColor, others.get(prevIdx).getGateName()));
-            face.setLine(2, SignStyle.paint(selectedColor, selected(current)));
-            face.setLine(3, SignStyle.paint(neighbourColor, others.get(nextIdx).getGateName()));
+            SignText.set(face, 1, SignStyle.paint(neighbourColor, others.get(prevIdx).getGateName()));
+            SignText.set(face, 2, SignStyle.paint(selectedColor, selected(current)));
+            SignText.set(face, 3, SignStyle.paint(neighbourColor, others.get(nextIdx).getGateName()));
         }
 
         gate.getGateDialSign().update(true, false);
@@ -265,14 +266,14 @@ class StargateDialManager
             gate.setGateDialSignIndex(-1);
             final SignSide idle = gate.getGateDialSign().getSide(Side.FRONT);
             idle.setGlowingText(ConfigManager.isSignGlowingText());
-            idle.setLine(0, SignStyle.paint(
+            SignText.set(idle, 0, SignStyle.paint(
                 SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColour.DARK_AQUA),
                 gate.getGateName()));
-            idle.setLine(1, SignStyle.paint(
+            SignText.set(idle, 1, SignStyle.paint(
                 SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColour.GRAY),
                 gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public"));
-            idle.setLine(2, "");
-            idle.setLine(3, "");
+            SignText.set(idle, 2, "");
+            SignText.set(idle, 3, "");
             gate.getGateDialSign().update(true, false);
         }
     }
