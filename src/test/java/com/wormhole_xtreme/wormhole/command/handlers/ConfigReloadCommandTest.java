@@ -18,6 +18,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -61,26 +63,18 @@ class ConfigReloadCommandTest
         Files.writeString(new File(dataFolder, "config.yml").toPath(), yaml, StandardCharsets.UTF_8);
     }
 
-    /** Each change is one line, old value to new. */
-    @Test
-    void aChangeIsSaidOldToNew() throws Exception
+    /**
+     * Each change is one line, old value to new, whichever spelling reloads: the flag, or the bare
+     * word tab no longer offers, in any capitals.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = { "-reload", "-RELOAD", "reload", "Reload" })
+    void eitherSpellingReloadsAndSaysEachChangeOldToNew(final String spelling) throws Exception
     {
         ConfigTestSupport.set(ConfigKeys.GATE_SOUNDS_ENABLED, true);
         writeConfig("gate-sounds-enabled: false\n");
 
-        new ConfigCommand().execute(console, new String[] { "config", "-reload" });
-
-        verify(console).sendMessage(infoBody("GATE_SOUNDS_ENABLED: true -> false."));
-    }
-
-    /** The bare word still reloads, in any capitals, though tab no longer offers it. */
-    @Test
-    void theBareWordStillReloads() throws Exception
-    {
-        ConfigTestSupport.set(ConfigKeys.GATE_SOUNDS_ENABLED, true);
-        writeConfig("gate-sounds-enabled: false\n");
-
-        new ConfigCommand().execute(console, new String[] { "config", "Reload" });
+        new ConfigCommand().execute(console, new String[] { "config", spelling });
 
         verify(console).sendMessage(infoBody("GATE_SOUNDS_ENABLED: true -> false."));
     }
