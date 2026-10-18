@@ -87,6 +87,7 @@ class MessagesTest
         assertEquals("can't {x} {} {123} { 0} x", format("can't {x} {} {123} { 0} {0}", "x"));
         assertEquals("ends with {", format("ends with {"));
         assertEquals("{1", format("{1"));
+        assertEquals("{12345678901}", format("{12345678901}"), "a run of digits too long for an int is text, not a crash");
     }
 
     /** An argument holding a placeholder is sent as typed, not expanded by a second pass: a gate called {1}. */
