@@ -15,6 +15,7 @@ import java.nio.file.StandardOpenOption;
 import java.security.CodeSource;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.stream.Stream;
@@ -163,8 +164,8 @@ public final class LangExport
         {
             try (JarFile jar = new JarFile(codeSource.toFile()))
             {
-                jar.stream().map(entry -> entry.getName())
-                    .filter(name -> name.startsWith(LANG) && (name.indexOf('/', LANG.length()) < 0))
+                // A name in a folder below lang/ holds a / and is no code.
+                jar.stream().map(JarEntry::getName).filter(name -> name.startsWith(LANG))
                     .forEach(name -> addCode(codes, name.substring(LANG.length())));
             }
         }
