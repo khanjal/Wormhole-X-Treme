@@ -33,7 +33,8 @@ in lapis for an Atlantis one. See [Material groups](#material-groups).
 least distance in blocks between two gates in one world, measured between the middles of their
 openings. A gate built closer is refused, before any fare is charged, with the distance and the
 nearest gate named. It is checked when the design is found, on `gate complete`, and on
-`gate preview place`. Rings and gates in other worlds do not count. Operators and anyone with
+`gate preview place`, and on `gate build` with coordinates when a player types it. The console and
+command blocks are not held to it. Rings and gates in other worlds do not count. Operators and anyone with
 `wormhole.build.mindistance.bypass` are exempt.
 
 ### Previews
