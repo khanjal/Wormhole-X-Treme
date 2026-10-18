@@ -156,7 +156,7 @@ public final class ConfigReload
         final List<Change> changes, final List<Rejection> rejections)
     {
         final ConfigKeys key = current.getName();
-        final Object read = ConfigurationYAML.asKindOf(element.getValue(), written);
+        final Object read = ConfigurationYAML.readFrom(element, written);
         if (read == null)
         {
             rejections.add(new Rejection(key, key + " is " + ConfigurationYAML.kindOf(element.getValue())

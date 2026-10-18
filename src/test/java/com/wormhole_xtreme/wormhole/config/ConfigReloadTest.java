@@ -243,25 +243,37 @@ class ConfigReloadTest
         assertEquals("sweep", valueOf(ConfigKeys.GATE_IRIS_ANIMATION));
     }
 
+    /** A bare {@code log-level: off}, which YAML reads as false, is the level OFF, as startup reads it (#647). */
+    @Test
+    void aBareOffUnderLogLevelIsTheLevelOff() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.LOG_LEVEL, "WARNING");
+
+        final ConfigReload.Report report = reload("log-level: off\n");
+
+        assertEquals(List.of(), report.rejections());
+        assertEquals("OFF", valueOf(ConfigKeys.LOG_LEVEL));
+    }
+
     /**
-     * A bare {@code off} under any other text setting is refused, naming the switch it was read as,
-     * and the old value kept.
+     * A bare switch under any other text setting is refused, naming the switch it was read as, and
+     * the old value kept.
      *
-     * <p>Reading it as the default would turn {@code log-level: off}, a real level, into INFO, and
-     * {@code ring-default-style: off} into whatever the default style is.
+     * <p>Reading it as the default would turn {@code ring-default-style: off} into whatever the default
+     * style is, and {@code log-level: on} is no level at all.
      */
     @Test
-    void aBareOffUnderAnyOtherTextSettingIsRefused() throws Exception
+    void aBareSwitchUnderAnyOtherTextSettingIsRefused() throws Exception
     {
         ConfigTestSupport.set(ConfigKeys.LOG_LEVEL, "WARNING");
         ConfigTestSupport.set(ConfigKeys.RING_DEFAULT_STYLE, "SEQUENTIAL");
 
-        final ConfigReload.Report report = reload("log-level: off\nring-default-style: off\n");
+        final ConfigReload.Report report = reload("log-level: on\nring-default-style: off\n");
 
         assertEquals(List.of(), report.changes());
         assertEquals(List.of(
             new ConfigReload.Rejection(ConfigKeys.LOG_LEVEL,
-                "LOG_LEVEL was read as a switch (false); write the value in quotes.", "WARNING"),
+                "LOG_LEVEL was read as a switch (true); write the value in quotes.", "WARNING"),
             new ConfigReload.Rejection(ConfigKeys.RING_DEFAULT_STYLE,
                 "RING_DEFAULT_STYLE was read as a switch (false); write the value in quotes.", "SEQUENTIAL")),
             report.rejections());

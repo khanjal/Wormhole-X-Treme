@@ -269,7 +269,7 @@ public class ConfigurationYAML
      */
     private static Setting settingFrom(final Setting element, final Object value)
     {
-        final Object read = asKindOf(element.getValue(), value);
+        final Object read = readFrom(element, value);
         final String key = kebabKeyName(element.getName().name());
         if (read == null)
         {
@@ -277,12 +277,43 @@ public class ConfigurationYAML
                 + ", which is not " + kindOf(element.getValue()) + "; using " + element.getValue() + " until it is put right.");
             return copyOf(element);
         }
+        // Level.parse throws on anything else, at the first log-level read (#647).
+        if (element.getName() == ConfigManager.ConfigKeys.LOG_LEVEL)
+        {
+            final ParsedSetting level = ParsedSetting.read(element.getName(), element.getValue(), read.toString());
+            if (!level.isAccepted())
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
+                    + ", which is not a logging level; using " + element.getValue() + " until it is put right.");
+                return copyOf(element);
+            }
+            return new Setting(element.getName(), level.getValue(), element.getDescription(), SETTING_SECTION);
+        }
         if ((value instanceof Number) && (read instanceof Boolean))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
                 + ", a number, where it is now true or false; read as " + read + " and written back so.");
         }
         return new Setting(element.getName(), read, element.getDescription(), SETTING_SECTION);
+    }
+
+    /**
+     * A value from the file as its setting reads it, at startup and on a reload: as
+     * {@link #asKindOf}, but a bare {@code log-level: off}, which YAML reads as false, is the level OFF.
+     *
+     * @param element
+     *            the setting's default
+     * @param value
+     *            the value read from the file
+     * @return the value to store, or null if it cannot be read as that setting's kind
+     */
+    static Object readFrom(final Setting element, final Object value)
+    {
+        if ((element.getName() == ConfigManager.ConfigKeys.LOG_LEVEL) && Boolean.FALSE.equals(value))
+        {
+            return Level.OFF.getName();
+        }
+        return asKindOf(element.getValue(), value);
     }
 
     /**
@@ -1147,6 +1178,9 @@ public class ConfigurationYAML
         return constantName.toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
+    /** The words YAML 1.1 reads as true or false, in any capitals. */
+    private static final Set<String> SWITCH_WORDS = Set.of("y", "n", "yes", "no", "true", "false", "on", "off");
+
     private static String formatValueForYaml(final Object value)
     {
         if (value == null)
@@ -1159,7 +1193,8 @@ public class ConfigurationYAML
         }
         // For enum types or strings, quote strings that may contain special characters
         final String s = value.toString();
-        if (s.matches("^[a-zA-Z0-9_\\-]+$"))
+        // Bare, a word YAML reads as a switch comes back as true or false (#647).
+        if (s.matches("^[a-zA-Z0-9_\\-]+$") && !SWITCH_WORDS.contains(s.toLowerCase(Locale.ROOT)))
         {
             return s;
         }
