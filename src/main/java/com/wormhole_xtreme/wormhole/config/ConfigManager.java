@@ -139,6 +139,8 @@ public class ConfigManager
         GATE_PREVIEW_MINUTES,
         /** Most blocks every gate build preview on the server may show between them. */
         GATE_PREVIEW_MAX_BLOCKS,
+        /** Least distance between two gates in one world; 0 for none (#635). */
+        MIN_GATE_DISTANCE,
         RING_SOUNDS_ENABLED,
         RING_SOUND_VOLUME,
         RING_SOUND_OPEN,
@@ -1153,6 +1155,16 @@ public class ConfigManager
     public static int getGatePreviewMaxBlocks()
     {
         return Math.max(0, intSetting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000));
+    }
+
+    /**
+     * The least distance between two gates in one world, in blocks, centre to centre.
+     *
+     * @return blocks, 0 for no limit
+     */
+    public static int getMinGateDistance()
+    {
+        return Math.max(0, intSetting(ConfigKeys.MIN_GATE_DISTANCE, 0));
     }
 
     /**
