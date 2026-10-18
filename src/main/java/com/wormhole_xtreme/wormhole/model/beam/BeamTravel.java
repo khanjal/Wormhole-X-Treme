@@ -146,7 +146,7 @@ public final class BeamTravel
      * {@link EconomySupport#canAfford} and {@link EconomySupport#charge} already fail open
      * in that situation (nothing is actually withdrawn), so the messages would be describing
      * a charge that never happened. Every other cost path in this plugin gates the same way
-     * ({@code WormholeXTremePlayerListener}'s gate-use cost, {@code GateInteractionHandler}'s
+     * ({@code GateWalkThrough}'s gate-use cost, {@code GateInteractionHandler}'s
      * build cost) -- this was missed when per-destination cost was added.
      *
      * @param destination the destination being travelled to

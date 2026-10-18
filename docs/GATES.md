@@ -1214,7 +1214,7 @@ logic/ShapeFileValidator.java      checking a .shape file before it is trusted
 model/GateIntegrity.java           whether a gate is still standing, for validate
 GateEntityScanner.java             loose entities standing in an open portal
 ProjectileGateTracker.java         arrows, by the path they travelled
-WormholeXTremePlayerListener.java  the move path
+GateWalkThrough.java               the move path (called from WormholeXTremePlayerListener)
 WormholeXTremeVehicleListener.java minecarts and boats
 command/handlers/GateCommand.java  /wormhole gate <verb>
 events/GateEvents.java             what other plugins are told

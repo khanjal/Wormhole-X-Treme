@@ -67,7 +67,7 @@ public class Go implements CommandExecutor
         {
             // Safe-ground correction for terrain that has drifted around the gate's stored
             // arrival point is BeamAnimation.start's job, applied to every beam it runs --
-            // the walk-through path (WormholeXTremePlayerListener) does its own, since it
+            // the walk-through path (GateWalkThrough) does its own, since it
             // never goes through a beam sequence at all.
             BeamAnimation.start(player, gate.getGatePlayerTeleportLocation(), gate.getGateName());
             return true;

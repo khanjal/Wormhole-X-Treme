@@ -19,7 +19,7 @@ be worth stating so it is not "simplified" back into the bug it solves.
 - Paper 1.20+ requires the client to send `ServerboundAcceptTeleportationPacket` before it processes any subsequent packets (including `ClientboundSetPassengersPacket`).
 - If `player.teleport()` is called and then `addPassenger()` fires too soon, the mount packet is silently dropped by the client even though the server reports success.
 
-So in `WormholeXTremePlayerListener` (player-enters-gate path) the **vehicle** is teleported and
+So in `GateWalkThrough` (player-enters-gate path, called from `WormholeXTremePlayerListener`) the **vehicle** is teleported and
 the player is not: the vehicle move ejects the player server-side, event cancellation keeps the
 player at the gate, and `addPassenger` two ticks later lands because the client never received a
 player teleport to acknowledge. If `addPassenger` fails, the fallback teleports the player and
@@ -103,7 +103,7 @@ All scheduled tasks run on the main server thread (sync). Do not use async tasks
 ### Key Classes
 | Class | Purpose |
 |---|---|
-| `WormholeXTremePlayerListener` | `PlayerMoveEvent` → gate entry detection & player/vehicle teleport |
+| `WormholeXTremePlayerListener` | `PlayerMoveEvent` → hands gate entry to `GateWalkThrough` (detection & player/vehicle teleport) |
 | `WormholeXTremeVehicleListener` | `VehicleMoveEvent` → unmanned or driver-controlled vehicle gate entry |
 | `WormholeXTremeBlockListener` | Block break/place protection around gate frames |
 | `StargateManager` | Gate registry, spatial lookup |
