@@ -2,8 +2,6 @@ package com.wormhole_xtreme.wormhole.utils;
 
 import java.util.regex.Pattern;
 
-import org.bukkit.ChatColor;
-
 /**
  * The colours that pick out the parts of a chat line, each returning to the body grey.
  *
@@ -37,7 +35,7 @@ public final class ChatText
     public static final String HEADER = HEADING_COLOUR + ":: " + BODY_COLOUR;
 
     /** What a refusal opens with: {@code :: error :: } and then the body grey. */
-    public static final String ERROR_HEADER = HEADING_COLOUR + ":: " + ChatColor.DARK_PURPLE + "error "
+    public static final String ERROR_HEADER = HEADING_COLOUR + ":: " + ChatColour.DARK_PURPLE + "error "
         + HEADING_COLOUR + ":: " + BODY_COLOUR;
 
     private static final Pattern CODE = Pattern.compile("§.");

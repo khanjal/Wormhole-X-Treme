@@ -124,8 +124,6 @@ public final class MetricsSupport
      * How many gates there are of each shape: a shape that ships with the plugin by its name,
      * every other, which a server's own file can name anything, as {@code custom}.
      *
-     * @param gates
-     *            the gates
      * @return shape to count, spelled as the plugin ships it; empty with no gates
      */
     static Map<String, Integer> shapeCounts(final Collection<Stargate> gates)
@@ -146,8 +144,6 @@ public final class MetricsSupport
      * {@code unknown}, since this runs on the server thread and must not load one. Counted by gate,
      * so one server of many does not stand for them all.
      *
-     * @param gates
-     *            the gates
      * @return material to count; empty with no gates
      */
     static Map<String, Integer> portalMaterialCounts(final Collection<Stargate> gates)

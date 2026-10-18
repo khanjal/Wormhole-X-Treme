@@ -94,8 +94,6 @@ public final class GateViews
      * What a gate's opening is drawn as once its wormhole is up: the portal, or nothing where its
      * horizon has cleared for a view.
      *
-     * @param gate
-     *            the gate
      * @param portal
      *            what it would otherwise show
      * @return the material to draw
@@ -113,8 +111,6 @@ public final class GateViews
      * <p>The horizon was cleared for everybody, so from behind the gate, or too far off to be drawn the
      * view, it was an empty ring onto this world.
      *
-     * @param gate
-     *            the gate
      * @param portal
      *            what it would otherwise show
      * @param player

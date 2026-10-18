@@ -20,9 +20,6 @@ public final class MapRefreshListener implements Listener
 {
     /**
      * A gate was built.
-     *
-     * @param event
-     *            the event
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onCreated(final StargateCreatedEvent event)
@@ -32,9 +29,6 @@ public final class MapRefreshListener implements Listener
 
     /**
      * A gate was removed.
-     *
-     * @param event
-     *            the event
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRemoved(final StargateRemovedEvent event)
@@ -45,9 +39,6 @@ public final class MapRefreshListener implements Listener
     /**
      * A gate was dialled. It shows as open once its wormhole forms, which fires no event of its
      * own, so it is watched for that.
-     *
-     * @param event
-     *            the event
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onActivated(final StargateActivatedEvent event)
@@ -57,9 +48,6 @@ public final class MapRefreshListener implements Listener
 
     /**
      * A gate shut.
-     *
-     * @param event
-     *            the event
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onShutdown(final StargateShutdownEvent event)

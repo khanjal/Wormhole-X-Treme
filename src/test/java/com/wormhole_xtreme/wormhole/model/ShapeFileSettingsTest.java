@@ -42,7 +42,7 @@ class ShapeFileSettingsTest
      */
     private static String[] shape(final String... settings)
     {
-        final List<String> lines = new ArrayList<String>();
+        final List<String> lines = new ArrayList<>();
         lines.add("Name=NetTest");
         for (final String s : settings)
         {

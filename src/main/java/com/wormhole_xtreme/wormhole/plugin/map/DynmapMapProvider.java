@@ -511,8 +511,6 @@ public final class DynmapMapProvider implements MapProvider
      *
      * @param set
      *            the set to draw it in
-     * @param line
-     *            the line
      * @param colour
      *            its colour, as 0xRRGGBB
      */

@@ -30,8 +30,6 @@ final class FarPlayers
      * Whether a viewer is shown their own stand-in through this window: never yet. Step 4 of #296
      * turns this on for a gate facing back at its viewer, and nothing else need change.
      *
-     * @param window
-     *            the window
      * @return true if the viewer may see themselves through it
      */
     static boolean showsTheViewer(final WindowState window)

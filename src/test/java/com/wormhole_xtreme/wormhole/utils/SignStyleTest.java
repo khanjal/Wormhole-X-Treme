@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.utils;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.bukkit.ChatColor;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -18,49 +17,49 @@ class SignStyleTest
     @Test
     void aColourNameResolvesToThatColour()
     {
-        assertEquals(ChatColor.AQUA, SignStyle.resolveColor("AQUA", ChatColor.WHITE));
+        assertEquals(ChatColour.AQUA, SignStyle.resolveColor("AQUA", ChatColour.WHITE));
     }
 
     @Test
     void theNameIsReadWhateverCaseAndSpacingItWasTypedIn()
     {
-        assertEquals(ChatColor.DARK_GRAY, SignStyle.resolveColor("  dark_gray ", ChatColor.WHITE),
+        assertEquals(ChatColour.DARK_GRAY, SignStyle.resolveColor("  dark_gray ", ChatColour.WHITE),
             "an admin typing a setting by hand should not have to match case exactly");
     }
 
     @Test
     void anUnknownNameFallsBackRatherThanBreakingTheSign()
     {
-        assertEquals(ChatColor.GREEN, SignStyle.resolveColor("chartreuse", ChatColor.GREEN));
+        assertEquals(ChatColour.GREEN, SignStyle.resolveColor("chartreuse", ChatColour.GREEN));
     }
 
     @Test
     void anUnsetNameFallsBack()
     {
-        assertEquals(ChatColor.GRAY, SignStyle.resolveColor(null, ChatColor.GRAY));
-        assertEquals(ChatColor.GRAY, SignStyle.resolveColor("   ", ChatColor.GRAY));
+        assertEquals(ChatColour.GRAY, SignStyle.resolveColor(null, ChatColour.GRAY));
+        assertEquals(ChatColour.GRAY, SignStyle.resolveColor("   ", ChatColour.GRAY));
     }
 
     /**
      * A formatting code that is not a colour is refused.
      *
-     * <p>{@code ChatColor} holds both colours and formats, so {@code valueOf} happily returns
-     * MAGIC for anyone who types it -- and MAGIC renders as scrambling nonsense characters,
-     * which on a gate's dial sign means the destination cannot be read at all. Falling back
-     * gives a readable sign instead of an unusable one.
+     * <p>Bukkit's {@code ChatColor} held both colours and formats, so {@code valueOf} happily
+     * returned MAGIC for anyone who typed it -- and MAGIC renders as scrambling nonsense
+     * characters, which on a gate's dial sign means the destination cannot be read at all.
+     * Falling back gives a readable sign instead of an unusable one.
      */
     @Test
     void aFormattingCodeThatIsNotAColourIsRefused()
     {
-        assertEquals(ChatColor.AQUA, SignStyle.resolveColor("MAGIC", ChatColor.AQUA),
-            "MAGIC is a real ChatColor constant and would render a destination unreadable");
-        assertEquals(ChatColor.AQUA, SignStyle.resolveColor("BOLD", ChatColor.AQUA));
+        assertEquals(ChatColour.AQUA, SignStyle.resolveColor("MAGIC", ChatColour.AQUA),
+            "MAGIC is a format, not a colour, and would render a destination unreadable");
+        assertEquals(ChatColour.AQUA, SignStyle.resolveColor("BOLD", ChatColour.AQUA));
     }
 
     @Test
     void paintingPutsTheColourInFrontOfTheText()
     {
-        assertEquals(ChatColor.AQUA + "Helios", SignStyle.paint(ChatColor.AQUA, "Helios"));
+        assertEquals(ChatColour.AQUA + "Helios", SignStyle.paint(ChatColour.AQUA, "Helios"));
     }
 
     /**
@@ -73,8 +72,8 @@ class SignStyleTest
     @Test
     void ablankLineIsLeftBlankAndNotPaintedIntoAStrayCode()
     {
-        assertEquals("", SignStyle.paint(ChatColor.AQUA, ""));
-        assertEquals("", SignStyle.paint(ChatColor.AQUA, null));
+        assertEquals("", SignStyle.paint(ChatColour.AQUA, ""));
+        assertEquals("", SignStyle.paint(ChatColour.AQUA, null));
     }
 
     /**
@@ -89,7 +88,7 @@ class SignStyleTest
     void aStyledLineReadsBackAsThePlainNameItShows()
     {
         assertEquals("-Helios-",
-            SignStyle.stripFormatting(ChatColor.AQUA + "-Helios-"),
+            SignStyle.stripFormatting(ChatColour.AQUA + "-Helios-"),
             "a re-detected gate must not take colour codes into its own name");
     }
 

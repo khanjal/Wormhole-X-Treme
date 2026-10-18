@@ -2,9 +2,9 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import java.util.Locale;
 
-import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
 
+import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
@@ -256,18 +256,18 @@ public final class MirrorText
     {
         return switch (colour)
         {
-            case WHITE -> ChatColor.WHITE.toString();
-            case ORANGE, BROWN -> ChatColor.GOLD.toString();
-            case MAGENTA, PINK -> ChatColor.LIGHT_PURPLE.toString();
-            case LIGHT_BLUE -> ChatColor.AQUA.toString();
-            case YELLOW -> ChatColor.YELLOW.toString();
-            case LIME -> ChatColor.GREEN.toString();
-            case GRAY, BLACK -> ChatColor.DARK_GRAY.toString();
-            case CYAN -> ChatColor.DARK_AQUA.toString();
-            case PURPLE -> ChatColor.DARK_PURPLE.toString();
-            case BLUE -> ChatColor.BLUE.toString();
-            case GREEN -> ChatColor.DARK_GREEN.toString();
-            case RED -> ChatColor.RED.toString();
+            case WHITE -> ChatColour.WHITE.toString();
+            case ORANGE, BROWN -> ChatColour.GOLD.toString();
+            case MAGENTA, PINK -> ChatColour.LIGHT_PURPLE.toString();
+            case LIGHT_BLUE -> ChatColour.AQUA.toString();
+            case YELLOW -> ChatColour.YELLOW.toString();
+            case LIME -> ChatColour.GREEN.toString();
+            case GRAY, BLACK -> ChatColour.DARK_GRAY.toString();
+            case CYAN -> ChatColour.DARK_AQUA.toString();
+            case PURPLE -> ChatColour.DARK_PURPLE.toString();
+            case BLUE -> ChatColour.BLUE.toString();
+            case GREEN -> ChatColour.DARK_GREEN.toString();
+            case RED -> ChatColour.RED.toString();
             // LIGHT_GRAY lands here too, and is right to: it is the body colour already.
             default -> BODY_COLOUR;
         };

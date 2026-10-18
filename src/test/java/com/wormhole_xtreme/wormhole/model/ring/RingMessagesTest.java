@@ -140,7 +140,7 @@ class RingMessagesTest
     @Test
     void everyBlockageReasonReadsDifferently()
     {
-        final Set<String> seen = new HashSet<String>();
+        final Set<String> seen = new HashSet<>();
         for (final RingBlockage why : RingBlockage.values())
         {
             seen.add(refusalText(why));

@@ -5,7 +5,6 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Set;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -18,6 +17,8 @@ import org.bukkit.inventory.MainHand;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
+
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What a far player's stand-in is, and how it is dressed (#296, step 2): a Mannequin wearing their
@@ -55,8 +56,6 @@ final class PlayerFigures
         /**
          * What a player shows now, as their stand-in is dressed.
          *
-         * @param player
-         *            the player
          * @param now
          *            the drawing's clock
          * @return their look
@@ -204,13 +203,11 @@ final class PlayerFigures
      * The name shown over a player's stand-in: their display name without its colours, so a nickname
      * shows as the nickname; their name where that is empty.
      *
-     * @param player
-     *            the player
      * @return the name to show
      */
     static String shownName(final Player player)
     {
-        final String plain = ChatColor.stripColor(player.getDisplayName()).trim();
+        final String plain = ChatText.plain(player.getDisplayName()).trim();
         return plain.isEmpty() ? player.getName() : plain;
     }
 
