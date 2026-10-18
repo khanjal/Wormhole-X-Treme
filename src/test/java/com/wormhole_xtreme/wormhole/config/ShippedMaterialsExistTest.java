@@ -140,7 +140,7 @@ class ShippedMaterialsExistTest
         // shape's materials, and a name that stopped existing would ship unnoticed and only
         // fail when somebody built a ring.
         final Map<ConfigManager.ConfigKeys, String> named =
-            new LinkedHashMap<ConfigManager.ConfigKeys, String>();
+            new LinkedHashMap<>();
         for (final Setting setting : DefaultSettings.config)
         {
             if ((setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_LIGHT)

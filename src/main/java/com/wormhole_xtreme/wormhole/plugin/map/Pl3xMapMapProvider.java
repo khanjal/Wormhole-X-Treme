@@ -383,8 +383,6 @@ public final class Pl3xMapMapProvider implements MapProvider
     /**
      * A straight line.
      *
-     * @param line
-     *            the line
      * @param colour
      *            its colour, as 0xRRGGBB
      * @return the marker

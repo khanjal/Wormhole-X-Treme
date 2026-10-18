@@ -56,7 +56,7 @@ class WormholeXTremeRedstoneListener implements Listener
 
     /** When each gate last acted on a redstone trigger, keyed by gate name. */
     private static final Map<String, Long> lastTrigger =
-        new ConcurrentHashMap<String, Long>();
+        new ConcurrentHashMap<>();
 
     /** Detector rails seen pressed and not yet released, by world and position. */
     private static final Set<String> pressedRails = ConcurrentHashMap.newKeySet();

@@ -56,8 +56,6 @@ final class PlayerFigures
         /**
          * What a player shows now, as their stand-in is dressed.
          *
-         * @param player
-         *            the player
          * @param now
          *            the drawing's clock
          * @return their look
@@ -205,8 +203,6 @@ final class PlayerFigures
      * The name shown over a player's stand-in: their display name without its colours, so a nickname
      * shows as the nickname; their name where that is empty.
      *
-     * @param player
-     *            the player
      * @return the name to show
      */
     static String shownName(final Player player)

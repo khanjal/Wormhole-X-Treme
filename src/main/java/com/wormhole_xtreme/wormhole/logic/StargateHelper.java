@@ -312,7 +312,7 @@ public final class StargateHelper
      */
     static Set<Long> lightCells(final StargateShapeLayer layer)
     {
-        final Set<Long> cells = new HashSet<Long>();
+        final Set<Long> cells = new HashSet<>();
         final List<List<Integer[]>> waves = layer.getLayerLightPositions();
         if (waves == null)
         {

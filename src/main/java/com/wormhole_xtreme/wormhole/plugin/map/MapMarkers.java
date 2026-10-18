@@ -256,9 +256,6 @@ public final class MapMarkers
 
     /**
      * Starts one map listening to its plugin. One that fails is dropped, so the others still show.
-     *
-     * @param map
-     *            the map
      */
     private static void register(final MapProvider map)
     {
@@ -388,9 +385,6 @@ public final class MapMarkers
 
     /**
      * Stops one map listening to its plugin, whatever happens.
-     *
-     * @param map
-     *            the map
      */
     private static void unregister(final MapProvider map)
     {
@@ -457,8 +451,6 @@ public final class MapMarkers
     /**
      * Books the next check on a dialling gate.
      *
-     * @param gate
-     *            the gate
      * @param left
      *            how many more checks it may have
      */
@@ -476,8 +468,6 @@ public final class MapMarkers
      * Asks for a look if the gate's wormhole has formed, or checks again later if it is still
      * dialling.
      *
-     * @param gate
-     *            the gate
      * @param left
      *            how many more checks it may have
      */
@@ -632,8 +622,6 @@ public final class MapMarkers
     /**
      * Draws a picture on one map, so a map that fails does not stop the others being drawn.
      *
-     * @param map
-     *            the map
      * @param picture
      *            what to show
      */

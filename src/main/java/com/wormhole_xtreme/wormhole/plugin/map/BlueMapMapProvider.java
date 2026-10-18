@@ -250,8 +250,6 @@ public final class BlueMapMapProvider implements MapProvider
     /**
      * Brings one map up to date with one world's part of the picture.
      *
-     * @param map
-     *            the map
      * @param world
      *            the world it shows
      * @param snapshot
@@ -317,8 +315,6 @@ public final class BlueMapMapProvider implements MapProvider
     /**
      * A map's icon addresses, written into its assets the first time.
      *
-     * @param map
-     *            the map
      * @return where the web app finds each, by icon file
      */
     private Map<String, String> iconsOf(final BlueMapMap map)
@@ -340,8 +336,6 @@ public final class BlueMapMapProvider implements MapProvider
     /**
      * Writes the icons into a map's assets.
      *
-     * @param map
-     *            the map
      * @return where the web app finds each, by icon file; one missing uses BlueMap's own icon
      */
     private static Map<String, String> writeIcons(final BlueMapMap map)
@@ -370,8 +364,6 @@ public final class BlueMapMapProvider implements MapProvider
     /**
      * Finds or makes one of our sets on a map, putting it back if something took it off.
      *
-     * @param map
-     *            the map
      * @param id
      *            the set id
      * @param label
@@ -398,8 +390,6 @@ public final class BlueMapMapProvider implements MapProvider
     /**
      * Makes a set hold exactly these markers, touching only what differs.
      *
-     * @param set
-     *            the set
      * @param want
      *            its markers, by id
      */
@@ -420,8 +410,6 @@ public final class BlueMapMapProvider implements MapProvider
      *
      * @param want
      *            the gates set's markers, by id
-     * @param gate
-     *            the gate
      * @param icon
      *            this map's icon addresses
      */
@@ -447,8 +435,6 @@ public final class BlueMapMapProvider implements MapProvider
     /**
      * A straight line.
      *
-     * @param line
-     *            the line
      * @param colour
      *            its colour, as 0xRRGGBB
      * @return the marker
