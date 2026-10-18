@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Method;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.mockito.invocation.Invocation;
 
 import net.kyori.adventure.text.Component;
@@ -71,12 +72,46 @@ public final class ShownNames
         }
     }
 
+    /**
+     * Gives a mock player the display name {@link PlayerNames#display} reads on this API build.
+     *
+     * @param player
+     *            the mock
+     * @param legacyText
+     *            their display name, in legacy colour codes
+     */
+    // Spigot's API has only the string getter, which Paper's deprecates.
+    @SuppressWarnings("deprecation")
+    public static void giveDisplayName(final Player player, final String legacyText)
+    {
+        final Method paper = paperGetter(Player.class, "displayName");
+        if (paper == null)
+        {
+            when(player.getDisplayName()).thenReturn(legacyText);
+            return;
+        }
+        try
+        {
+            when(paper.invoke(player)).thenReturn(LegacyComponentSerializer.legacySection().deserialize(legacyText));
+        }
+        catch (final ReflectiveOperationException unreachable)
+        {
+            throw new AssertionError("Paper's displayName() was found but could not be stubbed", unreachable);
+        }
+    }
+
     /** @return Paper's {@code Entity.customName()}, or null on Spigot's API */
     private static Method paperGetter()
     {
+        return paperGetter(Entity.class, "customName");
+    }
+
+    /** @return the named no-argument method, or null on an API build without it */
+    private static Method paperGetter(final Class<?> type, final String name)
+    {
         try
         {
-            return Entity.class.getMethod("customName");
+            return type.getMethod(name);
         }
         catch (final NoSuchMethodException spigot)
         {

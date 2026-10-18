@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.World;
 import org.bukkit.block.sign.SignSide;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
 import com.wormhole_xtreme.wormhole.utils.EntityNames;
+import com.wormhole_xtreme.wormhole.utils.PlayerNames;
 import com.wormhole_xtreme.wormhole.utils.PluginVersion;
 import com.wormhole_xtreme.wormhole.utils.ShownNames;
 import com.wormhole_xtreme.wormhole.utils.SignLines;
@@ -95,6 +97,20 @@ class PaperApiTest
                 .noneMatch(call -> "setCustomName".equals(call.getMethod().getName())),
                 "the name would go through the deprecated string setter on Paper");
         }
+    }
+
+    /** A far player's stand-in shows their display name read through Paper's {@code displayName()}, not the string getter it deprecates. */
+    @Test
+    void aPlayersDisplayNameIsReadThroughPapersComponent() throws ReflectiveOperationException
+    {
+        final Player player = mock(Player.class);
+        when(Player.class.getMethod("displayName").invoke(player))
+            .thenReturn(LegacyComponentSerializer.legacySection().deserialize("§aSir Nick"));
+
+        assertEquals("§aSir Nick", PlayerNames.display(player));
+        assertTrue(mockingDetails(player).getInvocations().stream()
+            .noneMatch(call -> "getDisplayName".equals(call.getMethod().getName())),
+            "the display name would be read through the deprecated string getter on Paper");
     }
 
     /** Gate and dial signs are written and read through Paper's {@code line} and {@code lines}, not the string methods it deprecates. */
