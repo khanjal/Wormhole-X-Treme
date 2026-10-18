@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -1761,11 +1760,8 @@ public class ConfigManager
         return (s == null) || s.getBooleanValue();
     }
 
-    /** A language code: what lang/&lt;code&gt;.yml may be called. */
-    private static final Pattern LANGUAGE_CODE = Pattern.compile("[a-z0-9_-]{1,16}");
-
     /**
-     * The language of the console, the log and anyone whose client language has no file (#26).
+     * The language of messages to the console and command blocks, and to a player whose client language has no file (#26).
      *
      * @return its code, lower case; en for one that is not a plain code
      */
@@ -1777,8 +1773,9 @@ public class ConfigManager
     }
 
     /**
-     * Reads a language code as typed; letters, digits, - and _ only, since it names a file in lang/.
-     * Not true or false, which is what YAML makes of a bare {@code no} or {@code off}.
+     * Reads a language code as typed, in the shape a client sends one: lower-case letters and {@code _},
+     * with {@code -} read as {@code _}, so {@code pt-BR} is {@code pt_br}. Not true or false, which is what
+     * YAML makes of a bare {@code no} or {@code off}.
      *
      * @param raw
      *            the value as typed
@@ -1786,8 +1783,8 @@ public class ConfigManager
      */
     public static String parseServerLanguage(final String raw)
     {
-        final String code = (raw == null) ? "" : raw.trim().toLowerCase(Locale.ROOT);
-        return (LANGUAGE_CODE.matcher(code).matches() && !"true".equals(code) && !"false".equals(code)) ? code : null;
+        final String code = (raw == null) ? null : Messages.sanitise(raw.trim().replace('-', '_'));
+        return ("true".equals(code) || "false".equals(code)) ? null : code;
     }
 
     /**

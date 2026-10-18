@@ -98,7 +98,7 @@ public final class ConfigReload
     }
 
     /**
-     * Reloads the settings from one file, and the language file whether or not {@code language}
+     * Reloads the settings from one file, and the language file whether or not {@code server-language}
      * changed, so an edited translation is taken too.
      *
      * @param cfg

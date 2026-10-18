@@ -552,6 +552,26 @@ class ConfigLoadTest
     }
 
     /**
+     * A bare {@code server-language: no}, which YAML reads as false, is no language code: English, said
+     * once, rather than English without a word (#26).
+     */
+    @Test
+    void aBareNoUnderServerLanguageIsEnglishAndSaidSo() throws Exception
+    {
+        writeConfig("server-language: no\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals("en", ConfigManager.getServerLanguage());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("server-language"));
+
+        writeConfig("server-language: \"pt-BR\"\n");
+        ConfigurationYAML.loadConfiguration(directory);
+        assertEquals("pt_br", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.SERVER_LANGUAGE).getValue(),
+            "stored in the form the command stores it");
+    }
+
+    /**
      * {@code /wormhole config log-level off} is written in quotes, so any reader takes the word and not
      * a switch (#647). Only the file line guards the quoting: a bare off now reads back as OFF anyway.
      */

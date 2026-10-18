@@ -149,7 +149,7 @@ its colours until it is next written. Nothing waits for a restart.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `server-language` | en | The language of the console, the log and text the server puts in the world. Players see their own client's language, falling back to this, then English. Only some messages are translatable so far, and sign text stays English; see [TRANSLATING.md](TRANSLATING.md) |
+| `server-language` | en | The language of messages sent to the console and command blocks (and, later, the log and text the server puts in the world), such as `de` or `pt_br`. Players see their own client's language, falling back to this, then English. Only some messages are translatable so far, and sign text stays English; see [TRANSLATING.md](TRANSLATING.md) |
 
 ### Keeping gates from staying open
 

@@ -52,6 +52,8 @@ class ConfigReloadTest
     void tearDown() throws Exception
     {
         ConfigTestSupport.clear();
+        // English from a folder with no lang files, so a translation a test wrote does not leak into later tests.
+        when(WormholeXTreme.getThisPlugin().getDataFolder()).thenReturn(new File(directory, "none"));
         Messages.load();
         PluginTestSupport.remove();
     }
@@ -410,7 +412,7 @@ class ConfigReloadTest
     }
 
     /**
-     * An edited translation is read by a reload that leaves {@code language} as it was: that is how a
+     * An edited translation is read by a reload that leaves {@code server-language} as it was: that is how a
      * translator sees their work without a restart (#26).
      */
     @Test

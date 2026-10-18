@@ -126,7 +126,7 @@ public final class Messages
      *            the client's locale as the server reports it, such as {@code de_DE}
      * @return the code, such as {@code de_de}, or null
      */
-    static String sanitise(final String raw)
+    public static String sanitise(final String raw)
     {
         if ((raw == null) || raw.isEmpty() || (raw.length() > LONGEST_LOCALE))
         {
@@ -162,6 +162,12 @@ public final class Messages
         return catalog().chains.size();
     }
 
+    /** @return how many language codes have been looked up, found or not, for tests */
+    static int lookedUp()
+    {
+        return catalog().languages.size();
+    }
+
     /** @return each lang file in the plugin folder whose name is a language code, read; none if there is no folder */
     private static Map<String, Map<String, String>> readOverlays(final File directory)
     {
@@ -174,7 +180,7 @@ public final class Messages
         for (final File file : files)
         {
             final String name = file.getName();
-            final String code = ConfigManager.parseServerLanguage(name.substring(0, name.length() - ".yml".length()));
+            final String code = sanitise(name.substring(0, name.length() - ".yml".length()));
             if ((code != null) && file.isFile())
             {
                 overlays.put(code, readOverlay(file));

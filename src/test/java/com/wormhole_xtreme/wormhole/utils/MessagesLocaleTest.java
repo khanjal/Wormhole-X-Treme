@@ -142,6 +142,9 @@ class MessagesLocaleTest
         {
             Messages.get(player(letters(i)), "compass.none");
             assertTrue(Messages.remembered() <= Messages.MOST_REMEMBERED, "remembered " + Messages.remembered());
+            // Each client code looks up at most two languages; the ones found are a handful.
+            assertTrue(Messages.lookedUp() <= (2 * Messages.MOST_REMEMBERED) + 8,
+                "languages looked up and not found must be let go too: " + Messages.lookedUp());
         }
         assertEquals("QQ ZZ none.", Messages.get(player("qq_zz"), "compass.none"), "and a real one still reads");
     }

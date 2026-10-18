@@ -244,7 +244,7 @@ final class ParsedSetting
     {
         final String code = ConfigManager.parseServerLanguage(raw);
         return (code == null)
-            ? refused(key + " is a language code such as en, de or pt-br, not \"" + raw + "\".")
+            ? refused(key + " is a language code such as en, de or pt_br, not \"" + raw + "\".")
             : accepted(code);
     }
 
