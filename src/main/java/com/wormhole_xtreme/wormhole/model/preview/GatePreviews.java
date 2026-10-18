@@ -613,12 +613,29 @@ public final class GatePreviews
         {
             return new Placed(Outcome.NOT_ALLOWED_HERE, List.of(), null, null);
         }
-        final String tooClose = overAGate ? null : GateSpacing.refusal(owner, preview.world(), openingBlocks(preview));
+        final String tooClose = standsOverAGate(preview) ? null
+            : GateSpacing.refusal(owner, preview.world(), openingBlocks(preview));
         if (tooClose != null)
         {
             return new Placed(Outcome.TOO_CLOSE, List.of(tooClose), null, null);
         }
         return PreviewPlacer.place(preview, overAGate);
+    }
+
+    /** Whether a gate already stands where the preview would; repairing it, or being in its way, is not spacing. */
+    private static boolean standsOverAGate(final GatePreview preview)
+    {
+        for (final List<Cell> part : List.of(preview.cells(), preview.opening()))
+        {
+            for (final Cell cell : part)
+            {
+                if (gateAt.at(preview.world(), cell.x(), cell.y(), cell.z()) != null)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static List<Location> openingBlocks(final GatePreview preview)
