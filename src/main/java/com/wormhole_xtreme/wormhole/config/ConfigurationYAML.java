@@ -273,8 +273,8 @@ public class ConfigurationYAML
         final String key = kebabKeyName(element.getName().name());
         if (read == null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
-                + ", which is not " + kindOf(element.getValue()) + "; using " + element.getValue() + " until it is put right.");
+            warnOf(key, value, ", which is not " + kindOf(element.getValue()) + "; using " + element.getValue()
+                + " until it is put right.");
             return copyOf(element);
         }
         // Level.parse throws on anything else, at the first log-level read (#647).
@@ -283,18 +283,22 @@ public class ConfigurationYAML
             final ParsedSetting level = ParsedSetting.read(element.getName(), element.getValue(), read.toString());
             if (!level.isAccepted())
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
-                    + ", which is not a logging level; using " + element.getValue() + " until it is put right.");
+                warnOf(key, value, ", which is not a logging level; using " + element.getValue() + " until it is put right.");
                 return copyOf(element);
             }
             return new Setting(element.getName(), level.getValue(), element.getDescription(), SETTING_SECTION);
         }
         if ((value instanceof Number) && (read instanceof Boolean))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
-                + ", a number, where it is now true or false; read as " + read + " and written back so.");
+            warnOf(key, value, ", a number, where it is now true or false; read as " + read + " and written back so.");
         }
         return new Setting(element.getName(), read, element.getDescription(), SETTING_SECTION);
+    }
+
+    /** Warns of one value in config.yml, naming it as written. */
+    private static void warnOf(final String key, final Object value, final String what)
+    {
+        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value + what);
     }
 
     /**
