@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.PluginVersion;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
@@ -43,7 +44,7 @@ public class WormholePlaceholders extends PlaceholderExpansion
     @Override
     public String getVersion()
     {
-        return WormholeXTreme.getThisPlugin().getDescription().getVersion();
+        return PluginVersion.of(WormholeXTreme.getThisPlugin());
     }
 
     /**

@@ -66,6 +66,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
+import com.wormhole_xtreme.wormhole.utils.ShownNames;
 
 /**
  * The stand-ins a view shows for the creatures in its far room (#296), from spawning to removal.
@@ -167,10 +168,10 @@ class StandInsTest
      * persistent, a restart saves it into the viewer's world for good.
      */
     @Test
-    void aStandInIsInertLooksLikeItsCreatureAndIsShownOnlyToTheViewer()
+    void aStandInIsInertLooksLikeItsCreatureAndIsShownOnlyToTheViewer() throws ReflectiveOperationException
     {
         final Zombie original = creature(Zombie.class, 100.5, 70.0, -18.5);
-        when(original.getCustomName()).thenReturn("Bob");
+        ShownNames.give(original, "Bob");
         when(original.isCustomNameVisible()).thenReturn(true);
         when(original.isAdult()).thenReturn(false);
         final Zombie copy = copy(Zombie.class);
@@ -190,7 +191,7 @@ class StandInsTest
         verify(copy).setCanPickupItems(false);
         verify(copy).setRemoveWhenFarAway(false);
         verify(copy).addScoreboardTag(StandIns.TAG);
-        verify(copy).setCustomName("Bob");
+        assertEquals("Bob", ShownNames.of(copy));
         verify(copy).setCustomNameVisible(true);
         verify(copy).setBaby();
         verify(viewer).showEntity(plugin, copy);
@@ -1146,7 +1147,7 @@ class StandInsTest
             verify(copy).setGravity(false);
             verify(copy).setCollidable(false);
             verify(copy).addScoreboardTag(StandIns.TAG);
-            verify(copy).setCustomName("Alex");
+            assertEquals("Alex", ShownNames.of(copy));
             verify(copy).setCustomNameVisible(true);
             verify(viewer).showEntity(plugin, copy);
             assertTrue(StandIns.isStandIn(copy));

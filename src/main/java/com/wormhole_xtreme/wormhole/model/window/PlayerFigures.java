@@ -19,6 +19,7 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.EntityNames;
 
 /**
  * What a far player's stand-in is, and how it is dressed (#296, step 2): a Mannequin wearing their
@@ -186,7 +187,7 @@ final class PlayerFigures
     {
         if (nameTagShown(viewer, original))
         {
-            copy.setCustomName(shownName(original));
+            EntityNames.set(copy, shownName(original));
             copy.setCustomNameVisible(true);
         }
         if (copy instanceof ArmorStand stand)

@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.PluginVersion;
 
 /**
  * Says at startup whether a newer release exists (#461), in the log and to players with
@@ -95,7 +96,7 @@ public final class UpdateCheck implements Listener
             {
                 return;
             }
-            final String running = plugin.getDescription().getVersion();
+            final String running = PluginVersion.of(plugin);
             final String minecraft = minecraftVersion(plugin.getServer().getBukkitVersion());
             final Fetcher fetcher = http("khanjal/Wormhole-X-Treme/" + running + " (update check)");
             WormholeXTreme.getScheduler().runTaskAsynchronously(plugin,

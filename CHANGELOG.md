@@ -82,6 +82,7 @@ somebody else's release notes, and the record of where this fork came from.
 - Collections are built with the diamond (`new ArrayList<>()`) instead of repeating their type arguments, in `src/main` and the tests ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 - Chat and sign colours come from the plugin's own colour table rather than Bukkit's `ChatColor`; nothing a player sees changes ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 - On Paper, ring countdowns and mirror names go above the hotbar through Paper's own action bar rather than Spigot's. Spigot keeps its own ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
+- On Paper, the plugin's version is read from Paper's plugin meta, and Freya and window stand-ins are named through Paper's own name components. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 
 ## 1.11.0 (2026-10-17)
 
