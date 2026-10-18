@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
-import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +43,13 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 class LangExportTest
 {
     /** One message: a dotted key, then text in double quotes, on one line. */
-    private static final Pattern MESSAGE = Pattern.compile("[a-z0-9.-]++: \"[^\"]*+\"");
+    private static boolean isMessage(final String line)
+    {
+        final int colon = line.indexOf(": \"");
+        return (colon > 0) && line.substring(0, colon).chars().allMatch(c -> ((c >= 'a') && (c <= 'z'))
+                || ((c >= '0') && (c <= '9')) || (c == '.') || (c == '-'))
+            && line.endsWith("\"") && (line.indexOf('"', colon + 3) == line.length() - 1);
+    }
 
     @TempDir
     File folder;
@@ -91,7 +96,7 @@ class LangExportTest
             .filter(line -> !line.isBlank() && !line.startsWith("#")).toList();
         for (final String line : messages)
         {
-            assertTrue(MESSAGE.matcher(line).matches(), "each message in en.yml must be key: \"text\" on one line: " + line);
+            assertTrue(isMessage(line), "each message in en.yml must be key: \"text\" on one line: " + line);
         }
         assertEquals(jarEnglish().size(), messages.size(), "one line per message, no more and no fewer");
     }
@@ -106,7 +111,7 @@ class LangExportTest
         assertTrue(lines.stream().allMatch(line -> line.isBlank() || line.startsWith("#")),
             "a live line in the commented file would freeze that message: " + text);
         assertNull(new Yaml().load(text), "the commented file should read as no messages at all");
-        for (final String message : jarEnglishLines().stream().filter(MESSAGE.asPredicate()).toList())
+        for (final String message : jarEnglishLines().stream().filter(LangExportTest::isMessage).toList())
         {
             assertTrue(lines.contains("# " + message), "each message should be there to uncomment: " + message);
         }
