@@ -38,7 +38,7 @@ does not have; see the note under the tables).
 | G7 | Dialling: DHD then `/dial <gate> [idc]`; dial sign right-click forward / left-click back; redstone on `[RD]`; console `gate dial <from> <to> [idc]`; `gate force` past refusals | `StargateDialManager`, `WormholeXTremePlayerListener`, `Dial`, `Force` | part: no left-click, `force` only as a reset tool |
 | G8 | Dial-spin patterns: top, chevron, lap, fill, pegasus, chase, universe, overshoot, none; per gate `edit spin`, per group `dial-spin`, `gate-dial-spin` | `DialSpin`, `DialSpinPattern`, `GateEditCommand` | part: only whatever the group implies |
 | G9 | Refusals: iris shut (no code / wrong code), target already active, another gate already dialled at target, `same-world-only`, `wormhole.network.use.<net>`, use cooldown | `StargateDialManager`, `GateInteractionHandler`, `StargateRestrictions` | part: iris only |
-| G10 | Wormhole is one way: entering the destination ring pushes a player out | `WormholeXTremePlayerListener` | no |
+| G10 | Wormhole is one way: entering the destination ring pushes a player out | `GateWalkThrough` | no |
 | G11 | Timeouts: `timeout-activate`, `timeout-shutdown` (0 = until used), `max-open-seconds`, `redstone-extend-open-time` | `StargateLifecycle`, `TimeoutsCommand` | no |
 | G12 | Iris: code via `complete idc=` or `edit idc`; `-clear` removes the lever; lever at `:IA`; owner may set without `wormhole.config` | `GateIris`, `WXIDC` | part |
 | G13 | Iris animation: sweep, spiral, rows, columns, instant, a step every 2 ticks merged into at most ten; per gate / per group override | `IrisSweep`, `StargateIrisAnimator`, `IrisLayering` | no |

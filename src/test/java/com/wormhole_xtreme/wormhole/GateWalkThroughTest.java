@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +24,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
@@ -179,5 +182,27 @@ class GateWalkThroughTest
 
             verify(player).getEyeLocation();
         }
+    }
+
+    /**
+     * A turned-away traveller is told once while they keep walking, and told again if they come
+     * back after leaving: quitting forgets what they were last told.
+     */
+    @Test
+    void aRefusalIsSaidAgainToSomebodyWhoLeftAndCameBack()
+    {
+        StargateRestrictions.addPlayerRecentArrival(player, origin);
+
+        walkIn();
+        walkIn();
+        verify(player, times(1)).sendMessage(anyString());
+
+        final PlayerQuitEvent quit = mock(PlayerQuitEvent.class);
+        when(quit.getPlayer()).thenReturn(player);
+        new WormholeXTremePlayerListener().onPlayerQuit(quit);
+        StargateRestrictions.addPlayerRecentArrival(player, origin);
+        walkIn();
+
+        verify(player, times(2)).sendMessage(anyString());
     }
 }

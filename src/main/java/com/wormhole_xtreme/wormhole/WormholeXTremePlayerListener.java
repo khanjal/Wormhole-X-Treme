@@ -47,7 +47,7 @@ import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 /**
  * WormholeXtreme Player Listener.
  *
- * <p><b>On the {@code catch (RuntimeException ignore)} blocks in this class.</b> A gate
+ * <p><b>On the {@code catch (RuntimeException ignore)} blocks in this class and in {@link GateWalkThrough}.</b> A gate
  * teleport is a sequence of independent effects on the player and whatever they are
  * riding — position, velocity, fall distance, air, passenger seating, chunk loading. Most
  * are cosmetic settling, and one of them failing is not a reason to abandon the rest and
