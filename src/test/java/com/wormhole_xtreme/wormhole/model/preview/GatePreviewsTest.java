@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ import org.bukkit.util.Transformation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import java.util.logging.Level;
 
 import org.bukkit.Axis;
@@ -90,7 +92,9 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateIrisAnimator;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.RecordingCreation;
@@ -109,6 +113,9 @@ class GatePreviewsTest
 
     /** And its opening, which the server's block limit counts too. */
     private static final int STANDARD_OPENING = 21;
+
+    @TempDir
+    File tempDir;
 
     private WormholeXTreme plugin;
     private World world;
@@ -2039,6 +2046,62 @@ class GatePreviewsTest
         assertEquals(cells.size() - 1, written.size());
     }
 
+    private Stargate registeredGateBeside(final String name)
+    {
+        final Stargate near = new Stargate();
+        near.setGateName(name);
+        near.setGateWorld(world);
+        near.getGatePortalBlocks().add(new Location(world, 0, 64, 0));
+        StargateManager.registerStargate(near);
+        return near;
+    }
+
+    /**
+     * A preview too near another gate places nothing, even for a player allowed to repair gates:
+     * the refusal comes before a block is written, not after, so no frame is left unregistered.
+     */
+    @Test
+    void placingTooCloseToAnotherGateWritesNothing()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        GatePreviews.show(owner, standard, null);
+        ConfigTestSupport.set(ConfigKeys.MIN_GATE_DISTANCE, 500);
+        final Stargate near = registeredGateBeside("Nearby");
+        try
+        {
+            final GatePreviews.Placed placed = GatePreviews.place(owner, true);
+
+            assertEquals(GatePreviews.Outcome.TOO_CLOSE, placed.outcome());
+            assertTrue(placed.inTheWay().get(0).contains("Nearby"), placed.inTheWay().toString());
+            assertTrue(written.isEmpty(), "blocks were written before the refusal");
+        }
+        finally
+        {
+            StargateManager.removeStargate(near);
+        }
+    }
+
+    /** A preview laid over a gate already standing is a repair or an obstruction, never "too close". */
+    @Test
+    void aPreviewOverAStandingGateIsNotRefusedAsTooClose()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        GatePreviews.show(owner, standard, null);
+        ConfigTestSupport.set(ConfigKeys.MIN_GATE_DISTANCE, 500);
+        final Stargate near = registeredGateBeside("Under");
+        GatePreviews.gateAt = (w, x, y, z) -> near;
+        try
+        {
+            assertNotEquals(GatePreviews.Outcome.TOO_CLOSE, GatePreviews.place(owner, false).outcome());
+        }
+        finally
+        {
+            StargateManager.removeStargate(near);
+        }
+    }
+
     /**
      * Building by coordinates places the gate as a preview's place does, with no player: nothing is
      * drawn.
@@ -3070,6 +3133,29 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
 
         assertTrue(irisPending.isEmpty(), "no sweep is booked: the iris is shut at once");
+    }
+
+    /** A shape turned off since it was previewed is not built for real: nothing goes down. */
+    @Test
+    void aPreviewOfAShapeTurnedOffSincePlacesNothing()
+    {
+        when(plugin.getDataFolder()).thenReturn(tempDir);
+        assertTrue(new File(tempDir, "shapes" + File.separator + "gate").mkdirs());
+        obsidianFramesAreFindable();
+        detectsAGate();
+        standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        StargateShapeRegistry.setEnabled(standard.getShapeName(), false);
+        try
+        {
+            assertEquals(GatePreviews.Outcome.SHAPE_OFF, GatePreviews.place(owner).outcome());
+            assertTrue(written.isEmpty(), "nothing may be placed for a shape that is off");
+            assertTrue(detected.isEmpty());
+        }
+        finally
+        {
+            StargateShapeRegistry.setEnabled(standard.getShapeName(), true);
+        }
     }
 
     /**

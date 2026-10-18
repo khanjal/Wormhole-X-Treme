@@ -29,6 +29,14 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 The frame material decides the gate's look: build `Standard` in obsidian for a Standard gate,
 in lapis for an Atlantis one. See [Material groups](#material-groups).
 
+**Spacing.** `min-gate-distance` (default `0`, no limit; set it with `/wormhole config`) is the
+least distance in blocks between two gates in one world, measured between the middles of their
+openings. A gate built closer is refused, before any fare is charged, with the distance and the
+nearest gate named. It is checked when the design is found, on `gate complete`, on
+`gate preview place`, and on `gate build` with coordinates when a player types it. The console and
+command blocks are not held to it. Rings and gates in other worlds do not count. Anyone with
+`wormhole.build.mindistance.bypass`, which operators have by default, is exempt.
+
 ### Previews
 
 With `wormhole.build.preview`, step 1 also stands the shape up full size in front of you: its
@@ -167,6 +175,13 @@ startup, an edited one is left alone, and anything you add is loaded. Older
 
 **To make your own**, copy an existing `.shape` file, edit the grid, give it a unique name, and
 put it in `shapes/gate/`. Try it without restarting with `/wormhole gate shapes reload <name>`.
+
+**To stop players building a shape**, turn it off with `/wormhole gate shapes disable <name>` (say,
+`Massive` on a survival server) and back on with `enable`. A shape that is off cannot be chosen with
+`gate build`, previewed or placed, or found when a player finishes building one by hand, and it
+is left out of tab completion. Gates already standing on it keep working. The
+choice is kept in `shapes/gate/disabled-shapes.txt`, one name a line, so editing, resaving or
+updating the shape file never turns it back on.
 
 ### Shape material parameters
 
@@ -627,6 +642,8 @@ the setting does not touch them.
 |---|---|
 | `gate shapes reload [name]` | Reload shape files without a restart |
 | `gate shapes validate <name>` | Check a shape file |
+| `gate shapes disable <name>` | Stop new gates being built from a shape; gates already built keep working |
+| `gate shapes enable <name>` | Allow building from it again |
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
 
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),

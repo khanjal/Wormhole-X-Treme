@@ -76,6 +76,23 @@ somebody else's release notes, and the record of where this fork came from.
 
 ## 1.12.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **`/wormhole config -reload` reads `config.yml` again** after it is edited or deployed, without a restart: it lists each setting it changed, names any value it refused and keeps the old one, and a file that cannot be read changes nothing. It does not write the file, apart from what turning `gate-material-groups-autodiscover` on does, as with the command; edited material groups still wait for a restart ([#634](https://github.com/khanjal/Wormhole-X-Treme/issues/634)). [Guide](docs/guide/SERVER.md#configuration)
+- **Chat messages are in each player's client language**, falling back to `server-language` (default `en`, also the language of messages to the console and command blocks) and then English, with a `lang/<code>.yml` of your own in the plugin folder read over the plugin's; only `/wormhole compass` and the console's gate build and dial are translatable so far, and sign text stays English ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)). [Guide](docs/guide/TRANSLATING.md)
+- **`/wormhole gate shapes disable <shape>` and `enable`** stop and allow building a gate shape without deleting its file; gates already standing keep working. The choice is kept in `shapes/gate/disabled-shapes.txt` and survives editing, resaving and updating the shape ([#636](https://github.com/khanjal/Wormhole-X-Treme/issues/636)).
+
+**Fixed**
+
+- **`gate shapes validate` and `reload` refuse a name with `/`, `\` or `:` in it**, so they only read files in the shapes folder ([#644](https://github.com/khanjal/Wormhole-X-Treme/issues/644)).
+- **`log-level: off` no longer stops the plugin loading**: a bare `off` is the level `OFF`, `/wormhole config log-level off` is written back in quotes, and a value that is no level is the default, said once ([#647](https://github.com/khanjal/Wormhole-X-Treme/issues/647)).
+
+### Stargates
+
+- `min-gate-distance` (default 0, off) refuses a gate built closer than that to another in its world, before any fare, naming the nearest; `wormhole.build.mindistance.bypass` exempts ([#635](https://github.com/khanjal/Wormhole-X-Treme/issues/635)).
+
 ### Internals
 
 - Javadoc `@param` tags that only repeated the parameter name (`@param gate` / `the gate`) are gone ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
@@ -84,6 +101,8 @@ somebody else's release notes, and the record of where this fork came from.
 - On Paper, ring countdowns and mirror names go above the hotbar through Paper's own action bar rather than Spigot's. Spigot keeps its own ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 - On Paper, the plugin's version is read from Paper's plugin meta, and Freya and window stand-ins are named through Paper's own name components. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 - On Paper, gate and dial signs are written and read through Paper's own sign line components. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
+- On Paper, the name over a far player's stand-in is read from Paper's own display name component. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
+- The Paper builds list deprecation warnings in `src/main` again; the tests' stay hidden there ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 
 ## 1.11.0 (2026-10-17)
 

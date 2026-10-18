@@ -97,7 +97,8 @@ one. [Details](docs/guide/SERVER.md#compatibility)
 
 ## Documentation
 
-**Running a server** — [Setup, upgrading, configuration, permissions and commands](docs/guide/SERVER.md)
+**Running a server** — [Setup, upgrading, configuration, permissions and commands](docs/guide/SERVER.md) ·
+[Translating](docs/guide/TRANSLATING.md)
 
 **Using each feature** — [Gates](docs/guide/GATES.md) · [Rings](docs/guide/RINGS.md) ·
 [Beaming](docs/guide/BEAMS.md) · [Mirrors](docs/guide/MIRRORS.md)

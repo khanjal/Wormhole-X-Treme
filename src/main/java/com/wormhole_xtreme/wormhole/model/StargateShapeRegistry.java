@@ -12,9 +12,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +38,16 @@ public final class StargateShapeRegistry
 
     /** What makes a file in the shapes folder a shape rather than somebody's notes. */
     private static final String SHAPE_SUFFIX = ".shape";
+
+    /**
+     * Where the shapes an admin turned off are listed, one name a line, beside the shape files.
+     * Not in a shape file: an update replaces an unedited shipped shape, and an edited one would
+     * stop updating.
+     */
+    static final String DISABLED_FILE = "disabled-shapes.txt";
+
+    /** Shapes that cannot be built, lower-cased. */
+    private static final Set<String> disabledShapes = ConcurrentHashMap.newKeySet();
 
     private StargateShapeRegistry() {}
 
@@ -87,6 +99,84 @@ public final class StargateShapeRegistry
     public static boolean isStargateShape(final String name)
     {
         return getStargateShapes().containsKey(name);
+    }
+
+    /**
+     * Whether new gates may be built from a shape. Gates already standing keep working either way.
+     *
+     * @param name
+     *            a shape's name, whatever the capitals
+     * @return false only for a shape an admin turned off
+     */
+    public static boolean isEnabled(final String name)
+    {
+        return (name == null) || !disabledShapes.contains(name.toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * Turns a shape on or off and saves the choice.
+     *
+     * @param name
+     *            a shape's name, whatever the capitals
+     * @param enabled
+     *            whether new gates may be built from it
+     * @return true if the choice was saved, false if it holds only until a restart
+     */
+    public static boolean setEnabled(final String name, final boolean enabled)
+    {
+        final String key = name.toLowerCase(Locale.ROOT);
+        if (enabled)
+        {
+            disabledShapes.remove(key);
+        }
+        else
+        {
+            disabledShapes.add(key);
+        }
+        return writeDisabled(new File(shapeDirectory(), DISABLED_FILE));
+    }
+
+    /** Reads the list of shapes turned off; a missing file means none are. */
+    static void readDisabled(final File file)
+    {
+        disabledShapes.clear();
+        if (!file.isFile())
+        {
+            return;
+        }
+        try
+        {
+            for (final String line : Files.readAllLines(file.toPath(), StandardCharsets.UTF_8))
+            {
+                final String name = line.replace("\uFEFF", "").trim();
+                if (!name.isEmpty() && !name.startsWith("#"))
+                {
+                    disabledShapes.add(name.toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Could not read " + file.getPath() + "; every shape is left turned on.", e);
+        }
+    }
+
+    static boolean writeDisabled(final File file)
+    {
+        final List<String> lines = new ArrayList<>();
+        lines.add("# Gate shapes turned off, one name a line. Change with /wormhole gate shapes enable|disable.");
+        lines.addAll(disabledShapes.stream().sorted().toList());
+        try
+        {
+            Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+            return true;
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not save " + file.getPath(), e);
+            return false;
+        }
     }
 
     /**
@@ -298,6 +388,7 @@ public final class StargateShapeRegistry
         }
         ShippedShapes.updateUntouched(directory);
         restoreMissingDefaults(directory);
+        readDisabled(new File(directory, DISABLED_FILE));
         readShapesIn(directory);
 
         if (getStargateShapes().isEmpty())
@@ -482,6 +573,10 @@ public final class StargateShapeRegistry
      */
     public static ShapeFileValidator.Result reloadShapeFile(final String fileName)
     {
+        if (!isPlainFileName(fileName))
+        {
+            return notAFileName(fileName);
+        }
         final String[] lines = readShapeFileLines(fileName);
         if (lines == null)
         {
@@ -501,12 +596,32 @@ public final class StargateShapeRegistry
      */
     public static ShapeFileValidator.Result validateShapeFile(final String fileName)
     {
+        if (!isPlainFileName(fileName))
+        {
+            return notAFileName(fileName);
+        }
         final String[] lines = readShapeFileLines(fileName);
         if (lines == null)
         {
             return ShapeFileValidator.Result.unreadable("No such file: " + fileName);
         }
         return ShapeFileValidator.validate(lines);
+    }
+
+    /**
+     * Whether a typed name stays in the shapes folder. A separator or a drive colon is refused
+     * rather than the resolved path checked, so a name means the same on every platform.
+     */
+    private static boolean isPlainFileName(final String fileName)
+    {
+        return (fileName != null) && !fileName.isEmpty()
+            && (fileName.indexOf('/') < 0) && (fileName.indexOf('\\') < 0) && (fileName.indexOf(':') < 0);
+    }
+
+    private static ShapeFileValidator.Result notAFileName(final String fileName)
+    {
+        return ShapeFileValidator.Result.unreadable(
+            "Not a file in the shapes folder: " + fileName + " (a name cannot hold / \\ or :)");
     }
 
     /** @return the file's lines, or null if it does not exist or could not be read */

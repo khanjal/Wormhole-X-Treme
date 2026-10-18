@@ -224,7 +224,7 @@ public class ConfigurationYAML
      *            the setting being looked for
      * @return the key as the file spells it, or null if the file does not mention it
      */
-    private static String keyFor(final Map<String, Object> map, final Setting element)
+    static String keyFor(final Map<String, Object> map, final Setting element)
     {
         final String enumKey = element.getName().name();
         final String kebabKey = kebabKeyName(enumKey);
@@ -269,20 +269,67 @@ public class ConfigurationYAML
      */
     private static Setting settingFrom(final Setting element, final Object value)
     {
-        final Object read = asKindOf(element.getValue(), value);
+        final Object read = readFrom(element, value);
         final String key = kebabKeyName(element.getName().name());
         if (read == null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
-                + ", which is not " + kindOf(element.getValue()) + "; using " + element.getValue() + " until it is put right.");
+            warnOf(key, value, ", which is not " + kindOf(element.getValue()) + "; using " + element.getValue()
+                + " until it is put right.");
             return copyOf(element);
+        }
+        // Level.parse throws on anything else, at the first log-level read (#647).
+        if (element.getName() == ConfigManager.ConfigKeys.LOG_LEVEL)
+        {
+            return checked(element, key, value, read, ", which is not a logging level");
+        }
+        // A bare no is a switch, and would otherwise read as English without a word (#26).
+        if (element.getName() == ConfigManager.ConfigKeys.SERVER_LANGUAGE)
+        {
+            return checked(element, key, value, read, ", which is not a language code; write one such as no in quotes");
         }
         if ((value instanceof Number) && (read instanceof Boolean))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value
-                + ", a number, where it is now true or false; read as " + read + " and written back so.");
+            warnOf(key, value, ", a number, where it is now true or false; read as " + read + " and written back so.");
         }
         return new Setting(element.getName(), read, element.getDescription(), SETTING_SECTION);
+    }
+
+    /** A value the command would take, in its form, or the default with a warning saying why not. */
+    private static Setting checked(final Setting element, final String key, final Object value, final Object read,
+        final String why)
+    {
+        final ParsedSetting parsed = ParsedSetting.read(element.getName(), element.getValue(), read.toString());
+        if (!parsed.isAccepted())
+        {
+            warnOf(key, value, why + "; using " + element.getValue() + " until it is put right.");
+            return copyOf(element);
+        }
+        return new Setting(element.getName(), parsed.getValue(), element.getDescription(), SETTING_SECTION);
+    }
+
+    /** Warns of one value in config.yml, naming it as written. */
+    private static void warnOf(final String key, final Object value, final String what)
+    {
+        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "config.yml has " + key + ": " + value + what);
+    }
+
+    /**
+     * A value from the file as its setting reads it, at startup and on a reload: as
+     * {@link #asKindOf}, but a bare {@code log-level: off}, which YAML reads as false, is the level OFF.
+     *
+     * @param element
+     *            the setting's default
+     * @param value
+     *            the value read from the file
+     * @return the value to store, or null if it cannot be read as that setting's kind
+     */
+    static Object readFrom(final Setting element, final Object value)
+    {
+        if ((element.getName() == ConfigManager.ConfigKeys.LOG_LEVEL) && Boolean.FALSE.equals(value))
+        {
+            return Level.OFF.getName();
+        }
+        return asKindOf(element.getValue(), value);
     }
 
     /**
@@ -373,7 +420,7 @@ public class ConfigurationYAML
     }
 
     /** What kind a setting is, for a warning. */
-    private static String kindOf(final Object kind)
+    static String kindOf(final Object kind)
     {
         if (kind instanceof Boolean)
         {
@@ -1147,6 +1194,9 @@ public class ConfigurationYAML
         return constantName.toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
+    /** The words YAML 1.1 reads as true or false, in any capitals; y and n are not to SnakeYAML, and quoted harmlessly. */
+    private static final Set<String> SWITCH_WORDS = Set.of("y", "n", "yes", "no", "true", "false", "on", "off");
+
     private static String formatValueForYaml(final Object value)
     {
         if (value == null)
@@ -1159,7 +1209,8 @@ public class ConfigurationYAML
         }
         // For enum types or strings, quote strings that may contain special characters
         final String s = value.toString();
-        if (s.matches("^[a-zA-Z0-9_\\-]+$"))
+        // Bare, a word YAML reads as a switch comes back as true or false (#647).
+        if (s.matches("^[a-zA-Z0-9_\\-]+$") && !SWITCH_WORDS.contains(s.toLowerCase(Locale.ROOT)))
         {
             return s;
         }

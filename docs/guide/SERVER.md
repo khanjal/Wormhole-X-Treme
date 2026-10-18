@@ -108,15 +108,26 @@ The groups, in the order the file has them, and where each is explained:
 /wormhole config <setting>            show it, with its description
 /wormhole config <setting> <value>    change it — no reload, no restart
 /wormhole config sign                 search: every setting with "sign" in its name
+/wormhole config -reload              read config.yml again, after editing or deploying it
 ```
 
 Either spelling works: `gate-sound-kawoosh`, as `config.yml` has it, or `gate_sound_kawoosh`, as
 tab completion shows it. A setting with a fixed set of values refuses a bad one and names the
 options. Sound names are not checked, because a resource pack's sounds have to pass through.
 
-**Editing `config.yml` while the server is running does not work.** The plugin writes the file
-back from memory when it shuts down, so an edit made underneath it is overwritten. Use the
-command, or edit the file with the server stopped.
+**After editing `config.yml` while the server is running, run `/wormhole config -reload`.** The
+plugin writes the file back from memory when it shuts down, or when a setting is changed with the
+command, so an edit it has not reloaded is overwritten. The reload reads each setting the file
+changes as startup reads it, then checks it the way the command would, and lists them. A value the
+command would refuse is named and the old one kept; a setting the file leaves out keeps its value;
+a file that cannot be read changes nothing and says why. A value written the way the command would
+not store it, such as `slow` for a ring style, is reported as changed to the form the command uses.
+YAML reads a bare `off`, `on`, `yes` or `no` as a switch: a bare `off` is `OFF` under `log-level`
+and the default under `gate-view` and `gate-iris-animation`, and under `gate-dial-spin` a bare `off`
+is `NONE` and `on` is `TOP`; anywhere else, write such a word in quotes.
+The reload does not write the file itself, apart from what turning
+`gate-material-groups-autodiscover` on does, as with the command; edited material groups still
+wait for a restart. It needs `wormhole.config`.
 
 **A change applies from the next time it is used.** A wormhole already open closes on the timeout
 it opened with, a cooldown already running ends when it was going to, and a gate's name sign keeps
@@ -133,6 +144,12 @@ its colours until it is next written. Nothing waits for a restart.
 | Setting | Default | What it does |
 |---|---|---|
 | `clickable-chat` | true | A command named in chat can be clicked: after `gate build`, each preview action is a button, with hover text saying what it does, and a refusal that names a command links it. An action that needs more, such as `material`, fills in the chat box instead of running. False sends the same lines as plain text, which is all a CraftBukkit server gets anyway |
+
+### Language
+
+| Setting | Default | What it does |
+|---|---|---|
+| `server-language` | en | The language of messages sent to the console and command blocks (and, later, the log and text the server puts in the world), such as `de` or `pt_br`. Players see their own client's language, falling back to this, then English. Only some messages are translatable so far, and sign text stays English; see [TRANSLATING.md](TRANSLATING.md) |
 
 ### Keeping gates from staying open
 
@@ -188,9 +205,10 @@ outranks a negated node.
 | `wormhole.build.preview` | op | `/wormhole gate build` and its [previews](GATES.md#previews), without `wormhole.config` |
 | `wormhole.build.preview.share` | op | `gate preview share`, showing a preview to other players |
 | `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |
+| `wormhole.build.mindistance.bypass` | op | Building closer to another gate than [`min-gate-distance`](GATES.md#building-a-gate) allows |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
-| `wormhole.config` | op | Settings, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
+| `wormhole.config` | op | Settings, including `config -reload`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
 | `wormhole.network.use.<network>` | | Using gates on that network |
 | `wormhole.network.build.<network>` | | Building gates on that network |
 
@@ -301,6 +319,7 @@ Gates, rings and beams make noise, all configured the same way. Tables are on ea
 ```
 plugins/WormholeXTreme/
 ├── config.yml
+├── lang/*.yml          (optional, yours)
 ├── shapes/gate/*.shape
 ├── shapes/mirror/*.mirror
 └── data/
@@ -312,7 +331,9 @@ plugins/WormholeXTreme/
 
 Back up by copying `data/`; edit anything in it by hand if you need to. There is no database to
 install or configure. Gates are one file each; rings are one file per world, and a pair that
-will not parse is logged and skipped while the rest of the world loads.
+will not parse is logged and skipped while the rest of the world loads. `lang/` is never created by
+the plugin: make it to hold your own chat messages, one file per client language, read over the
+plugin's own. See [Translating](TRANSLATING.md).
 
 The HSQLDB and SQLite backends of earlier versions are gone. Files an older build of this fork
 kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is

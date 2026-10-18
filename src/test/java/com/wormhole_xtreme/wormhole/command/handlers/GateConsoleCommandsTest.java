@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.command.Dial;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
@@ -57,6 +59,10 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  */
 class GateConsoleCommandsTest
 {
+    /** The refusal as it read before it moved to lang/en.yml (#26). */
+    private static final String NOT_COORDINATES = "Those words are not a gate to build at coordinates: give whole numbers or ~ for "
+        + "x y z, then a facing.";
+
     private static String[] line(final String... words)
     {
         return words;
@@ -78,9 +84,13 @@ class GateConsoleCommandsTest
                 mock(StargateShape.class);
             final World world = mock(World.class);
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.isEnabled(anyString()))
+                .thenAnswer(call -> !"Off".equals(call.getArgument(0)));
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Flat")).thenReturn(true);
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Flat")).thenReturn(flat);
+            shapes.when(() -> StargateShapeRegistry.isStargateShape("Off")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.getStargateShape("Off")).thenReturn(standard);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             gates.when(() -> StargateManager.getStargate("Taken")).thenReturn(new Stargate());
             final String why = GateConsoleCommands.whyNotBuildable(mock(ConsoleCommandSender.class), words);
@@ -98,6 +108,14 @@ class GateConsoleCommandsTest
             "a word where y goes is not coordinates");
         assertTrue(GateConsoleCommands.isCoordinateBuild(line("Standard", "A", "world", "~", "~1", "~-3", "south")),
             "a command block names where to build relative to itself");
+    }
+
+    /** A shape an admin turned off is refused for the console as it is for a player. */
+    @Test
+    void aShapeTurnedOffIsRefusedBeforeAnythingIsPlaced()
+    {
+        assertEquals("Off is turned off on this server.",
+            refusal("Off", "Abydos", "world", "0", "-60", "0", "south"));
     }
 
     /** The console is nowhere, so a ~ from it is refused before anything is placed. */
@@ -259,6 +277,8 @@ class GateConsoleCommandsTest
              MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.isEnabled(anyString()))
+                .thenAnswer(call -> !"Off".equals(call.getArgument(0)));
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
@@ -324,9 +344,9 @@ class GateConsoleCommandsTest
     @Test
     void aNearMissCoordinateLineIsToldTheCoordinateUsage()
     {
-        assertEquals(GateConsoleCommands.NOT_COORDINATES, refusal("Standard", "A", "world", "0.5", "-60", "0", "south"),
+        assertEquals(NOT_COORDINATES, refusal("Standard", "A", "world", "0.5", "-60", "0", "south"),
             "a fraction for x is not the coordinate form, and the player form would not help");
-        assertEquals(GateConsoleCommands.NOT_COORDINATES, refusal("Standard", "A", "world", "0", "-60", "0"),
+        assertEquals(NOT_COORDINATES, refusal("Standard", "A", "world", "0", "-60", "0"),
             "six words is one short");
     }
 
@@ -341,7 +361,7 @@ class GateConsoleCommandsTest
 
         GateConsoleCommands.build(console, line("Standard", "A", "world", "0.5", "-60", "0", "south"));
 
-        verify(console).sendMessage(errorBody(GateConsoleCommands.NOT_COORDINATES));
+        verify(console).sendMessage(errorBody(NOT_COORDINATES));
         verify(console).sendMessage(infoBody("Usage: " + GateConsoleCommands.BUILD_USAGE));
     }
 
@@ -394,6 +414,8 @@ class GateConsoleCommandsTest
         {
             console = sender;
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.isEnabled(anyString()))
+                .thenAnswer(call -> !"Off".equals(call.getArgument(0)));
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             when(world.getName()).thenReturn("world");
@@ -704,6 +726,69 @@ class GateConsoleCommandsTest
         finally
         {
             RegionFlagsTestSupport.remove();
+        }
+    }
+
+    /** A gate standing at the one opening block, for the spacing tests. */
+    private static Stargate neighbourAt(final World world)
+    {
+        final Stargate near = new Stargate();
+        near.setGateName("Nearby");
+        near.setGateWorld(world);
+        near.getGatePortalBlocks().add(new Location(world, 0, -60, 0));
+        return near;
+    }
+
+    private static void openingAt(final Building building)
+    {
+        building.blueprints.when(() -> GateBlueprint.openingOf(building.standard, building.grid))
+            .thenReturn(List.of(new GateBlueprint.Cell(3, -60, 0, GateBlueprint.Part.FRAME, 0)));
+    }
+
+    /** A player building by coordinates beside another gate is refused before anything is placed. */
+    @Test
+    void aPlayerBuildingTooCloseToAnotherGateIsRefusedBeforeAnythingIsPlaced()
+    {
+        final Player player = mock(Player.class);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIN_GATE_DISTANCE, 50);
+        try (Building building = new Building(player);
+             MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
+        {
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, "", WXPermissions.PermissionType.BUILD)).thenReturn(true);
+            openingAt(building);
+            building.gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(neighbourAt(building.world)));
+
+            building.build("Standard", "A", "world", "0", "-60", "0", "south");
+
+            verify(player).sendMessage(plainContains("Too close to Nearby"));
+            building.nothingPlaced();
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+    }
+
+    /** The console has no player to hold to the spacing, as it is not held to regions. */
+    @Test
+    void theConsoleBuildsTooCloseToAnotherGate()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIN_GATE_DISTANCE, 50);
+        try (Building building = new Building())
+        {
+            building.previews.when(() -> GatePreviews.placeAt(any(), any(), any(), any())).thenReturn(
+                new GatePreviews.Placed(GatePreviews.Outcome.NOT_LOADED, List.of(), null, null));
+            openingAt(building);
+            building.gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(neighbourAt(building.world)));
+
+            building.build("Standard", "A", "world", "0", "-60", "0", "south");
+
+            building.previews.verify(() -> GatePreviews.placeAt(any(), any(), any(), any()));
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
         }
     }
 }

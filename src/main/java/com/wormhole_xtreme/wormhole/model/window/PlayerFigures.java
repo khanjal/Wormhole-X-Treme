@@ -20,6 +20,7 @@ import org.bukkit.scoreboard.Team;
 
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.EntityNames;
+import com.wormhole_xtreme.wormhole.utils.PlayerNames;
 
 /**
  * What a far player's stand-in is, and how it is dressed (#296, step 2): a Mannequin wearing their
@@ -91,6 +92,8 @@ final class PlayerFigures
         /** Spigot's {@code setModelPartShown(PlayerModelPart, boolean)}. */
         final Method modelPart;
 
+        // Spigot has no other player profile, and Paper deprecates this one.
+        @SuppressWarnings("deprecation")
         private Mannequins(final Class<? extends LivingEntity> type)
         {
             this.type = type;
@@ -208,7 +211,7 @@ final class PlayerFigures
      */
     static String shownName(final Player player)
     {
-        final String plain = ChatText.plain(player.getDisplayName()).trim();
+        final String plain = ChatText.plain(PlayerNames.display(player)).trim();
         return plain.isEmpty() ? player.getName() : plain;
     }
 
@@ -330,6 +333,8 @@ final class PlayerFigures
     }
 
     /** Dresses a Mannequin as the player, by whichever of the methods this server has. */
+    // Spigot has no other player profile, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     private static void dressMannequin(final Mannequins with, final Entity copy, final Player original)
     {
         call(with.immovable, copy, true);

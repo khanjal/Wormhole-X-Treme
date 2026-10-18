@@ -383,7 +383,7 @@ public final class SubCommands
                 MirrorCommand.verbs()) + ">",
             new MirrorCommand(), false,
             SubCommands::completeMirror);
-        register("config", aliases("set"), "/wormhole config <setting> [value]",
+        register("config", aliases("set"), "/wormhole config <setting|" + ConfigCommand.RELOAD + "> [value]",
             new ConfigCommand(), false, (sender, args) ->
             {
                 if (args.length == 3)
@@ -397,10 +397,11 @@ public final class SubCommands
                 }
                 // Completing what is in config.yml: gate-sound- has to reach
                 // GATE_SOUND_KAWOOSH, or the file's own spelling completes to nothing.
+                // The flag is matched as typed, since its dash is not an underscore; suggestions
+                // are sorted alphabetically, so the dash puts it first.
                 final String typed = (args[1] == null) ? null : args[1].replace('-', '_');
-                return prefixed(typed,
-                    ConfigManager.settingNames()
-                        .toArray(new String[0]));
+                return combine(prefixed(args[1], ConfigCommand.RELOAD),
+                    prefixed(typed, ConfigManager.settingNames().toArray(new String[0])));
             });
 
         // --- Not advertised ---------------------------------------------------
@@ -548,7 +549,7 @@ public final class SubCommands
     {
         if (args.length == 3)
         {
-            return shapeNames(args[2]);
+            return buildableShapeNames(args[2]);
         }
         if (args.length != 4)
         {
@@ -921,7 +922,7 @@ public final class SubCommands
     {
         if (args.length == 3)
         {
-            return prefixed(args[2], "reload", "validate");
+            return prefixed(args[2], "reload", "validate", "enable", "disable");
         }
         // Completes from names already loaded -- a brand new file not loaded yet has to be
         // typed out in full, the same limit gate build's own completion already has.
@@ -960,7 +961,7 @@ public final class SubCommands
         final String previous = args[args.length - 2];
         if ("-shape".equalsIgnoreCase(previous))
         {
-            return shapeNames(args[args.length - 1]);
+            return buildableShapeNames(args[args.length - 1]);
         }
         final String[] flags = Stream.of("-shape", "-fill", "-water")
             .filter(flag -> Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
@@ -1595,8 +1596,20 @@ public final class SubCommands
      */
     private static List<String> shapeNames(final String typed)
     {
+        return shapeNames(typed, false);
+    }
+
+    /** {@link #shapeNames} without the shapes an admin turned off, for the commands that build. */
+    private static List<String> buildableShapeNames(final String typed)
+    {
+        return shapeNames(typed, true);
+    }
+
+    private static List<String> shapeNames(final String typed, final boolean buildableOnly)
+    {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         return StargateShapeRegistry.getStargateShapes().keySet().stream()
+            .filter(name -> !buildableOnly || StargateShapeRegistry.isEnabled(name))
             .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(p))
             .sorted()
             .collect(Collectors.toCollection(ArrayList::new));

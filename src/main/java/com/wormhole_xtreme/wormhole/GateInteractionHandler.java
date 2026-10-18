@@ -21,10 +21,12 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -216,6 +218,13 @@ public final class GateInteractionHandler
             withdrawOffer(player, newGate);
             return;
         }
+        final String tooClose = GateSpacing.refusal(player, newGate);
+        if (tooClose != null)
+        {
+            withdrawOffer(player, newGate);
+            player.sendMessage(ChatText.error(tooClose));
+            return;
+        }
 
         StargateManager.addIncompleteStargate(player, newGate);
         announceValidDesign(player, newGate);
@@ -264,10 +273,11 @@ public final class GateInteractionHandler
         final StargateShape shape = StargateManager.getPlayerBuilderShape(player);
         if (shape != null)
         {
-            return StargateHelper.checkStargate(clickedBlock, facing, shape);
+            return StargateShapeRegistry.isEnabled(shape.getShapeName())
+                ? StargateHelper.checkStargate(clickedBlock, facing, shape) : null;
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, "Attempting to find any gate shapes!");
-        return StargateHelper.checkStargate(clickedBlock, facing);
+        return StargateHelper.checkNewStargate(clickedBlock, facing);
     }
 
     /**
@@ -379,7 +389,7 @@ public final class GateInteractionHandler
     {
         try
         {
-            return StargateHelper.checkStargate(clickedBlock, face);
+            return StargateHelper.checkNewStargate(clickedBlock, face);
         }
         catch (final RuntimeException e)
         {
@@ -860,7 +870,7 @@ public final class GateInteractionHandler
         {
             return null;
         }
-        final Stargate nearbyGate = StargateHelper.checkStargate(candidate, face);
+        final Stargate nearbyGate = StargateHelper.checkNewStargate(candidate, face);
         if (nearbyGate == null)
         {
             return null;
@@ -907,6 +917,12 @@ public final class GateInteractionHandler
         {
             if (RegionFlags.refusesBuild(player, nearbyGate))
             {
+                return;
+            }
+            final String tooClose = GateSpacing.refusal(player, nearbyGate);
+            if (tooClose != null)
+            {
+                player.sendMessage(ChatText.error(tooClose));
                 return;
             }
             StargateManager.addIncompleteStargate(player, nearbyGate);

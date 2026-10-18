@@ -1247,7 +1247,7 @@ class StandInsTest
     {
         final Player player = creature(Player.class, 100.5, 70.0, -18.5);
         when(player.getName()).thenReturn(name);
-        when(player.getDisplayName()).thenReturn(name);
+        ShownNames.giveDisplayName(player, name);
         when(player.isOnline()).thenReturn(true);
         when(player.isVisibleByDefault()).thenReturn(true);
         when(player.getGameMode()).thenReturn(GameMode.SURVIVAL);

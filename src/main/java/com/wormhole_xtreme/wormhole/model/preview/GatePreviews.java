@@ -49,6 +49,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.DrawnHorizon;
 import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.IrisSweepDriver;
@@ -56,6 +57,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.WooshSequence;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
@@ -193,7 +195,11 @@ public final class GatePreviews
         /** It stood over one gate already there: the blocks that gate was missing were placed. */
         REPAIRED,
         /** A WorldGuard region where it would stand refuses its owner gate building, and nothing was placed. */
-        NOT_ALLOWED_HERE
+        NOT_ALLOWED_HERE,
+        /** It would stand closer to another gate than {@code min-gate-distance} allows, and nothing was placed; {@code inTheWay} holds why. */
+        TOO_CLOSE,
+        /** An admin turned its shape off since it was shown, and nothing was placed. */
+        SHAPE_OFF
     }
 
     /**
@@ -606,11 +612,33 @@ public final class GatePreviews
         {
             return new Placed(Outcome.NOT_LOOKING, List.of(), null, null);
         }
+        if (!StargateShapeRegistry.isEnabled(preview.shape().getShapeName()))
+        {
+            return new Placed(Outcome.SHAPE_OFF, List.of(), null, null);
+        }
         if (!RegionFlags.mayBuild(owner, footprintOf(preview)))
         {
             return new Placed(Outcome.NOT_ALLOWED_HERE, List.of(), null, null);
         }
+        final String tooClose = standsOverAGate(preview) ? null
+            : GateSpacing.refusal(owner, preview.world(), openingBlocks(preview));
+        if (tooClose != null)
+        {
+            return new Placed(Outcome.TOO_CLOSE, List.of(tooClose), null, null);
+        }
         return PreviewPlacer.place(preview, overAGate);
+    }
+
+    /** Whether a gate already stands where the preview would; repairing it, or being in its way, is not spacing. */
+    private static boolean standsOverAGate(final GatePreview preview)
+    {
+        return footprintOf(preview).stream().anyMatch(at -> gateAt.at(preview.world(), at.getBlockX(), at.getBlockY(),
+            at.getBlockZ()) != null);
+    }
+
+    private static List<Location> openingBlocks(final GatePreview preview)
+    {
+        return preview.opening().stream().map(cell -> new Location(preview.world(), cell.x(), cell.y(), cell.z())).toList();
     }
 
     /** Every spot a preview's gate would take: its blocks and its opening. */

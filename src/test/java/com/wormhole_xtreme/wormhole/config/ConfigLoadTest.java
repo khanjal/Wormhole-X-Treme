@@ -521,6 +521,78 @@ class ConfigLoadTest
     }
 
     /**
+     * A bare {@code log-level: off}, which YAML reads as false, is the level OFF (#647).
+     *
+     * <p>It was stored as the text {@code "false"}, which {@code Level.parse} throws on, so the
+     * plugin failed to load at the first log-level read.
+     */
+    @Test
+    void aBareOffUnderLogLevelIsTheLevelOff() throws Exception
+    {
+        writeConfig("log-level: off\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(Level.OFF, ConfigManager.getLogLevel());
+    }
+
+    /**
+     * A bare {@code log-level: on} is no level: the default, said once, rather than a throw at the
+     * first log-level read (#647).
+     */
+    @Test
+    void aBareOnUnderLogLevelIsTheDefault() throws Exception
+    {
+        writeConfig("log-level: on\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(Level.INFO, ConfigManager.getLogLevel());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("log-level"));
+    }
+
+    /**
+     * A bare {@code server-language: no}, which YAML reads as false, is no language code: English, said
+     * once, rather than English without a word (#26).
+     */
+    @Test
+    void aBareNoUnderServerLanguageIsEnglishAndSaidSo() throws Exception
+    {
+        writeConfig("server-language: no\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals("en", ConfigManager.getServerLanguage());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("server-language"));
+
+        writeConfig("server-language: \"pt-BR\"\n");
+        ConfigurationYAML.loadConfiguration(directory);
+        assertEquals("pt_br", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.SERVER_LANGUAGE).getValue(),
+            "stored in the form the command stores it");
+    }
+
+    /**
+     * {@code /wormhole config log-level off} is written in quotes, so any reader takes the word and not
+     * a switch (#647). Only the file line guards the quoting: a bare off now reads back as OFF anyway.
+     */
+    @Test
+    void aLevelOfOffIsWrittenSoItReadsBack() throws Exception
+    {
+        writeConfig("log-level: INFO\n");
+        ConfigurationYAML.loadConfiguration(directory);
+        final ParsedSetting parsed = ParsedSetting.read(ConfigManager.ConfigKeys.LOG_LEVEL, "INFO", "off");
+        ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.LOG_LEVEL).setValue(parsed.getValue());
+
+        ConfigurationYAML.writeCurrentConfiguration(new File(directory, "config.yml"));
+        ConfigTestSupport.clear();
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertTrue(configLines().contains("log-level: \"OFF\""), "written in quotes: " + configLines());
+        assertEquals("OFF", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.LOG_LEVEL).getValue(),
+            "and read back as the level");
+    }
+
+    /**
      * A setting given the default, because the file says nothing or nothing readable, holds its own
      * copy: {@code /wormhole config} sets the value on what is stored, and on the shared default it
      * changed the default for every later load.

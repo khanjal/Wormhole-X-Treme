@@ -1167,7 +1167,7 @@ placement is left out and the run is the plain campus.
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. Ninety-two at present; the one naming both `unchecked` and
+quiet one that is inconvenient. A hundred and four at present; the one naming both `unchecked` and
 `rawtypes`, and the one naming both `java:S1168` and `java:S9391`, count in each row. MockBukkit gets its own column because `src/mockbukkit/java`
 compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
@@ -1180,7 +1180,7 @@ compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees t
 | `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
 | `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
 | `unchecked` | 3 | 3 | 2 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors; and a raw `BanList` inherited from MockBukkit's `ServerMock`. |
-| `deprecation` | 10 | 5 | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone, and a test stub of the first; the Spigot-only fallbacks for the action bar, clickable chat, entity names and sign text, which Paper deprecates for Adventure, and the tests that stub and verify the sign text fallback; the pre-1.20.4 `EntityDismountEvent`, the only one older servers fire. |
+| `deprecation` | 20 | 7 | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone, and a test stub of the first; the Bukkit `PlayerProfile` a stand-in's skin is copied through and the bed-enter result, whose replacements are Paper's alone too; the Spigot-only fallbacks for the action bar, clickable chat, entity names, display names, sign text and a player's client language, which Paper deprecates for Adventure, and the tests that stub and verify the sign text and display name fallbacks; the pre-1.20.4 `EntityDismountEvent`, the only one older servers fire. The `paper-api` profile lists no deprecations in the tests, which call the Spigot forms in too many places to suppress. |
 | `java:S2583` | 2 | – | – | Null checks that never fire on a server; a mock player with no UUID, or a mock creature with no type, would throw without them. |
 | `java:S6905` | 1 | – | – | `SELECT *` from a legacy database whose columns vary by version. |
 | `java:S9395` | 1 | – | – | `Math.sqrt(long)` in `RingCommand.apart`: S9395 wants the cast, S1905 calls it redundant and S2153 flags the alternative. |
@@ -1254,6 +1254,36 @@ symbol, and one was fixable in a line.
 - Storage is YAML only: one file per gate (`StargateYamlManager`), one per world for ring pairs
   (`RingYamlManager`), one each for beams and mirrors. A legacy SQLite database is read by
   `LegacyDatabaseImporter` from `/wormhole gate import`.
+
+## Chat messages
+
+Translatable chat text lives in `src/main/resources/lang/en.yml`, one flat `key: "template"` line
+each, read by `Messages.get(recipient, key, args...)` ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)).
+Only some messages have moved so far; the rest are still built inline, and move file by file.
+Another language ships as `src/main/resources/lang/<code>.yml` beside it, named for the client
+language (`de`, `de_de`). A player reads their client's locale, read on every call through
+`PlayerLocales` (Paper's `locale()` by reflection, Bukkit's `getLocale()` elsewhere) and sanitised to
+`[a-z_]`: `de_de`, then `de`, then `server-language`, then English, key by key. Any other recipient,
+or `null`, starts at `server-language`. Each code is the jar's file with the owner's
+`lang/<code>.yml` from the plugin folder over it; the plugin writes nothing to that folder, and
+reads it only on load and reload. Parsed languages are cached per code, never per player, and the
+client codes seen are remembered up to a bound. Sign text is not localised.
+
+- **To move a message**, add its key to `en.yml`, named by area in dotted lower case
+  (`gate.build.no-shape`), and replace the concatenation with
+  `ChatText.error(Messages.get(sender, "gate.build.no-shape", ChatText.name(shape)))`, passing
+  whoever will read it. The header stays at
+  the call site, and so does each argument's colour; the sentence, its order and any colour code
+  inside it go in the template. Something a player types, such as `north` or `net=`, stays an
+  argument so it is never translated.
+- **Never reword while extracting.** The English output must be byte for byte what it was, so a
+  test asserting the old text keeps passing unchanged. Rewording is its own change.
+- **Name the recipient as a plain variable and the key as a string literal.**
+  `MessageKeysGuardTest` reads every `Messages.get` in `src/main` and fails on a key `en.yml` lacks, a
+  key `en.yml` holds that nothing uses, and a call of any other shape.
+- Placeholders are `{0}` to `{99}`, filled in one pass; any other brace or an apostrophe is plain
+  text, unlike `MessageFormat`. Never look a message up in a static initialiser: it would keep the
+  language it was first read in.
 
 ## Writing conventions
 
