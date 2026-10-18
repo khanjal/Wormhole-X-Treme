@@ -1,0 +1,970 @@
+491-A cart from the front	:: Annex has been closed, darkened and its iris opened.
+491-A cart from the front	:: Annex has no IDC.
+491-A cart from the front	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+491-A cart from the front	:: Available gates ::
+491-A cart from the front	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+491-A cart from the front	:: Cleared N previews.
+491-A cart from the front	:: IDC for Stand is ID.
+491-A cart from the front	:: Range has been closed, darkened and its iris opened.
+491-A cart from the front	:: Range has no IDC.
+491-A cart from the front	:: Range, Relay, Stand, Standard
+491-A cart from the front	:: Range, Relay, Standard
+491-A cart from the front	:: Relay has been closed, darkened and its iris opened.
+491-A cart from the front	:: Relay has no IDC.
+491-A cart from the front	:: Removed Stand.
+491-A cart from the front	:: Stand has been closed, darkened and its iris opened.
+b1 End	:: Beam destinations: Pad-End, BeamLab, Atrium
+b1 End	:: Beamed to Pad-End.
+b1 End	:: Beaming to Pad-End...
+b1 End	:: Public beam destination Pad-End set to your current location.
+b1 End	:: Removed public beam destination Pad-End.
+b1 End	:: You have no places set.
+b1 End	:: error :: No public beam destination named Pad-Blocked.
+b1 End	:: error :: No public beam destination named Pad-E.
+b1 End	:: error :: No public beam destination named Pad-End.
+b1 End	:: error :: No public beam destination named Pad-Far.
+b1 End	:: error :: No public beam destination named Pad-N.
+b1 End	:: error :: No public beam destination named Pad-S.
+b1 End	:: error :: No public beam destination named Pad-Trap.
+b1 End	:: error :: No public beam destination named Pad-W.
+b1 End	:: error :: You have no place named Pad-Blocked.
+b1 End	:: error :: You have no place named Pad-E.
+b1 End	:: error :: You have no place named Pad-End.
+b1 End	:: error :: You have no place named Pad-Far.
+b1 End	:: error :: You have no place named Pad-N.
+b1 End	:: error :: You have no place named Pad-S.
+b1 End	:: error :: You have no place named Pad-Trap.
+b1 End	:: error :: You have no place named Pad-W.
+b1 N public	:: Beam destinations: Pad-N, BeamLab, Atrium
+b1 N public	:: Beamed to Pad-N.
+b1 N public	:: Beaming to Pad-N...
+b1 N public	:: Public beam destination Pad-N set to your current location.
+b1 N public	:: Removed public beam destination Pad-N.
+b1 N public	:: You have no places set.
+b1 N public	:: error :: No public beam destination named Pad-Blocked.
+b1 N public	:: error :: No public beam destination named Pad-E.
+b1 N public	:: error :: No public beam destination named Pad-End.
+b1 N public	:: error :: No public beam destination named Pad-Far.
+b1 N public	:: error :: No public beam destination named Pad-N.
+b1 N public	:: error :: No public beam destination named Pad-S.
+b1 N public	:: error :: No public beam destination named Pad-Trap.
+b1 N public	:: error :: No public beam destination named Pad-W.
+b1 N public	:: error :: You have no place named Pad-Blocked.
+b1 N public	:: error :: You have no place named Pad-E.
+b1 N public	:: error :: You have no place named Pad-End.
+b1 N public	:: error :: You have no place named Pad-Far.
+b1 N public	:: error :: You have no place named Pad-N.
+b1 N public	:: error :: You have no place named Pad-S.
+b1 N public	:: error :: You have no place named Pad-Trap.
+b1 N public	:: error :: You have no place named Pad-W.
+b1 Trap	:: Beam destinations: Pad-Trap, BeamLab, Atrium
+b1 Trap	:: Beamed to Pad-Trap.
+b1 Trap	:: Beaming to Pad-Trap...
+b1 Trap	:: Public beam destination Pad-Trap set to your current location.
+b1 Trap	:: Removed public beam destination Pad-Trap.
+b1 Trap	:: You have no places set.
+b1 Trap	:: error :: No public beam destination named Pad-Blocked.
+b1 Trap	:: error :: No public beam destination named Pad-E.
+b1 Trap	:: error :: No public beam destination named Pad-End.
+b1 Trap	:: error :: No public beam destination named Pad-Far.
+b1 Trap	:: error :: No public beam destination named Pad-N.
+b1 Trap	:: error :: No public beam destination named Pad-S.
+b1 Trap	:: error :: No public beam destination named Pad-Trap.
+b1 Trap	:: error :: No public beam destination named Pad-W.
+b1 Trap	:: error :: You have no place named Pad-Blocked.
+b1 Trap	:: error :: You have no place named Pad-E.
+b1 Trap	:: error :: You have no place named Pad-End.
+b1 Trap	:: error :: You have no place named Pad-Far.
+b1 Trap	:: error :: You have no place named Pad-N.
+b1 Trap	:: error :: You have no place named Pad-S.
+b1 Trap	:: error :: You have no place named Pad-Trap.
+b1 Trap	:: error :: You have no place named Pad-W.
+b2 cooldown	:: BEAM_USE_COOLDOWN_ENABLED = false
+b2 cooldown	:: BEAM_USE_COOLDOWN_ENABLED is now false.
+b2 cooldown	:: BEAM_USE_COOLDOWN_ENABLED is now true.
+b2 cooldown	:: BEAM_USE_COOLDOWN_SECONDS = N
+b2 cooldown	:: BEAM_USE_COOLDOWN_SECONDS is now N.
+b2 cooldown	:: Beamed to Dock.
+b2 cooldown	:: Beaming to Dock...
+b2 cooldown	:: Public beam destination Dock set to your current location.
+b2 cooldown	:: Removed public beam destination Dock.
+b2 cooldown	:: Seconds a player must wait between beams, when the cooldown above is enabled.
+b2 cooldown	:: Whether beam travel has a per-player cooldown at all.
+b2 cooldown	:: error :: No public beam destination named Dock.
+b2 cooldown	:: error :: No public beam destination named DockN.
+b2 cooldown	:: error :: You have no place named Den.
+b2 cooldown	:: error :: You must wait longer before beaming again: N seconds.
+b2 send to public	:: Beamed to Dock.
+b2 send to public	:: Beaming ProbeN to Dock.
+b2 send to public	:: Beaming to Dock...
+b2 send to public	:: Public beam destination Dock set to your current location.
+b2 send to public	:: Removed public beam destination Dock.
+b2 send to public	:: error :: No public beam destination named Dock.
+b2 send to public	:: error :: No public beam destination named DockN.
+b2 send to public	:: error :: You have no place named Den.
+c0 target=gold_block control=button	:: GATE_SOUND_VOLUME = N
+c0 target=gold_block control=button	:: GATE_SOUND_VOLUME is now N.
+c0 target=gold_block control=button	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
+c0 target=gold_block control=lever	:: GATE_SOUND_VOLUME = N
+c0 target=gold_block control=lever	:: GATE_SOUND_VOLUME is now N.
+c0 target=gold_block control=lever	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
+console	:: GATE_SOUND_VOLUME = N
+console	:: GATE_SOUND_VOLUME is now N.
+console	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
+console	:: Ops -- right-click to choose a mirror.", then ":: 'Ops' opens onto 'Optics' (N of N)."; the view opened (ID blocks drawn); at Optics within N, facing N°, N s
+empty	::   Annex -- world_the_end -> its own reflection (starts on Ops), capture world_the_end_N_N_N
+empty	::   Ops -- world -> its own reflection (starts on Optics), capture world_-N_N_N
+empty	::   Optics -- world -> its own reflection (starts on Ops), capture world_-N_N_N
+empty	::   Range -- world_nether -> its own reflection (starts on Ops), capture world_nether_-N_N_-N
+empty	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+empty	:: Available gates ::
+empty	:: Beam destinations: BeamLab, Atrium
+empty	:: N mirror(s):
+empty	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+empty	:: Range, Relay, Standard
+empty	:: You have no places set.
+g1 Lab.shape by preview, sign right	:: Annex has been closed, darkened and its iris opened.
+g1 Lab.shape by preview, sign right	:: Annex has no IDC.
+g1 Lab.shape by preview, sign right	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 Lab.shape by preview, sign right	:: Available gates ::
+g1 Lab.shape by preview, sign right	:: Cleared N previews.
+g1 Lab.shape by preview, sign right	:: Dialer set to Ops.
+g1 Lab.shape by preview, sign right	:: Dialer set to Range.
+g1 Lab.shape by preview, sign right	:: Dialer set to Relay.
+g1 Lab.shape by preview, sign right	:: Gate successfully constructed.
+g1 Lab.shape by preview, sign right	:: Look at it and use /wormhole gate preview <action>: [Clear] [Activate] [Iris] [Material] [Needs] [Guide] [Layer] [Chevrons] [DHD] [Share] [Place]
+g1 Lab.shape by preview, sign right	:: Placed Lab.
+g1 Lab.shape by preview, sign right	:: Previewing Lab in Diamond. Build inside it, then press a real button on its DHD.
+g1 Lab.shape by preview, sign right	:: Range has been closed, darkened and its iris opened.
+g1 Lab.shape by preview, sign right	:: Range has no IDC.
+g1 Lab.shape by preview, sign right	:: Range, Relay, Stand, Standard
+g1 Lab.shape by preview, sign right	:: Range, Relay, Standard
+g1 Lab.shape by preview, sign right	:: Relay has been closed, darkened and its iris opened.
+g1 Lab.shape by preview, sign right	:: Relay has no IDC.
+g1 Lab.shape by preview, sign right	:: Removed Stand.
+g1 Lab.shape by preview, sign right	:: Stand has been closed, darkened and its iris opened.
+g1 Lab.shape by preview, sign right	:: Stargates connected!
+g1 Lab.shape by preview, sign right	:: Type /wormhole complete <name> [idc=IDC] [net=NET] to finish it.
+g1 Lab.shape by preview, sign right	:: Valid stargate design.
+g1 arrow	:: Annex has been closed, darkened and its iris opened.
+g1 arrow	:: Annex has no IDC.
+g1 arrow	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 arrow	:: Available gates ::
+g1 arrow	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 arrow	:: Cleared N previews.
+g1 arrow	:: Range has been closed, darkened and its iris opened.
+g1 arrow	:: Range has no IDC.
+g1 arrow	:: Range, Relay, Stand, Standard
+g1 arrow	:: Range, Relay, Standard
+g1 arrow	:: Relay has been closed, darkened and its iris opened.
+g1 arrow	:: Relay has no IDC.
+g1 arrow	:: Removed Stand.
+g1 arrow	:: Stand has been closed, darkened and its iris opened.
+g1 arrow	:: Stargates connected.
+g1 arrow from a dispenser	:: Annex has been closed, darkened and its iris opened.
+g1 arrow from a dispenser	:: Annex has no IDC.
+g1 arrow from a dispenser	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 arrow from a dispenser	:: Available gates ::
+g1 arrow from a dispenser	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 arrow from a dispenser	:: Cleared N previews.
+g1 arrow from a dispenser	:: Range has been closed, darkened and its iris opened.
+g1 arrow from a dispenser	:: Range has no IDC.
+g1 arrow from a dispenser	:: Range, Relay, Stand, Standard
+g1 arrow from a dispenser	:: Range, Relay, Standard
+g1 arrow from a dispenser	:: Relay has been closed, darkened and its iris opened.
+g1 arrow from a dispenser	:: Relay has no IDC.
+g1 arrow from a dispenser	:: Removed Stand.
+g1 arrow from a dispenser	:: Stand has been closed, darkened and its iris opened.
+g1 arrow from a dispenser	:: Stargates connected.
+g1 built by hand	::   N button or lever - N left
+g1 built by hand	::   N obsidian - N left
+g1 built by hand	:: Annex has been closed, darkened and its iris opened.
+g1 built by hand	:: Annex has no IDC.
+g1 built by hand	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 built by hand	:: Available gates ::
+g1 built by hand	:: Cleared N previews.
+g1 built by hand	:: Gate successfully constructed.
+g1 built by hand	:: Guide on: small = to place, red = wrong, gone = done. /wormhole gate preview guide turns it off.
+g1 built by hand	:: Look at it and use /wormhole gate preview <action>: [Clear] [Activate] [Iris] [Material] [Needs] [Guide] [Layer] [Chevrons] [DHD] [Share] [Place]
+g1 built by hand	:: Previewing Standard in Standard. Build inside it, then press a real button on its DHD.
+g1 built by hand	:: Range has been closed, darkened and its iris opened.
+g1 built by hand	:: Range has no IDC.
+g1 built by hand	:: Range, Relay, Stand, Standard
+g1 built by hand	:: Range, Relay, Standard
+g1 built by hand	:: Relay has been closed, darkened and its iris opened.
+g1 built by hand	:: Relay has no IDC.
+g1 built by hand	:: Removed Stand.
+g1 built by hand	:: Stand has been closed, darkened and its iris opened.
+g1 built by hand	:: Standard is built! Press its button to check it.
+g1 built by hand	:: Standard needs:
+g1 built by hand	:: Stargates connected.
+g1 built by hand	:: Type /wormhole complete <name> [idc=IDC] [net=NET] to finish it.
+g1 built by hand	:: Valid stargate design.
+g1 dial itself	:: Annex has been closed, darkened and its iris opened.
+g1 dial itself	:: Annex has no IDC.
+g1 dial itself	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 dial itself	:: Available gates ::
+g1 dial itself	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 dial itself	:: Cleared N previews.
+g1 dial itself	:: Range has been closed, darkened and its iris opened.
+g1 dial itself	:: Range has no IDC.
+g1 dial itself	:: Range, Relay, Stand, Standard
+g1 dial itself	:: Range, Relay, Standard
+g1 dial itself	:: Relay has been closed, darkened and its iris opened.
+g1 dial itself	:: Relay has no IDC.
+g1 dial itself	:: Removed Stand.
+g1 dial itself	:: Stand has been closed, darkened and its iris opened.
+g1 dial itself	:: error :: A gate cannot dial itself.
+g1 dropped item	:: Annex has been closed, darkened and its iris opened.
+g1 dropped item	:: Annex has no IDC.
+g1 dropped item	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 dropped item	:: Available gates ::
+g1 dropped item	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 dropped item	:: Cleared N previews.
+g1 dropped item	:: Range has been closed, darkened and its iris opened.
+g1 dropped item	:: Range has no IDC.
+g1 dropped item	:: Range, Relay, Stand, Standard
+g1 dropped item	:: Range, Relay, Standard
+g1 dropped item	:: Relay has been closed, darkened and its iris opened.
+g1 dropped item	:: Relay has no IDC.
+g1 dropped item	:: Removed Stand.
+g1 dropped item	:: Stand has been closed, darkened and its iris opened.
+g1 dropped item	:: Stargates connected.
+g1 horse	:: Annex has been closed, darkened and its iris opened.
+g1 horse	:: Annex has no IDC.
+g1 horse	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 horse	:: Available gates ::
+g1 horse	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 horse	:: Cleared N previews.
+g1 horse	:: Range has been closed, darkened and its iris opened.
+g1 horse	:: Range has no IDC.
+g1 horse	:: Range, Relay, Stand, Standard
+g1 horse	:: Range, Relay, Standard
+g1 horse	:: Relay has been closed, darkened and its iris opened.
+g1 horse	:: Relay has no IDC.
+g1 horse	:: Removed Stand.
+g1 horse	:: Stand has been closed, darkened and its iris opened.
+g1 horse	:: Stargates connected.
+g1 horse to the Range	:: Annex has been closed, darkened and its iris opened.
+g1 horse to the Range	:: Annex has no IDC.
+g1 horse to the Range	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 horse to the Range	:: Available gates ::
+g1 horse to the Range	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 horse to the Range	:: Cleared N previews.
+g1 horse to the Range	:: Range has been closed, darkened and its iris opened.
+g1 horse to the Range	:: Range has no IDC.
+g1 horse to the Range	:: Range, Relay, Stand, Standard
+g1 horse to the Range	:: Range, Relay, Standard
+g1 horse to the Range	:: Relay has been closed, darkened and its iris opened.
+g1 horse to the Range	:: Relay has no IDC.
+g1 horse to the Range	:: Removed Stand.
+g1 horse to the Range	:: Stand has been closed, darkened and its iris opened.
+g1 horse to the Range	:: Stargates connected.
+g1 minecart	:: Annex has been closed, darkened and its iris opened.
+g1 minecart	:: Annex has no IDC.
+g1 minecart	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 minecart	:: Available gates ::
+g1 minecart	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 minecart	:: Cleared N previews.
+g1 minecart	:: Range has been closed, darkened and its iris opened.
+g1 minecart	:: Range has no IDC.
+g1 minecart	:: Range, Relay, Stand, Standard
+g1 minecart	:: Range, Relay, Standard
+g1 minecart	:: Relay has been closed, darkened and its iris opened.
+g1 minecart	:: Relay has no IDC.
+g1 minecart	:: Removed Stand.
+g1 minecart	:: Stand has been closed, darkened and its iris opened.
+g1 minecart	:: Stargates connected.
+g1 snowball	:: Annex has been closed, darkened and its iris opened.
+g1 snowball	:: Annex has no IDC.
+g1 snowball	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 snowball	:: Available gates ::
+g1 snowball	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 snowball	:: Cleared N previews.
+g1 snowball	:: Range has been closed, darkened and its iris opened.
+g1 snowball	:: Range has no IDC.
+g1 snowball	:: Range, Relay, Stand, Standard
+g1 snowball	:: Range, Relay, Standard
+g1 snowball	:: Relay has been closed, darkened and its iris opened.
+g1 snowball	:: Relay has no IDC.
+g1 snowball	:: Removed Stand.
+g1 snowball	:: Stand has been closed, darkened and its iris opened.
+g1 snowball	:: Stargates connected.
+g1 walk Standard by console	:: Annex has been closed, darkened and its iris opened.
+g1 walk Standard by console	:: Annex has no IDC.
+g1 walk Standard by console	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 walk Standard by console	:: Available gates ::
+g1 walk Standard by console	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 walk Standard by console	:: Cleared N previews.
+g1 walk Standard by console	:: Range has been closed, darkened and its iris opened.
+g1 walk Standard by console	:: Range has no IDC.
+g1 walk Standard by console	:: Range, Relay, Stand, Standard
+g1 walk Standard by console	:: Range, Relay, Standard
+g1 walk Standard by console	:: Relay has been closed, darkened and its iris opened.
+g1 walk Standard by console	:: Relay has no IDC.
+g1 walk Standard by console	:: Removed Stand.
+g1 walk Standard by console	:: Stand has been closed, darkened and its iris opened.
+g1 walk Standard by console	:: Stargates connected.
+g1 wolf	:: Annex has been closed, darkened and its iris opened.
+g1 wolf	:: Annex has no IDC.
+g1 wolf	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g1 wolf	:: Available gates ::
+g1 wolf	:: Built Stand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g1 wolf	:: Cleared N previews.
+g1 wolf	:: Range has been closed, darkened and its iris opened.
+g1 wolf	:: Range has no IDC.
+g1 wolf	:: Range, Relay, Stand, Standard
+g1 wolf	:: Range, Relay, Standard
+g1 wolf	:: Relay has been closed, darkened and its iris opened.
+g1 wolf	:: Relay has no IDC.
+g1 wolf	:: Removed Stand.
+g1 wolf	:: Stand has been closed, darkened and its iris opened.
+g1 wolf	:: Stargates connected.
+g2 Standard to its neighbour	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g2 Standard to its neighbour	:: Available gates ::
+g2 Standard to its neighbour	:: Built Grand at N N N in world. Opening centred on N N N; arrivals at N N N.
+g2 Standard to its neighbour	:: Built Horizontal at N N N in world. Opening centred on N N N; arrivals at N N N.
+g2 Standard to its neighbour	:: Built Large at N N N in world. Opening centred on N N N; arrivals at N N N.
+g2 Standard to its neighbour	:: Built Massive at N N N in world. Opening centred on N N N; arrivals at N N N.
+g2 Standard to its neighbour	:: Built Minimal at N N N in world. Opening centred on N N N; arrivals at N N N.
+g2 Standard to its neighbour	:: Built Standard at N N N in world. Opening centred on N N N; arrivals at N N N.
+g2 Standard to its neighbour	:: Grand has been closed, darkened and its iris opened.
+g2 Standard to its neighbour	:: Horizontal has been closed, darkened and its iris opened.
+g2 Standard to its neighbour	:: Large has been closed, darkened and its iris opened.
+g2 Standard to its neighbour	:: Massive has been closed, darkened and its iris opened.
+g2 Standard to its neighbour	:: Minimal has been closed, darkened and its iris opened.
+g2 Standard to its neighbour	:: Range, Relay, Standard
+g2 Standard to its neighbour	:: Removed Grand.
+g2 Standard to its neighbour	:: Removed Horizontal.
+g2 Standard to its neighbour	:: Removed Large.
+g2 Standard to its neighbour	:: Removed Massive.
+g2 Standard to its neighbour	:: Removed Minimal.
+g2 Standard to its neighbour	:: Removed Standard.
+g2 Standard to its neighbour	:: Standard has been closed, darkened and its iris opened.
+g2 Standard to its neighbour	:: Stargates connected.
+g3 command block: gate build	:: ","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"dark_aqua","bold":false},{"text":"Built ","italic":false,"color":"gray"},{"text":"CbGate","italic":false,"color":"aqua"},{"text":" at ","italic":false,"color":"gray"},{"text":"N N N","italic":false,"color":"white"},{"text":" in ","italic":false,"color":"gray"},{"text":"world","italic":false,"color":"aqua"},{"text":". Opening centred on ","italic":false,"color":"gray"},{"text":"N N N","italic":false,"color":"white"},{"text":"; arrivals at ","italic":false,"color":"gray"},{"text":"N N N","italic":false,"color":"white"},{"text":".","italic":false,"color":"gray"}]}]}
+g3 command block: gate build	:: Annex, Bay, BayFar, CbGate, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive,
+g3 command block: gate build	:: Annex, BayFar, CbGate, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive,
+g3 command block: gate build	:: Annex, CbGate, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal,
+g3 command block: gate build	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g3 command block: gate build	:: Available gates ::
+g3 command block: gate build	:: Bay has been closed, darkened and its iris opened.
+g3 command block: gate build	:: BayFar has been closed, darkened and its iris opened.
+g3 command block: gate build	:: Built BayFar at N N N in world. Opening centred on N N N; arrivals at N N N.
+g3 command block: gate build	:: CbGate has been closed, darkened and its iris opened.
+g3 command block: gate build	:: Cleared N previews.
+g3 command block: gate build	:: Gate successfully constructed.
+g3 command block: gate build	:: Look at it and use /wormhole gate preview <action>: [Clear] [Activate] [Iris] [Material] [Needs] [Guide] [Layer] [Chevrons] [DHD] [Share] [Place]
+g3 command block: gate build	:: Minimal, Ops, Range, Relay, Standard
+g3 command block: gate build	:: Ops, Range, Relay, Standard
+g3 command block: gate build	:: Placed StandardSignDial.
+g3 command block: gate build	:: Previewing StandardSignDial in Standard. Build inside it, then press a real button on its DHD.
+g3 command block: gate build	:: Range, Relay, Standard
+g3 command block: gate build	:: Removed Bay.
+g3 command block: gate build	:: Removed BayFar.
+g3 command block: gate build	:: Removed CbGate.
+g3 command block: gate build	:: Type /wormhole complete <name> [idc=IDC] [net=NET] to finish it.
+g3 command block: gate build	:: Valid stargate design.
+g3 command block: gate build	:: error :: There is no mirror called 'CbMirror'.
+g3 lever	:: Annex, Bay, BayFar, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive,
+g3 lever	:: Annex, BayFar, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal,
+g3 lever	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g3 lever	:: Available gates ::
+g3 lever	:: Bay has been closed, darkened and its iris opened.
+g3 lever	:: BayFar has been closed, darkened and its iris opened.
+g3 lever	:: Built BayFar at N N N in world. Opening centred on N N N; arrivals at N N N.
+g3 lever	:: Cleared N previews.
+g3 lever	:: Gate successfully constructed.
+g3 lever	:: Look at it and use /wormhole gate preview <action>: [Clear] [Activate] [Iris] [Material] [Needs] [Guide] [Layer] [Chevrons] [DHD] [Share] [Place]
+g3 lever	:: Minimal, Ops, Range, Relay, Standard
+g3 lever	:: Ops, Range, Relay, Standard
+g3 lever	:: Placed StandardSignDial.
+g3 lever	:: Previewing StandardSignDial in Standard. Build inside it, then press a real button on its DHD.
+g3 lever	:: Range, Relay, Standard
+g3 lever	:: Removed Bay.
+g3 lever	:: Removed BayFar.
+g3 lever	:: Type /wormhole complete <name> [idc=IDC] [net=NET] to finish it.
+g3 lever	:: Valid stargate design.
+g3 lever	:: error :: There is no mirror called 'CbMirror'.
+g4 activate	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g4 activate	:: Available gates ::
+g4 activate	:: Cleared N preview.
+g4 activate	:: Cleared N previews.
+g4 activate	:: Dialling. /wormhole gate preview activate again shuts it down.
+g4 activate	:: Look at it and use /wormhole gate preview <action>: [Clear] [Activate] [Iris] [Material] [Needs] [Guide] [Layer] [Chevrons] [DHD] [Share] [Place]
+g4 activate	:: Previewing Standard in Standard. Build inside it, then press a real button on its DHD.
+g4 activate	:: Range, Relay, Standard
+g4 activate	:: Shut down.
+g4 share	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g4 share	:: Available gates ::
+g4 share	:: Cleared N preview.
+g4 share	:: Cleared N previews.
+g4 share	:: Look at it and use /wormhole gate preview <action>: [Clear] [Activate] [Iris] [Material] [Needs] [Guide] [Layer] [Chevrons] [DHD] [Share] [Place]
+g4 share	:: Previewing Standard in Standard. Build inside it, then press a real button on its DHD.
+g4 share	:: Probe is showing you a gate preview.
+g4 share	:: Range, Relay, Standard
+g4 share	:: Showing it to ProbeN. /wormhole gate preview share ProbeN again stops.
+g4 share	:: Stopped showing it to ProbeN.
+g5 arrow at the shut iris, IrisS	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g5 arrow at the shut iris, IrisS	:: Available gates ::
+g5 arrow at the shut iris, IrisS	:: Built IrisA at N N N in world. Opening centred on N N N; arrivals at N N N.
+g5 arrow at the shut iris, IrisS	:: Built IrisS at N N N in world. Opening centred on N N N; arrivals at N N N.
+g5 arrow at the shut iris, IrisS	:: IDC for IrisA is ID.
+g5 arrow at the shut iris, IrisS	:: IDC for IrisS is ID.
+g5 arrow at the shut iris, IrisS	:: IrisA has been closed, darkened and its iris opened.
+g5 arrow at the shut iris, IrisS	:: IrisA is now on group Atlantis. Its frame blocks are untouched; this changes what the gate draws.
+g5 arrow at the shut iris, IrisS	:: IrisA's iris now crosses as sweep (the server default).
+g5 arrow at the shut iris, IrisS	:: IrisS has been closed, darkened and its iris opened.
+g5 arrow at the shut iris, IrisS	:: IrisS's iris now crosses as sweep (the server default).
+g5 arrow at the shut iris, IrisS	:: Range, Relay, Standard
+g5 arrow at the shut iris, IrisS	:: Removed IrisA.
+g5 arrow at the shut iris, IrisS	:: Removed IrisS.
+g5 layers from the front, IrisA (ice behind glass)	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g5 layers from the front, IrisA (ice behind glass)	:: Available gates ::
+g5 layers from the front, IrisA (ice behind glass)	:: Built IrisA at N N N in world. Opening centred on N N N; arrivals at N N N.
+g5 layers from the front, IrisA (ice behind glass)	:: Built IrisS at N N N in world. Opening centred on N N N; arrivals at N N N.
+g5 layers from the front, IrisA (ice behind glass)	:: IDC for IrisA is ID.
+g5 layers from the front, IrisA (ice behind glass)	:: IDC for IrisS is ID.
+g5 layers from the front, IrisA (ice behind glass)	:: IrisA has been closed, darkened and its iris opened.
+g5 layers from the front, IrisA (ice behind glass)	:: IrisA is now on group Atlantis. Its frame blocks are untouched; this changes what the gate draws.
+g5 layers from the front, IrisA (ice behind glass)	:: IrisA's iris now crosses as sweep (the server default).
+g5 layers from the front, IrisA (ice behind glass)	:: IrisS has been closed, darkened and its iris opened.
+g5 layers from the front, IrisA (ice behind glass)	:: IrisS's iris now crosses as sweep (the server default).
+g5 layers from the front, IrisA (ice behind glass)	:: Range, Relay, Standard
+g5 layers from the front, IrisA (ice behind glass)	:: Removed IrisA.
+g5 layers from the front, IrisA (ice behind glass)	:: Removed IrisS.
+g5 layers from the front, IrisA (ice behind glass)	:: Stargates connected.
+g5 sweep steps, IrisS	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+g5 sweep steps, IrisS	:: Available gates ::
+g5 sweep steps, IrisS	:: Built IrisA at N N N in world. Opening centred on N N N; arrivals at N N N.
+g5 sweep steps, IrisS	:: Built IrisS at N N N in world. Opening centred on N N N; arrivals at N N N.
+g5 sweep steps, IrisS	:: IDC for IrisA is ID.
+g5 sweep steps, IrisS	:: IDC for IrisS is ID.
+g5 sweep steps, IrisS	:: IrisA has been closed, darkened and its iris opened.
+g5 sweep steps, IrisS	:: IrisA is now on group Atlantis. Its frame blocks are untouched; this changes what the gate draws.
+g5 sweep steps, IrisS	:: IrisA's iris now crosses as sweep (the server default).
+g5 sweep steps, IrisS	:: IrisS has been closed, darkened and its iris opened.
+g5 sweep steps, IrisS	:: IrisS's iris now crosses as sweep (the server default).
+g5 sweep steps, IrisS	:: IrisS's iris now crosses as sweep.
+g5 sweep steps, IrisS	:: Range, Relay, Standard
+g5 sweep steps, IrisS	:: Removed IrisA.
+g5 sweep steps, IrisS	:: Removed IrisS.
+logbook	:: GATE_SOUND_VOLUME = N
+logbook	:: GATE_SOUND_VOLUME is now N.
+logbook	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
+m1 round to Range	::   /wormhole mirror debug Round -all for the rest.
+m1 round to Range	::   capture: STATE
+m1 round to Range	:: 'Round' is an ordinary banner again.
+m1 round to Range	:: 'Round' opens onto 'Annex' (N of N).
+m1 round to Range	:: 'Round' opens onto 'Ops' (N of N).
+m1 round to Range	:: 'Round' opens onto 'Optics' (N of N).
+m1 round to Range	:: 'Round' opens onto 'Range' (N of N).
+m1 round to Range	:: Each shows only what a viewer sees through it, which costs more as people walk past.
+m1 round to Range	:: It is N blocks from 'Optics'. Mirrors nearer than N (twice view-depth) are not drawn whole.
+m1 round to Range	:: Mirror 'Round' is this banner. Walk up to it to see its reflection.
+m1 round to Range	:: Right-click it to choose another mirror, and punch it to go through.
+m1 round to Range	:: Round -- punch to travel to Range, right-click for another.
+m1 round to Range	:: Round -- right-click to choose a mirror.
+m1 round to Range	:: error :: There is no mirror called 'Round'.
+m1 round to Range	:: error :: There is no mirror called 'Spare'.
+m1 round to Range	:: mirror 'Round' at world:N:N:N, room world N,N,N
+m1 the three-second hold	::   /wormhole mirror debug Round -all for the rest.
+m1 the three-second hold	::   capture: STATE
+m1 the three-second hold	:: 'Round' is an ordinary banner again.
+m1 the three-second hold	:: 'Round' opens onto 'Annex' (N of N).
+m1 the three-second hold	:: 'Round' opens onto 'Ops' (N of N).
+m1 the three-second hold	:: Each shows only what a viewer sees through it, which costs more as people walk past.
+m1 the three-second hold	:: It is N blocks from 'Optics'. Mirrors nearer than N (twice view-depth) are not drawn whole.
+m1 the three-second hold	:: Mirror 'Round' is this banner. Walk up to it to see its reflection.
+m1 the three-second hold	:: Right-click it to choose another mirror, and punch it to go through.
+m1 the three-second hold	:: Round -- punch to travel to Annex, right-click for another.
+m1 the three-second hold	:: Round -- punch to travel to Ops, right-click for another.
+m1 the three-second hold	:: Round -- right-click to choose a mirror.
+m1 the three-second hold	:: Somebody else is at this mirror. Give them a moment before changing it.
+m1 the three-second hold	:: error :: There is no mirror called 'Round'.
+m1 the three-second hold	:: error :: There is no mirror called 'Spare'.
+m1 the three-second hold	:: mirror 'Round' at world:N:N:N, room world N,N,N
+m2 gap one out	:: error :: A mirror needs solid wall a block out on every side of its opening, and the block at N N N is not.
+m2 gap one out	:: error :: There is no mirror called 'Wall-gap-one-out'.
+m2 gap one out	:: error :: There is no mirror called 'Wall-gap-two-out'.
+m2 gap one out	:: error :: There is no mirror called 'Wall-limit'.
+m2 gap one out	:: error :: There is no mirror called 'Wall-on-a-post'.
+m2 gap one out	:: error :: There is no mirror called 'Wall-protected'.
+m2 gap one out	:: error :: There is no mirror called 'Wall-remove'.
+m2 gap one out	:: error :: There is no mirror called 'Wall-solid'.
+m2 gap one out	:: error :: There is no mirror called 'Wall-two-wide'.
+m3 capture	::   /wormhole mirror debug Desk -all for the rest.
+m3 capture	::   capture: STATE
+m3 capture	:: 'Desk' is an ordinary banner again.
+m3 capture	:: Capturing 'Desk''s room again; the view changes when the new one is ready.
+m3 capture	:: Desk -- right-click to choose a mirror.
+m3 capture	:: Each shows only what a viewer sees through it, which costs more as people walk past.
+m3 capture	:: It is N blocks from 'Optics'. Mirrors nearer than N (twice view-depth) are not drawn whole.
+m3 capture	:: Mirror 'Desk' is this banner. Walk up to it to see its reflection.
+m3 capture	:: Right-click it to choose another mirror, and punch it to go through.
+m3 capture	:: error :: There is no mirror called 'Desk'.
+m3 capture	:: mirror 'Desk' at world:N:N:N, room world N,N,N
+m3 stamp a look	::   /wormhole mirror debug Desk -all for the rest.
+m3 stamp a look	::   capture: STATE
+m3 stamp a look	:: 'Desk' is an ordinary banner again.
+m3 stamp a look	:: 'Desk' looks like portal now.
+m3 stamp a look	:: Each shows only what a viewer sees through it, which costs more as people walk past.
+m3 stamp a look	:: It is N blocks from 'Optics'. Mirrors nearer than N (twice view-depth) are not drawn whole.
+m3 stamp a look	:: Mirror 'Desk' is this banner. Walk up to it to see its reflection.
+m3 stamp a look	:: Right-click it to choose another mirror, and punch it to go through.
+m3 stamp a look	:: error :: There is no mirror called 'Desk'.
+m3 stamp a look	:: mirror 'Desk' at world:N:N:N, room world N,N,N
+matrix	:: GATE_SOUND_VOLUME = N
+matrix	:: GATE_SOUND_VOLUME is now N.
+matrix	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
+r1 swap	:: Fire it with /wormhole ring fire ID.
+r1 swap	:: ID — world, PUBLIC, CONCURRENT/CONCURRENT
+r1 swap	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+r1 swap	:: Removed both ends of ID and put N slabs back.
+r1 swap	:: Ring pair ID is live and public. Arrivals at N N N and N N N.
+r1 swap	:: Rings are already in use.
+r1 swap	:: Rings deploying. Hold still.
+r1 swap	:: Transport complete.
+r1 swap	:: Transport in N second...
+r1 swap	:: Transport in N seconds...
+r1 swap	:: Transport rings engaging. Step clear to cancel.
+r1 swap	:: error :: You have no half-built ring pair.
+r1 walk ODD by console	:: Fire it with /wormhole ring fire ID.
+r1 walk ODD by console	:: ID — world, PUBLIC, CONCURRENT/CONCURRENT
+r1 walk ODD by console	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+r1 walk ODD by console	:: Removed both ends of ID and put N slabs back.
+r1 walk ODD by console	:: Ring pair ID is live and public. Arrivals at N N N and N N N.
+r1 walk ODD by console	:: Rings deploying. Hold still.
+r1 walk ODD by console	:: Rings recharging. Ready in N seconds.
+r1 walk ODD by console	:: Transport complete.
+r1 walk ODD by console	:: Transport in N second...
+r1 walk ODD by console	:: Transport in N seconds...
+r1 walk ODD by console	:: Transport rings engaging. Step clear to cancel.
+r1 walk ODD by console	:: error :: You have no half-built ring pair.
+r2 ceiling 11 up refused	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+r2 ceiling 11 up refused	:: error :: That ring is more than N blocks above its floor. Lower the ring, raise the floor, or raise /wormhole config ring-max-ceiling-drop <blocks>. (at N N N)
+r2 ceiling 11 up refused	:: error :: You have no half-built ring pair.
+r3 shaft 20 down	:: Fire it with /wormhole ring fire ID.
+r3 shaft 20 down	:: ID — world, PUBLIC, CONCURRENT/CONCURRENT
+r3 shaft 20 down	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+r3 shaft 20 down	:: Removed both ends of ID and put N slabs back.
+r3 shaft 20 down	:: Ring pair ID is live and public. Arrivals at N N N and N N N.
+r3 shaft 20 down	:: Rings deploying. Hold still.
+r3 shaft 20 down	:: Rings recharging. Ready in N seconds.
+r3 shaft 20 down	:: Transport complete.
+r3 shaft 20 down	:: Transport in N second...
+r3 shaft 20 down	:: Transport in N seconds...
+r3 shaft 20 down	:: Transport rings engaging. Step clear to cancel.
+r3 shaft 20 down	:: error :: You have no half-built ring pair.
+r4 mixed slabs	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+r4 mixed slabs	:: error :: That ring is built from more than one kind of slab. Use one kind; the rings are made of it.
+r4 mixed slabs	:: error :: You have no half-built ring pair.
+r5 name	:: Alpha to ? (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+r5 name	:: Arrived at Alpha.
+r5 name	:: Fire it with /wormhole ring fire ID.
+r5 name	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+r5 name	:: RING_COOLDOWN_TICKS = N
+r5 name	:: RING_COOLDOWN_TICKS is now N.
+r5 name	:: Removed both ends of ID and put N slabs back.
+r5 name	:: Ring pair ID is live and public. Arrivals at N N N and N N N.
+r5 name	:: Rings are already in use.
+r5 name	:: Rings deploying. Hold still.
+r5 name	:: This ring is now Alpha.
+r5 name	:: Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.
+r5 name	:: Transport complete.
+r5 name	:: Transport in N second...
+r5 name	:: Transport in N seconds...
+r5 name	:: Transport rings engaging — travelling to Alpha. Step clear to cancel.
+r5 name	:: Transport rings engaging. Step clear to cancel.
+r5 name	:: error :: You have no half-built ring pair.
+resets	:: Annex has been closed, darkened and its iris opened.
+resets	:: Annex has no IDC.
+resets	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+resets	:: Available gates ::
+resets	:: Built Annex at ID N ID in world_the_end. Opening centred on ID.N N ID.N; arrivals at ID.N N ID.N.
+resets	:: Built Grand at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Built Horizontal at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Built IrisA at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Built IrisS at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Built Large at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Built Massive at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Built Minimal at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Built Range at N N N in world_nether. Opening centred on N N N; arrivals at N N N.
+resets	:: Built Relay at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Built Standard at N N N in world. Opening centred on N N N; arrivals at N N N.
+resets	:: Cleared N previews.
+resets	:: Grand has been closed, darkened and its iris opened.
+resets	:: Horizontal has been closed, darkened and its iris opened.
+resets	:: IDC for IrisA is ID.
+resets	:: IDC for IrisS is ID.
+resets	:: IrisA has been closed, darkened and its iris opened.
+resets	:: IrisA is now on group Atlantis. Its frame blocks are untouched; this changes what the gate draws.
+resets	:: IrisA's iris now crosses as sweep (the server default).
+resets	:: IrisS has been closed, darkened and its iris opened.
+resets	:: IrisS's iris now crosses as sweep (the server default).
+resets	:: Large has been closed, darkened and its iris opened.
+resets	:: Massive has been closed, darkened and its iris opened.
+resets	:: Minimal has been closed, darkened and its iris opened.
+resets	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+resets	:: Range has been closed, darkened and its iris opened.
+resets	:: Range has no IDC.
+resets	:: Range, Relay, Standard
+resets	:: Relay has been closed, darkened and its iris opened.
+resets	:: Relay has no IDC.
+resets	:: Removed Annex.
+resets	:: Removed Grand.
+resets	:: Removed Horizontal.
+resets	:: Removed IrisA.
+resets	:: Removed IrisS.
+resets	:: Removed Large.
+resets	:: Removed Massive.
+resets	:: Removed Minimal.
+resets	:: Removed Range.
+resets	:: Removed Relay.
+resets	:: Removed Standard.
+resets	:: Standard has been closed, darkened and its iris opened.
+resets	:: You have no places set.
+resets	:: error :: No public beam destination named Pad-Blocked.
+resets	:: error :: No public beam destination named Pad-E.
+resets	:: error :: No public beam destination named Pad-End.
+resets	:: error :: No public beam destination named Pad-Far.
+resets	:: error :: No public beam destination named Pad-N.
+resets	:: error :: No public beam destination named Pad-S.
+resets	:: error :: No public beam destination named Pad-Trap.
+resets	:: error :: No public beam destination named Pad-W.
+resets	:: error :: There is no mirror called 'CbMirror'.
+resets	:: error :: There is no mirror called 'Desk'.
+resets	:: error :: There is no mirror called 'Round'.
+resets	:: error :: There is no mirror called 'Spare'.
+resets	:: error :: There is no mirror called 'Wall-gap-one-out'.
+resets	:: error :: There is no mirror called 'Wall-gap-two-out'.
+resets	:: error :: There is no mirror called 'Wall-limit'.
+resets	:: error :: There is no mirror called 'Wall-on-a-post'.
+resets	:: error :: There is no mirror called 'Wall-protected'.
+resets	:: error :: There is no mirror called 'Wall-remove'.
+resets	:: error :: There is no mirror called 'Wall-solid'.
+resets	:: error :: There is no mirror called 'Wall-two-wide'.
+resets	:: error :: You have no half-built ring pair.
+resets	:: error :: You have no place named Pad-Blocked.
+resets	:: error :: You have no place named Pad-E.
+resets	:: error :: You have no place named Pad-End.
+resets	:: error :: You have no place named Pad-Far.
+resets	:: error :: You have no place named Pad-N.
+resets	:: error :: You have no place named Pad-S.
+resets	:: error :: You have no place named Pad-Trap.
+resets	:: error :: You have no place named Pad-W.
+s1 bad values	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+s1 bad values	:: Available gates ::
+s1 bad values	:: Cleared N previews.
+s1 bad values	:: GATE_DIAL_SPIN = TOP
+s1 bad values	:: GATE_IRIS_ANIMATION = sweep
+s1 bad values	:: GATE_SOUNDS_ENABLED = true
+s1 bad values	:: GATE_SOUND_VOLUME = N
+s1 bad values	:: How a dialling gate's inner ring light moves before each chevron locks: TOP, CHEVRON, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE. Each is described in the gate guide. TOP rests half a second on the top chevron after each lock, and UNIVERSE turns at its own pace, so both dial a little slower.
+s1 bad values	:: How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).
+s1 bad values	:: How an iris crosses its opening: sweep (rings, from the rim in), spiral (a wedge turning outwards), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.
+s1 bad values	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
+s1 bad values	:: How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FINE, FINER or FINEST, least to most.
+s1 bad values	:: LOG_LEVEL = INFO
+s1 bad values	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+s1 bad values	:: RING_COOLDOWN_TICKS = N
+s1 bad values	:: RING_DEFAULT_ACCESS = PRIVATE
+s1 bad values	:: RING_DEFAULT_LIGHT = REDSTONE_LAMP
+s1 bad values	:: RING_DEFAULT_STYLE = CONCURRENT
+s1 bad values	:: Range, Relay, Standard
+s1 bad values	:: Relay has been closed, darkened and its iris opened.
+s1 bad values	:: Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.
+s1 bad values	:: What a newly built ring pair starts as: PUBLIC or PRIVATE.
+s1 bad values	:: What the ring pad lights up as while it is working.
+s1 bad values	:: Whether stargates make any noise. Everything below is ignored when this is false.
+s1 bad values	:: error :: GATE_DIAL_SPIN is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not "wobble".
+s1 bad values	:: error :: GATE_IRIS_ANIMATION is sweep, spiral, rows, columns, instant, not "wobble".
+s1 bad values	:: error :: GATE_SOUNDS_ENABLED is true or false, not "loud".
+s1 bad values	:: error :: GATE_SOUND_VOLUME is a number, not "quiet".
+s1 bad values	:: error :: LOG_LEVEL is SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, ALL or OFF, not "LOUD".
+s1 bad values	:: error :: RING_COOLDOWN_TICKS is a number, not "N".
+s1 bad values	:: error :: RING_DEFAULT_ACCESS is PUBLIC or PRIVATE, not "open".
+s1 bad values	:: error :: RING_DEFAULT_LIGHT is the name of a block, not "diamond".
+s1 bad values	:: error :: RING_DEFAULT_STYLE is CONCURRENT or SEQUENTIAL, not "zigzag". Fast and slow work too.
+s1 bad values	:: error :: You have no half-built ring pair.
+s1 bad values	:: error :: You lack the permissions to do this.
+s1 beam sounds	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+s1 beam sounds	:: Available gates ::
+s1 beam sounds	:: BEAM_SOUND_VOLUME = N
+s1 beam sounds	:: Beamed to BeamLab.
+s1 beam sounds	:: Beaming to BeamLab...
+s1 beam sounds	:: Cleared N previews.
+s1 beam sounds	:: How loud beam sounds are. Volume also sets audible range: N is heard about sixteen blocks away.
+s1 beam sounds	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+s1 beam sounds	:: Range, Relay, Standard
+s1 beam sounds	:: Relay has been closed, darkened and its iris opened.
+s1 beam sounds	:: error :: You have no half-built ring pair.
+s1 beam sounds	:: error :: You lack the permissions to do this.
+s1 every setting	:: ...and N more. Type part of a name to narrow it down.
+s1 every setting	:: /wormhole config <name> shows one, /wormhole config <name> <value> changes it.
+s1 every setting	:: Add WorldGuard region flags wormhole-build and wormhole-use, so a region can refuse gate building and gate use. Requires WorldGuard. Turning it off applies at once; turning it on takes a restart. Both default to allow, and WorldGuard's region bypass exempts.
+s1 every setting	:: Amount charged to a player each time they beam. N to disable; economy-enabled must also be true.
+s1 every setting	:: Amount charged to a player each time they walk through a gate. N to disable.
+s1 every setting	:: Amount charged to a player when they successfully build a new gate. N to disable.
+s1 every setting	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+s1 every setting	:: At startup, look online for a newer release and say so in the log and to players with wormhole.update.notify as they join. Sends only the plugin and Minecraft versions; never downloads anything. Set false to stop.
+s1 every setting	:: Available gates ::
+s1 every setting	:: BEAM_ANIMATION_SPEED = N
+s1 every setting	:: BEAM_ANIMATION_SPEED, BEAM_ECONOMY_USE_COST, BEAM_SOUNDS_ENABLED, BEAM_SOUND_ARRIVE, BEAM_SOUND_CHARGE, BEAM_SOUND_DEPART, BEAM_SOUND_VOLUME, BEAM_USE_COOLDOWN_ENABLED, BEAM_USE_COOLDOWN_SECONDS, BLUEMAP_ENABLED, CLICKABLE_CHAT, COREPROTECT_ENABLED, DYNMAP_ENABLED, ECONOMY_BUILD_COST, ECONOMY_ENABLED, ECONOMY_USE_COST, GATE_DIAL_SPIN, GATE_IRIS_ANIMATION, GATE_MATERIAL_GROUPS_AUTODISCOVER, GATE_PREVIEW_MAX_BLOCKS, GATE_PREVIEW_MINUTES, GATE_RIPPLE, GATE_SOUNDS_ENABLED, GATE_SOUND_ACTIVATE, GATE_SOUND_AMBIENT, GATE_SOUND_CHEVRON, GATE_SOUND_CLOSE, GATE_SOUND_IRIS_CLOSE, GATE_SOUND_IRIS_OPEN, GATE_SOUND_KAWOOSH
+s1 every setting	:: BEAM_ECONOMY_USE_COST = N
+s1 every setting	:: BEAM_SOUNDS_ENABLED = true
+s1 every setting	:: BEAM_SOUND_ARRIVE = entity.shulker.teleport
+s1 every setting	:: BEAM_SOUND_CHARGE = block.respawn_anchor.charge
+s1 every setting	:: BEAM_SOUND_DEPART = entity.enderman.teleport
+s1 every setting	:: BEAM_SOUND_VOLUME = N
+s1 every setting	:: BEAM_USE_COOLDOWN_ENABLED = false
+s1 every setting	:: BEAM_USE_COOLDOWN_SECONDS = N
+s1 every setting	:: BLUEMAP_ENABLED = false
+s1 every setting	:: Block layers of passenger volume, from the ring plane into the room, at least N. Matters most for ceiling rings.
+s1 every setting	:: Briefly light a ring's pattern for a player it turns away, so they can see where it is. Idle rings are invisible.
+s1 every setting	:: CLICKABLE_CHAT = true
+s1 every setting	:: COREPROTECT_ENABLED = false
+s1 every setting	:: Cleared N previews.
+s1 every setting	:: Colour of a gate's own name, on both its name sign and its dial sign. One of the sixteen chat colours, such as AQUA, GOLD or LIGHT_PURPLE.
+s1 every setting	:: Colour of the destination currently selected on a dial sign. Keep it distinct from the neighbours either side.
+s1 every setting	:: Colour of the destinations either side of the selected one on a dial sign.
+s1 every setting	:: Colour of the network line on a gate's name sign.
+s1 every setting	:: Colour of the owner line on a gate's name sign.
+s1 every setting	:: DYNMAP_ENABLED = false
+s1 every setting	:: ECONOMY_BUILD_COST = N
+s1 every setting	:: ECONOMY_ENABLED = false
+s1 every setting	:: ECONOMY_USE_COST = N
+s1 every setting	:: Enable Cooldown timers on stargate usage. Timer only activates on passage through wormholes.
+s1 every setting	:: Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.
+s1 every setting	:: Furthest apart the two ends of a ring pair may be on the ground, in blocks. N is sixteen chunks; gates are the long-haul option. N for no limit.
+s1 every setting	:: GATE_DIAL_SPIN = TOP
+s1 every setting	:: GATE_IRIS_ANIMATION = sweep
+s1 every setting	:: GATE_MATERIAL_GROUPS_AUTODISCOVER
+s1 every setting	:: GATE_MATERIAL_GROUPS_AUTODISCOVER = true
+s1 every setting	:: GATE_PREVIEW_MAX_BLOCKS = ID
+s1 every setting	:: GATE_PREVIEW_MINUTES = N
+s1 every setting	:: GATE_RIPPLE = false
+s1 every setting	:: GATE_SOUNDS_ENABLED = true
+s1 every setting	:: GATE_SOUND_ACTIVATE = block.conduit.activate
+s1 every setting	:: GATE_SOUND_AMBIENT = ambient.underwater.loop
+s1 every setting	:: GATE_SOUND_CHEVRON = block.iron_trapdoor.close
+s1 every setting	:: GATE_SOUND_CLOSE = block.conduit.deactivate
+s1 every setting	:: GATE_SOUND_IRIS_CLOSE = block.iron_door.close
+s1 every setting	:: GATE_SOUND_IRIS_OPEN = block.iron_door.open
+s1 every setting	:: GATE_SOUND_KAWOOSH = entity.player.splash.high_speed
+s1 every setting	:: GATE_SOUND_LOCK = block.beacon.power_select
+s1 every setting	:: GATE_SOUND_VOLUME = N
+s1 every setting	:: GATE_VIEW = horizon
+s1 every setting	:: GATE_VIEW_FUNNEL = true
+s1 every setting	:: GATE_VIEW_FUNNEL_LENGTH = N
+s1 every setting	:: GATE_VIEW_FUNNEL_MIN_LENGTH = N
+s1 every setting	:: How a dialling gate's inner ring light moves before each chevron locks: TOP, CHEVRON, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE. Each is described in the gate guide. TOP rests half a second on the top chevron after each lock, and UNIVERSE turns at its own pace, so both dial a little slower.
+s1 every setting	:: How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).
+s1 every setting	:: How an iris crosses its opening: sweep (rings, from the rim in), spiral (a wedge turning outwards), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.
+s1 every setting	:: How close a player must be, in blocks, for a mirror's banner to give way to the room it shows, and how near they must stay for it to stay on.
+s1 every setting	:: How far below its plane a ceiling ring will look for the floor, in blocks. Its rings stack up from there, so it needs a floor near enough to reach.
+s1 every setting	:: How far past its opening a mirror's room, or an open gate's far side, is drawn, N to N; past it this world shows through. N is ten chunks, about as far as a server sends. A gate shows the first N at once and fills in the rest behind. Lower it for a smoother view.
+s1 every setting	:: How fast the beam gathers, rises, descends and fades: N is twice as fast, N half as fast. Read from N to N.
+s1 every setting	:: How fast the rings run their countdown, rise, flash, return and refusal outline: N is twice as fast, N half as fast. Read from N to N; the countdown never drops under thirty ticks, so stepping clear stays possible.
+s1 every setting	:: How loud beam sounds are. Volume also sets audible range: N is heard about sixteen blocks away.
+s1 every setting	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
+s1 every setting	:: How loud ring sounds are. Volume also sets audible range: N is heard about sixteen blocks away.
+s1 every setting	:: How many mirrors one world may hold. N by default: a mirror is the door into its world, and a right-click scrolls through the mirrors of every other. N for no limit.
+s1 every setting	:: How many ring pairs one player may own. N for no limit.
+s1 every setting	:: How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FINE, FINER or FINEST, least to most.
+s1 every setting	:: If set to true, a gate cannot dial a gate in another world, and nothing -- a player, a cart, a mob, an item or an arrow -- crosses between worlds by gate.
+s1 every setting	:: If true, gates ignore permission nodes even when a Vault permission provider is installed: anyone may use, dial and travel by gate; only operators may build one; and removing, configuring or going to one with /wormhole go is left to operators and its owner.
+s1 every setting	:: LOG_LEVEL = INFO
+s1 every setting	:: Log the blocks that building and taking down gates and rings place and remove to CoreProtect, so they can be rolled back. Requires CoreProtect. A running gate's water, levers and iris are not logged.
+s1 every setting	:: Longest a wormhole may stay open, in seconds, however often it is re-dialled. Measured from when it first opened, so a gate re-triggered on a schedule cannot hold it open forever. N for no limit.
+s1 every setting	:: MAP_SHOW_BEAMS = true
+s1 every setting	:: MAP_SHOW_GATES = true
+s1 every setting	:: MAP_SHOW_IRIS_GATES = true
+s1 every setting	:: MAP_SHOW_MIRRORS = true
+s1 every setting	:: MAP_SHOW_RINGS = true
+s1 every setting	:: MAX_OPEN_SECONDS = N
+s1 every setting	:: METRICS_ENABLED = false
+s1 every setting	:: MIRROR_APPROACH_MESSAGE = true
+s1 every setting	:: MIRROR_ENTITY_LOAD_RADIUS = N
+s1 every setting	:: MIRROR_PER_WORLD_LIMIT = N
+s1 every setting	:: MIRROR_PROXIMITY_DISTANCE = N
+s1 every setting	:: MIRROR_SHOW_ENTITIES = false
+s1 every setting	:: MIRROR_SHOW_PLAYERS = false
+s1 every setting	:: Minutes a gate preview, stood up by /wormhole gate build, stays up after its owner last used a gate build or gate preview command. At least N.
+s1 every setting	:: Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about ID. N turns previews off.
+s1 every setting	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+s1 every setting	:: PERMISSIONS_SUPPORT_DISABLE = false
+s1 every setting	:: PETS_FOLLOW_OWNER = true
+s1 every setting	:: PLACEHOLDERS_ENABLED = false
+s1 every setting	:: PLNXMAP_ENABLED = false
+s1 every setting	:: Played as a gate begins to dial.
+s1 every setting	:: Played as a wormhole closes.
+s1 every setting	:: Played at both ends as the pad closes.
+s1 every setting	:: Played at both ends as the pad opens and the countdown starts.
+s1 every setting	:: Played at both ends at the moment of transport.
+s1 every setting	:: Played once as the wormhole establishes: the heavy splash, pitched down for size.
+s1 every setting	:: Played once per chevron as it locks, pitch climbing through the sequence.
+s1 every setting	:: Played once per ring as it leaves the pad and again as it returns, pitch climbing going out and falling coming back.
+s1 every setting	:: Played once the column finishes descending at the destination.
+s1 every setting	:: Played the instant a beam sequence starts.
+s1 every setting	:: Played the instant the real teleport fires, partway through the rise.
+s1 every setting	:: Played to a player a ring turns away, wherever they are standing. Heard by them alone.
+s1 every setting	:: Played with the last chevron as it locks, before the wormhole forms.
+s1 every setting	:: REDSTONE_EXTEND_OPEN_TIME = true
+s1 every setting	:: RING_ANIMATION_SPEED = N
+s1 every setting	:: RING_COOLDOWN_TICKS = N
+s1 every setting	:: RING_DEFAULT_ACCESS = PRIVATE
+s1 every setting	:: RING_DEFAULT_FLASH = GLOWSTONE
+s1 every setting	:: RING_DEFAULT_LIGHT = REDSTONE_LAMP
+s1 every setting	:: RING_DEFAULT_STYLE = CONCURRENT
+s1 every setting	:: RING_MAX_CEILING_DROP = N
+s1 every setting	:: RING_MAX_LINK_DISTANCE = N
+s1 every setting	:: RING_MAX_PAIRS_PER_PLAYER = N
+s1 every setting	:: RING_MIN_SEPARATION = N
+s1 every setting	:: RING_OUTLINE_ON_REFUSAL = true
+s1 every setting	:: RING_REACH = N
+s1 every setting	:: RING_SOUNDS_ENABLED = true
+s1 every setting	:: RING_SOUND_CLOSE = block.beacon.deactivate
+s1 every setting	:: RING_SOUND_FLASH = block.beacon.power_select
+s1 every setting	:: RING_SOUND_OPEN = block.beacon.activate
+s1 every setting	:: RING_SOUND_REFUSED = block.note_block.bass
+s1 every setting	:: RING_SOUND_RING = block.piston.extend
+s1 every setting	:: RING_SOUND_VOLUME = N
+s1 every setting	:: Range, Relay, Standard
+s1 every setting	:: Register the %wormhole_...% PlaceholderAPI expansion. Requires PlaceholderAPI. Exposes gates_total, gates_open, gates_owned and nearest_gate.
+s1 every setting	:: Relay has been closed, darkened and its iris opened.
+s1 every setting	:: Required distance between ring anchors, in blocks. Overlap is refused regardless of this.
+s1 every setting	:: SAME_WORLD_ONLY = false
+s1 every setting	:: SHOW_GATE_WELCOME_MESSAGE = false
+s1 every setting	:: SIGN_COLOR_GATE_NAME = DARK_AQUA
+s1 every setting	:: SIGN_COLOR_NEIGHBOUR = GRAY
+s1 every setting	:: SIGN_COLOR_NETWORK = GRAY
+s1 every setting	:: SIGN_COLOR_OWNER = GRAY
+s1 every setting	:: SIGN_COLOR_SELECTED = DARK_GREEN
+s1 every setting	:: SIGN_DIAL_MATCH_MATERIAL = true
+s1 every setting	:: SIGN_GLOWING_TEXT = false
+s1 every setting	:: SQUAREMAP_ENABLED = false
+s1 every setting	:: Seconds a dialled gate stays open before shutting down. N keeps it open until something goes through.
+s1 every setting	:: Seconds a gate stays activated, waiting to be dialled, before it times out.
+s1 every setting	:: Seconds a player must wait between beams, when the cooldown above is enabled.
+s1 every setting	:: Seconds a player must wait between gate trips, when the cooldown above is enabled.
+s1 every setting	:: Send anonymous usage counts to bstats.org: Minecraft version, server software, and how many gates, rings, beams and mirrors are in use. No names, coordinates or addresses; bStats keeps a random id so it counts each server once. Set false to stop; bStats/config.yml turns it off for every plugin.
+s1 every setting	:: Show gates, rings, public beam destinations and quantum mirrors on a BlueMap web map, each as its own marker set, with a line between dialled gates. Requires BlueMap. Players' private beam places are never shown.
+s1 every setting	:: Show gates, rings, public beam destinations and quantum mirrors on a Dynmap web map, each as its own layer, with a line between dialled gates. Requires Dynmap. Players' private beam places are never shown.
+s1 every setting	:: Show gates, rings, public beam destinations and quantum mirrors on a PlNxMap web map, each as its own layer, with a line between dialled gates. Requires PlNxMap, built for the server's Minecraft version. Players' private beam places are never shown.
+s1 every setting	:: Show gates, rings, public beam destinations and quantum mirrors on a squaremap web map, each as its own layer, with a line between dialled gates. Requires squaremap, which runs on Paper. Players' private beam places are never shown.
+s1 every setting	:: TIMEOUT_ACTIVATE = N
+s1 every setting	:: TIMEOUT_SHUTDOWN = N
+s1 every setting	:: The iris closing over a gate, pitched down a little since it is a shield rather than a door.
+s1 every setting	:: The iris opening.
+s1 every setting	:: The longest that tunnel may be, N to N blocks. It is a block longer for each block narrower the far gate is, and one more for the layer behind the opening that is its own size: four from Large to Standard, thirteen from Massive to Standard, sixteen from Grand to Minimal.
+s1 every setting	:: The shortest that tunnel is, up to gate-view-funnel-length; none while gate-view-funnel is false. Above N, a gate the same size or bigger is seen down a straight tunnel too, and every tunnel runs straight for this or three fifths of this gate's opening, the longer, before it narrows. N for none.
+s1 every setting	:: The soft running water an open wormhole makes while it stands there.
+s1 every setting	:: Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.
+s1 every setting	:: UPDATE_CHECK = true
+s1 every setting	:: USE_COOLDOWN_ENABLED = false
+s1 every setting	:: USE_COOLDOWN_SECONDS = N
+s1 every setting	:: VIEW_DEPTH = N
+s1 every setting	:: WORLDGUARD_ENABLED = false
+s1 every setting	:: WORMHOLE_USE_IS_TELEPORT = false
+s1 every setting	:: What a newly built ring pair starts as: PUBLIC or PRIVATE.
+s1 every setting	:: What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.
+s1 every setting	:: What an open gate shows once its kawoosh settles: horizon (the event horizon, as always), behind (where it goes, seen through the horizon), or open (where it goes, with no horizon). Upright gates with a frame round their opening, so not Minimal. An experiment, see #N.
+s1 every setting	:: What the ring pad lights up as while it is working.
+s1 every setting	:: When a gate dials a smaller one, gate-view shows the far side at the end of a tunnel the small gate's size, walled in this gate's portal material, so the view does not show past the small gate's walls and ceiling. False shows the whole view, as a gate the same size would.
+s1 every setting	:: When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.
+s1 every setting	:: Whether a command the plugin names in chat can be clicked to run it, with hover text saying what it does. False sends plain text, as servers without Paper or Spigot do anyway.
+s1 every setting	:: Whether a mirror names itself and the world it opens onto above the hotbar, while a player looks at it from within about six blocks. Only mirrors that go somewhere say anything.
+s1 every setting	:: Whether a player arriving through a gate is told in chat which gate they arrived at. Gates only: rings and beams name their destination whatever this is set to.
+s1 every setting	:: Whether a player-placed dial sign is converted to the gate's own sign material, keeping its text and facing. False leaves the sign exactly as placed.
+s1 every setting	:: Whether a redstone signal on an already-open gate pushes its shutdown back. Never past max-open-seconds, so traffic can hold a gate open but not indefinitely.
+s1 every setting	:: Whether an open gate's event horizon ripples, in rings out from its middle: as something goes in or comes out, and now and then while somebody is near. Upright gates only; the gate guide says which show it and how. Off while it is new.
+s1 every setting	:: Whether beam travel has a per-player cooldown at all.
+s1 every setting	:: Whether beaming makes any noise. Everything below is ignored when this is false.
+s1 every setting	:: Whether gates with an iris code appear on the web map. Set false on a PvP server where a gate's location is a secret.
+s1 every setting	:: Whether gates, and the lines between dialled gates, appear on the web map, as their own layer.
+s1 every setting	:: Whether public beam destinations appear on the web map, as their own layer.
+s1 every setting	:: Whether quantum mirrors appear on the web map, as their own layer.
+s1 every setting	:: Whether rings make any noise. Everything below is ignored when this is false.
+s1 every setting	:: Whether stargates make any noise. Everything below is ignored when this is false.
+s1 every setting	:: Whether tamed wolves, cats and parrots that are following a player, not sitting, travel with them through gates, rings, beams and mirrors.
+s1 every setting	:: Whether the creatures standing in a mirror's or an open gate's far room show through it, as stand-ins only the viewer sees. mirror-entity-load-radius keeps the far side loaded while watched; players only with mirror-show-players. The stand-ins are real entities, which other plugins count.
+s1 every setting	:: Whether the plugin's own sign text glows. Off, because glow outlines every character and fights the colours below; true is more legible from a distance.
+s1 every setting	:: Whether transport rings appear on the web map, as their own layer.
+s1 every setting	:: Whether wormhole.use is needed to travel at all. False lets anyone travel but only permitted players activate a gate; true limits travel too.
+s1 every setting	:: With mirror-show-entities on too, whether the players in a view's far room show as well: a mannequin from N.N, an armour stand wearing their head before. Off by default: it shows who is at the destination, by their real skin, not a disguise's. Never anyone hidden by hidePlayer; a hide done in packets is not seen.
+s1 every setting	:: With mirror-show-entities on, how many chunks in front of a watched view's far side are held, as /forceload holds them, so its creatures show at once: N at N, about N loaded with the ring round them, which can generate terrain. N holds nothing. Read up to N.
+s1 every setting	:: error :: You have no half-built ring pair.
+s1 every setting	:: error :: You lack the permissions to do this.
+s1 fallback	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+s1 fallback	:: Available gates ::
+s1 fallback	:: Built Sys at N N N in world. Opening centred on N N N; arrivals at N N N.
+s1 fallback	:: Carry a plain compass to see it; lodestone and recovery compasses follow their own targets.
+s1 fallback	:: Chevrons locked.
+s1 fallback	:: Cleared N previews.
+s1 fallback	:: Compass set to wormhole Sys.
+s1 fallback	:: Gate successfully activated.
+s1 fallback	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+s1 fallback	:: Range, Relay, Standard
+s1 fallback	:: Range, Relay, Standard, Sys
+s1 fallback	:: Relay has been closed, darkened and its iris opened.
+s1 fallback	:: Removed Sys.
+s1 fallback	:: Sys has been closed, darkened and its iris opened.
+s1 fallback	:: Sys is now owned by Probe.
+s1 fallback	:: Type /dial <gate> [idc] to dial.
+s1 fallback	:: error :: No gate or beam destination called Sys.
+s1 fallback	:: error :: You have no half-built ring pair.
+s1 fallback	:: error :: You lack the permissions to do this.
+s1 gate sounds	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+s1 gate sounds	:: Available gates ::
+s1 gate sounds	:: Built Sys at N N N in world. Opening centred on N N N; arrivals at N N N.
+s1 gate sounds	:: Cleared N previews.
+s1 gate sounds	:: GATE_SOUND_VOLUME = N
+s1 gate sounds	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
+s1 gate sounds	:: IDC for Sys is ID.
+s1 gate sounds	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+s1 gate sounds	:: Range, Relay, Standard
+s1 gate sounds	:: Range, Relay, Standard, Sys
+s1 gate sounds	:: Relay has been closed, darkened and its iris opened.
+s1 gate sounds	:: Removed Sys.
+s1 gate sounds	:: Stargates connected.
+s1 gate sounds	:: Sys has been closed, darkened and its iris opened.
+s1 gate sounds	:: Sys is now owned by Probe.
+s1 gate sounds	:: error :: You have no half-built ring pair.
+s1 gate sounds	:: error :: You lack the permissions to do this.
+s1 ring defaults	:: Access, allow list, names and owner are untouched.
+s1 ring defaults	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
+s1 ring defaults	:: Available gates ::
+s1 ring defaults	:: Cleared N previews.
+s1 ring defaults	:: First ring noted, in SMOOTH_STONE_SLAB. Lay the other end and run /wormhole ring create in it.
+s1 ring defaults	:: How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).
+s1 ring defaults	:: ID — world, PUBLIC, SEQUENTIAL/SEQUENTIAL
+s1 ring defaults	:: It is PUBLIC.
+s1 ring defaults	:: Its slabs stay put until the pair is finished. Run /wormhole ring cancel to forget it.
+s1 ring defaults	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+s1 ring defaults	:: RING_DEFAULT_ACCESS = PRIVATE
+s1 ring defaults	:: RING_DEFAULT_ACCESS is now PRIVATE.
+s1 ring defaults	:: RING_DEFAULT_ACCESS is now PUBLIC.
+s1 ring defaults	:: RING_DEFAULT_FLASH = GLOWSTONE
+s1 ring defaults	:: RING_DEFAULT_FLASH is now GLOWSTONE.
+s1 ring defaults	:: RING_DEFAULT_FLASH is now GOLD_BLOCK.
+s1 ring defaults	:: RING_DEFAULT_LIGHT = REDSTONE_LAMP
+s1 ring defaults	:: RING_DEFAULT_LIGHT is now REDSTONE_LAMP.
+s1 ring defaults	:: RING_DEFAULT_LIGHT is now SEA_LANTERN.
+s1 ring defaults	:: RING_DEFAULT_STYLE = CONCURRENT
+s1 ring defaults	:: RING_DEFAULT_STYLE is now CONCURRENT.
+s1 ring defaults	:: RING_DEFAULT_STYLE is now SEQUENTIAL.
+s1 ring defaults	:: Range, Relay, Standard
+s1 ring defaults	:: Relay has been closed, darkened and its iris opened.
+s1 ring defaults	:: Removed both ends of ID and put N slabs back.
+s1 ring defaults	:: Reset to the slab each end was laid in, SEA_LANTERN pad, GOLD_BLOCK flash, SEQUENTIAL deploy for both ends.
+s1 ring defaults	:: Ring pair ID is live. Step into either end.
+s1 ring defaults	:: What a newly built ring pair starts as: PUBLIC or PRIVATE.
+s1 ring defaults	:: What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.
+s1 ring defaults	:: What the ring pad lights up as while it is working.
+s1 ring defaults	:: error :: You have no half-built ring pair.
+s1 ring defaults	:: error :: You lack the permissions to do this.
+tunnel 257 apart: refused	:: Build a stargate for a trip that long. Rings are for getting around one place.
+tunnel 257 apart: refused	:: Ops to Lab (ID) — world, PUBLIC, CONCURRENT/CONCURRENT
+tunnel 257 apart: refused	:: error :: Those two rings are N blocks apart on the ground, and rings reach N.
+tunnel 257 apart: refused	:: error :: You have no half-built ring pair.
