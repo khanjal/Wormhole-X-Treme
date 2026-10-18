@@ -44,7 +44,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 class LangExportTest
 {
     /** One message: a dotted key, then text in double quotes, on one line. */
-    private static final Pattern MESSAGE = Pattern.compile("[a-z0-9.-]+: \"[^\"]*\"");
+    private static final Pattern MESSAGE = Pattern.compile("[a-z0-9.-]++: \"[^\"]*+\"");
 
     @TempDir
     File folder;
