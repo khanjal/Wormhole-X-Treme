@@ -76,6 +76,12 @@ somebody else's release notes, and the record of where this fork came from.
 
 ## 1.12.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **`/wormhole config reload` reads `config.yml` again** after it is edited or deployed, without a restart: it lists each setting it changed, names any value it refused and keeps the old one, and a file that cannot be read changes nothing. Material groups still wait for a restart ([#634](https://github.com/khanjal/Wormhole-X-Treme/issues/634)). [Guide](docs/guide/SERVER.md#configuration)
+
 ### Internals
 
 - Javadoc `@param` tags that only repeated the parameter name (`@param gate` / `the gate`) are gone ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).

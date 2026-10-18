@@ -211,6 +211,17 @@ class CommandCompletionCoverageTest
             "though a verb it does dispatch still completes, or the assertion above proves nothing");
     }
 
+    /** {@code config} offers {@code reload} beside the settings, so the word is found by tab. */
+    @Test
+    void configOffersReloadBesideTheSettings()
+    {
+        ConfigTestSupport.loadDefaults();
+
+        final List<String> offered = complete("config", "config", "re");
+        assertTrue(offered.contains("reload"), "reload is offered: " + offered);
+        assertTrue(offered.contains("REDSTONE_EXTEND_OPEN_TIME"), "and the settings it shares a start with: " + offered);
+    }
+
     /** The flat {@code build} name offers shapes, the same as the {@code gate build} it is short for. */
     @Test
     void theFlatBuildNameOffersShapes()

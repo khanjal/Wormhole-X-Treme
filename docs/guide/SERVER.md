@@ -108,15 +108,19 @@ The groups, in the order the file has them, and where each is explained:
 /wormhole config <setting>            show it, with its description
 /wormhole config <setting> <value>    change it — no reload, no restart
 /wormhole config sign                 search: every setting with "sign" in its name
+/wormhole config reload               read config.yml again, after editing or deploying it
 ```
 
 Either spelling works: `gate-sound-kawoosh`, as `config.yml` has it, or `gate_sound_kawoosh`, as
 tab completion shows it. A setting with a fixed set of values refuses a bad one and names the
 options. Sound names are not checked, because a resource pack's sounds have to pass through.
 
-**Editing `config.yml` while the server is running does not work.** The plugin writes the file
-back from memory when it shuts down, so an edit made underneath it is overwritten. Use the
-command, or edit the file with the server stopped.
+**After editing `config.yml` while the server is running, run `/wormhole config reload`.** The
+plugin writes the file back from memory when it shuts down, or when a setting is changed with the
+command, so an edit it has not reloaded is overwritten. The reload takes each setting the file
+changes, the way the command would, and lists them. A value the command would refuse is named and
+the old one kept; a setting the file leaves out keeps its value; a file that cannot be read changes
+nothing and says why. `gate-material-groups` still waits for a restart. It needs `wormhole.config`.
 
 **A change applies from the next time it is used.** A wormhole already open closes on the timeout
 it opened with, a cooldown already running ends when it was going to, and a gate's name sign keeps
@@ -190,7 +194,7 @@ outranks a negated node.
 | `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
-| `wormhole.config` | op | Settings, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
+| `wormhole.config` | op | Settings, including `config reload`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
 | `wormhole.network.use.<network>` | | Using gates on that network |
 | `wormhole.network.build.<network>` | | Building gates on that network |
 
