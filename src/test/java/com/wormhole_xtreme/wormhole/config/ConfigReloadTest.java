@@ -243,6 +243,53 @@ class ConfigReloadTest
         assertEquals("sweep", valueOf(ConfigKeys.GATE_IRIS_ANIMATION));
     }
 
+    /**
+     * A bare {@code off} under any other text setting is refused, naming the switch it was read as,
+     * and the old value kept.
+     *
+     * <p>Reading it as the default would turn {@code log-level: off}, a real level, into INFO, and
+     * {@code ring-default-style: off} into whatever the default style is.
+     */
+    @Test
+    void aBareOffUnderAnyOtherTextSettingIsRefused() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.LOG_LEVEL, "WARNING");
+        ConfigTestSupport.set(ConfigKeys.RING_DEFAULT_STYLE, "SEQUENTIAL");
+
+        final ConfigReload.Report report = reload("log-level: off\nring-default-style: off\n");
+
+        assertEquals(List.of(), report.changes());
+        assertEquals(List.of(
+            new ConfigReload.Rejection(ConfigKeys.LOG_LEVEL,
+                "LOG_LEVEL was read as a switch (false); write the value in quotes.", "WARNING"),
+            new ConfigReload.Rejection(ConfigKeys.RING_DEFAULT_STYLE,
+                "RING_DEFAULT_STYLE was read as a switch (false); write the value in quotes.", "SEQUENTIAL")),
+            report.rejections());
+        assertEquals("WARNING", valueOf(ConfigKeys.LOG_LEVEL));
+        assertEquals("SEQUENTIAL", valueOf(ConfigKeys.RING_DEFAULT_STYLE));
+    }
+
+    /** A value in quotes is taken as the text it is, in the command's form. */
+    @Test
+    void aQuotedValueIsTakenAsText() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.RING_DEFAULT_STYLE, "SEQUENTIAL");
+
+        reload("ring-default-style: \"concurrent\"\n");
+
+        assertEquals("CONCURRENT", valueOf(ConfigKeys.RING_DEFAULT_STYLE));
+    }
+
+    /** An empty file, or one of only comments, is said to be empty. */
+    @Test
+    void anEmptyFileIsSaidToBeEmpty() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.ECONOMY_ENABLED, false);
+
+        assertEquals("config.yml is empty", reload("# nothing but a comment\n").unreadable());
+        assertEquals("config.yml is empty", reload("").unreadable());
+    }
+
     /** A bare {@code off} the server started from, stored as {@code "false"}, is no change on reload. */
     @Test
     void aBareOffTheServerStartedFromIsNoChange() throws Exception

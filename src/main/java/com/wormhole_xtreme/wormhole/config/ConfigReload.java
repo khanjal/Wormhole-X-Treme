@@ -6,9 +6,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.yaml.snakeyaml.Yaml;
@@ -31,6 +33,10 @@ import com.wormhole_xtreme.wormhole.utils.YamlMaps;
  */
 public final class ConfigReload
 {
+    /** Text settings whose getters read a bare off, which YAML hands over as false, as their default. */
+    private static final Set<ConfigKeys> OFF_MEANS_DEFAULT =
+        EnumSet.of(ConfigKeys.GATE_VIEW, ConfigKeys.GATE_IRIS_ANIMATION);
+
     /** Static helpers only. */
     private ConfigReload()
     {
@@ -103,6 +109,10 @@ public final class ConfigReload
         try (InputStream in = Files.newInputStream(cfg.toPath()))
         {
             final Object loaded = new Yaml().load(in);
+            if (loaded == null)
+            {
+                return unreadable(cfg.getName() + " is empty");
+            }
             if (!(loaded instanceof Map))
             {
                 return unreadable(cfg.getName() + " is not a list of settings");
@@ -157,6 +167,12 @@ public final class ConfigReload
         // YAML reads a bare off or on as a switch; startup stores its text, which reads as the default.
         if (!parsed.isAccepted() && (written instanceof Boolean) && !(element.getValue() instanceof Boolean))
         {
+            if (!OFF_MEANS_DEFAULT.contains(key))
+            {
+                rejections.add(new Rejection(key, key + " was read as a switch (" + written
+                    + "); write the value in quotes.", current.getValue()));
+                return;
+            }
             if (Objects.equals(current.getValue(), read))
             {
                 return;

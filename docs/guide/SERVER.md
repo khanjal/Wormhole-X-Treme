@@ -117,13 +117,16 @@ options. Sound names are not checked, because a resource pack's sounds have to p
 
 **After editing `config.yml` while the server is running, run `/wormhole config reload`.** The
 plugin writes the file back from memory when it shuts down, or when a setting is changed with the
-command, so an edit it has not reloaded is overwritten. The reload takes each setting the file
-changes, the way the command would, and lists them. A value the command would refuse is named and
-the old one kept; a setting the file leaves out keeps its value; a file that cannot be read changes
-nothing and says why. A value written the way the command would not store it, such as `slow` for
-a ring style, is reported as changed to the form the command uses. The reload does not write the
-file itself, apart from what turning `gate-material-groups-autodiscover` on does, as with the
-command; the rest of `gate-material-groups` waits for a restart. It needs `wormhole.config`.
+command, so an edit it has not reloaded is overwritten. The reload reads each setting the file
+changes as startup reads it, then checks it the way the command would, and lists them. A value the
+command would refuse is named and the old one kept; a setting the file leaves out keeps its value;
+a file that cannot be read changes nothing and says why. A value written the way the command would
+not store it, such as `slow` for a ring style, is reported as changed to the form the command uses.
+YAML reads a bare `off`, `on`, `yes` or `no` as a switch, so write such a word in quotes, as in
+`log-level: "OFF"`; only `gate-view` and `gate-iris-animation` read a bare `off` as their default.
+The reload does not write the file itself, apart from what turning
+`gate-material-groups-autodiscover` on does, as with the command; edited material groups still
+wait for a restart. It needs `wormhole.config`.
 
 **A change applies from the next time it is used.** A wormhole already open closes on the timeout
 it opened with, a cooldown already running ends when it was going to, and a gate's name sign keeps
