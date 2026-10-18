@@ -339,6 +339,11 @@ class PortalFlightExemptionTest
         move(new Location(other, BX + 0.5, BY, BZ - 3.5), new Location(other, BX + 0.5, BY, BZ + 0.5));
 
         verify(player, never()).setAllowFlight(anyBoolean());
+
+        // And the same coordinates in the gate's own world do: it is the world that decides.
+        move(outside(), inside());
+
+        verify(player).setAllowFlight(true);
     }
 
     /** Spectators fly by game mode, so leaving a portal leaves them be, like creative. */
