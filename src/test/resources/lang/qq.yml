@@ -1,3 +1,16 @@
-# A language the jar ships, for MessagesTest only; qq is reserved for local use.
+# A language the jar ships, for the Messages tests and the tests that a player reads their own
+# language; qq is reserved for local use.
 compass.none: "QQ none."
 compass.reset: "QQ reset."
+gate.design.valid: "QQ valid."
+gate.dial.other-network: "QQ {0} other network."
+gate.walk.iris-closed: "QQ iris."
+gate.welcome.arrived: "QQ arrived {0}."
+gate.fare.charged: "QQ charged {0}."
+gate.restrict.cooldown: "QQ wait {0}."
+gate.spacing.too-close: "QQ near {0} {1} {2}."
+region.use-refused: "QQ region."
+gate.lifecycle.timed-out: "QQ {0} timed out."
+gate.sign.dialer-set: "QQ dialer {0}."
+block.part-of-gate: "QQ part of {0}."
+preview.built: "QQ {0} built."
