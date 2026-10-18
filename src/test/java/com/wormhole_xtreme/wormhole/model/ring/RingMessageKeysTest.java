@@ -107,6 +107,15 @@ class RingMessageKeysTest
             refusalFor(playerReading("en"), RingBlockage.NO_HEADROOM, "Tower"));
         assertEquals(List.of(ChatText.error(named + " has something built inside it."), clear),
             refusalFor(playerReading("en"), RingBlockage.OBSTRUCTED, "Tower"));
+        final String other = "The other end of these rings";
+        assertEquals(ChatText.error(other + " is too far above its floor."),
+            refusalFor(playerReading("en"), RingBlockage.CEILING_TOO_HIGH, "").get(0));
+        assertEquals(ChatText.error(other + " has no room between it and the floor."),
+            refusalFor(playerReading("en"), RingBlockage.CEILING_TOO_LOW, "").get(0));
+        assertEquals(ChatText.error(other + " has too low a ceiling for the rings."),
+            refusalFor(playerReading("en"), RingBlockage.NO_HEADROOM, "").get(0));
+        assertEquals(ChatText.error(other + " has something built inside it."),
+            refusalFor(playerReading("en"), RingBlockage.OBSTRUCTED, null).get(0));
 
         final Player player = playerReading("en");
         RingMessages.notYours(player);
@@ -155,7 +164,7 @@ class RingMessageKeysTest
     @Test
     void aRefusalIsInThePlayersLanguage()
     {
-        assertEquals(ChatText.error("QQ QQ end " + ChatText.name("Tower") + " hole."),
+        assertEquals(ChatText.error("QQ " + ChatText.name("Tower") + " hole."),
             refusalFor(playerReading("qq"), RingBlockage.NO_GROUND, "Tower").get(0));
         final Player player = playerReading("qq");
         RingMessages.notYours(player);

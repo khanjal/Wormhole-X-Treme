@@ -177,10 +177,8 @@ public final class RingMessages
     public static void cannotReceive(final Player player, final String destination,
         final RingBlockage why)
     {
-        final String which = ((destination == null) || destination.isEmpty())
-            ? Messages.get(player, "ring.blocked.other-end")
-            : Messages.get(player, "ring.blocked.named-end", ChatText.name(destination));
-        player.sendMessage(ChatText.error(reason(player, why, which)));
+        final String end = ((destination == null) || destination.isEmpty()) ? null : ChatText.name(destination);
+        player.sendMessage(ChatText.error(reason(player, why, end)));
         if ((why == RingBlockage.CEILING_TOO_HIGH) || (why == RingBlockage.CEILING_TOO_LOW))
         {
             player.sendMessage(ChatText.error(Messages.get(player, "ring.blocked.ceiling-hint")));
@@ -202,29 +200,34 @@ public final class RingMessages
      *            who will read it
      * @param why
      *            what is wrong
-     * @param which
-     *            the end at fault, the sentence's subject
-     * @return the sentence
+     * @param end
+     *            the far end's name, already coloured, or null if it has none
+     * @return the sentence, a whole one for each way of naming the end
      */
-    private static String reason(final Player player, final RingBlockage why, final String which)
+    private static String reason(final Player player, final RingBlockage why, final String end)
     {
         if (why == RingBlockage.NO_GROUND)
         {
-            return Messages.get(player, "ring.blocked.no-ground", which);
+            return (end == null) ? Messages.get(player, "ring.blocked.no-ground")
+                : Messages.get(player, "ring.blocked.no-ground-named", end);
         }
         if (why == RingBlockage.CEILING_TOO_HIGH)
         {
-            return Messages.get(player, "ring.blocked.ceiling-too-high", which);
+            return (end == null) ? Messages.get(player, "ring.blocked.ceiling-too-high")
+                : Messages.get(player, "ring.blocked.ceiling-too-high-named", end);
         }
         if (why == RingBlockage.CEILING_TOO_LOW)
         {
-            return Messages.get(player, "ring.blocked.ceiling-too-low", which);
+            return (end == null) ? Messages.get(player, "ring.blocked.ceiling-too-low")
+                : Messages.get(player, "ring.blocked.ceiling-too-low-named", end);
         }
         if (why == RingBlockage.NO_HEADROOM)
         {
-            return Messages.get(player, "ring.blocked.no-headroom", which);
+            return (end == null) ? Messages.get(player, "ring.blocked.no-headroom")
+                : Messages.get(player, "ring.blocked.no-headroom-named", end);
         }
-        return Messages.get(player, "ring.blocked.obstructed", which);
+        return (end == null) ? Messages.get(player, "ring.blocked.obstructed")
+            : Messages.get(player, "ring.blocked.obstructed-named", end);
     }
 
     /**
