@@ -34,7 +34,6 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorInteraction;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
-import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 
 /**
