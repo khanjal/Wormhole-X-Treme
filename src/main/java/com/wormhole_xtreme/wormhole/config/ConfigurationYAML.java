@@ -224,7 +224,7 @@ public class ConfigurationYAML
      *            the setting being looked for
      * @return the key as the file spells it, or null if the file does not mention it
      */
-    private static String keyFor(final Map<String, Object> map, final Setting element)
+    static String keyFor(final Map<String, Object> map, final Setting element)
     {
         final String enumKey = element.getName().name();
         final String kebabKey = kebabKeyName(enumKey);
@@ -373,7 +373,7 @@ public class ConfigurationYAML
     }
 
     /** What kind a setting is, for a warning. */
-    private static String kindOf(final Object kind)
+    static String kindOf(final Object kind)
     {
         if (kind instanceof Boolean)
         {

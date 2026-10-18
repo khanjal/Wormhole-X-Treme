@@ -1870,7 +1870,7 @@ public class ConfigManager
      * @param key
      *            the setting just changed
      */
-    private static void follow(final ConfigKeys key)
+    static void follow(final ConfigKeys key)
     {
         switch (key)
         {
@@ -2066,6 +2066,12 @@ public class ConfigManager
     {
         configuredPluginName = pluginName;
         Configuration.loadConfiguration(pluginName);
+    }
+
+    /** @return the plugin folder name config.yml was read under */
+    static String configuredPluginName()
+    {
+        return configuredPluginName;
     }
 
     /**
