@@ -224,6 +224,23 @@ class ParsedSettingTest
             parsed.getRefusal());
     }
 
+    /**
+     * A language is any short code, in lower case, with or without a file yet (#26); anything that could
+     * name a file outside lang/, such as a path, is refused.
+     */
+    @Test
+    void aLanguageIsAPlainCode()
+    {
+        storesAs(ConfigKeys.LANGUAGE, "DE", "de");
+        storesAs(ConfigKeys.LANGUAGE, " pt-br ", "pt-br");
+        storesAs(ConfigKeys.LANGUAGE, "zh_tw", "zh_tw");
+        refuses(ConfigKeys.LANGUAGE, "../config");
+        refuses(ConfigKeys.LANGUAGE, "de.yml");
+        refuses(ConfigKeys.LANGUAGE, "a-language-code-too-long");
+        assertTrue(refuses(ConfigKeys.LANGUAGE, "en gb").getRefusal().contains("pt-br"),
+            "the refusal should show what a code looks like");
+    }
+
     /** A gate view level is one of the three, in any case; anything else is refused by name (#516). */
     @Test
     void aGateViewThatIsNotOneIsRefused()

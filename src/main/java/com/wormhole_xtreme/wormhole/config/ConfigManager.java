@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,6 +30,7 @@ import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 
 /**
@@ -75,6 +77,9 @@ public class ConfigManager
 
         /** Whether a command named in chat can be clicked (#538). */
         CLICKABLE_CHAT,
+
+        /** Which lang file chat messages are read from, over the bundled English (#26). */
+        LANGUAGE,
 
         /** The LOG LEVEL. */
         LOG_LEVEL,
@@ -1756,6 +1761,34 @@ public class ConfigManager
         return (s == null) || s.getBooleanValue();
     }
 
+    /** A language code: what lang/&lt;code&gt;.yml may be called. */
+    private static final Pattern LANGUAGE_CODE = Pattern.compile("[a-z0-9_-]{1,16}");
+
+    /**
+     * The language chat messages are in (#26).
+     *
+     * @return its code, lower case; en for one that is not a plain code
+     */
+    public static String getLanguage()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.LANGUAGE);
+        final String code = (s == null) ? null : parseLanguage(String.valueOf(s.getValue()));
+        return (code == null) ? Messages.DEFAULT_LANGUAGE : code;
+    }
+
+    /**
+     * Reads a language code as typed; letters, digits, - and _ only, since it names a file in lang/.
+     *
+     * @param raw
+     *            the value as typed
+     * @return it trimmed and in lower case, or null if it is not a code
+     */
+    public static String parseLanguage(final String raw)
+    {
+        final String code = (raw == null) ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        return LANGUAGE_CODE.matcher(code).matches() ? code : null;
+    }
+
     /**
      * Checks if same-world-only mode is enabled.
      * When true, players may only teleport through gates whose destination is in the same world.
@@ -1887,6 +1920,7 @@ public class ConfigManager
         switch (key)
         {
             case LOG_LEVEL -> WormholeXTreme.applyLogLevel(getLogLevel());
+            case LANGUAGE -> Messages.load();
             case METRICS_ENABLED -> followMetrics();
             case ECONOMY_ENABLED -> followEconomy();
             case PLACEHOLDERS_ENABLED -> followPlaceholders();

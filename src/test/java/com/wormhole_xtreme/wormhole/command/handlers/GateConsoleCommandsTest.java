@@ -59,6 +59,10 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  */
 class GateConsoleCommandsTest
 {
+    /** The refusal as it read before it moved to lang/en.yml (#26). */
+    private static final String NOT_COORDINATES = "Those words are not a gate to build at coordinates: give whole numbers or ~ for "
+        + "x y z, then a facing.";
+
     private static String[] line(final String... words)
     {
         return words;
@@ -340,9 +344,9 @@ class GateConsoleCommandsTest
     @Test
     void aNearMissCoordinateLineIsToldTheCoordinateUsage()
     {
-        assertEquals(GateConsoleCommands.NOT_COORDINATES, refusal("Standard", "A", "world", "0.5", "-60", "0", "south"),
+        assertEquals(NOT_COORDINATES, refusal("Standard", "A", "world", "0.5", "-60", "0", "south"),
             "a fraction for x is not the coordinate form, and the player form would not help");
-        assertEquals(GateConsoleCommands.NOT_COORDINATES, refusal("Standard", "A", "world", "0", "-60", "0"),
+        assertEquals(NOT_COORDINATES, refusal("Standard", "A", "world", "0", "-60", "0"),
             "six words is one short");
     }
 
@@ -357,7 +361,7 @@ class GateConsoleCommandsTest
 
         GateConsoleCommands.build(console, line("Standard", "A", "world", "0.5", "-60", "0", "south"));
 
-        verify(console).sendMessage(errorBody(GateConsoleCommands.NOT_COORDINATES));
+        verify(console).sendMessage(errorBody(NOT_COORDINATES));
         verify(console).sendMessage(infoBody("Usage: " + GateConsoleCommands.BUILD_USAGE));
     }
 

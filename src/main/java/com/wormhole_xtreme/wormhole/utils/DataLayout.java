@@ -15,6 +15,7 @@ import java.io.File;
  * <pre>
  * &lt;plugin folder&gt;/
  * ├── config.yml
+ * ├── lang/*.yml                 chat messages, one file per language; en.yml a copy of the jar's
  * ├── shapes/
  * │   ├── gate/*.shape           the shapes gates are built from
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with
@@ -70,6 +71,12 @@ public final class DataLayout
     public static File mirrorShapes()
     {
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "shapes", "mirror");
+    }
+
+    /** @return the directory chat messages are read from, one {@code <language>.yml} each */
+    public static File lang()
+    {
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "lang");
     }
 
     /** @return the directory gate shapes used to be read from, emptied on startup */

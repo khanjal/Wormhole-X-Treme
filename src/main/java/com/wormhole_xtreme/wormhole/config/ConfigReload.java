@@ -19,6 +19,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
@@ -87,13 +88,16 @@ public final class ConfigReload
     }
 
     /**
-     * Reloads this server's config.yml.
+     * Reloads this server's config.yml, and the language files whether or not {@code language} changed,
+     * so an edited translation is taken too.
      *
      * @return what changed
      */
     public static Report reload()
     {
-        return reload(ConfigurationYAML.getConfigFile(ConfigManager.configuredPluginName()));
+        final Report report = reload(ConfigurationYAML.getConfigFile(ConfigManager.configuredPluginName()));
+        Messages.load();
+        return report;
     }
 
     /**

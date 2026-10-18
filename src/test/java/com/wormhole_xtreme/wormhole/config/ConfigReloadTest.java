@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +24,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * {@code /wormhole config -reload} takes what an admin edited into config.yml, and nothing it should not.
@@ -381,5 +383,29 @@ class ConfigReloadTest
 
         assertEquals(Boolean.FALSE, valueOf(ConfigKeys.GATE_SOUNDS_ENABLED), "not reset to its default of true");
         assertFalse(report.changes().stream().anyMatch(c -> c.key() == ConfigKeys.GATE_SOUNDS_ENABLED));
+    }
+
+    /** A changed language is read at once, not at the next restart (#26). */
+    @Test
+    void aChangedLanguageIsReadAtOnce() throws Exception
+    {
+        when(WormholeXTreme.getThisPlugin().getDataFolder()).thenReturn(directory);
+        final File lang = new File(directory, "lang");
+        lang.mkdirs();
+        Files.writeString(new File(lang, "de.yml").toPath(), "compass.none: \"Keine Wurmlöcher.\"\n", StandardCharsets.UTF_8);
+        ConfigTestSupport.set(ConfigKeys.LANGUAGE, "en");
+        try
+        {
+            final ConfigReload.Report report = reload("language: de\n");
+
+            assertEquals(1, report.changes().size(), String.valueOf(report.changes()));
+            assertEquals("Keine Wurmlöcher.", Messages.get("compass.none"));
+        }
+        finally
+        {
+            ConfigTestSupport.set(ConfigKeys.LANGUAGE, "en");
+            ConfigManager.follow(ConfigKeys.LANGUAGE);
+        }
+        assertEquals("No wormholes to track.", Messages.get("compass.none"), "and back to English");
     }
 }

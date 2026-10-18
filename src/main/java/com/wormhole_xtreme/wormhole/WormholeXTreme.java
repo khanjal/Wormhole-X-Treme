@@ -62,6 +62,7 @@ import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 import com.wormhole_xtreme.wormhole.plugin.UpdateCheck;
 import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
 import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.PluginVersion;
 
 /**
@@ -799,6 +800,7 @@ public class WormholeXTreme extends JavaPlugin
         // Load our config files and set logging level right away.
         ConfigManager.setupConfigs(getThisPlugin().getName());
         WormholeXTreme.setPrettyLogLevel(ConfigManager.getLogLevel());
+        Messages.load();
         // Load our shapes and internal permissions. Stargates are loaded in onEnable
         // because world creation is not allowed during plugin startup (onLoad).
         StargateShapeRegistry.loadShapes();
