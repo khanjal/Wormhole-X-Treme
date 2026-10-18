@@ -123,8 +123,8 @@ command would refuse is named and the old one kept; a setting the file leaves ou
 a file that cannot be read changes nothing and says why. A value written the way the command would
 not store it, such as `slow` for a ring style, is reported as changed to the form the command uses.
 YAML reads a bare `off`, `on`, `yes` or `no` as a switch: a bare `off` is `OFF` under `log-level`
-and the default under `gate-view` and `gate-iris-animation`; anywhere else, write such a word in
-quotes.
+and the default under `gate-view` and `gate-iris-animation`, and under `gate-dial-spin` a bare `off`
+is `NONE` and `on` is `TOP`; anywhere else, write such a word in quotes.
 The reload does not write the file itself, apart from what turning
 `gate-material-groups-autodiscover` on does, as with the command; edited material groups still
 wait for a restart. It needs `wormhole.config`.
