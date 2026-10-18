@@ -42,6 +42,8 @@ final class VisibleItems
     static Function<Visible, ItemStack> items = VisibleItems::itemOf;
 
     /** Makes an empty profile with this id and no name; replaceable for a test, which has no server. */
+    // Spigot has no other player profile, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     static Function<UUID, PlayerProfile> profiles = Bukkit::createPlayerProfile;
 
     /**
@@ -58,6 +60,8 @@ final class VisibleItems
      * @param skull
      *            a head's skin, or null
      */
+    // Spigot has no other player profile, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     record Visible(Material type, boolean glint, ArmorTrim trim, Color dye, PlayerProfile skull)
     {
     }
@@ -74,6 +78,8 @@ final class VisibleItems
      *            an item worn or held
      * @return what shows of it, or null for nothing there
      */
+    // Spigot has no other player profile, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     static Visible of(final ItemStack item)
     {
         final Material type = (item == null) ? null : item.getType();
@@ -174,6 +180,8 @@ final class VisibleItems
      * @return a new profile with that skin and cape and nothing else, or null for no skin or one that
      *         could not be made, which shows the default skin
      */
+    // Spigot has no other player profile, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     static PlayerProfile skinOnly(final PlayerProfile from)
     {
         try
@@ -199,6 +207,8 @@ final class VisibleItems
     }
 
     /** One of the kind, with only what is seen set on it. */
+    // Spigot has no other player profile, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     private static ItemStack itemOf(final Visible seen)
     {
         final ItemStack item = new ItemStack(seen.type());
