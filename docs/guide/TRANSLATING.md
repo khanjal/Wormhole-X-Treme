@@ -13,8 +13,8 @@ English until they are moved over, a few at a time. Command usage and help lines
    in it.
 2. Take the English from
    [`src/main/resources/lang/en.yml`](../../src/main/resources/lang/en.yml), every translatable
-   message, and save it there as `<code>.yml`, such as `de.yml` or `pt-br.yml`. A code is letters,
-   digits, `-` and `_`, at most 16 of them.
+   message, and save it there as `<code>.yml`, such as `de.yml` or `pt-br.yml`. A code is lower-case
+   letters, digits, `-` and `_`, at most 16 of them.
 3. Translate the text in quotes. Leave the keys on the left as they are.
 4. Keep each `{0}`, `{1}` and so on: that is where a gate name, a number or a position goes. Move
    them wherever your language's word order needs them.
