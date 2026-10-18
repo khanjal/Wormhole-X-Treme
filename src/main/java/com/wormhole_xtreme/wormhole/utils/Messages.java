@@ -7,38 +7,52 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
- * Chat text by key, for the server's language, with English beneath it (#26).
+ * Chat text by key, in the language of whoever reads it (#26).
  *
  * <p>A template holds the sentence, its colour codes and {@code {0}} to {@code {99}} for its
  * arguments; the call site colours each argument with {@link ChatText} and adds the line's header,
- * so {@code ChatText.error(Messages.get("gate.build.no-shape", ChatText.name(shape)))}. Placeholders
- * are replaced in one pass, so an argument holding {@code {1}} is sent as it is, and an apostrophe or
- * any other brace is plain text, as it would not be under {@code MessageFormat}. A placeholder with
- * no argument is left as written.
+ * so {@code ChatText.error(Messages.get(sender, "gate.build.no-shape", ChatText.name(shape)))}.
+ * Placeholders are replaced in one pass, so an argument holding {@code {1}} is sent as it is, and an
+ * apostrophe or any other brace is plain text, as it would not be under {@code MessageFormat}. A
+ * placeholder with no argument is left as written.
  *
- * <p>Each key is looked up in {@code lang/<language>.yml} in the plugin folder, if the owner made one,
- * then in the jar's {@code /lang/<language>.yml}, then in the jar's English, so a stale or partial
- * file cannot lose a key. Nothing is written to the plugin folder. A key the jar's English lacks is
- * sent as the key itself and logged once.
+ * <p>A player reads their client's language: {@code de_de} looks in {@code de_de}, then {@code de},
+ * then {@code server-language}, then English, key by key. Anyone else, and a player whose client
+ * names no usable language, starts at {@code server-language}. A language is the jar's
+ * {@code /lang/<code>.yml} with the owner's {@code lang/<code>.yml} from the plugin folder over it,
+ * if they made one; nothing is written there. A key the jar's English lacks is sent as the key itself
+ * and logged once.
  */
 public final class Messages
 {
     /** The language shipped, and the one any other falls back to. */
     public static final String DEFAULT_LANGUAGE = "en";
 
-    /** The templates by key; the jar's English alone until {@link #load()} runs. */
-    private static volatile Map<String, Template> templates;
+    /** Most client languages remembered at once; past it the memory is cleared, so a client cannot grow it. */
+    static final int MOST_REMEMBERED = 256;
+
+    /** Longest client language read; {@code de_de} is five. */
+    private static final int LONGEST_LOCALE = 16;
+
+    /** A language with no file: neither in the jar nor in the plugin folder. */
+    private static final Map<String, Template> NONE = Map.of();
+
+    /** What the last load read; the jar's English alone until {@link #load()} runs. */
+    private static volatile Catalog catalog;
 
     /** Keys already logged as missing, so a message sent every trip logs once. */
     private static final Set<String> reportedMissing = ConcurrentHashMap.newKeySet();
@@ -49,64 +63,129 @@ public final class Messages
     }
 
     /**
-     * The text for a key, its placeholders filled in.
+     * The text for a key, in the recipient's language, its placeholders filled in.
      *
+     * @param recipient
+     *            who will read it; a player reads their client's language, anyone else and null the
+     *            server's
      * @param key
      *            a key from {@code lang/en.yml}, written as a literal at the call site
      * @param args
      *            the arguments, {@code {0}} first, each already coloured
      * @return the text, or the key itself if no language has it
      */
-    public static String get(final String key, final Object... args)
+    public static String get(final CommandSender recipient, final String key, final Object... args)
     {
-        final Template template = templates().get(key);
-        if (template == null)
+        for (final Map<String, Template> language : catalog().chainFor(recipient))
         {
-            if (reportedMissing.add(key))
+            final Template template = language.get(key);
+            if (template != null)
             {
-                PluginLog.log(Level.WARNING, "No text for the message " + key + "; it is shown as its key.");
+                return template.format(args);
             }
-            return key;
         }
-        return template.format(args);
+        if (reportedMissing.add(key))
+        {
+            PluginLog.log(Level.WARNING, "No text for the message " + key + "; it is shown as its key.");
+        }
+        return key;
     }
 
-    /** Reads the configured language again. */
+    /** Reads the languages again, the plugin folder's lang files and {@code server-language} with them. */
     public static void load()
     {
-        load(ConfigManager.getLanguage(), DataLayout.lang());
+        load(ConfigManager.getServerLanguage(), DataLayout.lang());
     }
 
     /**
-     * Reads one language: the plugin folder's file over the jar's, over the jar's English.
+     * Reads the languages again.
      *
-     * @param language
-     *            the language code, already checked to be a plain file name
+     * @param serverLanguage
+     *            the server's language code, already checked to be a plain file name
      * @param directory
      *            the plugin folder's {@code lang} folder, which need not exist and is never created
      */
-    static void load(final String language, final File directory)
+    static void load(final String serverLanguage, final File directory)
     {
-        final Map<String, String> text = readJar(DEFAULT_LANGUAGE);
-        final Map<String, String> jar = DEFAULT_LANGUAGE.equals(language) ? Map.of() : readJar(language);
-        final File file = new File(directory, language + ".yml");
-        if (!DEFAULT_LANGUAGE.equals(language) && jar.isEmpty() && !file.isFile())
+        final Catalog loaded = new Catalog(readOverlays(directory), serverLanguage);
+        if (!DEFAULT_LANGUAGE.equals(serverLanguage) && (loaded.serverChain.size() < 2))
         {
-            PluginLog.log(Level.WARNING, "There is no lang/" + file.getName() + "; messages are in English.");
+            PluginLog.log(Level.WARNING, "There is no lang/" + serverLanguage + ".yml; messages are in English.");
         }
-        text.putAll(jar);
-        text.putAll(readOverlay(file));
-        templates = parse(text);
+        catalog = loaded;
         reportedMissing.clear();
     }
 
-    /** @return the plugin folder's file for a language, empty if there is none or it cannot be read */
-    private static Map<String, String> readOverlay(final File file)
+    /**
+     * A client's language as a code to look up, or null for one that is not usable.
+     *
+     * <p>The client sends it, so it is trusted for nothing: lower case, letters and {@code _} only,
+     * and short, so it can never name a path.
+     *
+     * @param raw
+     *            the client's locale as the server reports it, such as {@code de_DE}
+     * @return the code, such as {@code de_de}, or null
+     */
+    static String sanitise(final String raw)
     {
-        if (!file.isFile())
+        if ((raw == null) || raw.isEmpty() || (raw.length() > LONGEST_LOCALE))
+        {
+            return null;
+        }
+        final String code = raw.toLowerCase(Locale.ROOT);
+        for (int i = 0; i < code.length(); i++)
+        {
+            final char c = code.charAt(i);
+            if (((c < 'a') || (c > 'z')) && (c != '_'))
+            {
+                return null;
+            }
+        }
+        return ((code.charAt(0) == '_') || (code.charAt(code.length() - 1) == '_')) ? null : code;
+    }
+
+    /** @return the catalog, the jar's English alone on first use when nothing has loaded */
+    private static Catalog catalog()
+    {
+        Catalog loaded = catalog;
+        if (loaded == null)
+        {
+            loaded = new Catalog(Map.of(), DEFAULT_LANGUAGE);
+            catalog = loaded;
+        }
+        return loaded;
+    }
+
+    /** @return how many client languages are remembered now, for tests */
+    static int remembered()
+    {
+        return catalog().chains.size();
+    }
+
+    /** @return each lang file in the plugin folder whose name is a language code, read; none if there is no folder */
+    private static Map<String, Map<String, String>> readOverlays(final File directory)
+    {
+        final File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml"));
+        if (files == null)
         {
             return Map.of();
         }
+        final Map<String, Map<String, String>> overlays = new HashMap<>();
+        for (final File file : files)
+        {
+            final String name = file.getName();
+            final String code = ConfigManager.parseServerLanguage(name.substring(0, name.length() - ".yml".length()));
+            if ((code != null) && file.isFile())
+            {
+                overlays.put(code, readOverlay(file));
+            }
+        }
+        return overlays;
+    }
+
+    /** @return one lang file from the plugin folder, empty if it cannot be read */
+    private static Map<String, String> readOverlay(final File file)
+    {
         try (InputStream in = Files.newInputStream(file.toPath()))
         {
             return read(in, file.getName());
@@ -118,39 +197,115 @@ public final class Messages
         }
     }
 
-    /** @return a language's file in the jar, or null if the jar has none */
-    private static InputStream bundled(final String language)
-    {
-        return Messages.class.getResourceAsStream("/lang/" + language + ".yml");
-    }
-
-    /** @return the templates, the jar's English parsed on first use when nothing has loaded */
-    private static Map<String, Template> templates()
-    {
-        Map<String, Template> loaded = templates;
-        if (loaded == null)
-        {
-            loaded = parse(readJar(DEFAULT_LANGUAGE));
-            templates = loaded;
-        }
-        return loaded;
-    }
-
     /** @return a language's text from the jar, empty if it has none, as a map the caller may add to */
-    private static Map<String, String> readJar(final String language)
+    private static Map<String, String> readJar(final String code)
     {
-        try (InputStream in = bundled(language))
+        try (InputStream in = Messages.class.getResourceAsStream("/lang/" + code + ".yml"))
         {
             if (in != null)
             {
-                return read(in, language + ".yml");
+                return read(in, code + ".yml");
             }
         }
         catch (final IOException | YAMLException e)
         {
-            PluginLog.log(Level.SEVERE, "Could not read the bundled " + language + " messages. " + e);
+            PluginLog.log(Level.SEVERE, "Could not read the bundled " + code + " messages. " + e);
         }
         return new HashMap<>();
+    }
+
+    /**
+     * The languages read since the last load: each one parsed once, and each client language's chain
+     * of them remembered, never anything per player.
+     */
+    private static final class Catalog
+    {
+        /** The owner's lang files from the plugin folder, read at load; nothing else looks there. */
+        private final Map<String, Map<String, String>> overlays;
+
+        /** Each language code looked up, the jar's file with the owner's over it, or {@link #NONE}. */
+        private final Map<String, Map<String, Template>> languages = new ConcurrentHashMap<>();
+
+        /** Each client language seen, to the languages it reads in order. */
+        private final Map<String, List<Map<String, Template>>> chains = new ConcurrentHashMap<>();
+
+        /** What the console, and a player with no usable language, reads. */
+        private final List<Map<String, Template>> serverChain;
+
+        private final Map<String, Template> english;
+
+        Catalog(final Map<String, Map<String, String>> overlays, final String serverLanguage)
+        {
+            this.overlays = overlays;
+            this.english = language(DEFAULT_LANGUAGE);
+            this.serverChain = chainOf(serverLanguage, List.of());
+        }
+
+        /** @return the languages a recipient reads, in order */
+        List<Map<String, Template>> chainFor(final CommandSender recipient)
+        {
+            if (!(recipient instanceof Player player))
+            {
+                return serverChain;
+            }
+            final String code = sanitise(PlayerLocales.of(player));
+            if (code == null)
+            {
+                return serverChain;
+            }
+            final List<Map<String, Template>> known = chains.get(code);
+            if (known != null)
+            {
+                return known;
+            }
+            if (chains.size() >= MOST_REMEMBERED)
+            {
+                chains.clear();
+                languages.values().removeIf(language -> language == NONE);
+            }
+            final List<Map<String, Template>> chain = chainOf(code);
+            chains.put(code, chain);
+            return chain;
+        }
+
+        /** @return a code's languages: itself, its part before {@code _}, the server's, then English */
+        private List<Map<String, Template>> chainOf(final String code)
+        {
+            return chainOf(code, serverChain);
+        }
+
+        private List<Map<String, Template>> chainOf(final String code, final List<Map<String, Template>> server)
+        {
+            final List<Map<String, Template>> chain = new ArrayList<>(4);
+            add(chain, language(code));
+            final int underscore = code.indexOf('_');
+            if (underscore > 0)
+            {
+                add(chain, language(code.substring(0, underscore)));
+            }
+            server.forEach(language -> add(chain, language));
+            add(chain, english);
+            return List.copyOf(chain);
+        }
+
+        private static void add(final List<Map<String, Template>> chain, final Map<String, Template> language)
+        {
+            // By identity: two languages that happen to hold the same text are still two.
+            if ((language != NONE) && chain.stream().noneMatch(held -> held == language))
+            {
+                chain.add(language);
+            }
+        }
+
+        /** @return a code's templates, read once: the jar's file, the owner's over it, or {@link #NONE} */
+        private Map<String, Template> language(final String code)
+        {
+            return languages.computeIfAbsent(code, c -> {
+                final Map<String, String> text = readJar(c);
+                text.putAll(overlays.getOrDefault(c, Map.of()));
+                return text.isEmpty() ? NONE : parse(text);
+            });
+        }
     }
 
     /**

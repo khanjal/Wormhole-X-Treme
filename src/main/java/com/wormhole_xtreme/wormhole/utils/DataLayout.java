@@ -15,7 +15,7 @@ import java.io.File;
  * <pre>
  * &lt;plugin folder&gt;/
  * ├── config.yml
- * ├── lang/*.yml                 optional, made by the owner: messages over the jar's for a language
+ * ├── lang/*.yml                 optional, the owner's: messages over the jar's, per client language
  * ├── shapes/
  * │   ├── gate/*.shape           the shapes gates are built from
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with

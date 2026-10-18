@@ -115,8 +115,8 @@ class MessagesTest
 
         Messages.load("de", lang);
 
-        assertEquals("Keine Wurmlöcher.", Messages.get("compass.none"));
-        assertEquals("Compass back to normal: it points at world spawn again.", Messages.get("compass.reset"));
+        assertEquals("Keine Wurmlöcher.", Messages.get(null, "compass.none"));
+        assertEquals("Compass back to normal: it points at world spawn again.", Messages.get(null, "compass.reset"));
     }
 
     /** An en.yml the owner made rewords English key by key; the keys it leaves out stay the jar's. */
@@ -127,8 +127,8 @@ class MessagesTest
 
         Messages.load("en", lang);
 
-        assertEquals("Nothing to point at.", Messages.get("compass.none"));
-        assertEquals("Compass back to normal: it points at world spawn again.", Messages.get("compass.reset"));
+        assertEquals("Nothing to point at.", Messages.get(null, "compass.none"));
+        assertEquals("Compass back to normal: it points at world spawn again.", Messages.get(null, "compass.reset"));
     }
 
     /**
@@ -139,15 +139,15 @@ class MessagesTest
     void theOwnersFileOverlaysTheJarsFileForThatLanguage() throws Exception
     {
         Messages.load("qq", lang);
-        assertEquals("QQ none.", Messages.get("compass.none"), "the jar's qq file should be read");
-        assertEquals("QQ reset.", Messages.get("compass.reset"));
+        assertEquals("QQ none.", Messages.get(null, "compass.none"), "the jar's qq file should be read");
+        assertEquals("QQ reset.", Messages.get(null, "compass.reset"));
         verify(plugin, never()).prettyLog(eq(Level.WARNING), anyString());
 
         write("qq.yml", "compass.reset: \"Owner reset.\"\n");
         Messages.load("qq", lang);
-        assertEquals("Owner reset.", Messages.get("compass.reset"), "the owner's file comes first");
-        assertEquals("QQ none.", Messages.get("compass.none"), "then the jar's file for the language");
-        assertEquals("Compass set to wormhole x.", Messages.get("compass.set", "x"), "then English");
+        assertEquals("Owner reset.", Messages.get(null, "compass.reset"), "the owner's file comes first");
+        assertEquals("QQ none.", Messages.get(null, "compass.none"), "then the jar's file for the language");
+        assertEquals("Compass set to wormhole x.", Messages.get(null, "compass.set", "x"), "then English");
     }
 
     /** A language with no file is English, said once in the log. */
@@ -156,7 +156,7 @@ class MessagesTest
     {
         Messages.load("xx", lang);
 
-        assertEquals("No wormholes to track.", Messages.get("compass.none"));
+        assertEquals("No wormholes to track.", Messages.get(null, "compass.none"));
         verify(plugin).prettyLog(eq(Level.WARNING), contains("xx.yml"));
     }
 
@@ -166,12 +166,12 @@ class MessagesTest
     {
         write("de.yml", "compass.none: [\n");
         Messages.load("de", lang);
-        assertEquals("No wormholes to track.", Messages.get("compass.none"));
+        assertEquals("No wormholes to track.", Messages.get(null, "compass.none"));
 
         write("de.yml", "compass.none: no\ncompass.reset: \"Zurück.\"\n");
         Messages.load("de", lang);
-        assertEquals("No wormholes to track.", Messages.get("compass.none"), "YAML reads a bare no as false");
-        assertEquals("Zurück.", Messages.get("compass.reset"));
+        assertEquals("No wormholes to track.", Messages.get(null, "compass.none"), "YAML reads a bare no as false");
+        assertEquals("Zurück.", Messages.get(null, "compass.reset"));
     }
 
     /** A key in no language returns itself, logs once however often it is sent, and never throws. */
@@ -180,8 +180,8 @@ class MessagesTest
     {
         Messages.load("en", lang);
 
-        assertDoesNotThrow(() -> Messages.get("no.such.key", "a"));
-        assertEquals("no.such.key", Messages.get("no.such.key"));
+        assertDoesNotThrow(() -> Messages.get(null, "no.such.key", "a"));
+        assertEquals("no.such.key", Messages.get(null, "no.such.key"));
         verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("no.such.key"));
     }
 
@@ -211,21 +211,21 @@ class MessagesTest
         final String at = ChatText.value("0 -60 0");
         assertEquals("Built " + gate + " at " + at + " in " + ChatText.name("world") + ". Opening centred on "
             + ChatText.value("1.5 2.5 3.5") + "; arrivals at " + ChatText.value("1.5 2.0 4.5") + ".",
-            Messages.get("gate.build.built", gate, at, ChatText.name("world"), ChatText.value("1.5 2.5 3.5"),
+            Messages.get(null, "gate.build.built", gate, at, ChatText.name("world"), ChatText.value("1.5 2.5 3.5"),
                 ChatText.value("1.5 2.0 4.5")));
         assertEquals("Carry a plain " + ChatText.material("compass")
-            + " to see it; lodestone and recovery compasses follow their own targets.", Messages.get("compass.plain-only"));
-        assertEquals("Compass set to wormhole " + gate + ".", Messages.get("compass.set", gate));
+            + " to see it; lodestone and recovery compasses follow their own targets.", Messages.get(null, "compass.plain-only"));
+        assertEquals("Compass set to wormhole " + gate + ".", Messages.get(null, "compass.set", gate));
         assertEquals("part of it would be below the world's floor at " + ChatText.value("-64") + ".",
-            Messages.get("gate.build.below-floor", ChatText.value("-64")));
+            Messages.get(null, "gate.build.below-floor", ChatText.value("-64")));
         assertEquals("Facing must be " + ChatText.command("north") + ", " + ChatText.command("south") + ", "
             + ChatText.command("east") + " or " + ChatText.command("west") + ", not " + ChatText.command("up") + ".",
-            Messages.get("gate.build.facing", ChatText.command("north"), ChatText.command("south"),
+            Messages.get(null, "gate.build.facing", ChatText.command("north"), ChatText.command("south"),
                 ChatText.command("east"), ChatText.command("west"), ChatText.command("up")));
         assertEquals("Unknown option " + ChatText.command("x") + "; only " + ChatText.command("net=") + " and "
             + ChatText.command("idc=") + " follow the facing.",
-            Messages.get("gate.build.unknown-option", ChatText.command("x"), ChatText.command("net="),
+            Messages.get(null, "gate.build.unknown-option", ChatText.command("x"), ChatText.command("net="),
                 ChatText.command("idc=")));
-        assertEquals("Not built: why", Messages.get("gate.build.not-built", "why"));
+        assertEquals("Not built: why", Messages.get(null, "gate.build.not-built", "why"));
     }
 }

@@ -182,8 +182,8 @@ final class ParsedSetting
         {
             case LOG_LEVEL:
                 return readLevel(key, trimmed);
-            case LANGUAGE:
-                return readLanguage(key, trimmed);
+            case SERVER_LANGUAGE:
+                return readServerLanguage(key, trimmed);
             case RING_DEFAULT_ACCESS:
                 return readAccess(key, trimmed);
             case RING_DEFAULT_STYLE:
@@ -240,9 +240,9 @@ final class ParsedSetting
      *            the value as typed
      * @return the code in lower case, or the reason it was refused
      */
-    private static ParsedSetting readLanguage(final ConfigKeys key, final String raw)
+    private static ParsedSetting readServerLanguage(final ConfigKeys key, final String raw)
     {
-        final String code = ConfigManager.parseLanguage(raw);
+        final String code = ConfigManager.parseServerLanguage(raw);
         return (code == null)
             ? refused(key + " is a language code such as en, de or pt-br, not \"" + raw + "\".")
             : accepted(code);

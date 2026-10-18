@@ -1,8 +1,8 @@
 # Wormhole X-Treme chat messages, in English.
 #
-# To translate, copy this file to plugins/WormholeXTreme/lang/<code>.yml, translate the text in
-# quotes, and set language: <code> in config.yml. Keep each {0}, {1} and § colour code; a message
-# left out is sent in English. Guide: docs/guide/TRANSLATING.md
+# To translate, copy this file to plugins/WormholeXTreme/lang/<code>.yml, named for the client
+# language such as de or de_de, and translate the text in quotes. Keep each {0}, {1} and § colour
+# code; a message left out falls back to English. Guide: docs/guide/TRANSLATING.md
 
 compass.set: "Compass set to wormhole {0}."
 compass.none: "No wormholes to track."

@@ -149,7 +149,7 @@ its colours until it is next written. Nothing waits for a restart.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `language` | en | Which language chat messages are in: the plugin's own file for it, under any `lang/<code>.yml` of yours. A message neither has, or a code with no file, is in English. Only some messages are translatable so far; see [TRANSLATING.md](TRANSLATING.md) |
+| `server-language` | en | The language of the console, the log and text the server puts in the world. Players see their own client's language, falling back to this, then English. Only some messages are translatable so far, and sign text stays English; see [TRANSLATING.md](TRANSLATING.md) |
 
 ### Keeping gates from staying open
 
@@ -332,8 +332,8 @@ plugins/WormholeXTreme/
 Back up by copying `data/`; edit anything in it by hand if you need to. There is no database to
 install or configure. Gates are one file each; rings are one file per world, and a pair that
 will not parse is logged and skipped while the rest of the world loads. `lang/` is never created by
-the plugin: make it to hold your own chat messages, one file per language, read over the plugin's
-own. See [Translating](TRANSLATING.md).
+the plugin: make it to hold your own chat messages, one file per client language, read over the
+plugin's own. See [Translating](TRANSLATING.md).
 
 The HSQLDB and SQLite backends of earlier versions are gone. Files an older build of this fork
 kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is

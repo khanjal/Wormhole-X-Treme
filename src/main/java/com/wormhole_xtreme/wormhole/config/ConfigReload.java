@@ -148,7 +148,7 @@ public final class ConfigReload
             }
         }
         // A changed language was read as it was taken; read it once either way.
-        if (changes.stream().noneMatch(change -> change.key() == ConfigKeys.LANGUAGE))
+        if (changes.stream().noneMatch(change -> change.key() == ConfigKeys.SERVER_LANGUAGE))
         {
             Messages.load();
         }

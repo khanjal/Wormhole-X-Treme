@@ -57,7 +57,7 @@ public class Compass implements CommandExecutor
                     return;
                 }
             }
-            player.sendMessage(ChatText.info(Messages.get("compass.plain-only")));
+            player.sendMessage(ChatText.info(Messages.get(player, "compass.plain-only")));
         }
         catch (final RuntimeException ignored)
         {
@@ -103,7 +103,7 @@ public class Compass implements CommandExecutor
     private static boolean resetCompass(final Player player)
     {
         player.setCompassTarget(player.getWorld().getSpawnLocation());
-        player.sendMessage(ChatText.info(Messages.get("compass.reset")));
+        player.sendMessage(ChatText.info(Messages.get(player, "compass.reset")));
         warnIfNothingWillShowIt(player);
         return true;
     }
@@ -134,12 +134,12 @@ public class Compass implements CommandExecutor
             if (closest != null)
             {
                 player.setCompassTarget(closest.getGatePlayerTeleportLocation());
-                player.sendMessage(ChatText.info(Messages.get("compass.set", ChatText.name(closest.getGateName()))));
+                player.sendMessage(ChatText.info(Messages.get(player, "compass.set", ChatText.name(closest.getGateName()))));
                 warnIfNothingWillShowIt(player);
             }
             else
             {
-                player.sendMessage(ChatText.error(Messages.get("compass.none")));
+                player.sendMessage(ChatText.error(Messages.get(player, "compass.none")));
             }
         }
         else

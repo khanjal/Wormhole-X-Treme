@@ -25,8 +25,9 @@ import org.yaml.snakeyaml.Yaml;
  *
  * <p>A key the code uses that en.yml lacks is sent to players as the bare key; a key en.yml holds that
  * nothing uses is a sentence translators work on for nothing. Both are typos nobody sees until a
- * player does. So every call site must name its key as a string literal, which is what lets this read
- * them: a key built at run time or held in a constant is refused here.
+ * player does. So every call site is {@code Messages.get(recipient, "key", ...)} with the recipient a
+ * plain name and the key a string literal, which is what lets this read them: a key built at run time
+ * or held in a constant is refused here.
  */
 class MessageKeysGuardTest
 {
@@ -76,7 +77,7 @@ class MessageKeysGuardTest
         assertTrue(files > 100, "the walk should open every main source file, opened only " + files
             + " from " + root.toAbsolutePath());
         assertTrue(calls >= 25, "phase 1 converted over twenty-five messages, found " + calls + " calls");
-        assertTrue(notLiteral.isEmpty(), "each Messages.get must name its key as a string literal: " + notLiteral);
+        assertTrue(notLiteral.isEmpty(), "each Messages.get must be (recipient, \"literal key\", ...): " + notLiteral);
 
         final Set<String> english = new TreeSet<>(englishKeys());
         final Set<String> missing = new TreeSet<>(used);
@@ -87,14 +88,29 @@ class MessageKeysGuardTest
         assertEquals(Set.of(), unused, "keys in lang/en.yml nothing uses; remove them or use them");
     }
 
-    /** @return the literal key starting after any spaces at {@code from}, or null if that is not a lone literal */
+    /**
+     * @return the literal key after the recipient at {@code from}, or null if the recipient is not a plain
+     *         name or the key not a lone literal
+     */
     private static String literalKey(final String source, final int from)
     {
-        int i = from;
-        while ((i < source.length()) && Character.isWhitespace(source.charAt(i)))
+        int i = skipSpace(source, from);
+        // The recipient: a plain name such as sender or player, so nothing here has to balance brackets.
+        final int name = i;
+        while ((i < source.length()) && Character.isJavaIdentifierPart(source.charAt(i)))
         {
             i++;
         }
+        if ((i == name) || !Character.isJavaIdentifierStart(source.charAt(name)))
+        {
+            return null;
+        }
+        i = skipSpace(source, i);
+        if ((i >= source.length()) || (source.charAt(i) != ','))
+        {
+            return null;
+        }
+        i = skipSpace(source, i + 1);
         if ((i >= source.length()) || (source.charAt(i) != '"'))
         {
             return null;
@@ -105,14 +121,20 @@ class MessageKeysGuardTest
             return null;
         }
         final String key = source.substring(i + 1, close);
-        int j = close + 1;
-        while ((j < source.length()) && Character.isWhitespace(source.charAt(j)))
-        {
-            j++;
-        }
+        final int j = skipSpace(source, close + 1);
         // A key followed by + is built, not named; a backslash would be an escape this does not read.
         final boolean lone = (j < source.length()) && ((source.charAt(j) == ',') || (source.charAt(j) == ')'));
         return (lone && !key.isEmpty() && (key.indexOf('\\') < 0)) ? key : null;
+    }
+
+    private static int skipSpace(final String source, final int from)
+    {
+        int i = from;
+        while ((i < source.length()) && Character.isWhitespace(source.charAt(i)))
+        {
+            i++;
+        }
+        return i;
     }
 
     private static int lineOf(final String source, final int at)

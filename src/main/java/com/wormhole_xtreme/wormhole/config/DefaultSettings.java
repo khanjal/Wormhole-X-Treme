@@ -132,7 +132,7 @@ class DefaultSettings
             new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false, "If true, gates ignore permission nodes even when a Vault permission provider is installed: anyone may use, dial and travel by gate; only operators may build one; and removing, configuring or going to one with /wormhole go is left to operators and its owner.", SECTION),
             new Setting(ConfigKeys.PETS_FOLLOW_OWNER, true, "Whether tamed wolves, cats and parrots that are following a player, not sitting, travel with them through gates, rings, beams and mirrors.", SECTION),
             new Setting(ConfigKeys.CLICKABLE_CHAT, true, "Whether a command the plugin names in chat can be clicked to run it, with hover text saying what it does. False sends plain text, as servers without Paper or Spigot do anyway.", SECTION),
-            new Setting(ConfigKeys.LANGUAGE, "en", "Which lang/<code>.yml chat messages are read from, such as de or pt-br. A message it lacks, or a language with no file, is in English. Only some messages are translatable so far.", SECTION)),
+            new Setting(ConfigKeys.SERVER_LANGUAGE, "en", "The language of the console, the log and text the server puts in the world, such as de or pt_br; players see their own client's language. A message it lacks, or a language with no file, is in English. Only some messages are translatable so far, and sign text stays English.", SECTION)),
 
         group("Stargates", "",
             sub("Opening and closing",

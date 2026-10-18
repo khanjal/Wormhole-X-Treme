@@ -78,8 +78,8 @@ public class ConfigManager
         /** Whether a command named in chat can be clicked (#538). */
         CLICKABLE_CHAT,
 
-        /** Which lang file chat messages are read from, over the bundled English (#26). */
-        LANGUAGE,
+        /** The language of the console and anyone whose client names none we have (#26). */
+        SERVER_LANGUAGE,
 
         /** The LOG LEVEL. */
         LOG_LEVEL,
@@ -1765,14 +1765,14 @@ public class ConfigManager
     private static final Pattern LANGUAGE_CODE = Pattern.compile("[a-z0-9_-]{1,16}");
 
     /**
-     * The language chat messages are in (#26).
+     * The language of the console, the log and anyone whose client language has no file (#26).
      *
      * @return its code, lower case; en for one that is not a plain code
      */
-    public static String getLanguage()
+    public static String getServerLanguage()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.LANGUAGE);
-        final String code = (s == null) ? null : parseLanguage(String.valueOf(s.getValue()));
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SERVER_LANGUAGE);
+        final String code = (s == null) ? null : parseServerLanguage(String.valueOf(s.getValue()));
         return (code == null) ? Messages.DEFAULT_LANGUAGE : code;
     }
 
@@ -1784,7 +1784,7 @@ public class ConfigManager
      *            the value as typed
      * @return it trimmed and in lower case, or null if it is not a code
      */
-    public static String parseLanguage(final String raw)
+    public static String parseServerLanguage(final String raw)
     {
         final String code = (raw == null) ? "" : raw.trim().toLowerCase(Locale.ROOT);
         return (LANGUAGE_CODE.matcher(code).matches() && !"true".equals(code) && !"false".equals(code)) ? code : null;
@@ -1921,7 +1921,7 @@ public class ConfigManager
         switch (key)
         {
             case LOG_LEVEL -> WormholeXTreme.applyLogLevel(getLogLevel());
-            case LANGUAGE -> Messages.load();
+            case SERVER_LANGUAGE -> Messages.load();
             case METRICS_ENABLED -> followMetrics();
             case ECONOMY_ENABLED -> followEconomy();
             case PLACEHOLDERS_ENABLED -> followPlaceholders();

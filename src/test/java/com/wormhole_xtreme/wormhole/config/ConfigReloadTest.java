@@ -401,12 +401,12 @@ class ConfigReloadTest
     void aChangedLanguageIsReadAtOnce() throws Exception
     {
         writeGerman("Keine Wurmlöcher.");
-        ConfigTestSupport.set(ConfigKeys.LANGUAGE, "en");
+        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, "en");
 
-        final ConfigReload.Report report = reload("language: de\n");
+        final ConfigReload.Report report = reload("server-language: de\n");
 
         assertEquals(1, report.changes().size(), String.valueOf(report.changes()));
-        assertEquals("Keine Wurmlöcher.", Messages.get("compass.none"));
+        assertEquals("Keine Wurmlöcher.", Messages.get(null, "compass.none"));
     }
 
     /**
@@ -416,16 +416,16 @@ class ConfigReloadTest
     @Test
     void anEditedTranslationIsReadWithTheLanguageUnchanged() throws Exception
     {
-        ConfigTestSupport.set(ConfigKeys.LANGUAGE, "de");
+        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, "de");
         writeGerman("Alt.");
         Messages.load();
-        assertEquals("Alt.", Messages.get("compass.none"), "the first text should be read");
+        assertEquals("Alt.", Messages.get(null, "compass.none"), "the first text should be read");
         writeGerman("Neu.");
 
-        final ConfigReload.Report report = reload("language: de\n");
+        final ConfigReload.Report report = reload("server-language: de\n");
 
         assertEquals(List.of(), report.changes(), "language did not change");
-        assertEquals("Neu.", Messages.get("compass.none"));
+        assertEquals("Neu.", Messages.get(null, "compass.none"));
     }
 
     /**
@@ -435,16 +435,16 @@ class ConfigReloadTest
     @Test
     void aBareNoUnderLanguageIsRefusedWithAdviceToQuoteIt() throws Exception
     {
-        ConfigTestSupport.set(ConfigKeys.LANGUAGE, "de");
+        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, "de");
 
-        final ConfigReload.Report report = reload("language: no\n");
+        final ConfigReload.Report report = reload("server-language: no\n");
 
         assertEquals(1, report.rejections().size(), String.valueOf(report.rejections()));
         assertTrue(report.rejections().get(0).refusal().contains("in quotes"), report.rejections().get(0).refusal());
-        assertEquals("de", valueOf(ConfigKeys.LANGUAGE), "the language is kept");
+        assertEquals("de", valueOf(ConfigKeys.SERVER_LANGUAGE), "the language is kept");
         assertEquals(List.of(), report.changes());
 
-        assertEquals(List.of(), reload("language: \"no\"\n").rejections(), "quoted, no is the code for Norwegian");
-        assertEquals("no", valueOf(ConfigKeys.LANGUAGE));
+        assertEquals(List.of(), reload("server-language: \"no\"\n").rejections(), "quoted, no is the code for Norwegian");
+        assertEquals("no", valueOf(ConfigKeys.SERVER_LANGUAGE));
     }
 }

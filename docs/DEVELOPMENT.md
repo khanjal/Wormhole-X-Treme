@@ -1258,23 +1258,29 @@ symbol, and one was fixable in a line.
 ## Chat messages
 
 Translatable chat text lives in `src/main/resources/lang/en.yml`, one flat `key: "template"` line
-each, read by `Messages.get(key, args...)` ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)).
+each, read by `Messages.get(recipient, key, args...)` ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)).
 Only some messages have moved so far; the rest are still built inline, and move file by file.
-Another language ships as `src/main/resources/lang/<code>.yml` beside it. Each key is looked up in
-the owner's `lang/<code>.yml` in the plugin folder, then the jar's file for that language, then the
-jar's English; the plugin writes nothing to that folder.
+Another language ships as `src/main/resources/lang/<code>.yml` beside it, named for the client
+language (`de`, `de_de`). A player reads their client's locale, read on every call through
+`PlayerLocales` (Paper's `locale()` by reflection, Bukkit's `getLocale()` elsewhere) and sanitised to
+`[a-z_]`: `de_de`, then `de`, then `server-language`, then English, key by key. Any other recipient,
+or `null`, starts at `server-language`. Each code is the jar's file with the owner's
+`lang/<code>.yml` from the plugin folder over it; the plugin writes nothing to that folder, and
+reads it only on load and reload. Parsed languages are cached per code, never per player, and the
+client codes seen are remembered up to a bound. Sign text is not localised.
 
 - **To move a message**, add its key to `en.yml`, named by area in dotted lower case
   (`gate.build.no-shape`), and replace the concatenation with
-  `ChatText.error(Messages.get("gate.build.no-shape", ChatText.name(shape)))`. The header stays at
+  `ChatText.error(Messages.get(sender, "gate.build.no-shape", ChatText.name(shape)))`, passing
+  whoever will read it. The header stays at
   the call site, and so does each argument's colour; the sentence, its order and any colour code
   inside it go in the template. Something a player types, such as `north` or `net=`, stays an
   argument so it is never translated.
 - **Never reword while extracting.** The English output must be byte for byte what it was, so a
   test asserting the old text keeps passing unchanged. Rewording is its own change.
-- **Name the key as a string literal.** `MessageKeysGuardTest` reads every `Messages.get` in
-  `src/main` and fails on a key `en.yml` lacks, a key `en.yml` holds that nothing uses, and a key
-  that is not a literal.
+- **Name the recipient as a plain variable and the key as a string literal.**
+  `MessageKeysGuardTest` reads every `Messages.get` in `src/main` and fails on a key `en.yml` lacks, a
+  key `en.yml` holds that nothing uses, and a call of any other shape.
 - Placeholders are `{0}` to `{99}`, filled in one pass; any other brace or an apostrophe is plain
   text, unlike `MessageFormat`. Never look a message up in a static initialiser: it would keep the
   language it was first read in.

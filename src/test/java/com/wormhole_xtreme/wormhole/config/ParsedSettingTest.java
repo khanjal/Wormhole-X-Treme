@@ -231,17 +231,17 @@ class ParsedSettingTest
     @Test
     void aLanguageIsAPlainCode()
     {
-        storesAs(ConfigKeys.LANGUAGE, "DE", "de");
-        storesAs(ConfigKeys.LANGUAGE, " pt-br ", "pt-br");
-        storesAs(ConfigKeys.LANGUAGE, "zh_tw", "zh_tw");
-        storesAs(ConfigKeys.LANGUAGE, "en", "en");
+        storesAs(ConfigKeys.SERVER_LANGUAGE, "DE", "de");
+        storesAs(ConfigKeys.SERVER_LANGUAGE, " pt-br ", "pt-br");
+        storesAs(ConfigKeys.SERVER_LANGUAGE, "zh_tw", "zh_tw");
+        storesAs(ConfigKeys.SERVER_LANGUAGE, "en", "en");
         // What YAML makes of a bare no or off; a code it is not.
-        refuses(ConfigKeys.LANGUAGE, "false");
-        refuses(ConfigKeys.LANGUAGE, "TRUE");
-        refuses(ConfigKeys.LANGUAGE, "../config");
-        refuses(ConfigKeys.LANGUAGE, "de.yml");
-        refuses(ConfigKeys.LANGUAGE, "a-language-code-too-long");
-        assertTrue(refuses(ConfigKeys.LANGUAGE, "en gb").getRefusal().contains("pt-br"),
+        refuses(ConfigKeys.SERVER_LANGUAGE, "false");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "TRUE");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "../config");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "de.yml");
+        refuses(ConfigKeys.SERVER_LANGUAGE, "a-language-code-too-long");
+        assertTrue(refuses(ConfigKeys.SERVER_LANGUAGE, "en gb").getRefusal().contains("pt-br"),
             "the refusal should show what a code looks like");
     }
 
