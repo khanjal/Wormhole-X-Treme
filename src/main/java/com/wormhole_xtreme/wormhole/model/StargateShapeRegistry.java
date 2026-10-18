@@ -148,7 +148,7 @@ public final class StargateShapeRegistry
         {
             for (final String line : Files.readAllLines(file.toPath(), StandardCharsets.UTF_8))
             {
-                final String name = line.trim();
+                final String name = line.replace("\uFEFF", "").trim();
                 if (!name.isEmpty() && !name.startsWith("#"))
                 {
                     disabledShapes.add(name.toLowerCase(Locale.ROOT));

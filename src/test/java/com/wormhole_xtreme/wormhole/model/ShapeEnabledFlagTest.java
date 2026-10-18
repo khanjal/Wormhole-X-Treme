@@ -131,6 +131,18 @@ class ShapeEnabledFlagTest
         assertTrue(StargateShapeRegistry.isEnabled("# off"));
     }
 
+    /** A list saved from Notepad starts with a byte-order mark, which must not hide the first name. */
+    @Test
+    void aByteOrderMarkDoesNotHideTheFirstName() throws Exception
+    {
+        final File list = new File(shapes, "disabled-shapes.txt");
+        Files.writeString(list.toPath(), "\uFEFFMassive\n", StandardCharsets.UTF_8);
+
+        StargateShapeRegistry.readDisabled(list);
+
+        assertFalse(StargateShapeRegistry.isEnabled("Massive"));
+    }
+
     @Test
     void aChoiceThatCannotBeSavedStillHoldsUntilARestart()
     {

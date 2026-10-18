@@ -31,6 +31,7 @@ import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -58,6 +59,9 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 class GateDetectionTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
+
+    @TempDir
+    File tempDir;
 
     private final Map<String, Material> placed = new HashMap<>();
     private final Map<String, Block> blocks = new HashMap<>();
@@ -331,7 +335,7 @@ class GateDetectionTest
     @Test
     void aShapeTurnedOffIsFoundForAStandingGateButNotANewOne() throws Exception
     {
-        final File data = Files.createTempDirectory("wxt-shapes").toFile();
+        final File data = tempDir;
         when(WormholeXTreme.getThisPlugin().getDataFolder()).thenReturn(data);
         assertTrue(new File(data, "shapes" + File.separator + "gate").mkdirs());
         final Stargate3DShape s = shape("Standard");

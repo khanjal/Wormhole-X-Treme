@@ -60,6 +60,7 @@ import org.bukkit.util.Transformation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import java.util.logging.Level;
 
 import org.bukkit.Axis;
@@ -111,6 +112,9 @@ class GatePreviewsTest
 
     /** And its opening, which the server's block limit counts too. */
     private static final int STANDARD_OPENING = 21;
+
+    @TempDir
+    File tempDir;
 
     private WormholeXTreme plugin;
     private World world;
@@ -3078,7 +3082,7 @@ class GatePreviewsTest
     @Test
     void aPreviewOfAShapeTurnedOffSincePlacesNothing() throws Exception
     {
-        final File data = Files.createTempDirectory("wxt-shapes").toFile();
+        final File data = tempDir;
         when(plugin.getDataFolder()).thenReturn(data);
         assertTrue(new File(data, "shapes" + File.separator + "gate").mkdirs());
         obsidianFramesAreFindable();
