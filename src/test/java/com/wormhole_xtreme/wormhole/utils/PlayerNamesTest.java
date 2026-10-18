@@ -132,6 +132,7 @@ class PlayerNamesTest
         {
             lookupWith.invoke(null, made.newInstance(PaperDisplayed.class.getMethod("displayName")));
             assertEquals("§cBukkit's", display.invoke(null, player));
+            verify(player).displayName();
         }
         catch (final InvocationTargetException thrown)
         {
