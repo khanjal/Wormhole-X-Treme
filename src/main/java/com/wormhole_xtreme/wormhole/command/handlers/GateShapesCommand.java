@@ -39,10 +39,10 @@ public class GateShapesCommand implements SubCommand
             return true;
         }
 
-        // args: [0]=gate [1]=shapes [2]=<reload|validate> [3]=name (optional for reload)
+        // args: [0]=gate [1]=shapes [2]=<reload|validate|enable|disable> [3]=name (optional for reload)
         if (args.length < 3)
         {
-            sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes reload|validate [name]")));
+            sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes reload|validate|enable|disable [name]")));
             return true;
         }
 
@@ -65,9 +65,41 @@ public class GateShapesCommand implements SubCommand
             return true;
         }
 
+        if ("enable".equals(action) || "disable".equals(action))
+        {
+            switchShape(sender, name, "enable".equals(action));
+            return true;
+        }
+
         sender.sendMessage(ChatText.error("No such shapes command: " + ChatText.command(action) + ". Try "
-            + ChatText.command("reload") + " or " + ChatText.command("validate") + "."));
+            + ChatText.command("reload") + ", " + ChatText.command("validate") + ", " + ChatText.command("enable")
+            + " or " + ChatText.command("disable") + "."));
         return true;
+    }
+
+    /** Turns a loaded shape on or off for new gates, whatever the capitals typed. */
+    private static void switchShape(final CommandSender sender, final String name, final boolean enable)
+    {
+        final String verb = enable ? "enable" : "disable";
+        if (name == null)
+        {
+            sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes " + verb + " <name>")));
+            return;
+        }
+        final String shape = StargateShapeRegistry.getStargateShapes().keySet().stream()
+            .filter(loaded -> loaded.equalsIgnoreCase(name)).findFirst().orElse(null);
+        if (shape == null)
+        {
+            sender.sendMessage(ChatText.error("No shape called " + ChatText.name(name) + "."));
+            return;
+        }
+        final boolean saved = StargateShapeRegistry.setEnabled(shape, enable);
+        sender.sendMessage(ChatText.info(ChatText.name(shape) + (enable ? " can be built again."
+            : " can no longer be built. Gates already standing keep working.")));
+        if (!saved)
+        {
+            sender.sendMessage(ChatText.error("It could not be saved, so a restart brings it back. See the console."));
+        }
     }
 
     private static void reload(final CommandSender sender, final String name)

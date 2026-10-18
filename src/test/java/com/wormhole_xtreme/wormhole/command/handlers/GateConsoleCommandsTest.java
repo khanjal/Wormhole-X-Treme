@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,9 +79,13 @@ class GateConsoleCommandsTest
                 mock(StargateShape.class);
             final World world = mock(World.class);
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.isEnabled(anyString()))
+                .thenAnswer(call -> !"Off".equals(call.getArgument(0)));
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Flat")).thenReturn(true);
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Flat")).thenReturn(flat);
+            shapes.when(() -> StargateShapeRegistry.isStargateShape("Off")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.getStargateShape("Off")).thenReturn(standard);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             gates.when(() -> StargateManager.getStargate("Taken")).thenReturn(new Stargate());
             final String why = GateConsoleCommands.whyNotBuildable(mock(ConsoleCommandSender.class), words);
@@ -98,6 +103,14 @@ class GateConsoleCommandsTest
             "a word where y goes is not coordinates");
         assertTrue(GateConsoleCommands.isCoordinateBuild(line("Standard", "A", "world", "~", "~1", "~-3", "south")),
             "a command block names where to build relative to itself");
+    }
+
+    /** A shape an admin turned off is refused for the console as it is for a player. */
+    @Test
+    void aShapeTurnedOffIsRefusedBeforeAnythingIsPlaced()
+    {
+        assertEquals("Off is turned off on this server.",
+            refusal("Off", "Abydos", "world", "0", "-60", "0", "south"));
     }
 
     /** The console is nowhere, so a ~ from it is refused before anything is placed. */
@@ -259,6 +272,8 @@ class GateConsoleCommandsTest
              MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.isEnabled(anyString()))
+                .thenAnswer(call -> !"Off".equals(call.getArgument(0)));
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
@@ -394,6 +409,8 @@ class GateConsoleCommandsTest
         {
             console = sender;
             shapes.when(() -> StargateShapeRegistry.isStargateShape("Standard")).thenReturn(true);
+            shapes.when(() -> StargateShapeRegistry.isEnabled(anyString()))
+                .thenAnswer(call -> !"Off".equals(call.getArgument(0)));
             shapes.when(() -> StargateShapeRegistry.getStargateShape("Standard")).thenReturn(standard);
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             when(world.getName()).thenReturn("world");

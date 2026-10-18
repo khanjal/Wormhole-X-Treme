@@ -177,6 +177,11 @@ public class Build implements CommandExecutor
             player.sendMessage(ChatText.error("No shape called " + name(args[0]) + "."));
             return;
         }
+        if (!StargateShapeRegistry.isEnabled(args[0]))
+        {
+            player.sendMessage(ChatText.error(name(args[0]) + " is turned off on this server."));
+            return;
+        }
         final StargateShape shape = StargateShapeRegistry.getStargateShape(args[0]);
         MaterialGroup group = MaterialGroupRegistry.getDefaultGroup();
         if (args.length == 2)
@@ -424,6 +429,8 @@ public class Build implements CommandExecutor
             case OUTSIDE_BORDER -> player.sendMessage(ChatText.error("Part of it is outside the world border. "
                 + "Nothing placed."));
             case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.BUILD_REFUSED_NOTHING_PLACED);
+            case SHAPE_OFF -> player.sendMessage(ChatText.error("That shape is turned off on this server. "
+                + "Nothing placed."));
             case IN_THE_WAY -> linkHint(ChatLine.of(ChatText.error("Nothing placed. In the way: "
                 + bad(String.join(", ", placed.inTheWay())) + ". ")), GUIDE).text(" marks them.").send(player);
             case NOT_FOUND -> linkHint(ChatLine.of(ChatText.error("Placed, but no gate was found in it. ")), GUIDE)

@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -91,6 +92,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateIrisAnimator;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.RecordingCreation;
@@ -3070,6 +3072,30 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
 
         assertTrue(irisPending.isEmpty(), "no sweep is booked: the iris is shut at once");
+    }
+
+    /** A shape turned off since it was previewed is not built for real: nothing goes down. */
+    @Test
+    void aPreviewOfAShapeTurnedOffSincePlacesNothing() throws Exception
+    {
+        final File data = Files.createTempDirectory("wxt-shapes").toFile();
+        when(plugin.getDataFolder()).thenReturn(data);
+        assertTrue(new File(data, "shapes" + File.separator + "gate").mkdirs());
+        obsidianFramesAreFindable();
+        detectsAGate();
+        standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        StargateShapeRegistry.setEnabled(standard.getShapeName(), false);
+        try
+        {
+            assertEquals(GatePreviews.Outcome.SHAPE_OFF, GatePreviews.place(owner).outcome());
+            assertTrue(written.isEmpty(), "nothing may be placed for a shape that is off");
+            assertTrue(detected.isEmpty());
+        }
+        finally
+        {
+            StargateShapeRegistry.setEnabled(standard.getShapeName(), true);
+        }
     }
 
     /**

@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -35,12 +38,17 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  */
 class GateTabCompletionTest
 {
+    @TempDir
+    File tempDir;
+
     private Map<String, StargateShape> savedShapes;
 
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.getDataFolder()).thenReturn(tempDir);
+        PluginTestSupport.install(plugin);
         clearGates();
 
         // Shapes are read off disk when the plugin enables, so the registry is empty in a
@@ -56,6 +64,7 @@ class GateTabCompletionTest
     void tearDown() throws Exception
     {
         clearGates();
+        StargateShapeRegistry.setEnabled("Atlantis", true);
         StargateShapeRegistry.getStargateShapes().clear();
         StargateShapeRegistry.getStargateShapes().putAll(savedShapes);
         PluginTestSupport.remove();
@@ -232,6 +241,25 @@ class GateTabCompletionTest
             "every shape, alphabetically");
         assertEquals(List.of("Taurian", "Tollan"), complete("gate", "build", "t"),
             "only the shapes starting with what was typed, whatever its case");
+    }
+
+    /**
+     * A shape turned off is left out of what {@code build} and {@code regenerate -shape} offer, and
+     * still offered where the admin manages shapes, or it could never be turned on again.
+     */
+    @Test
+    void aShapeTurnedOffIsNotOfferedToBuildButIsToManage()
+    {
+        assertTrue(new File(tempDir, "shapes" + File.separator + "gate").mkdirs());
+        StargateShapeRegistry.getStargateShapes().put("Atlantis", new StargateShape());
+        gateNamed("alpha");
+        StargateShapeRegistry.setEnabled("Atlantis", false);
+
+        assertEquals(List.of("Standard"), complete("gate", "build", ""));
+        assertEquals(List.of("Standard"), complete("gate", "regenerate", "alpha", "-shape", ""));
+        assertTrue(complete("gate", "shapes", "enable", "").contains("Atlantis"));
+        assertTrue(complete("gate", "shapes", "reload", "").contains("Atlantis"));
+        assertTrue(complete("gate", "shapes", "").containsAll(List.of("enable", "disable")));
     }
 
     /** {@code shapes} takes an action, then a shape name for validate. */

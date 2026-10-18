@@ -548,7 +548,7 @@ public final class SubCommands
     {
         if (args.length == 3)
         {
-            return shapeNames(args[2]);
+            return buildableShapeNames(args[2]);
         }
         if (args.length != 4)
         {
@@ -921,7 +921,7 @@ public final class SubCommands
     {
         if (args.length == 3)
         {
-            return prefixed(args[2], "reload", "validate");
+            return prefixed(args[2], "reload", "validate", "enable", "disable");
         }
         // Completes from names already loaded -- a brand new file not loaded yet has to be
         // typed out in full, the same limit gate build's own completion already has.
@@ -960,7 +960,7 @@ public final class SubCommands
         final String previous = args[args.length - 2];
         if ("-shape".equalsIgnoreCase(previous))
         {
-            return shapeNames(args[args.length - 1]);
+            return buildableShapeNames(args[args.length - 1]);
         }
         final String[] flags = Stream.of("-shape", "-fill", "-water")
             .filter(flag -> Arrays.stream(args).noneMatch(flag::equalsIgnoreCase))
@@ -1595,8 +1595,20 @@ public final class SubCommands
      */
     private static List<String> shapeNames(final String typed)
     {
+        return shapeNames(typed, false);
+    }
+
+    /** {@link #shapeNames} without the shapes an admin turned off, for the commands that build. */
+    private static List<String> buildableShapeNames(final String typed)
+    {
+        return shapeNames(typed, true);
+    }
+
+    private static List<String> shapeNames(final String typed, final boolean buildableOnly)
+    {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         return StargateShapeRegistry.getStargateShapes().keySet().stream()
+            .filter(name -> !buildableOnly || StargateShapeRegistry.isEnabled(name))
             .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(p))
             .sorted()
             .collect(Collectors.toCollection(ArrayList::new));

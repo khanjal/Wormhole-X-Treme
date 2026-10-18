@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,6 +37,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -318,6 +321,38 @@ class GateDetectionTest
         finally
         {
             registryState().set(previous);
+        }
+    }
+
+    /**
+     * A shape an admin turned off is not found for a gate somebody has just built, and is still found
+     * for one standing: refreshing and regenerating a gate on it must go on working.
+     */
+    @Test
+    void aShapeTurnedOffIsFoundForAStandingGateButNotANewOne() throws Exception
+    {
+        final File data = Files.createTempDirectory("wxt-shapes").toFile();
+        when(WormholeXTreme.getThisPlugin().getDataFolder()).thenReturn(data);
+        assertTrue(new File(data, "shapes" + File.separator + "gate").mkdirs());
+        final Stargate3DShape s = shape("Standard");
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+        final Map<String, StargateShape> saved = new HashMap<>(StargateShapeRegistry.getStargateShapes());
+        StargateShapeRegistry.getStargateShapes().clear();
+        StargateShapeRegistry.getStargateShapes().put("Standard", s);
+        try
+        {
+            assertNotNull(StargateHelper.checkNewStargate(clicked, BlockFace.SOUTH), "on, it is found for a new gate");
+
+            StargateShapeRegistry.setEnabled("Standard", false);
+
+            assertNull(StargateHelper.checkNewStargate(clicked, BlockFace.SOUTH), "off, a new gate is not found");
+            assertNotNull(StargateHelper.checkStargate(clicked, BlockFace.SOUTH), "but a standing one still is");
+        }
+        finally
+        {
+            StargateShapeRegistry.setEnabled("Standard", true);
+            StargateShapeRegistry.getStargateShapes().clear();
+            StargateShapeRegistry.getStargateShapes().putAll(saved);
         }
     }
 
