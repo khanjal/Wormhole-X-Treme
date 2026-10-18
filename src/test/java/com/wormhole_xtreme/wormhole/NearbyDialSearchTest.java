@@ -148,7 +148,7 @@ class NearbyDialSearchTest
              MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
         {
             helper.when(() -> StargateHelper.isPossibleGateFrameMaterial(any())).thenReturn(true);
-            helper.when(() -> StargateHelper.checkStargate(any(), any())).thenReturn(found);
+            helper.when(() -> StargateHelper.checkNewStargate(any(), any())).thenReturn(found);
             perms.when(() -> WXPermissions.checkWXPermissions(any(Player.class), any(Stargate.class), any()))
                 .thenReturn(true);
 
@@ -175,7 +175,7 @@ class NearbyDialSearchTest
             helper.when(() -> StargateHelper.isPossibleGateFrameMaterial(Material.OBSIDIAN)).thenReturn(true);
 
             assertFalse(GateInteractionHandler.findGateFromNearbyDial(clicked, player));
-            helper.verify(() -> StargateHelper.checkStargate(any(), any()), never());
+            helper.verify(() -> StargateHelper.checkNewStargate(any(), any()), never());
         }
     }
 
@@ -197,7 +197,7 @@ class NearbyDialSearchTest
              MockedStatic<StargateManager> manager = mockStatic(StargateManager.class))
         {
             helper.when(() -> StargateHelper.isPossibleGateFrameMaterial(any())).thenReturn(true);
-            helper.when(() -> StargateHelper.checkStargate(any(), any())).thenReturn(found);
+            helper.when(() -> StargateHelper.checkNewStargate(any(), any())).thenReturn(found);
             manager.when(() -> StargateManager.getGateFromBlock(existingDial)).thenReturn(found);
 
             assertFalse(GateInteractionHandler.findGateFromNearbyDial(clicked, player));
@@ -217,7 +217,7 @@ class NearbyDialSearchTest
              MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
         {
             helper.when(() -> StargateHelper.isPossibleGateFrameMaterial(any())).thenReturn(true);
-            helper.when(() -> StargateHelper.checkStargate(any(), any())).thenReturn(found);
+            helper.when(() -> StargateHelper.checkNewStargate(any(), any())).thenReturn(found);
             perms.when(() -> WXPermissions.checkWXPermissions(any(Player.class), any(Stargate.class), any()))
                 .thenReturn(false);
 
@@ -250,7 +250,7 @@ class NearbyDialSearchTest
         try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class))
         {
             helper.when(() -> StargateHelper.isPossibleGateFrameMaterial(any())).thenReturn(true);
-            helper.when(() -> StargateHelper.checkStargate(any(), any())).thenReturn(wouldMatch);
+            helper.when(() -> StargateHelper.checkNewStargate(any(), any())).thenReturn(wouldMatch);
 
             assertFalse(GateInteractionHandler.findGateFromNearbyDial(clicked, player),
                 "the centre of the 3x3x3 is skipped, so nothing is found");
@@ -271,7 +271,7 @@ class NearbyDialSearchTest
              MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
         {
             helper.when(() -> StargateHelper.isPossibleGateFrameMaterial(any())).thenReturn(true);
-            helper.when(() -> StargateHelper.checkStargate(any(), any())).thenReturn(found);
+            helper.when(() -> StargateHelper.checkNewStargate(any(), any())).thenReturn(found);
             perms.when(() -> WXPermissions.checkWXPermissions(any(Player.class), any(Stargate.class), any()))
                 .thenReturn(true);
 

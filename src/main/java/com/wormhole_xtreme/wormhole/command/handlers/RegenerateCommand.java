@@ -324,6 +324,12 @@ public class RegenerateCommand implements SubCommand
                 + ChatText.name(shapeName) + " is loaded."));
             return null;
         }
+        if (!StargateShapeRegistry.isEnabled(shape.getShapeName()))
+        {
+            sender.sendMessage(ChatText.error(ChatText.name(shape.getShapeName())
+                + " is turned off, so a gate cannot be moved onto it."));
+            return null;
+        }
         // After the shape is known to exist, so a mistyped command changes no blocks.
         takeSignOutOfFrame(sender, s);
         final String was = s.getGateShapeName();

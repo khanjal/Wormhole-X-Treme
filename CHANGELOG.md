@@ -76,6 +76,12 @@ somebody else's release notes, and the record of where this fork came from.
 
 ## 1.12.0 (unreleased)
 
+### For server admins
+
+**Added**
+
+- **`/wormhole gate shapes disable <shape>` and `enable`** stop and allow building a gate shape without deleting its file; gates already standing keep working. The choice is kept in `shapes/gate/disabled-shapes.txt` and survives editing, resaving and updating the shape ([#636](https://github.com/khanjal/Wormhole-X-Treme/issues/636)).
+
 ### Internals
 
 - Javadoc `@param` tags that only repeated the parameter name (`@param gate` / `the gate`) are gone ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
