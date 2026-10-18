@@ -82,6 +82,20 @@ public final class StargateHelper
      */
     public static Stargate checkStargate(final Block clickedBlock, final BlockFace direction)
     {
+        return bestMatch(clickedBlock, direction, false);
+    }
+
+    /**
+     * Like {@link #checkStargate(Block, BlockFace)}, but a shape turned off is not tried: for a
+     * gate somebody has just built, where one already standing is found by the method above.
+     */
+    public static Stargate checkNewStargate(final Block clickedBlock, final BlockFace direction)
+    {
+        return bestMatch(clickedBlock, direction, true);
+    }
+
+    private static Stargate bestMatch(final Block clickedBlock, final BlockFace direction, final boolean enabledOnly)
+    {
         if (clickedBlock == null || direction == null)
         {
             return null;
@@ -90,6 +104,10 @@ public final class StargateHelper
         Stargate3DShape bestShape = null;
         for (final StargateShape shape : StargateShapeRegistry.getStargateShapes().values())
         {
+            if (enabledOnly && !StargateShapeRegistry.isEnabled(shape.getShapeName()))
+            {
+                continue;
+            }
             if (shape instanceof Stargate3DShape shape3D)
             {
                 final Stargate result = check3DShape(clickedBlock, direction, shape3D);

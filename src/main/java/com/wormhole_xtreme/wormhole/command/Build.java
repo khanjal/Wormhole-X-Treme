@@ -152,6 +152,8 @@ public class Build implements CommandExecutor
 
     private static final String USAGE = "Usage: ";
 
+    private static final String NOTHING_PLACED = "Nothing placed.";
+
     /** How far away a placed DHD button can be looked at to stand a preview on it. */
     private static final int DHD_REACH = 6;
 
@@ -175,6 +177,11 @@ public class Build implements CommandExecutor
         if (!StargateShapeRegistry.isStargateShape(args[0]))
         {
             player.sendMessage(ChatText.error("No shape called " + name(args[0]) + "."));
+            return;
+        }
+        if (!StargateShapeRegistry.isEnabled(args[0]))
+        {
+            player.sendMessage(ChatText.error(name(args[0]) + " is turned off on this server."));
             return;
         }
         final StargateShape shape = StargateShapeRegistry.getStargateShape(args[0]);
@@ -420,10 +427,12 @@ public class Build implements CommandExecutor
             case NOT_FINDABLE -> player.sendMessage(ChatText.error("No material group uses that frame block, so the gate "
                 + "would not be found. Nothing placed."));
             case NOT_LOADED -> player.sendMessage(ChatText.error("Part of it is in an unloaded chunk. Move closer. "
-                + "Nothing placed."));
+                + NOTHING_PLACED));
             case OUTSIDE_BORDER -> player.sendMessage(ChatText.error("Part of it is outside the world border. "
-                + "Nothing placed."));
+                + NOTHING_PLACED));
             case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.BUILD_REFUSED_NOTHING_PLACED);
+            case SHAPE_OFF -> player.sendMessage(ChatText.error("That shape is turned off on this server. "
+                + NOTHING_PLACED));
             case IN_THE_WAY -> linkHint(ChatLine.of(ChatText.error("Nothing placed. In the way: "
                 + bad(String.join(", ", placed.inTheWay())) + ". ")), GUIDE).text(" marks them.").send(player);
             case NOT_FOUND -> linkHint(ChatLine.of(ChatText.error("Placed, but no gate was found in it. ")), GUIDE)

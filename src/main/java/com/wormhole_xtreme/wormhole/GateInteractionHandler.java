@@ -25,6 +25,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -264,10 +265,11 @@ public final class GateInteractionHandler
         final StargateShape shape = StargateManager.getPlayerBuilderShape(player);
         if (shape != null)
         {
-            return StargateHelper.checkStargate(clickedBlock, facing, shape);
+            return StargateShapeRegistry.isEnabled(shape.getShapeName())
+                ? StargateHelper.checkStargate(clickedBlock, facing, shape) : null;
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, "Attempting to find any gate shapes!");
-        return StargateHelper.checkStargate(clickedBlock, facing);
+        return StargateHelper.checkNewStargate(clickedBlock, facing);
     }
 
     /**
@@ -379,7 +381,7 @@ public final class GateInteractionHandler
     {
         try
         {
-            return StargateHelper.checkStargate(clickedBlock, face);
+            return StargateHelper.checkNewStargate(clickedBlock, face);
         }
         catch (final RuntimeException e)
         {
@@ -860,7 +862,7 @@ public final class GateInteractionHandler
         {
             return null;
         }
-        final Stargate nearbyGate = StargateHelper.checkStargate(candidate, face);
+        final Stargate nearbyGate = StargateHelper.checkNewStargate(candidate, face);
         if (nearbyGate == null)
         {
             return null;

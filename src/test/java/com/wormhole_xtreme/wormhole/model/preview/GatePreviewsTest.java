@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ import org.bukkit.util.Transformation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import java.util.logging.Level;
 
 import org.bukkit.Axis;
@@ -91,6 +93,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateIrisAnimator;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.RecordingCreation;
@@ -109,6 +112,9 @@ class GatePreviewsTest
 
     /** And its opening, which the server's block limit counts too. */
     private static final int STANDARD_OPENING = 21;
+
+    @TempDir
+    File tempDir;
 
     private WormholeXTreme plugin;
     private World world;
@@ -3070,6 +3076,29 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
 
         assertTrue(irisPending.isEmpty(), "no sweep is booked: the iris is shut at once");
+    }
+
+    /** A shape turned off since it was previewed is not built for real: nothing goes down. */
+    @Test
+    void aPreviewOfAShapeTurnedOffSincePlacesNothing()
+    {
+        when(plugin.getDataFolder()).thenReturn(tempDir);
+        assertTrue(new File(tempDir, "shapes" + File.separator + "gate").mkdirs());
+        obsidianFramesAreFindable();
+        detectsAGate();
+        standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        StargateShapeRegistry.setEnabled(standard.getShapeName(), false);
+        try
+        {
+            assertEquals(GatePreviews.Outcome.SHAPE_OFF, GatePreviews.place(owner).outcome());
+            assertTrue(written.isEmpty(), "nothing may be placed for a shape that is off");
+            assertTrue(detected.isEmpty());
+        }
+        finally
+        {
+            StargateShapeRegistry.setEnabled(standard.getShapeName(), true);
+        }
     }
 
     /**

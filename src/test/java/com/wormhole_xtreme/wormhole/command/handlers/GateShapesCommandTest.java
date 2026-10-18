@@ -4,15 +4,21 @@ import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.File;
+
 import org.bukkit.command.CommandSender;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 
 /**
- * {@code /wormhole gate shapes <reload|validate> [name]}'s argument handling.
+ * {@code /wormhole gate shapes <reload|validate|enable|disable> [name]}'s argument handling.
  *
  * <p>{@code sender} here is a bare {@code CommandSender} mock, not a {@code Player} -- the
  * permission check in {@link GateShapesCommand} only runs {@code if (sender instanceof
@@ -24,11 +30,84 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  */
 class GateShapesCommandTest
 {
+    @TempDir
+    File tempDir;
+
     @BeforeEach
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.getDataFolder()).thenReturn(tempDir);
         PluginTestSupport.install(plugin);
+        StargateShapeRegistry.getStargateShapes().put("Tollan", new StargateShape());
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        StargateShapeRegistry.getStargateShapes().remove("Tollan");
+        StargateShapeRegistry.setEnabled("Tollan", true);
+        PluginTestSupport.remove();
+    }
+
+    @Test
+    void disablingAShapeTurnsItOffWhateverCapitalsWereTypedAndSaysGatesKeepWorking()
+    {
+        assertTrue(new File(tempDir, "shapes" + File.separator + "gate").mkdirs());
+        final CommandSender sender = mock(CommandSender.class);
+
+        assertTrue(new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "disable", "tOLLAN" }));
+
+        assertFalse(StargateShapeRegistry.isEnabled("Tollan"));
+        verify(sender).sendMessage(plainContains("Tollan can no longer be built. Gates already standing keep working."));
+        verify(sender, never()).sendMessage(plainContains("could not be saved"));
+    }
+
+    @Test
+    void enablingAShapeTurnsItBackOn()
+    {
+        assertTrue(new File(tempDir, "shapes" + File.separator + "gate").mkdirs());
+        StargateShapeRegistry.setEnabled("Tollan", false);
+        final CommandSender sender = mock(CommandSender.class);
+
+        assertTrue(new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "enable", "Tollan" }));
+
+        assertTrue(StargateShapeRegistry.isEnabled("Tollan"));
+        verify(sender).sendMessage(plainContains("Tollan can be built again."));
+    }
+
+    @Test
+    void aChoiceThatCouldNotBeSavedIsSaidToLastOnlyUntilARestart()
+    {
+        final CommandSender sender = mock(CommandSender.class);
+
+        new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "disable", "Tollan" });
+
+        assertFalse(StargateShapeRegistry.isEnabled("Tollan"));
+        verify(sender).sendMessage(plainContains("could not be saved"));
+    }
+
+    @Test
+    void switchingAShapeThatIsNotLoadedChangesNothing()
+    {
+        final CommandSender sender = mock(CommandSender.class);
+
+        new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "disable", "Nowhere" });
+
+        assertTrue(StargateShapeRegistry.isEnabled("Nowhere"));
+        verify(sender).sendMessage(plainContains("No shape called Nowhere."));
+    }
+
+    @Test
+    void enableAndDisableWithoutANameShowTheirUsage()
+    {
+        final CommandSender sender = mock(CommandSender.class);
+
+        new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "disable" });
+        new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "enable" });
+
+        verify(sender).sendMessage(plainContains("/wormhole gate shapes disable <name>"));
+        verify(sender).sendMessage(plainContains("/wormhole gate shapes enable <name>"));
     }
 
     @Test
