@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -49,6 +48,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.ShownNames;
 
 /**
  * What a far player's stand-in is and how it is dressed (#296, step 2): a Mannequin in their skin
@@ -195,7 +195,7 @@ class PlayerFiguresTest
 
         PlayerFigures.dress(copy, player, null);
 
-        verify(copy).setCustomName("Alex");
+        assertEquals("Alex", ShownNames.of(copy));
         verify(copy).setCustomNameVisible(true);
         verify(copy).setPlayerProfile(fresh);
         verify(copy, never()).setPlayerProfile((PlayerProfile) profile);
@@ -231,7 +231,7 @@ class PlayerFiguresTest
         verify(copy).setImmovable(true);
         verify(copy).setMainHand(MainHand.LEFT);
         verify(copy).setPose(Pose.SWIMMING, true);
-        verify(copy).setCustomName("Alex");
+        assertEquals("Alex", ShownNames.of(copy));
     }
 
     /**
@@ -252,7 +252,7 @@ class PlayerFiguresTest
         verify(copy).setImmovable(true);
         verify(copy).setHideDescription(true);
         verify(copy).setPose(Pose.STANDING);
-        verify(copy).setCustomName("Alex");
+        assertEquals("Alex", ShownNames.of(copy));
         verify(plugin).prettyLog(eq(Level.WARNING), eq("Could not dress a far player's stand-in"), any(Throwable.class));
     }
 
@@ -281,7 +281,7 @@ class PlayerFiguresTest
         verify(stand).setSmall(false);
         verify(stand).setMarker(false);
         verify(worn).setHelmet(head);
-        verify(stand).setCustomName("Alex");
+        assertEquals("Alex", ShownNames.of(stand));
         verify(stand).setCustomNameVisible(true);
     }
 
@@ -374,7 +374,7 @@ class PlayerFiguresTest
 
         PlayerFigures.dress(stand, player, viewer);
 
-        verify(stand, never()).setCustomName(anyString());
+        assertNull(ShownNames.of(stand), "a hidden name tag is not copied");
         verify(stand, never()).setCustomNameVisible(anyBoolean());
         verify(stand).setArms(true);
     }

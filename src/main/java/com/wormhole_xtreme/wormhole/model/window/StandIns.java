@@ -33,6 +33,7 @@ import org.bukkit.entity.WaterMob;
 import org.bukkit.material.Colorable;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.EntityNames;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 
 /**
@@ -511,7 +512,7 @@ public final class StandIns
             PlayerFigures.dress(copy, player, viewer);
             return;
         }
-        copy.setCustomName(original.getCustomName());
+        EntityNames.copy(original, copy);
         copy.setCustomNameVisible(original.isCustomNameVisible());
         if ((copy instanceof Colorable dyed) && (original instanceof Colorable source))
         {

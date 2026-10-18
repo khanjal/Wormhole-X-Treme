@@ -62,6 +62,7 @@ import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 import com.wormhole_xtreme.wormhole.plugin.UpdateCheck;
 import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
 import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
+import com.wormhole_xtreme.wormhole.utils.PluginVersion;
 
 /**
  * WormholeXtreme for Bukkit.
@@ -870,7 +871,7 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             getLog().info("");
-            for (final String line : bannerLines(consoleCharset(), getDescription().getVersion(), getServer().getName()))
+            for (final String line : bannerLines(consoleCharset(), PluginVersion.of(this),getServer().getName()))
             {
                 getLog().info(line);
             }
@@ -1017,7 +1018,7 @@ public class WormholeXTreme extends JavaPlugin
     {
         // The version is looked up only in the branch that wants it. It used to be read on
         // every line logged and discarded on almost all of them.
-        final String pluginVersion = version ? getThisPlugin().getDescription().getVersion() : null;
+        final String pluginVersion = version ? PluginVersion.of(getThisPlugin()) : null;
         // A supplier, so the tag is not built and joined for a line the level will discard.
         // Every FINE call on a server logging at INFO pays for that otherwise, and this
         // method is how the whole plugin logs.

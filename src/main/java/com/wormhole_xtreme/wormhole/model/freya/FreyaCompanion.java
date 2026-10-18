@@ -21,6 +21,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.EntityNames;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
@@ -136,7 +137,7 @@ public final class FreyaCompanion
         cat.setAdult();
         cat.setTamed(true);
         cat.setOwner(owner);
-        cat.setCustomName(NAME);
+        EntityNames.set(cat, NAME);
         cat.setCustomNameVisible(true);
 
         cat.setInvulnerable(true);
