@@ -26,6 +26,9 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  */
 public class GateShapesCommand implements SubCommand
 {
+    private static final String ENABLE = "enable";
+    private static final String DISABLE = "disable";
+
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
     @Override
@@ -65,22 +68,22 @@ public class GateShapesCommand implements SubCommand
             return true;
         }
 
-        if ("enable".equals(action) || "disable".equals(action))
+        if (ENABLE.equals(action) || DISABLE.equals(action))
         {
-            switchShape(sender, name, "enable".equals(action));
+            switchShape(sender, name, ENABLE.equals(action));
             return true;
         }
 
         sender.sendMessage(ChatText.error("No such shapes command: " + ChatText.command(action) + ". Try "
-            + ChatText.command("reload") + ", " + ChatText.command("validate") + ", " + ChatText.command("enable")
-            + " or " + ChatText.command("disable") + "."));
+            + ChatText.command("reload") + ", " + ChatText.command("validate") + ", " + ChatText.command(ENABLE)
+            + " or " + ChatText.command(DISABLE) + "."));
         return true;
     }
 
     /** Turns a loaded shape on or off for new gates, whatever the capitals typed. */
     private static void switchShape(final CommandSender sender, final String name, final boolean enable)
     {
-        final String verb = enable ? "enable" : "disable";
+        final String verb = enable ? ENABLE : DISABLE;
         if (name == null)
         {
             sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes " + verb + " <name>")));

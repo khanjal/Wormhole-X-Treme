@@ -3080,11 +3080,10 @@ class GatePreviewsTest
 
     /** A shape turned off since it was previewed is not built for real: nothing goes down. */
     @Test
-    void aPreviewOfAShapeTurnedOffSincePlacesNothing() throws Exception
+    void aPreviewOfAShapeTurnedOffSincePlacesNothing()
     {
-        final File data = tempDir;
-        when(plugin.getDataFolder()).thenReturn(data);
-        assertTrue(new File(data, "shapes" + File.separator + "gate").mkdirs());
+        when(plugin.getDataFolder()).thenReturn(tempDir);
+        assertTrue(new File(tempDir, "shapes" + File.separator + "gate").mkdirs());
         obsidianFramesAreFindable();
         detectsAGate();
         standardLookingNorth();
