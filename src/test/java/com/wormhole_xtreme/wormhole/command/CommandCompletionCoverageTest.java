@@ -214,8 +214,8 @@ class CommandCompletionCoverageTest
     /**
      * {@code config} offers {@code -reload} first, typed from nothing, a dash or part of the flag.
      *
-     * <p>The client sorts suggestions, so a bare {@code reload} sank among some hundred settings;
-     * the dash sorts first. A dash typed is not read as an underscore for the flag, or {@code -r}
+     * <p>Suggestions are sorted alphabetically, so a bare {@code reload} sank among some hundred
+     * settings; {@code -} comes first. A dash typed is not read as an underscore for the flag, or {@code -r}
      * would look for {@code _r} and offer nothing.
      */
     @Test

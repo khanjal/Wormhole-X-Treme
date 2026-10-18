@@ -397,7 +397,8 @@ public final class SubCommands
                 }
                 // Completing what is in config.yml: gate-sound- has to reach
                 // GATE_SOUND_KAWOOSH, or the file's own spelling completes to nothing.
-                // The flag is matched as typed, since its dash is not an underscore.
+                // The flag is matched as typed, since its dash is not an underscore; suggestions
+                // are sorted alphabetically, so the dash puts it first.
                 final String typed = (args[1] == null) ? null : args[1].replace('-', '_');
                 return combine(prefixed(args[1], ConfigCommand.RELOAD),
                     prefixed(typed, ConfigManager.settingNames().toArray(new String[0])));
