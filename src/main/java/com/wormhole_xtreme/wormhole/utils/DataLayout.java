@@ -73,7 +73,7 @@ public final class DataLayout
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "shapes", "mirror");
     }
 
-    /** @return the owner's chat message files, one {@code <language>.yml} each; never created by the plugin */
+    /** @return the owner's chat message files, one {@code <language>.yml} each; written only by {@code lang export} */
     public static File lang()
     {
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "lang");

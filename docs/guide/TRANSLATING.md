@@ -27,13 +27,14 @@ come from the plugin until you add them.
 
 ## Adding a language
 
-1. Create the folder `plugins/WormholeXTreme/lang/`. The plugin never makes it, or writes anything
-   in it.
-2. Take the English from
-   [`src/main/resources/lang/en.yml`](../../src/main/resources/lang/en.yml), every translatable
-   message, and save it there named for the client language, such as `de.yml`, `de_de.yml` or
-   `pt_br.yml`: lower-case letters and `_`, at most 16, as the client names them. A file named with a
-   digit, a `-` or a leading or trailing `_` is not read.
+1. Run `/wormhole lang export de`, naming the client language: `de`, `de_de`, `pt_br`. It writes
+   `plugins/WormholeXTreme/lang/de.yml` with every translatable message in English, from the jar you
+   run. A code is lower-case letters and `_`, at most 16, as the client names it; capitals are read as
+   lower case and a `-` as `_`, as for `server-language`, so `pt-BR` writes `pt_br.yml`.
+2. Or copy [`src/main/resources/lang/en.yml`](../../src/main/resources/lang/en.yml) into that folder
+   yourself, renamed, from the [release tag](https://github.com/khanjal/Wormhole-X-Treme/tags) you
+   run, such as `v1.12.0`: the file on `main` can hold messages your jar does not have yet. A file
+   named with a digit, a `-` or a leading or trailing `_` is not read.
 3. Translate the text in quotes. Leave the keys on the left as they are.
 4. Keep each `{0}`, `{1}` and so on: that is where a gate name, a number or a position goes. Move
    them wherever your language's word order needs them.
@@ -53,6 +54,18 @@ is read as a switch, so startup uses English and says so in the log, and `config
 
 **To share a translation**, open a pull request adding it to `src/main/resources/lang/`. A language
 the plugin ships needs no file in the plugin folder at all.
+
+## Rewording the English
+
+`/wormhole lang export` with no code writes `lang/en.yml` with every message commented out, as
+`# compass.none: "No wormholes to track."`. Remove the `# ` from the ones to reword and change their
+text, then run `/wormhole config -reload`. The lines left commented keep following the plugin, so an
+update that rewords or adds a message still reaches them. A language the plugin ships exports the
+same way, its own messages commented out.
+
+`lang export` needs `wormhole.config` and works from the console. It never replaces a file: if
+`lang/<code>.yml` is there it says so and changes nothing. It is the only thing that writes to
+`lang/`; the plugin never makes the folder on its own.
 
 ## When something is wrong
 
