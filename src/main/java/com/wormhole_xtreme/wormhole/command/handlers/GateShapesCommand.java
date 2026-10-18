@@ -11,8 +11,8 @@ import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
- * {@code /wormhole gate shapes <reload|validate> [name]} -- checking and reloading a shape
- * file from disk without restarting the server.
+ * {@code /wormhole gate shapes <reload|validate|enable|disable> [name]} -- checking and reloading a
+ * shape file from disk without restarting the server, and turning a shape off for new gates.
  *
  * <p>Shapes only ever loaded once, at startup ({@link StargateShapeRegistry#loadShapes()}),
  * whose own "name already exists" rule keeps whichever version loaded first -- exactly wrong

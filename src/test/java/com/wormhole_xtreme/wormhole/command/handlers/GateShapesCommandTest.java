@@ -18,7 +18,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 
 /**
- * {@code /wormhole gate shapes <reload|validate> [name]}'s argument handling.
+ * {@code /wormhole gate shapes <reload|validate|enable|disable> [name]}'s argument handling.
  *
  * <p>{@code sender} here is a bare {@code CommandSender} mock, not a {@code Player} -- the
  * permission check in {@link GateShapesCommand} only runs {@code if (sender instanceof

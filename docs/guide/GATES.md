@@ -171,7 +171,7 @@ put it in `shapes/gate/`. Try it without restarting with `/wormhole gate shapes 
 **To stop players building a shape**, turn it off with `/wormhole gate shapes disable <name>` (say,
 `Massive` on a survival server) and back on with `enable`. A shape that is off cannot be chosen with
 `gate build`, previewed or placed, or found when a player finishes building one by hand, and it
-is left out of the shape lists and tab completion. Gates already standing on it keep working. The
+is left out of tab completion. Gates already standing on it keep working. The
 choice is kept in `shapes/gate/disabled-shapes.txt`, one name a line, so editing, resaving or
 updating the shape file never turns it back on.
 
