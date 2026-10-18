@@ -97,9 +97,8 @@ public final class ConfigTestSupport
     /**
      * Empties the settings map again.
      *
-     * <p>The default {@link Setting} objects are shared statics, so a test that changes one
-     * changes it for everything that runs afterwards in the same JVM. Tests that call
-     * {@link #loadDefaults()} should put back whatever they altered and then clear.
+     * <p>{@link #loadDefaults()} copies the shipped settings, so a test that changes one
+     * leaves the defaults alone; clearing is all a test has to put back.
      */
     public static void clear()
     {

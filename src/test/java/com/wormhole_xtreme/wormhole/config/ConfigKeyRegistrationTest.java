@@ -121,8 +121,7 @@ class ConfigKeyRegistrationTest
         }
         finally
         {
-            // The Setting objects in DefaultSettings.config are shared statics, so a value left
-            // changed here leaks into every test that runs after this one in the same JVM.
+            // The setter wrote to a Setting in the shared map; put the old value back.
             ConfigManager.setUseCooldownSeconds(original);
         }
     }
