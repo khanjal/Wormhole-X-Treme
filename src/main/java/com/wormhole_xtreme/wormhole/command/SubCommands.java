@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.command.handlers.CustomCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.GateCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.LangCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand;
@@ -51,6 +52,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
+import com.wormhole_xtreme.wormhole.utils.LangExport;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
@@ -402,6 +404,16 @@ public final class SubCommands
                 final String typed = (args[1] == null) ? null : args[1].replace('-', '_');
                 return combine(prefixed(args[1], ConfigCommand.RELOAD),
                     prefixed(typed, ConfigManager.settingNames().toArray(new String[0])));
+            });
+        register("lang", aliases(), "/wormhole lang " + LangCommand.EXPORT + " [code]",
+            new LangCommand(), false, (sender, args) ->
+            {
+                if (args.length == 2)
+                {
+                    return prefixed(args[1], LangCommand.EXPORT);
+                }
+                return ((args.length == 3) && LangCommand.EXPORT.equalsIgnoreCase(args[1]))
+                    ? prefixed(args[2], LangExport.shippedLanguages().toArray(new String[0])) : none();
             });
 
         // --- Not advertised ---------------------------------------------------

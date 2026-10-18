@@ -34,3 +34,10 @@ gate.build.no-arrival: "nowhere"
 
 gate.dial.already-open: "{0} is already open."
 gate.dial.being-dialled: "{0} is being dialled."
+
+lang.usage: "{0} writes a starter lang file to the plugin folder: with no code, the English with every message commented out, to reword; with a code such as {1}, the English to translate."
+lang.bad-code: "{0} is not a language code: letters and _, as a client names its language, such as {1} or {2}."
+lang.exists: "{0} already exists, so it was left as it is."
+lang.written-overlay: "Wrote {0}, every message commented out. Uncomment the ones to reword, then run {1}."
+lang.written-translation: "Wrote {0} in English, ready to translate. Run {1} when it is done."
+lang.failed: "Could not write {0}: {1}"
