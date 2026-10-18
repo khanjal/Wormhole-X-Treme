@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 import org.bukkit.command.CommandSender;
@@ -52,7 +53,7 @@ public final class Messages
     private static final Map<String, Template> NONE = Map.of();
 
     /** What the last load read; the jar's English alone until {@link #load()} runs. */
-    private static volatile Catalog catalog;
+    private static final AtomicReference<Catalog> catalog = new AtomicReference<>();
 
     /** Keys already logged as missing, so a message sent every trip logs once. */
     private static final Set<String> reportedMissing = ConcurrentHashMap.newKeySet();
@@ -112,7 +113,7 @@ public final class Messages
         {
             PluginLog.log(Level.WARNING, "There is no lang/" + serverLanguage + ".yml; messages are in English.");
         }
-        catalog = loaded;
+        catalog.set(loaded);
         reportedMissing.clear();
     }
 
@@ -147,13 +148,14 @@ public final class Messages
     /** @return the catalog, the jar's English alone on first use when nothing has loaded */
     private static Catalog catalog()
     {
-        Catalog loaded = catalog;
-        if (loaded == null)
+        final Catalog loaded = catalog.get();
+        if (loaded != null)
         {
-            loaded = new Catalog(Map.of(), DEFAULT_LANGUAGE);
-            catalog = loaded;
+            return loaded;
         }
-        return loaded;
+        // A load that lands meanwhile wins: only an empty reference takes this one.
+        catalog.compareAndSet(null, new Catalog(Map.of(), DEFAULT_LANGUAGE));
+        return catalog.get();
     }
 
     /** @return how many client languages are remembered now, for tests */
@@ -201,23 +203,6 @@ public final class Messages
             PluginLog.log(Level.WARNING, "Could not read lang/" + file.getName() + "; it is ignored. " + e);
             return Map.of();
         }
-    }
-
-    /** @return a language's text from the jar, empty if it has none, as a map the caller may add to */
-    private static Map<String, String> readJar(final String code)
-    {
-        try (InputStream in = Messages.class.getResourceAsStream("/lang/" + code + ".yml"))
-        {
-            if (in != null)
-            {
-                return read(in, code + ".yml");
-            }
-        }
-        catch (final IOException | YAMLException e)
-        {
-            PluginLog.log(Level.SEVERE, "Could not read the bundled " + code + " messages. " + e);
-        }
-        return new HashMap<>();
     }
 
     /**
@@ -303,6 +288,31 @@ public final class Messages
             }
         }
 
+        /** @return a language's text from the jar, empty if it has none, as a map the caller may add to */
+        private static Map<String, String> readJar(final String code)
+        {
+            try (InputStream in = Messages.class.getResourceAsStream("/lang/" + code + ".yml"))
+            {
+                if (in != null)
+                {
+                    return read(in, code + ".yml");
+                }
+            }
+            catch (final IOException | YAMLException e)
+            {
+                PluginLog.log(Level.SEVERE, "Could not read the bundled " + code + " messages. " + e);
+            }
+            return new HashMap<>();
+        }
+
+        /** @return each text parsed once into its template */
+        private static Map<String, Template> parse(final Map<String, String> text)
+        {
+            final Map<String, Template> parsed = new HashMap<>();
+            text.forEach((key, value) -> parsed.put(key, Template.parse(value)));
+            return Map.copyOf(parsed);
+        }
+
         /** @return a code's templates, read once: the jar's file, the owner's over it, or {@link #NONE} */
         private Map<String, Template> language(final String code)
         {
@@ -353,14 +363,6 @@ public final class Messages
                 + " are not text in quotes; those messages are in English.");
         }
         return text;
-    }
-
-    /** @return each text parsed once into its template */
-    private static Map<String, Template> parse(final Map<String, String> text)
-    {
-        final Map<String, Template> parsed = new HashMap<>();
-        text.forEach((key, value) -> parsed.put(key, Template.parse(value)));
-        return Map.copyOf(parsed);
     }
 
     /**

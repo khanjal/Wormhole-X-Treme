@@ -131,7 +131,7 @@ public final class GateConsoleCommands
         final String outOfHeight = outsideHeight(sender, world, cellsOf(shape, grid));
         if (outOfHeight != null)
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.build.not-built", outOfHeight)));
+            sender.sendMessage(notBuilt(sender, outOfHeight));
             return;
         }
         final String refusedHere = refusedHere(sender, world, shape, grid);
@@ -144,7 +144,7 @@ public final class GateConsoleCommands
         final GatePreviews.Placed placed = GatePreviews.placeAt(world, shape, group, grid);
         if (placed.outcome() != GatePreviews.Outcome.PLACED)
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.build.not-built", why(sender, placed))));
+            sender.sendMessage(notBuilt(sender, why(sender, placed)));
             return;
         }
         // A preview anyone had standing there is now built; take it down, as a DHD press does.
@@ -283,7 +283,13 @@ public final class GateConsoleCommands
             return RegionFlags.BUILD_REFUSED;
         }
         final String tooClose = GateSpacing.refusal(player, world, locationsOf(world, GateBlueprint.openingOf(shape, grid)));
-        return (tooClose == null) ? null : ChatText.error(Messages.get(sender, "gate.build.not-built", tooClose));
+        return (tooClose == null) ? null : notBuilt(sender, tooClose);
+    }
+
+    /** The refusal for a gate that was not built, and why, in the recipient's language. */
+    private static String notBuilt(final CommandSender sender, final String why)
+    {
+        return ChatText.error(Messages.get(sender, "gate.build.not-built", why));
     }
 
     /** Where each of these cells stands in the world. */

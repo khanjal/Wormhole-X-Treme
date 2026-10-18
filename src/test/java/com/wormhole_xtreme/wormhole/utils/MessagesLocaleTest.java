@@ -111,12 +111,12 @@ class MessagesLocaleTest
     void twoPlayersWithDifferentLanguagesReadTheirOwn()
     {
         final Player qq = player("qq_zz");
-        final Player english = player("en_us");
+        final Player american = player("en_us");
 
         assertEquals("QQ ZZ none.", Messages.get(qq, "compass.none"));
-        assertEquals("No wormholes to track.", Messages.get(english, "compass.none"));
+        assertEquals("No wormholes to track.", Messages.get(american, "compass.none"));
         assertEquals("QQ ZZ none.", Messages.get(qq, "compass.none"));
-        assertEquals("Compass back to normal: it points at world spawn again.", Messages.get(english, "compass.reset"),
+        assertEquals("Compass back to normal: it points at world spawn again.", Messages.get(american, "compass.reset"),
             "en_us has no file, so en, ahead of the server's");
     }
 
