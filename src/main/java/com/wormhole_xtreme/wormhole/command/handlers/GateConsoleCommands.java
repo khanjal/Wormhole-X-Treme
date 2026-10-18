@@ -23,6 +23,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -142,6 +143,14 @@ public final class GateConsoleCommands
             && !RegionFlags.mayBuild(player, locationsOf(world, cellsOf(shape, grid))))
         {
             sender.sendMessage(RegionFlags.BUILD_REFUSED);
+            return;
+        }
+        // And to the spacing between gates; the console and command blocks are not.
+        final String tooClose = (CommandHandlerUtils.issuer(sender) instanceof Player player)
+            ? GateSpacing.refusal(player, world, locationsOf(world, GateBlueprint.openingOf(shape, grid))) : null;
+        if (tooClose != null)
+        {
+            sender.sendMessage(ChatText.error("Not built: " + tooClose));
             return;
         }
         loadChunksUnder(world, shape, grid);

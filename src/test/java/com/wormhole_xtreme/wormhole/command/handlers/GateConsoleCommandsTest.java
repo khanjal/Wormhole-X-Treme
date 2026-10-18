@@ -35,6 +35,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.command.Dial;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
@@ -704,6 +705,69 @@ class GateConsoleCommandsTest
         finally
         {
             RegionFlagsTestSupport.remove();
+        }
+    }
+
+    /** A gate standing at the one opening block, for the spacing tests. */
+    private static Stargate neighbourAt(final World world)
+    {
+        final Stargate near = new Stargate();
+        near.setGateName("Nearby");
+        near.setGateWorld(world);
+        near.getGatePortalBlocks().add(new Location(world, 0, -60, 0));
+        return near;
+    }
+
+    private static void openingAt(final Building building)
+    {
+        building.blueprints.when(() -> GateBlueprint.openingOf(building.standard, building.grid))
+            .thenReturn(List.of(new GateBlueprint.Cell(3, -60, 0, GateBlueprint.Part.FRAME, 0)));
+    }
+
+    /** A player building by coordinates beside another gate is refused before anything is placed. */
+    @Test
+    void aPlayerBuildingTooCloseToAnotherGateIsRefusedBeforeAnythingIsPlaced()
+    {
+        final Player player = mock(Player.class);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIN_GATE_DISTANCE, 50);
+        try (Building building = new Building(player);
+             MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
+        {
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, "", WXPermissions.PermissionType.BUILD)).thenReturn(true);
+            openingAt(building);
+            building.gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(neighbourAt(building.world)));
+
+            building.build("Standard", "A", "world", "0", "-60", "0", "south");
+
+            verify(player).sendMessage(plainContains("Too close to Nearby"));
+            building.nothingPlaced();
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+    }
+
+    /** The console has no player to hold to the spacing, as it is not held to regions. */
+    @Test
+    void theConsoleBuildsTooCloseToAnotherGate()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIN_GATE_DISTANCE, 50);
+        try (Building building = new Building())
+        {
+            building.previews.when(() -> GatePreviews.placeAt(any(), any(), any(), any())).thenReturn(
+                new GatePreviews.Placed(GatePreviews.Outcome.NOT_LOADED, List.of(), null, null));
+            openingAt(building);
+            building.gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(neighbourAt(building.world)));
+
+            building.build("Standard", "A", "world", "0", "-60", "0", "south");
+
+            building.previews.verify(() -> GatePreviews.placeAt(any(), any(), any(), any()));
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
         }
     }
 }
