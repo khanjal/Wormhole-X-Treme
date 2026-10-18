@@ -207,7 +207,7 @@ class WorldUtilsTest {
      * branch that existed to decide whether it should.
      *
      * <p>Shifting the block's own coordinates asks the same question without touching the
-     * world, which is what {@code hasChangedChunk} on the move path already does for the same
+     * world, which is what {@code PortalPresence.hasChangedChunk} on the move path already does for the same
      * reason.
      */
     @Test

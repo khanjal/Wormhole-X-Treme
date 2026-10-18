@@ -16,6 +16,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,7 +75,7 @@ class PortalFlightExemptionTest
      */
     private static Set<UUID> flightGrants() throws Exception
     {
-        return PrivateStatics.of(WormholeXTremePlayerListener.class, "portalFlightGranted");
+        return PrivateStatics.of(PortalPresence.class, "portalFlightGranted");
     }
 
     private static void clearFlightGrants() throws Exception
@@ -290,5 +292,73 @@ class PortalFlightExemptionTest
         verify(player).setAllowFlight(true);
         assertTrue(holdsPortalFlight(),
             "the same block in the same gate should grant once the gate is open");
+    }
+
+    /**
+     * Arriving by teleport lands the traveller in the ring, where the client starts floating them
+     * at once; waiting for the first move would be waiting until after the rise that gets them kicked.
+     */
+    @Test
+    void arrivingByTeleportInThePortalGrantsTheExemptionAtOnce() throws Exception
+    {
+        final PlayerTeleportEvent event = mock(PlayerTeleportEvent.class);
+        when(event.getPlayer()).thenReturn(player);
+        when(event.getTo()).thenReturn(inside());
+
+        new WormholeXTremePlayerListener().onPlayerTeleport(event);
+
+        verify(player).setAllowFlight(true);
+        assertTrue(holdsPortalFlight(), "arriving inside the portal should record the grant");
+    }
+
+    /** Ids of players who never come back would otherwise sit in the set for good. */
+    @Test
+    void aPlayerWhoLogsOutInsideThePortalIsForgotten() throws Exception
+    {
+        move(outside(), inside());
+        assertTrue(holdsPortalFlight(), "granted while inside");
+
+        final PlayerQuitEvent quit = mock(PlayerQuitEvent.class);
+        when(quit.getPlayer()).thenReturn(player);
+        new WormholeXTremePlayerListener().onPlayerQuit(quit);
+
+        assertFalse(holdsPortalFlight(), "quitting releases the record");
+    }
+
+    /** Block coordinates alone do not make a portal: the same coordinates in another world are open air. */
+    @Test
+    void theSameCoordinatesInAnotherWorldAreNotThePortal()
+    {
+        final World other = mock(World.class);
+        when(other.getName()).thenReturn("other");
+        final Block air = mock(Block.class);
+        when(air.getType()).thenReturn(Material.AIR);
+        when(air.getWorld()).thenReturn(other);
+        when(other.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(air);
+
+        move(new Location(other, BX + 0.5, BY, BZ - 3.5), new Location(other, BX + 0.5, BY, BZ + 0.5));
+
+        verify(player, never()).setAllowFlight(anyBoolean());
+
+        // And the same coordinates in the gate's own world do: it is the world that decides.
+        move(outside(), inside());
+
+        verify(player).setAllowFlight(true);
+    }
+
+    /** Spectators fly by game mode, so leaving a portal leaves them be, like creative. */
+    @Test
+    void aSpectatorKeepsFlightOnLeavingToo() throws Exception
+    {
+        move(outside(), inside());
+        verify(player).setAllowFlight(true);
+        when(player.getAllowFlight()).thenReturn(true);
+        when(player.getGameMode()).thenReturn(GameMode.SPECTATOR);
+
+        move(inside(), outside());
+
+        assertFalse(holdsPortalFlight(), "the record is released on the way out");
+        verify(player, never()).setAllowFlight(false);
+        verify(player, never()).setFlying(false);
     }
 }
