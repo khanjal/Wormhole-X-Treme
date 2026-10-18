@@ -158,6 +158,8 @@ public class FreyaListener implements Listener
         }
     }
 
+    // Spigot has no other bed result, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBedEnter(final PlayerBedEnterEvent event)
     {

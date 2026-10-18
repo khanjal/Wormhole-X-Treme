@@ -100,6 +100,7 @@ somebody else's release notes, and the record of where this fork came from.
 - On Paper, the plugin's version is read from Paper's plugin meta, and Freya and window stand-ins are named through Paper's own name components. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 - On Paper, gate and dial signs are written and read through Paper's own sign line components. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 - On Paper, the name over a far player's stand-in is read from Paper's own display name component. Spigot keeps Bukkit's ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
+- The Paper builds list deprecation warnings in `src/main` again; the tests' stay hidden there ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
 
 ## 1.11.0 (2026-10-17)
 

@@ -92,6 +92,8 @@ final class PlayerFigures
         /** Spigot's {@code setModelPartShown(PlayerModelPart, boolean)}. */
         final Method modelPart;
 
+        // Spigot has no other player profile, and Paper deprecates this one.
+        @SuppressWarnings("deprecation")
         private Mannequins(final Class<? extends LivingEntity> type)
         {
             this.type = type;
@@ -331,6 +333,8 @@ final class PlayerFigures
     }
 
     /** Dresses a Mannequin as the player, by whichever of the methods this server has. */
+    // Spigot has no other player profile, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     private static void dressMannequin(final Mannequins with, final Entity copy, final Player original)
     {
         call(with.immovable, copy, true);
