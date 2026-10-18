@@ -112,6 +112,7 @@ class GateWalkThroughTest
     void tearDown() throws Exception
     {
         StargateRestrictions.removePlayerRecentArrival(player);
+        GateWalkThrough.forget(player.getUniqueId());
         GateEvents.setDispatcherForTest(null);
         StargateManager.removeStargate(origin);
         origin.setGateActive(false);
