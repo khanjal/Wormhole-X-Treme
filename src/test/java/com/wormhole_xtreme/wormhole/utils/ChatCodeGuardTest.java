@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -21,7 +22,7 @@ import org.junit.jupiter.api.Test;
  * <p>A hand-written code is a palette decision made in one file: a gate name in grey here, a
  * header in a slightly different dark purple there. Keeping the section sign (written
  * literally, as an escape or as a numeric char) in one file is what keeps the colours the same
- * everywhere. Use {@link ChatText}, or {@code ChatColor} for a code that is not in the palette.
+ * everywhere. Use {@link ChatText}, or {@link ChatColour} for a code that is not in the palette.
  */
 class ChatCodeGuardTest
 {
@@ -31,7 +32,7 @@ class ChatCodeGuardTest
     /**
      * The other ways to write the section sign or to translate an {@code &} code into one, each
      * as a regex over a source line: a unicode escape (any number of {@code u}s, either case),
-     * an octal escape, a numeric char, and {@code ChatColor.translateAlternateColorCodes}.
+     * an octal escape, a numeric char, and Bukkit's {@code translateAlternateColorCodes}.
      * Nothing in main uses that last one, so it has no allowlist: a use should come to ChatText.
      */
     private static final List<Pattern> FORMS = List.of(
@@ -41,8 +42,9 @@ class ChatCodeGuardTest
         Pattern.compile("Character\\.toString\\(\\s*(0[xX][aA]7|0?247|167)\\s*\\)"),
         Pattern.compile("translateAlternateColorCodes"));
 
-    /** The one file allowed to hold the codes. */
-    private static final String HOME = "com/wormhole_xtreme/wormhole/utils/ChatText.java";
+    /** The files allowed to hold the codes: the palette, and the code table it sits beside. */
+    private static final Set<String> HOMES = Set.of("com/wormhole_xtreme/wormhole/utils/ChatText.java",
+        "com/wormhole_xtreme/wormhole/utils/ChatColour.java");
 
     @Test
     void noSourceFileOutsideChatTextWritesAColourCodeByHand() throws IOException
@@ -56,7 +58,7 @@ class ChatCodeGuardTest
             {
                 files++;
                 final String relative = root.relativize(file).toString().replace('\\', '/');
-                if (relative.equals(HOME))
+                if (HOMES.contains(relative))
                 {
                     continue;
                 }
@@ -74,6 +76,6 @@ class ChatCodeGuardTest
         assertTrue(files > 100, "the walk should open every main source file, opened only " + files
             + " from " + root.toAbsolutePath());
         assertTrue(offences.isEmpty(), "colour codes written by hand outside ChatText -- use ChatText "
-            + "or ChatColor: " + offences);
+            + "or ChatColour: " + offences);
     }
 }

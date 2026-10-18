@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -181,7 +180,7 @@ public final class ChatLine
     {
         for (int i = text.length() - 2; i >= 0; i--)
         {
-            if (text.charAt(i) == ChatColor.COLOR_CHAR && ("0123456789abcdefr".indexOf(Character.toLowerCase(text.charAt(i + 1))) >= 0))
+            if (text.charAt(i) == ChatColour.COLOR_CHAR && ("0123456789abcdefr".indexOf(Character.toLowerCase(text.charAt(i + 1))) >= 0))
             {
                 return text.substring(i, i + 2);
             }
@@ -310,6 +309,8 @@ public final class ChatLine
      * The only code naming Spigot's chat API, so a server without it fails to link this class,
      * inside {@link #sendClickable}'s try.
      */
+    // Spigot has no other clickable chat, and Paper deprecates this one.
+    @SuppressWarnings("deprecation")
     private static final class SpigotChat
     {
         /** Static use only. */

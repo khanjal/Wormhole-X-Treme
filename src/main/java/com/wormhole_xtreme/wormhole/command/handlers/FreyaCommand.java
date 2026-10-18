@@ -3,7 +3,6 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import java.util.Locale;
 import java.util.UUID;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -11,6 +10,7 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
+import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
@@ -103,6 +103,6 @@ public class FreyaCommand implements SubCommand
             return;
         }
         player.sendMessage(ChatText.info(ChatText.name(FreyaCompanion.NAME) + " pads over and sits down beside you."));
-        player.sendMessage(ChatText.info(ChatColor.ITALIC + FreyaCompanion.YEARS));
+        player.sendMessage(ChatText.info(ChatColour.ITALIC + FreyaCompanion.YEARS));
     }
 }

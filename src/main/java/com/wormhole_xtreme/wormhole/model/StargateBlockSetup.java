@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -44,6 +43,7 @@ import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
+import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
@@ -221,19 +221,19 @@ class StargateBlockSetup
         // Colour codes do not count toward a sign's visible width, so the owner is still
         // truncated on the text alone -- painting it cannot push it off the sign.
         front.setLine(0, SignStyle.paint(
-            SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA),
+            SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColour.DARK_AQUA),
             "-" + gate.getGateName() + "-"));
         if (gate.getGateNetwork() != null)
         {
             front.setLine(1, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
+                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColour.GRAY),
                 "N:" + gate.getGateNetwork().getNetworkName()));
         }
         if (gate.getGateOwner() != null)
         {
             final String ownerDisplay = gate.getGateOwnerName();
             front.setLine(2, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorOwner(), ChatColor.GRAY),
+                SignStyle.resolveColor(ConfigManager.getSignColorOwner(), ChatColour.GRAY),
                 "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
                     ? ownerDisplay.substring(0, 13) : ownerDisplay)));
         }
@@ -714,7 +714,7 @@ class StargateBlockSetup
      * know what needs taking back.
      */
     private static final Map<UUID, Set<String>> DRAWN =
-        new ConcurrentHashMap<UUID, Set<String>>();
+        new ConcurrentHashMap<>();
 
     /**
      * Sends a client-side-only appearance for every portal block of {@code gate}.

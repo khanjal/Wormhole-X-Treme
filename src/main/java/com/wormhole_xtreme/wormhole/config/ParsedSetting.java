@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
+import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
 
@@ -303,7 +303,7 @@ final class ParsedSetting
      */
     private static ParsedSetting readColour(final ConfigKeys key, final String raw)
     {
-        final ChatColor colour = SignStyle.colorNamed(raw);
+        final ChatColour colour = SignStyle.colorNamed(raw);
         if (colour == null)
         {
             return notOneOf(key, SignStyle.colorNames(), raw);

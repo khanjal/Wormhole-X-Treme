@@ -12,7 +12,6 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -26,6 +25,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
@@ -55,7 +55,7 @@ public final class UpdateCheck implements Listener
 
     private static final int MAX_REASON_CHARS = 120;
 
-    private static final Pattern CONTROL_OR_COLOUR = Pattern.compile("[\\p{Cntrl}" + ChatColor.COLOR_CHAR + "]");
+    private static final Pattern CONTROL_OR_COLOUR = Pattern.compile("[\\p{Cntrl}" + ChatColour.COLOR_CHAR + "]");
 
     /** No whitespace, control characters or colour codes reach the log or chat from a remote answer. */
     private static final Pattern SAFE_VERSION = Pattern.compile("[vV]?[0-9A-Za-z.+-]{1,40}");

@@ -1621,7 +1621,7 @@ public final class SubCommands
     private static List<String> networkNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final LinkedHashSet<String> nets = new LinkedHashSet<String>();
+        final LinkedHashSet<String> nets = new LinkedHashSet<>();
         nets.add("Public");
         for (final Stargate g : StargateManager.getAllGatesUnsorted())
         {

@@ -1167,7 +1167,7 @@ placement is left out and the run is the plain campus.
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. Seventy-nine at present; the one naming both `unchecked` and
+quiet one that is inconvenient. Eighty-one at present; the one naming both `unchecked` and
 `rawtypes`, and the one naming both `java:S1168` and `java:S9391`, count in each row. MockBukkit gets its own column because `src/mockbukkit/java`
 compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
@@ -1180,7 +1180,7 @@ compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees t
 | `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
 | `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
 | `unchecked` | 3 | 3 | 2 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors; and a raw `BanList` inherited from MockBukkit's `ServerMock`. |
-| `deprecation` | 2 | 1 | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone, and a test stub of the first; the pre-1.20.4 `EntityDismountEvent`, the only one older servers fire. |
+| `deprecation` | 4 | 1 | 1 | `getOfflinePlayer(String)` and `getDescription()`, whose replacements are Paper's alone, and a test stub of the first; the Spigot-only action bar and clickable-chat fallbacks, which Paper deprecates for Adventure; the pre-1.20.4 `EntityDismountEvent`, the only one older servers fire. |
 | `java:S2583` | 2 | – | – | Null checks that never fire on a server; a mock player with no UUID, or a mock creature with no type, would throw without them. |
 | `java:S6905` | 1 | – | – | `SELECT *` from a legacy database whose columns vary by version. |
 | `java:S9395` | 1 | – | – | `Math.sqrt(long)` in `RingCommand.apart`: S9395 wants the cast, S1905 calls it redundant and S2153 flags the alternative. |
@@ -1268,7 +1268,7 @@ symbol, and one was fixable in a line.
     subcommand argument, and the gate gallery writes `*-dialled.svg`. Renaming any of these
     breaks live servers, saved data, or command blocks.
   - **Attributes defined by a spec.** SVG and CSS use `fill`, `stop-color`, `color`.
-- **`CHANGELOG-ORIGINAL-2011.md`, `LICENSE` and `gpl.txt` are verbatim.** Historical record and
+- **The 0.x entries of `CHANGELOG.md`, `LICENSE` and `gpl.txt` are verbatim.** Historical record and
   licence text written by other people. Never reflow, respell or tidy them.
 - **The galleries are generated.** The gate, ring, beam and mirror drawings in `docs/images/` and
   the tables between the `<!-- ...:start -->` markers in the design documents come from

@@ -37,7 +37,7 @@ class LegacyShapeFileTest
 
     private static String[] shape(final String... settings)
     {
-        final List<String> lines = new ArrayList<String>();
+        final List<String> lines = new ArrayList<>();
         lines.add("Name=Legacy");
         for (final String s : settings)
         {

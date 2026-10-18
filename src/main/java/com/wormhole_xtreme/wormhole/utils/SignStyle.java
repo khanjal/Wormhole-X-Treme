@@ -4,8 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import org.bukkit.ChatColor;
-
 /**
  * Turns a configured colour name into sign text.
  *
@@ -41,9 +39,9 @@ public final class SignStyle
      *            what to use when the name is empty, unknown, or not a colour
      * @return a usable colour, never null
      */
-    public static ChatColor resolveColor(final String name, final ChatColor fallback)
+    public static ChatColour resolveColor(final String name, final ChatColour fallback)
     {
-        final ChatColor found = colorNamed(name);
+        final ChatColour found = colorNamed(name);
         return (found != null) ? found : fallback;
     }
 
@@ -54,7 +52,7 @@ public final class SignStyle
      *            the name, case-insensitive, may be null
      * @return the colour, or null when the name is empty, unknown, or a format rather than a colour
      */
-    public static ChatColor colorNamed(final String name)
+    public static ChatColour colorNamed(final String name)
     {
         if ((name == null) || name.trim().isEmpty())
         {
@@ -62,8 +60,7 @@ public final class SignStyle
         }
         try
         {
-            final ChatColor found = ChatColor.valueOf(name.trim().toUpperCase(Locale.ROOT));
-            return found.isColor() ? found : null;
+            return ChatColour.valueOf(name.trim().toUpperCase(Locale.ROOT));
         }
         catch (final IllegalArgumentException notAColorName)
         {
@@ -78,7 +75,7 @@ public final class SignStyle
      */
     public static List<String> colorNames()
     {
-        return Arrays.stream(ChatColor.values()).filter(ChatColor::isColor).map(ChatColor::name).toList();
+        return Arrays.stream(ChatColour.values()).map(ChatColour::name).toList();
     }
 
     /**
@@ -93,7 +90,7 @@ public final class SignStyle
      *            the line text, may be null
      * @return the line ready to write to a sign
      */
-    public static String paint(final ChatColor color, final String text)
+    public static String paint(final ChatColour color, final String text)
     {
         if ((text == null) || text.isEmpty())
         {
@@ -116,11 +113,6 @@ public final class SignStyle
      */
     public static String stripFormatting(final String line)
     {
-        if (line == null)
-        {
-            return EMPTY;
-        }
-        final String stripped = ChatColor.stripColor(line);
-        return stripped != null ? stripped : EMPTY;
+        return ChatText.plain(line);
     }
 }

@@ -71,7 +71,7 @@ class GateYamlRoundTripTest
         server = mock(Server.class);
         when(server.getWorld(anyString())).thenReturn(world);
 
-        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -84,7 +84,7 @@ class GateYamlRoundTripTest
     void restorePlugin() throws Exception
     {
         PluginTestSupport.remove();
-        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
         {
             if (s != null)
             {

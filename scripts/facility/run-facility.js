@@ -19,8 +19,9 @@
 //                        into scripts/facility/messages/<version>.snap; without it a change is only
 //                        reported, never a FAIL
 //   --cells <names>      self-test only the matrix cells whose names match (a|b, ^start, end$)
-//   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): their known-failure
-//                        cells are expected to pass
+//   --fixed <issues>     the plugin jar carries these fixes (e.g. 491): cells that name one
+//                        (regressedBy) switch to their regression expectation, and the
+//                        faults those issues made known count as faults
 //   --shards <n>         self-test: split the matrix across n servers of the version, each on its
 //                        own port and folder, run at once, with one merged report (lib/shards.js);
 //                        with --versions, versions x shards servers
