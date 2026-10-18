@@ -188,6 +188,7 @@ outranks a negated node.
 | `wormhole.build.preview` | op | `/wormhole gate build` and its [previews](GATES.md#previews), without `wormhole.config` |
 | `wormhole.build.preview.share` | op | `gate preview share`, showing a preview to other players |
 | `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |
+| `wormhole.build.mindistance.bypass` | op | Building closer to another gate than [`min-gate-distance`](GATES.md#building-a-gate) allows |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
 | `wormhole.config` | op | Settings, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |

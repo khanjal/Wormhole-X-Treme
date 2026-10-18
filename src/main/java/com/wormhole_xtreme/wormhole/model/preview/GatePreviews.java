@@ -49,6 +49,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.DrawnHorizon;
 import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.IrisSweepDriver;
@@ -193,7 +194,9 @@ public final class GatePreviews
         /** It stood over one gate already there: the blocks that gate was missing were placed. */
         REPAIRED,
         /** A WorldGuard region where it would stand refuses its owner gate building, and nothing was placed. */
-        NOT_ALLOWED_HERE
+        NOT_ALLOWED_HERE,
+        /** It would stand closer to another gate than {@code min-gate-distance} allows, and nothing was placed; {@code inTheWay} holds why. */
+        TOO_CLOSE
     }
 
     /**
@@ -610,7 +613,22 @@ public final class GatePreviews
         {
             return new Placed(Outcome.NOT_ALLOWED_HERE, List.of(), null, null);
         }
+        final String tooClose = overAGate ? null : GateSpacing.refusal(owner, preview.world(), openingBlocks(preview));
+        if (tooClose != null)
+        {
+            return new Placed(Outcome.TOO_CLOSE, List.of(tooClose), null, null);
+        }
         return PreviewPlacer.place(preview, overAGate);
+    }
+
+    private static List<Location> openingBlocks(final GatePreview preview)
+    {
+        final List<Location> out = new ArrayList<>(preview.opening().size());
+        for (final Cell cell : preview.opening())
+        {
+            out.add(new Location(preview.world(), cell.x(), cell.y(), cell.z()));
+        }
+        return out;
     }
 
     /** Every spot a preview's gate would take: its blocks and its opening. */

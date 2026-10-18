@@ -76,6 +76,10 @@ somebody else's release notes, and the record of where this fork came from.
 
 ## 1.12.0 (unreleased)
 
+### Stargates
+
+- `min-gate-distance` (default 0, off) refuses a gate built closer than that to another in its world, before any fare, naming the nearest; `wormhole.build.mindistance.bypass` exempts ([#635](https://github.com/khanjal/Wormhole-X-Treme/issues/635)).
+
 ### Internals
 
 - Javadoc `@param` tags that only repeated the parameter name (`@param gate` / `the gate`) are gone ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).

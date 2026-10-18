@@ -29,6 +29,13 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 The frame material decides the gate's look: build `Standard` in obsidian for a Standard gate,
 in lapis for an Atlantis one. See [Material groups](#material-groups).
 
+**Spacing.** `min-gate-distance` (default `0`, no limit; set it with `/wormhole config`) is the
+least distance in blocks between two gates in one world, measured between the middles of their
+openings. A gate built closer is refused, before any fare is charged, with the distance and the
+nearest gate named. It is checked when the design is found, on `gate complete`, and on
+`gate preview place`. Rings and gates in other worlds do not count. Operators and anyone with
+`wormhole.build.mindistance.bypass` are exempt.
+
 ### Previews
 
 With `wormhole.build.preview`, step 1 also stands the shape up full size in front of you: its

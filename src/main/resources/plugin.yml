@@ -51,6 +51,9 @@ permissions:
   wormhole.build.preview.place:
     description: Allow turning a gate preview into a real gate with /wormhole gate preview place.
     default: op
+  wormhole.build.mindistance.bypass:
+    description: Allow building a gate closer to another than min-gate-distance allows.
+    default: op
   wormhole.config:
     description: Allow changing plugin configuration via command.
     default: op
