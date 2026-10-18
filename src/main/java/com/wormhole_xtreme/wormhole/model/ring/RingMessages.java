@@ -89,8 +89,16 @@ public final class RingMessages
             final Player player = playerOf(passenger);
             if (player != null)
             {
-                status(player, ChatText.info(seconds == 1 ? Messages.get(player, "ring.counting.one", count)
-                    : Messages.get(player, "ring.counting.other", count)));
+                final String line;
+                if (seconds == 1)
+                {
+                    line = Messages.get(player, "ring.counting.one", count);
+                }
+                else
+                {
+                    line = Messages.get(player, "ring.counting.other", count);
+                }
+                status(player, ChatText.info(line));
             }
         }
     }
@@ -155,8 +163,16 @@ public final class RingMessages
     {
         final long seconds = Math.max(1L, (millisLeft + 999L) / 1000L);
         final String count = ChatText.value(String.valueOf(seconds));
-        status(player, ChatText.info(seconds == 1 ? Messages.get(player, "ring.recharging.one", count)
-            : Messages.get(player, "ring.recharging.other", count)));
+        final String line;
+        if (seconds == 1)
+        {
+            line = Messages.get(player, "ring.recharging.one", count);
+        }
+        else
+        {
+            line = Messages.get(player, "ring.recharging.other", count);
+        }
+        status(player, ChatText.info(line));
     }
 
     /**
