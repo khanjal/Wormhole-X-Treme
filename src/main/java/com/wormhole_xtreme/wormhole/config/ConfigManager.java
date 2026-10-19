@@ -840,7 +840,6 @@ public class ConfigManager
         return GATE_VIEWS.contains(level) ? level : null;
     }
 
-
     /** See {@link GateSettings#getGatePreviewMinutes()}. */
     public static int getGatePreviewMinutes()
     {
