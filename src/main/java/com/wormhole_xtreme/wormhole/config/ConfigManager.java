@@ -768,7 +768,6 @@ public class ConfigManager
         return atSpeed(ticks, getRingAnimationSpeed());
     }
 
-
     /**
      * How a dialling gate's inner ring light moves. A config.yml from before patterns holds
      * {@code true} or {@code false}, read as TOP and NONE; a missing or unreadable value is the

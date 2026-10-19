@@ -19,7 +19,8 @@ final class BeamSettings
     /**
      * How fast the beaming animation runs against its shipped timings (#589).
      *
-     * @return 1.0 for the shipped timings, from {@link ConfigManager#SLOWEST_SPEED} to {@link ConfigManager#FASTEST_SPEED}
+     * @return 1.0 for the shipped timings, from {@link ConfigManager#SLOWEST_SPEED} to
+     *         {@link ConfigManager#FASTEST_SPEED}
      */
     static double getBeamAnimationSpeed()
     {
