@@ -1139,15 +1139,10 @@ public class ConfigManager
         return BeamSettings.getBeamEconomyUseCost();
     }
 
-    /**
-     * Whether the plugin's own sign text glows.
-     *
-     * @return true if signs the plugin writes should use glowing text
-     */
+    /** See {@link SignSettings#isSignGlowingText()}. */
     public static boolean isSignGlowingText()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_GLOWING_TEXT);
-        return (s == null) || s.getBooleanValue();
+        return SignSettings.isSignGlowingText();
     }
 
     /**
@@ -1161,61 +1156,40 @@ public class ConfigManager
         return (s == null) || s.getBooleanValue();
     }
 
-    /**
-     * Whether a player-placed dial sign is converted to the gate's own sign material.
-     *
-     * @return true if the dial sign should be made to match the gate's palette
-     */
+    /** See {@link SignSettings#isSignDialMatchMaterial()}. */
     public static boolean isSignDialMatchMaterial()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_DIAL_MATCH_MATERIAL);
-        return (s == null) || s.getBooleanValue();
+        return SignSettings.isSignDialMatchMaterial();
     }
 
-    /**
-     * Reads a configured colour name, resolved by {@code SignStyle} at the point of use.
-     *
-     * <p>Returned as the raw name rather than a resolved colour so the fallback stays with
-     * the caller that knows what this particular line should look like.
-     *
-     * @param key
-     *            the colour setting to read
-     * @return the configured name, or empty when unset
-     */
-    private static String colorSetting(final ConfigKeys key)
-    {
-        final Setting s = ConfigManager.getConfigurations().get(key);
-        return s == null ? "" : String.valueOf(s.getStringValue()).trim();
-    }
-
-    /** @return colour name for a gate's own name, on either sign */
+    /** See {@link SignSettings#getSignColorGateName()}. */
     public static String getSignColorGateName()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_GATE_NAME);
+        return SignSettings.getSignColorGateName();
     }
 
-    /** @return colour name for the network line on a gate's name sign */
+    /** See {@link SignSettings#getSignColorNetwork()}. */
     public static String getSignColorNetwork()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_NETWORK);
+        return SignSettings.getSignColorNetwork();
     }
 
-    /** @return colour name for the owner line on a gate's name sign */
+    /** See {@link SignSettings#getSignColorOwner()}. */
     public static String getSignColorOwner()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_OWNER);
+        return SignSettings.getSignColorOwner();
     }
 
-    /** @return colour name for the destination currently selected on a dial sign */
+    /** See {@link SignSettings#getSignColorSelected()}. */
     public static String getSignColorSelected()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_SELECTED);
+        return SignSettings.getSignColorSelected();
     }
 
-    /** @return colour name for the destinations either side of the selected one */
+    /** See {@link SignSettings#getSignColorNeighbour()}. */
     public static String getSignColorNeighbour()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_NEIGHBOUR);
+        return SignSettings.getSignColorNeighbour();
     }
 
     /**
@@ -1351,73 +1325,35 @@ public class ConfigManager
         return (s != null) && s.getBooleanValue();
     }
 
-    /**
-     * How many mirrors one world may hold.
-     *
-     * @return the most, or 0 for no limit
-     */
+    /** See {@link MirrorSettings#getMirrorPerWorldLimit()}. */
     public static int getMirrorPerWorldLimit()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PER_WORLD_LIMIT);
-        return (s == null) ? 1 : Math.max(0, s.getIntValue());
+        return MirrorSettings.getMirrorPerWorldLimit();
     }
 
-    /**
-     * How close a player must be for a mirror's banner to give way to its room, how far they may
-     * drift before a mirror they turned on goes off, and how far out its wall is read.
-     *
-     * @return the distance in blocks, never below one
-     */
+    /** See {@link MirrorSettings#getMirrorProximityDistance()}. */
     public static int getMirrorProximityDistance()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_DISTANCE);
-        return (s == null) ? 16 : Math.max(1, s.getIntValue());
+        return MirrorSettings.getMirrorProximityDistance();
     }
 
-    /**
-     * Whether a mirror names itself above the hotbar to whoever is looking at it.
-     *
-     * <p>Defaults to true when the setting is missing, which is what an existing server's
-     * config.yml looks like after an upgrade. A new thing that announces itself is the right
-     * default here: the whole complaint this answers is that a mirror gives no sign of being
-     * anything but a banner.
-     *
-     * @return true if looking at a mirror says what it is
-     */
+    /** See {@link MirrorSettings#isMirrorApproachMessage()}. */
     public static boolean isMirrorApproachMessage()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_APPROACH_MESSAGE);
-        return (s == null) || s.getBooleanValue();
+        return MirrorSettings.isMirrorApproachMessage();
     }
 
 
-    /**
-     * Whether creatures in a mirror's or a gate's far room are shown through it, as stand-ins.
-     *
-     * <p>False when the setting is missing, as on an upgraded server's config.yml: stand-ins are
-     * real entities that other plugins see, so they are something an admin turns on.
-     *
-     * @return true if a view shows the creatures standing in its far room
-     */
+    /** See {@link MirrorSettings#isMirrorShowEntities()}. */
     public static boolean isMirrorShowEntities()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_SHOW_ENTITIES);
-        return (s != null) && s.getBooleanValue();
+        return MirrorSettings.isMirrorShowEntities();
     }
 
-    /**
-     * Whether the players in a far room are shown as well as its mobs; asked only where
-     * {@link #isMirrorShowEntities()} is on.
-     *
-     * <p>False when the setting is missing, as on an upgraded server's config.yml: it shows who is in
-     * the destination room, which is for an admin to turn on.
-     *
-     * @return true if a view shows the players standing in its far room
-     */
+    /** See {@link MirrorSettings#isMirrorShowPlayers()}. */
     public static boolean isMirrorShowPlayers()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_SHOW_PLAYERS);
-        return (s != null) && s.getBooleanValue();
+        return MirrorSettings.isMirrorShowPlayers();
     }
 
     /** The most chunks ahead a watched window's far side is held to: 4 is 45 chunks a window. */
@@ -1426,50 +1362,10 @@ public class ConfigManager
     /** What {@code mirror-entity-load-radius} is when the setting is missing, as on an upgraded config.yml. */
     static final int DEFAULT_ENTITY_LOAD_RADIUS = 2;
 
-    /**
-     * How many chunks in front of a watched window's far side are held loaded for its creatures.
-     *
-     * @return 0 to {@link #MOST_ENTITY_LOAD_RADIUS}; 2 when the setting is missing
-     */
+    /** See {@link MirrorSettings#getMirrorEntityLoadRadius()}. */
     public static int getMirrorEntityLoadRadius()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS);
-        final int radius = (s == null) ? DEFAULT_ENTITY_LOAD_RADIUS : wholeNumberOr(s, DEFAULT_ENTITY_LOAD_RADIUS);
-        return Math.max(0, Math.min(MOST_ENTITY_LOAD_RADIUS, radius));
-    }
-
-    /** Whether a setting that is not a whole number has been reported yet. */
-    private static boolean warnedNotWhole;
-
-    /**
-     * A setting's whole number, or a fallback, said once, for a value written by hand that is not
-     * one: getIntValue casts, and a config.yml with "two" in it threw on every read.
-     */
-    private static int wholeNumberOr(final Setting setting, final int fallback)
-    {
-        final Object value = setting.getValue();
-        if (value instanceof Integer whole)
-        {
-            return whole.intValue();
-        }
-        try
-        {
-            return Integer.parseInt(String.valueOf(value).trim());
-        }
-        catch (final NumberFormatException notWhole)
-        {
-            if (!warnedNotWhole)
-            {
-                warnedNotWhole = true;
-                final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-                if (plugin != null)
-                {
-                    plugin.prettyLog(Level.WARNING, setting.getName() + " is \"" + value + "\", not a whole number; using "
-                        + fallback);
-                }
-            }
-            return fallback;
-        }
+        return MirrorSettings.getMirrorEntityLoadRadius();
     }
 
     /**
