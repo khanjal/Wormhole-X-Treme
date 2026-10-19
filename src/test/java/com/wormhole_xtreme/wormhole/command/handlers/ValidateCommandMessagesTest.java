@@ -121,7 +121,8 @@ class ValidateCommandMessagesTest
         when(block.getWorld()).thenReturn(world);
         when(block.getX()).thenReturn(0);
         when(block.getZ()).thenReturn(0);
-        when(block.getState()).thenReturn(mock(BlockState.class));
+        final BlockState state = mock(BlockState.class);
+        when(block.getState()).thenReturn(state);
         return block;
     }
 
