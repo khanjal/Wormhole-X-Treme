@@ -8,6 +8,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * WormholeXtreme Runnable thread for updating stargates.
@@ -129,11 +130,11 @@ public class StargateUpdateRunnable implements Runnable
                     if (stargate.getGateDialSignTarget() != null)
                     {
                         final String target = stargate.getGateDialSignTarget().getGateName();
-                        player.sendMessage(ChatText.info("Dialer set to " + ChatText.name(target) + "."));
+                        player.sendMessage(ChatText.info(Messages.get(player, "gate.sign.dialer-set", ChatText.name(target))));
                     }
                     else
                     {
-                        player.sendMessage(ChatText.error("No other gates to dial."));
+                        player.sendMessage(ChatText.error(Messages.get(player, "gate.sign.no-other-gates")));
                     }
                 }
                 break;

@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Resolves a name to a beam destination and sends the player there -- shared by
@@ -69,8 +70,8 @@ public final class BeamTravel
         final Location stored = destination.toLocation();
         if (stored == null)
         {
-            player.sendMessage(ChatText.error(ChatText.name(destination.name()) + " is in world "
-                + ChatText.name(destination.point().worldName()) + ", which is not loaded."));
+            player.sendMessage(ChatText.error(Messages.get(player, "beam.travel.not-loaded",
+                ChatText.name(destination.name()), ChatText.name(destination.point().worldName()))));
             return true;
         }
         // Terrain drift away from a destination's recorded coordinates is corrected by
@@ -82,8 +83,7 @@ public final class BeamTravel
         {
             // Not StargateRestrictions.cooldownRefusal -- its wording
             // names a stargate specifically, which would be wrong here.
-            player.sendMessage(ChatText.error("You must wait longer before beaming again: "
-                + seconds(BeamCooldown.remainingSeconds(player)) + "."));
+            player.sendMessage(ChatText.error(cooldown(player, BeamCooldown.remainingSeconds(player))));
             return true;
         }
 
@@ -92,7 +92,7 @@ public final class BeamTravel
         {
             // Not ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS -- same reason: its
             // wording says "this gate."
-            player.sendMessage(ChatText.error("You cannot afford this beam. It costs " + cost(useCost) + "."));
+            player.sendMessage(ChatText.error(Messages.get(player, "beam.travel.cannot-afford", cost(useCost))));
             return true;
         }
         if (useCost > 0)
@@ -102,7 +102,7 @@ public final class BeamTravel
             // genuine surprise. A hard confirm-before-travelling step felt like more
             // friction than gate travel has ever needed for the same kind of cost, so this
             // is the middle ground -- seen, not gated on.
-            player.sendMessage(ChatText.info("This will cost " + cost(useCost) + "."));
+            player.sendMessage(willCost(player, useCost));
         }
 
         // BeamAnimation.start already refuses (and messages) a player who is mid-beam, so
@@ -113,7 +113,7 @@ public final class BeamTravel
             if (useCost > 0)
             {
                 EconomySupport.charge(player, useCost);
-                player.sendMessage(ChatText.info("Charged " + cost(useCost) + "."));
+                player.sendMessage(charged(player, useCost));
             }
             if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled())
             {
@@ -123,10 +123,30 @@ public final class BeamTravel
         return true;
     }
 
-    /** @return a count of seconds, for a message */
-    private static String seconds(final long count)
+    /** @return why {@code player} must wait, {@code count} seconds of cooldown left, without its header */
+    private static String cooldown(final Player player, final long count)
     {
-        return ChatText.value(String.valueOf(count)) + ((count == 1) ? " second" : " seconds");
+        final String left = ChatText.value(String.valueOf(count));
+        if (count == 1)
+        {
+            return Messages.get(player, "beam.travel.cooldown.one", left);
+        }
+        return Messages.get(player, "beam.travel.cooldown.other", left);
+    }
+
+    /**
+     * @return the notice, for {@code player} to read, of what the beam about to start costs; package-private, as
+     *         is {@link #charged}, since both are sent around {@link BeamAnimation#start}, which a test cannot load
+     */
+    static String willCost(final Player player, final double amount)
+    {
+        return ChatText.info(Messages.get(player, "beam.travel.will-cost", cost(amount)));
+    }
+
+    /** @return the notice, for {@code player} to read, that the beam was paid for */
+    static String charged(final Player player, final double amount)
+    {
+        return ChatText.info(Messages.get(player, "beam.travel.charged", cost(amount)));
     }
 
     /** @return an amount and its currency, for a message */

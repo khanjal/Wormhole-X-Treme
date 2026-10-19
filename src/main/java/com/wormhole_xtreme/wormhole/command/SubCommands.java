@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.command.handlers.CustomCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.FreyaCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.GateCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand;
+import com.wormhole_xtreme.wormhole.command.handlers.LangCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
 import com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand;
@@ -51,6 +52,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
+import com.wormhole_xtreme.wormhole.utils.LangExport;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
@@ -371,8 +373,8 @@ public final class SubCommands
 
         // --- The shape people actually type --------------------------------
         // Everything above stays registered and keeps working; it is just no longer what is
-        // advertised. Four names now cover it: two nouns that behave alike, the settings, and
-        // the one thing that is neither.
+        // advertised. A handful of names now cover it: the nouns that behave alike, the settings,
+        // lang files, and the one thing that is none of those.
         register("gate", aliases("gates"),
             "/wormhole gate <" + String.join("|",
                 GateCommand.verbs()) + ">",
@@ -402,6 +404,20 @@ public final class SubCommands
                 final String typed = (args[1] == null) ? null : args[1].replace('-', '_');
                 return combine(prefixed(args[1], ConfigCommand.RELOAD),
                     prefixed(typed, ConfigManager.settingNames().toArray(new String[0])));
+            });
+        register("lang", aliases(), "/wormhole lang " + LangCommand.EXPORT + " [code]",
+            new LangCommand(), false, (sender, args) ->
+            {
+                if (!CommandHandlerUtils.hasConfigPermission(sender))
+                {
+                    return none();
+                }
+                if (args.length == 2)
+                {
+                    return prefixed(args[1], LangCommand.EXPORT);
+                }
+                return ((args.length == 3) && LangCommand.EXPORT.equalsIgnoreCase(args[1]))
+                    ? prefixed(args[2], LangExport.shippedLanguages().toArray(new String[0])) : none();
             });
 
         // --- Not advertised ---------------------------------------------------

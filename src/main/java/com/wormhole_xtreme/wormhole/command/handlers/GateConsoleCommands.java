@@ -280,7 +280,7 @@ public final class GateConsoleCommands
         }
         if (!RegionFlags.mayBuild(player, locationsOf(world, cellsOf(shape, grid))))
         {
-            return RegionFlags.BUILD_REFUSED;
+            return RegionFlags.buildRefused(sender);
         }
         final String tooClose = GateSpacing.refusal(player, world, locationsOf(world, GateBlueprint.openingOf(shape, grid)));
         return (tooClose == null) ? null : notBuilt(sender, tooClose);

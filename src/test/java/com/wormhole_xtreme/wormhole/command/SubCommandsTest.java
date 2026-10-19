@@ -34,19 +34,19 @@ class SubCommandsTest
     }
 
     @Test
-    void whatIsAdvertisedIsTheSixNamesAndNothingElse()
+    void whatIsAdvertisedIsTheSevenNamesAndNothingElse()
     {
         // The commands were restructured under nouns that behave alike -- four ways to travel
-        // now (gate, ring, beam, mirror), the settings, and the one thing that is neither.
+        // now (gate, ring, beam, mirror), the settings and lang files, and the one thing that is neither.
         // Twenty-two names at the top level was how a plugin ends up with a help message
         // nobody reads, and the guard against drifting back is that this list is exact: a new
         // noun has to be added here deliberately rather than appearing unnoticed.
         final List<String> expected =
-            Arrays.asList("gate", "ring", "beam", "mirror", "compass", "config");
+            Arrays.asList("gate", "ring", "beam", "mirror", "compass", "config", "lang");
         final List<String> offered = SubCommands.namesMatching("");
         assertEquals(expected,
             offered.stream().sorted(Comparator.comparing(expected::indexOf)).toList(),
-            "the advertised list should be exactly the six nouns");
+            "the advertised list should be exactly the seven nouns");
     }
 
     @Test

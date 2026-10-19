@@ -31,6 +31,7 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -239,19 +240,30 @@ final class GateWalkThrough
     private static boolean refuseWithReminder(final Player player, final Stargate stargate,
         final String message)
     {
+        if (remindOfRefusal(player, stargate))
+        {
+            player.sendMessage(message);
+        }
+        return true;
+    }
+
+    /**
+     * Notes a refused step and says whether to tell the player again, so a line is built only when sent.
+     *
+     * <p>The move is cancelled either way: only the chat line is skipped, and only when it would just be
+     * saying the same thing again a moment later.
+     *
+     * @return true if the player should be told
+     */
+    private static boolean remindOfRefusal(final Player player, final Stargate stargate)
+    {
         final UUID id = player.getUniqueId();
         final String gateName = stargate.getGateName();
         final long now = System.currentTimeMillis();
         final RecentGateRefusal last = recentGateRefusals.get(id);
-        // The move is cancelled either way -- only the chat line is what gets skipped, and
-        // only when it would just be saying the same thing again a moment later.
-        if ((last == null) || !last.gateName.equals(gateName)
-            || ((now - last.atMillis) > GATE_REFUSAL_REMINDER_MILLIS))
-        {
-            player.sendMessage(message);
-        }
         recentGateRefusals.put(id, new RecentGateRefusal(gateName, now));
-        return true;
+        return (last == null) || !last.gateName.equals(gateName)
+            || ((now - last.atMillis) > GATE_REFUSAL_REMINDER_MILLIS);
     }
 
     /**
@@ -289,8 +301,11 @@ final class GateWalkThrough
         {
             return false;
         }
-        return refuseWithReminder(player, stargate,
-            ChatText.error("This gate's iris is closed."));
+        if (remindOfRefusal(player, stargate))
+        {
+            player.sendMessage(ChatText.error(Messages.get(player, "gate.walk.iris-closed")));
+        }
+        return true;
     }
 
     /**
@@ -859,7 +874,7 @@ final class GateWalkThrough
         if (!moved)
         {
             // Not split from the mount: sending the player on alone would leave it here.
-            player.sendMessage(ChatText.error("What you are riding could not be sent through."));
+            player.sendMessage(ChatText.error(Messages.get(player, "gate.walk.ride-failed")));
             return false;
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerTeleport: teleported "

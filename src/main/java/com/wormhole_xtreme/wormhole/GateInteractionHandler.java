@@ -33,6 +33,7 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -291,20 +292,20 @@ public final class GateInteractionHandler
     {
         if (!newGate.isGateSignPowered())
         {
-            player.sendMessage(ChatText.info("Valid stargate design."));
-            player.sendMessage(completeHint(NAME_PLACEHOLDER));
+            player.sendMessage(ChatText.info(Messages.get(player, "gate.design.valid")));
+            player.sendMessage(completeHint(player, NAME_PLACEHOLDER));
             return;
         }
-        player.sendMessage(ChatText.info("Valid sign nav stargate design."));
+        player.sendMessage(ChatText.info(Messages.get(player, "gate.design.valid-sign")));
         final String signName = newGate.getGateName();
-        player.sendMessage(completeHint(signName.isEmpty() ? NAME_PLACEHOLDER : signName));
+        player.sendMessage(completeHint(player, signName.isEmpty() ? NAME_PLACEHOLDER : signName));
     }
 
     /** What to type to finish a gate; {@code name} is the sign's own, or {@code <name>} to be filled in. */
-    static String completeHint(final String name)
+    static String completeHint(final Player player, final String name)
     {
-        return ChatText.info("Type " + ChatText.command("/wormhole complete") + " " + ChatText.name(name)
-            + " [idc=IDC] [net=NET] to finish it.");
+        return ChatText.info(Messages.get(player, "gate.design.complete-hint", ChatText.command("/wormhole complete"),
+            ChatText.name(name), "[idc=IDC] [net=NET]"));
     }
 
     /** What a hint shows where the player picks the gate's name. */
@@ -337,7 +338,7 @@ public final class GateInteractionHandler
             Stargate found = detectAnyFacing(clickedBlock, resolveClickDirection(clickedBlock, direction));
             if (found == null)
             {
-                player.sendMessage(ChatText.error("No gate detected at the clicked block. Click the DHD's button or lever again."));
+                player.sendMessage(ChatText.error(Messages.get(player, "gate.design.none-clicked")));
                 logDetectionDiagnostics(player, clickedBlock);
                 return true;
             }
@@ -351,7 +352,7 @@ public final class GateInteractionHandler
             // a DHD that answered with silence.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Interactive /wormhole complete failed for " + player.getName(), e);
-            player.sendMessage(ChatText.error("Completing the gate failed. Check server logs."));
+            player.sendMessage(ChatText.error(Messages.get(player, "gate.design.complete-failed")));
             Complete.removePendingCompletion(player);
         }
         return true;
@@ -409,7 +410,7 @@ public final class GateInteractionHandler
         }
         StargateManager.addIncompleteStargate(player, found);
         Complete.completeAndCharge(player, pending[0], pending[1], pending[2],
-            "Completing the gate failed after it was detected. Check the server log.", null);
+            Messages.get(player, "gate.design.complete-failed-detected"), null);
     }
 
     /** Reports what is around the clicked block when detection found nothing. */
@@ -570,22 +571,23 @@ public final class GateInteractionHandler
 
         if (activator == null)
         {
-            player.sendMessage(ChatText.info("Gate deactivated."));
+            player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.deactivated")));
             return;
         }
 
         try
         {
-            player.sendMessage(ChatText.info("Gate deactivated; " + ChatText.name(activator.getName()) + " had activated it."));
+            player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.deactivated-by",
+                ChatText.name(activator.getName()))));
             if (activator.isOnline())
             {
-                activator.sendMessage(ChatText.info("Your pending gate activation was cleared by "
-                    + ChatText.name(player.getName()) + "."));
+                activator.sendMessage(ChatText.info(Messages.get(activator, "gate.activate.cleared-by",
+                    ChatText.name(player.getName()))));
             }
         }
         catch (final Exception e)
         {
-            player.sendMessage(ChatText.info("Gate deactivated."));
+            player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.deactivated")));
         }
     }
 
@@ -633,7 +635,7 @@ public final class GateInteractionHandler
 
         if (stargate.dialStargate(target, false))
         {
-            player.sendMessage(ChatText.info("Stargates connected!"));
+            player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.connected")));
             return true;
         }
         player.sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
@@ -653,8 +655,9 @@ public final class GateInteractionHandler
     {
         //Activate Stargate
         player.sendMessage(ConfigManager.MessageStrings.GATE_ACTIVATED.toString());
-        player.sendMessage(ChatText.info("Chevrons locked."));
-        player.sendMessage(ChatText.info("Type " + ChatText.usageBody("/dial <gate> [idc]") + " to dial."));
+        player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.chevrons-locked")));
+        player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.type-to-dial",
+            ChatText.usageBody("/dial <gate> [idc]"))));
         StargateManager.addActivatedStargate(player, stargate);
         stargate.startActivationTimer(player);
         stargate.lightAllChevrons();
@@ -926,8 +929,8 @@ public final class GateInteractionHandler
                 return;
             }
             StargateManager.addIncompleteStargate(player, nearbyGate);
-            player.sendMessage(ChatText.info("Valid design found nearby. Type " + ChatText.command("/wormhole complete")
-                + " " + ChatText.name(NAME_PLACEHOLDER) + " to finish it."));
+            player.sendMessage(ChatText.info(Messages.get(player, "gate.design.nearby",
+                ChatText.command("/wormhole complete"), ChatText.name(NAME_PLACEHOLDER))));
         }
         else
         {

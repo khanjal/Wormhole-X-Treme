@@ -48,7 +48,7 @@ final class RegionTravelListener implements Listener
         final UUID id = player.getUniqueId();
         if (lastTold.putIfAbsent(id, now) == null)
         {
-            player.sendMessage(RegionFlags.USE_REFUSED);
+            player.sendMessage(RegionFlags.useRefused(player));
         }
     }
 }
