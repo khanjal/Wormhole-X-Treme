@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
 
@@ -21,6 +20,7 @@ import com.wormhole_xtreme.wormhole.command.WXRemove;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Everything you do to a gate, under one name.
@@ -240,8 +240,8 @@ public class GateCommand implements SubCommand
             return new Force().onCommand(sender, null, verb, rest);
         }
 
-        sender.sendMessage(ChatText.error("No such gate command: " + ChatText.command(args[1]) + ". Try one of: "
-            + VERBS.stream().map(ChatText::command).collect(Collectors.joining(", ")) + "."));
+        sender.sendMessage(ChatText.error(Messages.get(sender, "gate.cmd.unknown", ChatText.command(args[1]),
+            String.join(Messages.get(sender, "gate.cmd.separator"), VERBS.stream().map(ChatText::command).toList()))));
         return true;
     }
 
@@ -271,16 +271,35 @@ public class GateCommand implements SubCommand
             sender.sendMessage(ChatText.error(result.getProblem()));
             return;
         }
-        sender.sendMessage(ChatText.info("Imported " + ChatText.value(String.valueOf(result.getImported())) + " gate"
-            + (result.getImported() == 1 ? "" : "s") + ". The old database is untouched."));
+        final String imported = ChatText.value(String.valueOf(result.getImported()));
+        final String done;
+        if (result.getImported() == 1)
+        {
+            done = Messages.get(sender, "gate.cmd.import.done.one", imported);
+        }
+        else
+        {
+            done = Messages.get(sender, "gate.cmd.import.done.other", imported);
+        }
+        sender.sendMessage(ChatText.info(done));
         if (result.getMovedExits() > 0)
         {
-            sender.sendMessage(ChatText.info(ChatText.value(String.valueOf(result.getMovedExits()))
-                + " of those had an arrival point inside the portal, and were moved clear of it."));
+            final String moved = ChatText.value(String.valueOf(result.getMovedExits()));
+            final String line;
+            if (result.getMovedExits() == 1)
+            {
+                line = Messages.get(sender, "gate.cmd.import.moved-exits.one", moved);
+            }
+            else
+            {
+                line = Messages.get(sender, "gate.cmd.import.moved-exits.other", moved);
+            }
+            sender.sendMessage(ChatText.info(line));
         }
+        final String skippedWord = ChatText.bad(Messages.get(sender, "gate.cmd.import.skipped-word"));
         for (final String skipped : result.getSkipped())
         {
-            sender.sendMessage(ChatText.info("  " + ChatText.bad("skipped") + " " + skipped));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.cmd.import.skipped", skippedWord, skipped)));
         }
     }
 }

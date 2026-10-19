@@ -8,7 +8,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
@@ -20,6 +19,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Handler for the three per-gate material overrides.
@@ -50,26 +50,23 @@ public class MaterialCommand implements SubCommand
     public enum Kind
     {
         /** What the gate interior shows while a wormhole is open. */
-        PORTAL("portalmaterial", "portal",
+        PORTAL("portalmaterial",
             materials(Material.WATER, Material.LAVA, Material.AIR, Material.NETHER_PORTAL),
             Stargate::getGateCustomPortalMaterial, Stargate::setGateCustomPortalMaterial),
 
         /** What the iris is made of when engaged. */
-        IRIS("irismaterial", "iris",
+        IRIS("irismaterial",
             materials(Material.STONE, Material.DIAMOND_BLOCK, Material.GLASS, Material.IRON_BLOCK,
                 Material.BEDROCK, Material.LAPIS_BLOCK),
             Stargate::getGateCustomIrisMaterial, Stargate::setGateCustomIrisMaterial),
 
         /** What the light blocks become while the gate is active. */
-        LIGHT("lightmaterial", "light",
+        LIGHT("lightmaterial",
             materials(Material.GLOWSTONE, Material.REDSTONE_ORE),
             Stargate::getGateCustomLightMaterial, Stargate::setGateCustomLightMaterial);
 
         /** The subcommand as it is typed. */
         private final String command;
-
-        /** The noun used in messages, lower case: "portal", "iris", "light". */
-        private final String noun;
 
         /** Every material this override accepts. Iteration order is the order listed to players. */
         private final Set<Material> allowed;
@@ -80,11 +77,10 @@ public class MaterialCommand implements SubCommand
         /** Writes the gate's override. */
         private final BiConsumer<Stargate, Material> setter;
 
-        Kind(final String command, final String noun, final Set<Material> allowed,
+        Kind(final String command, final Set<Material> allowed,
             final Function<Stargate, Material> getter, final BiConsumer<Stargate, Material> setter)
         {
             this.command = command;
-            this.noun = noun;
             this.allowed = allowed;
             this.getter = getter;
             this.setter = setter;
@@ -194,32 +190,75 @@ public class MaterialCommand implements SubCommand
         final Stargate stargate = StargateManager.getStargate(args[1]);
         if (!stargate.isGateCustom())
         {
-            sender.sendMessage(ChatText.error(ChatText.name(stargate.getGateName()) + " is not in custom mode. Turn it on with "
-                + ChatText.command("/wormhole custom " + stargate.getGateName() + " true") + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.material.not-custom",
+                ChatText.name(stargate.getGateName()),
+                ChatText.command("/wormhole custom " + stargate.getGateName() + " true"))));
             return true;
         }
 
         if (args.length == 2)
         {
-            sender.sendMessage(ChatText.info(ChatText.name(args[1]) + " " + kind.noun + " material is currently: "
-                + ChatText.material(String.valueOf(kind.getter.apply(stargate))) + "."));
-            sender.sendMessage(ChatText.info(validMaterials()));
+            sender.sendMessage(ChatText.info(current(sender, ChatText.name(args[1]),
+                ChatText.material(String.valueOf(kind.getter.apply(stargate))))));
+            sender.sendMessage(ChatText.info(validMaterials(sender)));
             return true;
         }
 
         final Material material = parse(args[2]);
         if ((material == null) || !kind.allowed.contains(material))
         {
-            sender.sendMessage(ChatText.error("Invalid " + kind.noun + " material: " + ChatText.material(args[2]) + "."));
-            sender.sendMessage(ChatText.info(validMaterials()));
+            sender.sendMessage(ChatText.error(invalid(sender, ChatText.material(args[2]))));
+            sender.sendMessage(ChatText.info(validMaterials(sender)));
             return true;
         }
 
         kind.setter.accept(stargate, material);
         StargateDBManager.saveStargate(stargate);
-        sender.sendMessage(ChatText.info(ChatText.name(args[1]) + " " + kind.noun + " material set to: "
-            + ChatText.material(String.valueOf(kind.getter.apply(stargate))) + "."));
+        sender.sendMessage(ChatText.info(nowSet(sender, ChatText.name(args[1]),
+            ChatText.material(String.valueOf(kind.getter.apply(stargate))))));
         return true;
+    }
+
+    /** @return this kind's current material, said whole so the noun sits where the language puts it */
+    private String current(final CommandSender sender, final String gate, final String material)
+    {
+        if (kind == Kind.PORTAL)
+        {
+            return Messages.get(sender, "gate.material.portal.current", gate, material);
+        }
+        if (kind == Kind.IRIS)
+        {
+            return Messages.get(sender, "gate.material.iris.current", gate, material);
+        }
+        return Messages.get(sender, "gate.material.light.current", gate, material);
+    }
+
+    /** @return the refusal of a material this kind does not take */
+    private String invalid(final CommandSender sender, final String typed)
+    {
+        if (kind == Kind.PORTAL)
+        {
+            return Messages.get(sender, "gate.material.portal.invalid", typed);
+        }
+        if (kind == Kind.IRIS)
+        {
+            return Messages.get(sender, "gate.material.iris.invalid", typed);
+        }
+        return Messages.get(sender, "gate.material.light.invalid", typed);
+    }
+
+    /** @return the material this kind was just set to */
+    private String nowSet(final CommandSender sender, final String gate, final String material)
+    {
+        if (kind == Kind.PORTAL)
+        {
+            return Messages.get(sender, "gate.material.portal.set", gate, material);
+        }
+        if (kind == Kind.IRIS)
+        {
+            return Messages.get(sender, "gate.material.iris.set", gate, material);
+        }
+        return Messages.get(sender, "gate.material.light.set", gate, material);
     }
 
     /**
@@ -248,12 +287,14 @@ public class MaterialCommand implements SubCommand
     /**
      * The advice line, generated from the same set the check uses.
      *
+     * @param sender
+     *            who will read it
      * @return the sentence listing every accepted material
      */
-    private String validMaterials()
+    private String validMaterials(final CommandSender sender)
     {
-        return "Valid materials are: " + kind.allowedNames().stream().map(ChatText::material)
-            .collect(Collectors.joining(", ")) + ".";
+        return Messages.get(sender, "gate.material.valid", String.join(Messages.get(sender, "gate.material.separator"),
+            kind.allowedNames().stream().map(ChatText::material).toList()));
     }
 
     /**
@@ -265,7 +306,7 @@ public class MaterialCommand implements SubCommand
     private void usage(final CommandSender sender)
     {
         sender.sendMessage(ChatText.info(ChatText.usage("/wormhole " + kind.command + " <gate> [material]")));
-        sender.sendMessage(ChatText.info(validMaterials()));
+        sender.sendMessage(ChatText.info(validMaterials(sender)));
     }
 
 }
