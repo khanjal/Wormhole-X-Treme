@@ -1343,6 +1343,7 @@ public class ConfigManager
         return MirrorSettings.isMirrorApproachMessage();
     }
 
+
     /** See {@link MirrorSettings#isMirrorShowEntities()}. */
     public static boolean isMirrorShowEntities()
     {
@@ -1366,7 +1367,6 @@ public class ConfigManager
     {
         return MirrorSettings.getMirrorEntityLoadRadius();
     }
-
 
     /**
      * How far past an opening a mirror's room, and an open gate's far side once filled in, is drawn.
