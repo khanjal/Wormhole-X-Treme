@@ -1162,7 +1162,6 @@ public class ConfigManager
         return SignSettings.isSignDialMatchMaterial();
     }
 
-
     /** See {@link SignSettings#getSignColorGateName()}. */
     public static String getSignColorGateName()
     {
@@ -1343,7 +1342,6 @@ public class ConfigManager
     {
         return MirrorSettings.isMirrorApproachMessage();
     }
-
 
     /** See {@link MirrorSettings#isMirrorShowEntities()}. */
     public static boolean isMirrorShowEntities()
