@@ -723,18 +723,14 @@ public class ConfigManager
         return speedSetting(ConfigKeys.RING_ANIMATION_SPEED);
     }
 
-    /**
-     * How fast the beaming animation runs against its shipped timings (#589).
-     *
-     * @return 1.0 for the shipped timings, from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
-     */
+    /** See {@link BeamSettings#getBeamAnimationSpeed()}. */
     public static double getBeamAnimationSpeed()
     {
-        return speedSetting(ConfigKeys.BEAM_ANIMATION_SPEED);
+        return BeamSettings.getBeamAnimationSpeed();
     }
 
     /** A speed setting, inside the range that keeps every sequence whole; 1.0 when missing or not a number. */
-    private static double speedSetting(final ConfigKeys key)
+    static double speedSetting(final ConfigKeys key)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         return clampSpeed((s == null) ? 1.0 : s.getDoubleValue());
@@ -772,11 +768,6 @@ public class ConfigManager
         return atSpeed(ticks, getRingAnimationSpeed());
     }
 
-    /** A shipped beam duration at {@code beam-animation-speed}. */
-    private static int beamTicks(final int ticks)
-    {
-        return atSpeed(ticks, getBeamAnimationSpeed());
-    }
 
     /**
      * How a dialling gate's inner ring light moves. A config.yml from before patterns holds
@@ -1246,150 +1237,88 @@ public class ConfigManager
         return soundSetting(ConfigKeys.RING_SOUND_REFUSED, "block.note_block.bass");
     }
 
-    /**
-     * Whether beaming makes any noise at all.
-     *
-     * @return true if beam sounds should play
-     */
+    /** See {@link BeamSettings#isBeamSoundsEnabled()}. */
     public static boolean isBeamSoundsEnabled()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_SOUNDS_ENABLED);
-        return (s == null) || s.getBooleanValue();
+        return BeamSettings.isBeamSoundsEnabled();
     }
 
-    /**
-     * How loud beam sounds are.
-     *
-     * @return 1.0 when unset; past 1.0 it widens the range heard rather than the loudness
-     */
+    /** See {@link BeamSettings#getBeamSoundVolume()}. */
     public static float getBeamSoundVolume()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_SOUND_VOLUME);
-        return (s == null) ? 1.0f : (float) s.getDoubleValue();
+        return BeamSettings.getBeamSoundVolume();
     }
 
-    /**
-     * The sound played the instant a beam sequence starts.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link BeamSettings#getBeamSoundCharge()}. */
     public static String getBeamSoundCharge()
     {
-        return soundSetting(ConfigKeys.BEAM_SOUND_CHARGE, "block.respawn_anchor.charge");
+        return BeamSettings.getBeamSoundCharge();
     }
 
-    /**
-     * The sound played the instant the real teleport fires, mid-rise.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link BeamSettings#getBeamSoundDepart()}. */
     public static String getBeamSoundDepart()
     {
-        return soundSetting(ConfigKeys.BEAM_SOUND_DEPART, "entity.enderman.teleport");
+        return BeamSettings.getBeamSoundDepart();
     }
 
-    /**
-     * The sound played once the column finishes descending at the destination.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link BeamSettings#getBeamSoundArrive()}. */
     public static String getBeamSoundArrive()
     {
-        return soundSetting(ConfigKeys.BEAM_SOUND_ARRIVE, "entity.shulker.teleport");
+        return BeamSettings.getBeamSoundArrive();
     }
 
-    /**
-     * How long the glow gathers at body height before opening into the departure column.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- {@code BeamTiming} is where the
-     *         relationships between this and the other beam timings are enforced
-     */
+    /** See {@link BeamSettings#getBeamEnvelopTicks()}. */
     public static int getBeamEnvelopTicks()
     {
-        return beamTicks(12);
+        return BeamSettings.getBeamEnvelopTicks();
     }
 
-    /**
-     * How far into the envelope the traveller vanishes.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamVanishAtStep()}. */
     public static int getBeamVanishAtStep()
     {
-        return beamTicks(6);
+        return BeamSettings.getBeamVanishAtStep();
     }
 
-    /**
-     * How long the column rises and departs, once the envelope opens into it.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamRiseTicks()}. */
     public static int getBeamRiseTicks()
     {
-        return beamTicks(18);
+        return BeamSettings.getBeamRiseTicks();
     }
 
-    /**
-     * How far into the rise the real teleport fires.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamTeleportAtStep()}. */
     public static int getBeamTeleportAtStep()
     {
-        return beamTicks(12);
+        return BeamSettings.getBeamTeleportAtStep();
     }
 
-    /**
-     * How long the column takes to descend into place at the destination.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamDescendTicks()}. */
     public static int getBeamDescendTicks()
     {
-        return beamTicks(20);
+        return BeamSettings.getBeamDescendTicks();
     }
 
-    /**
-     * How long the column takes to fade out once it has deposited the traveller.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamFadeTicks()}. */
     public static int getBeamFadeTicks()
     {
-        return beamTicks(8);
+        return BeamSettings.getBeamFadeTicks();
     }
 
-    /**
-     * Whether beam travel has a per-player cooldown at all.
-     *
-     * @return true if a cooldown should be enforced
-     */
+    /** See {@link BeamSettings#isBeamUseCooldownEnabled()}. */
     public static boolean isBeamUseCooldownEnabled()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED);
-        return (s != null) && s.getBooleanValue();
+        return BeamSettings.isBeamUseCooldownEnabled();
     }
 
-    /**
-     * How many seconds a player must wait between beams, when the cooldown is enabled.
-     *
-     * @return the cooldown in seconds
-     */
+    /** See {@link BeamSettings#getBeamUseCooldownSeconds()}. */
     public static long getBeamUseCooldownSeconds()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS);
-        return (s == null) ? 120 : s.getIntValue();
+        return BeamSettings.getBeamUseCooldownSeconds();
     }
 
-    /**
-     * How much a beam costs, in whatever currency Vault is connected to.
-     *
-     * @return the cost; 0 or below means free
-     */
+    /** See {@link BeamSettings#getBeamEconomyUseCost()}. */
     public static double getBeamEconomyUseCost()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_ECONOMY_USE_COST);
-        return (s == null) ? 0.0 : s.getDoubleValue();
+        return BeamSettings.getBeamEconomyUseCost();
     }
 
     /**
@@ -1489,7 +1418,7 @@ public class ConfigManager
      *            the sound to use when it is unset
      * @return the sound name, trimmed; empty means play nothing
      */
-    private static String soundSetting(final ConfigKeys key, final String fallback)
+    static String soundSetting(final ConfigKeys key, final String fallback)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         if (s == null)
