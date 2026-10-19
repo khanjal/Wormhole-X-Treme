@@ -36,6 +36,7 @@ class MaterialCommandMessagesTest
 {
     private static final String ALPHA = "alpha";
     private static final String PLAIN = "plain";
+    private static final String DIRT = "dirt";
 
     /** A material each kind accepts that is not what it starts with, so a change shows. */
     private static final Map<Kind, Material> BEFORE = Map.of(Kind.PORTAL, Material.LAVA, Kind.IRIS, Material.GLASS,
@@ -72,7 +73,7 @@ class MaterialCommandMessagesTest
             command.execute(player, new String[] { kind.command(), PLAIN });
             command.execute(player, new String[] { kind.command() });
             command.execute(player, new String[] { kind.command(), ALPHA });
-            command.execute(player, new String[] { kind.command(), ALPHA, "dirt" });
+            command.execute(player, new String[] { kind.command(), ALPHA, DIRT });
             command.execute(player, new String[] { kind.command(), ALPHA, kind.allowedNames().get(0) });
         }
     }
@@ -108,7 +109,7 @@ class MaterialCommandMessagesTest
             final String noun = oldNoun(kind);
             verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " " + noun + " material is currently: "
                 + ChatText.material(String.valueOf(BEFORE.get(kind))) + "."));
-            verify(player).sendMessage(ChatText.error("Invalid " + noun + " material: " + ChatText.material("dirt") + "."));
+            verify(player).sendMessage(ChatText.error("Invalid " + noun + " material: " + ChatText.material(DIRT) + "."));
             verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " " + noun + " material set to: "
                 + ChatText.material(kind.allowedNames().get(0)) + "."));
             verify(player, times(3)).sendMessage(oldValid(kind));
@@ -128,7 +129,7 @@ class MaterialCommandMessagesTest
             final String noun = oldNoun(kind);
             verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " " + noun + " is "
                 + ChatText.material(String.valueOf(BEFORE.get(kind))) + "."));
-            verify(player).sendMessage(ChatText.error("QQ bad " + noun + " " + ChatText.material("dirt") + "."));
+            verify(player).sendMessage(ChatText.error("QQ bad " + noun + " " + ChatText.material(DIRT) + "."));
             verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " " + noun + " set "
                 + ChatText.material(kind.allowedNames().get(0)) + "."));
             verify(player, times(3)).sendMessage(ChatText.info("QQ valid "

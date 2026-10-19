@@ -46,6 +46,14 @@ class GateEditMessagesTest
     private static final String IRIS = "iris-animation";
     private static final String SPIN = "spin";
     private static final String GROUP = "group";
+    private static final String TOLLAN = "Tollan";
+    private static final String NOWHERE = "Nowhere";
+    private static final String SIDEWAYS = "sideways";
+    private static final String ROWS = "rows";
+    private static final String CHASE = "chase";
+    private static final String SPIRAL = "spiral";
+    private static final String PEGASUS = "pegasus";
+    private static final String BANANA = "banana";
 
     private MockedStatic<StargateDBManager> db;
 
@@ -55,8 +63,8 @@ class GateEditMessagesTest
         PluginTestSupport.install(mock(WormholeXTreme.class));
         AdminReaders.clearGates();
         MaterialGroupRegistry.load(Map.of(ATLANTIS,
-            Map.of("structure", "LAPIS_BLOCK", "iris-animation", "rows", "dial-spin", "chase"),
-            "Tollan", Map.of("structure", "DIAMOND_BLOCK")));
+            Map.of("structure", "LAPIS_BLOCK", "iris-animation", ROWS, "dial-spin", CHASE),
+            TOLLAN, Map.of("structure", "DIAMOND_BLOCK")));
         db = mockStatic(StargateDBManager.class);
     }
 
@@ -121,21 +129,21 @@ class GateEditMessagesTest
     {
         final Player player = reading("en");
         final String server = threeGates().getEffectiveIrisAnimation();
-        editEach(player, IRIS, "sideways", "spiral");
+        editEach(player, IRIS, SIDEWAYS, SPIRAL);
 
         verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + "'s iris crosses as "
             + ChatText.value("columns") + "" + "."));
         verify(player).sendMessage(ChatText.info(ChatText.name(BETA) + "'s iris crosses as "
-            + ChatText.value("rows") + oldFromGroup() + "."));
+            + ChatText.value(ROWS) + oldFromGroup() + "."));
         verify(player).sendMessage(ChatText.info(ChatText.name(GAMMA) + "'s iris crosses as "
             + ChatText.value(server) + " (the server default)" + "."));
-        verify(player).sendMessage(ChatText.error("No iris animation called " + ChatText.command("sideways") + "."));
+        verify(player).sendMessage(ChatText.error("No iris animation called " + ChatText.command(SIDEWAYS) + "."));
         verify(player, times(4)).sendMessage(ChatText.info("Animations are: "
             + oldOptions(GateEditCommand.irisAnimationNames()) + "."));
         verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + "'s iris now crosses as "
-            + ChatText.value("spiral") + "" + "."));
+            + ChatText.value(SPIRAL) + "" + "."));
         verify(player).sendMessage(ChatText.info(ChatText.name(BETA) + "'s iris now crosses as "
-            + ChatText.value("rows") + oldFromGroup() + "."));
+            + ChatText.value(ROWS) + oldFromGroup() + "."));
     }
 
     /** The same lines reach a qq admin in qq, the sources and the list as qq says them. */
@@ -144,19 +152,19 @@ class GateEditMessagesTest
     {
         final Player player = reading("qq");
         final String server = threeGates().getEffectiveIrisAnimation();
-        editEach(player, IRIS, "sideways", "spiral");
+        editEach(player, IRIS, SIDEWAYS, SPIRAL);
 
         verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " iris " + ChatText.value("columns") + "."));
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " iris " + ChatText.value("rows")
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " iris " + ChatText.value(ROWS)
             + " QQgroup " + ChatText.name(ATLANTIS) + "."));
         verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(GAMMA) + " iris " + ChatText.value(server)
             + " QQdefault."));
-        verify(player).sendMessage(ChatText.error("QQ no animation " + ChatText.command("sideways") + "."));
+        verify(player).sendMessage(ChatText.error("QQ no animation " + ChatText.command(SIDEWAYS) + "."));
         verify(player, times(4)).sendMessage(ChatText.info("QQ animations "
             + qqOptions(GateEditCommand.irisAnimationNames()) + "."));
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " iris now " + ChatText.value("spiral")
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " iris now " + ChatText.value(SPIRAL)
             + "."));
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " iris now " + ChatText.value("rows")
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " iris now " + ChatText.value(ROWS)
             + " QQgroup " + ChatText.name(ATLANTIS) + "."));
     }
 
@@ -166,20 +174,20 @@ class GateEditMessagesTest
     {
         final Player player = reading("en");
         final String server = threeGates().getEffectiveDialSpin().name().toLowerCase(Locale.ROOT);
-        editEach(player, SPIN, "sideways", "pegasus");
+        editEach(player, SPIN, SIDEWAYS, PEGASUS);
 
         verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " dials with " + ChatText.value("lap") + ""
             + "."));
-        verify(player).sendMessage(ChatText.info(ChatText.name(BETA) + " dials with " + ChatText.value("chase")
+        verify(player).sendMessage(ChatText.info(ChatText.name(BETA) + " dials with " + ChatText.value(CHASE)
             + oldFromGroup() + "."));
         verify(player).sendMessage(ChatText.info(ChatText.name(GAMMA) + " dials with " + ChatText.value(server)
             + " (the server default)" + "."));
-        verify(player).sendMessage(ChatText.error("No ring pattern called " + ChatText.command("sideways") + "."));
+        verify(player).sendMessage(ChatText.error("No ring pattern called " + ChatText.command(SIDEWAYS) + "."));
         verify(player, times(4)).sendMessage(ChatText.info("Patterns are: " + oldOptions(GateEditCommand.spinNames())
             + "."));
-        verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " now dials with " + ChatText.value("pegasus")
+        verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " now dials with " + ChatText.value(PEGASUS)
             + "" + "."));
-        verify(player).sendMessage(ChatText.info(ChatText.name(BETA) + " now dials with " + ChatText.value("chase")
+        verify(player).sendMessage(ChatText.info(ChatText.name(BETA) + " now dials with " + ChatText.value(CHASE)
             + oldFromGroup() + "."));
     }
 
@@ -189,18 +197,18 @@ class GateEditMessagesTest
     {
         final Player player = reading("qq");
         final String server = threeGates().getEffectiveDialSpin().name().toLowerCase(Locale.ROOT);
-        editEach(player, SPIN, "sideways", "pegasus");
+        editEach(player, SPIN, SIDEWAYS, PEGASUS);
 
         verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " spin " + ChatText.value("lap") + "."));
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " spin " + ChatText.value("chase")
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " spin " + ChatText.value(CHASE)
             + " QQgroup " + ChatText.name(ATLANTIS) + "."));
         verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(GAMMA) + " spin " + ChatText.value(server)
             + " QQdefault."));
-        verify(player).sendMessage(ChatText.error("QQ no pattern " + ChatText.command("sideways") + "."));
+        verify(player).sendMessage(ChatText.error("QQ no pattern " + ChatText.command(SIDEWAYS) + "."));
         verify(player, times(4)).sendMessage(ChatText.info("QQ patterns " + qqOptions(GateEditCommand.spinNames()) + "."));
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " spin now " + ChatText.value("pegasus")
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " spin now " + ChatText.value(PEGASUS)
             + "."));
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " spin now " + ChatText.value("chase")
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " spin now " + ChatText.value(CHASE)
             + " QQgroup " + ChatText.name(ATLANTIS) + "."));
     }
 
@@ -210,8 +218,8 @@ class GateEditMessagesTest
         threeGates();
         edit(player, ALPHA, GROUP);
         edit(player, BETA, GROUP);
-        edit(player, ALPHA, GROUP, "Nowhere");
-        edit(player, ALPHA, GROUP, "Tollan");
+        edit(player, ALPHA, GROUP, NOWHERE);
+        edit(player, ALPHA, GROUP, TOLLAN);
         edit(player, BETA, GROUP, "-clear");
     }
 
@@ -225,9 +233,9 @@ class GateEditMessagesTest
         verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " is on group " + "(none)" + "."));
         verify(player).sendMessage(ChatText.info(ChatText.name(BETA) + " is on group " + ChatText.name(ATLANTIS) + "."));
         verify(player, times(3)).sendMessage(ChatText.info("Groups are: " + ChatText.name(ATLANTIS) + ", "
-            + ChatText.name("Tollan") + "."));
-        verify(player).sendMessage(ChatText.error("No material group called " + ChatText.name("Nowhere") + "."));
-        verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " is now on group " + ChatText.name("Tollan")
+            + ChatText.name(TOLLAN) + "."));
+        verify(player).sendMessage(ChatText.error("No material group called " + ChatText.name(NOWHERE) + "."));
+        verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " is now on group " + ChatText.name(TOLLAN)
             + ". Its frame blocks are untouched; this changes what the gate draws."));
         verify(player).sendMessage(ChatText.info(ChatText.name(BETA) + " follows its frame again: group " + "(none)"
             + "."));
@@ -243,9 +251,9 @@ class GateEditMessagesTest
         verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " group QQnone."));
         verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " group " + ChatText.name(ATLANTIS) + "."));
         verify(player, times(3)).sendMessage(ChatText.info("QQ groups " + ChatText.name(ATLANTIS) + " | "
-            + ChatText.name("Tollan") + "."));
-        verify(player).sendMessage(ChatText.error("QQ no group " + ChatText.name("Nowhere") + "."));
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " now group " + ChatText.name("Tollan")
+            + ChatText.name(TOLLAN) + "."));
+        verify(player).sendMessage(ChatText.error("QQ no group " + ChatText.name(NOWHERE) + "."));
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " now group " + ChatText.name(TOLLAN)
             + "."));
         verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(BETA) + " frame group QQnone."));
     }
@@ -274,13 +282,13 @@ class GateEditMessagesTest
         for (final Player player : List.of(english, qq))
         {
             edit(player, ALPHA);
-            edit(player, ALPHA, "banana");
+            edit(player, ALPHA, BANANA);
         }
 
-        verify(english).sendMessage(ChatText.error("No field called " + ChatText.command("banana") + "."));
+        verify(english).sendMessage(ChatText.error("No field called " + ChatText.command(BANANA) + "."));
         verify(english, times(2)).sendMessage(ChatText.info("Fields are: " + oldOptions(GateEditCommand.fieldNames())
             + "."));
-        verify(qq).sendMessage(ChatText.error("QQ no field " + ChatText.command("banana") + "."));
+        verify(qq).sendMessage(ChatText.error("QQ no field " + ChatText.command(BANANA) + "."));
         verify(qq, times(2)).sendMessage(ChatText.info("QQ fields " + qqOptions(GateEditCommand.fieldNames()) + "."));
     }
 }

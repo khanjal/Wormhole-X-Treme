@@ -41,6 +41,11 @@ class CustomCommandMessagesTest
     private static final String CLEAN = "-clean";
     private static final String CONFIRM = "-confirm";
     private static final String HINT = "/wormhole custom -clean -confirm";
+    private static final String ABYDOS = "Abydos";
+    private static final String CHULAK = "Chulak";
+    private static final String BARE = "bare";
+    private static final String TRUE = "true";
+    private static final String FALSE = "false";
 
     private MockedStatic<StargateDBManager> db;
 
@@ -82,11 +87,11 @@ class CustomCommandMessagesTest
     private static void setModes(final Player player)
     {
         gate(ALPHA).setGateShape(new StargateShape());
-        gate("bare").setGateShape(null);
+        gate(BARE).setGateShape(null);
         custom(player, ALPHA);
         custom(player, ALPHA, "maybe");
-        custom(player, "bare", "true");
-        custom(player, "-all", "true");
+        custom(player, BARE, TRUE);
+        custom(player, "-all", TRUE);
         AdminReaders.clearGates();
         custom(player, CLEAN);
     }
@@ -94,12 +99,12 @@ class CustomCommandMessagesTest
     /** One snapshotted gate reported and cleared, then two. */
     private static void clean(final Player player)
     {
-        snapshotted("Abydos");
+        snapshotted(ABYDOS);
         custom(player, CLEAN);
         custom(player, CLEAN, CONFIRM);
         AdminReaders.clearGates();
-        snapshotted("Abydos");
-        snapshotted("Chulak");
+        snapshotted(ABYDOS);
+        snapshotted(CHULAK);
         custom(player, CLEAN);
         custom(player, CLEAN, CONFIRM);
     }
@@ -115,14 +120,14 @@ class CustomCommandMessagesTest
         final Player player = reading("en");
         setModes(player);
 
-        verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " custom mode: " + ChatText.value("false") + "."));
-        verify(player).sendMessage(ChatText.info("Change it with " + ChatText.command("true") + " or "
-            + ChatText.command("false") + "."));
-        verify(player).sendMessage(ChatText.error("Custom mode is " + ChatText.command("true") + " or "
-            + ChatText.command("false") + ", not " + ChatText.command("maybe") + "."));
-        verify(player).sendMessage(ChatText.error(ChatText.name("bare")
+        verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + " custom mode: " + ChatText.value(FALSE) + "."));
+        verify(player).sendMessage(ChatText.info("Change it with " + ChatText.command(TRUE) + " or "
+            + ChatText.command(FALSE) + "."));
+        verify(player).sendMessage(ChatText.error("Custom mode is " + ChatText.command(TRUE) + " or "
+            + ChatText.command(FALSE) + ", not " + ChatText.command("maybe") + "."));
+        verify(player).sendMessage(ChatText.error(ChatText.name(BARE)
             + " has no gate shape to base custom data on. Make sure its shape file is loaded."));
-        verify(player).sendMessage(ChatText.info("Custom mode set to " + ChatText.value("true")
+        verify(player).sendMessage(ChatText.info("Custom mode set to " + ChatText.value(TRUE)
             + " on every gate with a shape."));
         verify(player).sendMessage(ChatText.info("No gates are carrying snapshotted material overrides."));
     }
@@ -133,13 +138,13 @@ class CustomCommandMessagesTest
         final Player player = reading("qq");
         setModes(player);
 
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " custom " + ChatText.value("false") + "."));
-        verify(player).sendMessage(ChatText.info("QQ change " + ChatText.command("true") + " "
-            + ChatText.command("false") + "."));
-        verify(player).sendMessage(ChatText.error("QQ custom " + ChatText.command("true") + " "
-            + ChatText.command("false") + " not " + ChatText.command("maybe") + "."));
-        verify(player).sendMessage(ChatText.error("QQ " + ChatText.name("bare") + " no shape."));
-        verify(player).sendMessage(ChatText.info("QQ custom all " + ChatText.value("true") + "."));
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " custom " + ChatText.value(FALSE) + "."));
+        verify(player).sendMessage(ChatText.info("QQ change " + ChatText.command(TRUE) + " "
+            + ChatText.command(FALSE) + "."));
+        verify(player).sendMessage(ChatText.error("QQ custom " + ChatText.command(TRUE) + " "
+            + ChatText.command(FALSE) + " not " + ChatText.command("maybe") + "."));
+        verify(player).sendMessage(ChatText.error("QQ " + ChatText.name(BARE) + " no shape."));
+        verify(player).sendMessage(ChatText.info("QQ custom all " + ChatText.value(TRUE) + "."));
         verify(player).sendMessage(ChatText.info("QQ none snapshotted."));
     }
 
@@ -148,8 +153,8 @@ class CustomCommandMessagesTest
     void cleaningReadsAsItDidBefore()
     {
         final Player player = reading("en");
-        snapshotted("Abydos");
-        snapshotted("Chulak");
+        snapshotted(ABYDOS);
+        snapshotted(CHULAK);
         final String both = names().stream().collect(Collectors.joining(", "));
         AdminReaders.clearGates();
         clean(player);
@@ -161,7 +166,7 @@ class CustomCommandMessagesTest
             verify(player).sendMessage(ChatText.info("Cleared material overrides on "
                 + ChatText.value(String.valueOf(count)) + " gate(s); they now follow their material group."));
         }
-        verify(player).sendMessage(ChatText.info(ChatText.name("Abydos")));
+        verify(player).sendMessage(ChatText.info(ChatText.name(ABYDOS)));
         verify(player).sendMessage(ChatText.info(both));
         verify(player, times(2)).sendMessage(ChatText.info("Clearing them lets those gates follow their material group."));
         verify(player, times(2)).sendMessage(ChatText.info("Run " + ChatText.command(HINT) + " to apply."));
@@ -171,8 +176,8 @@ class CustomCommandMessagesTest
     void cleaningIsInTheReadersLanguage()
     {
         final Player player = reading("qq");
-        snapshotted("Abydos");
-        snapshotted("Chulak");
+        snapshotted(ABYDOS);
+        snapshotted(CHULAK);
         final String both = String.join(" | ", names());
         AdminReaders.clearGates();
         clean(player);
@@ -181,7 +186,7 @@ class CustomCommandMessagesTest
         verify(player).sendMessage(ChatText.info("QQ found " + ChatText.value("2") + " other:"));
         verify(player).sendMessage(ChatText.info("QQ cleared " + ChatText.value("1") + " one."));
         verify(player).sendMessage(ChatText.info("QQ cleared " + ChatText.value("2") + " other."));
-        verify(player).sendMessage(ChatText.info(ChatText.name("Abydos")));
+        verify(player).sendMessage(ChatText.info(ChatText.name(ABYDOS)));
         verify(player).sendMessage(ChatText.info(both));
         verify(player, times(2)).sendMessage(ChatText.info("QQ clearing explained."));
         verify(player, times(2)).sendMessage(ChatText.info("QQ run " + ChatText.command(HINT) + "."));

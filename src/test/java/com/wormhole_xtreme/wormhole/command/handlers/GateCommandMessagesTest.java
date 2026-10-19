@@ -32,6 +32,7 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
 class GateCommandMessagesTest
 {
     private MockedStatic<LegacyDatabaseImporter> importer;
+    private static final String UNKNOWN = "Frobnicate";
 
     @BeforeEach
     void setUp() throws Exception
@@ -119,13 +120,13 @@ class GateCommandMessagesTest
     {
         final Player english = reading("en");
         final Player qq = reading("qq");
-        new GateCommand().execute(english, new String[] { "gate", "Frobnicate" });
-        new GateCommand().execute(qq, new String[] { "gate", "Frobnicate" });
+        new GateCommand().execute(english, new String[] { "gate", UNKNOWN });
+        new GateCommand().execute(qq, new String[] { "gate", UNKNOWN });
 
-        verify(english).sendMessage(ChatText.error("No such gate command: " + ChatText.command("Frobnicate")
+        verify(english).sendMessage(ChatText.error("No such gate command: " + ChatText.command(UNKNOWN)
             + ". Try one of: " + GateCommand.verbs().stream().map(ChatText::command).collect(Collectors.joining(", "))
             + "."));
-        verify(qq).sendMessage(ChatText.error("QQ no verb " + ChatText.command("Frobnicate") + ": "
+        verify(qq).sendMessage(ChatText.error("QQ no verb " + ChatText.command(UNKNOWN) + ": "
             + String.join(" | ", GateCommand.verbs().stream().map(ChatText::command).toList()) + "."));
     }
 }
