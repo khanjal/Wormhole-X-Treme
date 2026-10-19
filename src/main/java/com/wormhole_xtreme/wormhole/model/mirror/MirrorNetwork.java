@@ -223,8 +223,8 @@ public final class MirrorNetwork
         final int next = (at + 1) % order.size();
         CHOSEN_AT.put(key(mirror.name()), now);
         CHOSEN.put(key(mirror.name()), order.get(next).name());
-        return Messages.get(reader, "mirror.interact.opens-onto", MirrorText.quoted(mirror.name()),
-            MirrorText.quoted(order.get(next).name()), String.valueOf(next + 1), String.valueOf(order.size()));
+        return Messages.get(reader, "mirror.interact.opens-onto", MirrorText.name(mirror.name()),
+            MirrorText.name(order.get(next).name()), String.valueOf(next + 1), String.valueOf(order.size()));
     }
 
     /**

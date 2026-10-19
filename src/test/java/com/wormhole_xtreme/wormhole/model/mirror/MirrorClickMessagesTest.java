@@ -230,7 +230,7 @@ class MirrorClickMessagesTest
             MirrorSettle.arrived(player);
             punch(player, here);
 
-            bar.verify(() -> ActionBar.send(player, ChatText.status("QQ " + MirrorText.quoted("Museum") + " reflecting.")));
+            bar.verify(() -> ActionBar.send(player, ChatText.status("QQ <" + MirrorText.name("Museum") + "> reflecting.")));
             bar.verify(() -> ActionBar.send(player, ChatText.status("QQ settling.")));
         }
     }
@@ -254,8 +254,8 @@ class MirrorClickMessagesTest
             click(player, here);
 
             bar.verify(() -> ActionBar.send(player, ChatText.status("QQ no others.")));
-            bar.verify(() -> ActionBar.send(player, ChatText.status("QQ " + MirrorText.quoted("Museum") + " onto "
-                + MirrorText.quoted("Archive") + " 1/2.")));
+            bar.verify(() -> ActionBar.send(player, ChatText.status("QQ <" + MirrorText.name("Museum") + "> onto <"
+                + MirrorText.name("Archive") + "> 1/2.")));
             bar.verify(() -> ActionBar.send(player, ChatText.status("QQ someone else.")));
         }
     }
@@ -279,7 +279,7 @@ class MirrorClickMessagesTest
         punchIntoUnloadedWorld(player, unloaded);
         punchIntoMuseumWorld(player, refused);
 
-        verify(player).sendMessage(ChatText.info("QQ " + MirrorText.quoted("Museum") + " unbound."));
+        verify(player).sendMessage(ChatText.info("QQ <" + MirrorText.name("Museum") + "> unbound."));
         verify(player).sendMessage(ChatText.info("QQ run " + MirrorText.command("/wormhole mirror create", "Museum")
             + "."));
         verify(player).sendMessage(ChatText.info("QQ unloaded " + MirrorText.name("a_world_nobody_started") + "."));

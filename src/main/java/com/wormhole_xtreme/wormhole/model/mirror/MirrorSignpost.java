@@ -223,7 +223,11 @@ public final class MirrorSignpost
             return;
         }
         final QuantumMirror chosen = MirrorNetwork.chosen(mirror);
-        ActionBar.send(player, MirrorText.approach(player, mirror.name(),
-            (chosen == mirror) ? mirror.destination().worldName() : chosen.name()));
+        if (chosen == mirror)
+        {
+            ActionBar.send(player, MirrorText.approach(player, mirror.name(), mirror.destination().worldName()));
+            return;
+        }
+        ActionBar.send(player, MirrorText.approachMirror(player, mirror.name(), chosen.name()));
     }
 }

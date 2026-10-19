@@ -160,13 +160,30 @@ public final class MirrorText
      * @param name
      *            the mirror's name
      * @param worldName
-     *            the world its far side is in, or the mirror it opens onto
+     *            the world its far side is in
      * @return the whole line, header and all
      */
     public static String approach(final Player reader, final String name, final String worldName)
     {
-        return ChatText.status(Messages.get(reader, "mirror.signpost.approach", ChatText.name(name),
+        return ChatText.status(Messages.get(reader, "mirror.signpost.approach-world", ChatText.name(name),
             ChatText.name(worldName)));
+    }
+
+    /**
+     * What a mirror turned on to open onto another mirror says above the hotbar, header and all.
+     *
+     * @param reader
+     *            who will read it, in their own language
+     * @param name
+     *            the mirror's name
+     * @param chosen
+     *            the mirror it opens onto
+     * @return the whole line, header and all
+     */
+    public static String approachMirror(final Player reader, final String name, final String chosen)
+    {
+        return ChatText.status(Messages.get(reader, "mirror.signpost.approach-mirror", ChatText.name(name),
+            ChatText.name(chosen)));
     }
 
     /**

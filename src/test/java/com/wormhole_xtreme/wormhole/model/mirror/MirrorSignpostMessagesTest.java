@@ -199,10 +199,10 @@ class MirrorSignpostMessagesTest
             ontoTheLibrary();
             sweep(player);
 
-            bar.verify(() -> ActionBar.send(player, ChatText.status("QQ " + ChatText.name("museum") + " punch "
+            bar.verify(() -> ActionBar.send(player, ChatText.status("QQ " + ChatText.name("museum") + " punch world "
                 + ChatText.name("nether") + ".")));
             bar.verify(() -> ActionBar.send(player, ChatText.status("QQ " + ChatText.name("museum") + " right-click.")));
-            bar.verify(() -> ActionBar.send(player, ChatText.status("QQ " + ChatText.name("museum") + " punch "
+            bar.verify(() -> ActionBar.send(player, ChatText.status("QQ " + ChatText.name("museum") + " punch mirror "
                 + ChatText.name("library") + ".")));
         }
     }

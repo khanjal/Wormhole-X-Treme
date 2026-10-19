@@ -186,7 +186,7 @@ public final class MirrorInteraction
         }
         if (MirrorNetwork.reflects(mirror))
         {
-            hint(player, Messages.get(player, "mirror.interact.reflecting", MirrorText.quoted(mirror.name())));
+            hint(player, Messages.get(player, "mirror.interact.reflecting", MirrorText.name(mirror.name())));
             return;
         }
         final QuantumMirror target = MirrorNetwork.chosen(mirror);
@@ -240,7 +240,7 @@ public final class MirrorInteraction
      */
     private static void sayUnbound(final Player player, final QuantumMirror mirror)
     {
-        say(player, Messages.get(player, "mirror.interact.unbound", MirrorText.quoted(mirror.name())));
+        say(player, Messages.get(player, "mirror.interact.unbound", MirrorText.name(mirror.name())));
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG))
         {
             return;
