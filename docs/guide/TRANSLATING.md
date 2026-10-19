@@ -11,7 +11,7 @@ cooldown and the region refusals; what transport rings tell the people standing 
 building, listing, editing and removing rings: `/wormhole ring create`, `cancel`, `list`, `remove`,
 `edit`, `allow`, `deny`, `owner`, `build` and `fire`, with every reason a circle is refused; and
 beaming: what a beam tells its traveller, its cooldown and cost, and `/wormhole beam to`, `list`,
-`place` and `admin`. The rest are
+`place` and `admin`; and what a mirror says when somebody clicks it or looks at it. The rest are
 English until they are moved over, a few at a time. Command usage and help lines come later, and
 **sign text stays English for now**: a sign is read by everyone who walks past, whatever their
 language.
