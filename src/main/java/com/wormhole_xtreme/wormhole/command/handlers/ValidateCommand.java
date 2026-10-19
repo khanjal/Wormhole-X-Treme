@@ -77,7 +77,18 @@ public class ValidateCommand implements SubCommand
                 broken.add(gate);
             }
         }
-        sender.sendMessage(ChatText.info(checkedSentence(sender, checked) + " " + missingSentence(sender, broken.size())));
+        final String checkedGates = gates(sender, checked);
+        final String missing = ChatText.value(String.valueOf(broken.size()));
+        final String summary;
+        if (broken.size() == 1)
+        {
+            summary = Messages.get(sender, "gate.validate.summary.one", checkedGates, missing);
+        }
+        else
+        {
+            summary = Messages.get(sender, "gate.validate.summary.other", checkedGates, missing);
+        }
+        sender.sendMessage(ChatText.info(summary));
         for (final Stargate gate : broken)
         {
             report(sender, gate, false);
@@ -85,26 +96,15 @@ public class ValidateCommand implements SubCommand
         return true;
     }
 
-    /** "Checked 1 gate." or "Checked 2 gates." */
-    private static String checkedSentence(final CommandSender sender, final int checked)
+    /** "1 gate" or "2 gates", the count in white. */
+    private static String gates(final CommandSender sender, final int count)
     {
-        final String count = ChatText.value(String.valueOf(checked));
-        if (checked == 1)
+        final String number = ChatText.value(String.valueOf(count));
+        if (count == 1)
         {
-            return Messages.get(sender, "gate.validate.checked.one", count);
+            return Messages.get(sender, "gate.validate.gates.one", number);
         }
-        return Messages.get(sender, "gate.validate.checked.other", count);
-    }
-
-    /** "1 has something missing." or "2 have something missing.", and "0 have" when nothing is. */
-    private static String missingSentence(final CommandSender sender, final int broken)
-    {
-        final String count = ChatText.value(String.valueOf(broken));
-        if (broken == 1)
-        {
-            return Messages.get(sender, "gate.validate.missing.one", count);
-        }
-        return Messages.get(sender, "gate.validate.missing.other", count);
+        return Messages.get(sender, "gate.validate.gates.other", number);
     }
 
     /** Whether {@link GateIntegrity} would flag anything about this gate. */

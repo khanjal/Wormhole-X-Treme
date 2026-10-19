@@ -150,10 +150,34 @@ class RegenerateSweepMessagesTest
     /** Two gates of each kind: every count is two. */
     private Stargate[] twoOfEach()
     {
-        return new Stargate[] {gate("m1", Exit.MOVES), gate("m2", Exit.MOVES),
-            gate("c1", Exit.CANNOT_BE_WORKED_OUT), gate("c2", Exit.CANNOT_BE_WORKED_OUT),
-            gate("r1", Exit.STAYS), gate("r2", Exit.STAYS), gate("b1", Exit.STAYS), gate("b2", Exit.STAYS),
-            gate("d1", Exit.STAYS), gate("d2", Exit.STAYS)};
+        // Each pair is made second name first, so the names listed are sorted by the command, not by luck.
+        return new Stargate[] {gate("m2", Exit.MOVES), gate("m1", Exit.MOVES),
+            gate("c2", Exit.CANNOT_BE_WORKED_OUT), gate("c1", Exit.CANNOT_BE_WORKED_OUT),
+            gate("r2", Exit.STAYS), gate("r1", Exit.STAYS), gate("b2", Exit.STAYS), gate("b1", Exit.STAYS),
+            gate("d2", Exit.STAYS), gate("d1", Exit.STAYS)};
+    }
+
+    /** No gates at all is zero gates and zero arrival points, both plural, and nothing else is said. */
+    @Test
+    void aSweepOfNoGatesSaysZeroGatesAndZeroArrivalPoints()
+    {
+        final Player player = adminReading("en");
+
+        sweep(player, new Stargate[0], new GateRederivation.LightResult[0]);
+
+        verify(player).sendMessage(ChatText.info("Checked " + value("0 gates") + ". " + value("0")
+            + " arrival points were out of place and have been recomputed."));
+    }
+
+    /** The same sweep reaches a qq player in qq, the zero gates read as the plural. */
+    @Test
+    void aSweepOfNoGatesIsInThePlayersLanguage()
+    {
+        final Player player = adminReading("qq");
+
+        sweep(player, new Stargate[0], new GateRederivation.LightResult[0]);
+
+        verify(player).sendMessage(ChatText.info("QQ checked " + value("0 QQgates") + " QQ moved-many " + value("0")));
     }
 
     /** Every singular, against the old expression. */
@@ -185,12 +209,11 @@ class RegenerateSweepMessagesTest
         sweep(player, oneOfEach(), ONE_OF_EACH_LIGHTS);
 
         verify(player).sendMessage(ChatText.info("QQ checked " + value("4 QQgates") + " QQ moved-one " + value("1")));
-        verify(player).sendMessage(ChatText.info("QQ no arrival " + ChatText.bad("1 QQgate") + " | " + name("stuck")
-            + " QQ end."));
+        verify(player).sendMessage(ChatText.info("QQ no arrival-one 1 | " + name("stuck") + "!"));
         verify(player).sendMessage(ChatText.info("QQ relit-one 1"));
-        verify(player).sendMessage(ChatText.info("QQ busy-one 1 | " + name("stuck") + " QQ end."));
+        verify(player).sendMessage(ChatText.info("QQ busy-one 1 | " + name("stuck") + "!"));
         verify(player).sendMessage(ChatText.info("QQ misfit-one 1 " + ChatText.command("-shape") + " | " + name("misfit")
-            + " QQ end."));
+            + "!"));
     }
 
     /** Every plural, against the old expression, the names sorted and joined. */
@@ -224,12 +247,12 @@ class RegenerateSweepMessagesTest
         sweep(player, twoOfEach(), TWO_OF_EACH_LIGHTS);
 
         verify(player).sendMessage(ChatText.info("QQ checked " + value("10 QQgates") + " QQ moved-many " + value("2")));
-        verify(player).sendMessage(ChatText.info("QQ no arrival " + ChatText.bad("2 QQgates") + " | " + name("c1")
-            + " / " + name("c2") + " QQ end."));
+        verify(player).sendMessage(ChatText.info("QQ no arrival-many 2 | " + name("c1")
+            + " / " + name("c2") + "!"));
         verify(player).sendMessage(ChatText.info("QQ relit-many 2"));
-        verify(player).sendMessage(ChatText.info("QQ busy-many 2 | " + name("b1") + " / " + name("b2") + " QQ end."));
+        verify(player).sendMessage(ChatText.info("QQ busy-many 2 | " + name("b1") + " / " + name("b2") + "!"));
         verify(player).sendMessage(ChatText.info("QQ misfit-many 2 " + ChatText.command("-shape") + " | " + name("d1")
-            + " / " + name("d2") + " QQ end."));
+            + " / " + name("d2") + "!"));
     }
 
     /** One gate checked and moved: the singular gate and arrival point, against the old expression. */
@@ -295,7 +318,7 @@ class RegenerateSweepMessagesTest
             shown.add(name(String.format("g%02d", i)));
         }
         verify(player).sendMessage(ChatText.info("QQ busy-many 22 | " + String.join(" / ", shown) + " +" + value("2")
-            + " QQ more."));
+            + " QQ more!"));
         verify(player).sendMessage(ChatText.info("QQ checked " + value("22 QQgates") + " QQ moved-many " + value("0")));
     }
 

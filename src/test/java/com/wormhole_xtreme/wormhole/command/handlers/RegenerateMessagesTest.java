@@ -568,7 +568,7 @@ class RegenerateMessagesTest
             + name("Standard") + " 99/100"));
         verify(player).sendMessage(ChatText.info("QQ laid " + value("2 toward the DHD")));
         verify(player).sendMessage(ChatText.info("QQ gaps: QQ " + value("0 64 0") + " [" + ChatText.material("AIR")
-            + "] QQ end."));
+            + "]!"));
         verify(player).sendMessage(ChatText.info("QQ add " + command("-fill")));
     }
 
@@ -608,7 +608,7 @@ class RegenerateMessagesTest
         verify(player).sendMessage(ChatText.error("QQ stays " + name("alpha") + " " + name("Standard") + " 20/100 "
             + name("Massive") + " " + value("90%")));
         verify(player).sendMessage(ChatText.info("QQ gaps: " + String.join(" / ", shown) + " +" + value("2")
-            + " QQ more."));
+            + " QQ more!"));
     }
 
     /** A shape taken that leaves the markers waiting on its frame, one block short and several. */

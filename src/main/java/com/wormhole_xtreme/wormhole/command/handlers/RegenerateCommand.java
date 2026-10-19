@@ -690,21 +690,21 @@ public class RegenerateCommand implements SubCommand
     /** Tells the admin what {@code -all} came to. */
     private static void reportAll(final CommandSender sender, final AllTally tally)
     {
-        final String movedLine;
+        final String checked = ChatText.value(gates(sender, tally.checked));
+        final String moved = ChatText.value(String.valueOf(tally.moved));
+        final String summary;
         if (tally.moved == 1)
         {
-            movedLine = Messages.get(sender, "gate.regen.all.moved.one", ChatText.value(String.valueOf(tally.moved)));
+            summary = Messages.get(sender, "gate.regen.all.summary.one", checked, moved);
         }
         else
         {
-            movedLine = Messages.get(sender, "gate.regen.all.moved.other", ChatText.value(String.valueOf(tally.moved)));
+            summary = Messages.get(sender, "gate.regen.all.summary.other", checked, moved);
         }
-        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.all.checked",
-            ChatText.value(gates(sender, tally.checked))) + " " + movedLine));
+        sender.sendMessage(ChatText.info(summary));
         if (!tally.couldNotCompute.isEmpty())
         {
-            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.all.no-arrival",
-                ChatText.bad(gates(sender, tally.couldNotCompute.size())), names(sender, tally.couldNotCompute))));
+            sendNoArrival(sender, tally.couldNotCompute);
         }
         if (tally.relit > 0)
         {
@@ -718,6 +718,23 @@ public class RegenerateCommand implements SubCommand
         {
             sendDoesNotFit(sender, tally.doesNotFit);
         }
+    }
+
+    /** Says which gates had no arrival point to work out. */
+    private static void sendNoArrival(final CommandSender sender, final List<String> couldNotCompute)
+    {
+        final String line;
+        if (couldNotCompute.size() == 1)
+        {
+            line = Messages.get(sender, "gate.regen.all.no-arrival.one", couldNotCompute.size(),
+                names(sender, couldNotCompute));
+        }
+        else
+        {
+            line = Messages.get(sender, "gate.regen.all.no-arrival.other", couldNotCompute.size(),
+                names(sender, couldNotCompute));
+        }
+        sender.sendMessage(ChatText.info(line));
     }
 
     /** Says how many gates now light their chevrons in their shape's order. */
@@ -784,7 +801,7 @@ public class RegenerateCommand implements SubCommand
         {
             return items + Messages.get(sender, "gate.regen.list-more", ChatText.value(String.valueOf(more)));
         }
-        return items + Messages.get(sender, "gate.regen.list-end");
+        return items;
     }
 
     /** "1 gate", "2 gates". */

@@ -250,14 +250,14 @@ class ValidateCommandMessagesTest
         gateMissingFrame("broken", 1);
         final Player many = adminReading("qq");
         validate(many, "-all");
-        verify(many).sendMessage(ChatText.info("QQ checked-many " + ChatText.value("2") + " QQ missing-one "
+        verify(many).sendMessage(ChatText.info("QQ checked " + ChatText.value("2") + " QQgates QQ missing-one "
             + ChatText.value("1")));
 
         clearGates();
         gateMissingFrame("alone", 1);
         final Player one = adminReading("qq");
         validate(one, "-all");
-        verify(one).sendMessage(ChatText.info("QQ checked-one " + ChatText.value("1") + " QQ missing-one "
+        verify(one).sendMessage(ChatText.info("QQ checked " + ChatText.value("1") + " QQgate QQ missing-one "
             + ChatText.value("1")));
 
         clearGates();
@@ -265,7 +265,7 @@ class ValidateCommandMessagesTest
         registeredGate("also clean");
         final Player none = adminReading("qq");
         validate(none, "-all");
-        verify(none).sendMessage(ChatText.info("QQ checked-many " + ChatText.value("2") + " QQ missing-many "
+        verify(none).sendMessage(ChatText.info("QQ checked " + ChatText.value("2") + " QQgates QQ missing-many "
             + ChatText.value("0")));
     }
 }
