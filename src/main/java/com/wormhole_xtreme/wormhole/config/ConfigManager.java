@@ -620,44 +620,18 @@ public class ConfigManager
         return (int) Math.round(ticks / speed);
     }
 
-    /**
-     * How a dialling gate's inner ring light moves. A config.yml from before patterns holds
-     * {@code true} or {@code false}, read as TOP and NONE; a missing or unreadable value is the
-     * default, TOP.
-     *
-     * @return never null
-     */
+    /** See {@link GateSettings#getGateDialSpinPattern()}. */
     public static DialSpinPattern getGateDialSpinPattern()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_DIAL_SPIN);
-        final DialSpinPattern pattern = (s == null) ? null
-            : DialSpinPattern.parse(String.valueOf(s.getValue()));
-        return (pattern == null) ? DialSpinPattern.TOP : pattern;
+        return GateSettings.getGateDialSpinPattern();
     }
 
-    /**
-     * The ring pattern a gate dials with (#366): its own, then its material group's, then
-     * {@code gate-dial-spin}.
-     *
-     * @param own
-     *            the gate's own pattern, or null
-     * @param group
-     *            its material group, or null
-     * @return never null
-     */
+    /** See {@link GateSettings#getGateDialSpinPattern(DialSpinPattern, MaterialGroup)}. */
     public static DialSpinPattern getGateDialSpinPattern(
         final DialSpinPattern own,
         final MaterialGroup group)
     {
-        if (own != null)
-        {
-            return own;
-        }
-        if ((group != null) && (group.getDialSpin() != null))
-        {
-            return group.getDialSpin();
-        }
-        return getGateDialSpinPattern();
+        return GateSettings.getGateDialSpinPattern(own, group);
     }
 
     /**
@@ -700,119 +674,70 @@ public class ConfigManager
         }
     }
 
-    /**
-     * Whether gates make any noise at all.
-     *
-     * @return true if gate sounds should play
-     */
+    /** See {@link GateSettings#isGateSoundsEnabled()}. */
     public static boolean isGateSoundsEnabled()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUNDS_ENABLED);
-        return (s == null) || s.getBooleanValue();
+        return GateSettings.isGateSoundsEnabled();
     }
 
-    /**
-     * How loud gate sounds are.
-     *
-     * <p>Louder than rings by default, and deliberately: a gate is a landmark somebody walks
-     * towards, where a ring is something you are standing on.
-     *
-     * @return 1.5 when unset; past 1.0 it widens the range heard rather than the loudness
-     */
+    /** See {@link GateSettings#getGateSoundVolume()}. */
     public static float getGateSoundVolume()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUND_VOLUME);
-        return (s == null) ? 1.5f : (float) s.getDoubleValue();
+        return GateSettings.getGateSoundVolume();
     }
 
-    /**
-     * The sound a gate makes as it begins to dial.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundActivate()}. */
     public static String getGateSoundActivate()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_ACTIVATE, "block.conduit.activate");
+        return GateSettings.getGateSoundActivate();
     }
 
-    /**
-     * The sound each chevron makes as it locks.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundChevron()}. */
     public static String getGateSoundChevron()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close");
+        return GateSettings.getGateSoundChevron();
     }
 
-    /**
-     * The sound the last chevron makes as it locks, with its own chevron sound.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundLock()}. */
     public static String getGateSoundLock()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_LOCK, "block.beacon.power_select");
+        return GateSettings.getGateSoundLock();
     }
 
-    /**
-     * The sound of a wormhole establishing.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundKawoosh()}. */
     public static String getGateSoundKawoosh()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_KAWOOSH, "entity.player.splash.high_speed");
+        return GateSettings.getGateSoundKawoosh();
     }
 
-    /**
-     * The sound of a wormhole closing.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundClose()}. */
     public static String getGateSoundClose()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate");
+        return GateSettings.getGateSoundClose();
     }
 
-    /**
-     * The sound the iris makes as it closes over a gate.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundIrisClose()}. */
     public static String getGateSoundIrisClose()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close");
+        return GateSettings.getGateSoundIrisClose();
     }
 
-    /**
-     * The sound the iris makes as it opens.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundIrisOpen()}. */
     public static String getGateSoundIrisOpen()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open");
+        return GateSettings.getGateSoundIrisOpen();
     }
 
-    /**
-     * The sound an open wormhole makes while it stands there.
-     *
-     * <p>Running water, as in the show. An event horizon looks like water and behaves like
-     * it, so it is the one ambience that needs no explaining.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundAmbient()}. */
     public static String getGateSoundAmbient()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop");
+        return GateSettings.getGateSoundAmbient();
     }
 
-    /** Returns true if an open gate's horizon ripples (#579); off when the setting is missing, as it ships. */
+    /** See {@link GateSettings#isGateRipple()}. */
     public static boolean isGateRipple()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_RIPPLE);
-        return (s != null) && s.getBooleanValue();
+        return GateSettings.isGateRipple();
     }
 
     /** Returns true if a player arriving through a gate is told its name; off when the setting is missing, as it ships. */
@@ -822,37 +747,16 @@ public class ConfigManager
         return (s != null) && s.getBooleanValue();
     }
 
-    /**
-     * @param animation
-     *            an iris animation, as {@link #getGateIrisAnimation(String, com.wormhole_xtreme.wormhole.model.MaterialGroup)} answers
-     * @return false only for {@code instant}
-     */
+    /** See {@link GateSettings#isIrisAnimated(String)}. */
     public static boolean isIrisAnimated(final String animation)
     {
-        return !"instant".equalsIgnoreCase(animation);
+        return GateSettings.isIrisAnimated(animation);
     }
 
-    /**
-     * The iris animation a gate uses (#427): its own, then its material group's, then
-     * {@code gate-iris-animation}.
-     *
-     * @param own
-     *            the gate's own animation, or null
-     * @param group
-     *            its material group, or null
-     * @return one of {@link #irisAnimations()}
-     */
+    /** See {@link GateSettings#getGateIrisAnimation(String, MaterialGroup)}. */
     public static String getGateIrisAnimation(final String own, final MaterialGroup group)
     {
-        if (own != null)
-        {
-            return own;
-        }
-        if ((group != null) && (group.getIrisAnimation() != null))
-        {
-            return group.getIrisAnimation();
-        }
-        return gateIrisAnimation().toLowerCase(Locale.ROOT);
+        return GateSettings.getGateIrisAnimation(own, group);
     }
 
     /** @return the iris animations there are: the four sweep styles, then {@code instant} */
@@ -884,81 +788,43 @@ public class ConfigManager
     /** Every level {@code gate-view} takes, the default first. */
     public static final List<String> GATE_VIEWS = List.of("horizon", "behind", "open");
 
-    /**
-     * What an open gate shows once its kawoosh settles (#516).
-     *
-     * @return horizon, behind or open; horizon for anything else
-     */
+    /** See {@link GateSettings#getGateView()}. */
     public static String getGateView()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW);
-        final String level = (s == null) ? null : parseGateView(String.valueOf(s.getStringValue()));
-        return (level == null) ? GATE_VIEWS.get(0) : level;
+        return GateSettings.getGateView();
     }
 
     /** How deep a gate's first capture step reaches, at most: the rest is filled in behind it. */
     static final int GATE_FIRST_STEP_DEPTH = 32;
 
-    /**
-     * How far past a gate's opening its view is captured and drawn first (#516): 32, or
-     * {@code view-depth} if that is shallower.
-     *
-     * <p>Shallower than the view because a gate's capture is taken when it is dialled, often of
-     * somewhere nobody has loaded, and at 160 that was a box of some 230 chunks read from disk
-     * before anything showed. The rest, out to {@code view-depth}, is filled in behind it.
-     *
-     * @return blocks, 4 to 32
-     */
+    /** See {@link GateSettings#getGateViewFirstDepth()}. */
     public static int getGateViewFirstDepth()
     {
-        return Math.min(GATE_FIRST_STEP_DEPTH, getViewDepth());
+        return GateSettings.getGateViewFirstDepth();
     }
 
-    /**
-     * Whether a big gate's view of a smaller far gate is drawn at the end of a tunnel (#583); on when
-     * the setting is missing, as it ships.
-     *
-     * @return true for the tunnel, false for the plain view
-     */
+    /** See {@link GateSettings#isGateViewFunnel()}. */
     public static boolean isGateViewFunnel()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL);
-        return (s == null) || s.getBooleanValue();
+        return GateSettings.isGateViewFunnel();
     }
 
-    /**
-     * The longest a big gate's tunnel to a smaller far gate may be, in blocks (#583).
-     *
-     * @return blocks, 1 to 64
-     */
+    /** See {@link GateSettings#getGateViewFunnelLength()}. */
     public static int getGateViewFunnelLength()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH);
-        final int blocks = (s == null) ? 16 : s.getIntValue();
-        return Math.max(1, Math.min(64, blocks));
+        return GateSettings.getGateViewFunnelLength();
     }
 
-    /**
-     * The shortest a gate's tunnel is, in blocks (#587): above 0, a far gate as big or bigger is seen down
-     * a straight tube that long.
-     *
-     * @return blocks, 0 to {@link #getGateViewFunnelLength()}
-     */
+    /** See {@link GateSettings#getGateViewFunnelMinLength()}. */
     public static int getGateViewFunnelMinLength()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH);
-        final int blocks = (s == null) ? 0 : s.getIntValue();
-        return Math.max(0, Math.min(getGateViewFunnelLength(), blocks));
+        return GateSettings.getGateViewFunnelMinLength();
     }
 
-    /**
-     * How long a big gate's tunnel may be now: its length, or none with the tunnel off.
-     *
-     * @return blocks; 0 for the plain view
-     */
+    /** See {@link GateSettings#getGateViewFunnelLongest()}. */
     public static int getGateViewFunnelLongest()
     {
-        return isGateViewFunnel() ? getGateViewFunnelLength() : 0;
+        return GateSettings.getGateViewFunnelLongest();
     }
 
     /**
@@ -974,33 +840,17 @@ public class ConfigManager
         return GATE_VIEWS.contains(level) ? level : null;
     }
 
-    /**
-     * @return the configured value of {@code gate-iris-animation}, trimmed
-     */
-    private static String gateIrisAnimation()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_ANIMATION);
-        return (s == null) ? "sweep" : String.valueOf(s.getStringValue()).trim();
-    }
 
-    /**
-     * How long a gate build preview lasts once its owner stops using build commands.
-     *
-     * @return minutes, at least 1
-     */
+    /** See {@link GateSettings#getGatePreviewMinutes()}. */
     public static int getGatePreviewMinutes()
     {
-        return Math.max(1, intSetting(ConfigKeys.GATE_PREVIEW_MINUTES, 10));
+        return GateSettings.getGatePreviewMinutes();
     }
 
-    /**
-     * The most blocks all gate build previews on the server may show at once.
-     *
-     * @return the block count, 0 to allow no previews
-     */
+    /** See {@link GateSettings#getGatePreviewMaxBlocks()}. */
     public static int getGatePreviewMaxBlocks()
     {
-        return Math.max(0, intSetting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000));
+        return GateSettings.getGatePreviewMaxBlocks();
     }
 
     /**
