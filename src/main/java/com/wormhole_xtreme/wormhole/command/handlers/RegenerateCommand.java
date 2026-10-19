@@ -35,6 +35,9 @@ public class RegenerateCommand implements SubCommand
     /** Places the frame blocks a named gate is missing. */
     private static final String FILL = "-fill";
 
+    /** Takes a named shape for a gate. */
+    private static final String SHAPE = "-shape";
+
 
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
@@ -60,7 +63,7 @@ public class RegenerateCommand implements SubCommand
         }
         final boolean fill = flagAt(args, 2, FILL) > 0;
         int missing = 0;
-        final int shapeAt = flagAt(args, 2, "-shape");
+        final int shapeAt = flagAt(args, 2, SHAPE);
         if (shapeAt > 0)
         {
             missing = adoptForRegen(sender, s, args, shapeAt, fill);
@@ -754,12 +757,12 @@ public class RegenerateCommand implements SubCommand
         if (doesNotFit.size() == 1)
         {
             line = Messages.get(sender, "gate.regen.all.does-not-fit.one", doesNotFit.size(),
-                ChatText.command("-shape"), names(sender, doesNotFit));
+                ChatText.command(SHAPE), names(sender, doesNotFit));
         }
         else
         {
             line = Messages.get(sender, "gate.regen.all.does-not-fit.other", doesNotFit.size(),
-                ChatText.command("-shape"), names(sender, doesNotFit));
+                ChatText.command(SHAPE), names(sender, doesNotFit));
         }
         sender.sendMessage(ChatText.info(line));
     }

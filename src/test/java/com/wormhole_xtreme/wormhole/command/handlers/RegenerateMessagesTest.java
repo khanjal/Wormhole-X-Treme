@@ -9,10 +9,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 import org.bukkit.Material;
@@ -149,7 +149,7 @@ class RegenerateMessagesTest
     private static void regenOntoMassive(final Player player, final boolean enabled,
         final GateRederivation.ShapeFit fit, final Consumer<MockedStatic<GateRederivation>> stubs)
     {
-        final Map<String, StargateShape> shapes = new HashMap<>();
+        final ConcurrentMap<String, StargateShape> shapes = new ConcurrentHashMap<>();
         final Stargate3DShape shape = mock(Stargate3DShape.class);
         when(shape.getShapeName()).thenReturn("Massive");
         shapes.put("Massive", shape);
