@@ -3,9 +3,11 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 import java.util.Locale;
 
 import org.bukkit.DyeColor;
+import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Colouring for the things a mirror says.
@@ -153,6 +155,23 @@ public final class MirrorText
      * <p>Says where it goes, not what it looks like. The banner is already showing what it
      * looks like; the one thing a player standing in front of it cannot see is the far end.
      *
+     * @param reader
+     *            who will read it, in their own language
+     * @param name
+     *            the mirror's name
+     * @param worldName
+     *            the world its far side is in, or the mirror it opens onto
+     * @return the whole line, header and all
+     */
+    public static String approach(final Player reader, final String name, final String worldName)
+    {
+        return ChatText.status(Messages.get(reader, "mirror.signpost.approach", ChatText.name(name),
+            ChatText.name(worldName)));
+    }
+
+    /**
+     * {@link #approach(Player, String, String)} in the server's language.
+     *
      * @param name
      *            the mirror's name
      * @param worldName
@@ -161,20 +180,21 @@ public final class MirrorText
      */
     public static String approach(final String name, final String worldName)
     {
-        return ChatText.status(NAME_COLOUR + name + BODY_COLOUR + " -- punch to travel to "
-            + NAME_COLOUR + worldName + BODY_COLOUR + ", right-click for another.");
+        return approach(null, name, worldName);
     }
 
     /**
      * The action bar line for a mirror showing its own room.
      *
+     * @param reader
+     *            who will read it, in their own language
      * @param name
      *            the mirror
      * @return the formatted line
      */
-    public static String reflection(final String name)
+    public static String reflection(final Player reader, final String name)
     {
-        return ChatText.status(NAME_COLOUR + name + BODY_COLOUR + " -- right-click to choose a mirror.");
+        return ChatText.status(Messages.get(reader, "mirror.signpost.reflection", ChatText.name(name)));
     }
 
     /**

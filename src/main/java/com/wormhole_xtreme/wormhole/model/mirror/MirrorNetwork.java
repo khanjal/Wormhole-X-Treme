@@ -20,6 +20,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Which mirror each mirror opens onto, and how somebody standing at one changes it.
@@ -185,14 +186,16 @@ public final class MirrorNetwork
      *            the mirror right-clicked
      * @param othersNear
      *            whether anybody besides whoever clicked is at it
+     * @param reader
+     *            whoever clicked, who reads the answer in their own language
      * @return what to tell whoever clicked, or null for a repeat of the same press
      */
-    public static String scroll(final QuantumMirror mirror, final boolean othersNear)
+    public static String scroll(final QuantumMirror mirror, final boolean othersNear, final Player reader)
     {
         final List<QuantumMirror> order = order(mirror);
         if (order.isEmpty())
         {
-            return "No other mirrors found.";
+            return Messages.get(reader, "mirror.interact.no-others");
         }
         final long now = clock.getAsLong();
         final Long changed = CHOSEN_AT.get(key(mirror.name()));
@@ -204,7 +207,7 @@ public final class MirrorNetwork
             }
             if (othersNear && ((now - changed) < HOLD_MILLIS))
             {
-                return "Somebody else is at this mirror. Give them a moment before changing it.";
+                return Messages.get(reader, "mirror.interact.someone-else");
             }
         }
         final String current = chosen(mirror).name();
@@ -220,8 +223,22 @@ public final class MirrorNetwork
         final int next = (at + 1) % order.size();
         CHOSEN_AT.put(key(mirror.name()), now);
         CHOSEN.put(key(mirror.name()), order.get(next).name());
-        return MirrorText.quoted(mirror.name()) + " opens onto " + MirrorText.quoted(order.get(next).name())
-            + " (" + (next + 1) + " of " + order.size() + ").";
+        return Messages.get(reader, "mirror.interact.opens-onto", MirrorText.quoted(mirror.name()),
+            MirrorText.quoted(order.get(next).name()), String.valueOf(next + 1), String.valueOf(order.size()));
+    }
+
+    /**
+     * {@link #scroll(QuantumMirror, boolean, Player)}, answered in the server's language.
+     *
+     * @param mirror
+     *            the mirror right-clicked
+     * @param othersNear
+     *            whether anybody besides whoever clicked is at it
+     * @return what to tell whoever clicked, or null for a repeat of the same press
+     */
+    public static String scroll(final QuantumMirror mirror, final boolean othersNear)
+    {
+        return scroll(mirror, othersNear, null);
     }
 
     /**

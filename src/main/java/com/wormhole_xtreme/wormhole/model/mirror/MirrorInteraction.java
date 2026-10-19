@@ -23,6 +23,7 @@ import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.utils.ActionBar;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -136,7 +137,7 @@ public final class MirrorInteraction
         }
         final String before = MirrorNetwork.chosen(mirror).name();
         final String said = MirrorNetwork.scroll(mirror,
-            MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), player));
+            MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), player), player);
         if (said != null)
         {
             hint(player, said);
@@ -169,8 +170,7 @@ public final class MirrorInteraction
         {
             if (MirrorSettle.shouldExplain(player))
             {
-                hint(player, "Mirrors settle for a moment after one puts you down. Step away"
-                    + " from the banner and try again.");
+                hint(player, Messages.get(player, "mirror.interact.settling"));
             }
             return;
         }
@@ -186,8 +186,7 @@ public final class MirrorInteraction
         }
         if (MirrorNetwork.reflects(mirror))
         {
-            hint(player, MirrorText.quoted(mirror.name()) + " is showing its own room. Right-click it"
-                + " to choose another mirror.");
+            hint(player, Messages.get(player, "mirror.interact.reflecting", MirrorText.quoted(mirror.name())));
             return;
         }
         final QuantumMirror target = MirrorNetwork.chosen(mirror);
@@ -196,9 +195,8 @@ public final class MirrorInteraction
         {
             // The name-based world lookup every store in this plugin uses. A world that is not
             // loaded, or one recreated under a different name, both land here.
-            say(player, "The far side of this mirror is in "
-                + MirrorText.name(target.destination().worldName())
-                + ", which is not loaded.");
+            say(player, Messages.get(player, "mirror.interact.not-loaded",
+                MirrorText.name(target.destination().worldName())));
             return;
         }
         final Location safe = WorldUtils.findSafePlayerLocation(destination);
@@ -230,10 +228,8 @@ public final class MirrorInteraction
      */
     private static void sayRefused(final Player player, final QuantumMirror target)
     {
-        say(player, "Something else on this server would not let you into "
-            + MirrorText.name(target.destination().worldName()) + ".");
-        say(player, "A world-access or land-claim plugin is the usual reason -- check that you"
-            + " are allowed into that world.");
+        say(player, Messages.get(player, "mirror.interact.refused", MirrorText.name(target.destination().worldName())));
+        say(player, Messages.get(player, "mirror.interact.refused-hint"));
     }
 
     /**
@@ -244,13 +240,13 @@ public final class MirrorInteraction
      */
     private static void sayUnbound(final Player player, final QuantumMirror mirror)
     {
-        say(player, MirrorText.quoted(mirror.name()) + " does not open onto anywhere yet.");
+        say(player, Messages.get(player, "mirror.interact.unbound", MirrorText.quoted(mirror.name())));
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG))
         {
             return;
         }
-        say(player, "Look at it and run "
-            + MirrorText.command("/wormhole mirror create", mirror.name()) + " to set it up again.");
+        say(player, Messages.get(player, "mirror.interact.unbound-hint",
+            MirrorText.command("/wormhole mirror create", mirror.name())));
     }
 
     /**

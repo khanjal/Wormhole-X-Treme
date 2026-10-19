@@ -202,6 +202,7 @@ public final class MirrorSignpost
      */
     private static void tell(final Player player)
     {
+        // First, so a held player costs no ray and no message lookup.
         if (held(player))
         {
             return;
@@ -218,11 +219,11 @@ public final class MirrorSignpost
         }
         if (MirrorNetwork.reflects(mirror))
         {
-            ActionBar.send(player, MirrorText.reflection(mirror.name()));
+            ActionBar.send(player, MirrorText.reflection(player, mirror.name()));
             return;
         }
         final QuantumMirror chosen = MirrorNetwork.chosen(mirror);
-        ActionBar.send(player, MirrorText.approach(mirror.name(),
+        ActionBar.send(player, MirrorText.approach(player, mirror.name(),
             (chosen == mirror) ? mirror.destination().worldName() : chosen.name()));
     }
 }
