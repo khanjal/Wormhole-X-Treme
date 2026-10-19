@@ -19,7 +19,6 @@ import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
-import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
@@ -392,6 +391,7 @@ public class ConfigManager
     {
         return getConfigurations().get(configKey);
     }
+
 
     /**
      * Get Timeout Activate setting from ConfigKeys.
@@ -1389,6 +1389,7 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_APPROACH_MESSAGE);
         return (s == null) || s.getBooleanValue();
     }
+
 
     /**
      * Whether creatures in a mirror's or a gate's far room are shown through it, as stand-ins.
