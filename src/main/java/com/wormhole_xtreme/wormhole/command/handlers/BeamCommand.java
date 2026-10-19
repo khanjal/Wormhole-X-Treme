@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import org.bukkit.Bukkit;
@@ -18,6 +20,7 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamPermissions;
 import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Handler for {@code /wormhole beam}.
@@ -95,7 +98,7 @@ public class BeamCommand implements SubCommand
 
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ChatText.error("Beaming is a player-only command."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.player-only")));
             return true;
         }
         final Player player = (Player) sender;
@@ -120,7 +123,7 @@ public class BeamCommand implements SubCommand
             place(player, args);
             return true;
         }
-        player.sendMessage(ChatText.error("Unknown beam command."));
+        player.sendMessage(ChatText.error(Messages.get(player, "beam.cmd.unknown")));
         player.sendMessage(TO_USAGE);
         return true;
     }
@@ -137,8 +140,7 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamTravel.travelTo(player, name))
         {
-            player.sendMessage(ChatText.error("No destination named " + ChatText.name(name)
-                + " among your places or the public list."));
+            player.sendMessage(ChatText.error(Messages.get(player, "beam.cmd.to.none", ChatText.name(name))));
         }
     }
 
@@ -151,26 +153,40 @@ public class BeamCommand implements SubCommand
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
-        final StringBuilder names = new StringBuilder();
+        final List<String> names = new ArrayList<>();
         for (final BeamDestination destination : BeamManager.getAllPublicDestinations())
         {
-            if (!names.isEmpty())
-            {
-                names.append(", ");
-            }
-            names.append(ChatText.name(destination.name()));
+            final String named = ChatText.name(destination.name());
             // Only an override is worth saying anything about -- the default cost is
             // already visible via /wormhole config BEAM_ECONOMY_USE_COST, and repeating it
             // next to every destination that hasn't been given one of its own would just be
             // noise the reader has to filter back out.
             final Double cost = destination.cost();
-            if (cost != null)
+            if (cost == null)
             {
-                names.append(cost <= 0 ? " (free)" : " (" + ChatText.value(String.valueOf(cost)) + ")");
+                names.add(named);
+            }
+            else if (cost <= 0)
+            {
+                names.add(Messages.get(player, "beam.cmd.list.free", named));
+            }
+            else
+            {
+                names.add(Messages.get(player, "beam.cmd.list.priced", named, ChatText.value(String.valueOf(cost))));
             }
         }
-        player.sendMessage(ChatText.info(names.isEmpty()
-            ? "No public beam destinations are set." : ("Beam destinations: " + names)));
+        if (names.isEmpty())
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "beam.cmd.list.none")));
+            return;
+        }
+        player.sendMessage(ChatText.info(Messages.get(player, "beam.cmd.list.public", joined(player, names))));
+    }
+
+    /** @return the names in a list line, joined as {@code player} reads a list */
+    private static String joined(final Player player, final List<String> names)
+    {
+        return String.join(Messages.get(player, "beam.cmd.list.separator"), names);
     }
 
     private void admin(final CommandSender sender, final String[] args)
@@ -200,8 +216,8 @@ public class BeamCommand implements SubCommand
         // admin actions a non-player sender can reach.
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ChatText.error(ChatText.command("/wormhole beam admin set|remove|cost")
-                + " is player-only."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.admin.player-only",
+                ChatText.command("/wormhole beam admin set|remove|cost"))));
             return;
         }
         final Player player = (Player) sender;
@@ -231,8 +247,15 @@ public class BeamCommand implements SubCommand
             {
                 BeamYamlManager.saveAll();
             }
-            final String said = removed
-                ? ChatText.info("Removed public beam destination " + ChatText.name(name) + ".") : noPublic(name);
+            final String said;
+            if (removed)
+            {
+                said = ChatText.info(Messages.get(player, "beam.cmd.admin.removed", ChatText.name(name)));
+            }
+            else
+            {
+                said = noPublic(player, name);
+            }
             player.sendMessage(said);
             return;
         }
@@ -244,10 +267,10 @@ public class BeamCommand implements SubCommand
         player.sendMessage(EDIT_USAGE);
     }
 
-    /** @return the error for a public destination name that matches none */
-    private static String noPublic(final String name)
+    /** @return the error, for {@code player} to read, for a public destination name that matches none */
+    private static String noPublic(final Player player, final String name)
     {
-        return ChatText.error("No public beam destination named " + ChatText.name(name) + ".");
+        return ChatText.error(Messages.get(player, "beam.cmd.admin.no-public", ChatText.name(name)));
     }
 
     /**
@@ -267,7 +290,7 @@ public class BeamCommand implements SubCommand
         final BeamDestination existing = BeamManager.getPublicDestination(name);
         if (existing == null)
         {
-            player.sendMessage(noPublic(name));
+            player.sendMessage(noPublic(player, name));
             return;
         }
         final String raw = args[4];
@@ -284,21 +307,28 @@ public class BeamCommand implements SubCommand
             }
             catch (final NumberFormatException e)
             {
-                player.sendMessage(ChatText.error(ChatText.bad(raw) + " is not a number. Give an amount, or "
-                    + ChatText.command("-default") + "."));
+                player.sendMessage(ChatText.error(Messages.get(player, "beam.cmd.cost.not-number", ChatText.bad(raw),
+                    ChatText.command("-default"))));
                 return;
             }
             if (newCost < 0)
             {
-                player.sendMessage(ChatText.error("Cost cannot be negative."));
+                player.sendMessage(ChatText.error(Messages.get(player, "beam.cmd.cost.negative")));
                 return;
             }
         }
         BeamManager.setPublicDestination(existing.withCost(newCost));
         BeamYamlManager.saveAll();
-        player.sendMessage(ChatText.info(ChatText.name(name) + (newCost == null
-            ? " now uses the configured default beam cost."
-            : (" now costs " + ChatText.value(String.valueOf(newCost)) + " to beam to."))));
+        final String line;
+        if (newCost == null)
+        {
+            line = Messages.get(player, "beam.cmd.cost.default", ChatText.name(name));
+        }
+        else
+        {
+            line = Messages.get(player, "beam.cmd.cost.set", ChatText.name(name), ChatText.value(String.valueOf(newCost)));
+        }
+        player.sendMessage(ChatText.info(line));
     }
 
     /**
@@ -312,8 +342,7 @@ public class BeamCommand implements SubCommand
     {
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ChatText.error(ChatText.command("goto") + " moves you, and there is nowhere for console"
-                + " or a command block to beam from."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.goto.not-a-player", ChatText.command("goto"))));
             sender.sendMessage(SEND_USAGE);
             return;
         }
@@ -365,7 +394,7 @@ public class BeamCommand implements SubCommand
         final Player target = Bukkit.getPlayerExact(args[3]);
         if (target == null)
         {
-            sender.sendMessage(ChatText.error("No online player named " + ChatText.name(args[3]) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.send.not-online", ChatText.name(args[3]))));
             return;
         }
         final Location destination = resolveDestination(sender, args, 4,
@@ -380,10 +409,30 @@ public class BeamCommand implements SubCommand
         // The target already hears BeamAnimation's own messages; this is for whoever sent
         // them, who is very often not the same person (console, a command block, or a
         // different admin) and would otherwise have no idea whether it worked.
-        final String said = started
-            ? ChatText.info("Beaming " + ChatText.name(target.getName()) + " to " + ChatText.name(label) + ".")
-            : ChatText.error(ChatText.name(target.getName()) + " is already beaming somewhere.");
+        final String said = sent(sender, started, target.getName(), label);
         sender.sendMessage(said);
+    }
+
+    /**
+     * What {@code send} tells its sender once it has asked for the beam.
+     *
+     * <p>Package-private for the tests: the beam itself runs through {@link BeamAnimation}, which a test
+     * cannot load.
+     *
+     * @param sender who sent the command, and reads this
+     * @param started whether the beam started, or the target was already beaming
+     * @param target the name of the player being moved
+     * @param label where to, as {@link #describeDestination} put it
+     * @return the line to send
+     */
+    static String sent(final CommandSender sender, final boolean started, final String target, final String label)
+    {
+        if (started)
+        {
+            return ChatText.info(Messages.get(sender, "beam.cmd.send.started", ChatText.name(target),
+                ChatText.name(label)));
+        }
+        return ChatText.error(Messages.get(sender, "beam.cmd.send.busy", ChatText.name(target)));
     }
 
     /**
@@ -422,8 +471,8 @@ public class BeamCommand implements SubCommand
         {
             return resolveCoordinates(sender, args, start, defaultWorld, defaultYaw, defaultPitch);
         }
-        sender.sendMessage(ChatText.error("Expected a player name, a public destination name, or "
-            + ChatText.usageBody("<x> <y> <z> [world]") + "."));
+        sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.destination.expected",
+            ChatText.usageBody("<x> <y> <z> [world]"))));
         return null;
     }
 
@@ -455,8 +504,7 @@ public class BeamCommand implements SubCommand
         final BeamDestination destination = BeamManager.getPublicDestination(name);
         if (destination == null)
         {
-            sender.sendMessage(ChatText.error("No online player or public beam destination named "
-                + ChatText.name(name) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.destination.none", ChatText.name(name))));
             return null;
         }
         final Location located = destination.toLocation();
@@ -465,8 +513,8 @@ public class BeamCommand implements SubCommand
             // The destination outlived the world it was recorded in, or that world just
             // isn't loaded right now. Saying so beats "no such destination", which would
             // send someone looking for a typo in a name that is actually fine.
-            sender.sendMessage(ChatText.error("Beam destination " + ChatText.name(destination.name()) + " is in world "
-                + ChatText.name(destination.point().worldName()) + ", which is not loaded."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.destination.not-loaded",
+                ChatText.name(destination.name()), ChatText.name(destination.point().worldName()))));
             return null;
         }
         return located;
@@ -506,7 +554,8 @@ public class BeamCommand implements SubCommand
             world = Bukkit.getWorld(args[start + 3]);
             if (world == null)
             {
-                sender.sendMessage(ChatText.error("No world named " + ChatText.name(args[start + 3]) + "."));
+                sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.destination.no-world",
+                    ChatText.name(args[start + 3]))));
                 return null;
             }
         }
@@ -525,7 +574,8 @@ public class BeamCommand implements SubCommand
         }
         catch (final NumberFormatException e)
         {
-            sender.sendMessage(ChatText.error(ChatText.bad(raw) + " is not a valid coordinate."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.destination.bad-coordinate",
+                ChatText.bad(raw))));
             return null;
         }
     }
@@ -572,8 +622,8 @@ public class BeamCommand implements SubCommand
         // Travel used to be reachable here too ("beam place <name>"), but that meant the same
         // destination could be reached two different ways depending on whether it was public
         // or private. "to" is the one place travel happens now, whatever the destination is.
-        player.sendMessage(ChatText.error("Unknown place command. To travel, use "
-            + ChatText.usageBody("/wormhole beam to <name>") + "."));
+        player.sendMessage(ChatText.error(Messages.get(player, "beam.cmd.place.unknown",
+            ChatText.usageBody("/wormhole beam to <name>"))));
         player.sendMessage(PLACE_USAGE);
     }
 
@@ -585,7 +635,7 @@ public class BeamCommand implements SubCommand
         }
         BeamManager.setPublicDestination(BeamDestination.fromLocation(name, player.getLocation()));
         BeamYamlManager.saveAll();
-        player.sendMessage(ChatText.info("Public beam destination " + ChatText.name(name) + " set to your current location."));
+        player.sendMessage(ChatText.info(Messages.get(player, "beam.cmd.admin.set", ChatText.name(name))));
     }
 
     /** Refuses a new name starting with a dash, since words that do are options. */
@@ -595,23 +645,23 @@ public class BeamCommand implements SubCommand
         {
             return false;
         }
-        player.sendMessage(ChatText.error("A beam destination's name cannot start with " + ChatText.bad("-")
-            + "; words that do are options."));
+        player.sendMessage(ChatText.error(Messages.get(player, "beam.cmd.dashed", ChatText.bad("-"))));
         return true;
     }
 
     private void listPlaces(final Player player)
     {
-        final StringBuilder names = new StringBuilder();
+        final List<String> names = new ArrayList<>();
         for (final BeamDestination place : BeamManager.getPlaces(player.getUniqueId()))
         {
-            if (!names.isEmpty())
-            {
-                names.append(", ");
-            }
-            names.append(ChatText.name(place.name()));
+            names.add(ChatText.name(place.name()));
         }
-        player.sendMessage(ChatText.info(names.isEmpty() ? "You have no places set." : ("Your places: " + names)));
+        if (names.isEmpty())
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "beam.cmd.place.list.none")));
+            return;
+        }
+        player.sendMessage(ChatText.info(Messages.get(player, "beam.cmd.place.list.some", joined(player, names))));
     }
 
     private void setPlace(final Player player, final String[] args)
@@ -633,7 +683,7 @@ public class BeamCommand implements SubCommand
         }
         BeamManager.setPlace(player.getUniqueId(), BeamDestination.fromLocation(name, player.getLocation()));
         BeamYamlManager.saveAll();
-        player.sendMessage(ChatText.info("Place " + ChatText.name(name) + " set to your current location."));
+        player.sendMessage(ChatText.info(Messages.get(player, "beam.cmd.place.set", ChatText.name(name))));
     }
 
     private void removePlace(final Player player, final String[] args)
@@ -649,9 +699,15 @@ public class BeamCommand implements SubCommand
         {
             BeamYamlManager.saveAll();
         }
-        final String said = removed
-            ? ChatText.info("Removed place " + ChatText.name(name) + ".")
-            : ChatText.error("You have no place named " + ChatText.name(name) + ".");
+        final String said;
+        if (removed)
+        {
+            said = ChatText.info(Messages.get(player, "beam.cmd.place.removed", ChatText.name(name)));
+        }
+        else
+        {
+            said = ChatText.error(Messages.get(player, "beam.cmd.place.none", ChatText.name(name)));
+        }
         player.sendMessage(said);
     }
 }
