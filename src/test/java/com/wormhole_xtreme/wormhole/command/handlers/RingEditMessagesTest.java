@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -157,7 +158,6 @@ class RingEditMessagesTest
         edit(player, PAIR_ID, "style", "diagonal");
         edit(player, PAIR_ID, "ring", "stone");
         edit(player, PAIR_ID, "built", "stone");
-        edit(player, PAIR_ID, "light", "diamond");
         pair.setOwner(RECIPIENT);
         edit(player, PAIR_ID, "access", "private");
 
@@ -176,7 +176,6 @@ class RingEditMessagesTest
         verify(player).sendMessage(ChatText.error("The travelling ring has to be a slab, so it can move half a block "
             + "at a time."));
         verify(player).sendMessage(ChatText.error("The laid-in slab has to be a slab, since reset puts it back."));
-        verify(player).sendMessage(ChatText.error(ChatText.bad("diamond") + " is not a block."));
         verify(player).sendMessage(ChatText.error("That is not your ring pair."));
     }
 
@@ -193,7 +192,6 @@ class RingEditMessagesTest
         edit(player, PAIR_ID, "style", "diagonal");
         edit(player, PAIR_ID, "ring", "stone");
         edit(player, PAIR_ID, "built", "stone");
-        edit(player, PAIR_ID, "light", "diamond");
         pair.setOwner(RECIPIENT);
         edit(player, PAIR_ID, "access", "private");
 
@@ -208,7 +206,6 @@ class RingEditMessagesTest
             + " " + ChatText.command("concurrent") + " " + ChatText.command("sequential") + "?"));
         verify(player).sendMessage(ChatText.error("QQ ring not slab."));
         verify(player).sendMessage(ChatText.error("QQ built not slab."));
-        verify(player).sendMessage(ChatText.error("QQ " + ChatText.bad("diamond") + " not block."));
         verify(player).sendMessage(ChatText.error("QQ not yours."));
     }
 
@@ -225,8 +222,6 @@ class RingEditMessagesTest
         edit(player, PAIR_ID, "style", "slow");
         edit(player, PAIR_ID, "ring", "oak_slab");
         edit(player, PAIR_ID, "built", "oak_slab");
-        edit(player, PAIR_ID, "light", "sea_lantern");
-        edit(player, PAIR_ID, "flash", "redstone_block");
 
         verify(player).sendMessage(ChatText.info("This ring is now " + ChatText.name("Tower") + "."));
         verify(player).sendMessage(ChatText.info("Name cleared."));
@@ -234,11 +229,9 @@ class RingEditMessagesTest
         verify(player).sendMessage(ChatText.info("Style set to " + ChatText.value("SEQUENTIAL") + "."));
         verify(player).sendMessage(ChatText.info("Ring material set to " + ChatText.material("OAK_SLAB") + "."));
         verify(player).sendMessage(ChatText.info("Built material set to " + ChatText.material("OAK_SLAB") + "."));
-        verify(player).sendMessage(ChatText.info("Pad light set to " + ChatText.material("SEA_LANTERN") + "."));
-        verify(player).sendMessage(ChatText.info("Transport light set to " + ChatText.material("REDSTONE_BLOCK") + "."));
     }
 
-    /** The same confirmations reach a qq player in qq, a name set told apart from one cleared and pad from flash. */
+    /** The same confirmations reach a qq player in qq, a name set told apart from one cleared. */
     @Test
     void theEditConfirmationsAreInThePlayersLanguage()
     {
@@ -251,8 +244,6 @@ class RingEditMessagesTest
         edit(player, PAIR_ID, "style", "slow");
         edit(player, PAIR_ID, "ring", "oak_slab");
         edit(player, PAIR_ID, "built", "oak_slab");
-        edit(player, PAIR_ID, "light", "sea_lantern");
-        edit(player, PAIR_ID, "flash", "redstone_block");
 
         verify(player).sendMessage(ChatText.info("QQ name " + ChatText.name("Tower") + "."));
         verify(player).sendMessage(ChatText.info("QQ name cleared."));
@@ -260,6 +251,52 @@ class RingEditMessagesTest
         verify(player).sendMessage(ChatText.info("QQ style set " + ChatText.value("SEQUENTIAL") + "."));
         verify(player).sendMessage(ChatText.info("QQ ring set " + ChatText.material("OAK_SLAB") + "."));
         verify(player).sendMessage(ChatText.info("QQ built set " + ChatText.material("OAK_SLAB") + "."));
+    }
+
+    /**
+     * The light edits ask {@code Material.isBlock()}, which goes through the block registry from 1.20.6
+     * and throws without a server, so they run only where the API answers it, as on the 1.20 build.
+     */
+    private static boolean registryAnswersIsBlock()
+    {
+        try
+        {
+            return Material.STONE.isBlock();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            return false;
+        }
+    }
+
+    /** The light refusal and the pad and flash confirmations, against the old expression. */
+    @Test
+    void theLightEditsReadAsTheyDidBefore()
+    {
+        assumeTrue(registryAnswersIsBlock(), "this API asks a server's registry whether a material is a block");
+        final Player player = ownerReading("en");
+
+        edit(player, PAIR_ID, "light", "diamond");
+        edit(player, PAIR_ID, "light", "sea_lantern");
+        edit(player, PAIR_ID, "flash", "redstone_block");
+
+        verify(player).sendMessage(ChatText.error(ChatText.bad("diamond") + " is not a block."));
+        verify(player).sendMessage(ChatText.info("Pad light set to " + ChatText.material("SEA_LANTERN") + "."));
+        verify(player).sendMessage(ChatText.info("Transport light set to " + ChatText.material("REDSTONE_BLOCK") + "."));
+    }
+
+    /** The same light lines reach a qq player in qq, pad told apart from flash. */
+    @Test
+    void theLightEditsAreInThePlayersLanguage()
+    {
+        assumeTrue(registryAnswersIsBlock(), "this API asks a server's registry whether a material is a block");
+        final Player player = ownerReading("qq");
+
+        edit(player, PAIR_ID, "light", "diamond");
+        edit(player, PAIR_ID, "light", "sea_lantern");
+        edit(player, PAIR_ID, "flash", "redstone_block");
+
+        verify(player).sendMessage(ChatText.error("QQ " + ChatText.bad("diamond") + " not block."));
         verify(player).sendMessage(ChatText.info("QQ pad set " + ChatText.material("SEA_LANTERN") + "."));
         verify(player).sendMessage(ChatText.info("QQ flash set " + ChatText.material("REDSTONE_BLOCK") + "."));
     }

@@ -671,7 +671,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.not-your-pair")));
+            player.sendMessage(notYourPair(player));
             return;
         }
         RingManager.removePair(pair, ConfigManager.getRingReach());
@@ -732,7 +732,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.not-your-pair")));
+            player.sendMessage(notYourPair(player));
             return;
         }
 
@@ -1092,7 +1092,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.not-your-pair")));
+            player.sendMessage(notYourPair(player));
             return;
         }
         final OfflinePlayer subject = findPlayer(args[2]);
@@ -1205,6 +1205,12 @@ public class RingCommand implements SubCommand
     private static String neverSeen(final Player player, final String name)
     {
         return ChatText.error(Messages.get(player, "ring.cmd.never-seen", ChatText.name(name)));
+    }
+
+    /** @return the error, for {@code player} to read, for a pair that is not theirs to manage */
+    private static String notYourPair(final Player player)
+    {
+        return ChatText.error(Messages.get(player, "ring.cmd.not-your-pair"));
     }
 
     /**
