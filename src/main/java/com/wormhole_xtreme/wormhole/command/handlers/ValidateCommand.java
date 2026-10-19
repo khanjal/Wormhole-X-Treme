@@ -13,6 +13,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Handler for '/wormhole gate validate' -- the third of the four things #54 asked for.
@@ -76,14 +77,34 @@ public class ValidateCommand implements SubCommand
                 broken.add(gate);
             }
         }
-        sender.sendMessage(ChatText.info("Checked " + ChatText.value(String.valueOf(checked)) + " gate"
-            + (checked == 1 ? "" : "s") + ". " + ChatText.value(String.valueOf(broken.size())) + " "
-            + (broken.size() == 1 ? "has" : "have") + " something missing."));
+        sender.sendMessage(ChatText.info(checkedSentence(sender, checked) + " " + missingSentence(sender, broken.size())));
         for (final Stargate gate : broken)
         {
             report(sender, gate, false);
         }
         return true;
+    }
+
+    /** "Checked 1 gate." or "Checked 2 gates." */
+    private static String checkedSentence(final CommandSender sender, final int checked)
+    {
+        final String count = ChatText.value(String.valueOf(checked));
+        if (checked == 1)
+        {
+            return Messages.get(sender, "gate.validate.checked.one", count);
+        }
+        return Messages.get(sender, "gate.validate.checked.other", count);
+    }
+
+    /** "1 has something missing." or "2 have something missing.", and "0 have" when nothing is. */
+    private static String missingSentence(final CommandSender sender, final int broken)
+    {
+        final String count = ChatText.value(String.valueOf(broken));
+        if (broken == 1)
+        {
+            return Messages.get(sender, "gate.validate.missing.one", count);
+        }
+        return Messages.get(sender, "gate.validate.missing.other", count);
     }
 
     /** Whether {@link GateIntegrity} would flag anything about this gate. */
@@ -111,24 +132,34 @@ public class ValidateCommand implements SubCommand
         {
             if (sayIfClean)
             {
-                sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " is standing where it says it is."));
+                sender.sendMessage(ChatText.info(Messages.get(sender, "gate.validate.standing", ChatText.name(gate.getGateName()))));
             }
             return;
         }
         final StringBuilder problems = new StringBuilder();
         if (missing > 0)
         {
-            problems.append(missing).append(" frame block").append(missing == 1 ? "" : "s")
-                .append(" missing");
+            problems.append(frameProblem(sender, missing));
         }
         if (signMissing)
         {
             if (!problems.isEmpty())
             {
-                problems.append("; ");
+                problems.append(Messages.get(sender, "gate.validate.problem-separator"));
             }
-            problems.append("dial sign missing");
+            problems.append(Messages.get(sender, "gate.validate.sign-missing"));
         }
-        sender.sendMessage(ChatText.error(ChatText.name(gate.getGateName()) + ": " + ChatText.bad(problems.toString()) + "."));
+        sender.sendMessage(ChatText.error(Messages.get(sender, "gate.validate.problems",
+            ChatText.name(gate.getGateName()), ChatText.bad(problems.toString()))));
+    }
+
+    /** "1 frame block missing" or "2 frame blocks missing". */
+    private static String frameProblem(final CommandSender sender, final int missing)
+    {
+        if (missing == 1)
+        {
+            return Messages.get(sender, "gate.validate.frame-missing.one", missing);
+        }
+        return Messages.get(sender, "gate.validate.frame-missing.other", missing);
     }
 }
