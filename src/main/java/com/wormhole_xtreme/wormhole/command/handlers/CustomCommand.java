@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.List;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
@@ -15,6 +14,7 @@ import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 
 /**
@@ -65,8 +65,8 @@ public class CustomCommand implements SubCommand
         if (args.length == 2)
         {
             reportCustom(sender, stargate);
-            sender.sendMessage(ChatText.info("Change it with " + ChatText.command("true") + " or "
-                + ChatText.command("false") + "."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.custom.change-hint", ChatText.command("true"),
+                ChatText.command("false"))));
             return true;
         }
         setOneGateCustom(sender, stargate, args[2]);
@@ -76,8 +76,8 @@ public class CustomCommand implements SubCommand
     /** Says whether a gate is in custom mode. */
     private static void reportCustom(final CommandSender sender, final Stargate stargate)
     {
-        sender.sendMessage(ChatText.info(ChatText.name(stargate.getGateName()) + " custom mode: "
-            + ChatText.value(String.valueOf(stargate.isGateCustom())) + "."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.custom.mode", ChatText.name(stargate.getGateName()),
+            ChatText.value(String.valueOf(stargate.isGateCustom())))));
     }
 
     /** Turns custom mode on or off for every gate that has a shape to base it on. */
@@ -87,8 +87,7 @@ public class CustomCommand implements SubCommand
         {
             CommandHandlerUtils.setGateCustomAll(stargate, Boolean.parseBoolean(value));
         }
-        sender.sendMessage(ChatText.info("Custom mode set to " + ChatText.value(value)
-            + " on every gate with a shape."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.custom.set-all", ChatText.value(value))));
     }
 
     /**
@@ -104,15 +103,15 @@ public class CustomCommand implements SubCommand
     {
         if (!CommandUtilities.isBoolean(value))
         {
-            sender.sendMessage(ChatText.error("Custom mode is " + ChatText.command("true") + " or "
-                + ChatText.command("false") + ", not " + ChatText.command(value) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.custom.not-boolean", ChatText.command("true"),
+                ChatText.command("false"), ChatText.command(value))));
             sendUsage(sender);
             return;
         }
         if (stargate.getGateShape() == null)
         {
-            sender.sendMessage(ChatText.error(ChatText.name(stargate.getGateName())
-                + " has no gate shape to base custom data on. Make sure its shape file is loaded."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.custom.no-shape",
+                ChatText.name(stargate.getGateName()))));
             return;
         }
         CommandHandlerUtils.setGateCustomAll(stargate, Boolean.parseBoolean(value));
@@ -154,18 +153,28 @@ public class CustomCommand implements SubCommand
 
         if (affected.isEmpty())
         {
-            sender.sendMessage(ChatText.info("No gates are carrying snapshotted material overrides."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.custom.clean.none")));
             return;
         }
 
+        final String count = ChatText.value(String.valueOf(affected.size()));
         if (!confirmed)
         {
-            sender.sendMessage(ChatText.info(ChatText.value(String.valueOf(affected.size()))
-                + " gate(s) carry material overrides matching the built-in defaults:"));
-            sender.sendMessage(ChatText.info(affected.stream().map(g -> ChatText.name(g.getGateName()))
-                .collect(Collectors.joining(", "))));
-            sender.sendMessage(ChatText.info("Clearing them lets those gates follow their material group."));
-            sender.sendMessage(ChatText.info("Run " + ChatText.command("/wormhole custom -clean -confirm") + " to apply."));
+            final String found;
+            if (affected.size() == 1)
+            {
+                found = Messages.get(sender, "gate.custom.clean.found.one", count);
+            }
+            else
+            {
+                found = Messages.get(sender, "gate.custom.clean.found.other", count);
+            }
+            sender.sendMessage(ChatText.info(found));
+            sender.sendMessage(ChatText.info(String.join(Messages.get(sender, "gate.custom.clean.separator"),
+                affected.stream().map(g -> ChatText.name(g.getGateName())).toList())));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.custom.clean.explain")));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.custom.clean.confirm-hint",
+                ChatText.command("/wormhole custom -clean -confirm"))));
             return;
         }
 
@@ -179,8 +188,16 @@ public class CustomCommand implements SubCommand
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
             "Cleared snapshotted material overrides from " + affected.size() + " gate(s): " + gateNames(affected));
-        sender.sendMessage(ChatText.info("Cleared material overrides on " + ChatText.value(String.valueOf(affected.size()))
-            + " gate(s); they now follow their material group."));
+        final String cleared;
+        if (affected.size() == 1)
+        {
+            cleared = Messages.get(sender, "gate.custom.clean.cleared.one", count);
+        }
+        else
+        {
+            cleared = Messages.get(sender, "gate.custom.clean.cleared.other", count);
+        }
+        sender.sendMessage(ChatText.info(cleared));
     }
 
     /**
