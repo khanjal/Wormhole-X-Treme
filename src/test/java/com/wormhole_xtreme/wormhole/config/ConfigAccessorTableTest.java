@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -428,7 +429,7 @@ class ConfigAccessorTableTest
         assertTrue(unmoved.isEmpty(), "accessors the distinct phase does not move off the default: " + unmoved);
 
         final Set<ConfigKeys> unread = new TreeSet<>(Arrays.asList(ConfigKeys.values()));
-        ROWS.stream().map(Row::key).filter(key -> key != null).forEach(unread::remove);
+        ROWS.stream().map(Row::key).filter(Objects::nonNull).forEach(unread::remove);
         assertTrue(unread.isEmpty(), "settings no row reads: " + unread);
     }
 
