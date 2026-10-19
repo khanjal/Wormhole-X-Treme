@@ -651,11 +651,8 @@ public class BeamCommand implements SubCommand
 
     private void listPlaces(final Player player)
     {
-        final List<String> names = new ArrayList<>();
-        for (final BeamDestination place : BeamManager.getPlaces(player.getUniqueId()))
-        {
-            names.add(ChatText.name(place.name()));
-        }
+        final List<String> names = BeamManager.getPlaces(player.getUniqueId()).stream()
+            .map(place -> ChatText.name(place.name())).toList();
         if (names.isEmpty())
         {
             player.sendMessage(ChatText.info(Messages.get(player, "beam.cmd.place.list.none")));
