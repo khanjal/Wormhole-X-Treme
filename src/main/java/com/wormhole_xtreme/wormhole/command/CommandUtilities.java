@@ -14,6 +14,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * WormholeXTreme Commands and command specific methods.
@@ -303,16 +304,28 @@ public class CommandUtilities
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing command", t);
             // Everyone is told the same thing, console included: the failure is logged
             // server-side, and neither a player nor an operator can act on more than that.
-            sender.sendMessage(INTERNAL_ERROR);
+            sender.sendMessage(internalError(sender));
             return true;
         }
     }
 
-    /** What a command that threw tells whoever ran it. */
+    /** What a command that threw tells whoever ran it, in English; {@link #internalError} reads the reader's language. */
     public static final String INTERNAL_ERROR = ChatText.error("An internal error occurred. Check server logs.");
 
     /**
-     * The refusal for a gate name that matches no gate.
+     * What a command that threw tells whoever ran it.
+     *
+     * @param sender
+     *            who ran it, and whose language the line is in
+     * @return the error line
+     */
+    public static String internalError(final CommandSender sender)
+    {
+        return ChatText.error(Messages.get(sender, "cmd.internal-error"));
+    }
+
+    /**
+     * The refusal for a gate name that matches no gate, in the server's language.
      *
      * @param name
      *            the name as typed
@@ -320,7 +333,21 @@ public class CommandUtilities
      */
     public static String noGateCalled(final String name)
     {
-        return ChatText.error("No gate called " + ChatText.name(name) + ". " + ChatText.command("/wormhole list")
-            + " shows them.");
+        return noGateCalled(null, name);
+    }
+
+    /**
+     * The refusal for a gate name that matches no gate.
+     *
+     * @param sender
+     *            who asked, and whose language the line is in
+     * @param name
+     *            the name as typed
+     * @return an error line naming it, and where to find the names there are
+     */
+    public static String noGateCalled(final CommandSender sender, final String name)
+    {
+        return ChatText.error(Messages.get(sender, "cmd.no-gate", ChatText.name(name),
+            ChatText.command("/wormhole list")));
     }
 }

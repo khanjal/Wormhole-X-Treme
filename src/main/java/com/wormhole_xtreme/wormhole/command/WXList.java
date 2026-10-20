@@ -16,6 +16,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * The Class WXList.
@@ -59,13 +60,19 @@ public class WXList implements CommandExecutor
         final String filterNet = (args.length > 0) ? args[0].trim() : null;
         final ArrayList<Stargate> gates = gatesOn(filterNet);
 
-        final String header = (filterNet != null)
-            ? "Gates on network " + ChatText.name(filterNet) + ChatText.heading(" ::")
-            : "Available gates " + ChatText.heading("::");
+        final String header;
+        if (filterNet != null)
+        {
+            header = Messages.get(sender, "gate.list.network", ChatText.name(filterNet), ChatText.heading(" ::"));
+        }
+        else
+        {
+            header = Messages.get(sender, "gate.list.all", ChatText.heading("::"));
+        }
         sender.sendMessage(ChatText.info(header));
         if (gates.isEmpty())
         {
-            sender.sendMessage(ChatText.info("No gates found."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.none")));
         }
         sendGateNames(sender, gates);
     }
@@ -102,6 +109,7 @@ public class WXList implements CommandExecutor
      */
     private static void sendGateNames(final CommandSender sender, final List<Stargate> gates)
     {
+        final String separator = Messages.get(sender, "gate.list.separator");
         StringBuilder sb = new StringBuilder();
         int visible = 0;
         for (int i = 0; i < gates.size(); i++)
@@ -111,8 +119,8 @@ public class WXList implements CommandExecutor
             visible += gateName.length();
             if (i != (gates.size() - 1))
             {
-                sb.append(", ");
-                visible += 2;
+                sb.append(separator);
+                visible += separator.length();
             }
             if (visible >= LINE_BUDGET)
             {
