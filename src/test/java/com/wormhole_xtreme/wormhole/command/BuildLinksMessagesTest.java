@@ -76,7 +76,8 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     private static Player sink()
     {
         final Player player = mock(Player.class);
-        when(player.spigot()).thenReturn(mock(Player.Spigot.class));
+        final Player.Spigot spigot = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(spigot);
         return player;
     }
 
@@ -112,7 +113,8 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     private Object run(final String locale, final Consumer<MockedStatic<GatePreviews>> stubs, final String... args)
     {
         final Player player = reading(locale);
-        when(player.spigot()).thenReturn(mock(Player.Spigot.class));
+        final Player.Spigot spigot = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(spigot);
         try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
         {
             stubs.accept(previews);
