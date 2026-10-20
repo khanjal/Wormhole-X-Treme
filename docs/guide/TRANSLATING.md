@@ -13,7 +13,8 @@ building, listing, editing and removing rings: `/wormhole ring create`, `cancel`
 beaming: what a beam tells its traveller, its cooldown and cost, and `/wormhole beam to`, `list`,
 `place` and `admin`; what a mirror says when somebody clicks it or looks at it; and looking after
 gates: `/wormhole gate edit`, `gate shapes`, `gate import`, `custom`, the portal, iris and light
-material commands and `wooshdepth`; and the settings: what `/wormhole config` says when it sets,
+material commands and `wooshdepth`; building by hand: `/wormhole gate build`, everything
+`gate preview` says and what pointing at each of its buttons shows, and `/wormhole complete`; and the settings: what `/wormhole config` says when it sets,
 refuses or lists a setting, the `config -reload` report, `/wormhole cooldown` and the two timeout
 commands, and the notice of a newer release an admin gets on joining. Setting names and the values
 a setting takes stay as they are. The rest are

@@ -352,7 +352,7 @@ public final class GateConsoleCommands
         {
             return Messages.get(sender, "gate.build.shape-flat", ChatText.name(rest[0]));
         }
-        final String badName = Complete.whyNotAName(rest[1]);
+        final String badName = Complete.whyNotAName(sender, rest[1]);
         if (badName != null)
         {
             return badName;
