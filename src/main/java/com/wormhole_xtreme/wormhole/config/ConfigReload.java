@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.bukkit.command.CommandSender;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.MarkedYAMLException;
 import org.yaml.snakeyaml.error.YAMLException;
@@ -88,51 +89,72 @@ public final class ConfigReload
     }
 
     /**
-     * Reloads this server's config.yml.
+     * Reloads this server's config.yml, its report in the server's language.
      *
      * @return what changed
      */
     public static Report reload()
     {
-        return reload(ConfigurationYAML.getConfigFile(ConfigManager.configuredPluginName()));
+        return reload((CommandSender) null);
+    }
+
+    /**
+     * Reloads this server's config.yml.
+     *
+     * @param recipient
+     *            who will read the report; null for the server's language
+     * @return what changed
+     */
+    public static Report reload(final CommandSender recipient)
+    {
+        return reload(recipient, ConfigurationYAML.getConfigFile(ConfigManager.configuredPluginName()));
+    }
+
+    /** As {@link #reload(CommandSender, File)}, its report in the server's language. */
+    static Report reload(final File cfg)
+    {
+        return reload(null, cfg);
     }
 
     /**
      * Reloads the settings from one file, and the language file whether or not {@code server-language}
      * changed, so an edited translation is taken too.
      *
+     * @param recipient
+     *            who will read the report; null for the server's language
      * @param cfg
      *            the config file
      * @return what changed
      */
-    static Report reload(final File cfg)
+    static Report reload(final CommandSender recipient, final File cfg)
     {
+        final String name = cfg.getName();
         final Map<String, Object> map;
         try (InputStream in = Files.newInputStream(cfg.toPath()))
         {
             final Object loaded = new Yaml().load(in);
             if (loaded == null)
             {
-                return unreadable(cfg.getName() + " is empty");
+                return unreadable(Messages.get(recipient, "config.reload.empty", name));
             }
             if (!(loaded instanceof Map))
             {
-                return unreadable(cfg.getName() + " is not a list of settings");
+                return unreadable(Messages.get(recipient, "config.reload.not-settings", name));
             }
             map = YamlMaps.asMap(loaded);
         }
         catch (final NoSuchFileException e)
         {
-            return unreadable("There is no " + cfg.getName() + " in the plugin folder");
+            return unreadable(Messages.get(recipient, "config.reload.missing", name));
         }
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not reload " + cfg, e);
-            return unreadable(cfg.getName() + " could not be read, as the log says");
+            return unreadable(Messages.get(recipient, "config.reload.not-read", name));
         }
         catch (final YAMLException e)
         {
-            return unreadable(cfg.getName() + " is not valid YAML: " + problem(e));
+            return unreadable(Messages.get(recipient, "config.reload.not-yaml", name, problem(recipient, e)));
         }
 
         final List<Change> changes = new ArrayList<>();
@@ -144,7 +166,7 @@ public final class ConfigReload
             final Object value = (key == null) ? null : map.get(key);
             if ((current != null) && (value != null))
             {
-                take(element, current, value, changes, rejections);
+                take(recipient, element, current, value, changes, rejections);
             }
         }
         // A changed language was read as it was taken; read it once either way.
@@ -159,15 +181,15 @@ public final class ConfigReload
      * Takes one value from the file, in the form the command would store it, if it differs from
      * what is set; a value already stored that the command would refuse is reported every time.
      */
-    private static void take(final Setting element, final Setting current, final Object written,
-        final List<Change> changes, final List<Rejection> rejections)
+    private static void take(final CommandSender recipient, final Setting element, final Setting current,
+        final Object written, final List<Change> changes, final List<Rejection> rejections)
     {
         final ConfigKeys key = current.getName();
         final Object read = ConfigurationYAML.readFrom(element, written);
         if (read == null)
         {
-            rejections.add(new Rejection(key, key + " is " + ConfigurationYAML.kindOf(element.getValue())
-                + ", not \"" + written + "\".", current.getValue()));
+            rejections.add(new Rejection(key, ParsedSetting.notOfKind(recipient, key, element.getValue(), written),
+                current.getValue()));
             return;
         }
         ParsedSetting parsed = ParsedSetting.read(key, current.getValue(), String.valueOf(read));
@@ -176,8 +198,8 @@ public final class ConfigReload
         {
             if (!OFF_MEANS_DEFAULT.contains(key))
             {
-                rejections.add(new Rejection(key, key + " was read as a switch (" + written
-                    + "); write the value in quotes.", current.getValue()));
+                rejections.add(new Rejection(key, Messages.get(recipient, "config.reload.switch", key, written),
+                    current.getValue()));
                 return;
             }
             if (Objects.equals(current.getValue(), read))
@@ -188,7 +210,7 @@ public final class ConfigReload
         }
         if (!parsed.isAccepted())
         {
-            rejections.add(new Rejection(key, parsed.getRefusal(), current.getValue()));
+            rejections.add(new Rejection(key, parsed.getRefusal(recipient), current.getValue()));
             return;
         }
         final Object from = current.getValue();
@@ -212,11 +234,12 @@ public final class ConfigReload
     }
 
     /** What the parser objected to and where, on one line. */
-    private static String problem(final YAMLException e)
+    private static String problem(final CommandSender recipient, final YAMLException e)
     {
         if ((e instanceof MarkedYAMLException marked) && (marked.getProblemMark() != null))
         {
-            return marked.getProblem() + " on line " + (marked.getProblemMark().getLine() + 1);
+            return Messages.get(recipient, "config.reload.on-line", marked.getProblem(),
+                marked.getProblemMark().getLine() + 1);
         }
         return String.valueOf(e.getMessage()).lines().findFirst().orElse("");
     }

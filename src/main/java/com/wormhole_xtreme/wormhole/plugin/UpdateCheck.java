@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
@@ -27,6 +28,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.PluginVersion;
 
 /**
@@ -63,7 +65,8 @@ public final class UpdateCheck implements Listener
 
     private static final Pattern SAFE_GITHUB_PAGE = Pattern.compile("https://github\\.com/[!-~]{1,200}");
 
-    private final String message;
+    /** The line a joining player is told, in their language. */
+    private final Function<Player, String> line;
 
     /** Reads a URL's body; anything but a 2xx answer is an IOException. */
     @FunctionalInterface
@@ -77,9 +80,30 @@ public final class UpdateCheck implements Listener
     {
     }
 
+    /** A listener telling every player the same line, whatever their language. */
     UpdateCheck(final String message)
     {
-        this.message = message;
+        this(reader -> message);
+    }
+
+    private UpdateCheck(final Function<Player, String> line)
+    {
+        this.line = line;
+    }
+
+    /**
+     * The listener telling each joining player about a newer release, in their language.
+     *
+     * @param release
+     *            the newer release
+     * @param running
+     *            the version running
+     * @return the listener
+     */
+    static UpdateCheck notice(final Release release, final String running)
+    {
+        return new UpdateCheck(reader -> ChatText.info(Messages.get(reader, "update.joined",
+            ChatText.value(release.version()), running, release.url())));
     }
 
     /**
@@ -132,9 +156,7 @@ public final class UpdateCheck implements Listener
     {
         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Wormhole X-Treme " + release.version()
             + " is available (running " + running + "): " + release.url());
-        final String line = ChatText.info("Wormhole X-Treme " + ChatText.value(release.version())
-            + " is available (running " + running + "): " + release.url());
-        plugin.getServer().getPluginManager().registerEvents(new UpdateCheck(line), plugin);
+        plugin.getServer().getPluginManager().registerEvents(notice(release, running), plugin);
     }
 
     /**
@@ -149,7 +171,8 @@ public final class UpdateCheck implements Listener
         final Player player = event.getPlayer();
         if (player.hasPermission(NOTIFY_PERMISSION))
         {
-            player.sendMessage(message);
+            final String told = line.apply(player);
+            player.sendMessage(told);
         }
     }
 

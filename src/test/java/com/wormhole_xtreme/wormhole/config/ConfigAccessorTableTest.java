@@ -458,6 +458,8 @@ class ConfigAccessorTableTest
         skip.put("describeSetting(String)", command);
         skip.put("settingRefusal(String,String)", command);
         skip.put("applySetting(String,String)", command + "; writes config.yml");
+        skip.put("settingRefusal(CommandSender,String,String)", command);
+        skip.put("applySetting(CommandSender,String,String)", command + "; writes config.yml");
         skip.put("valuesFor(String)", "tab completion's choices, not a setting's value");
         skip.put("irisAnimations()", "the list of animation names, not a setting's value");
         skip.put("parseIrisAnimation(String)", "a parser over text it is given");
