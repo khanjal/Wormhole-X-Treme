@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.RepeatingSweeps;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -1345,9 +1346,25 @@ public class ConfigManager
      */
     public static String settingRefusal(final String name, final String raw)
     {
+        return settingRefusal(null, name, raw);
+    }
+
+    /**
+     * Why a value would be refused for a setting, without changing anything.
+     *
+     * @param recipient
+     *            who will read the refusal; null for the server's language
+     * @param name
+     *            the setting name, in any case
+     * @param raw
+     *            the value as typed
+     * @return the refusal, or null if the value would be taken or there is no such setting
+     */
+    public static String settingRefusal(final CommandSender recipient, final String name, final String raw)
+    {
         final Setting setting = settingNamed(name);
         return (setting == null) ? null
-            : ParsedSetting.read(setting.getName(), setting.getValue(), raw).getRefusal();
+            : ParsedSetting.read(setting.getName(), setting.getValue(), raw).getRefusal(recipient);
     }
 
     /**
@@ -1368,9 +1385,25 @@ public class ConfigManager
      *            the setting name, in any case
      * @param raw
      *            the new value as typed
-     * @return a message saying what happened
+     * @return a message saying what happened, in the server's language
      */
     public static String applySetting(final String name, final String raw)
+    {
+        return applySetting(null, name, raw);
+    }
+
+    /**
+     * Changes one setting and writes it back to config.yml, as {@link #applySetting(String, String)}.
+     *
+     * @param recipient
+     *            who will read the answer; null for the server's language
+     * @param name
+     *            the setting name, in any case
+     * @param raw
+     *            the new value as typed
+     * @return a message saying what happened, or null if there is no such setting
+     */
+    public static String applySetting(final CommandSender recipient, final String name, final String raw)
     {
         final Setting setting = settingNamed(name);
         if (setting == null)
@@ -1380,11 +1413,11 @@ public class ConfigManager
         final ParsedSetting parsed = ParsedSetting.read(setting.getName(), setting.getValue(), raw);
         if (!parsed.isAccepted())
         {
-            return parsed.getRefusal();
+            return parsed.getRefusal(recipient);
         }
         setting.setValue(parsed.getValue());
         Configuration.persistCurrentConfiguration(SECTION);
-        final String done = setting.getName().name() + " is now " + parsed.getValue();
+        final String done = setting.getName().name();
         // The value is already saved; a failure to apply it must say so, not escape the command.
         try
         {
@@ -1393,9 +1426,9 @@ public class ConfigManager
         catch (final RuntimeException | LinkageError e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not apply " + setting.getName(), e);
-            return done + ", saved, but it could not be applied now: " + e + ". It applies at the next restart.";
+            return Messages.get(recipient, "config.cmd.set-unapplied", done, parsed.getValue(), e);
         }
-        return done + ".";
+        return Messages.get(recipient, "config.cmd.set", done, parsed.getValue());
     }
 
     /**
