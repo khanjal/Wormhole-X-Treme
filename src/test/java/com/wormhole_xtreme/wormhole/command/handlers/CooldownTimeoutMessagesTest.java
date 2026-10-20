@@ -30,6 +30,8 @@ class CooldownTimeoutMessagesTest
 
     private static final String SHUTDOWN = "shutdown_timeout";
 
+    private static final String COOLDOWN = "cooldown";
+
     private static final String SOON = "soon";
 
     private static final String SECONDS = " seconds.";
@@ -69,11 +71,11 @@ class CooldownTimeoutMessagesTest
     {
         ConfigManager.setUseCooldownEnabled(true);
         final CooldownCommand command = new CooldownCommand();
-        command.execute(player, new String[] { "cooldown", "two" });
-        command.execute(player, new String[] { "cooldown", "true" });
-        command.execute(player, new String[] { "cooldown", SOON });
-        command.execute(player, new String[] { "cooldown", "5" });
-        command.execute(player, new String[] { "cooldown", "60" });
+        command.execute(player, new String[] { COOLDOWN, "two" });
+        command.execute(player, new String[] { COOLDOWN, "true" });
+        command.execute(player, new String[] { COOLDOWN, SOON });
+        command.execute(player, new String[] { COOLDOWN, "5" });
+        command.execute(player, new String[] { COOLDOWN, "60" });
     }
 
     /** Each timeout asked, refused as a word and out of range, and set. */

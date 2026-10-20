@@ -48,6 +48,12 @@ class ConfigReloadMessagesTest
     private static final String REFUSED = "ring-default-style: banana\ngate-sounds-enabled: loud\nring-reach: 2.5\n"
         + "gate-sound-volume: loud\nlog-level: on\n";
 
+    private static final String NO_VAULT = "no Vault";
+
+    private static final String SOUNDS = "GATE_SOUNDS_ENABLED";
+
+    private static final String ECONOMY = "ECONOMY_ENABLED";
+
     private static final String NOT_YAML = "economy-enabled: true\nmirror-names: [unclosed\n";
 
     @TempDir
@@ -72,6 +78,11 @@ class ConfigReloadMessagesTest
     private void reload(final Player player, final String yaml) throws IOException
     {
         Files.writeString(new File(dataFolder, CONFIG).toPath(), yaml, StandardCharsets.UTF_8);
+        reloadAs(player);
+    }
+
+    private static void reloadAs(final Player player)
+    {
         new ConfigCommand().execute(player, new String[] { "config", "-reload" });
     }
 
@@ -82,7 +93,7 @@ class ConfigReloadMessagesTest
         ConfigTestSupport.set(ConfigKeys.ECONOMY_ENABLED, false);
         try (MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
         {
-            economy.when(EconomySupport::enableEconomy).thenThrow(new IllegalStateException("no Vault"));
+            economy.when(EconomySupport::enableEconomy).thenThrow(new IllegalStateException(NO_VAULT));
             reload(player, "gate-sounds-enabled: false\neconomy-enabled: true\n");
         }
     }
@@ -138,11 +149,11 @@ class ConfigReloadMessagesTest
         final Player player = reading("en");
         reloadTwoChanges(player);
 
-        verify(player).sendMessage(ChatText.info(ChatText.command("GATE_SOUNDS_ENABLED") + ": "
+        verify(player).sendMessage(ChatText.info(ChatText.command(SOUNDS) + ": "
             + ChatText.value(String.valueOf(true)) + " -> " + ChatText.value(String.valueOf(false)) + "."));
-        verify(player).sendMessage(ChatText.info(ChatText.command("ECONOMY_ENABLED") + ": "
+        verify(player).sendMessage(ChatText.info(ChatText.command(ECONOMY) + ": "
             + ChatText.value(String.valueOf(false)) + " -> " + ChatText.value(String.valueOf(true))
-            + ", but it could not be applied now: " + new IllegalStateException("no Vault")
+            + ", but it could not be applied now: " + new IllegalStateException(NO_VAULT)
             + ". It applies at the next restart."));
     }
 
@@ -153,11 +164,11 @@ class ConfigReloadMessagesTest
         final Player player = reading("qq");
         reloadTwoChanges(player);
 
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.command("GATE_SOUNDS_ENABLED") + " "
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.command(SOUNDS) + " "
             + ChatText.value("true") + " to " + ChatText.value("false") + "."));
-        verify(player).sendMessage(ChatText.info("QQ " + ChatText.command("ECONOMY_ENABLED") + " "
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.command(ECONOMY) + " "
             + ChatText.value("false") + " to " + ChatText.value("true") + " unapplied "
-            + new IllegalStateException("no Vault") + "."));
+            + new IllegalStateException(NO_VAULT) + "."));
     }
 
     /** Each kind of refused value, and a file that changes nothing, as before. */
@@ -210,7 +221,7 @@ class ConfigReloadMessagesTest
         reload(player, "- not\n- settings\n");
         reload(player, NOT_YAML);
         Files.delete(new File(dataFolder, CONFIG).toPath());
-        new ConfigCommand().execute(player, new String[] { "config", "-reload" });
+        reloadAs(player);
 
         verify(player).sendMessage(oldUnreadable(CONFIG + " is empty"));
         verify(player).sendMessage(oldUnreadable(CONFIG + " is not a list of settings"));
@@ -229,7 +240,7 @@ class ConfigReloadMessagesTest
         reload(player, "- not\n- settings\n");
         reload(player, NOT_YAML);
         Files.delete(new File(dataFolder, CONFIG).toPath());
-        new ConfigCommand().execute(player, new String[] { "config", "-reload" });
+        reloadAs(player);
 
         verify(player).sendMessage(qqUnreadable("QQ config.yml empty"));
         verify(player).sendMessage(qqUnreadable("QQ config.yml not settings"));
@@ -252,8 +263,8 @@ class ConfigReloadMessagesTest
         assumeTrue(cannotOpen(folder), "this platform opens a folder as a file");
         final Player english = reading("en");
         final Player qq = reading("qq");
-        new ConfigCommand().execute(english, new String[] { "config", "-reload" });
-        new ConfigCommand().execute(qq, new String[] { "config", "-reload" });
+        reloadAs(english);
+        reloadAs(qq);
 
         verify(english).sendMessage(oldUnreadable(CONFIG + " could not be read, as the log says"));
         verify(qq).sendMessage(qqUnreadable("QQ config.yml not read"));

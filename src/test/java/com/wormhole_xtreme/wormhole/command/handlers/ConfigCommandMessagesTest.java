@@ -42,6 +42,8 @@ class ConfigCommandMessagesTest
 
     private static final String NOWHERE = "no-such-setting";
 
+    private static final String NO_VAULT = "no Vault";
+
     private static final String NARROW = "RING_DEFAULT";
 
     @BeforeEach
@@ -72,7 +74,7 @@ class ConfigCommandMessagesTest
         ConfigTestSupport.set(ConfigKeys.ECONOMY_ENABLED, false);
         try (MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
         {
-            economy.when(EconomySupport::enableEconomy).thenThrow(new IllegalStateException("no Vault"));
+            economy.when(EconomySupport::enableEconomy).thenThrow(new IllegalStateException(NO_VAULT));
             run(player, "economy-enabled", "true");
         }
     }
@@ -104,7 +106,7 @@ class ConfigCommandMessagesTest
 
         verify(player).sendMessage(ChatText.info("GATE_SOUNDS_ENABLED" + " is now " + false + "."));
         verify(player).sendMessage(ChatText.info("ECONOMY_ENABLED" + " is now " + true
-            + ", saved, but it could not be applied now: " + new IllegalStateException("no Vault")
+            + ", saved, but it could not be applied now: " + new IllegalStateException(NO_VAULT)
             + ". It applies at the next restart."));
         verify(player).sendMessage(ChatText.error("No setting called " + ChatText.command(NOWHERE) + "."));
         verify(player).sendMessage(ChatText.error("No setting matches " + ChatText.command(NOWHERE) + "."));
@@ -121,7 +123,7 @@ class ConfigCommandMessagesTest
 
         verify(player).sendMessage(ChatText.info("QQ GATE_SOUNDS_ENABLED now false."));
         verify(player).sendMessage(ChatText.info("QQ ECONOMY_ENABLED now true unapplied "
-            + new IllegalStateException("no Vault") + "."));
+            + new IllegalStateException(NO_VAULT) + "."));
         verify(player).sendMessage(ChatText.error("QQ no setting " + ChatText.command(NOWHERE) + "."));
         verify(player).sendMessage(ChatText.error("QQ no match " + ChatText.command(NOWHERE) + "."));
     }

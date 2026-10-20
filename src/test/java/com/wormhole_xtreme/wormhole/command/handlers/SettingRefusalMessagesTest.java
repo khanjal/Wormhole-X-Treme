@@ -35,6 +35,10 @@ import com.wormhole_xtreme.wormhole.utils.SignStyle;
  */
 class SettingRefusalMessagesTest
 {
+    private static final String LOUD = "loud";
+
+    private static final String BANANA = "banana";
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -64,13 +68,13 @@ class SettingRefusalMessagesTest
         final List<String> colours = SignStyle.colorNames();
         final List<String> animations = ConfigManager.irisAnimations();
         return Stream.of(
-            refusal(ConfigKeys.GATE_SOUNDS_ENABLED, "loud", "GATE_SOUNDS_ENABLED is true or false, not \"loud\".",
+            refusal(ConfigKeys.GATE_SOUNDS_ENABLED, LOUD, "GATE_SOUNDS_ENABLED is true or false, not \"loud\".",
                 "QQ GATE_SOUNDS_ENABLED true/false not \"loud\"."),
             refusal(ConfigKeys.RING_REACH, "far", "RING_REACH is a number, not \"far\".",
                 "QQ RING_REACH number not \"far\"."),
-            refusal(ConfigKeys.GATE_SOUND_VOLUME, "loud", "GATE_SOUND_VOLUME is a number, not \"loud\".",
+            refusal(ConfigKeys.GATE_SOUND_VOLUME, LOUD, "GATE_SOUND_VOLUME is a number, not \"loud\".",
                 "QQ GATE_SOUND_VOLUME number not \"loud\"."),
-            refusal(ConfigKeys.GATE_DIAL_SPIN, "banana", ConfigKeys.GATE_DIAL_SPIN
+            refusal(ConfigKeys.GATE_DIAL_SPIN, BANANA, ConfigKeys.GATE_DIAL_SPIN
                 + " is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not \"banana\".",
                 "QQ GATE_DIAL_SPIN spin CHEVRON TOP LAP FILL PEGASUS CHASE UNIVERSE OVERSHOOT NONE not \"banana\"."),
             refusal(ConfigKeys.GATE_IRIS_ANIMATION, "sideways", ConfigKeys.GATE_IRIS_ANIMATION + " is "
@@ -82,8 +86,8 @@ class SettingRefusalMessagesTest
             refusal(ConfigKeys.SIGN_COLOR_NETWORK, "PINK", ConfigKeys.SIGN_COLOR_NETWORK + " is "
                 + String.join(", ", colours) + ", not \"PINK\".",
                 "QQ SIGN_COLOR_NETWORK one of " + String.join(" | ", colours) + " not \"PINK\"."),
-            refusal(ConfigKeys.LOG_LEVEL, "loud", ConfigKeys.LOG_LEVEL + " is SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, "
-                + "ALL or OFF, not \"" + "loud" + "\".",
+            refusal(ConfigKeys.LOG_LEVEL, LOUD, ConfigKeys.LOG_LEVEL + " is SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, "
+                + "ALL or OFF, not \"" + LOUD + "\".",
                 "QQ LOG_LEVEL level SEVERE WARNING INFO CONFIG FINE FINER FINEST ALL OFF not \"loud\"."),
             refusal(ConfigKeys.SERVER_LANGUAGE, "en gb",
                 ConfigKeys.SERVER_LANGUAGE + " is a language code such as en, de or pt_br, not \"" + "en gb" + "\".",
@@ -91,10 +95,10 @@ class SettingRefusalMessagesTest
             refusal(ConfigKeys.RING_DEFAULT_ACCESS, "secret", ConfigKeys.RING_DEFAULT_ACCESS
                 + " is PUBLIC or PRIVATE, not \"" + "secret" + "\".",
                 "QQ RING_DEFAULT_ACCESS PUBLIC/PRIVATE not \"secret\"."),
-            refusal(ConfigKeys.RING_DEFAULT_STYLE, "banana", ConfigKeys.RING_DEFAULT_STYLE
+            refusal(ConfigKeys.RING_DEFAULT_STYLE, BANANA, ConfigKeys.RING_DEFAULT_STYLE
                 + " is CONCURRENT or SEQUENTIAL, not \"" + "banana" + "\". Fast and slow work too.",
                 "QQ RING_DEFAULT_STYLE style CONCURRENT/SEQUENTIAL not \"banana\" Fast/slow."),
-            refusal(ConfigKeys.RING_DEFAULT_LIGHT, "banana", ConfigKeys.RING_DEFAULT_LIGHT
+            refusal(ConfigKeys.RING_DEFAULT_LIGHT, BANANA, ConfigKeys.RING_DEFAULT_LIGHT
                 + " is the name of a block, not \"" + "banana" + "\".",
                 "QQ RING_DEFAULT_LIGHT block not \"banana\"."));
     }
@@ -144,8 +148,8 @@ class SettingRefusalMessagesTest
     void applySettingRefusesInTheReadersLanguage()
     {
         assertEquals("QQ GATE_SOUNDS_ENABLED true/false not \"loud\".",
-            ConfigManager.applySetting(reading("qq"), "gate-sounds-enabled", "loud"));
+            ConfigManager.applySetting(reading("qq"), "gate-sounds-enabled", LOUD));
         assertEquals("GATE_SOUNDS_ENABLED is true or false, not \"loud\".",
-            ConfigManager.applySetting(reading("en"), "gate-sounds-enabled", "loud"));
+            ConfigManager.applySetting(reading("en"), "gate-sounds-enabled", LOUD));
     }
 }
