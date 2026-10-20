@@ -1279,6 +1279,12 @@ client codes seen are remembered up to a bound. Sign text is not localised.
   the call site, and so does each argument's colour; the sentence, its order and any colour code
   inside it go in the template. Something a player types, such as `north` or `net=`, stays an
   argument so it is never translated.
+- **A `ChatLine` is a chain of parts, and each part with words is its own key.** The lead sentence
+  keeps its trailing space inside the template, a tail with words is a key of its own, and a tail
+  that is only punctuation such as `.` stays in code. The link between them is the command words a
+  player types (`hint(...)`, a constant such as `CLEAR`), passed as it is and never translated, and
+  the colour wrappers stay at the call site. `ChatLine` itself holds no text to translate; the
+  "Click to run" hover it adds is still English.
 - **Never reword while extracting.** The English output must be byte for byte what it was, so a
   test asserting the old text keeps passing unchanged. Rewording is its own change.
 - **Name the recipient as a plain variable and the key as a string literal.**
