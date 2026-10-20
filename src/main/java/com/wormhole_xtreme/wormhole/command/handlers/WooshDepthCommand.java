@@ -65,7 +65,7 @@ public class WooshDepthCommand implements SubCommand
         final Stargate stargate = StargateManager.getStargate(args[1]);
         if (stargate == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             sendUsage(sender);
             return true;
         }

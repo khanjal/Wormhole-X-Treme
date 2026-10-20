@@ -11,6 +11,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
@@ -43,13 +44,14 @@ public class OwnerCommand implements SubCommand
         final Stargate s = StargateManager.getStargate(args[1]);
         if (s == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             return true;
         }
 
         if (args.length == 2)
         {
-            sender.sendMessage(ChatText.info(ChatText.name(s.getGateName()) + " is owned by " + owner(s) + "."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.owner.is", ChatText.name(s.getGateName()),
+                owner(sender, s))));
             return true;
         }
         if (args.length == 3)
@@ -57,16 +59,21 @@ public class OwnerCommand implements SubCommand
             assignOwner(s, args[2]);
             s.setupGateSign(true);
             StargateDBManager.saveStargate(s);
-            sender.sendMessage(ChatText.info(ChatText.name(s.getGateName()) + " is now owned by " + owner(s) + "."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.owner.now", ChatText.name(s.getGateName()),
+                owner(sender, s))));
         }
         return true;
     }
 
     /** Who owns the gate, as a name, or "no one". */
-    private static String owner(final Stargate s)
+    private static String owner(final CommandSender sender, final Stargate s)
     {
         final String name = s.getGateOwnerName();
-        return ((name == null) || name.isEmpty()) ? "no one" : ChatText.name(name);
+        if ((name == null) || name.isEmpty())
+        {
+            return Messages.get(sender, "gate.owner.no-one");
+        }
+        return ChatText.name(name);
     }
 
     /**

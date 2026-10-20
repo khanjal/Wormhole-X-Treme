@@ -13,6 +13,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.handlers.GateCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
@@ -121,7 +122,7 @@ public class Wormhole implements CommandExecutor
                 return true;
             }
 
-            sender.sendMessage(ChatText.error("No command called " + ChatText.command(a[0]) + ". Try one of these:"));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "cmd.unknown", ChatText.command(a[0]))));
             sender.sendMessage(ChatText.info(Arrays.stream(valid.split(", ")).map(ChatText::command)
                 .collect(Collectors.joining(", "))));
             return true;
@@ -131,7 +132,7 @@ public class Wormhole implements CommandExecutor
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole command", t);
             // Everyone is told the same thing, console included: the failure is logged
             // server-side, and neither a player nor an operator can act on more than that.
-            sender.sendMessage(CommandUtilities.INTERNAL_ERROR);
+            sender.sendMessage(CommandUtilities.internalError(sender));
             return true;
         }
     }

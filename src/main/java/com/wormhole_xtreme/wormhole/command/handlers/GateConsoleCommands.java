@@ -219,7 +219,7 @@ public final class GateConsoleCommands
         final Stargate start = StargateManager.getStargate(rest[0]);
         if (start == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(rest[0]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, rest[0]));
             return;
         }
         // A refused dial puts the start gate out, which would cut off a connection it already has.

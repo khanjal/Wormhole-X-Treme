@@ -4,6 +4,10 @@
 # language such as de or de_de, and translate the text in quotes. Keep each {0}, {1} and § colour
 # code; a message left out falls back to English. Guide: docs/guide/TRANSLATING.md
 
+cmd.internal-error: "An internal error occurred. Check server logs."
+cmd.no-gate: "No gate called {0}. {1} shows them."
+cmd.unknown: "No command called {0}. Try one of these:"
+
 compass.set: "Compass set to wormhole {0}."
 compass.none: "No wormholes to track."
 compass.reset: "Compass back to normal: it points at world spawn again."
@@ -47,6 +51,12 @@ config.timeouts.current: "Current {0} is: {1} seconds."
 config.timeouts.range: "Valid timeout is between {0} and {1} seconds."
 config.timeouts.set: "{0} set to: {1} seconds."
 config.timeouts.invalid: "Invalid {0}: {1}."
+
+freya.player-only: "Only a player can do that."
+freya.leaves: "She curls up somewhere else."
+freya.coming: "She will be along soon."
+freya.absent: "She did not come. Try again somewhere else."
+freya.arrives: "{0} pads over and sits down beside you."
 
 update.joined: "Wormhole X-Treme {0} is available (running {1}): {2}"
 
@@ -168,6 +178,20 @@ gate.edit.group.cleared: "{0} follows its frame again: group {1}."
 gate.edit.group.unknown: "No material group called {0}."
 gate.edit.group.set: "{0} is now on group {1}. Its frame blocks are untouched; this changes what the gate draws."
 
+gate.force.all: "All gates have been closed, darkened and their irises opened."
+gate.force.one: "{0} has been closed, darkened and its iris opened."
+
+gate.go.none: "No gate or beam destination called {0}."
+
+gate.idc.unavailable: "Iris not available: {0} dials by sign or has no iris lever."
+gate.idc.none: "{0} has no IDC."
+gate.idc.is: "IDC for {0} is {1}."
+
+gate.list.all: "Available gates {0}"
+gate.list.network: "Gates on network {0}{1}"
+gate.list.none: "No gates found."
+gate.list.separator: ", "
+
 gate.material.not-custom: "{0} is not in custom mode. Turn it on with {1}."
 gate.material.valid: "Valid materials are: {0}."
 gate.material.separator: ", "
@@ -180,6 +204,10 @@ gate.material.iris.set: "{0} iris material set to: {1}."
 gate.material.light.current: "{0} light material is currently: {1}."
 gate.material.light.invalid: "Invalid light material: {0}."
 gate.material.light.set: "{0} light material set to: {1}."
+
+gate.owner.is: "{0} is owned by {1}."
+gate.owner.now: "{0} is now owned by {1}."
+gate.owner.no-one: "no one"
 
 gate.preview.options-moved: "Preview options moved to "
 gate.preview.no-group: "{0} has no group {1}. Try {2}."
@@ -261,6 +289,16 @@ gate.preview.help.share: "Says who else sees it, and how to show it to more."
 gate.preview.help.place: "Builds it for real."
 gate.preview.help.finish: " Click to finish it in chat."
 
+gate.redstone.state: "{0} is redstone powered: {1}."
+gate.redstone.change-hint: "Change it with {0} or {1}."
+gate.redstone.not-a-switch: "Redstone power is {0} or {1}, not {2}."
+
+gate.refresh.player-only: "Only a player can do that: it waits for a click on a DHD."
+gate.refresh.click: "Click the DHD of the gate to regenerate it."
+
+gate.remove.failed: "An error occurred while removing the gate. Check server logs."
+gate.remove.removed: "Removed {0}."
+
 gate.shapes.unknown: "No such shapes command: {0}. Try {1}, {2}, {3} or {4}."
 gate.shapes.no-shape: "No shape called {0}."
 gate.shapes.enabled: "{0} can be built again."
@@ -301,6 +339,9 @@ lang.exists: "{0} already exists, so it was left as it is."
 lang.written-overlay: "Wrote {0}, every message commented out. Uncomment the ones to reword, then run {1}."
 lang.written-translation: "Wrote {0} in English, ready to translate. Run {1} when it is done."
 lang.failed: "Could not write {0}: {1}"
+
+restrict.removed: "Build restriction was removed and this command no longer does anything."
+restrict.permission: "Gate building is controlled by the {0} permission instead."
 
 ring.engaged: "Transport rings engaging. Step clear to cancel."
 ring.engaged-to: "Transport rings engaging — travelling to {0}. Step clear to cancel."

@@ -182,7 +182,7 @@ public class MaterialCommand implements SubCommand
 
         if (!StargateManager.isStargate(args[1]))
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             usage(sender);
             return true;
         }

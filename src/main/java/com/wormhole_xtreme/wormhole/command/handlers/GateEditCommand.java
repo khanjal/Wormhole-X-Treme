@@ -117,7 +117,7 @@ public class GateEditCommand implements SubCommand
             StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(gateName));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, gateName));
             return true;
         }
         final String animations = ChatText.info(Messages.get(sender, "gate.edit.iris-animation.list",
@@ -218,7 +218,7 @@ public class GateEditCommand implements SubCommand
             StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(gateName));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, gateName));
             return true;
         }
         final String patterns = ChatText.info(Messages.get(sender, "gate.edit.spin.list", options(sender, spinNames())));
@@ -301,7 +301,7 @@ public class GateEditCommand implements SubCommand
             StargateManager.getStargate(gateName);
         if (gate == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(gateName));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, gateName));
             return true;
         }
         final String name = ChatText.name(gate.getGateName());
