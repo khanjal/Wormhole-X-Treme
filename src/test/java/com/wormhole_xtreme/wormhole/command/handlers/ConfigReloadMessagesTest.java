@@ -3,7 +3,9 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import static com.wormhole_xtreme.wormhole.command.handlers.AdminReaders.reading;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +16,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,9 +85,9 @@ class ConfigReloadMessagesTest
         reloadAs(player);
     }
 
-    private static void reloadAs(final Player player)
+    private static void reloadAs(final CommandSender sender)
     {
-        new ConfigCommand().execute(player, new String[] { "config", "-reload" });
+        new ConfigCommand().execute(sender, new String[] { "config", "-reload" });
     }
 
     /** A change taken at once, and one whose applying fails as it would with no Vault. */
@@ -209,6 +213,39 @@ class ConfigReloadMessagesTest
         verify(player).sendMessage(qqKept("QQ GATE_SOUND_VOLUME number not \"loud\".", 1.5));
         verify(player).sendMessage(qqKept("QQ LOG_LEVEL switch true.", "WARNING"));
         verify(player).sendMessage(ChatText.info("QQ unchanged."));
+    }
+
+    /**
+     * A reload that changes server-language tells the console every line in the new one.
+     *
+     * <p>log-level and pets-follow-owner are read before server-language, so a refusal said as it
+     * was found was English inside a qq line once the language changed under it. Each way a value
+     * is refused is tried: as a switch, as the wrong kind, and by the parser.
+     */
+    @Test
+    void aReloadChangingTheLanguageSaysEachLineInTheNewOne() throws IOException
+    {
+        final ConsoleCommandSender console = mock(ConsoleCommandSender.class);
+        reloadIntoQq(console, "log-level: on\npets-follow-owner: loud\n");
+        reloadIntoQq(console, "log-level: \"loud\"\n");
+
+        verify(console).sendMessage(qqKept("QQ LOG_LEVEL switch true.", "WARNING"));
+        verify(console).sendMessage(qqKept("QQ PETS_FOLLOW_OWNER true/false not \"loud\".", true));
+        verify(console).sendMessage(qqKept("QQ LOG_LEVEL level SEVERE WARNING INFO CONFIG FINE FINER FINEST ALL OFF"
+            + " not \"loud\".", "WARNING"));
+        verify(console, times(2)).sendMessage(ChatText.info("QQ " + ChatText.command("SERVER_LANGUAGE") + " "
+            + ChatText.value("en") + " to " + ChatText.value("qq") + "."));
+    }
+
+    /** Reloads from English, the file turning server-language to qq after what it holds. */
+    private void reloadIntoQq(final CommandSender console, final String yaml) throws IOException
+    {
+        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, "en");
+        ConfigTestSupport.set(ConfigKeys.LOG_LEVEL, "WARNING");
+        ConfigTestSupport.set(ConfigKeys.PETS_FOLLOW_OWNER, true);
+        Messages.load();
+        Files.writeString(new File(dataFolder, CONFIG).toPath(), yaml + "server-language: qq\n", StandardCharsets.UTF_8);
+        reloadAs(console);
     }
 
     /** Each file that cannot be read, as before: empty, not settings, not YAML, and missing. */

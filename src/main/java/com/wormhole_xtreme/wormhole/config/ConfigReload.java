@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 
 import org.bukkit.command.CommandSender;
@@ -71,6 +72,11 @@ public final class ConfigReload
      *            the value it keeps
      */
     public record Rejection(ConfigKeys key, String refusal, Object kept)
+    {
+    }
+
+    /** A refused value, its reason rendered only once the reload is done. */
+    private record Refused(ConfigKeys key, Function<CommandSender, String> refusal, Object kept)
     {
     }
 
@@ -158,7 +164,7 @@ public final class ConfigReload
         }
 
         final List<Change> changes = new ArrayList<>();
-        final List<Rejection> rejections = new ArrayList<>();
+        final List<Refused> refused = new ArrayList<>();
         for (final Setting element : DefaultSettings.config)
         {
             final Setting current = ConfigManager.getConfigurations().get(element.getName());
@@ -166,7 +172,7 @@ public final class ConfigReload
             final Object value = (key == null) ? null : map.get(key);
             if ((current != null) && (value != null))
             {
-                take(recipient, element, current, value, changes, rejections);
+                take(element, current, value, changes, refused);
             }
         }
         // A changed language was read as it was taken; read it once either way.
@@ -174,21 +180,23 @@ public final class ConfigReload
         {
             Messages.load();
         }
-        return new Report(null, changes, rejections);
+        // Said only now, so a server-language the reload changed reads in every line.
+        return new Report(null, changes,
+            refused.stream().map(r -> new Rejection(r.key(), r.refusal().apply(recipient), r.kept())).toList());
     }
 
     /**
      * Takes one value from the file, in the form the command would store it, if it differs from
      * what is set; a value already stored that the command would refuse is reported every time.
      */
-    private static void take(final CommandSender recipient, final Setting element, final Setting current,
-        final Object written, final List<Change> changes, final List<Rejection> rejections)
+    private static void take(final Setting element, final Setting current, final Object written,
+        final List<Change> changes, final List<Refused> refused)
     {
         final ConfigKeys key = current.getName();
         final Object read = ConfigurationYAML.readFrom(element, written);
         if (read == null)
         {
-            rejections.add(new Rejection(key, ParsedSetting.notOfKind(recipient, key, element.getValue(), written),
+            refused.add(new Refused(key, reader -> ParsedSetting.notOfKind(reader, key, element.getValue(), written),
                 current.getValue()));
             return;
         }
@@ -198,7 +206,7 @@ public final class ConfigReload
         {
             if (!OFF_MEANS_DEFAULT.contains(key))
             {
-                rejections.add(new Rejection(key, Messages.get(recipient, "config.reload.switch", key, written),
+                refused.add(new Refused(key, reader -> Messages.get(reader, "config.reload.switch", key, written),
                     current.getValue()));
                 return;
             }
@@ -210,7 +218,7 @@ public final class ConfigReload
         }
         if (!parsed.isAccepted())
         {
-            rejections.add(new Rejection(key, parsed.getRefusal(recipient), current.getValue()));
+            refused.add(new Refused(key, parsed::getRefusal, current.getValue()));
             return;
         }
         final Object from = current.getValue();

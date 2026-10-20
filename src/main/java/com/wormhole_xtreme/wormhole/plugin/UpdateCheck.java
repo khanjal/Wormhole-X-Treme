@@ -65,7 +65,7 @@ public final class UpdateCheck implements Listener
 
     private static final Pattern SAFE_GITHUB_PAGE = Pattern.compile("https://github\\.com/[!-~]{1,200}");
 
-    /** The line a joining player is told, in their language. */
+    /** The line a joining player is told, in their language from 1.20.2 (see {@link #notice}). */
     private final Function<Player, String> line;
 
     /** Reads a URL's body; anything but a 2xx answer is an IOException. */
@@ -93,6 +93,9 @@ public final class UpdateCheck implements Listener
 
     /**
      * The listener telling each joining player about a newer release, in their language.
+     *
+     * <p>Their own language from 1.20.2: on 1.20 and 1.20.1 the client's settings arrive after the
+     * join, so the line reads the default locale.
      *
      * @param release
      *            the newer release
