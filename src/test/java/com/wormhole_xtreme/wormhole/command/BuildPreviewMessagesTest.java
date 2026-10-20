@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
@@ -84,8 +85,8 @@ class BuildPreviewMessagesTest extends BuildPreviewCase
             MockedStatic<RegenerateCommand> regen = mockStatic(RegenerateCommand.class);
             MockedStatic<GateInteractionHandler> handler = mockStatic(GateInteractionHandler.class))
         {
-            previews.when(() -> GatePreviews.place(any(), anyBoolean())).thenReturn(answers[0],
-                Arrays.copyOfRange(answers, 1, answers.length));
+            final AtomicInteger next = new AtomicInteger();
+            previews.when(() -> GatePreviews.place(any(), anyBoolean())).thenAnswer(call -> answers[next.getAndIncrement()]);
             for (int i = 0; i < answers.length; i++)
             {
                 run(player, "gate", "preview", "place");
