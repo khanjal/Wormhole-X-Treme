@@ -174,6 +174,20 @@ class ListAndFallbackMessagesTest
             ChatText.info("QQ none found.")), list(reading(QQ), "Atlantis"));
     }
 
+    /** Four names of twenty-three letters: with their separators the first three reach seventy-five exactly. */
+    @Test
+    void aLineBreaksWhereItReachesTheBudgetExactly()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            CommandReaders.gate(String.format("gate%019d", i));
+        }
+        final List<String> lines = packed(allNames(), ", ");
+
+        assertEquals(2, lines.size(), "the fixture breaks once, after the third name, whatever order they come in");
+        assertEquals(expected(ChatText.info("Available gates " + ChatText.heading("::")), lines), list(reading(EN)));
+    }
+
     /** A command that cannot read its arguments says so in the reader's language, from any command that catches it. */
     @Test
     void aCommandThatThrewSaysSoInTheReadersLanguage()

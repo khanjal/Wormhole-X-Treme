@@ -256,14 +256,21 @@ class GateAdminMessagesTest
     void refreshIsInTheReadersLanguage()
     {
         final Player player = reading(QQ);
-        final ConsoleCommandSender console = mock(ConsoleCommandSender.class);
-        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, QQ);
-        Messages.load();
         new Refresh().onCommand(player, null, "refresh", new String[0]);
-        new Refresh().onCommand(console, null, "refresh", new String[0]);
         Refresh.removePendingRefresh(player);
 
         verify(player).sendMessage(ChatText.info("QQ refresh click."));
+    }
+
+    /** Only the console can be refused, and it reads the server's language. */
+    @Test
+    void refreshRefusesTheConsoleInTheServersLanguage()
+    {
+        final ConsoleCommandSender console = mock(ConsoleCommandSender.class);
+        ConfigTestSupport.set(ConfigKeys.SERVER_LANGUAGE, QQ);
+        Messages.load();
+        new Refresh().onCommand(console, null, "refresh", new String[0]);
+
         verify(console).sendMessage(ChatText.error("QQ refresh player only."));
     }
 }
