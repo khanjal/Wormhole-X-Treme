@@ -49,8 +49,13 @@ class ConfigReloadMessagesTest
     private static final String CONFIG = "config.yml";
 
     /** One value of each kind refused: a parser's word, a switch, a whole number, a number and a bare switch. */
-    private static final String REFUSED = "ring-default-style: banana\ngate-sounds-enabled: loud\nring-reach: 2.5\n"
-        + "gate-sound-volume: loud\nlog-level: on\n";
+    private static final String REFUSED = """
+        ring-default-style: banana
+        gate-sounds-enabled: loud
+        ring-reach: 2.5
+        gate-sound-volume: loud
+        log-level: on
+        """;
 
     private static final String NO_VAULT = "no Vault";
 
@@ -293,7 +298,7 @@ class ConfigReloadMessagesTest
      * which is the not-YAML line instead.
      */
     @Test
-    void aFileThatCannotBeOpenedSaysTheLogHasWhy() throws IOException
+    void aFileThatCannotBeOpenedSaysTheLogHasWhy()
     {
         final File folder = new File(dataFolder, CONFIG);
         assertTrue(folder.mkdir(), "a folder where config.yml goes");
