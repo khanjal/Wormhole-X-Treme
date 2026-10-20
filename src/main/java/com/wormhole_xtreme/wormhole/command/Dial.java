@@ -78,7 +78,7 @@ public class Dial implements CommandExecutor
         if (target == null)
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(CommandUtilities.noGateCalled(args[0]));
+            player.sendMessage(CommandUtilities.noGateCalled(player, args[0]));
             return;
         }
         final String targetnetwork = CommandUtilities.getGateNetwork(target);

@@ -56,7 +56,7 @@ public class CustomCommand implements SubCommand
         }
         if (!StargateManager.isStargate(args[1]))
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             sendUsage(sender);
             return true;
         }
