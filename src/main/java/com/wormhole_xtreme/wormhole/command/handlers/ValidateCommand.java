@@ -47,7 +47,7 @@ public class ValidateCommand implements SubCommand
         final Stargate gate = StargateManager.getStargate(args[1]);
         if (gate == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             return true;
         }
         report(sender, gate, true);

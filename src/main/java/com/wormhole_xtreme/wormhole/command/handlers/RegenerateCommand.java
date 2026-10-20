@@ -58,7 +58,7 @@ public class RegenerateCommand implements SubCommand
         final Stargate s = StargateManager.getStargate(args[1]);
         if (s == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             return true;
         }
         final boolean fill = flagAt(args, 2, FILL) > 0;

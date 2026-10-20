@@ -248,6 +248,21 @@ class RegenerateMessagesTest
         }
     }
 
+    /** A gate nobody built is named back in the reader's own language, English or qq. */
+    @Test
+    void anUnknownGateIsNamedBackInThePlayersLanguage()
+    {
+        final Player english = adminReading("en");
+        final Player qq = adminReading("qq");
+
+        regen(english, "regen", "nowhere");
+        regen(qq, "regen", "nowhere");
+
+        verify(english).sendMessage(ChatText.error("No gate called " + name("nowhere") + ". "
+            + command("/wormhole list") + " shows them."));
+        verify(qq).sendMessage(ChatText.error("QQ no gate " + name("nowhere") + " " + command("/wormhole list") + "."));
+    }
+
     // ---- shutting down, detecting afresh, the arrival point ----
 
     /** An open gate is shut and keeps its geometry; its arrival point is recomputed. */

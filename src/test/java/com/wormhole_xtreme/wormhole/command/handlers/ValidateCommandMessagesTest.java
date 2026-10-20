@@ -143,6 +143,22 @@ class ValidateCommandMessagesTest
         new ValidateCommand().execute(player, args);
     }
 
+    /** A gate nobody built is named back in the reader's own language, English or qq. */
+    @Test
+    void anUnknownGateIsNamedBackInThePlayersLanguage()
+    {
+        final Player english = adminReading("en");
+        final Player qq = adminReading("qq");
+
+        validate(english, "nowhere");
+        validate(qq, "nowhere");
+
+        verify(english).sendMessage(ChatText.error("No gate called " + ChatText.name("nowhere") + ". "
+            + ChatText.command("/wormhole list") + " shows them."));
+        verify(qq).sendMessage(ChatText.error("QQ no gate " + ChatText.name("nowhere") + " "
+            + ChatText.command("/wormhole list") + "."));
+    }
+
     /** A clean gate, and each way a gate can be missing something, against the old expression. */
     @Test
     void aSingleGateReadsAsItDidBefore()
