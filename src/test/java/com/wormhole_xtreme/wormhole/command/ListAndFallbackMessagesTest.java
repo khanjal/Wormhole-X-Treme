@@ -205,7 +205,7 @@ class ListAndFallbackMessagesTest
         verify(englishWormhole).sendMessage(ChatText.error(INTERNAL));
         verify(qq).sendMessage(ChatText.error("QQ internal error."));
         verify(qqWormhole).sendMessage(ChatText.error("QQ internal error."));
-        assertEquals(ChatText.error(INTERNAL), CommandUtilities.INTERNAL_ERROR, "the constant stays what English says");
+        assertEquals(CommandUtilities.INTERNAL_ERROR, ChatText.error(INTERNAL), "the constant stays what English says");
     }
 
     @Test

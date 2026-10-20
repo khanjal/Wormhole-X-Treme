@@ -137,7 +137,7 @@ class SmallAdminMessagesTest
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getPlayerExact(anyString())).thenReturn(null);
-            bukkit.when(() -> Bukkit.getOfflinePlayers()).thenReturn(new OfflinePlayer[0]);
+            bukkit.when(Bukkit::getOfflinePlayers).thenReturn(new OfflinePlayer[0]);
             owner(player, ALPHA, STEVE);
         }
     }
