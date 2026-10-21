@@ -352,11 +352,11 @@ class MirrorCommandMessagesTest
             List.of(error("QQ post refused.")));
         check(player -> {
             final Block hanging = banner(Material.WHITE_WALL_BANNER);
-            wallOpenAt(new int[] { 2, 62, 2 }, null);
+            wallOpenAt(new int[] { 0, 62, 2 }, null);
             when(player.getTargetBlockExact(6)).thenReturn(hanging);
             run(player, MIRROR, CREATE, MUSEUM);
         }, List.of(error("A mirror needs solid wall a block out on every side of its opening,"
-            + " and the block at 2 62 2 is not.")), List.of(error("QQ gap 2 62 2.")));
+            + " and the block at 0 62 2 is not.")), List.of(error("QQ gap 0 62 2.")));
         check(player -> {
             final Block hanging = banner(Material.WHITE_WALL_BANNER);
             wallOpenAt(new int[] { 3, 61, 2 }, null);
