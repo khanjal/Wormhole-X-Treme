@@ -39,6 +39,7 @@ import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * {@code /wormhole mirror} -- making mirrors, and choosing how they start and look.
@@ -82,9 +83,6 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
  */
 public class MirrorCommand implements SubCommand
 {
-    /** How every "this banner is now a mirror" line opens. */
-    private static final String MIRROR_IS = "Mirror ";
-
     /**
      * How long the bar-separated look list may get before a message counts it instead.
      *
@@ -178,10 +176,10 @@ public class MirrorCommand implements SubCommand
     private static void usage(final CommandSender sender)
     {
         say(sender, ChatText.usage("/wormhole mirror " + String.join("|", VERBS)));
-        say(sender, "A mirror is a wall banner. Make one with " + MirrorText.command(CREATE) + " while looking at it.");
-        say(sender, "Right-click a mirror to choose another, and punch it to go through.");
-        say(sender, MirrorText.command(SET) + " changes one thing it has: "
-            + Arrays.stream(PROPERTIES).map(MirrorText::command).collect(Collectors.joining(", ")) + ".");
+        say(sender, Messages.get(sender, "mirror.cmd.usage.what", MirrorText.command(CREATE)));
+        say(sender, Messages.get(sender, "mirror.cmd.usage.click"));
+        say(sender, Messages.get(sender, "mirror.cmd.usage.set", MirrorText.command(SET),
+            Arrays.stream(PROPERTIES).map(MirrorText::command).collect(Collectors.joining(Messages.get(sender, "mirror.cmd.separator")))));
     }
 
     /**
@@ -203,7 +201,7 @@ public class MirrorCommand implements SubCommand
         {
             if (args.length > at)
             {
-                refuse(sender, MirrorText.quoted(args[at]) + " is not something a mirror has.");
+                refuse(sender, Messages.get(sender, "mirror.cmd.set.unknown", MirrorText.name(args[at])));
             }
             saySetUsage(sender);
             return;
@@ -243,8 +241,8 @@ public class MirrorCommand implements SubCommand
         {
             return true;
         }
-        refuse(sender, "A mirror's name cannot start with " + MirrorText.command("-")
-            + "; words that do are options, like " + MirrorText.command(START) + ".");
+        refuse(sender, Messages.get(sender, "mirror.cmd.name.dash", MirrorText.command("-"),
+            MirrorText.command(START)));
         return false;
     }
 
@@ -313,7 +311,7 @@ public class MirrorCommand implements SubCommand
         final Block base = leftOf(block, partner);
         final int width = (partner == null) ? 1 : 2;
         // Renaming the mirror a banner already is changes nothing about where it hangs.
-        final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(base, name, width) : null;
+        final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(sender, base, name, width) : null;
         if (refused != null)
         {
             refuse(sender, refused);
@@ -346,13 +344,12 @@ public class MirrorCommand implements SubCommand
         }
         if (!byThatName.name().equalsIgnoreCase(onThisBanner.name()))
         {
-            refuse(sender, "This banner is already " + MirrorText.quoted(onThisBanner.name())
-                + ", and " + MirrorText.quoted(name) + " is a mirror somewhere else.");
-            say(sender, "Renaming this one would leave that one on no banner. Remove one of them first.");
+            refuse(sender, Messages.get(sender, "mirror.cmd.create.elsewhere", MirrorText.name(onThisBanner.name()),
+                MirrorText.name(name)));
+            say(sender, Messages.get(sender, "mirror.cmd.create.elsewhere-hint"));
             return true;
         }
-        say(sender, MIRROR_IS + MirrorText.quoted(onThisBanner.name()) + " is already this"
-            + " banner. Nothing to do.");
+        say(sender, Messages.get(sender, "mirror.cmd.create.already", MirrorText.name(onThisBanner.name())));
         return true;
     }
 
@@ -384,7 +381,7 @@ public class MirrorCommand implements SubCommand
             MirrorManager.add(made.withDestination(room).withWidth(width));
             MirrorYamlManager.saveAll();
             // Made anyway: a block of wall is enough, and two is worth a word.
-            final String thin = MirrorPlacement.thinWall(base, width);
+            final String thin = MirrorPlacement.thinWall(sender, base, width);
             if (thin != null)
             {
                 say(sender, thin);
@@ -479,11 +476,12 @@ public class MirrorCommand implements SubCommand
 
         if ((previous != null) && !previous.equalsIgnoreCase(name))
         {
-            say(sender, MIRROR_IS + MirrorText.quoted(previous) + " is " + MirrorText.quoted(name) + " now.");
+            say(sender, Messages.get(sender, "mirror.cmd.create.renamed", MirrorText.name(previous),
+                MirrorText.name(name)));
             return;
         }
-        say(sender, MIRROR_IS + MirrorText.quoted(name) + " is this banner. Walk up to it to see its reflection.");
-        say(sender, "Right-click it to choose another mirror, and punch it to go through.");
+        say(sender, Messages.get(sender, "mirror.cmd.create.made", MirrorText.name(name)));
+        say(sender, Messages.get(sender, "mirror.cmd.create.made-hint"));
         warnIfTooNear(sender, mirror);
     }
 
@@ -501,10 +499,9 @@ public class MirrorCommand implements SubCommand
             return;
         }
         final long apart = Math.round(Math.sqrt(MirrorPlacement.squaredApartOf(mirror, near)));
-        say(sender, "It is " + MirrorText.VALUE_COLOUR + apart + MirrorText.BODY_COLOUR + " blocks from "
-            + MirrorText.quoted(near.name()) + ". Mirrors nearer than " + MirrorText.VALUE_COLOUR
-            + (long) MirrorPlacement.apartToDrawWhole() + MirrorText.BODY_COLOUR + " (twice view-depth) are not drawn whole.");
-        say(sender, "Each shows only what a viewer sees through it, which costs more as people walk past.");
+        say(sender, Messages.get(sender, "mirror.cmd.create.too-near", ChatText.value(String.valueOf(apart)),
+            MirrorText.name(near.name()), ChatText.value(String.valueOf((long) MirrorPlacement.apartToDrawWhole()))));
+        say(sender, Messages.get(sender, "mirror.cmd.create.too-near-cost"));
     }
 
     /**
@@ -833,8 +830,7 @@ public class MirrorCommand implements SubCommand
         {
             MirrorManager.add(mirror.withStart(null));
             MirrorYamlManager.saveAll();
-            say(sender, "A right-click on " + MirrorText.quoted(mirror.name())
-                + " goes through the other mirrors by name.");
+            say(sender, Messages.get(sender, "mirror.cmd.start.none", MirrorText.name(mirror.name())));
             return;
         }
         final QuantumMirror first = known(sender, word);
@@ -844,14 +840,13 @@ public class MirrorCommand implements SubCommand
         }
         if (first.name().equalsIgnoreCase(mirror.name()))
         {
-            refuse(sender, "A mirror starts on its own room already; " + MirrorText.command(NONE)
-                + " is the way to say so.");
+            refuse(sender, Messages.get(sender, "mirror.cmd.start.own-room", MirrorText.command(NONE)));
             return;
         }
         MirrorManager.add(mirror.withStart(first.name()));
         MirrorYamlManager.saveAll();
-        say(sender, "A right-click on " + MirrorText.quoted(mirror.name()) + " opens onto "
-            + MirrorText.quoted(first.name()) + " first.");
+        say(sender, Messages.get(sender, "mirror.cmd.start.set", MirrorText.name(mirror.name()),
+            MirrorText.name(first.name())));
     }
 
     /** @see #start */
@@ -879,13 +874,12 @@ public class MirrorCommand implements SubCommand
         }
         if (Captures.retake(mirror))
         {
-            say(sender, "Capturing " + MirrorText.quoted(mirror.name()) + "'s room again; the view"
-                + " changes when the new one is ready.");
+            say(sender, Messages.get(sender, "mirror.cmd.capture.again", MirrorText.name(mirror.name())));
             return;
         }
         // request() answers true for a capture already being taken, so this is the one way it fails.
-        refuse(sender, MirrorText.quoted(mirror.name()) + "'s room cannot be captured now: "
-            + MirrorText.name(mirror.destination().worldName()) + " is not loaded.");
+        refuse(sender, Messages.get(sender, "mirror.cmd.capture.not-loaded", MirrorText.name(mirror.name()),
+            MirrorText.name(mirror.destination().worldName())));
     }
 
     private static void remove(final CommandSender sender, final String[] args)
@@ -903,7 +897,7 @@ public class MirrorCommand implements SubCommand
         // again to take it back.
         WindowSweep.forget(mirror);
         MirrorYamlManager.saveAll();
-        say(sender, MirrorText.quoted(mirror.name()) + " is an ordinary banner again.");
+        say(sender, Messages.get(sender, "mirror.cmd.remove.done", MirrorText.name(mirror.name())));
     }
 
     /**
@@ -980,7 +974,7 @@ public class MirrorCommand implements SubCommand
         final World world = Bukkit.getWorld(args[3]);
         if (world == null)
         {
-            refuse(sender, "No world called " + MirrorText.name(args[3]) + " is loaded.");
+            refuse(sender, Messages.get(sender, "mirror.cmd.at.no-world", MirrorText.name(args[3])));
             return null;
         }
         final String unreadable = Coordinates.whyNotReadable(sender, world, args[4], args[5], args[6]);
@@ -993,8 +987,9 @@ public class MirrorCommand implements SubCommand
         final Block block = world.getBlockAt(at[0], at[1], at[2]);
         if (!isBanner(block))
         {
-            refuse(sender, "The block at " + at[0] + " " + at[1] + " " + at[2] + " is "
-                + MirrorText.name(block.getType().name().toLowerCase(Locale.ROOT)) + ", not a banner.");
+            refuse(sender, Messages.get(sender, "mirror.cmd.at.not-banner", String.valueOf(at[0]),
+                String.valueOf(at[1]), String.valueOf(at[2]),
+                MirrorText.name(block.getType().name().toLowerCase(Locale.ROOT))));
             return null;
         }
         return block;
@@ -1025,12 +1020,11 @@ public class MirrorCommand implements SubCommand
         }
         if (exact == null)
         {
-            refuse(player, "Look at the banner you want to use, within six blocks.");
+            refuse(player, Messages.get(player, "mirror.cmd.look.none"));
             return null;
         }
-        refuse(player, "That is a "
-            + MirrorText.name(exact.getType().name().toLowerCase(Locale.ROOT))
-            + ", not a banner. A mirror has to be a banner hung on a wall.");
+        refuse(player, Messages.get(player, "mirror.cmd.look.not-banner",
+            MirrorText.name(exact.getType().name().toLowerCase(Locale.ROOT))));
         return null;
     }
 
@@ -1124,8 +1118,8 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        say(sender, "That one stands on a post, so click near its base to travel; the cloth above it cannot be clicked.");
-        say(sender, "A banner on a wall works anywhere on it.");
+        say(sender, Messages.get(sender, "mirror.cmd.post.base"));
+        say(sender, Messages.get(sender, "mirror.cmd.post.wall"));
     }
 
     /**
@@ -1150,7 +1144,7 @@ public class MirrorCommand implements SubCommand
         final QuantumMirror mirror = MirrorManager.byName(name);
         if (mirror == null)
         {
-            refuse(sender, "There is no mirror called " + MirrorText.quoted(name) + ".");
+            refuse(sender, Messages.get(sender, "mirror.cmd.unknown", MirrorText.name(name)));
         }
         return mirror;
     }
@@ -1223,9 +1217,9 @@ public class MirrorCommand implements SubCommand
         final QuantumMirror mirror = MirrorManager.at(BlockPlace.of(block));
         if (mirror == null)
         {
-            refuse(sender, "That banner is not a mirror.");
-            say(sender, "Make it one with " + ChatText.usageBody("/wormhole mirror create <name>")
-                + ", or name the mirror you meant.");
+            refuse(sender, Messages.get(sender, "mirror.cmd.banner.not-a-mirror"));
+            say(sender, Messages.get(sender, "mirror.cmd.banner.make-one",
+                ChatText.usageBody("/wormhole mirror create <name>")));
         }
         return mirror;
     }
@@ -1236,7 +1230,7 @@ public class MirrorCommand implements SubCommand
         {
             return player;
         }
-        refuse(sender, "That has to be run in game: it depends on where you are standing.");
+        refuse(sender, Messages.get(sender, "mirror.cmd.in-game"));
         return null;
     }
 
