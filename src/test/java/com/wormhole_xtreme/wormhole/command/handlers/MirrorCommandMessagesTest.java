@@ -144,6 +144,7 @@ class MirrorCommandMessagesTest
     /** Runs the scenario for an English reader and for a qq one, and compares what each was told. */
     private void check(final Consumer<Player> scenario, final List<String> english, final List<String> qq)
     {
+        MirrorManager.clear();
         final Player reading = AdminReaders.reading("en");
         scenario.accept(reading);
         assertEquals(english, sent(reading), "an English player");
@@ -323,7 +324,8 @@ class MirrorCommandMessagesTest
         final Block wall = mock(Block.class);
         when(wall.getBlockData()).thenReturn(solid);
         final Block hollow = mock(Block.class);
-        when(hollow.getBlockData()).thenReturn(mock(BlockData.class));
+        final BlockData open = mock(BlockData.class);
+        when(hollow.getBlockData()).thenReturn(open);
         when(here.isChunkLoaded(ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt())).thenReturn(true);
         when(here.getBlockAt(ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt()))
             .thenAnswer(call -> {
