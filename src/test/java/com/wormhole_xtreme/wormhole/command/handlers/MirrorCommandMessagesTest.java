@@ -541,6 +541,13 @@ class MirrorCommandMessagesTest
                 info("QQ <" + MirrorText.name(MUSEUM) + "> capture again."),
                 info("QQ <" + MirrorText.name(MUSEUM) + "> removed.")));
     }
+    /** Names the way the lists were written before the move: name colour, the separator in the body colour. */
+    private static String joined(final String separator, final String... names)
+    {
+        return MirrorText.NAME_COLOUR + String.join(MirrorText.BODY_COLOUR + separator + MirrorText.NAME_COLOUR, names)
+            + MirrorText.BODY_COLOUR;
+    }
+
     private static List<String> manyLooks(final int count)
     {
         return IntStream.range(0, count).mapToObj(i -> "look" + i).toList();
@@ -633,8 +640,8 @@ class MirrorCommandMessagesTest
             museumGoingTo(null);
             stamp(player, Looks.of(few), MIRROR, SET, MUSEUM, STAMP, "chartreuse");
         }, List.of(error("There is no look called " + MirrorText.quoted("chartreuse") + ". Try one of: "
-            + MirrorText.names(few))),
-            List.of(error("QQ no look <" + MirrorText.name("chartreuse") + "> try " + MirrorText.names(few, " | "))));
+            + joined(", ", few))),
+            List.of(error("QQ no look <" + MirrorText.name("chartreuse") + "> try " + joined(" | ", few))));
         final List<String> many = manyLooks(23);
         check(player -> {
             museumGoingTo(null);
@@ -658,9 +665,9 @@ class MirrorCommandMessagesTest
             museumGoingTo(null);
             stamp(player, Looks.of(atBudget), MIRROR, SET, MUSEUM, STAMP, "chartreuse");
         }, List.of(error("There is no look called " + MirrorText.quoted("chartreuse") + ". Try one of: "
-            + MirrorText.names(new String[] { atBudget }))),
+            + joined(", ", atBudget))),
             List.of(error("QQ no look <" + MirrorText.name("chartreuse") + "> try "
-                + MirrorText.names(new String[] { atBudget }, " | "))));
+                + joined(" | ", atBudget))));
         check(player -> {
             museumGoingTo(null);
             stamp(player, Looks.of(pastBudget), MIRROR, SET, MUSEUM, STAMP, "chartreuse");
