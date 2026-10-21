@@ -11,6 +11,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * The Class Force.
@@ -77,7 +78,7 @@ public class Force implements CommandExecutor
         {
             CommandUtilities.closeGate(gate, true);
         }
-        sender.sendMessage(ChatText.info("All gates have been closed, darkened and their irises opened."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.force.all")));
     }
 
     /**
@@ -96,11 +97,11 @@ public class Force implements CommandExecutor
         final Stargate gate = StargateManager.getStargate(name);
         if (gate == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(name));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, name));
             return false;
         }
         CommandUtilities.closeGate(gate, true);
-        sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " has been closed, darkened and its iris opened."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.force.one", ChatText.name(gate.getGateName()))));
         return true;
     }
 

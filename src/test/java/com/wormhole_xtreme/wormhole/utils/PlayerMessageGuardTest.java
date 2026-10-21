@@ -61,7 +61,7 @@ class PlayerMessageGuardTest
         "(?:\\.sendMessage\\(|\\bChatLine\\.of\\(|\\bActionBar\\.send\\(\\w++,\\s*+|\\.sendTitle\\(\\s*+"
             + "|\\.sendActionBar\\(|\\.broadcastMessage\\("
             + "|(?<![.\\w])(?:saved\\(\\w++, \\w++, |status\\(\\w++, |statusAll\\(\\w++, "
-            + "|refuseWithReminder\\(\\w++,\\s*+\\w++,\\s*+|actionList\\((?!final )))\\s*+");
+            + "|refuseWithReminder\\(\\w++,\\s*+\\w++,\\s*+|actionList\\(\\w++,\\s*+))\\s*+");
 
     /** A String method whose body opens by returning a ChatText line, with its name. */
     private static final Pattern LINE_HELPER = Pattern.compile(

@@ -10,6 +10,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Handler for '/wormhole redstone'
@@ -45,7 +46,7 @@ public class RedstoneCommand implements SubCommand
             : null;
         if (stargate == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             sendUsage(sender);
             return true;
         }
@@ -53,8 +54,8 @@ public class RedstoneCommand implements SubCommand
         if (args.length == 2)
         {
             reportWiring(sender, args[1], stargate);
-            sender.sendMessage(ChatText.info("Change it with " + ChatText.command("true") + " or "
-                + ChatText.command("false") + "."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.redstone.change-hint",
+                ChatText.command("true"), ChatText.command("false"))));
             return true;
         }
 
@@ -74,8 +75,8 @@ public class RedstoneCommand implements SubCommand
      */
     private static void reportWiring(final CommandSender sender, final String name, final Stargate stargate)
     {
-        sender.sendMessage(ChatText.info(ChatText.name(name) + " is redstone powered: "
-            + ChatText.value(String.valueOf(stargate.isGateRedstonePowered())) + "."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.redstone.state", ChatText.name(name),
+            ChatText.value(String.valueOf(stargate.isGateRedstonePowered())))));
     }
 
     /**
@@ -99,8 +100,8 @@ public class RedstoneCommand implements SubCommand
     {
         if (!CommandUtilities.isBoolean(value))
         {
-            sender.sendMessage(ChatText.error("Redstone power is " + ChatText.command("true") + " or "
-                + ChatText.command("false") + ", not " + ChatText.command(value) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.redstone.not-a-switch",
+                ChatText.command("true"), ChatText.command("false"), ChatText.command(value))));
             sendUsage(sender);
             return;
         }

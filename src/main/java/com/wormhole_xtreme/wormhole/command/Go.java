@@ -14,6 +14,7 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * The Class Go.
@@ -78,7 +79,7 @@ public class Go implements CommandExecutor
             return true;
         }
 
-        player.sendMessage(ChatText.error("No gate or beam destination called " + ChatText.name(args[0]) + "."));
+        player.sendMessage(ChatText.error(Messages.get(player, "gate.go.none", ChatText.name(args[0]))));
         return true;
     }
 

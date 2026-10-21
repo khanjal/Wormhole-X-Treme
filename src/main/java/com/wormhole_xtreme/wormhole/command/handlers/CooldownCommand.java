@@ -7,6 +7,7 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Handler for '/wormhole cooldown'
@@ -30,9 +31,6 @@ public class CooldownCommand implements SubCommand
 
     /** Longest cooldown accepted, in seconds. An hour. */
     private static final int MAX_SECONDS = 3600;
-
-    /** How a line about seconds ends. */
-    private static final String SECONDS = " seconds.";
 
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
@@ -60,7 +58,7 @@ public class CooldownCommand implements SubCommand
         // form appeared to work for years.
         if (isOldGroupName(args[1]))
         {
-            sender.sendMessage(ChatText.error("Cooldown groups are gone; they never took effect. Give the seconds instead."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "config.cooldown.groups-gone")));
             usage(sender);
             return true;
         }
@@ -69,7 +67,8 @@ public class CooldownCommand implements SubCommand
         {
             final boolean enabled = Boolean.parseBoolean(args[1]);
             ConfigManager.setUseCooldownEnabled(enabled);
-            sender.sendMessage(ChatText.info("Wormhole use cooldowns set to: " + ChatText.value(String.valueOf(enabled)) + "."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "config.cooldown.switched",
+                ChatText.value(String.valueOf(enabled)))));
             return true;
         }
 
@@ -80,21 +79,22 @@ public class CooldownCommand implements SubCommand
         }
         catch (final NumberFormatException e)
         {
-            sender.sendMessage(ChatText.error("Invalid cooldown time: " + ChatText.command(args[1]) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "config.cooldown.invalid", ChatText.command(args[1]))));
             usage(sender);
             return true;
         }
 
         if ((seconds < MIN_SECONDS) || (seconds > MAX_SECONDS))
         {
-            sender.sendMessage(ChatText.error("Invalid cooldown time: " + ChatText.command(args[1]) + ". Give "
-                + range() + SECONDS));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "config.cooldown.out-of-range",
+                ChatText.command(args[1]), ChatText.value(String.valueOf(MIN_SECONDS)),
+                ChatText.value(String.valueOf(MAX_SECONDS)))));
             return true;
         }
 
         ConfigManager.setUseCooldownSeconds(seconds);
-        sender.sendMessage(ChatText.info("Wormhole cooldown time set to: "
-            + ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())) + SECONDS));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "config.cooldown.set",
+            ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())))));
         return true;
     }
 
@@ -134,8 +134,9 @@ public class CooldownCommand implements SubCommand
         sender.sendMessage(ChatText.info(ChatText.usage("/wormhole cooldown <seconds>") + " sets the wait between trips, "
             + range() + "."));
         sender.sendMessage(ChatText.info(ChatText.usage("/wormhole cooldown true|false") + " switches cooldowns on or off."));
-        sender.sendMessage(ChatText.info("Cooldowns enabled: " + ChatText.value(String.valueOf(ConfigManager.isUseCooldownEnabled()))
-            + ", currently " + ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())) + SECONDS));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "config.cooldown.current",
+            ChatText.value(String.valueOf(ConfigManager.isUseCooldownEnabled())),
+            ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())))));
     }
 
 }

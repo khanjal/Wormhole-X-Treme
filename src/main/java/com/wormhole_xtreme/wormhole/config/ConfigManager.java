@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.RepeatingSweeps;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -19,7 +20,6 @@ import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
-import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
@@ -448,249 +448,112 @@ public class ConfigManager
         }
     }
 
-    /**
-     * How long a ring pair counts down before committing.
-     *
-     * <p>Floored rather than taken as written. The abort window only means anything because
-     * the countdown outlasts the time it takes to walk clear of a ring, and a ring is seven
-     * or eight blocks across — from the middle that is around four blocks to cover, close to
-     * a second at walking pace. Set much below that and rings start taking people who were
-     * only passing through.
-     *
-     * @return countdown in ticks, 100 at the shipped speed and never under 30
-     */
+    /** See {@link RingSettings#getRingCountdownTicks()}. */
     public static int getRingCountdownTicks()
     {
-        return Math.max(30, ringTicks(100));
+        return RingSettings.getRingCountdownTicks();
     }
 
-    /**
-     * How long a pair refuses to fire after a cycle.
-     *
-     * @return cooldown in ticks
-     */
+    /** See {@link RingSettings#getRingCooldownTicks()}. */
     public static int getRingCooldownTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_COOLDOWN_TICKS, 600));
+        return RingSettings.getRingCooldownTicks();
     }
 
-    /**
-     * Ticks between animation frames.
-     *
-     * @return frame interval in ticks, 2 at the shipped speed and at least 1
-     */
+    /** See {@link RingSettings#getRingDeployTicks()}. */
     public static int getRingDeployTicks()
     {
-        return Math.max(1, ringTicks(2));
+        return RingSettings.getRingDeployTicks();
     }
 
-    /**
-     * How long the finished stack stands still before anybody is moved.
-     *
-     * <p>The rings arrive, stand a beat, and only then is anyone taken. Swapping the instant
-     * the last ring stops reads as the animation being interrupted by the teleport rather
-     * than completing into it.
-     *
-     * @return settle pause in ticks
-     */
+    /** See {@link RingSettings#getRingSettleTicks()}. */
     public static int getRingSettleTicks()
     {
-        return ringTicks(20);
+        return RingSettings.getRingSettleTicks();
     }
 
-    /**
-     * How long each ring stays lit as the flash runs through the stack.
-     *
-     * @return per-ring flash time in ticks
-     */
+    /** See {@link RingSettings#getRingFlashTicks()}. */
     public static int getRingFlashTicks()
     {
-        return Math.max(1, ringTicks(3));
+        return RingSettings.getRingFlashTicks();
     }
 
-
-    /**
-     * How long the pad stays lit after the last ring has gone home.
-     *
-     * <p>The lights are lit for the whole cycle and outlive it by this much. Putting them out
-     * at the same instant the last ring sinks away reads as the whole thing being switched
-     * off rather than as the rings finishing.
-     *
-     * @return linger time in ticks
-     */
+    /** See {@link RingSettings#getRingLightsLingerTicks()}. */
     public static int getRingLightsLingerTicks()
     {
-        return ringTicks(20);
+        return RingSettings.getRingLightsLingerTicks();
     }
 
-    /**
-     * Whether a ring shows its outline to somebody it has turned away.
-     *
-     * <p>An idle ring is invisible, so a player told it is recharging is standing on ground
-     * that looks like any other. Lighting the pattern for a moment says where it is and how
-     * much of it they are in.
-     *
-     * @return true if refusals should light the pattern
-     */
+    /** See {@link RingSettings#isRingOutlineOnRefusal()}. */
     public static boolean isRingOutlineOnRefusal()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_OUTLINE_ON_REFUSAL);
-        return (s == null) || s.getBooleanValue();
+        return RingSettings.isRingOutlineOnRefusal();
     }
 
-    /**
-     * How long a refused player is shown the ring's outline.
-     *
-     * @return outline time in ticks
-     */
+    /** See {@link RingSettings#getRingOutlineTicks()}. */
     public static int getRingOutlineTicks()
     {
-        return ringTicks(40);
+        return RingSettings.getRingOutlineTicks();
     }
 
-    /**
-     * How long the stack stands still once the light has finished.
-     *
-     * <p>After the arrival sweep and before the rings come home: a beat with the travellers
-     * standing there and the rings still up around them.
-     *
-     * @return hold in ticks
-     */
+    /** See {@link RingSettings#getRingHoldTicks()}. */
     public static int getRingHoldTicks()
     {
-        return ringTicks(20);
+        return RingSettings.getRingHoldTicks();
     }
 
-    /**
-     * How far below its plane a ceiling ring will look for the floor.
-     *
-     * <p>A ceiling ring drops its rings all the way down and they stack up from the floor, so
-     * it needs a floor near enough to reach. Ten blocks covers any room somebody would
-     * actually stand in; past that the ring is over a shaft rather than a room, and rings
-     * that fall out of sight are not a transport.
-     *
-     * @return the limit in blocks
-     */
+    /** See {@link RingSettings#getRingMaxCeilingDrop()}. */
     public static int getRingMaxCeilingDrop()
     {
-        return Math.max(Ring.MIN_CEILING_DROP,
-            intSetting(ConfigKeys.RING_MAX_CEILING_DROP, 10));
+        return RingSettings.getRingMaxCeilingDrop();
     }
 
-    /**
-     * How deep a ring's passenger volume runs.
-     *
-     * <p>Matters most for ceiling rings, where the floor people stand on may be several
-     * blocks below the ring itself. At least two, so a player's feet and head both count.
-     *
-     * @return reach in block layers, at least 2
-     */
+    /** See {@link RingSettings#getRingReach()}. */
     public static int getRingReach()
     {
-        return Math.max(2, intSetting(ConfigKeys.RING_REACH, 4));
+        return RingSettings.getRingReach();
     }
 
-    /**
-     * Required distance between ring anchors.
-     *
-     * @return separation in blocks
-     */
+    /** See {@link RingSettings#getRingMinSeparation()}. */
     public static int getRingMinSeparation()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_MIN_SEPARATION, 8));
+        return RingSettings.getRingMinSeparation();
     }
 
-    /**
-     * Furthest apart the two ends of a pair may be on the ground.
-     *
-     * <p>Not there for any technical reason: distance costs nothing, and a teleport across
-     * twenty thousand blocks is the same work as one across twenty. It is there to keep rings
-     * from becoming the answer to everything. A gate is the plugin's long-haul option — it
-     * takes a real structure to build, it can be dialled anywhere, and it is meant to be the
-     * thing that connects distant places. Rings are the short hop at either end of that.
-     *
-     * <p>256 blocks is sixteen chunks: comfortably the whole of one base or settlement, and
-     * nowhere near town-to-town. Set it to zero to lift the limit entirely.
-     *
-     * @return the limit in blocks, or zero for none
-     */
+    /** See {@link RingSettings#getRingMaxLinkDistance()}. */
     public static int getRingMaxLinkDistance()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_MAX_LINK_DISTANCE, 256));
+        return RingSettings.getRingMaxLinkDistance();
     }
 
-    /**
-     * How many pairs one player may own.
-     *
-     * @return the quota, or zero for no limit
-     */
+    /** See {@link RingSettings#getRingMaxPairsPerPlayer()}. */
     public static int getRingMaxPairsPerPlayer()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_MAX_PAIRS_PER_PLAYER, 10));
+        return RingSettings.getRingMaxPairsPerPlayer();
     }
 
-    /**
-     * What a newly built pair starts as.
-     *
-     * <p>Private unless a server says otherwise, and private again if the value is not one
-     * this understands. Rings are personal links rather than public infrastructure, and a
-     * typo here should not publish every ring somebody builds afterwards.
-     *
-     * @return the starting access mode
-     */
+    /** See {@link RingSettings#getRingDefaultAccess()}. */
     public static RingAccess getRingDefaultAccess()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_DEFAULT_ACCESS);
-        try
-        {
-            return RingAccess.valueOf(
-                String.valueOf(s == null ? "PRIVATE" : s.getStringValue()).toUpperCase(Locale.ROOT));
-        }
-        catch (final RuntimeException e)
-        {
-            return RingAccess.PRIVATE;
-        }
+        return RingSettings.getRingDefaultAccess();
     }
 
-    /**
-     * How a ring stack deploys.
-     *
-     * @return the starting animation style
-     */
+    /** See {@link RingSettings#getRingDefaultStyle()}. */
     public static RingStyle getRingDefaultStyle()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_DEFAULT_STYLE);
-        try
-        {
-            return RingStyle.valueOf(
-                String.valueOf(s == null ? "CONCURRENT" : s.getStringValue()).toUpperCase(Locale.ROOT));
-        }
-        catch (final RuntimeException e)
-        {
-            return RingStyle.CONCURRENT;
-        }
+        return RingSettings.getRingDefaultStyle();
     }
 
-    /**
-     * What the countdown lights are made of.
-     *
-     * @return the configured material, or redstone lamp when it is missing or unknown
-     */
+    /** See {@link RingSettings#getRingDefaultLight()}. */
     public static Material getRingDefaultLight()
     {
-        return materialSetting(ConfigKeys.RING_DEFAULT_LIGHT, Material.REDSTONE_LAMP);
+        return RingSettings.getRingDefaultLight();
     }
 
-    /**
-     * What a ring turns to as the transport light passes through it.
-     *
-     * <p>Glowstone against the lamp-lit pad, so the transport reads as its own moment.
-     *
-     * @return the configured material, or glowstone when it is missing or unknown
-     */
+    /** See {@link RingSettings#getRingDefaultFlash()}. */
     public static Material getRingDefaultFlash()
     {
-        return materialSetting(ConfigKeys.RING_DEFAULT_FLASH, Material.GLOWSTONE);
+        return RingSettings.getRingDefaultFlash();
     }
 
     /**
@@ -701,7 +564,7 @@ public class ConfigManager
      * @param fallback
      *            what to use when it is absent
      */
-    private static int intSetting(final ConfigKeys key, final int fallback)
+    static int intSetting(final ConfigKeys key, final int fallback)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         return (s != null) ? s.getIntValue() : fallback;
@@ -713,28 +576,20 @@ public class ConfigManager
     /** The fastest: half as long. A ring's two-tick frame cannot be halved again in whole ticks. */
     static final double FASTEST_SPEED = 2.0;
 
-    /**
-     * How fast ring animations run against their shipped timings (#589).
-     *
-     * @return 1.0 for the shipped timings, from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
-     */
+    /** See {@link RingSettings#getRingAnimationSpeed()}. */
     public static double getRingAnimationSpeed()
     {
-        return speedSetting(ConfigKeys.RING_ANIMATION_SPEED);
+        return RingSettings.getRingAnimationSpeed();
     }
 
-    /**
-     * How fast the beaming animation runs against its shipped timings (#589).
-     *
-     * @return 1.0 for the shipped timings, from {@link #SLOWEST_SPEED} to {@link #FASTEST_SPEED}
-     */
+    /** See {@link BeamSettings#getBeamAnimationSpeed()}. */
     public static double getBeamAnimationSpeed()
     {
-        return speedSetting(ConfigKeys.BEAM_ANIMATION_SPEED);
+        return BeamSettings.getBeamAnimationSpeed();
     }
 
     /** A speed setting, inside the range that keeps every sequence whole; 1.0 when missing or not a number. */
-    private static double speedSetting(final ConfigKeys key)
+    static double speedSetting(final ConfigKeys key)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         return clampSpeed((s == null) ? 1.0 : s.getDoubleValue());
@@ -766,56 +621,18 @@ public class ConfigManager
         return (int) Math.round(ticks / speed);
     }
 
-    /** A shipped ring duration at {@code ring-animation-speed}. */
-    private static int ringTicks(final int ticks)
-    {
-        return atSpeed(ticks, getRingAnimationSpeed());
-    }
-
-    /** A shipped beam duration at {@code beam-animation-speed}. */
-    private static int beamTicks(final int ticks)
-    {
-        return atSpeed(ticks, getBeamAnimationSpeed());
-    }
-
-    /**
-     * How a dialling gate's inner ring light moves. A config.yml from before patterns holds
-     * {@code true} or {@code false}, read as TOP and NONE; a missing or unreadable value is the
-     * default, TOP.
-     *
-     * @return never null
-     */
+    /** See {@link GateSettings#getGateDialSpinPattern()}. */
     public static DialSpinPattern getGateDialSpinPattern()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_DIAL_SPIN);
-        final DialSpinPattern pattern = (s == null) ? null
-            : DialSpinPattern.parse(String.valueOf(s.getValue()));
-        return (pattern == null) ? DialSpinPattern.TOP : pattern;
+        return GateSettings.getGateDialSpinPattern();
     }
 
-    /**
-     * The ring pattern a gate dials with (#366): its own, then its material group's, then
-     * {@code gate-dial-spin}.
-     *
-     * @param own
-     *            the gate's own pattern, or null
-     * @param group
-     *            its material group, or null
-     * @return never null
-     */
+    /** See {@link GateSettings#getGateDialSpinPattern(DialSpinPattern, MaterialGroup)}. */
     public static DialSpinPattern getGateDialSpinPattern(
         final DialSpinPattern own,
         final MaterialGroup group)
     {
-        if (own != null)
-        {
-            return own;
-        }
-        if ((group != null) && (group.getDialSpin() != null))
-        {
-            return group.getDialSpin();
-        }
-        return getGateDialSpinPattern();
+        return GateSettings.getGateDialSpinPattern(own, group);
     }
 
     /**
@@ -858,119 +675,70 @@ public class ConfigManager
         }
     }
 
-    /**
-     * Whether gates make any noise at all.
-     *
-     * @return true if gate sounds should play
-     */
+    /** See {@link GateSettings#isGateSoundsEnabled()}. */
     public static boolean isGateSoundsEnabled()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUNDS_ENABLED);
-        return (s == null) || s.getBooleanValue();
+        return GateSettings.isGateSoundsEnabled();
     }
 
-    /**
-     * How loud gate sounds are.
-     *
-     * <p>Louder than rings by default, and deliberately: a gate is a landmark somebody walks
-     * towards, where a ring is something you are standing on.
-     *
-     * @return 1.5 when unset; past 1.0 it widens the range heard rather than the loudness
-     */
+    /** See {@link GateSettings#getGateSoundVolume()}. */
     public static float getGateSoundVolume()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUND_VOLUME);
-        return (s == null) ? 1.5f : (float) s.getDoubleValue();
+        return GateSettings.getGateSoundVolume();
     }
 
-    /**
-     * The sound a gate makes as it begins to dial.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundActivate()}. */
     public static String getGateSoundActivate()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_ACTIVATE, "block.conduit.activate");
+        return GateSettings.getGateSoundActivate();
     }
 
-    /**
-     * The sound each chevron makes as it locks.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundChevron()}. */
     public static String getGateSoundChevron()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close");
+        return GateSettings.getGateSoundChevron();
     }
 
-    /**
-     * The sound the last chevron makes as it locks, with its own chevron sound.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundLock()}. */
     public static String getGateSoundLock()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_LOCK, "block.beacon.power_select");
+        return GateSettings.getGateSoundLock();
     }
 
-    /**
-     * The sound of a wormhole establishing.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundKawoosh()}. */
     public static String getGateSoundKawoosh()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_KAWOOSH, "entity.player.splash.high_speed");
+        return GateSettings.getGateSoundKawoosh();
     }
 
-    /**
-     * The sound of a wormhole closing.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundClose()}. */
     public static String getGateSoundClose()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate");
+        return GateSettings.getGateSoundClose();
     }
 
-    /**
-     * The sound the iris makes as it closes over a gate.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundIrisClose()}. */
     public static String getGateSoundIrisClose()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close");
+        return GateSettings.getGateSoundIrisClose();
     }
 
-    /**
-     * The sound the iris makes as it opens.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundIrisOpen()}. */
     public static String getGateSoundIrisOpen()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open");
+        return GateSettings.getGateSoundIrisOpen();
     }
 
-    /**
-     * The sound an open wormhole makes while it stands there.
-     *
-     * <p>Running water, as in the show. An event horizon looks like water and behaves like
-     * it, so it is the one ambience that needs no explaining.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link GateSettings#getGateSoundAmbient()}. */
     public static String getGateSoundAmbient()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop");
+        return GateSettings.getGateSoundAmbient();
     }
 
-    /** Returns true if an open gate's horizon ripples (#579); off when the setting is missing, as it ships. */
+    /** See {@link GateSettings#isGateRipple()}. */
     public static boolean isGateRipple()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_RIPPLE);
-        return (s != null) && s.getBooleanValue();
+        return GateSettings.isGateRipple();
     }
 
     /** Returns true if a player arriving through a gate is told its name; off when the setting is missing, as it ships. */
@@ -980,37 +748,16 @@ public class ConfigManager
         return (s != null) && s.getBooleanValue();
     }
 
-    /**
-     * @param animation
-     *            an iris animation, as {@link #getGateIrisAnimation(String, com.wormhole_xtreme.wormhole.model.MaterialGroup)} answers
-     * @return false only for {@code instant}
-     */
+    /** See {@link GateSettings#isIrisAnimated(String)}. */
     public static boolean isIrisAnimated(final String animation)
     {
-        return !"instant".equalsIgnoreCase(animation);
+        return GateSettings.isIrisAnimated(animation);
     }
 
-    /**
-     * The iris animation a gate uses (#427): its own, then its material group's, then
-     * {@code gate-iris-animation}.
-     *
-     * @param own
-     *            the gate's own animation, or null
-     * @param group
-     *            its material group, or null
-     * @return one of {@link #irisAnimations()}
-     */
+    /** See {@link GateSettings#getGateIrisAnimation(String, MaterialGroup)}. */
     public static String getGateIrisAnimation(final String own, final MaterialGroup group)
     {
-        if (own != null)
-        {
-            return own;
-        }
-        if ((group != null) && (group.getIrisAnimation() != null))
-        {
-            return group.getIrisAnimation();
-        }
-        return gateIrisAnimation().toLowerCase(Locale.ROOT);
+        return GateSettings.getGateIrisAnimation(own, group);
     }
 
     /** @return the iris animations there are: the four sweep styles, then {@code instant} */
@@ -1042,81 +789,43 @@ public class ConfigManager
     /** Every level {@code gate-view} takes, the default first. */
     public static final List<String> GATE_VIEWS = List.of("horizon", "behind", "open");
 
-    /**
-     * What an open gate shows once its kawoosh settles (#516).
-     *
-     * @return horizon, behind or open; horizon for anything else
-     */
+    /** See {@link GateSettings#getGateView()}. */
     public static String getGateView()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW);
-        final String level = (s == null) ? null : parseGateView(String.valueOf(s.getStringValue()));
-        return (level == null) ? GATE_VIEWS.get(0) : level;
+        return GateSettings.getGateView();
     }
 
     /** How deep a gate's first capture step reaches, at most: the rest is filled in behind it. */
     static final int GATE_FIRST_STEP_DEPTH = 32;
 
-    /**
-     * How far past a gate's opening its view is captured and drawn first (#516): 32, or
-     * {@code view-depth} if that is shallower.
-     *
-     * <p>Shallower than the view because a gate's capture is taken when it is dialled, often of
-     * somewhere nobody has loaded, and at 160 that was a box of some 230 chunks read from disk
-     * before anything showed. The rest, out to {@code view-depth}, is filled in behind it.
-     *
-     * @return blocks, 4 to 32
-     */
+    /** See {@link GateSettings#getGateViewFirstDepth()}. */
     public static int getGateViewFirstDepth()
     {
-        return Math.min(GATE_FIRST_STEP_DEPTH, getViewDepth());
+        return GateSettings.getGateViewFirstDepth();
     }
 
-    /**
-     * Whether a big gate's view of a smaller far gate is drawn at the end of a tunnel (#583); on when
-     * the setting is missing, as it ships.
-     *
-     * @return true for the tunnel, false for the plain view
-     */
+    /** See {@link GateSettings#isGateViewFunnel()}. */
     public static boolean isGateViewFunnel()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL);
-        return (s == null) || s.getBooleanValue();
+        return GateSettings.isGateViewFunnel();
     }
 
-    /**
-     * The longest a big gate's tunnel to a smaller far gate may be, in blocks (#583).
-     *
-     * @return blocks, 1 to 64
-     */
+    /** See {@link GateSettings#getGateViewFunnelLength()}. */
     public static int getGateViewFunnelLength()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH);
-        final int blocks = (s == null) ? 16 : s.getIntValue();
-        return Math.max(1, Math.min(64, blocks));
+        return GateSettings.getGateViewFunnelLength();
     }
 
-    /**
-     * The shortest a gate's tunnel is, in blocks (#587): above 0, a far gate as big or bigger is seen down
-     * a straight tube that long.
-     *
-     * @return blocks, 0 to {@link #getGateViewFunnelLength()}
-     */
+    /** See {@link GateSettings#getGateViewFunnelMinLength()}. */
     public static int getGateViewFunnelMinLength()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH);
-        final int blocks = (s == null) ? 0 : s.getIntValue();
-        return Math.max(0, Math.min(getGateViewFunnelLength(), blocks));
+        return GateSettings.getGateViewFunnelMinLength();
     }
 
-    /**
-     * How long a big gate's tunnel may be now: its length, or none with the tunnel off.
-     *
-     * @return blocks; 0 for the plain view
-     */
+    /** See {@link GateSettings#getGateViewFunnelLongest()}. */
     public static int getGateViewFunnelLongest()
     {
-        return isGateViewFunnel() ? getGateViewFunnelLength() : 0;
+        return GateSettings.getGateViewFunnelLongest();
     }
 
     /**
@@ -1132,33 +841,16 @@ public class ConfigManager
         return GATE_VIEWS.contains(level) ? level : null;
     }
 
-    /**
-     * @return the configured value of {@code gate-iris-animation}, trimmed
-     */
-    private static String gateIrisAnimation()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_ANIMATION);
-        return (s == null) ? "sweep" : String.valueOf(s.getStringValue()).trim();
-    }
-
-    /**
-     * How long a gate build preview lasts once its owner stops using build commands.
-     *
-     * @return minutes, at least 1
-     */
+    /** See {@link GateSettings#getGatePreviewMinutes()}. */
     public static int getGatePreviewMinutes()
     {
-        return Math.max(1, intSetting(ConfigKeys.GATE_PREVIEW_MINUTES, 10));
+        return GateSettings.getGatePreviewMinutes();
     }
 
-    /**
-     * The most blocks all gate build previews on the server may show at once.
-     *
-     * @return the block count, 0 to allow no previews
-     */
+    /** See {@link GateSettings#getGatePreviewMaxBlocks()}. */
     public static int getGatePreviewMaxBlocks()
     {
-        return Math.max(0, intSetting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000));
+        return GateSettings.getGatePreviewMaxBlocks();
     }
 
     /**
@@ -1171,236 +863,136 @@ public class ConfigManager
         return Math.max(0, intSetting(ConfigKeys.MIN_GATE_DISTANCE, 0));
     }
 
-    /**
-     * Whether rings make any noise at all.
-     *
-     * @return true if ring sounds should play
-     */
+    /** See {@link RingSettings#isRingSoundsEnabled()}. */
     public static boolean isRingSoundsEnabled()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_SOUNDS_ENABLED);
-        return (s == null) || s.getBooleanValue();
+        return RingSettings.isRingSoundsEnabled();
     }
 
-    /**
-     * How loud ring sounds are.
-     *
-     * <p>Bukkit scales audible range with volume, so this is a distance knob as much as a
-     * loudness one: at 1.0 a ring is heard about sixteen blocks away.
-     *
-     * @return 1.0 when unset
-     */
+    /** See {@link RingSettings#getRingSoundVolume()}. */
     public static float getRingSoundVolume()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_SOUND_VOLUME);
-        return (s == null) ? 1.0f : (float) s.getDoubleValue();
+        return RingSettings.getRingSoundVolume();
     }
 
-    /**
-     * The sound a ring makes as its pad opens.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link RingSettings#getRingSoundOpen()}. */
     public static String getRingSoundOpen()
     {
-        return soundSetting(ConfigKeys.RING_SOUND_OPEN, "block.beacon.activate");
+        return RingSettings.getRingSoundOpen();
     }
 
-    /**
-     * The sound each ring makes as it leaves the pad or returns to it.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link RingSettings#getRingSoundRing()}. */
     public static String getRingSoundRing()
     {
-        return soundSetting(ConfigKeys.RING_SOUND_RING, "block.piston.extend");
+        return RingSettings.getRingSoundRing();
     }
 
-    /**
-     * The sound of the transport itself.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link RingSettings#getRingSoundFlash()}. */
     public static String getRingSoundFlash()
     {
-        return soundSetting(ConfigKeys.RING_SOUND_FLASH, "block.beacon.power_select");
+        return RingSettings.getRingSoundFlash();
     }
 
-    /**
-     * The sound a ring makes as its pad closes.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link RingSettings#getRingSoundClose()}. */
     public static String getRingSoundClose()
     {
-        return soundSetting(ConfigKeys.RING_SOUND_CLOSE, "block.beacon.deactivate");
+        return RingSettings.getRingSoundClose();
     }
 
-    /**
-     * The sound a ring makes when it turns somebody away.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link RingSettings#getRingSoundRefused()}. */
     public static String getRingSoundRefused()
     {
-        return soundSetting(ConfigKeys.RING_SOUND_REFUSED, "block.note_block.bass");
+        return RingSettings.getRingSoundRefused();
     }
 
-    /**
-     * Whether beaming makes any noise at all.
-     *
-     * @return true if beam sounds should play
-     */
+    /** See {@link BeamSettings#isBeamSoundsEnabled()}. */
     public static boolean isBeamSoundsEnabled()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_SOUNDS_ENABLED);
-        return (s == null) || s.getBooleanValue();
+        return BeamSettings.isBeamSoundsEnabled();
     }
 
-    /**
-     * How loud beam sounds are.
-     *
-     * @return 1.0 when unset; past 1.0 it widens the range heard rather than the loudness
-     */
+    /** See {@link BeamSettings#getBeamSoundVolume()}. */
     public static float getBeamSoundVolume()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_SOUND_VOLUME);
-        return (s == null) ? 1.0f : (float) s.getDoubleValue();
+        return BeamSettings.getBeamSoundVolume();
     }
 
-    /**
-     * The sound played the instant a beam sequence starts.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link BeamSettings#getBeamSoundCharge()}. */
     public static String getBeamSoundCharge()
     {
-        return soundSetting(ConfigKeys.BEAM_SOUND_CHARGE, "block.respawn_anchor.charge");
+        return BeamSettings.getBeamSoundCharge();
     }
 
-    /**
-     * The sound played the instant the real teleport fires, mid-rise.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link BeamSettings#getBeamSoundDepart()}. */
     public static String getBeamSoundDepart()
     {
-        return soundSetting(ConfigKeys.BEAM_SOUND_DEPART, "entity.enderman.teleport");
+        return BeamSettings.getBeamSoundDepart();
     }
 
-    /**
-     * The sound played once the column finishes descending at the destination.
-     *
-     * @return the sound name, or empty for silence
-     */
+    /** See {@link BeamSettings#getBeamSoundArrive()}. */
     public static String getBeamSoundArrive()
     {
-        return soundSetting(ConfigKeys.BEAM_SOUND_ARRIVE, "entity.shulker.teleport");
+        return BeamSettings.getBeamSoundArrive();
     }
 
-    /**
-     * How long the glow gathers at body height before opening into the departure column.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- {@code BeamTiming} is where the
-     *         relationships between this and the other beam timings are enforced
-     */
+    /** See {@link BeamSettings#getBeamEnvelopTicks()}. */
     public static int getBeamEnvelopTicks()
     {
-        return beamTicks(12);
+        return BeamSettings.getBeamEnvelopTicks();
     }
 
-    /**
-     * How far into the envelope the traveller vanishes.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamVanishAtStep()}. */
     public static int getBeamVanishAtStep()
     {
-        return beamTicks(6);
+        return BeamSettings.getBeamVanishAtStep();
     }
 
-    /**
-     * How long the column rises and departs, once the envelope opens into it.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamRiseTicks()}. */
     public static int getBeamRiseTicks()
     {
-        return beamTicks(18);
+        return BeamSettings.getBeamRiseTicks();
     }
 
-    /**
-     * How far into the rise the real teleport fires.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamTeleportAtStep()}. */
     public static int getBeamTeleportAtStep()
     {
-        return beamTicks(12);
+        return BeamSettings.getBeamTeleportAtStep();
     }
 
-    /**
-     * How long the column takes to descend into place at the destination.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamDescendTicks()}. */
     public static int getBeamDescendTicks()
     {
-        return beamTicks(20);
+        return BeamSettings.getBeamDescendTicks();
     }
 
-    /**
-     * How long the column takes to fade out once it has deposited the traveller.
-     *
-     * @return ticks at {@code beam-animation-speed}, unclamped -- see {@link #getBeamEnvelopTicks()}
-     */
+    /** See {@link BeamSettings#getBeamFadeTicks()}. */
     public static int getBeamFadeTicks()
     {
-        return beamTicks(8);
+        return BeamSettings.getBeamFadeTicks();
     }
 
-    /**
-     * Whether beam travel has a per-player cooldown at all.
-     *
-     * @return true if a cooldown should be enforced
-     */
+    /** See {@link BeamSettings#isBeamUseCooldownEnabled()}. */
     public static boolean isBeamUseCooldownEnabled()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED);
-        return (s != null) && s.getBooleanValue();
+        return BeamSettings.isBeamUseCooldownEnabled();
     }
 
-    /**
-     * How many seconds a player must wait between beams, when the cooldown is enabled.
-     *
-     * @return the cooldown in seconds
-     */
+    /** See {@link BeamSettings#getBeamUseCooldownSeconds()}. */
     public static long getBeamUseCooldownSeconds()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS);
-        return (s == null) ? 120 : s.getIntValue();
+        return BeamSettings.getBeamUseCooldownSeconds();
     }
 
-    /**
-     * How much a beam costs, in whatever currency Vault is connected to.
-     *
-     * @return the cost; 0 or below means free
-     */
+    /** See {@link BeamSettings#getBeamEconomyUseCost()}. */
     public static double getBeamEconomyUseCost()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_ECONOMY_USE_COST);
-        return (s == null) ? 0.0 : s.getDoubleValue();
+        return BeamSettings.getBeamEconomyUseCost();
     }
 
-    /**
-     * Whether the plugin's own sign text glows.
-     *
-     * @return true if signs the plugin writes should use glowing text
-     */
+    /** See {@link SignSettings#isSignGlowingText()}. */
     public static boolean isSignGlowingText()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_GLOWING_TEXT);
-        return (s == null) || s.getBooleanValue();
+        return SignSettings.isSignGlowingText();
     }
 
     /**
@@ -1414,61 +1006,40 @@ public class ConfigManager
         return (s == null) || s.getBooleanValue();
     }
 
-    /**
-     * Whether a player-placed dial sign is converted to the gate's own sign material.
-     *
-     * @return true if the dial sign should be made to match the gate's palette
-     */
+    /** See {@link SignSettings#isSignDialMatchMaterial()}. */
     public static boolean isSignDialMatchMaterial()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_DIAL_MATCH_MATERIAL);
-        return (s == null) || s.getBooleanValue();
+        return SignSettings.isSignDialMatchMaterial();
     }
 
-    /**
-     * Reads a configured colour name, resolved by {@code SignStyle} at the point of use.
-     *
-     * <p>Returned as the raw name rather than a resolved colour so the fallback stays with
-     * the caller that knows what this particular line should look like.
-     *
-     * @param key
-     *            the colour setting to read
-     * @return the configured name, or empty when unset
-     */
-    private static String colorSetting(final ConfigKeys key)
-    {
-        final Setting s = ConfigManager.getConfigurations().get(key);
-        return s == null ? "" : String.valueOf(s.getStringValue()).trim();
-    }
-
-    /** @return colour name for a gate's own name, on either sign */
+    /** See {@link SignSettings#getSignColorGateName()}. */
     public static String getSignColorGateName()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_GATE_NAME);
+        return SignSettings.getSignColorGateName();
     }
 
-    /** @return colour name for the network line on a gate's name sign */
+    /** See {@link SignSettings#getSignColorNetwork()}. */
     public static String getSignColorNetwork()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_NETWORK);
+        return SignSettings.getSignColorNetwork();
     }
 
-    /** @return colour name for the owner line on a gate's name sign */
+    /** See {@link SignSettings#getSignColorOwner()}. */
     public static String getSignColorOwner()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_OWNER);
+        return SignSettings.getSignColorOwner();
     }
 
-    /** @return colour name for the destination currently selected on a dial sign */
+    /** See {@link SignSettings#getSignColorSelected()}. */
     public static String getSignColorSelected()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_SELECTED);
+        return SignSettings.getSignColorSelected();
     }
 
-    /** @return colour name for the destinations either side of the selected one */
+    /** See {@link SignSettings#getSignColorNeighbour()}. */
     public static String getSignColorNeighbour()
     {
-        return colorSetting(ConfigKeys.SIGN_COLOR_NEIGHBOUR);
+        return SignSettings.getSignColorNeighbour();
     }
 
     /**
@@ -1489,7 +1060,7 @@ public class ConfigManager
      *            the sound to use when it is unset
      * @return the sound name, trimmed; empty means play nothing
      */
-    private static String soundSetting(final ConfigKeys key, final String fallback)
+    static String soundSetting(final ConfigKeys key, final String fallback)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         if (s == null)
@@ -1508,7 +1079,7 @@ public class ConfigManager
      * @param fallback
      *            what to use when it cannot be read
      */
-    private static Material materialSetting(final ConfigKeys key, final Material fallback)
+    static Material materialSetting(final ConfigKeys key, final Material fallback)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
         if (s == null)
@@ -1604,73 +1175,35 @@ public class ConfigManager
         return (s != null) && s.getBooleanValue();
     }
 
-    /**
-     * How many mirrors one world may hold.
-     *
-     * @return the most, or 0 for no limit
-     */
+    /** See {@link MirrorSettings#getMirrorPerWorldLimit()}. */
     public static int getMirrorPerWorldLimit()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PER_WORLD_LIMIT);
-        return (s == null) ? 1 : Math.max(0, s.getIntValue());
+        return MirrorSettings.getMirrorPerWorldLimit();
     }
 
-    /**
-     * How close a player must be for a mirror's banner to give way to its room, how far they may
-     * drift before a mirror they turned on goes off, and how far out its wall is read.
-     *
-     * @return the distance in blocks, never below one
-     */
+    /** See {@link MirrorSettings#getMirrorProximityDistance()}. */
     public static int getMirrorProximityDistance()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_DISTANCE);
-        return (s == null) ? 16 : Math.max(1, s.getIntValue());
+        return MirrorSettings.getMirrorProximityDistance();
     }
 
-    /**
-     * Whether a mirror names itself above the hotbar to whoever is looking at it.
-     *
-     * <p>Defaults to true when the setting is missing, which is what an existing server's
-     * config.yml looks like after an upgrade. A new thing that announces itself is the right
-     * default here: the whole complaint this answers is that a mirror gives no sign of being
-     * anything but a banner.
-     *
-     * @return true if looking at a mirror says what it is
-     */
+    /** See {@link MirrorSettings#isMirrorApproachMessage()}. */
     public static boolean isMirrorApproachMessage()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_APPROACH_MESSAGE);
-        return (s == null) || s.getBooleanValue();
+        return MirrorSettings.isMirrorApproachMessage();
     }
 
 
-    /**
-     * Whether creatures in a mirror's or a gate's far room are shown through it, as stand-ins.
-     *
-     * <p>False when the setting is missing, as on an upgraded server's config.yml: stand-ins are
-     * real entities that other plugins see, so they are something an admin turns on.
-     *
-     * @return true if a view shows the creatures standing in its far room
-     */
+    /** See {@link MirrorSettings#isMirrorShowEntities()}. */
     public static boolean isMirrorShowEntities()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_SHOW_ENTITIES);
-        return (s != null) && s.getBooleanValue();
+        return MirrorSettings.isMirrorShowEntities();
     }
 
-    /**
-     * Whether the players in a far room are shown as well as its mobs; asked only where
-     * {@link #isMirrorShowEntities()} is on.
-     *
-     * <p>False when the setting is missing, as on an upgraded server's config.yml: it shows who is in
-     * the destination room, which is for an admin to turn on.
-     *
-     * @return true if a view shows the players standing in its far room
-     */
+    /** See {@link MirrorSettings#isMirrorShowPlayers()}. */
     public static boolean isMirrorShowPlayers()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_SHOW_PLAYERS);
-        return (s != null) && s.getBooleanValue();
+        return MirrorSettings.isMirrorShowPlayers();
     }
 
     /** The most chunks ahead a watched window's far side is held to: 4 is 45 chunks a window. */
@@ -1679,50 +1212,10 @@ public class ConfigManager
     /** What {@code mirror-entity-load-radius} is when the setting is missing, as on an upgraded config.yml. */
     static final int DEFAULT_ENTITY_LOAD_RADIUS = 2;
 
-    /**
-     * How many chunks in front of a watched window's far side are held loaded for its creatures.
-     *
-     * @return 0 to {@link #MOST_ENTITY_LOAD_RADIUS}; 2 when the setting is missing
-     */
+    /** See {@link MirrorSettings#getMirrorEntityLoadRadius()}. */
     public static int getMirrorEntityLoadRadius()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS);
-        final int radius = (s == null) ? DEFAULT_ENTITY_LOAD_RADIUS : wholeNumberOr(s, DEFAULT_ENTITY_LOAD_RADIUS);
-        return Math.max(0, Math.min(MOST_ENTITY_LOAD_RADIUS, radius));
-    }
-
-    /** Whether a setting that is not a whole number has been reported yet. */
-    private static boolean warnedNotWhole;
-
-    /**
-     * A setting's whole number, or a fallback, said once, for a value written by hand that is not
-     * one: getIntValue casts, and a config.yml with "two" in it threw on every read.
-     */
-    private static int wholeNumberOr(final Setting setting, final int fallback)
-    {
-        final Object value = setting.getValue();
-        if (value instanceof Integer whole)
-        {
-            return whole.intValue();
-        }
-        try
-        {
-            return Integer.parseInt(String.valueOf(value).trim());
-        }
-        catch (final NumberFormatException notWhole)
-        {
-            if (!warnedNotWhole)
-            {
-                warnedNotWhole = true;
-                final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-                if (plugin != null)
-                {
-                    plugin.prettyLog(Level.WARNING, setting.getName() + " is \"" + value + "\", not a whole number; using "
-                        + fallback);
-                }
-            }
-            return fallback;
-        }
+        return MirrorSettings.getMirrorEntityLoadRadius();
     }
 
     /**
@@ -1853,9 +1346,25 @@ public class ConfigManager
      */
     public static String settingRefusal(final String name, final String raw)
     {
+        return settingRefusal(null, name, raw);
+    }
+
+    /**
+     * Why a value would be refused for a setting, without changing anything.
+     *
+     * @param recipient
+     *            who will read the refusal; null for the server's language
+     * @param name
+     *            the setting name, in any case
+     * @param raw
+     *            the value as typed
+     * @return the refusal, or null if the value would be taken or there is no such setting
+     */
+    public static String settingRefusal(final CommandSender recipient, final String name, final String raw)
+    {
         final Setting setting = settingNamed(name);
         return (setting == null) ? null
-            : ParsedSetting.read(setting.getName(), setting.getValue(), raw).getRefusal();
+            : ParsedSetting.read(setting.getName(), setting.getValue(), raw).getRefusal(recipient);
     }
 
     /**
@@ -1876,9 +1385,25 @@ public class ConfigManager
      *            the setting name, in any case
      * @param raw
      *            the new value as typed
-     * @return a message saying what happened
+     * @return a message saying what happened, in the server's language
      */
     public static String applySetting(final String name, final String raw)
+    {
+        return applySetting(null, name, raw);
+    }
+
+    /**
+     * Changes one setting and writes it back to config.yml, as {@link #applySetting(String, String)}.
+     *
+     * @param recipient
+     *            who will read the answer; null for the server's language
+     * @param name
+     *            the setting name, in any case
+     * @param raw
+     *            the new value as typed
+     * @return a message saying what happened, or null if there is no such setting
+     */
+    public static String applySetting(final CommandSender recipient, final String name, final String raw)
     {
         final Setting setting = settingNamed(name);
         if (setting == null)
@@ -1888,11 +1413,11 @@ public class ConfigManager
         final ParsedSetting parsed = ParsedSetting.read(setting.getName(), setting.getValue(), raw);
         if (!parsed.isAccepted())
         {
-            return parsed.getRefusal();
+            return parsed.getRefusal(recipient);
         }
         setting.setValue(parsed.getValue());
         Configuration.persistCurrentConfiguration(SECTION);
-        final String done = setting.getName().name() + " is now " + parsed.getValue();
+        final String done = setting.getName().name();
         // The value is already saved; a failure to apply it must say so, not escape the command.
         try
         {
@@ -1901,9 +1426,9 @@ public class ConfigManager
         catch (final RuntimeException | LinkageError e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not apply " + setting.getName(), e);
-            return done + ", saved, but it could not be applied now: " + e + ". It applies at the next restart.";
+            return Messages.get(recipient, "config.cmd.set-unapplied", done, parsed.getValue(), e);
         }
-        return done + ".";
+        return Messages.get(recipient, "config.cmd.set", done, parsed.getValue());
     }
 
     /**
@@ -2182,39 +1707,34 @@ public class ConfigManager
         return s != null && s.getBooleanValue();
     }
 
-    /** Returns true if gates and the lines between dialled pairs are shown on the web map; on when the setting is missing, as it ships. */
+    /** See {@link MapSettings#isMapShowGates()}. */
     public static boolean isMapShowGates()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_GATES);
-        return (s == null) || s.getBooleanValue();
+        return MapSettings.isMapShowGates();
     }
 
-    /** Returns true if transport rings are shown on the web map; on when the setting is missing, as it ships. */
+    /** See {@link MapSettings#isMapShowRings()}. */
     public static boolean isMapShowRings()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_RINGS);
-        return (s == null) || s.getBooleanValue();
+        return MapSettings.isMapShowRings();
     }
 
-    /** Returns true if public beam destinations are shown on the web map; on when the setting is missing, as it ships. */
+    /** See {@link MapSettings#isMapShowBeams()}. */
     public static boolean isMapShowBeams()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_BEAMS);
-        return (s == null) || s.getBooleanValue();
+        return MapSettings.isMapShowBeams();
     }
 
-    /** Returns true if quantum mirrors are shown on the web map; on when the setting is missing, as it ships. */
+    /** See {@link MapSettings#isMapShowMirrors()}. */
     public static boolean isMapShowMirrors()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_MIRRORS);
-        return (s == null) || s.getBooleanValue();
+        return MapSettings.isMapShowMirrors();
     }
 
-    /** Returns true if gates with an iris code appear on the web map; on when the setting is missing, as it ships. */
+    /** See {@link MapSettings#isMapShowIrisGates()}. */
     public static boolean isMapShowIrisGates()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAP_SHOW_IRIS_GATES);
-        return (s == null) || s.getBooleanValue();
+        return MapSettings.isMapShowIrisGates();
     }
 
     /** Returns true if the PlaceholderAPI expansion should be registered. */

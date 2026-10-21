@@ -12,6 +12,7 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Handler for '/wormhole freya', a hidden toggle for a companion only you can see.
@@ -35,7 +36,7 @@ public class FreyaCommand implements SubCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(ChatText.error("Only a player can do that."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "freya.player-only")));
             return true;
         }
 
@@ -55,7 +56,7 @@ public class FreyaCommand implements SubCommand
             return true;
         }
         FreyaCompanion.removeFor(player.getUniqueId());
-        player.sendMessage(ChatText.info("She curls up somewhere else."));
+        player.sendMessage(ChatText.info(Messages.get(player, "freya.leaves")));
         return true;
     }
 
@@ -94,15 +95,15 @@ public class FreyaCommand implements SubCommand
         if (FreyaCompanion.isAway(player.getUniqueId()))
         {
             // Asleep or hunted: the listener brings her once that is over.
-            player.sendMessage(ChatText.info("She will be along soon."));
+            player.sendMessage(ChatText.info(Messages.get(player, "freya.coming")));
             return;
         }
         if (FreyaCompanion.spawnFor(player) == null)
         {
-            player.sendMessage(ChatText.error("She did not come. Try again somewhere else."));
+            player.sendMessage(ChatText.error(Messages.get(player, "freya.absent")));
             return;
         }
-        player.sendMessage(ChatText.info(ChatText.name(FreyaCompanion.NAME) + " pads over and sits down beside you."));
+        player.sendMessage(ChatText.info(Messages.get(player, "freya.arrives", ChatText.name(FreyaCompanion.NAME))));
         player.sendMessage(ChatText.info(ChatColour.ITALIC + FreyaCompanion.YEARS));
     }
 }

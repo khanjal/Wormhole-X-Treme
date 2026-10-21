@@ -13,6 +13,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 
@@ -216,7 +217,7 @@ class StargateLifecycle
             gate.lightStargate(false);
             if (p != null)
             {
-                p.sendMessage(ChatText.info("Gate " + ChatText.name(gate.getGateName()) + " timed out and deactivated."));
+                p.sendMessage(ChatText.info(Messages.get(p, "gate.lifecycle.timed-out", ChatText.name(gate.getGateName()))));
             }
         }
     }

@@ -9,6 +9,7 @@ import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * {@code /wormhole gate shapes <reload|validate|enable|disable> [name]} -- checking and reloading a
@@ -74,9 +75,9 @@ public class GateShapesCommand implements SubCommand
             return true;
         }
 
-        sender.sendMessage(ChatText.error("No such shapes command: " + ChatText.command(action) + ". Try "
-            + ChatText.command("reload") + ", " + ChatText.command("validate") + ", " + ChatText.command(ENABLE)
-            + " or " + ChatText.command(DISABLE) + "."));
+        sender.sendMessage(ChatText.error(Messages.get(sender, "gate.shapes.unknown", ChatText.command(action),
+            ChatText.command("reload"), ChatText.command("validate"), ChatText.command(ENABLE),
+            ChatText.command(DISABLE))));
         return true;
     }
 
@@ -93,15 +94,23 @@ public class GateShapesCommand implements SubCommand
             .filter(loaded -> loaded.equalsIgnoreCase(name)).findFirst().orElse(null);
         if (shape == null)
         {
-            sender.sendMessage(ChatText.error("No shape called " + ChatText.name(name) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.shapes.no-shape", ChatText.name(name))));
             return;
         }
         final boolean saved = StargateShapeRegistry.setEnabled(shape, enable);
-        sender.sendMessage(ChatText.info(ChatText.name(shape) + (enable ? " can be built again."
-            : " can no longer be built. Gates already standing keep working.")));
+        final String line;
+        if (enable)
+        {
+            line = Messages.get(sender, "gate.shapes.enabled", ChatText.name(shape));
+        }
+        else
+        {
+            line = Messages.get(sender, "gate.shapes.disabled", ChatText.name(shape));
+        }
+        sender.sendMessage(ChatText.info(line));
         if (!saved)
         {
-            sender.sendMessage(ChatText.error("It could not be saved, so a restart brings it back. See the console."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.shapes.not-saved")));
         }
     }
 
@@ -110,7 +119,7 @@ public class GateShapesCommand implements SubCommand
         if (name == null)
         {
             StargateShapeRegistry.reloadAllShapes();
-            sender.sendMessage(ChatText.info("Reloaded every shape in the shapes/gate directory."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.shapes.reloaded-all")));
             return;
         }
         report(sender, name, StargateShapeRegistry.reloadShapeFile(fileName(name)), true);
@@ -129,19 +138,47 @@ public class GateShapesCommand implements SubCommand
     private static void report(final CommandSender sender, final String name,
         final ShapeFileValidator.Result result, final boolean wasReload)
     {
+        final String file = ChatText.name(fileName(name));
         if (result.isValid())
         {
-            sender.sendMessage(ChatText.info(ChatText.name(fileName(name)) + ": " + ChatText.good("OK")
-                + (wasReload ? ", loaded as " + ChatText.name(result.getShapeName()) + "." : ".")));
+            final String ok = ChatText.good(Messages.get(sender, "gate.shapes.ok"));
+            final String line;
+            if (wasReload)
+            {
+                line = Messages.get(sender, "gate.shapes.valid-loaded", file, ok, ChatText.name(result.getShapeName()));
+            }
+            else
+            {
+                line = Messages.get(sender, "gate.shapes.valid", file, ok);
+            }
+            sender.sendMessage(ChatText.info(line));
             return;
         }
 
-        sender.sendMessage(ChatText.error(ChatText.name(fileName(name)) + ": "
-            + ChatText.bad(result.getProblems().size() + " problem" + (result.getProblems().size() == 1 ? "" : "s"))
-            + " found" + (wasReload ? "; the version loaded before is unchanged." : ".")));
+        final String problems = ChatText.bad(problemCount(sender, result.getProblems().size()));
+        final String line;
+        if (wasReload)
+        {
+            line = Messages.get(sender, "gate.shapes.invalid-kept", file, problems);
+        }
+        else
+        {
+            line = Messages.get(sender, "gate.shapes.invalid", file, problems);
+        }
+        sender.sendMessage(ChatText.error(line));
         for (final String problem : result.getProblems())
         {
-            sender.sendMessage(ChatText.info("  - " + problem));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.shapes.problem", problem)));
         }
+    }
+
+    /** @return {@code 1 problem} or {@code N problems} */
+    private static String problemCount(final CommandSender sender, final int count)
+    {
+        if (count == 1)
+        {
+            return Messages.get(sender, "gate.shapes.problems.one", count);
+        }
+        return Messages.get(sender, "gate.shapes.problems.other", count);
     }
 }

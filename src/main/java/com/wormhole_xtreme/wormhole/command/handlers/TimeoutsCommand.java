@@ -10,6 +10,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Handler for '/wormhole activate_timeout' and '/wormhole timeout' (shutdown_timeout)
@@ -18,9 +19,6 @@ public class TimeoutsCommand implements SubCommand
 {
     /** Past a minute a gate is holding a wormhole open long enough to be somebody else's problem. */
     private static final int MAX_SECONDS = 60;
-
-    /** How a line about seconds ends. */
-    private static final String SECONDS = " seconds.";
 
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
@@ -78,9 +76,9 @@ public class TimeoutsCommand implements SubCommand
     {
         if (args.length != 2)
         {
-            sender.sendMessage(ChatText.info("Current " + ChatText.command(label) + " is: "
-                + ChatText.value(String.valueOf(read.getAsInt())) + SECONDS));
-            sender.sendMessage(ChatText.info(range(floor)));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "config.timeouts.current", ChatText.command(label),
+                ChatText.value(String.valueOf(read.getAsInt())))));
+            sender.sendMessage(ChatText.info(range(sender, floor)));
             return;
         }
 
@@ -101,8 +99,8 @@ public class TimeoutsCommand implements SubCommand
         }
 
         write.accept(timeout);
-        sender.sendMessage(ChatText.info(ChatText.command(label) + " set to: "
-            + ChatText.value(String.valueOf(read.getAsInt())) + SECONDS));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "config.timeouts.set", ChatText.command(label),
+            ChatText.value(String.valueOf(read.getAsInt())))));
     }
 
     /**
@@ -120,21 +118,24 @@ public class TimeoutsCommand implements SubCommand
     private static void reject(final CommandSender sender, final String label,
                                   final String typed, final int floor)
     {
-        sender.sendMessage(ChatText.error("Invalid " + ChatText.command(label) + ": " + ChatText.command(typed) + "."));
-        sender.sendMessage(ChatText.info(range(floor)));
+        sender.sendMessage(ChatText.error(Messages.get(sender, "config.timeouts.invalid", ChatText.command(label),
+            ChatText.command(typed))));
+        sender.sendMessage(ChatText.info(range(sender, floor)));
     }
 
     /**
      * How a setting's accepted range reads to a player.
      *
+     * @param sender
+     *            who will read it
      * @param floor
      *            the lowest value it accepts
      * @return the sentence to print
      */
-    private static String range(final int floor)
+    private static String range(final CommandSender sender, final int floor)
     {
-        return "Valid timeout is between " + ChatText.value(String.valueOf(floor)) + " and "
-            + ChatText.value(String.valueOf(MAX_SECONDS)) + SECONDS;
+        return Messages.get(sender, "config.timeouts.range", ChatText.value(String.valueOf(floor)),
+            ChatText.value(String.valueOf(MAX_SECONDS)));
     }
 
 }

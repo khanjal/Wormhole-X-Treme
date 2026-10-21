@@ -121,6 +121,24 @@ class RingCommandLinesTest
             + pair.getEndA().getStyle() + "/" + pair.getEndB().getStyle());
     }
 
+    /** Cancel and list answer in the player's language (#26). */
+    @Test
+    void cancelAndListAnswerInThePlayersLanguage()
+    {
+        when(player.getLocale()).thenReturn("qq");
+
+        run("ring", "cancel");
+        RingManager.setPending(UUID.fromString(OWNER), ringAt(0), WORLD);
+        run("ring", "cancel");
+        final RingPair pair = registeredPair();
+        run("ring", "list");
+
+        verify(player).sendMessage(ChatText.error("QQ nothing waiting."));
+        verify(player).sendMessage(ChatText.info("QQ forgotten."));
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name("aaaa0001") + " " + ChatText.name(WORLD) + " "
+            + pair.getAccess() + " " + pair.getEndA().getStyle() + " " + pair.getEndB().getStyle() + "."));
+    }
+
     /** The travelling ring and the laid-in slab must both be slabs; a slab is stored and named in yellow. */
     @Test
     void theRingAndBuiltMaterialsMustBeSlabs()

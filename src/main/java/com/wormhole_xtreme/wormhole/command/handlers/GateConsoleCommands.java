@@ -219,7 +219,7 @@ public final class GateConsoleCommands
         final Stargate start = StargateManager.getStargate(rest[0]);
         if (start == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(rest[0]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, rest[0]));
             return;
         }
         // A refused dial puts the start gate out, which would cut off a connection it already has.
@@ -280,7 +280,7 @@ public final class GateConsoleCommands
         }
         if (!RegionFlags.mayBuild(player, locationsOf(world, cellsOf(shape, grid))))
         {
-            return RegionFlags.BUILD_REFUSED;
+            return RegionFlags.buildRefused(sender);
         }
         final String tooClose = GateSpacing.refusal(player, world, locationsOf(world, GateBlueprint.openingOf(shape, grid)));
         return (tooClose == null) ? null : notBuilt(sender, tooClose);
@@ -352,7 +352,7 @@ public final class GateConsoleCommands
         {
             return Messages.get(sender, "gate.build.shape-flat", ChatText.name(rest[0]));
         }
-        final String badName = Complete.whyNotAName(rest[1]);
+        final String badName = Complete.whyNotAName(sender, rest[1]);
         if (badName != null)
         {
             return badName;

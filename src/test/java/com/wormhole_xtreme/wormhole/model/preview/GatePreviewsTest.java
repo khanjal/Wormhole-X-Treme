@@ -816,6 +816,27 @@ class GatePreviewsTest
         verify(owner).sendMessage(contains("StandardSignDial is built!"));
     }
 
+    /** A finished preview says so in the builder's own client language (#26). */
+    @Test
+    void aFinishedBuildIsAnnouncedInThePlayersLanguage() throws Exception
+    {
+        when(owner.getLocale()).thenReturn("qq");
+        final Stargate3DShape signDial = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/StandardSignDial.shape")).toArray(new String[0]));
+        GatePreviews.show(owner, signDial, null);
+        for (final Cell cell : GateBlueprint.of(signDial, GateBlueprint.inFrontOf(signDial, 0, 64, 0, BlockFace.NORTH)))
+        {
+            if (cell.part() != Part.DIAL_SIGN)
+            {
+                place(cell, (cell.part() == Part.BUTTON) ? Material.LEVER : Material.OBSIDIAN);
+            }
+        }
+
+        GatePreviews.guide(owner);
+
+        verify(owner).sendMessage(contains("QQ StandardSignDial built."));
+    }
+
     /**
      * A block placed or broken inside a preview redraws it on the next tick, once however many change
      * in that tick; one outside it redraws nothing.

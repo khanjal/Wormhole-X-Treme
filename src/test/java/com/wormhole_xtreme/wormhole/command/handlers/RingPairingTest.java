@@ -433,4 +433,24 @@ class RingPairingTest
         verify(player).sendMessage(plainContains("Your first ring is not free any more"));
         assertEquals(1, RingManager.getAllPairs().size(), "only the pair that was already there");
     }
+
+    /** A finished pair is announced in the builder's language, public or private (#26). */
+    @Test
+    void aFinishedPairIsAnnouncedInTheBuildersLanguage()
+    {
+        when(player.getLocale()).thenReturn("qq");
+
+        pairWith(waitingAt(0, 64, 0, WORLD), ringAt(20, 64, 0));
+
+        final RingPair open = registered();
+        verify(player).sendMessage(ChatText.info("QQ live " + ChatText.name(open.getId()) + "."));
+        verify(player).sendMessage(ChatText.info("QQ access " + ChatText.value("PUBLIC") + "."));
+
+        RingManager.clear();
+        config.when(ConfigManager::getRingDefaultAccess).thenReturn(RingAccess.PRIVATE);
+        pairWith(waitingAt(0, 64, 0, WORLD), ringAt(20, 64, 0));
+
+        verify(player).sendMessage(ChatText.info("QQ private " + ChatText.value("PRIVATE") + " "
+            + ChatText.usageBody("/wormhole ring allow <player>") + "."));
+    }
 }

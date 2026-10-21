@@ -26,12 +26,15 @@ public final class ConfigTestSupport
      * Fills the settings map with the plugin's defaults, the way a first run does.
      *
      * <p>Mirrors what {@link Configuration} does when no {@code config.yml} exists.
+     * Each setting is copied, so a test that changes one does not change the shipped default
+     * the next test loads.
      */
     public static void loadDefaults()
     {
         for (final Setting setting : DefaultSettings.config)
         {
-            ConfigManager.getConfigurations().put(setting.getName(), setting);
+            ConfigManager.getConfigurations().put(setting.getName(), new Setting(setting.getName(),
+                setting.getValue(), setting.getDescription(), setting.getPluginName()));
         }
     }
 
@@ -94,9 +97,8 @@ public final class ConfigTestSupport
     /**
      * Empties the settings map again.
      *
-     * <p>The default {@link Setting} objects are shared statics, so a test that changes one
-     * changes it for everything that runs afterwards in the same JVM. Tests that call
-     * {@link #loadDefaults()} should put back whatever they altered and then clear.
+     * <p>{@link #loadDefaults()} copies the shipped settings, so a test that changes one
+     * leaves the defaults alone; clearing is all a test has to put back.
      */
     public static void clear()
     {

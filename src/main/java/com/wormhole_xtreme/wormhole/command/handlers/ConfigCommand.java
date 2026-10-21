@@ -10,6 +10,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigReload;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Reads and writes any setting, by name.
@@ -80,16 +81,16 @@ public class ConfigCommand implements SubCommand
         }
 
         final String value = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
-        final String refused = ConfigManager.settingRefusal(name, value);
+        final String refused = ConfigManager.settingRefusal(sender, name, value);
         if (refused != null)
         {
             sender.sendMessage(ChatText.error(refused));
             return true;
         }
-        final String result = ConfigManager.applySetting(name, value);
+        final String result = ConfigManager.applySetting(sender, name, value);
         if (result == null)
         {
-            sender.sendMessage(ChatText.error("No setting called " + ChatText.command(name) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "config.cmd.no-setting", ChatText.command(name))));
             listMatching(sender, name);
             return true;
         }
@@ -105,28 +106,38 @@ public class ConfigCommand implements SubCommand
      */
     private static void reload(final CommandSender sender)
     {
-        final ConfigReload.Report report = ConfigReload.reload();
+        final ConfigReload.Report report = ConfigReload.reload(sender);
         if (report.unreadable() != null)
         {
-            sender.sendMessage(ChatText.error(report.unreadable() + "; no setting changed."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "config.reload.unreadable", report.unreadable())));
             return;
         }
         for (final ConfigReload.Change change : report.changes())
         {
-            sender.sendMessage(ChatText.info(ChatText.command(change.key().name()) + ": "
-                + ChatText.value(String.valueOf(change.from())) + " -> " + ChatText.value(String.valueOf(change.to()))
-                + ((change.unapplied() == null) ? "."
-                    : ", but it could not be applied now: " + change.unapplied() + ". It applies at the next restart.")));
+            sender.sendMessage(ChatText.info(changed(sender, change)));
         }
         for (final ConfigReload.Rejection rejection : report.rejections())
         {
-            sender.sendMessage(ChatText.error(rejection.refusal() + " Kept "
-                + ChatText.value(String.valueOf(rejection.kept())) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "config.reload.kept", rejection.refusal(),
+                ChatText.value(String.valueOf(rejection.kept())))));
         }
         if (report.changes().isEmpty() && report.rejections().isEmpty())
         {
-            sender.sendMessage(ChatText.info("Reloaded config.yml: no setting changed."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "config.reload.unchanged")));
         }
+    }
+
+    /** @return one setting the reload changed, old value to new, and whether it waits for a restart */
+    private static String changed(final CommandSender sender, final ConfigReload.Change change)
+    {
+        final String name = ChatText.command(change.key().name());
+        final String from = ChatText.value(String.valueOf(change.from()));
+        final String to = ChatText.value(String.valueOf(change.to()));
+        if (change.unapplied() == null)
+        {
+            return Messages.get(sender, "config.reload.changed", name, from, to);
+        }
+        return Messages.get(sender, "config.reload.changed-unapplied", name, from, to, change.unapplied());
     }
 
     /**
@@ -142,19 +153,15 @@ public class ConfigCommand implements SubCommand
         final List<String> names = ConfigManager.settingNamesMatching(needle);
         if (names.isEmpty())
         {
-            sender.sendMessage(ChatText.error("No setting matches " + ChatText.command(needle) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "config.cmd.no-match", ChatText.command(needle))));
             return;
         }
-        final StringBuilder found = new StringBuilder();
-        for (int i = 0; (i < names.size()) && (i < TOO_MANY_TO_LIST); i++)
-        {
-            found.append(found.isEmpty() ? "" : ", ").append(ChatText.command(names.get(i)));
-        }
-        sender.sendMessage(ChatText.info(found.toString()));
+        sender.sendMessage(ChatText.info(String.join(Messages.get(sender, "config.cmd.separator"),
+            names.stream().limit(TOO_MANY_TO_LIST).map(ChatText::command).toList())));
         if (names.size() > TOO_MANY_TO_LIST)
         {
-            sender.sendMessage(ChatText.info("...and " + ChatText.value(String.valueOf(names.size() - TOO_MANY_TO_LIST))
-                + " more. Type part of a name to narrow it down."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "config.cmd.more",
+                ChatText.value(String.valueOf(names.size() - TOO_MANY_TO_LIST)))));
         }
         sender.sendMessage(ChatText.info(ChatText.usageBody("/wormhole config <name>") + " shows one, "
             + ChatText.usageBody("/wormhole config <name> <value>") + " changes it."));

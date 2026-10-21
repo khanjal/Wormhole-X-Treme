@@ -1167,13 +1167,13 @@ placement is left out and the run is the plain campus.
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. A hundred and four at present; the one naming both `unchecked` and
+quiet one that is inconvenient. A hundred and five at present; the one naming both `unchecked` and
 `rawtypes`, and the one naming both `java:S1168` and `java:S9391`, count in each row. MockBukkit gets its own column because `src/mockbukkit/java`
 compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
 | Suppresses | Main | Tests | MockBukkit | Why |
 |---|---|---|---|---|
-| `java:S3516` | 20 | – | – | Handlers always return `true`, because Bukkit reads it as "handled"; three are field setters behind an interface whose other implementations return `false`. |
+| `java:S3516` | 21 | – | – | Handlers always return `true`, because Bukkit reads it as "handled"; three are field setters behind an interface whose other implementations return `false`. |
 | `java:S4144` | 7 | – | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
 | `java:S9391` | 12 | – | – | Loops on a per-tick, per-frame or per-move path, or whose body is also the test and the side effect, that a stream would only slow or obscure; each says which. |
 | `java:S2589` | 7 | – | – | Null checks Sonar thinks cannot fire, kept for mocks that stub nothing, or for a seam documented to return null. |
@@ -1265,8 +1265,11 @@ language (`de`, `de_de`). A player reads their client's locale, read on every ca
 `PlayerLocales` (Paper's `locale()` by reflection, Bukkit's `getLocale()` elsewhere) and sanitised to
 `[a-z_]`: `de_de`, then `de`, then `server-language`, then English, key by key. Any other recipient,
 or `null`, starts at `server-language`. Each code is the jar's file with the owner's
-`lang/<code>.yml` from the plugin folder over it; the plugin writes nothing to that folder, and
-reads it only on load and reload. Parsed languages are cached per code, never per player, and the
+`lang/<code>.yml` from the plugin folder over it; only `/wormhole lang export` (`LangExport`) writes
+to that folder, never over a file, and it is read only on load and reload. The export copies the
+jar's file line by line, so every message in it must stay one `key: "text"` line, which
+`LangExportTest` checks; tab completion lists the jar's languages from the plugin's own jar, or
+from `target/classes` in tests. Parsed languages are cached per code, never per player, and the
 client codes seen are remembered up to a bound. Sign text is not localised.
 
 - **To move a message**, add its key to `en.yml`, named by area in dotted lower case
@@ -1276,6 +1279,12 @@ client codes seen are remembered up to a bound. Sign text is not localised.
   the call site, and so does each argument's colour; the sentence, its order and any colour code
   inside it go in the template. Something a player types, such as `north` or `net=`, stays an
   argument so it is never translated.
+- **A `ChatLine` is a chain of parts, and each part with words is its own key.** The lead sentence
+  keeps its trailing space inside the template, a tail with words is a key of its own, and a tail
+  that is only punctuation such as `.` stays in code. The link between them is the command words a
+  player types (`hint(...)`, a constant such as `CLEAR`), passed as it is and never translated, and
+  the colour wrappers stay at the call site. `ChatLine` itself holds no text to translate; the
+  "Click to run" hover it adds is still English.
 - **Never reword while extracting.** The English output must be byte for byte what it was, so a
   test asserting the old text keeps passing unchanged. Rewording is its own change.
 - **Name the recipient as a plain variable and the key as a string literal.**

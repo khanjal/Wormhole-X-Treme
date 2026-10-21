@@ -2,9 +2,11 @@ package com.wormhole_xtreme.wormhole.config;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
@@ -12,6 +14,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.utils.ChatColour;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
 
 /**
@@ -46,11 +49,15 @@ import com.wormhole_xtreme.wormhole.utils.SignStyle;
  */
 final class ParsedSetting
 {
+    private static final String TRUE = "true";
+
+    private static final String FALSE = "false";
+
     /** The value to store, or null if this was refused. */
     private final Object value;
 
-    /** Why it was refused, or null if it was accepted. */
-    private final String refusal;
+    /** Why it was refused, in a reader's language, or null if it was accepted. */
+    private final Function<CommandSender, String> refusal;
 
     /**
      * Instantiates a parsed setting.
@@ -60,7 +67,7 @@ final class ParsedSetting
      * @param refusal
      *            why it was refused
      */
-    private ParsedSetting(final Object value, final String refusal)
+    private ParsedSetting(final Object value, final Function<CommandSender, String> refusal)
     {
         this.value = value;
         this.refusal = refusal;
@@ -91,9 +98,9 @@ final class ParsedSetting
         }
         if (current instanceof Boolean)
         {
-            if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw))
+            if (!TRUE.equalsIgnoreCase(raw) && !FALSE.equalsIgnoreCase(raw))
             {
-                return refused(key + " is true or false, not \"" + raw + "\".");
+                return refused(recipient -> either(recipient, key, TRUE, FALSE, raw));
             }
             return accepted(Boolean.valueOf(raw));
         }
@@ -105,7 +112,7 @@ final class ParsedSetting
             }
             catch (final NumberFormatException notANumber)
             {
-                return refused(key + " is a number, not \"" + raw + "\".");
+                return refused(recipient -> number(recipient, key, raw));
             }
         }
         if (current instanceof Double)
@@ -116,7 +123,7 @@ final class ParsedSetting
             }
             catch (final NumberFormatException notANumber)
             {
-                return refused(key + " is a number, not \"" + raw + "\".");
+                return refused(recipient -> number(recipient, key, raw));
             }
         }
         return readText(key, raw);
@@ -139,7 +146,8 @@ final class ParsedSetting
             final DialSpinPattern pattern =
                 DialSpinPattern.parse(raw);
             return (pattern == null)
-                ? refused(key + " is CHEVRON, TOP, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE, not \"" + raw + "\".")
+                ? refused(recipient -> Messages.get(recipient, "config.refuse.dial-spin", key, "CHEVRON", "TOP", "LAP",
+                    "FILL", "PEGASUS", "CHASE", "UNIVERSE", "OVERSHOOT", "NONE", quoted(raw)))
                 : accepted(pattern.name());
         }
         // Refused rather than stored: an unknown style would sweep as the default and be
@@ -226,8 +234,8 @@ final class ParsedSetting
         }
         catch (final IllegalArgumentException notALevel)
         {
-            return refused(key + " is SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, "
-                + "ALL or OFF, not \"" + raw + "\".");
+            return refused(recipient -> Messages.get(recipient, "config.refuse.log-level", key, "SEVERE", "WARNING",
+                "INFO", "CONFIG", "FINE", "FINER", "FINEST", "ALL", "OFF", quoted(raw)));
         }
     }
 
@@ -244,7 +252,7 @@ final class ParsedSetting
     {
         final String code = ConfigManager.parseServerLanguage(raw);
         return (code == null)
-            ? refused(key + " is a language code such as en, de or pt_br, not \"" + raw + "\".")
+            ? refused(recipient -> Messages.get(recipient, "config.refuse.language", key, "en", "de", "pt_br", quoted(raw)))
             : accepted(code);
     }
 
@@ -266,7 +274,7 @@ final class ParsedSetting
                 return accepted(access.name());
             }
         }
-        return refused(key + " is PUBLIC or PRIVATE, not \"" + raw + "\".");
+        return refused(recipient -> either(recipient, key, "PUBLIC", "PRIVATE", raw));
     }
 
     /**
@@ -286,8 +294,8 @@ final class ParsedSetting
         final RingStyle style = RingStyle.parse(raw);
         if (style == null)
         {
-            return refused(key + " is CONCURRENT or SEQUENTIAL, not \"" + raw
-                + "\". Fast and slow work too.");
+            return refused(recipient -> Messages.get(recipient, "config.refuse.style", key, "CONCURRENT", "SEQUENTIAL",
+                quoted(raw), "Fast", "slow"));
         }
         return accepted(style.name());
     }
@@ -306,7 +314,7 @@ final class ParsedSetting
         final Material material = Material.matchMaterial(raw);
         if (!MaterialUtils.isBlockOrUnknown(material))
         {
-            return refused(key + " is the name of a block, not \"" + raw + "\".");
+            return refused(recipient -> Messages.get(recipient, "config.refuse.block", key, quoted(raw)));
         }
         return accepted(material.name());
     }
@@ -333,7 +341,54 @@ final class ParsedSetting
     /** Refuses a value that is none of a setting's names, listing them. */
     private static ParsedSetting notOneOf(final ConfigKeys key, final List<String> names, final String raw)
     {
-        return refused(key + " is " + String.join(", ", names) + ", not \"" + raw + "\".");
+        return refused(recipient -> Messages.get(recipient, "config.refuse.one-of", key,
+            String.join(Messages.get(recipient, "config.refuse.separator"), names), quoted(raw)));
+    }
+
+    /** @return that a setting is one of two words, not what was typed */
+    private static String either(final CommandSender recipient, final ConfigKeys key, final String one,
+        final String other, final Object raw)
+    {
+        return Messages.get(recipient, "config.refuse.either", key, one, other, quoted(raw));
+    }
+
+    /** @return that a setting is a number, not what was typed */
+    private static String number(final CommandSender recipient, final ConfigKeys key, final Object raw)
+    {
+        return Messages.get(recipient, "config.refuse.number", key, quoted(raw));
+    }
+
+    /**
+     * Why a value in config.yml is not of its setting's kind, as {@link ConfigurationYAML#kindOf} names it.
+     *
+     * @param recipient
+     *            who will read it
+     * @param key
+     *            the setting
+     * @param kind
+     *            the setting's default, whose type is its kind
+     * @param written
+     *            the value in the file
+     * @return the refusal
+     */
+    static String notOfKind(final CommandSender recipient, final ConfigKeys key, final Object kind,
+        final Object written)
+    {
+        if (kind instanceof Boolean)
+        {
+            return either(recipient, key, TRUE, FALSE, written);
+        }
+        if (kind instanceof Integer)
+        {
+            return Messages.get(recipient, "config.refuse.whole-number", key, quoted(written));
+        }
+        return number(recipient, key, written);
+    }
+
+    /** @return what was typed, in the quotes a refusal shows it in */
+    private static String quoted(final Object raw)
+    {
+        return "\"" + raw + "\"";
     }
 
     /**
@@ -352,10 +407,10 @@ final class ParsedSetting
      * A value that may not be stored.
      *
      * @param message
-     *            what to tell whoever typed it
+     *            what to tell whoever typed it, in their language
      * @return the refused result
      */
-    private static ParsedSetting refused(final String message)
+    private static ParsedSetting refused(final Function<CommandSender, String> message)
     {
         return new ParsedSetting(null, message);
     }
@@ -381,12 +436,24 @@ final class ParsedSetting
     }
 
     /**
-     * Why the value was refused.
+     * Why the value was refused, in the server's language.
      *
      * @return the message, or null if it was accepted
      */
     String getRefusal()
     {
-        return refusal;
+        return getRefusal(null);
+    }
+
+    /**
+     * Why the value was refused.
+     *
+     * @param recipient
+     *            who will read it; null for the server's language
+     * @return the message, or null if it was accepted
+     */
+    String getRefusal(final CommandSender recipient)
+    {
+        return (refusal == null) ? null : refusal.apply(recipient);
     }
 }

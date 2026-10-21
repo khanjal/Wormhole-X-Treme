@@ -35,7 +35,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * then {@code server-language}, then English, key by key. Anyone else, and a player whose client
  * names no usable language, starts at {@code server-language}. A language is the jar's
  * {@code /lang/<code>.yml} with the owner's {@code lang/<code>.yml} from the plugin folder over it,
- * if they made one; nothing is written there. A key the jar's English lacks is sent as the key itself
+ * if they made one; loading writes nothing there. A key the jar's English lacks is sent as the key itself
  * and logged once.
  */
 public final class Messages
