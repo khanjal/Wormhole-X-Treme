@@ -87,7 +87,7 @@ module.exports = {
       const has = (r) => r && r.kinds.includes('gold_block');
       list.push(c('walking up, the view was drawn', () => obs.before && obs.before.count > 200));
       list.push(c('a gold block put in the room after the capture is not in the view (a snapshot)', () => obs.stale && obs.stale.count > 200 && !has(obs.stale)));
-      list.push(c('"Capturing \'Desk\'s room again; ..."', () => /Capturing 'Desk''s room again/.test(obs.retake || '')));
+      list.push(c('"Capturing \'Desk\'s room again; ..."', () => /Capturing 'Desk's room again/.test(obs.retake || '')));
       list.push(c('after -capture the view has the gold block', () => has(obs.after)));
       return list;
     }

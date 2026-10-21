@@ -226,7 +226,21 @@ public final class MirrorText
      */
     public static String names(final String[] names)
     {
-        return NAME_COLOUR + String.join(BODY_COLOUR + ", " + NAME_COLOUR, names) + BODY_COLOUR;
+        return names(names, ", ");
+    }
+
+    /**
+     * {@link #names(String[])} with the separator the reader's language puts between names.
+     *
+     * @param names
+     *            what they are called
+     * @param separator
+     *            what goes between two names, left in the body colour
+     * @return the names in the name colour, ending back in the body colour
+     */
+    public static String names(final String[] names, final String separator)
+    {
+        return NAME_COLOUR + String.join(BODY_COLOUR + separator + NAME_COLOUR, names) + BODY_COLOUR;
     }
 
     /**

@@ -1017,6 +1017,30 @@ class CapturesTest
         return Captures.gateKey(GATE, Captures.GATE_OPENING, Captures.GATE_OPENING);
     }
 
+    /**
+     * The first capture of a gate is said at INFO, once; a retake of one already in memory is only FINE.
+     *
+     * <p>A gate somebody stands at is retaken every ten minutes or so, and each retake said the same
+     * two INFO lines to the console for as long as they stood there.
+     */
+    @Test
+    void aRetakeOfACaptureInMemoryIsNotSaidAtInfo()
+    {
+        takeGateCapture(8);
+        verify(plugin).prettyLog(eq(Level.INFO), contains("Capturing the far side of"));
+        verify(plugin).prettyLog(eq(Level.INFO), contains("Captured world "));
+
+        withServer(() ->
+        {
+            assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, -1L), "an old one is taken again");
+            Captures.step(100);
+        });
+
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Capturing the far side of"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Captured world "));
+        verify(plugin, times(1)).prettyLog(eq(Level.INFO), contains("Captured world "));
+    }
+
     /** Takes a gate's capture of the beach, through the gate opening, to a depth. */
     private void takeGateCapture(final int depth)
     {

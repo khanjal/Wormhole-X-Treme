@@ -8,10 +8,12 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Where a mirror may hang, and which blocks keep it working once it does.
@@ -108,7 +110,7 @@ public final class MirrorPlacement
      */
     public static String refusal(final Block banner, final String name)
     {
-        return refusal(banner, name, 1);
+        return refusal(null, banner, name, 1);
     }
 
     /**
@@ -125,13 +127,32 @@ public final class MirrorPlacement
      */
     public static String refusal(final Block banner, final String name, final int width)
     {
+        return refusal(null, banner, name, width);
+    }
+
+    /**
+     * {@link #refusal(Block, String, int)} in the reader's language.
+     *
+     * @param recipient
+     *            who will read it; null reads the server's language
+     * @param banner
+     *            the banner being made a mirror; for two, the left one looking at the wall
+     * @param name
+     *            the name it would have
+     * @param width
+     *            one banner wide or two
+     * @return what to tell whoever tried, or null
+     */
+    public static String refusal(final CommandSender recipient, final Block banner, final String name,
+        final int width)
+    {
         final BlockData data = banner.getBlockData();
         if (!(data instanceof Directional directional))
         {
-            return "A mirror hangs on a wall. On a post in the open its world shows past its edges.";
+            return Messages.get(recipient, "mirror.cmd.place.post");
         }
         final World world = banner.getWorld();
-        final String full = overLimit(world.getName(), BlockPlace.of(banner), name);
+        final String full = overLimit(recipient, world.getName(), BlockPlace.of(banner), name);
         if (full != null)
         {
             return full;
@@ -141,11 +162,14 @@ public final class MirrorPlacement
         if (gap != null)
         {
             // A pair says how big its wall is: a wall built for one banner is a column short of two.
-            final String needs = (width >= 2)
-                ? "Two banners make a mirror two wide, which needs solid wall " + (width + (2 * BORDER))
-                    + " across and " + (WindowShape.BANNER_HEIGHT + (2 * BORDER)) + " tall; the block at "
-                : "A mirror needs solid wall a block out on every side of its opening, and the block at ";
-            return needs + gap.x() + " " + gap.y() + " " + gap.z() + " is not.";
+            if (width >= 2)
+            {
+                return Messages.get(recipient, "mirror.cmd.place.gap-pair", String.valueOf(width + (2 * BORDER)),
+                    String.valueOf(WindowShape.BANNER_HEIGHT + (2 * BORDER)), String.valueOf(gap.x()),
+                    String.valueOf(gap.y()), String.valueOf(gap.z()));
+            }
+            return Messages.get(recipient, "mirror.cmd.place.gap", String.valueOf(gap.x()), String.valueOf(gap.y()),
+                String.valueOf(gap.z()));
         }
         return null;
     }
@@ -164,6 +188,22 @@ public final class MirrorPlacement
      */
     public static String thinWall(final Block banner, final int width)
     {
+        return thinWall(null, banner, width);
+    }
+
+    /**
+     * {@link #thinWall(Block, int)} in the reader's language.
+     *
+     * @param recipient
+     *            who will read it; null reads the server's language
+     * @param banner
+     *            the banner just made a mirror; for two, the left one looking at the wall
+     * @param width
+     *            one banner wide or two
+     * @return the word, or null
+     */
+    public static String thinWall(final CommandSender recipient, final Block banner, final int width)
+    {
         if (!(banner.getBlockData() instanceof Directional directional))
         {
             return null;
@@ -174,20 +214,23 @@ public final class MirrorPlacement
         {
             return null;
         }
-        return "Its wall is solid a block out, which is enough; two blocks out hides the room's edges better"
-            + " from an angle, and the block at " + gap.x() + " " + gap.y() + " " + gap.z() + " is not solid.";
+        return Messages.get(recipient, "mirror.cmd.place.thin", String.valueOf(gap.x()), String.valueOf(gap.y()),
+            String.valueOf(gap.z()));
     }
 
     /**
      * Why a world has no room for another mirror, or null if it has.
      *
+     * @param recipient
+     *            who will read it; null reads the server's language
      * @param banner
      *            the banner the new mirror would be; a mirror already there is being renamed
      * @param name
      *            the name it would have
      * @return what to say, or null
      */
-    static String overLimit(final String worldName, final BlockPlace banner, final String name)
+    static String overLimit(final CommandSender recipient, final String worldName, final BlockPlace banner,
+        final String name)
     {
         final int limit = ConfigManager.getMirrorPerWorldLimit();
         if (limit <= 0)
@@ -207,9 +250,13 @@ public final class MirrorPlacement
         {
             return null;
         }
-        return MirrorText.name(worldName) + " already has " + others
-            + ((others == 1) ? " mirror" : " mirrors") + ", which is as many as "
-            + MirrorText.name("mirror-per-world-limit") + " allows.";
+        if (others == 1)
+        {
+            return Messages.get(recipient, "mirror.cmd.place.limit.one", MirrorText.name(worldName),
+                String.valueOf(others), MirrorText.name("mirror-per-world-limit"));
+        }
+        return Messages.get(recipient, "mirror.cmd.place.limit.other", MirrorText.name(worldName),
+            String.valueOf(others), MirrorText.name("mirror-per-world-limit"));
     }
 
     /**

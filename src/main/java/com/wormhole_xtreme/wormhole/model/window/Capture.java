@@ -1955,7 +1955,7 @@ public final class Capture
     /** @return the box, its age and what it holds, in one line */
     public String describe()
     {
-        return "capture of " + worldName + " x " + minX + ".." + (minX + sizeX - 1) + " y " + minY
+        return "world " + worldName + " x " + minX + ".." + (minX + sizeX - 1) + " y " + minY
             + ".." + (minY + sizeY - 1) + " z " + minZ + ".." + (minZ + sizeZ - 1) + ", "
             + filled() + " blocks and " + seenAir() + " air kept of " + size()
             + " in the box, " + names.length + " kinds, taken "
