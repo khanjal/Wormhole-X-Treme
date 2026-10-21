@@ -532,9 +532,9 @@ class MirrorCommandMessagesTest
             }
             run(player, MIRROR, "remove", MUSEUM);
         }, List.of(
-            error(MirrorText.quoted(MUSEUM) + "'s room cannot be captured now: " + MirrorText.name("archive")
+            error(MirrorText.quoted(MUSEUM) + "s room cannot be captured now: " + MirrorText.name("archive")
                 + " is not loaded."),
-            info("Capturing " + MirrorText.quoted(MUSEUM) + "'s room again; the view"
+            info("Capturing " + MirrorText.quoted(MUSEUM) + "s room again; the view"
                 + " changes when the new one is ready."),
             info(MirrorText.quoted(MUSEUM) + " is an ordinary banner again.")),
             List.of(error("QQ <" + MirrorText.name(MUSEUM) + "> capture unloaded " + MirrorText.name("archive") + "."),
