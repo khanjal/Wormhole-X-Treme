@@ -16,7 +16,7 @@ gates: `/wormhole gate edit`, `gate shapes`, `gate import`, `custom`, the portal
 material commands and `wooshdepth`; building by hand: `/wormhole gate build`, everything
 `gate preview` says and what pointing at each of its buttons shows, and `/wormhole complete`; and the settings: what `/wormhole config` says when it sets,
 refuses or lists a setting, the `config -reload` report, `/wormhole cooldown` and the two timeout
-commands, and the notice of a newer release an admin gets on joining; and the small admin commands: `redstone`, `owner`, `idc`, `remove`, `list`, `force`, `go`, `refresh`, `restrict` and `freya`; and the first half of `/wormhole mirror`: `create`, `set -start`, `set -capture` and `remove`. Setting names and the values
+commands, and the notice of a newer release an admin gets on joining; and the small admin commands: `redstone`, `owner`, `idc`, `remove`, `list`, `force`, `go`, `refresh`, `restrict` and `freya`; and the first half of `/wormhole mirror`: `create` (except the coordinate-reading refusals), `set -start`, `set -capture` and `remove`. Setting names and the values
 a setting takes stay as they are. The rest are
 English until they are moved over, a few at a time. Command usage and help lines come later, and
 **sign text stays English for now**: a sign is read by everyone who walks past, whatever their

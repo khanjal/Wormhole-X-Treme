@@ -311,7 +311,7 @@ public class MirrorCommand implements SubCommand
         final Block base = leftOf(block, partner);
         final int width = (partner == null) ? 1 : 2;
         // Renaming the mirror a banner already is changes nothing about where it hangs.
-        final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(base, name, width) : null;
+        final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(sender, base, name, width) : null;
         if (refused != null)
         {
             refuse(sender, refused);
@@ -381,7 +381,7 @@ public class MirrorCommand implements SubCommand
             MirrorManager.add(made.withDestination(room).withWidth(width));
             MirrorYamlManager.saveAll();
             // Made anyway: a block of wall is enough, and two is worth a word.
-            final String thin = MirrorPlacement.thinWall(base, width);
+            final String thin = MirrorPlacement.thinWall(sender, base, width);
             if (thin != null)
             {
                 say(sender, thin);

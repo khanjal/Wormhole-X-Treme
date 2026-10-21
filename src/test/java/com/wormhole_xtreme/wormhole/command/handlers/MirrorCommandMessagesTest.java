@@ -250,7 +250,8 @@ class MirrorCommandMessagesTest
         check(player -> {
             mirror(MUSEUM, 1, 1);
             final Block post = banner(Material.WHITE_BANNER);
-            when(post.getBlockData()).thenReturn(mock(Rotatable.class));
+            final Rotatable onAPost = mock(Rotatable.class);
+            when(post.getBlockData()).thenReturn(onAPost);
             when(player.getTargetBlockExact(6)).thenReturn(post);
             run(player, MIRROR, CREATE, GALLERY);
         }, List.of(
@@ -312,6 +313,102 @@ class MirrorCommandMessagesTest
             error("The block at 5 64 7 is " + MirrorText.name("stone") + NOT_A_BANNER)),
             List.of(error("QQ no world " + MirrorText.name("nether") + "."),
                 error("QQ block 5 64 7 is " + MirrorText.name("stone") + ".")));
+    }
+
+    /** The wall behind the banner at 1 64 1 is solid except at one block, and a banner hangs at {@code partner}. */
+    private void wallOpenAt(final int[] gap, final Block partner)
+    {
+        final BlockData solid = mock(BlockData.class);
+        when(solid.isOccluding()).thenReturn(true);
+        final Block wall = mock(Block.class);
+        when(wall.getBlockData()).thenReturn(solid);
+        final Block hollow = mock(Block.class);
+        when(hollow.getBlockData()).thenReturn(mock(BlockData.class));
+        when(here.isChunkLoaded(ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt())).thenReturn(true);
+        when(here.getBlockAt(ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt()))
+            .thenAnswer(call -> {
+                final int x = call.getArgument(0);
+                final int y = call.getArgument(1);
+                final int z = call.getArgument(2);
+                if ((x == gap[0]) && (y == gap[1]) && (z == gap[2]))
+                {
+                    return hollow;
+                }
+                return ((partner != null) && (x == 0) && (y == 64) && (z == 1)) ? partner : wall;
+            });
+    }
+
+    /** The rules that refuse a banner, and the word about a thin wall, said where {@code create} says them. */
+    @Test
+    void thePlacementRefusalsAndTheThinWallWordAreInTheReadersLanguage()
+    {
+        check(player -> {
+            final Block post = banner(Material.WHITE_BANNER);
+            final Rotatable onAPost = mock(Rotatable.class);
+            when(post.getBlockData()).thenReturn(onAPost);
+            when(player.getTargetBlockExact(6)).thenReturn(post);
+            run(player, MIRROR, CREATE, MUSEUM);
+        }, List.of(error("A mirror hangs on a wall. On a post in the open its world shows past its edges.")),
+            List.of(error("QQ post refused.")));
+        check(player -> {
+            final Block hanging = banner(Material.WHITE_WALL_BANNER);
+            wallOpenAt(new int[] { 2, 62, 2 }, null);
+            when(player.getTargetBlockExact(6)).thenReturn(hanging);
+            run(player, MIRROR, CREATE, MUSEUM);
+        }, List.of(error("A mirror needs solid wall a block out on every side of its opening,"
+            + " and the block at 2 62 2 is not.")), List.of(error("QQ gap 2 62 2.")));
+        check(player -> {
+            final Block hanging = banner(Material.WHITE_WALL_BANNER);
+            wallOpenAt(new int[] { 3, 61, 2 }, null);
+            when(player.getTargetBlockExact(6)).thenReturn(hanging);
+            run(player, MIRROR, CREATE, MUSEUM);
+        }, List.of(
+            info("Mirror " + MirrorText.quoted(MUSEUM) + " is this banner. Walk up to it to see its reflection."),
+            info("Right-click it to choose another mirror, and punch it to go through."),
+            info("Its wall is solid a block out, which is enough; two blocks out hides the room's edges better"
+                + " from an angle, and the block at 3 61 2 is not solid.")),
+            List.of(info("QQ <" + MirrorText.name(MUSEUM) + "> made."), info("QQ made hint."),
+                info("QQ thin at 3 61 2.")));
+    }
+
+    /** A pair short of wall says how big its wall has to be. */
+    @Test
+    void aPairShortOfWallIsToldHowBigItsWallHasToBe()
+    {
+        check(player -> {
+            final Block hanging = banner(Material.WHITE_WALL_BANNER);
+            final Block partner = banner(Material.WHITE_WALL_BANNER);
+            when(partner.getX()).thenReturn(0);
+            wallOpenAt(new int[] { -1, 64, 2 }, partner);
+            when(player.getTargetBlockExact(6)).thenReturn(hanging);
+            run(player, MIRROR, CREATE, MUSEUM);
+        }, List.of(error("Two banners make a mirror two wide, which needs solid wall 4 across and 4 tall;"
+            + " the block at -1 64 2 is not.")), List.of(error("QQ pair gap 4 4 at -1 64 2.")));
+    }
+
+    /** A world at its limit says how many it holds, in the singular for one and the plural otherwise. */
+    @Test
+    void aWorldAtItsLimitSaysHowManyMirrorsItHolds()
+    {
+        check(player -> {
+            ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 1);
+            mirror(HALL, 1, 12);
+            lookAtBanner(player);
+            run(player, MIRROR, CREATE, MUSEUM);
+        }, List.of(error(MirrorText.name(WORLD) + " already has 1 mirror, which is as many as "
+            + MirrorText.name("mirror-per-world-limit") + " allows.")),
+            List.of(error("QQ " + MirrorText.name(WORLD) + " has 1 one limit " + MirrorText.name("mirror-per-world-limit")
+                + ".")));
+        check(player -> {
+            ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 1);
+            mirror(HALL, 1, 12);
+            mirror("lobby", 1, 20);
+            lookAtBanner(player);
+            run(player, MIRROR, CREATE, MUSEUM);
+        }, List.of(error(MirrorText.name(WORLD) + " already has 2 mirrors, which is as many as "
+            + MirrorText.name("mirror-per-world-limit") + " allows.")),
+            List.of(error("QQ " + MirrorText.name(WORLD) + " has 2 many limit " + MirrorText.name("mirror-per-world-limit")
+                + ".")));
     }
 
     /** A name no mirror has, and a banner that is no mirror. */
