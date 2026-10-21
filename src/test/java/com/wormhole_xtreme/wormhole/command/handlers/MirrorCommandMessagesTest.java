@@ -300,18 +300,18 @@ class MirrorCommandMessagesTest
     {
         final Block stone = mock(Block.class);
         when(stone.getType()).thenReturn(Material.STONE);
-        when(here.getBlockAt(5, 64, 5)).thenReturn(stone);
+        when(here.getBlockAt(5, 64, 7)).thenReturn(stone);
         check(player -> {
             try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
             {
                 bukkit.when(() -> Bukkit.getWorld(WORLD)).thenReturn(here);
-                run(player, MIRROR, CREATE, MUSEUM, "nether", "5", "64", "5");
-                run(player, MIRROR, CREATE, MUSEUM, WORLD, "5", "64", "5");
+                run(player, MIRROR, CREATE, MUSEUM, "nether", "5", "64", "7");
+                run(player, MIRROR, CREATE, MUSEUM, WORLD, "5", "64", "7");
             }
         }, List.of(error("No world called " + MirrorText.name("nether") + " is loaded."),
-            error("The block at 5 64 5 is " + MirrorText.name("stone") + NOT_A_BANNER)),
+            error("The block at 5 64 7 is " + MirrorText.name("stone") + NOT_A_BANNER)),
             List.of(error("QQ no world " + MirrorText.name("nether") + "."),
-                error("QQ block 5 64 5 is " + MirrorText.name("stone") + ".")));
+                error("QQ block 5 64 7 is " + MirrorText.name("stone") + ".")));
     }
 
     /** A name no mirror has, and a banner that is no mirror. */
