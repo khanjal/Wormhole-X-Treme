@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import static com.wormhole_xtreme.wormhole.utils.ChatText.error;
 import static com.wormhole_xtreme.wormhole.utils.ChatText.info;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -10,10 +12,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
+import java.util.stream.IntStream;
 
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -36,7 +44,12 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPreset;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorStamp;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
@@ -45,7 +58,7 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
- * What {@code /wormhole mirror} says when it creates, sets, starts, captures and removes, read by
+ * What {@code /wormhole mirror} says when it creates, sets, stamps, starts, captures, removes and lists, read by
  * key from {@code lang/} (#26).
  *
  * <p>Each scenario runs the real command twice, with the same mirrors set up: for an English player,
@@ -67,6 +80,47 @@ class MirrorCommandMessagesTest
     private static final String START = "-start";
     private static final String QQ = "qq";
     private static final String NOT_A_BANNER = ", not a banner.";
+
+    /** The three looks every stamping scenario knows: one chosen by name, one a biome answers with, the indoor one. */
+    private static final MirrorPreset NETHER = new MirrorPreset("nether", DyeColor.RED, List.of(),
+        Set.of("NETHER_WASTES"), true);
+    private static final MirrorPreset WOODLAND = new MirrorPreset("woodland", DyeColor.GREEN, List.of(),
+        Set.of("FOREST"), false);
+    private static final MirrorPreset INDOORS = new MirrorPreset("indoors", DyeColor.BROWN, List.of(),
+        Set.of(), false);
+
+    private static final String NOT_STAMPED = "That banner could not be stamped.";
+    private static final String NO_LOOKS = " Check the server log for what went wrong reading shapes/mirror.";
+    private static final String LOOK_COUNT_TAIL = " looks to choose from: press tab for the list,"
+        + " or leave it out to sample the far side.";
+    private static final String STAMP = "-stamp";
+
+    /**
+     * What a stamping scenario runs against: the looks the registry holds by name, the preset a biome
+     * answers with, what the far side looked like, and whether the banner takes the stamp.
+     */
+    private record Looks(List<String> names, MirrorPreset byBiome, MirrorView view, boolean applies)
+    {
+        static Looks of(final String... names)
+        {
+            return new Looks(List.of(names), WOODLAND, null, true);
+        }
+
+        Looks seeing(final MirrorView seen)
+        {
+            return new Looks(names, byBiome, seen, applies);
+        }
+
+        Looks stampFailing()
+        {
+            return new Looks(names, byBiome, view, false);
+        }
+
+        Looks withoutBiomeLook()
+        {
+            return new Looks(names, null, view, applies);
+        }
+    }
 
     @TempDir
     File dataFolder;
@@ -91,6 +145,7 @@ class MirrorCommandMessagesTest
     void tearDown() throws Exception
     {
         MirrorManager.clear();
+        MirrorNetwork.clear();
         ConfigTestSupport.clear();
         Messages.load();
         PluginTestSupport.remove();
@@ -144,14 +199,23 @@ class MirrorCommandMessagesTest
     /** Runs the scenario for an English reader and for a qq one, and compares what each was told. */
     private void check(final Consumer<Player> scenario, final List<String> english, final List<String> qq)
     {
+        check(scenario, english, qq, UnaryOperator.identity());
+    }
+
+    /** {@link #check(Consumer, List, List)} comparing what {@code arranged} makes of each list, for lines with no fixed order. */
+    private void check(final Consumer<Player> scenario, final List<String> english, final List<String> qq,
+        final UnaryOperator<List<String>> arranged)
+    {
         MirrorManager.clear();
+        MirrorNetwork.clear();
         final Player reading = AdminReaders.reading("en");
         scenario.accept(reading);
-        assertEquals(english, sent(reading), "an English player");
+        assertEquals(arranged.apply(english), arranged.apply(sent(reading)), "an English player");
         MirrorManager.clear();
+        MirrorNetwork.clear();
         final Player other = AdminReaders.reading(QQ);
         scenario.accept(other);
-        assertEquals(qq, sent(other), "a qq player");
+        assertEquals(arranged.apply(qq), arranged.apply(sent(other)), "a qq player");
     }
 
     private static String usageLine()
@@ -476,5 +540,302 @@ class MirrorCommandMessagesTest
             List.of(error("QQ <" + MirrorText.name(MUSEUM) + "> capture unloaded " + MirrorText.name("archive") + "."),
                 info("QQ <" + MirrorText.name(MUSEUM) + "> capture again."),
                 info("QQ <" + MirrorText.name(MUSEUM) + "> removed.")));
+    }
+    private static List<String> manyLooks(final int count)
+    {
+        return IntStream.range(0, count).mapToObj(i -> "look" + i).toList();
+    }
+
+    /** Runs a scenario with the banner's world, the stamp, the far side and the looks stubbed as {@code looks} says. */
+    private void withLooks(final Looks looks, final Runnable scenario)
+    {
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            MockedStatic<MirrorStamp> stamps = mockStatic(MirrorStamp.class);
+            MockedStatic<MirrorView> views = mockStatic(MirrorView.class);
+            MockedStatic<MirrorPresetRegistry> registry = mockStatic(MirrorPresetRegistry.class,
+                CALLS_REAL_METHODS))
+        {
+            bukkit.when(() -> Bukkit.getWorld(WORLD)).thenReturn(here);
+            stamps.when(() -> MirrorStamp.apply(any(Block.class), any(MirrorPreset.class)))
+                .thenReturn(looks.applies());
+            stamps.when(() -> MirrorStamp.apply(any(Block.class), any(MirrorPreset.class), any(MirrorView.class)))
+                .thenReturn(looks.applies());
+            views.when(() -> MirrorView.look(any(Place.class))).thenReturn(looks.view());
+            registry.when(MirrorPresetRegistry::names).thenReturn(looks.names().toArray(new String[0]));
+            registry.when(() -> MirrorPresetRegistry.byName(NETHER.name())).thenReturn(NETHER);
+            registry.when(() -> MirrorPresetRegistry.forBiome(any())).thenReturn(looks.byBiome());
+            registry.when(MirrorPresetRegistry::indoors).thenReturn(INDOORS);
+            scenario.run();
+        }
+    }
+
+    /** The mirror {@code museum} on the banner at 1 64 1, going to {@code room}. */
+    private void museumGoingTo(final Place room)
+    {
+        MirrorManager.add(new QuantumMirror(MUSEUM, new BlockPlace(WORLD, 1, 64, 1), room));
+        final Block block = mock(Block.class);
+        when(block.getType()).thenReturn(Material.WHITE_WALL_BANNER);
+        when(here.getBlockAt(1, 64, 1)).thenReturn(block);
+    }
+
+    private static Place far()
+    {
+        return new Place("far", 100, 64, 200, 0f, 0f);
+    }
+
+    private void stamp(final Player player, final Looks looks, final String... words)
+    {
+        withLooks(looks, () -> run(player, words));
+    }
+
+    private static String stamped(final String look)
+    {
+        return info(MirrorText.quoted(MUSEUM) + " looks like " + MirrorText.name(look) + " now.");
+    }
+
+    /** A look named, stamped or refused, and a banner that is gone or in a world that is not loaded. */
+    @Test
+    void namingALookStampsTheBannerOrSaysWhyNot()
+    {
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, Looks.of("nether"), MIRROR, SET, MUSEUM, STAMP, "nether");
+        }, List.of(stamped("nether")),
+            List.of(info("QQ <" + MirrorText.name(MUSEUM) + "> looks " + MirrorText.name("nether") + ".")));
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, Looks.of("nether").stampFailing(), MIRROR, SET, MUSEUM, STAMP, "nether");
+        }, List.of(error(NOT_STAMPED)), List.of(error("QQ not stamped.")));
+        check(player -> {
+            museumGoingTo(null);
+            final Block stone = mock(Block.class);
+            when(stone.getType()).thenReturn(Material.STONE);
+            when(here.getBlockAt(1, 64, 1)).thenReturn(stone);
+            stamp(player, Looks.of("nether"), MIRROR, SET, MUSEUM, STAMP, "nether");
+        }, List.of(error(MirrorText.quoted(MUSEUM) + " is not a banner any more. Put one back, or run "
+            + MirrorText.command("/wormhole mirror create " + MUSEUM) + " looking at a banner that is there.")),
+            List.of(error("QQ <" + MirrorText.name(MUSEUM) + "> banner gone, run "
+                + MirrorText.command("/wormhole mirror create " + MUSEUM) + ".")));
+        check(player -> {
+            MirrorManager.add(new QuantumMirror(MUSEUM, new BlockPlace("gone", 1, 64, 1), null));
+            stamp(player, Looks.of("nether"), MIRROR, SET, MUSEUM, STAMP, "nether");
+        }, List.of(error(MirrorText.quoted(MUSEUM) + " is in " + MirrorText.name("gone")
+            + ", which is not loaded, so its banner cannot be stamped.")),
+            List.of(error("QQ <" + MirrorText.name(MUSEUM) + "> banner in " + MirrorText.name("gone") + " unloaded.")));
+    }
+
+    /** A look nobody has: the others listed while they fit, counted when they do not, and none at all. */
+    @Test
+    void aLookNobodyHasOffersTheOthersCountsThemOrSaysThereAreNone()
+    {
+        final String[] few = { "nether", "end", "ocean" };
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, Looks.of(few), MIRROR, SET, MUSEUM, STAMP, "chartreuse");
+        }, List.of(error("There is no look called " + MirrorText.quoted("chartreuse") + ". Try one of: "
+            + MirrorText.names(few))),
+            List.of(error("QQ no look <" + MirrorText.name("chartreuse") + "> try " + MirrorText.names(few, " | "))));
+        final List<String> many = manyLooks(23);
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, new Looks(many, WOODLAND, null, true), MIRROR, SET, MUSEUM, STAMP, "chartreuse");
+        }, List.of(error("There is no look called " + MirrorText.quoted("chartreuse") + ". There are " + value(23)
+            + " to choose from; press tab for the list.")),
+            List.of(error("QQ no look <" + MirrorText.name("chartreuse") + "> of " + value(23) + " to pick.")));
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, Looks.of(), MIRROR, SET, MUSEUM, STAMP, "chartreuse");
+        }, List.of(error("There are no looks loaded at all." + NO_LOOKS)), List.of(error("QQ no looks at all.")));
+    }
+
+    /** The list and the count meet at the budget: 80 characters are named, 81 are counted. */
+    @Test
+    void theLooksAreNamedAtTheBudgetAndCountedOnePast()
+    {
+        final String atBudget = "a".repeat(80);
+        final String pastBudget = "a".repeat(81);
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, Looks.of(atBudget), MIRROR, SET, MUSEUM, STAMP, "chartreuse");
+        }, List.of(error("There is no look called " + MirrorText.quoted("chartreuse") + ". Try one of: "
+            + MirrorText.names(new String[] { atBudget }))),
+            List.of(error("QQ no look <" + MirrorText.name("chartreuse") + "> try "
+                + MirrorText.names(new String[] { atBudget }, " | "))));
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, Looks.of(pastBudget), MIRROR, SET, MUSEUM, STAMP, "chartreuse");
+        }, List.of(error("There is no look called " + MirrorText.quoted("chartreuse") + ". There are " + value(1)
+            + " to choose from; press tab for the list.")),
+            List.of(error("QQ no look <" + MirrorText.name("chartreuse") + "> of " + value(1) + " to pick.")));
+    }
+
+    /** The usage of {@code -stamp} lists the looks while they fit, counts them past that, and says nothing of none. */
+    @Test
+    void theStampUsageListsCountsOrOmitsTheLooks()
+    {
+        final String lookNone = "Look at the banner you want to use, within six blocks.";
+        final String lookUsage = "/wormhole mirror set [<name>] -stamp [<look>]";
+        check(player -> stamp(player, Looks.of("nether", "end", "ocean"), MIRROR, SET, STAMP),
+            List.of(error(lookNone), info(ChatText.usage("/wormhole mirror set [<name>] -stamp [nether|end|ocean]"))),
+            List.of(error("QQ look at a banner."),
+                info(ChatText.usage("/wormhole mirror set [<name>] -stamp [nether|end|ocean]"))));
+        check(player -> stamp(player, new Looks(manyLooks(23), WOODLAND, null, true), MIRROR, SET, STAMP),
+            List.of(error(lookNone), info(ChatText.usage(lookUsage)), info(value(23) + LOOK_COUNT_TAIL)),
+            List.of(error("QQ look at a banner."), info(ChatText.usage(lookUsage)),
+                info("QQ " + value(23) + " looks to pick.")));
+        check(player -> stamp(player, Looks.of(), MIRROR, SET, STAMP),
+            List.of(error(lookNone), info(ChatText.usage(lookUsage))),
+            List.of(error("QQ look at a banner."), info(ChatText.usage(lookUsage))));
+        check(player -> stamp(player, Looks.of("a".repeat(80)), MIRROR, SET, STAMP),
+            List.of(error(lookNone), info(ChatText.usage("/wormhole mirror set [<name>] -stamp [" + "a".repeat(80) + "]"))),
+            List.of(error("QQ look at a banner."),
+                info(ChatText.usage("/wormhole mirror set [<name>] -stamp [" + "a".repeat(80) + "]"))));
+        check(player -> stamp(player, Looks.of("a".repeat(81)), MIRROR, SET, STAMP),
+            List.of(error(lookNone), info(ChatText.usage(lookUsage)), info(value(1) + LOOK_COUNT_TAIL)),
+            List.of(error("QQ look at a banner."), info(ChatText.usage(lookUsage)),
+                info("QQ " + value(1) + " looks to pick.")));
+    }
+
+    /** Stamping from the far side refuses a mirror that goes nowhere, suggesting the first look or a placeholder. */
+    @Test
+    void stampingAMirrorThatGoesNowhereSuggestsALook()
+    {
+        final String nowhere = MirrorText.quoted(MUSEUM) + " does not go anywhere yet, so there is nothing to look at.";
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, Looks.of("nether", "end"), MIRROR, SET, MUSEUM, STAMP);
+        }, List.of(error(nowhere), info("Point it first, or name a look: "
+            + MirrorText.command("/wormhole mirror stamp", MUSEUM + " nether"))),
+            List.of(error("QQ <" + MirrorText.name(MUSEUM) + "> goes nowhere."),
+                info("QQ point first " + MirrorText.command("/wormhole mirror stamp", MUSEUM + " nether"))));
+        check(player -> {
+            museumGoingTo(null);
+            stamp(player, Looks.of(), MIRROR, SET, MUSEUM, STAMP);
+        }, List.of(error(nowhere), info("Point it first, or name a look: "
+            + MirrorText.command("/wormhole mirror stamp", MUSEUM + " <look>"))),
+            List.of(error("QQ <" + MirrorText.name(MUSEUM) + "> goes nowhere."),
+                info("QQ point first " + MirrorText.command("/wormhole mirror stamp", MUSEUM + " <look>"))));
+    }
+
+    /** A far side that cannot be read, and no looks to stamp it with. */
+    @Test
+    void aFarSideThatCannotBeReadAndNoLooksAreRefused()
+    {
+        check(player -> {
+            museumGoingTo(far());
+            stamp(player, Looks.of("nether"), MIRROR, SET, MUSEUM, STAMP);
+        }, List.of(error(MirrorText.name("far") + " is not loaded, so the far side cannot be read."
+            + " Name a look instead, or try again once that world is up.")),
+            List.of(error("QQ " + MirrorText.name("far") + " not loaded for stamp.")));
+        check(player -> {
+            museumGoingTo(far());
+            stamp(player, Looks.of("nether").seeing(new MirrorView("FOREST", List.of(DyeColor.RED), false))
+                .withoutBiomeLook(), MIRROR, SET, MUSEUM, STAMP);
+        }, List.of(error("No mirror looks are loaded, so there is nothing to stamp with." + NO_LOOKS)),
+            List.of(error("QQ no looks to stamp.")));
+        check(player -> {
+            museumGoingTo(far());
+            stamp(player, Looks.of("nether").seeing(new MirrorView("FOREST", List.of(DyeColor.RED), false))
+                .stampFailing(), MIRROR, SET, MUSEUM, STAMP);
+        }, List.of(error(NOT_STAMPED)), List.of(error("QQ not stamped.")));
+    }
+
+    private static String shows(final String where)
+    {
+        return info(MirrorText.quoted(MUSEUM) + " now shows " + where + ".");
+    }
+
+    private static String qqShows(final String where)
+    {
+        return info("QQ <" + MirrorText.name(MUSEUM) + "> shows " + where + ".");
+    }
+
+    /** What the far side is called: a room, a biome or the look's own name, with or without its main colour. */
+    @Test
+    void stampingFromTheFarSideSaysWhereItIsAndItsMainColour()
+    {
+        check(player -> {
+            museumGoingTo(far());
+            stamp(player, Looks.of("nether").seeing(new MirrorView("FOREST", List.of(DyeColor.BROWN, DyeColor.RED), true)),
+                MIRROR, SET, MUSEUM, STAMP);
+        }, List.of(shows("somewhere indoors, mostly " + MirrorText.dye(DyeColor.BROWN))),
+            List.of(qqShows("QQ QQ indoors mostly " + MirrorText.dye(DyeColor.BROWN))));
+        check(player -> {
+            museumGoingTo(far());
+            stamp(player, Looks.of("nether").seeing(new MirrorView("FOREST", List.of(), false)),
+                MIRROR, SET, MUSEUM, STAMP);
+        }, List.of(shows(MirrorText.name("forest"))), List.of(qqShows(MirrorText.name("forest"))));
+        check(player -> {
+            museumGoingTo(far());
+            stamp(player, Looks.of("nether").seeing(new MirrorView("", List.of(DyeColor.CYAN), false)),
+                MIRROR, SET, MUSEUM, STAMP);
+        }, List.of(shows(MirrorText.name("woodland") + ", mostly " + MirrorText.dye(DyeColor.CYAN))),
+            List.of(qqShows("QQ " + MirrorText.name("woodland") + " mostly " + MirrorText.dye(DyeColor.CYAN))));
+    }
+
+    private static String rowOf(final String name, final String world, final String showing, final String tail)
+    {
+        return "  " + MirrorText.name(name) + " -- " + MirrorText.name(world) + " -> " + showing + tail;
+    }
+
+    private static String qqRowOf(final String name, final String world, final String showing, final String tail)
+    {
+        return "QQ " + MirrorText.name(name) + " in " + MirrorText.name(world) + " shows " + showing + tail + ".";
+    }
+
+    private static List<String> headerAndSortedRows(final List<String> sent)
+    {
+        final List<String> rows = new ArrayList<>(sent.subList(1, sent.size()));
+        Collections.sort(rows);
+        final List<String> sorted = new ArrayList<>(sent.subList(0, 1));
+        sorted.addAll(rows);
+        return sorted;
+    }
+
+    /** No mirrors, and one that goes nowhere yet. */
+    @Test
+    void theListSaysWhenThereAreNoMirrorsAndWhenOneGoesNowhere()
+    {
+        check(player -> run(player, MIRROR, "list"),
+            List.of(info("No mirrors yet. Look at a banner and run "
+                + MirrorText.command("/wormhole mirror create <name>") + ".")),
+            List.of(info("QQ no mirrors " + MirrorText.command("/wormhole mirror create <name>") + ".")));
+        check(player -> {
+            mirror(MUSEUM, 1, 1);
+            run(player, MIRROR, "list");
+        }, List.of(info(value(1) + " mirror(s):"), info(rowOf(MUSEUM, WORLD, "nowhere yet", ""))),
+            List.of(info("QQ " + value(1) + " mirrors:"), info(qqRowOf(MUSEUM, WORLD, "QQ nowhere", ""))));
+    }
+
+    /** Each way a mirror's row can end: its own reflection, a room elsewhere, another mirror, a start, a capture. */
+    @Test
+    void theListDescribesWhatEachMirrorShows()
+    {
+        check(player -> {
+            mirrorTo("alpha", 1, new Place(WORLD, 1, 63, 1, 0f, 0f));
+            MirrorManager.add(mirrorTo("bravo", 5, new Place("far", 100.6, 70.4, 200.5, 0f, 0f)).withStart("alpha"));
+            mirrorTo("charlie", 9, new Place("nether", 3, 4, 5, 0f, 0f));
+            mirrorTo("delta", 13, null);
+            MirrorNetwork.scroll(MirrorManager.byName("charlie"), false);
+            run(player, MIRROR, "list");
+        }, List.of(info(value(4) + " mirror(s):"),
+            info(rowOf("alpha", WORLD, "its own reflection", ", capture world_1_63_1")),
+            info(rowOf("bravo", WORLD, MirrorText.name("far") + " at 101, 70, 201", " (starts on alpha), capture far_100_70_200")),
+            info(rowOf("charlie", WORLD, MirrorText.name("alpha"), ", capture nether_3_4_5")),
+            info(rowOf("delta", WORLD, "nowhere yet", ""))),
+            List.of(info("QQ " + value(4) + " mirrors:"),
+                info(qqRowOf("alpha", WORLD, "QQ own reflection", " QQ capture world_1_63_1")),
+                info(qqRowOf("bravo", WORLD, "QQ " + MirrorText.name("far") + " @ 101/70/201",
+                    " QQ start alpha QQ capture far_100_70_200")),
+                info(qqRowOf("charlie", WORLD, MirrorText.name("alpha"), " QQ capture nether_3_4_5")),
+                info(qqRowOf("delta", WORLD, "QQ nowhere", ""))),
+            MirrorCommandMessagesTest::headerAndSortedRows);
+    }
+
+    private static QuantumMirror mirrorTo(final String name, final int x, final Place room)
+    {
+        final QuantumMirror made = new QuantumMirror(name, new BlockPlace(WORLD, x, 64, x), room);
+        MirrorManager.add(made);
+        return made;
     }
 }
