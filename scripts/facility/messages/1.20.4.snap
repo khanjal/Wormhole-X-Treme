@@ -496,7 +496,7 @@ m2 gap one out	:: error :: There is no mirror called 'Wall-two-wide'.
 m3 capture	::   /wormhole mirror debug Desk -all for the rest.
 m3 capture	::   capture: STATE
 m3 capture	:: 'Desk' is an ordinary banner again.
-m3 capture	:: Capturing 'Desk''s room again; the view changes when the new one is ready.
+m3 capture	:: Capturing 'Desk's room again; the view changes when the new one is ready.
 m3 capture	:: Desk -- right-click to choose a mirror.
 m3 capture	:: Each shows only what a viewer sees through it, which costs more as people walk past.
 m3 capture	:: It is N blocks from 'Optics'. Mirrors nearer than N (twice view-depth) are not drawn whole.
