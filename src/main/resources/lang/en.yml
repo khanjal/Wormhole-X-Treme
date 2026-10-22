@@ -60,6 +60,8 @@ freya.arrives: "{0} pads over and sits down beside you."
 
 update.joined: "Wormhole X-Treme {0} is available (running {1}): {2}"
 
+# usage.lead is the same label as usage.label without the command, for the usage lines that continue
+# with clickable buttons; keep its trailing space and translate both the same way.
 usage.label: "Usage: {0}"
 usage.lead: "Usage: "
 
