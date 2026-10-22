@@ -140,13 +140,13 @@ public final class RingConsoleCommands
     {
         if (args.length != BUILD_WORDS)
         {
-            return ChatText.info(ChatText.usage(BUILD_USAGE));
+            return ChatText.info(ChatText.usage(sender, BUILD_USAGE));
         }
         for (int i = 3; i < BUILD_WORDS; i++)
         {
             if (!Coordinates.isCoordinate(args[i]))
             {
-                return ChatText.info(ChatText.usage(BUILD_USAGE));
+                return ChatText.info(ChatText.usage(sender, BUILD_USAGE));
             }
         }
         final World world = Bukkit.getWorld(args[2]);
@@ -249,7 +249,7 @@ public final class RingConsoleCommands
     {
         if (args.length != 3)
         {
-            sender.sendMessage(ChatText.info(ChatText.usage(FIRE_USAGE)));
+            sender.sendMessage(ChatText.info(ChatText.usage(sender, FIRE_USAGE)));
             return null;
         }
         final RingPair pair = RingManager.getPair(args[2]);
@@ -271,7 +271,7 @@ public final class RingConsoleCommands
         }
         if (!Coordinates.isCoordinate(args[3]) || !Coordinates.isCoordinate(args[4]) || !Coordinates.isCoordinate(args[5]))
         {
-            sender.sendMessage(ChatText.info(ChatText.usage(FIRE_USAGE)));
+            sender.sendMessage(ChatText.info(ChatText.usage(sender, FIRE_USAGE)));
             return null;
         }
         final String unreadable = Coordinates.whyNotReadable(sender, world, args[3], args[4], args[5]);

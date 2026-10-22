@@ -175,7 +175,7 @@ public class MirrorCommand implements SubCommand
 
     private static void usage(final CommandSender sender)
     {
-        say(sender, ChatText.usage("/wormhole mirror " + String.join("|", VERBS)));
+        say(sender, ChatText.usage(sender, "/wormhole mirror " + String.join("|", VERBS)));
         say(sender, Messages.get(sender, "mirror.cmd.usage.what", MirrorText.command(CREATE)));
         say(sender, Messages.get(sender, "mirror.cmd.usage.click"));
         say(sender, Messages.get(sender, "mirror.cmd.usage.set", MirrorText.command(SET),
@@ -717,10 +717,10 @@ public class MirrorCommand implements SubCommand
         final String[] names = MirrorPresetRegistry.names();
         if (looksFitInAMessage(names))
         {
-            say(sender, ChatText.usage("/wormhole mirror set [<name>] -stamp [" + String.join("|", names) + "]"));
+            say(sender, ChatText.usage(sender, "/wormhole mirror set [<name>] -stamp [" + String.join("|", names) + "]"));
             return;
         }
-        say(sender, ChatText.usage("/wormhole mirror set [<name>] -stamp [<look>]"));
+        say(sender, ChatText.usage(sender, "/wormhole mirror set [<name>] -stamp [<look>]"));
         if (names.length > 0)
         {
             say(sender, Messages.get(sender, "mirror.cmd.stamp.usage-count", ChatText.value(String.valueOf(names.length))));
@@ -1184,7 +1184,7 @@ public class MirrorCommand implements SubCommand
      */
     private static void sayUsage(final CommandSender sender, final String form)
     {
-        say(sender, ChatText.usage("/wormhole mirror " + form));
+        say(sender, ChatText.usage(sender, "/wormhole mirror " + form));
     }
 
 
