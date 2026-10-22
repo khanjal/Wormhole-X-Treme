@@ -17,7 +17,7 @@ material commands and `wooshdepth`; building by hand: `/wormhole gate build`, ev
 `gate preview` says and what pointing at each of its buttons shows, and `/wormhole complete`; checking and rebuilding gates: `/wormhole gate regen`, with `-all`, `-fill`,
 `-shape` and `-water` (except the pieces it takes from the shape re-reading, such as "redstone dial input" and "2 toward the DHD"), and `/wormhole gate validate`; and the settings: what `/wormhole config` says when it sets,
 refuses or lists a setting, the `config -reload` report, `/wormhole cooldown` and the two timeout
-commands, and the notice of a newer release an admin gets on joining; and the small admin commands: `redstone`, `owner`, `idc`, `remove`, `list`, `force`, `go`, `refresh`, `restrict` and `freya`; and `/wormhole mirror`: `create` (except the coordinate-reading refusals), `set -stamp`, `set -start`, `set -capture`, `remove` and `list`, but not `debug`. Setting names and the values
+commands, and the notice of a newer release an admin gets on joining; and the small admin commands: `redstone`, `owner`, `idc`, `remove`, `list`, `force`, `go`, `refresh`, `restrict` and `freya`; and `/wormhole mirror`: `create` (except the coordinate-reading refusals), `set -stamp`, `set -start`, `set -capture`, `remove` and `list`, but not `debug`; and the `Usage:` of a usage line (the command itself stays as typed), the `/wormhole` list and the `/wormhole gate` verb list. Setting names and the values
 a setting takes stay as they are. The rest are
 English until they are moved over, a few at a time. Command usage and help lines come later, and
 **sign text stays English for now**: a sign is read by everyone who walks past, whatever their
