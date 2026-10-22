@@ -23,6 +23,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
@@ -33,6 +34,9 @@ public class RegenerateCommand implements SubCommand
 {
     /** Places the frame blocks a named gate is missing. */
     private static final String FILL = "-fill";
+
+    /** Takes a named shape for a gate. */
+    private static final String SHAPE = "-shape";
 
 
     @Override
@@ -54,12 +58,12 @@ public class RegenerateCommand implements SubCommand
         final Stargate s = StargateManager.getStargate(args[1]);
         if (s == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             return true;
         }
         final boolean fill = flagAt(args, 2, FILL) > 0;
         int missing = 0;
-        final int shapeAt = flagAt(args, 2, "-shape");
+        final int shapeAt = flagAt(args, 2, SHAPE);
         if (shapeAt > 0)
         {
             missing = adoptForRegen(sender, s, args, shapeAt, fill);
@@ -93,7 +97,8 @@ public class RegenerateCommand implements SubCommand
     {
         if ((shapeAt + 1) >= args.length)
         {
-            sender.sendMessage(ChatText.error("Name the shape: " + ChatText.command("/wormhole gate regen <gate> -shape <shape>")));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.regen.name-shape",
+                ChatText.command("/wormhole gate regen <gate> -shape <shape>"))));
             return STOP;
         }
         final GateRederivation.ShapeFit fit = adoptNamedShape(sender, s, args[shapeAt + 1]);
@@ -108,8 +113,7 @@ public class RegenerateCommand implements SubCommand
         }
         if ((missing > 0) && (missing <= GateRederivation.fillCap(fit.expected())))
         {
-            sender.sendMessage(ChatText.info("Add "
-                + ChatText.command(FILL) + " to place the missing blocks from the gate's own materials."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.add-fill", ChatText.command(FILL))));
         }
         return missing;
     }
@@ -140,12 +144,12 @@ public class RegenerateCommand implements SubCommand
         }
         if (flagAt(args, 1, FILL) > 0)
         {
-            sender.sendMessage(ChatText.error("Name the gate to fill: "
-                + ChatText.command("/wormhole gate regen <gate> -fill")));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.regen.name-gate-to-fill",
+                ChatText.command("/wormhole gate regen <gate> -fill"))));
             return true;
         }
         Refresh.addPendingRefresh(player, flagAt(args, 1, "-water") > 0);
-        sender.sendMessage(ChatText.info("Click the DHD of the gate to regenerate it."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.click-dhd")));
         return true;
     }
 
@@ -166,7 +170,7 @@ public class RegenerateCommand implements SubCommand
         final Stargate existing = StargateManager.getGateFromBlock(clicked);
         if (existing == null)
         {
-            player.sendMessage(ChatText.error("No registered gate found at that block. Build or complete the gate first."));
+            player.sendMessage(ChatText.error(Messages.get(player, "gate.regen.no-gate-at-block")));
             return;
         }
         regenerateAt(player, existing, clicked, direction, clearLiquid);
@@ -207,8 +211,7 @@ public class RegenerateCommand implements SubCommand
             return;
         }
         CommandUtilities.closeGate(s, false);
-        sender.sendMessage(ChatText.info("Shut "
-            + ChatText.name(s.getGateName()) + " down to regenerate it."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.shut-down", ChatText.name(s.getGateName()))));
     }
 
     /**
@@ -223,25 +226,25 @@ public class RegenerateCommand implements SubCommand
         {
             for (final Block placed : fill.placed())
             {
-                sender.sendMessage(ChatText.info("Placed " + ChatText.material(placed.getType().name()) + " at "
-                    + ChatText.value(placed.getX() + " " + placed.getY() + " " + placed.getZ()) + "."));
+                sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.fill.placed",
+                    ChatText.material(placed.getType().name()),
+                    ChatText.value(placed.getX() + " " + placed.getY() + " " + placed.getZ()))));
             }
             return 0;
         }
         if (fill.overCap())
         {
-            sender.sendMessage(ChatText.error("Not filling " + ChatText.name(s.getGateName()) + ": "
-                + ChatText.bad(fill.gaps().size() + " blocks") + " are missing, more than the "
-                + ChatText.value(String.valueOf(fill.cap())) + " " + ChatText.command(FILL)
-                + " will place. Check the shape, and where it is laid."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.regen.fill.over-cap",
+                ChatText.name(s.getGateName()), fill.gaps().size(),
+                ChatText.value(String.valueOf(fill.cap())), ChatText.command(FILL))));
         }
         else
         {
             for (final GateRederivation.Gap gap : fill.blocked().subList(0, Math.min(GAPS_LISTED, fill.blocked().size())))
             {
-                sender.sendMessage(ChatText.error("Not filling " + ChatText.name(s.getGateName()) + ": "
-                    + ChatText.value(gap.x() + " " + gap.y() + " " + gap.z()) + " holds "
-                    + ChatText.material(gap.found().name()) + ". Clear it, or place the block yourself."));
+                sender.sendMessage(ChatText.error(Messages.get(sender, "gate.regen.fill.blocked",
+                    ChatText.name(s.getGateName()), ChatText.value(gap.x() + " " + gap.y() + " " + gap.z()),
+                    ChatText.material(gap.found().name()))));
             }
         }
         return missing;
@@ -252,10 +255,9 @@ public class RegenerateCommand implements SubCommand
     {
         for (final Block restored : GateRederivation.restoreFrameUnderSigns(s))
         {
-            sender.sendMessage(ChatText.info("Took a sign out of "
-                + ChatText.name(s.getGateName()) + "'s frame at "
-                + ChatText.value(restored.getX() + " " + restored.getY() + " " + restored.getZ())
-                + " and put the block back."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.sign-taken-out",
+                ChatText.name(s.getGateName()),
+                ChatText.value(restored.getX() + " " + restored.getY() + " " + restored.getZ()))));
         }
     }
 
@@ -264,18 +266,18 @@ public class RegenerateCommand implements SubCommand
     {
         if (fresh != null)
         {
-            sender.sendMessage(ChatText.info("Re-detected " + ChatText.name(fresh.getGateName()) + " from its frame as "
-                + ChatText.name(fresh.getGateShapeName()) + ": frame, opening and chevrons taken afresh."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.redetect.done",
+                ChatText.name(fresh.getGateName()), ChatText.name(fresh.getGateShapeName()))));
             return;
         }
         if (existing.isGateActive() || existing.isGateLightsActive())
         {
-            sender.sendMessage(ChatText.info(ChatText.name(existing.getGateName())
-                + " is open or dialling, so its recorded geometry is kept. Regenerate it again once it is shut."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.redetect.busy",
+                ChatText.name(existing.getGateName()))));
             return;
         }
-        sender.sendMessage(ChatText.info("No shape matches all of " + ChatText.name(existing.getGateName())
-            + "'s frame, so its recorded geometry is kept."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.redetect.no-match",
+            ChatText.name(existing.getGateName()))));
     }
 
     /** Clears water left standing in the gate if asked, or says it is there. */
@@ -286,17 +288,34 @@ public class RegenerateCommand implements SubCommand
             final int cleared = s.clearStrandedLiquid();
             if (cleared > 0)
             {
-                sender.sendMessage(ChatText.info(ChatText.good("Cleared " + cleared) + " water or lava block"
-                    + plural(cleared) + " left standing in " + ChatText.name(s.getGateName()) + "."));
+                final String line;
+                if (cleared == 1)
+                {
+                    line = Messages.get(sender, "gate.regen.liquid.cleared.one", cleared, ChatText.name(s.getGateName()));
+                }
+                else
+                {
+                    line = Messages.get(sender, "gate.regen.liquid.cleared.other", cleared, ChatText.name(s.getGateName()));
+                }
+                sender.sendMessage(ChatText.info(line));
             }
             return;
         }
         final int standing = s.strandedLiquid().size();
         if (standing > 0)
         {
-            sender.sendMessage(ChatText.info(ChatText.bad(standing + " water or lava block" + plural(standing)) + " stand in "
-                + ChatText.name(s.getGateName()) + "'s opening. If a dial left them, clear them with "
-                + ChatText.command("/wormhole gate regen " + s.getGateName() + " -water") + "."));
+            final String line;
+            if (standing == 1)
+            {
+                line = Messages.get(sender, "gate.regen.liquid.standing.one", standing, ChatText.name(s.getGateName()),
+                    ChatText.command("/wormhole gate regen " + s.getGateName() + " -water"));
+            }
+            else
+            {
+                line = Messages.get(sender, "gate.regen.liquid.standing.other", standing, ChatText.name(s.getGateName()),
+                    ChatText.command("/wormhole gate regen " + s.getGateName() + " -water"));
+            }
+            sender.sendMessage(ChatText.info(line));
         }
     }
 
@@ -320,14 +339,12 @@ public class RegenerateCommand implements SubCommand
     {
         if (!(namedShape(shapeName) instanceof Stargate3DShape shape))
         {
-            sender.sendMessage(ChatText.error("No gate shape called "
-                + ChatText.name(shapeName) + " is loaded."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.regen.shape.unknown", ChatText.name(shapeName))));
             return null;
         }
         if (!StargateShapeRegistry.isEnabled(shape.getShapeName()))
         {
-            sender.sendMessage(ChatText.error(ChatText.name(shape.getShapeName())
-                + " is turned off, so a gate cannot be moved onto it."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.regen.shape.off", ChatText.name(shape.getShapeName()))));
             return null;
         }
         // After the shape is known to exist, so a mistyped command changes no blocks.
@@ -336,30 +353,28 @@ public class RegenerateCommand implements SubCommand
         final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(s, shape);
         if (fit.expected() == 0)
         {
-            sender.sendMessage(ChatText.error(ChatText.name(s.getGateName())
-                + " records no dial button, facing or world to lay " + ChatText.name(shape.getShapeName())
-                + " from, so it stays " + ChatText.name(was) + "."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.regen.shape.no-anchor",
+                ChatText.name(s.getGateName()), ChatText.name(shape.getShapeName()), ChatText.name(was))));
             return null;
         }
-        final String counted = fit.present() + " of " + fit.expected();
         if (fit.accepted())
         {
             StargateDBManager.saveStargate(s);
-            sender.sendMessage(ChatText.info(ChatText.name(s.getGateName()) + " is now "
-                + ChatText.name(shape.getShapeName()) + " (was " + ChatText.name(was) + "): " + ChatText.good(counted)
-                + " frame blocks in place."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.shape.adopted",
+                ChatText.name(s.getGateName()), ChatText.name(shape.getShapeName()), ChatText.name(was),
+                fit.present(), fit.expected())));
         }
         else
         {
-            sender.sendMessage(ChatText.error(ChatText.name(s.getGateName()) + " stays " + ChatText.name(was) + ": only "
-                + ChatText.bad(counted) + " frame blocks of " + ChatText.name(shape.getShapeName())
-                + " are in place, under the " + ChatText.value(GateRederivation.NAMED_SHAPE_MINIMUM_PERCENT + "%")
-                + " needed."));
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.regen.shape.stays",
+                ChatText.name(s.getGateName()), ChatText.name(was), fit.present(), fit.expected(),
+                ChatText.name(shape.getShapeName()),
+                ChatText.value(GateRederivation.NAMED_SHAPE_MINIMUM_PERCENT + "%"))));
         }
         if ((fit.layout() != null) && fit.layout().moved())
         {
-            sender.sendMessage(ChatText.info("Laid by its recorded frame, " + ChatText.value(fit.layout().describe())
-                + " from where its DHD puts it."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.shape.laid",
+                ChatText.value(fit.layout().describe()))));
         }
         reportGaps(sender, fit.gaps());
         return fit;
@@ -388,12 +403,11 @@ public class RegenerateCommand implements SubCommand
         }
         final List<String> shown = gaps.stream()
             .limit(GAPS_LISTED)
-            .map(gap -> ChatText.value(gap.x() + " " + gap.y() + " " + gap.z()) + " ("
-                + ChatText.material(gap.found().name()) + ")")
+            .map(gap -> Messages.get(sender, "gate.regen.gap",
+                ChatText.value(gap.x() + " " + gap.y() + " " + gap.z()), ChatText.material(gap.found().name())))
             .toList();
         final int more = gaps.size() - shown.size();
-        sender.sendMessage(ChatText.info(ChatText.bad("Missing or wrong") + ": "
-            + String.join(", ", shown) + ((more > 0) ? ", and " + ChatText.value(String.valueOf(more)) + " more." : ".")));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.gaps", listed(sender, shown, more))));
     }
 
 
@@ -435,7 +449,7 @@ public class RegenerateCommand implements SubCommand
         // already reach for when a gate is misbehaving, so it is where the fix belongs.
         if (s.recomputeGatePlayerTeleportLocation())
         {
-            sender.sendMessage(ChatText.info("Arrival point recomputed for " + ChatText.name(s.getGateName()) + "."));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.arrival-recomputed", ChatText.name(s.getGateName()))));
         }
         // Markers -- redstone, the iris lever, the dial sign -- are worked out once at
         // detection and stored, exactly like the arrival point above, and go stale for
@@ -470,7 +484,7 @@ public class RegenerateCommand implements SubCommand
         {
             StargateManager.refreshTeleportSign(s, true);
         }
-        sender.sendMessage(ChatText.info("Regenerated " + ChatText.name(s.getGateName()) + "."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.regenerated", ChatText.name(s.getGateName()))));
     }
 
     /**
@@ -508,13 +522,9 @@ public class RegenerateCommand implements SubCommand
             // Version=2, which StargateShapeFactory still builds as a plain StargateShape and
             // this release still supports. Telling that admin to go and find a file sitting in
             // front of them would send them looking for the wrong problem.
-            case NO_SHAPE -> sender.sendMessage(ChatText.info("Cannot re-read the shape of " + gate + ": " + shape
-                + " is not a 3D shape to re-derive from -- either it is missing from the shapes"
-                + " folder, or it is an older 2D shape file with no Version=2 line."
-                + " Markers left as they are."));
-            case NO_ANCHOR -> sender.sendMessage(ChatText.info(gate + " records no dial button, so its shape cannot be re-read."
-                + " Markers left as they are."));
-            case NOT_DETECTED -> sender.sendMessage(ChatText.info(notDetected(gate, shape, missing)));
+            case NO_SHAPE -> sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.rederive.no-shape", gate, shape)));
+            case NO_ANCHOR -> sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.rederive.no-anchor", gate)));
+            case NOT_DETECTED -> sender.sendMessage(ChatText.info(notDetected(sender, gate, shape, missing)));
             case REDERIVED -> reportRederived(sender, s, outcome);
             default -> { /* every Result is covered above */ }
         }
@@ -538,14 +548,13 @@ public class RegenerateCommand implements SubCommand
             case REBUILT ->
             {
                 StargateDBManager.saveStargate(s);
-                sender.sendMessage(ChatText.info(ChatText.name(s.getGateName()) + " now lights its chevrons in "
-                    + ChatText.name(s.getGateShapeName()) + "'s order."));
+                sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.light.rebuilt",
+                    ChatText.name(s.getGateName()), ChatText.name(s.getGateShapeName()))));
             }
-            case BUSY -> sender.sendMessage(ChatText.info(ChatText.name(s.getGateName())
-                + " is dialling or open, so its light order was left alone. Try again once it is shut."));
-            case DOES_NOT_FIT -> sender.sendMessage(ChatText.info("Shape " + ChatText.name(s.getGateShapeName())
-                + " lights blocks that are not part of " + ChatText.name(s.getGateName())
-                + "'s frame, so its light order was left alone."));
+            case BUSY -> sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.light.busy",
+                ChatText.name(s.getGateName()))));
+            case DOES_NOT_FIT -> sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.light.does-not-fit",
+                ChatText.name(s.getGateShapeName()), ChatText.name(s.getGateName()))));
             // No shape and no anchor are already reported by the marker re-derivation.
             default -> { /* nothing changed, nothing to say */ }
         }
@@ -555,15 +564,19 @@ public class RegenerateCommand implements SubCommand
      * Why a gate's markers were left alone: a named shape a few blocks short, or a frame that no
      * longer matches.
      */
-    private static String notDetected(final String gate, final String shape, final int missing)
+    private static String notDetected(final CommandSender sender, final String gate, final String shape,
+        final int missing)
     {
+        if (missing == 1)
+        {
+            return Messages.get(sender, "gate.regen.rederive.short.one", gate, ChatText.value(String.valueOf(missing)), shape);
+        }
         if (missing > 0)
         {
-            return "Markers on " + gate + " left as they are until its frame is whole: "
-                + ChatText.value(String.valueOf(missing)) + " block" + plural(missing) + " short of a " + shape + ".";
+            return Messages.get(sender, "gate.regen.rederive.short.other", gate, ChatText.value(String.valueOf(missing)),
+                shape);
         }
-        return gate + " no longer matches shape " + shape + ", so its markers were left alone."
-            + " Check the frame is still standing.";
+        return Messages.get(sender, "gate.regen.rederive.no-longer-matches", gate, shape);
     }
 
     /**
@@ -584,8 +597,9 @@ public class RegenerateCommand implements SubCommand
             return;
         }
         StargateDBManager.saveStargate(s);
-        sender.sendMessage(ChatText.info("Re-read " + ChatText.name(s.getGateShapeName()) + " for " + ChatText.name(s.getGateName())
-            + " and moved: " + ChatText.value(String.join(", ", outcome.changes())) + "."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.rederive.moved",
+            ChatText.name(s.getGateShapeName()), ChatText.name(s.getGateName()),
+            ChatText.value(String.join(Messages.get(sender, "gate.regen.list-separator"), outcome.changes())))));
     }
 
     /**
@@ -676,57 +690,128 @@ public class RegenerateCommand implements SubCommand
     /** Tells the admin what {@code -all} came to. */
     private static void reportAll(final CommandSender sender, final AllTally tally)
     {
-        final boolean one = tally.moved == 1;
-        sender.sendMessage(ChatText.info("Checked " + ChatText.value(gates(tally.checked)) + ". "
-            + ChatText.value(String.valueOf(tally.moved)) + " arrival point" + plural(tally.moved) + " " + (one ? "was" : "were")
-            + " out of place and " + (one ? "has" : "have") + " been recomputed."));
+        final String checked = ChatText.value(gates(sender, tally.checked));
+        final String moved = ChatText.value(String.valueOf(tally.moved));
+        final String summary;
+        if (tally.moved == 1)
+        {
+            summary = Messages.get(sender, "gate.regen.all.summary.one", checked, moved);
+        }
+        else
+        {
+            summary = Messages.get(sender, "gate.regen.all.summary.other", checked, moved);
+        }
+        sender.sendMessage(ChatText.info(summary));
         if (!tally.couldNotCompute.isEmpty())
         {
-            sender.sendMessage(ChatText.info(ChatText.bad(gates(tally.couldNotCompute.size()))
-                + " had no arrival point to work out (no world, facing or portal blocks recorded): "
-                + names(tally.couldNotCompute)));
+            sendNoArrival(sender, tally.couldNotCompute);
         }
         if (tally.relit > 0)
         {
-            sender.sendMessage(ChatText.info(ChatText.good(gates(tally.relit)) + ((tally.relit == 1)
-                ? " now lights its chevrons in its shape's order."
-                : " now light their chevrons in their shapes' order.")));
+            sendRelit(sender, tally.relit);
         }
         if (!tally.busy.isEmpty())
         {
-            final boolean single = tally.busy.size() == 1;
-            sender.sendMessage(ChatText.info(ChatText.bad(gates(tally.busy.size())) + " kept " + (single ? "its" : "their")
-                + " old light order because " + (single ? "it was" : "they were")
-                + " dialling or open; run it again once they are shut: " + names(tally.busy)));
+            sendBusy(sender, tally.busy);
         }
         if (!tally.doesNotFit.isEmpty())
         {
-            sender.sendMessage(ChatText.info(ChatText.bad(gates(tally.doesNotFit.size())) + " kept "
-                + ((tally.doesNotFit.size() == 1) ? "its" : "their")
-                + " old light order because the frame no longer fits the shape; regen each by name, or with "
-                + ChatText.command("-shape") + ": " + names(tally.doesNotFit)));
+            sendDoesNotFit(sender, tally.doesNotFit);
         }
     }
 
+    /** Says which gates had no arrival point to work out. */
+    private static void sendNoArrival(final CommandSender sender, final List<String> couldNotCompute)
+    {
+        final String line;
+        if (couldNotCompute.size() == 1)
+        {
+            line = Messages.get(sender, "gate.regen.all.no-arrival.one", couldNotCompute.size(),
+                names(sender, couldNotCompute));
+        }
+        else
+        {
+            line = Messages.get(sender, "gate.regen.all.no-arrival.other", couldNotCompute.size(),
+                names(sender, couldNotCompute));
+        }
+        sender.sendMessage(ChatText.info(line));
+    }
+
+    /** Says how many gates now light their chevrons in their shape's order. */
+    private static void sendRelit(final CommandSender sender, final int relit)
+    {
+        final String line;
+        if (relit == 1)
+        {
+            line = Messages.get(sender, "gate.regen.all.relit.one", relit);
+        }
+        else
+        {
+            line = Messages.get(sender, "gate.regen.all.relit.other", relit);
+        }
+        sender.sendMessage(ChatText.info(line));
+    }
+
+    /** Says which gates kept their old light order because they were dialling or open. */
+    private static void sendBusy(final CommandSender sender, final List<String> busy)
+    {
+        final String line;
+        if (busy.size() == 1)
+        {
+            line = Messages.get(sender, "gate.regen.all.busy.one", busy.size(), names(sender, busy));
+        }
+        else
+        {
+            line = Messages.get(sender, "gate.regen.all.busy.other", busy.size(), names(sender, busy));
+        }
+        sender.sendMessage(ChatText.info(line));
+    }
+
+    /** Says which gates kept their old light order because the frame no longer fits the shape. */
+    private static void sendDoesNotFit(final CommandSender sender, final List<String> doesNotFit)
+    {
+        final String line;
+        if (doesNotFit.size() == 1)
+        {
+            line = Messages.get(sender, "gate.regen.all.does-not-fit.one", doesNotFit.size(),
+                ChatText.command(SHAPE), names(sender, doesNotFit));
+        }
+        else
+        {
+            line = Messages.get(sender, "gate.regen.all.does-not-fit.other", doesNotFit.size(),
+                ChatText.command(SHAPE), names(sender, doesNotFit));
+        }
+        sender.sendMessage(ChatText.info(line));
+    }
+
     /** The gates, as names, the first few listed and the rest counted. */
-    private static String names(final List<String> names)
+    private static String names(final CommandSender sender, final List<String> names)
     {
         final List<String> sorted = new ArrayList<>(names);
         sorted.sort(String.CASE_INSENSITIVE_ORDER);
         final List<String> shown = sorted.stream().limit(NAMES_LISTED).map(ChatText::name).toList();
-        final int more = sorted.size() - shown.size();
-        return String.join(", ", shown) + ((more > 0) ? ", and " + ChatText.value(String.valueOf(more)) + " more." : ".");
+        return listed(sender, shown, sorted.size() - shown.size());
+    }
+
+    /** A list's items joined, and how many more there were if the rest are only counted. */
+    private static String listed(final CommandSender sender, final List<String> shown, final int more)
+    {
+        final String items = String.join(Messages.get(sender, "gate.regen.list-separator"), shown);
+        if (more > 0)
+        {
+            return items + Messages.get(sender, "gate.regen.list-more", ChatText.value(String.valueOf(more)));
+        }
+        return items;
     }
 
     /** "1 gate", "2 gates". */
-    private static String gates(final int n)
+    private static String gates(final CommandSender sender, final int n)
     {
-        return n + " gate" + plural(n);
-    }
-
-    private static String plural(final int n)
-    {
-        return (n == 1) ? "" : "s";
+        if (n == 1)
+        {
+            return Messages.get(sender, "gate.regen.gates.one", n);
+        }
+        return Messages.get(sender, "gate.regen.gates.other", n);
     }
 
     /**

@@ -13,6 +13,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * Handler for '/wormhole gate validate' -- the third of the four things #54 asked for.
@@ -46,7 +47,7 @@ public class ValidateCommand implements SubCommand
         final Stargate gate = StargateManager.getStargate(args[1]);
         if (gate == null)
         {
-            sender.sendMessage(CommandUtilities.noGateCalled(args[1]));
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, args[1]));
             return true;
         }
         report(sender, gate, true);
@@ -76,14 +77,34 @@ public class ValidateCommand implements SubCommand
                 broken.add(gate);
             }
         }
-        sender.sendMessage(ChatText.info("Checked " + ChatText.value(String.valueOf(checked)) + " gate"
-            + (checked == 1 ? "" : "s") + ". " + ChatText.value(String.valueOf(broken.size())) + " "
-            + (broken.size() == 1 ? "has" : "have") + " something missing."));
+        final String checkedGates = gates(sender, checked);
+        final String missing = ChatText.value(String.valueOf(broken.size()));
+        final String summary;
+        if (broken.size() == 1)
+        {
+            summary = Messages.get(sender, "gate.validate.summary.one", checkedGates, missing);
+        }
+        else
+        {
+            summary = Messages.get(sender, "gate.validate.summary.other", checkedGates, missing);
+        }
+        sender.sendMessage(ChatText.info(summary));
         for (final Stargate gate : broken)
         {
             report(sender, gate, false);
         }
         return true;
+    }
+
+    /** "1 gate" or "2 gates", the count in white. */
+    private static String gates(final CommandSender sender, final int count)
+    {
+        final String number = ChatText.value(String.valueOf(count));
+        if (count == 1)
+        {
+            return Messages.get(sender, "gate.validate.gates.one", number);
+        }
+        return Messages.get(sender, "gate.validate.gates.other", number);
     }
 
     /** Whether {@link GateIntegrity} would flag anything about this gate. */
@@ -111,24 +132,34 @@ public class ValidateCommand implements SubCommand
         {
             if (sayIfClean)
             {
-                sender.sendMessage(ChatText.info(ChatText.name(gate.getGateName()) + " is standing where it says it is."));
+                sender.sendMessage(ChatText.info(Messages.get(sender, "gate.validate.standing", ChatText.name(gate.getGateName()))));
             }
             return;
         }
         final StringBuilder problems = new StringBuilder();
         if (missing > 0)
         {
-            problems.append(missing).append(" frame block").append(missing == 1 ? "" : "s")
-                .append(" missing");
+            problems.append(frameProblem(sender, missing));
         }
         if (signMissing)
         {
             if (!problems.isEmpty())
             {
-                problems.append("; ");
+                problems.append(Messages.get(sender, "gate.validate.problem-separator"));
             }
-            problems.append("dial sign missing");
+            problems.append(Messages.get(sender, "gate.validate.sign-missing"));
         }
-        sender.sendMessage(ChatText.error(ChatText.name(gate.getGateName()) + ": " + ChatText.bad(problems.toString()) + "."));
+        sender.sendMessage(ChatText.error(Messages.get(sender, "gate.validate.problems",
+            ChatText.name(gate.getGateName()), ChatText.bad(problems.toString()))));
+    }
+
+    /** "1 frame block missing" or "2 frame blocks missing". */
+    private static String frameProblem(final CommandSender sender, final int missing)
+    {
+        if (missing == 1)
+        {
+            return Messages.get(sender, "gate.validate.frame-missing.one", missing);
+        }
+        return Messages.get(sender, "gate.validate.frame-missing.other", missing);
     }
 }
