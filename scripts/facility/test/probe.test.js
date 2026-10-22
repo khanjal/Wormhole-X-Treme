@@ -15,15 +15,15 @@ function fakeBot() {
   const client = new EventEmitter();
   const bot = new EventEmitter();
   const heard = [];
-  client.on('systemChat', (d) => bot.emit('message', ChatMessage.fromNotch(d.formattedMessage)));
-  bot.on('message', (m) => heard.push(m.toString()));
+  client.on('systemChat', (d) => bot.emit('message', ChatMessage.fromNotch(d.formattedMessage), d.positionId === 2 ? 'game_info' : 'system'));
+  bot.on('message', (m, position) => heard.push([m.toString(), position]));
   hearActionBars(client);
   return { client, heard };
 }
 
-test('an action_bar packet is heard, as a JSON string or as an NBT component', () => {
+test('an action_bar packet is heard as a game_info line, as a JSON string or as an NBT component', () => {
   const { client, heard } = fakeBot();
   client.emit('action_bar', { text: JSON.stringify({ text: 'Ring: 3' }) });
   client.emit('action_bar', { text: { type: 'compound', name: '', value: { text: { type: 'string', value: 'Ring: 2' } } } });
-  assert.deepStrictEqual(heard, ['Ring: 3', 'Ring: 2']);
+  assert.deepStrictEqual(heard, [['Ring: 3', 'game_info'], ['Ring: 2', 'game_info']]);
 });
