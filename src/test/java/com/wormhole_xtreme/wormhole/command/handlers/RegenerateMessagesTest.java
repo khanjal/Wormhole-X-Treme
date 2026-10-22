@@ -592,16 +592,17 @@ class RegenerateMessagesTest
     @Test
     void theFillHintIsOnlyForAGapTheFillWouldPlace()
     {
-        final int cap = GateRederivation.FILL_MINIMUM;
+        // A thousand blocks of frame put the cap at ten, above the minimum of three, so the cap is read from the frame.
+        final int cap = 10;
         final String hint = ChatText.info("Add " + command("-fill")
             + " to place the missing blocks from the gate's own materials.");
         final Player none = adminReading("en");
         final Player atCap = adminReading("en");
         final Player pastCap = adminReading("en");
 
-        regenOntoMassive(none, true, fitting(100, 100, 0, true), r -> { });
-        regenOntoMassive(atCap, true, fitting(100 - cap, 100, cap, true), r -> { });
-        regenOntoMassive(pastCap, true, fitting(100 - cap - 1, 100, cap + 1, true), r -> { });
+        regenOntoMassive(none, true, fitting(1000, 1000, 0, true), r -> { });
+        regenOntoMassive(atCap, true, fitting(1000 - cap, 1000, cap, true), r -> { });
+        regenOntoMassive(pastCap, true, fitting(1000 - cap - 1, 1000, cap + 1, true), r -> { });
 
         verify(atCap).sendMessage(hint);
         verify(none, never()).sendMessage(hint);

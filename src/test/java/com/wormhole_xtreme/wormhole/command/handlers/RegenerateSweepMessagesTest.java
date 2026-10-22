@@ -153,7 +153,8 @@ class RegenerateSweepMessagesTest
     /** Two gates of each kind: every count is two. */
     private Stargate[] twoOfEach()
     {
-        // Each pair is made second name first, so the names listed are sorted by the command, not by luck.
+        // Pairs are made second name first; the registry sorts them anyway. The command's own sort is guarded by
+        // namesAreListedSortedWhateverOrderTheGatesComeIn.
         return new Stargate[] {gate("m2", Exit.MOVES), gate("m1", Exit.MOVES),
             gate("c2", Exit.CANNOT_BE_WORKED_OUT), gate("c1", Exit.CANNOT_BE_WORKED_OUT),
             gate("r2", Exit.STAYS), gate("r1", Exit.STAYS), gate("b2", Exit.STAYS), gate("b1", Exit.STAYS),
