@@ -163,8 +163,9 @@ public class ConfigCommand implements SubCommand
             sender.sendMessage(ChatText.info(Messages.get(sender, "config.cmd.more",
                 ChatText.value(String.valueOf(names.size() - TOO_MANY_TO_LIST)))));
         }
-        sender.sendMessage(ChatText.info(ChatText.usageBody("/wormhole config <name>") + " shows one, "
-            + ChatText.usageBody("/wormhole config <name> <value>") + " changes it."));
-        sender.sendMessage(ChatText.info(ChatText.usageBody("/wormhole config " + RELOAD) + " re-reads config.yml."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "usage.config.shows",
+            ChatText.usageBody("/wormhole config <name>"), ChatText.usageBody("/wormhole config <name> <value>"))));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "usage.config.reload",
+            ChatText.usageBody("/wormhole config " + RELOAD))));
     }
 }

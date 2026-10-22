@@ -121,7 +121,7 @@ public class CustomCommand implements SubCommand
     /** How the command is used, written once. */
     private static void sendUsage(final CommandSender sender)
     {
-        sender.sendMessage(ChatText.info(ChatText.usage("/wormhole custom <gate|-all|-clean> [true|false|-confirm]")));
+        sender.sendMessage(ChatText.info(ChatText.usage(sender, "/wormhole custom <gate|-all|-clean> [true|false|-confirm]")));
     }
 
 

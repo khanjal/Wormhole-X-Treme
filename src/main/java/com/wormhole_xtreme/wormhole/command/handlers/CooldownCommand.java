@@ -110,12 +110,6 @@ public class CooldownCommand implements SubCommand
         return arg.equalsIgnoreCase("one") || arg.equalsIgnoreCase("two") || arg.equalsIgnoreCase("three");
     }
 
-    /** The seconds accepted, as {@code 15 to 3600}. */
-    private static String range()
-    {
-        return ChatText.value(String.valueOf(MIN_SECONDS)) + " to " + ChatText.value(String.valueOf(MAX_SECONDS));
-    }
-
     /**
      * Reports the command's shape and what it is currently set to.
      *
@@ -131,9 +125,11 @@ public class CooldownCommand implements SubCommand
         // Two lines rather than one <true|false|seconds> alternation. Sharing a bracket
         // group with two literals made the third read like a literal too -- as though the
         // word "seconds" were what you typed.
-        sender.sendMessage(ChatText.info(ChatText.usage("/wormhole cooldown <seconds>") + " sets the wait between trips, "
-            + range() + "."));
-        sender.sendMessage(ChatText.info(ChatText.usage("/wormhole cooldown true|false") + " switches cooldowns on or off."));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "usage.cooldown.seconds",
+            ChatText.usage(sender, "/wormhole cooldown <seconds>"), ChatText.value(String.valueOf(MIN_SECONDS)),
+            ChatText.value(String.valueOf(MAX_SECONDS)))));
+        sender.sendMessage(ChatText.info(Messages.get(sender, "usage.cooldown.toggle",
+            ChatText.usage(sender, "/wormhole cooldown true|false"))));
         sender.sendMessage(ChatText.info(Messages.get(sender, "config.cooldown.current",
             ChatText.value(String.valueOf(ConfigManager.isUseCooldownEnabled())),
             ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())))));

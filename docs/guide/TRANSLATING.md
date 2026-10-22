@@ -16,10 +16,13 @@ gates: `/wormhole gate edit`, `gate shapes`, `gate import`, `custom`, the portal
 material commands and `wooshdepth`; building by hand: `/wormhole gate build`, everything
 `gate preview` says and what pointing at each of its buttons shows, and `/wormhole complete`; checking and rebuilding gates: `/wormhole gate regen`, with `-all`, `-fill`,
 `-shape` and `-water` (except the pieces it takes from the shape re-reading, such as "redstone dial input" and "2 toward the DHD"), and `/wormhole gate validate`; and the settings: what `/wormhole config` says when it sets,
-refuses or lists a setting, the `config -reload` report, `/wormhole cooldown` and the two timeout
+refuses or lists a setting (and the two lines that explain the listing), the `config -reload` report, `/wormhole cooldown` (its usage too) and the two timeout
 commands, and the notice of a newer release an admin gets on joining; and the small admin commands: `redstone`, `owner`, `idc`, `remove`, `list`, `force`, `go`, `refresh`, `restrict` and `freya`; and `/wormhole mirror`: `create` (except the coordinate-reading refusals), `set -stamp`, `set -start`, `set -capture`, `remove` and `list`, but not `debug`; and the `/wormhole ring` verb list and the "Or" line `/wormhole beam` ends its usage with; and the `Usage:` of a usage line (the command itself stays as typed), the `/wormhole` list and the `/wormhole gate` verb list (`usage.lead` is the `usage.label` without the command, for usage lines that go on with clickable buttons: translate the two the same way and keep the trailing space of `usage.lead`). Setting names and the values
 a setting takes stay as they are. The rest are
-English until they are moved over, a few at a time. The rest of the command usage and help lines come later, and
+English until they are moved over, a few at a time. Every command usage and help line is moved over; the syntax inside
+them (the command names, flags and `<gate>` or `[value]` placeholders) stays as typed, and so do the `SubCommands`
+list the `/wormhole` help is built from, tab completion, debug output, the descriptions of settings, the
+few fixed texts the code keeps in `MessageStrings`, and the labels of the `gate preview` buttons. And
 **sign text stays English for now**: a sign is read by everyone who walks past, whatever their
 language.
 
