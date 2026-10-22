@@ -64,6 +64,7 @@ update.joined: "Wormhole X-Treme {0} is available (running {1}): {2}"
 # with clickable buttons; keep its trailing space and translate both the same way.
 usage.label: "Usage: {0}"
 usage.lead: "Usage: "
+
 usage.beam.or: "Or {0}."
 
 gate.build.not-coordinates: "Those words are not a gate to build at coordinates: give whole numbers or ~ for x y z, then a facing."
