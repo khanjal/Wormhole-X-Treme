@@ -77,8 +77,10 @@ public class RingCommand implements SubCommand
         if (!(sender instanceof Player))
         {
             sender.sendMessage(ChatText.error(Messages.get(sender, "ring.cmd.player-only")));
-            sender.sendMessage(helpLine(RingConsoleCommands.BUILD_USAGE, "works from here"));
-            sender.sendMessage(helpLine(RingConsoleCommands.FIRE_USAGE, "works from here"));
+            sender.sendMessage(helpLine(Messages.get(sender, "help.ring.works-from-here",
+                ChatText.usageBody(RingConsoleCommands.BUILD_USAGE))));
+            sender.sendMessage(helpLine(Messages.get(sender, "help.ring.works-from-here",
+                ChatText.usageBody(RingConsoleCommands.FIRE_USAGE))));
             return true;
         }
         final Player player = (Player) sender;
@@ -726,7 +728,7 @@ public class RingCommand implements SubCommand
         final boolean noValue = args.length <= (fieldAt + 1);
         if (noField || (noValue && !RESET.equalsIgnoreCase(args[fieldAt])))
         {
-            player.sendMessage(ChatText.info(ChatText.usage("/wormhole ring edit [id] "
+            player.sendMessage(ChatText.info(ChatText.usage(player, "/wormhole ring edit [id] "
                 + "<ring|light|flash|built|name|access|style|reset> [value]")));
             return;
         }
@@ -1082,7 +1084,7 @@ public class RingCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage(ChatText.info(ChatText.usage("/wormhole ring " + (allowing ? ALLOW : "deny") + " <player> [id]")));
+            player.sendMessage(ChatText.info(ChatText.usage(player, "/wormhole ring " + (allowing ? ALLOW : "deny") + " <player> [id]")));
             return;
         }
         final RingPair pair = target(player, args, 3);
@@ -1138,7 +1140,7 @@ public class RingCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage(ChatText.info(ChatText.usage("/wormhole ring owner <player> [id]")));
+            player.sendMessage(ChatText.info(ChatText.usage(player, "/wormhole ring owner <player> [id]")));
             return;
         }
         final RingPair pair = target(player, args, 3);
@@ -1348,30 +1350,35 @@ public class RingCommand implements SubCommand
      */
     private static void help(final Player player)
     {
-        player.sendMessage(helpLine("/wormhole ring create", "stand in a circle of slabs; run it at each end to pair"));
-        player.sendMessage(helpLine(CANCEL, "forget a half-built pair"));
-        player.sendMessage(helpLine("/wormhole ring list", "your pairs"));
-        player.sendMessage(helpLine("/wormhole ring remove [id]", "remove both ends"));
-        player.sendMessage(helpLine("/wormhole ring edit [id] <ring|light|flash|built|name|access|style|reset> [value]",
-            "change one setting"));
-        player.sendMessage(helpLine("/wormhole ring allow|deny <player> [id]", "who may use a private pair"));
-        player.sendMessage(helpLine("/wormhole ring owner <player> [id]", "hand a pair to somebody else"));
-        player.sendMessage(helpLine(RingConsoleCommands.BUILD_USAGE, "pair two laid circles by coordinates (admin)"));
-        player.sendMessage(helpLine(RingConsoleCommands.FIRE_USAGE, "fire a pair with nobody in it (admin)"));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.create",
+            ChatText.usageBody("/wormhole ring create"))));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.cancel", ChatText.usageBody(CANCEL))));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.list", ChatText.usageBody("/wormhole ring list"))));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.remove",
+            ChatText.usageBody("/wormhole ring remove [id]"))));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.edit", ChatText.usageBody(
+            "/wormhole ring edit [id] <ring|light|flash|built|name|access|style|reset> [value]"))));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.allow",
+            ChatText.usageBody("/wormhole ring allow|deny <player> [id]"))));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.owner",
+            ChatText.usageBody("/wormhole ring owner <player> [id]"))));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.build",
+            ChatText.usageBody(RingConsoleCommands.BUILD_USAGE))));
+        player.sendMessage(helpLine(Messages.get(player, "help.ring.fire",
+            ChatText.usageBody(RingConsoleCommands.FIRE_USAGE))));
     }
 
     /**
-     * One line of the verb list: the usage coloured as {@link ChatText#usage} colours it, then what it does.
+     * One line of the verb list, as the player reads it: the usage coloured as {@link ChatText#usageBody} colours
+     * it and what it does, put together by the line's own message.
      *
-     * @param usage
-     *            what to type
-     * @param what
-     *            what it does
+     * @param line
+     *            the line, read in the reader's language
      * @return the finished line
      */
-    static String helpLine(final String usage, final String what)
+    static String helpLine(final String line)
     {
-        return ChatText.info(ChatText.usageBody(usage) + " — " + what);
+        return ChatText.info(line);
     }
 
     /**

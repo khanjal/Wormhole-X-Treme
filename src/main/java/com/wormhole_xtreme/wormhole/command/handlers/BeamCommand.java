@@ -67,13 +67,37 @@ import com.wormhole_xtreme.wormhole.utils.Messages;
  */
 public class BeamCommand implements SubCommand
 {
-    private static final String TO_USAGE = ChatText.info(ChatText.usage("/wormhole beam to <name>"));
-    private static final String EDIT_USAGE = ChatText.info(ChatText.usage("/wormhole beam admin set|remove|cost <name>"));
-    private static final String GOTO_USAGE =
-        ChatText.info(ChatText.usage("/wormhole beam admin goto <player|destination>|<x> <y> <z> [world]"));
-    private static final String SEND_USAGE =
-        ChatText.info(ChatText.usage("/wormhole beam admin send <player> <player|destination>|<x> <y> <z> [world]"));
-    private static final String PLACE_USAGE = ChatText.info(ChatText.usage("/wormhole beam place <list|set|remove> [name]"));
+    /** @return how to travel, in the reader's language */
+    private static String toUsage(final CommandSender recipient)
+    {
+        return ChatText.info(ChatText.usage(recipient, "/wormhole beam to <name>"));
+    }
+
+    /** @return how to set, remove or price a public destination, in the reader's language */
+    private static String editUsage(final CommandSender recipient)
+    {
+        return ChatText.info(ChatText.usage(recipient, "/wormhole beam admin set|remove|cost <name>"));
+    }
+
+    /** @return how an admin moves themselves, in the reader's language */
+    private static String gotoUsage(final CommandSender recipient)
+    {
+        return ChatText.info(ChatText.usage(recipient,
+            "/wormhole beam admin goto <player|destination>|<x> <y> <z> [world]"));
+    }
+
+    /** @return how an admin moves somebody else, in the reader's language */
+    private static String sendUsage(final CommandSender recipient)
+    {
+        return ChatText.info(ChatText.usage(recipient,
+            "/wormhole beam admin send <player> <player|destination>|<x> <y> <z> [world]"));
+    }
+
+    /** @return how to list, set or remove the player's own places, in the reader's language */
+    private static String placeUsage(final CommandSender recipient)
+    {
+        return ChatText.info(ChatText.usage(recipient, "/wormhole beam place <list|set|remove> [name]"));
+    }
 
     // Bukkit reads the boolean as "handled"; every path here has handled it.
     @SuppressWarnings("java:S3516")
@@ -82,8 +106,9 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 2)
         {
-            sender.sendMessage(TO_USAGE);
-            sender.sendMessage(ChatText.info("Or " + ChatText.usageBody("/wormhole beam list|place|admin") + "."));
+            sender.sendMessage(toUsage(sender));
+            sender.sendMessage(ChatText.info(Messages.get(sender, "usage.beam.or",
+                ChatText.usageBody("/wormhole beam list|place|admin"))));
             return true;
         }
 
@@ -107,7 +132,7 @@ public class BeamCommand implements SubCommand
         {
             if (args.length < 3)
             {
-                player.sendMessage(TO_USAGE);
+                player.sendMessage(toUsage(player));
                 return true;
             }
             travelTo(player, args[2]);
@@ -124,7 +149,7 @@ public class BeamCommand implements SubCommand
             return true;
         }
         player.sendMessage(ChatText.error(Messages.get(player, "beam.cmd.unknown")));
-        player.sendMessage(TO_USAGE);
+        player.sendMessage(toUsage(player));
         return true;
     }
 
@@ -193,9 +218,9 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            sender.sendMessage(EDIT_USAGE);
-            sender.sendMessage(GOTO_USAGE);
-            sender.sendMessage(SEND_USAGE);
+            sender.sendMessage(editUsage(sender));
+            sender.sendMessage(gotoUsage(sender));
+            sender.sendMessage(sendUsage(sender));
             return;
         }
         final String action = args[2].toLowerCase(Locale.ROOT);
@@ -228,7 +253,7 @@ public class BeamCommand implements SubCommand
         }
         if (args.length < 4)
         {
-            player.sendMessage(EDIT_USAGE);
+            player.sendMessage(editUsage(player));
             return;
         }
         final String name = args[3];
@@ -264,7 +289,7 @@ public class BeamCommand implements SubCommand
             setCost(player, args, name);
             return;
         }
-        player.sendMessage(EDIT_USAGE);
+        player.sendMessage(editUsage(player));
     }
 
     /** @return the error, for {@code player} to read, for a public destination name that matches none */
@@ -284,7 +309,7 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 5)
         {
-            player.sendMessage(ChatText.info(ChatText.usage("/wormhole beam admin cost <name> <amount|-default>")));
+            player.sendMessage(ChatText.info(ChatText.usage(player, "/wormhole beam admin cost <name> <amount|-default>")));
             return;
         }
         final BeamDestination existing = BeamManager.getPublicDestination(name);
@@ -343,7 +368,7 @@ public class BeamCommand implements SubCommand
         if (!(sender instanceof Player))
         {
             sender.sendMessage(ChatText.error(Messages.get(sender, "beam.cmd.goto.not-a-player", ChatText.command("goto"))));
-            sender.sendMessage(SEND_USAGE);
+            sender.sendMessage(sendUsage(sender));
             return;
         }
         final Player player = (Player) sender;
@@ -354,7 +379,7 @@ public class BeamCommand implements SubCommand
         }
         if (args.length < 4)
         {
-            player.sendMessage(GOTO_USAGE);
+            player.sendMessage(gotoUsage(player));
             return;
         }
         final Location destination = resolveDestination(player, args, 3,
@@ -388,7 +413,7 @@ public class BeamCommand implements SubCommand
         }
         if (args.length < 5)
         {
-            sender.sendMessage(SEND_USAGE);
+            sender.sendMessage(sendUsage(sender));
             return;
         }
         final Player target = Bukkit.getPlayerExact(args[3]);
@@ -600,7 +625,7 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage(PLACE_USAGE);
+            player.sendMessage(placeUsage(player));
             return;
         }
         final String sub = args[2].toLowerCase(Locale.ROOT);
@@ -624,7 +649,7 @@ public class BeamCommand implements SubCommand
         // or private. "to" is the one place travel happens now, whatever the destination is.
         player.sendMessage(ChatText.error(Messages.get(player, "beam.cmd.place.unknown",
             ChatText.usageBody("/wormhole beam to <name>"))));
-        player.sendMessage(PLACE_USAGE);
+        player.sendMessage(placeUsage(player));
     }
 
     private static void setPublic(final Player player, final String name)
@@ -670,7 +695,7 @@ public class BeamCommand implements SubCommand
         }
         if (args.length < 4)
         {
-            player.sendMessage(ChatText.info(ChatText.usage("/wormhole beam place set <name>")));
+            player.sendMessage(ChatText.info(ChatText.usage(player, "/wormhole beam place set <name>")));
             return;
         }
         final String name = args[3];
@@ -687,7 +712,7 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 4)
         {
-            player.sendMessage(ChatText.info(ChatText.usage("/wormhole beam place remove <name>")));
+            player.sendMessage(ChatText.info(ChatText.usage(player, "/wormhole beam place remove <name>")));
             return;
         }
         final String name = args[3];
