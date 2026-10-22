@@ -6,6 +6,7 @@
 
 const mineflayer = require('mineflayer');
 const { Vec3 } = require('vec3');
+const { processNbtMessage } = require('prismarine-chat');
 const text = require('./text');
 const messages = require('./messages');
 
@@ -29,6 +30,19 @@ function maybeEvent(emitter, event, test, ms) {
   return waitEvent(emitter, event, test, ms, event).catch(() => null);
 }
 
+/**
+ * Paper's sendActionBar goes out as the set_action_bar_text packet ('action_bar'), which
+ * Mineflayer 4.39 ignores (it only reads system_chat). Re-emit it as the overlay system chat it
+ * handles, so the bot hears it as a game_info message; a server that already sends system_chat
+ * overlays never sends this packet, so nothing is heard twice.
+ */
+function hearActionBars(client) {
+  client.on('action_bar', ({ text: t }) => {
+    const formattedMessage = t && typeof t === 'object' && 'type' in t ? processNbtMessage(t) : t;
+    client.emit('systemChat', { positionId: 2, formattedMessage });
+  });
+}
+
 /** Connects a bot and resolves once it has spawned; `onCreate(bot)` runs before it connects. */
 function join({ host = '127.0.0.1', port, version, username, onCreate = null }) {
   const bot = mineflayer.createBot({ host, port, username, version, auth: 'offline' });
@@ -37,6 +51,7 @@ function join({ host = '127.0.0.1', port, version, username, onCreate = null }) 
   bot.on('error', (e) => { bot.lastError = e; });
   bot.on('end', (reason) => { bot.ended = reason || 'ended'; });
   bot.on('message', (m) => messages.record(m.toString()));
+  hearActionBars(bot._client);
   if (onCreate) onCreate(bot);
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${username} did not spawn within 60 s`)), 60000);
@@ -510,4 +525,4 @@ function shownText(entity) {
   return out;
 }
 
-module.exports = { Probe, join, waitEvent, maybeEvent, shownText, ticks };
+module.exports = { Probe, join, hearActionBars, waitEvent, maybeEvent, shownText, ticks };
