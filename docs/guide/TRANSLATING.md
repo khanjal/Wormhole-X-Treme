@@ -7,7 +7,7 @@ not a player use `server-language` (later, the log and text the server puts in t
 **Only some messages are translatable so far** ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)):
 `/wormhole compass`, building or dialling a gate by coordinates from the console, and building,
 dialling and travelling through a gate: `/dial`, the DHD, the dial sign, the iris, the toll, the
-cooldown and the region refusals; what transport rings tell the people standing in them;
+cooldown and the region refusals (except the 16 lines listed under `MessageStrings` below); what transport rings tell the people standing in them;
 building, listing, editing and removing rings: `/wormhole ring create`, `cancel`, `list`, `remove`,
 `edit`, `allow`, `deny`, `owner`, `build` and `fire`, with every reason a circle is refused;
 beaming: what a beam tells its traveller, its cooldown and cost, and `/wormhole beam to`, `list`,
@@ -22,7 +22,7 @@ a setting takes stay as they are. The rest are
 English until they are moved over, a few at a time. Every command usage and help line is moved over; the syntax inside
 them (the command names, flags and `<gate>` or `[value]` placeholders) stays as typed, and so do the `SubCommands`
 list the `/wormhole` help is built from, tab completion, debug output, the descriptions of settings, the
-few fixed texts the code keeps in `MessageStrings`, and the labels of the `gate preview` buttons. And
+16 whole lines the code keeps in `MessageStrings` (the permission refusal "You lack the permissions to do this.", and some dialling, target, iris, toll, activation, shutdown, connected and constructed lines), and the labels of the `gate preview` buttons. And
 **sign text stays English for now**: a sign is read by everyone who walks past, whatever their
 language.
 
