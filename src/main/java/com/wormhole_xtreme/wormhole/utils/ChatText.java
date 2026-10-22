@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.utils;
 
 import java.util.regex.Pattern;
 
+import org.bukkit.command.CommandSender;
+
 /**
  * The colours that pick out the parts of a chat line, each returning to the body grey.
  *
@@ -110,13 +112,40 @@ public final class ChatText
      * inside {@code [optional]} left in the body grey, brackets included, as are a bare {@code |}
      * or {@code or} between alternatives.
      *
+     * @param recipient
+     *            who will read it, for the language of {@code Usage:}; null reads the server's
      * @param line
      *            the usage, as {@code /wormhole gate edit <gate> <field> [value]}
      * @return {@code Usage: } and the line, coloured, ending in the body colour
      */
+    public static String usage(final CommandSender recipient, final String line)
+    {
+        return Messages.get(recipient, "usage.label", usageBody(line));
+    }
+
+    /**
+     * {@link #usage(CommandSender, String)} in the server's language, for a caller not yet given
+     * its reader.
+     *
+     * @param line
+     *            the usage
+     * @return {@code Usage: } and the line, coloured
+     */
     public static String usage(final String line)
     {
-        return "Usage: " + usageBody(line);
+        return usage(null, line);
+    }
+
+    /**
+     * The {@code Usage: } a line opens with when its syntax is built from parts a player can click.
+     *
+     * @param recipient
+     *            who will read it
+     * @return the label alone, in the body colour
+     */
+    public static String usageLead(final CommandSender recipient)
+    {
+        return Messages.get(recipient, "usage.lead");
     }
 
     /**

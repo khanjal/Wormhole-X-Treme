@@ -212,7 +212,7 @@ public class Dial implements CommandExecutor
                     return true;
                 }
                 // One short line, not plugin.yml's usage block (#325).
-                sender.sendMessage(ChatText.info(ChatText.usage(USAGE)));
+                sender.sendMessage(ChatText.info(ChatText.usage(sender, USAGE)));
                 return true;
             }
         });

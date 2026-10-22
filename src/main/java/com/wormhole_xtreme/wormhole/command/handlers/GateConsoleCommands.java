@@ -95,7 +95,7 @@ public final class GateConsoleCommands
             sender.sendMessage(ChatText.error(refused));
             if (!isCoordinateBuild(rest))
             {
-                sender.sendMessage(ChatText.info(ChatText.usage(BUILD_USAGE)));
+                sender.sendMessage(ChatText.info(ChatText.usage(sender, BUILD_USAGE)));
             }
             return;
         }
@@ -213,7 +213,7 @@ public final class GateConsoleCommands
         }
         if ((rest.length < 2) || (rest.length > 3))
         {
-            sender.sendMessage(ChatText.info(ChatText.usage(DIAL_USAGE)));
+            sender.sendMessage(ChatText.info(ChatText.usage(sender, DIAL_USAGE)));
             return;
         }
         final Stargate start = StargateManager.getStargate(rest[0]);

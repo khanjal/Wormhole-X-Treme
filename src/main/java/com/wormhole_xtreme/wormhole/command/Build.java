@@ -139,8 +139,6 @@ public class Build implements CommandExecutor
     /** The one action that does nothing without more typed after it, so its button fills it in. */
     private static final List<String> NEEDS_MORE = List.of(MATERIAL);
 
-    private static final String USAGE = "Usage: ";
-
     /** How far away a placed DHD button can be looked at to stand a preview on it. */
     private static final int DHD_REACH = 6;
 
@@ -158,7 +156,7 @@ public class Build implements CommandExecutor
         }
         if (args.length > 2)
         {
-            player.sendMessage(ChatText.info(ChatText.usage("/wormhole gate build <shape> [group]")));
+            player.sendMessage(ChatText.info(ChatText.usage(player, "/wormhole gate build <shape> [group]")));
             return;
         }
         if (!StargateShapeRegistry.isStargateShape(args[0]))
@@ -290,7 +288,7 @@ public class Build implements CommandExecutor
             final String[] arguments = CommandUtilities.commandEscaper(args);
             if ((arguments.length < 1) || (arguments.length > 3))
             {
-                actionList(player, ChatText.info(USAGE)).send(player);
+                actionList(player, ChatText.info(ChatText.usageLead(player))).send(player);
                 return true;
             }
             option(player, arguments, mayPreview);
@@ -356,7 +354,7 @@ public class Build implements CommandExecutor
         final Role role = (args.length == 3) ? Role.named(args[1]) : null;
         if (role == null)
         {
-            ChatLine.of(ChatText.info(USAGE)).suggest(hint(MATERIAL + " <group>"), PREVIEW_COMMAND + MATERIAL + " ")
+            ChatLine.of(ChatText.info(ChatText.usageLead(player))).suggest(hint(MATERIAL + " <group>"), PREVIEW_COMMAND + MATERIAL + " ")
                 .text(Messages.get(player, "gate.preview.material.or"))
                 .suggest(hint(MATERIAL + " -<role> <block>"), PREVIEW_COMMAND + MATERIAL + " -")
                 .text(Messages.get(player, "gate.preview.material.roles", roles)).send(player);
@@ -474,7 +472,7 @@ public class Build implements CommandExecutor
         final int asked = layerAsked(args);
         if (asked < GatePreviews.NEXT_LAYER)
         {
-            ChatLine.of(ChatText.info(USAGE)).suggest(hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"),
+            ChatLine.of(ChatText.info(ChatText.usageLead(player))).suggest(hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"),
                 PREVIEW_COMMAND + LAYER + " ").send(player);
             return null;
         }

@@ -252,4 +252,22 @@ class BuildLinksMessagesTest extends BuildPreviewCase
             .text(" QQroles " + qqRoles + ".")),
             run("qq", p -> { }, "gate", "preview", "material", "sparkly"));
     }
+
+    /** Each usage line opens with the reader's label and keeps its links: the action list, material and layer. */
+    @Test
+    void theUsageLinesKeepTheirLinksUnderTheReadersLabel()
+    {
+        final String roles = Arrays.stream(GateBlueprint.Role.values())
+            .map(GateBlueprint.Role::option).map(ChatText::command)
+            .collect(Collectors.joining(", "));
+        assertEquals(sentAs(oldActionList(info("QR use "), " Click to finish it in chat.", null)),
+            run("qr", p -> { }, "gate", "preview"));
+        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(hint("material <group>"), PREVIEW + "material ")
+            .text(" or ").suggest(hint("material -<role> <block>"), PREVIEW + "material -").text(". Roles: " + roles + ".")),
+            run("qr", p -> { }, "gate", "preview", "material", "sparkly"));
+        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
+            run("en", p -> { }, "gate", "preview", "layer", "bogus"));
+        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
+            run("qr", p -> { }, "gate", "preview", "layer", "bogus"));
+    }
 }
