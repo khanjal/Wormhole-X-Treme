@@ -49,6 +49,8 @@ public class GateCommand implements SubCommand
     private static final String SHAPES = "shapes";
     private static final String GO = "go";
     private static final String DIAL = "dial";
+    /** The job of the shape and import verbs, named apart from the verbs. */
+    private static final String SHAPES_AND_IMPORTS = "shapes-and-imports";
 
     /** The verbs, in the order they are offered: building, using, looking after, then shapes and imports. */
     private static final List<String> VERBS = Arrays.asList(
@@ -131,7 +133,7 @@ public class GateCommand implements SubCommand
         { "building", BUILD, PREVIEW, COMPLETE },
         { "using", "list", GO, DIAL, FORCE },
         { "looking-after", "edit", REMOVE, REGEN, VALIDATE },
-        { "shapes", SHAPES, IMPORT } };
+        { SHAPES_AND_IMPORTS, SHAPES, IMPORT } };
 
     /** @return the heading a job is listed under, in the reader's language */
     private static String jobHeading(final CommandSender sender, final String job)
