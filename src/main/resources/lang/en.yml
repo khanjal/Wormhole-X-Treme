@@ -60,6 +60,9 @@ freya.arrives: "{0} pads over and sits down beside you."
 
 update.joined: "Wormhole X-Treme {0} is available (running {1}): {2}"
 
+usage.label: "Usage: {0}"
+usage.lead: "Usage: "
+
 gate.build.not-coordinates: "Those words are not a gate to build at coordinates: give whole numbers or ~ for x y z, then a facing."
 gate.build.no-shape: "No shape called {0}."
 gate.build.shape-off: "{0} is turned off on this server."
@@ -382,6 +385,18 @@ gate.woosh.current: "{0} woosh depth is currently: {1}."
 gate.woosh.set: "{0} woosh depth set to: {1}."
 gate.woosh.invalid: "Invalid woosh depth: {0}."
 gate.woosh.shape-owns: "This gate's shape draws its own woosh, so depth sets only how far its protection reaches."
+
+help.list.header: "Wormhole X-Treme commands:"
+help.group.gates: "Gates:"
+help.group.rings: "Rings:"
+help.group.beams: "Beams:"
+help.group.mirrors: "Mirrors:"
+help.group.settings: "Settings:"
+help.group.other: "Other:"
+help.gate.job.building: "Building:"
+help.gate.job.using: "Using gates:"
+help.gate.job.looking-after: "Looking after gates:"
+help.gate.job.shapes: "Shapes and imports:"
 
 region.use-refused: "This region does not allow using gates."
 region.build-refused: "This region does not allow building gates."

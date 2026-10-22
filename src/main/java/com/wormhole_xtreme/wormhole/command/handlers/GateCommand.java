@@ -82,7 +82,7 @@ public class GateCommand implements SubCommand
         // rather than letting the dispatcher say gate's, or Bukkit plugin.yml's (#325).
         if (!dispatch(sender, args, verb) && USAGES.containsKey(verb))
         {
-            sender.sendMessage(ChatText.info(ChatText.usage(USAGES.get(verb))));
+            sender.sendMessage(ChatText.info(ChatText.usage(sender, USAGES.get(verb))));
         }
         return true;
     }
@@ -128,23 +128,39 @@ public class GateCommand implements SubCommand
 
     /** The verbs under the job they are for, as the guide groups them. */
     private static final String[][] JOBS = {
-        { "Building", BUILD, PREVIEW, COMPLETE },
-        { "Using gates", "list", GO, DIAL, FORCE },
-        { "Looking after gates", "edit", REMOVE, REGEN, VALIDATE },
-        { "Shapes and imports", SHAPES, IMPORT } };
+        { "building", BUILD, PREVIEW, COMPLETE },
+        { "using", "list", GO, DIAL, FORCE },
+        { "looking-after", "edit", REMOVE, REGEN, VALIDATE },
+        { "shapes", SHAPES, IMPORT } };
+
+    /** @return the heading a job is listed under, in the reader's language */
+    private static String jobHeading(final CommandSender sender, final String job)
+    {
+        if ("building".equals(job))
+        {
+            return Messages.get(sender, "help.gate.job.building");
+        }
+        if ("using".equals(job))
+        {
+            return Messages.get(sender, "help.gate.job.using");
+        }
+        if ("looking-after".equals(job))
+        {
+            return Messages.get(sender, "help.gate.job.looking-after");
+        }
+        return Messages.get(sender, "help.gate.job.shapes");
+    }
 
     /** {@code /wormhole gate} alone: the verbs, grouped by job. */
     private static void sendVerbList(final CommandSender sender)
     {
-        sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate <verb> ...")));
+        sender.sendMessage(ChatText.info(ChatText.usage(sender, "/wormhole gate <verb> ...")));
+        final String separator = Messages.get(sender, "gate.cmd.separator");
         for (final String[] job : JOBS)
         {
-            final List<String> verbs = new ArrayList<>();
-            for (int i = 1; i < job.length; i++)
-            {
-                verbs.add(ChatText.command(job[i]));
-            }
-            sender.sendMessage(ChatText.info("  " + ChatText.heading(job[0] + ":") + " " + String.join(", ", verbs)));
+            final List<String> verbs = Arrays.stream(job).skip(1).map(ChatText::command).toList();
+            sender.sendMessage(ChatText.info("  " + ChatText.heading(jobHeading(sender, job[0])) + " "
+                + String.join(separator, verbs)));
         }
     }
 

@@ -322,7 +322,7 @@ public class Complete implements CommandExecutor, TabCompleter
                 if (CommandUtilities.playerCheck(sender))
                 {
                     final Player player = (Player) sender;
-                    player.sendMessage(ChatText.info(ChatText.usage(USAGE)));
+                    player.sendMessage(ChatText.info(ChatText.usage(player, USAGE)));
                     player.sendMessage(ChatText.info(Messages.get(player, "gate.complete.example",
                         ChatText.command("/wormhole complete MyGate idc=1234 net=Private"),
                         ChatText.command("/wx complete"))));
@@ -341,7 +341,7 @@ public class Complete implements CommandExecutor, TabCompleter
                     WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole complete", e);
                     final Player player = (Player) sender;
                     player.sendMessage(ChatText.error(Messages.get(player, "gate.complete.bad-arguments",
-                        ChatText.usage(USAGE))));
+                        ChatText.usage(player, USAGE))));
                     return true;
                 }
             }

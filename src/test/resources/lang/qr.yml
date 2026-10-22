@@ -1,0 +1,17 @@
+# A second language the jar ships for tests, for the usage and help messages: qq cannot hold
+# them, because other tests read their English "Usage:" through a qq reader. qr is reserved
+# for local use, as qq is. Messages left out here fall back to English.
+usage.label: "QR use {0}."
+usage.lead: "QR use "
+help.list.header: "QR commands:"
+help.group.gates: "QR gates:"
+help.group.rings: "QR rings:"
+help.group.beams: "QR beams:"
+help.group.mirrors: "QR mirrors:"
+help.group.settings: "QR settings:"
+help.group.other: "QR other:"
+help.gate.job.building: "QR building:"
+help.gate.job.using: "QR using:"
+help.gate.job.looking-after: "QR looking after:"
+help.gate.job.shapes: "QR shapes:"
+gate.cmd.separator: " / "

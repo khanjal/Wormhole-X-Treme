@@ -25,10 +25,34 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 public class Wormhole implements CommandExecutor
 {
 
-    /** What {@code /wormhole} lists, a heading and its subcommand each, in this order. */
-    private static final String[][] GROUPS = {
-        { "Gates", "gate" }, { "Rings", "ring" }, { "Beams", "beam" }, { "Mirrors", "mirror" },
-        { "Settings", "config" }, { "Other", "compass" } };
+    /** What {@code /wormhole} lists, by subcommand, in this order, each under its own heading. */
+    private static final String[] GROUPS = { "gate", "ring", "beam", "mirror", "config", "compass" };
+
+    /** @return the heading a subcommand is listed under, in the reader's language */
+    private static String heading(final CommandSender sender, final String subcommand)
+    {
+        if ("gate".equals(subcommand))
+        {
+            return Messages.get(sender, "help.group.gates");
+        }
+        if ("ring".equals(subcommand))
+        {
+            return Messages.get(sender, "help.group.rings");
+        }
+        if ("beam".equals(subcommand))
+        {
+            return Messages.get(sender, "help.group.beams");
+        }
+        if ("mirror".equals(subcommand))
+        {
+            return Messages.get(sender, "help.group.mirrors");
+        }
+        if ("config".equals(subcommand))
+        {
+            return Messages.get(sender, "help.group.settings");
+        }
+        return Messages.get(sender, "help.group.other");
+    }
 
     /**
      * {@code /wormhole} with nothing after it: each subcommand the sender may run, under a heading
@@ -41,10 +65,10 @@ public class Wormhole implements CommandExecutor
      */
     static void sendCommandList(final CommandSender sender, final boolean mayConfigure)
     {
-        sender.sendMessage(ChatText.info("Wormhole X-Treme commands:"));
-        for (final String[] group : GROUPS)
+        sender.sendMessage(ChatText.info(Messages.get(sender, "help.list.header")));
+        for (final String group : GROUPS)
         {
-            final SubCommands.Entry entry = SubCommands.find(group[1]);
+            final SubCommands.Entry entry = SubCommands.find(group);
             if ((entry == null) || entry.isHidden())
             {
                 continue;
@@ -54,7 +78,7 @@ public class Wormhole implements CommandExecutor
             {
                 usage = entry.getUsage();
             }
-            else if (entry.admits(sender, new String[] { group[1], "build" }))
+            else if (entry.admits(sender, new String[] { group, "build" }))
             {
                 // gate opens build to whoever may preview, without wormhole.config.
                 usage = GateCommand.usageOf("build");
@@ -65,7 +89,7 @@ public class Wormhole implements CommandExecutor
             }
             if (usage != null)
             {
-                sender.sendMessage(ChatText.info(ChatText.heading(group[0] + ":") + " " + ChatText.usageBody(usage)));
+                sender.sendMessage(ChatText.info(ChatText.heading(heading(sender, group)) + " " + ChatText.usageBody(usage)));
             }
         }
     }
@@ -107,7 +131,7 @@ public class Wormhole implements CommandExecutor
                     // handler already said; the usage of the command they typed is what helps (#325).
                     if (!entry.run(sender, a))
                     {
-                        sender.sendMessage(ChatText.info(ChatText.usage(entry.getUsage())));
+                        sender.sendMessage(ChatText.info(ChatText.usage(sender, entry.getUsage())));
                     }
                     return true;
                 }
