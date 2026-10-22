@@ -588,6 +588,13 @@ class RegenerateMessagesTest
         verify(player).sendMessage(ChatText.info("QQ add " + command("-fill")));
     }
 
+    /** The line for a shape taken with {@code present} of a thousand frame blocks in place. */
+    private static String taken(final int present)
+    {
+        return ChatText.info(name("alpha") + " is now " + name("Massive") + " (was " + name("Standard") + "): "
+            + ChatText.good(present + " of 1000") + " frame blocks in place.");
+    }
+
     /** The hint to add the fill flag is for a gap the fill would place: up to the cap, not none and not past it. */
     @Test
     void theFillHintIsOnlyForAGapTheFillWouldPlace()
@@ -604,8 +611,11 @@ class RegenerateMessagesTest
         regenOntoMassive(atCap, true, fitting(1000 - cap, 1000, cap, true), r -> { });
         regenOntoMassive(pastCap, true, fitting(1000 - cap - 1, 1000, cap + 1, true), r -> { });
 
+        verify(atCap).sendMessage(taken(990));
         verify(atCap).sendMessage(hint);
+        verify(none).sendMessage(taken(1000));
         verify(none, never()).sendMessage(hint);
+        verify(pastCap).sendMessage(taken(989));
         verify(pastCap, never()).sendMessage(hint);
     }
 
