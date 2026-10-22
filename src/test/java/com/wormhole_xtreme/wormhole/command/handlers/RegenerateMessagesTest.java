@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -357,7 +358,7 @@ class RegenerateMessagesTest
 
     // ---- water and lava ----
 
-    /** One block and several, standing and cleared, against the old expression. */
+    /** One block and two, standing and cleared, against the old expression. */
     @Test
     void waterAndLavaReadAsTheyDidBefore()
     {
@@ -366,21 +367,21 @@ class RegenerateMessagesTest
 
         when(gate.strandedLiquid()).thenReturn(List.of(puddle));
         regen(player, "regen", "alpha");
-        when(gate.strandedLiquid()).thenReturn(List.of(puddle, puddle, puddle));
+        when(gate.strandedLiquid()).thenReturn(List.of(puddle, puddle));
         regen(player, "regen", "alpha");
         when(gate.clearStrandedLiquid()).thenReturn(1);
         regen(player, "regen", "alpha", "-water");
-        when(gate.clearStrandedLiquid()).thenReturn(3);
+        when(gate.clearStrandedLiquid()).thenReturn(2);
         regen(player, "regen", "alpha", "-water");
 
         final String clearWith = command("/wormhole gate regen alpha -water");
         verify(player).sendMessage(ChatText.info(ChatText.bad("1 water or lava block") + " stand in " + name("alpha")
             + "'s opening. If a dial left them, clear them with " + clearWith + "."));
-        verify(player).sendMessage(ChatText.info(ChatText.bad("3 water or lava blocks") + " stand in " + name("alpha")
+        verify(player).sendMessage(ChatText.info(ChatText.bad("2 water or lava blocks") + " stand in " + name("alpha")
             + "'s opening. If a dial left them, clear them with " + clearWith + "."));
         verify(player).sendMessage(ChatText.info(ChatText.good("Cleared 1") + " water or lava block"
             + " left standing in " + name("alpha") + "."));
-        verify(player).sendMessage(ChatText.info(ChatText.good("Cleared 3") + " water or lava blocks"
+        verify(player).sendMessage(ChatText.info(ChatText.good("Cleared 2") + " water or lava blocks"
             + " left standing in " + name("alpha") + "."));
     }
 
@@ -393,18 +394,18 @@ class RegenerateMessagesTest
 
         when(gate.strandedLiquid()).thenReturn(List.of(puddle));
         regen(player, "regen", "alpha");
-        when(gate.strandedLiquid()).thenReturn(List.of(puddle, puddle, puddle));
+        when(gate.strandedLiquid()).thenReturn(List.of(puddle, puddle));
         regen(player, "regen", "alpha");
         when(gate.clearStrandedLiquid()).thenReturn(1);
         regen(player, "regen", "alpha", "-water");
-        when(gate.clearStrandedLiquid()).thenReturn(3);
+        when(gate.clearStrandedLiquid()).thenReturn(2);
         regen(player, "regen", "alpha", "-water");
 
         final String clearWith = command("/wormhole gate regen alpha -water");
         verify(player).sendMessage(ChatText.info("QQ standing-one 1 " + name("alpha") + " " + clearWith));
-        verify(player).sendMessage(ChatText.info("QQ standing-many 3 " + name("alpha") + " " + clearWith));
+        verify(player).sendMessage(ChatText.info("QQ standing-many 2 " + name("alpha") + " " + clearWith));
         verify(player).sendMessage(ChatText.info("QQ cleared-one 1 in " + name("alpha")));
-        verify(player).sendMessage(ChatText.info("QQ cleared-many 3 in " + name("alpha")));
+        verify(player).sendMessage(ChatText.info("QQ cleared-many 2 in " + name("alpha")));
     }
 
     // ---- what re-reading the shape and the light order came to ----
@@ -585,6 +586,26 @@ class RegenerateMessagesTest
         verify(player).sendMessage(ChatText.info("QQ gaps: QQ " + value("0 64 0") + " [" + ChatText.material("AIR")
             + "]!"));
         verify(player).sendMessage(ChatText.info("QQ add " + command("-fill")));
+    }
+
+    /** The hint to add the fill flag is for a gap the fill would place: up to the cap, not none and not past it. */
+    @Test
+    void theFillHintIsOnlyForAGapTheFillWouldPlace()
+    {
+        final int cap = GateRederivation.FILL_MINIMUM;
+        final String hint = ChatText.info("Add " + command("-fill")
+            + " to place the missing blocks from the gate's own materials.");
+        final Player none = adminReading("en");
+        final Player atCap = adminReading("en");
+        final Player pastCap = adminReading("en");
+
+        regenOntoMassive(none, true, fitting(100, 100, 0, true), r -> { });
+        regenOntoMassive(atCap, true, fitting(100 - cap, 100, cap, true), r -> { });
+        regenOntoMassive(pastCap, true, fitting(100 - cap - 1, 100, cap + 1, true), r -> { });
+
+        verify(atCap).sendMessage(hint);
+        verify(none, never()).sendMessage(hint);
+        verify(pastCap, never()).sendMessage(hint);
     }
 
     /** A shape refused, with twelve gaps: ten listed and the other two counted, against the old expression. */

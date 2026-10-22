@@ -1,8 +1,11 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -167,6 +170,7 @@ class RegenerateSweepMessagesTest
 
         verify(player).sendMessage(ChatText.info("Checked " + value("0 gates") + ". " + value("0")
             + " arrival points were out of place and have been recomputed."));
+        verify(player, times(1)).sendMessage(anyString());
     }
 
     /** The same sweep reaches a qq player in qq, the zero gates read as the plural. */
@@ -299,6 +303,7 @@ class RegenerateSweepMessagesTest
         verify(player).sendMessage(ChatText.info(ChatText.bad("22 gates") + " kept their old light order because they were"
             + " dialling or open; run it again once they are shut: " + String.join(", ", shown) + ", and " + value("2")
             + " more."));
+        verify(player, times(2)).sendMessage(anyString());
     }
 
     /** The same long list reaches a qq player in qq, with the language's own tail. */
@@ -320,6 +325,54 @@ class RegenerateSweepMessagesTest
         verify(player).sendMessage(ChatText.info("QQ busy-many 22 | " + String.join(" / ", shown) + " +" + value("2")
             + " QQ more!"));
         verify(player).sendMessage(ChatText.info("QQ checked " + value("22 QQgates") + " QQ moved-many " + value("0")));
+    }
+
+    /** One gate past the twenty listed is still counted: "and 1 more", not dropped. */
+    @Test
+    void aListOneLongerThanTheLimitSaysAndOneMore()
+    {
+        final Player english = adminReading("en");
+        final Player qq = adminReading("qq");
+        final List<Stargate> gates = busyGates(21);
+        final GateRederivation.LightResult[] lights = new GateRederivation.LightResult[21];
+        Arrays.fill(lights, BUSY);
+
+        sweep(english, gates.toArray(new Stargate[0]), lights);
+        sweep(qq, gates.toArray(new Stargate[0]), lights);
+
+        final List<String> shown = new ArrayList<>();
+        for (int i = 1; i <= 20; i++)
+        {
+            shown.add(name(String.format("g%02d", i)));
+        }
+        verify(english).sendMessage(ChatText.info(ChatText.bad("21 gates") + " kept their old light order because they were"
+            + " dialling or open; run it again once they are shut: " + String.join(", ", shown) + ", and " + value("1")
+            + " more."));
+        verify(qq).sendMessage(ChatText.info("QQ busy-many 21 | " + String.join(" / ", shown) + " +" + value("1")
+            + " QQ more!"));
+    }
+
+    /** Names are sorted by the command, whatever order the gates come in, and without regard to case. */
+    @Test
+    void namesAreListedSortedWhateverOrderTheGatesComeIn()
+    {
+        final Player player = adminReading("en");
+        final Stargate upper = gate("C", Exit.STAYS);
+        final Stargate middle = gate("b", Exit.STAYS);
+        final Stargate lower = gate("a", Exit.STAYS);
+
+        try (MockedStatic<StargateManager> manager = mockStatic(StargateManager.class, CALLS_REAL_METHODS);
+             MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class);
+             MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            manager.when(StargateManager::getAllGates).thenReturn(List.of(upper, middle, lower));
+            rederive.when(() -> GateRederivation.rebuildLightOrder(any())).thenReturn(BUSY);
+            new RegenerateCommand().execute(player, new String[] {"regen", "-all"});
+        }
+
+        verify(player).sendMessage(ChatText.info(ChatText.bad("3 gates") + " kept their old light order because they were"
+            + " dialling or open; run it again once they are shut: " + name("a") + ", " + name("b") + ", " + name("C")
+            + "."));
     }
 
     private List<Stargate> busyGates(final int count)
