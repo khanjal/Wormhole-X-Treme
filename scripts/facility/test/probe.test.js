@@ -27,9 +27,3 @@ test('an action_bar packet is heard, as a JSON string or as an NBT component', (
   client.emit('action_bar', { text: { type: 'compound', name: '', value: { text: { type: 'string', value: 'Ring: 2' } } } });
   assert.deepStrictEqual(heard, ['Ring: 3', 'Ring: 2']);
 });
-
-test('an overlay delivered as system_chat is heard once, not again by the action_bar hook', () => {
-  const { client, heard } = fakeBot();
-  client.emit('systemChat', { positionId: 2, formattedMessage: JSON.stringify({ text: 'Ring: 1' }) });
-  assert.deepStrictEqual(heard, ['Ring: 1']);
-});

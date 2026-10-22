@@ -6,7 +6,6 @@
 
 const mineflayer = require('mineflayer');
 const { Vec3 } = require('vec3');
-const { processNbtMessage } = require('prismarine-chat');
 const text = require('./text');
 const messages = require('./messages');
 
@@ -32,15 +31,10 @@ function maybeEvent(emitter, event, test, ms) {
 
 /**
  * Paper's sendActionBar goes out as the set_action_bar_text packet ('action_bar'), which
- * Mineflayer 4.39 ignores (it only reads system_chat). Re-emit it as the overlay system chat it
- * handles, so the bot hears it as a game_info message; a server that already sends system_chat
- * overlays never sends this packet, so nothing is heard twice.
+ * Mineflayer 4.39 ignores; hand it to its system_chat overlay handler, which reads both forms.
  */
 function hearActionBars(client) {
-  client.on('action_bar', ({ text: t }) => {
-    const formattedMessage = t && typeof t === 'object' && 'type' in t ? processNbtMessage(t) : t;
-    client.emit('systemChat', { positionId: 2, formattedMessage });
-  });
+  client.on('action_bar', ({ text }) => client.emit('systemChat', { positionId: 2, formattedMessage: text }));
 }
 
 /** Connects a bot and resolves once it has spawned; `onCreate(bot)` runs before it connects. */
