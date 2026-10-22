@@ -701,6 +701,7 @@ s1 beam sounds	:: Relay has been closed, darkened and its iris opened.
 s1 beam sounds	:: error :: You have no half-built ring pair.
 s1 beam sounds	:: error :: You lack the permissions to do this.
 s1 every setting	:: ...and N more. Type part of a name to narrow it down.
+s1 every setting	:: /wormhole config -reload re-reads config.yml.
 s1 every setting	:: /wormhole config <name> shows one, /wormhole config <name> <value> changes it.
 s1 every setting	:: Add WorldGuard region flags wormhole-build and wormhole-use, so a region can refuse gate building and gate use. Requires WorldGuard. Turning it off applies at once; turning it on takes a restart. Both default to allow, and WorldGuard's region bypass exempts.
 s1 every setting	:: Amount charged to a player each time they beam. N to disable; economy-enabled must also be true.
@@ -775,6 +776,7 @@ s1 every setting	:: How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FIN
 s1 every setting	:: If set to true, a gate cannot dial a gate in another world, and nothing -- a player, a cart, a mob, an item or an arrow -- crosses between worlds by gate.
 s1 every setting	:: If true, gates ignore permission nodes even when a Vault permission provider is installed: anyone may use, dial and travel by gate; only operators may build one; and removing, configuring or going to one with /wormhole go is left to operators and its owner.
 s1 every setting	:: LOG_LEVEL = INFO
+s1 every setting	:: Least distance in blocks between two gates in one world, centre to centre. Building, completing or placing a gate closer is refused, before any fare, unless the builder has wormhole.build.mindistance.bypass, which operators have by default. N for no limit.
 s1 every setting	:: Log the blocks that building and taking down gates and rings place and remove to CoreProtect, so they can be rolled back. Requires CoreProtect. A running gate's water, levers and iris are not logged.
 s1 every setting	:: Longest a wormhole may stay open, in seconds, however often it is re-dialled. Measured from when it first opened, so a gate re-triggered on a schedule cannot hold it open forever. N for no limit.
 s1 every setting	:: MAP_SHOW_BEAMS = true
@@ -784,6 +786,7 @@ s1 every setting	:: MAP_SHOW_MIRRORS = true
 s1 every setting	:: MAP_SHOW_RINGS = true
 s1 every setting	:: MAX_OPEN_SECONDS = N
 s1 every setting	:: METRICS_ENABLED = false
+s1 every setting	:: MIN_GATE_DISTANCE = N
 s1 every setting	:: MIRROR_APPROACH_MESSAGE = true
 s1 every setting	:: MIRROR_ENTITY_LOAD_RADIUS = N
 s1 every setting	:: MIRROR_PER_WORLD_LIMIT = N
@@ -835,6 +838,7 @@ s1 every setting	:: Register the %wormhole_...% PlaceholderAPI expansion. Requir
 s1 every setting	:: Relay has been closed, darkened and its iris opened.
 s1 every setting	:: Required distance between ring anchors, in blocks. Overlap is refused regardless of this.
 s1 every setting	:: SAME_WORLD_ONLY = false
+s1 every setting	:: SERVER_LANGUAGE = en
 s1 every setting	:: SHOW_GATE_WELCOME_MESSAGE = false
 s1 every setting	:: SIGN_COLOR_GATE_NAME = DARK_AQUA
 s1 every setting	:: SIGN_COLOR_NEIGHBOUR = GRAY
@@ -857,6 +861,7 @@ s1 every setting	:: TIMEOUT_ACTIVATE = N
 s1 every setting	:: TIMEOUT_SHUTDOWN = N
 s1 every setting	:: The iris closing over a gate, pitched down a little since it is a shield rather than a door.
 s1 every setting	:: The iris opening.
+s1 every setting	:: The language of messages sent to the console and command blocks, such as de or pt_br (and, later, the log and text the server puts in the world); players see their own client's language. A message it lacks is in English. Only some messages are translatable so far; sign text stays English.
 s1 every setting	:: The longest that tunnel may be, N to N blocks. It is a block longer for each block narrower the far gate is, and one more for the layer behind the opening that is its own size: four from Large to Standard, thirteen from Massive to Standard, sixteen from Grand to Minimal.
 s1 every setting	:: The shortest that tunnel is, up to gate-view-funnel-length; none while gate-view-funnel is false. Above N, a gate the same size or bigger is seen down a straight tunnel too, and every tunnel runs straight for this or three fifths of this gate's opening, the longer, before it narrows. N for none.
 s1 every setting	:: The soft running water an open wormhole makes while it stands there.

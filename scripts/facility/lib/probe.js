@@ -29,6 +29,14 @@ function maybeEvent(emitter, event, test, ms) {
   return waitEvent(emitter, event, test, ms, event).catch(() => null);
 }
 
+/**
+ * Paper's sendActionBar goes out as the set_action_bar_text packet ('action_bar'), which
+ * Mineflayer 4.39 ignores; hand it to its system_chat overlay handler, which reads both forms.
+ */
+function hearActionBars(client) {
+  client.on('action_bar', ({ text }) => client.emit('systemChat', { positionId: 2, formattedMessage: text }));
+}
+
 /** Connects a bot and resolves once it has spawned; `onCreate(bot)` runs before it connects. */
 function join({ host = '127.0.0.1', port, version, username, onCreate = null }) {
   const bot = mineflayer.createBot({ host, port, username, version, auth: 'offline' });
@@ -37,6 +45,7 @@ function join({ host = '127.0.0.1', port, version, username, onCreate = null }) 
   bot.on('error', (e) => { bot.lastError = e; });
   bot.on('end', (reason) => { bot.ended = reason || 'ended'; });
   bot.on('message', (m) => messages.record(m.toString()));
+  hearActionBars(bot._client);
   if (onCreate) onCreate(bot);
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${username} did not spawn within 60 s`)), 60000);
@@ -510,4 +519,4 @@ function shownText(entity) {
   return out;
 }
 
-module.exports = { Probe, join, waitEvent, maybeEvent, shownText, ticks };
+module.exports = { Probe, join, hearActionBars, waitEvent, maybeEvent, shownText, ticks };
