@@ -119,7 +119,7 @@ public class RedstoneCommand implements SubCommand
      */
     private static void sendUsage(final CommandSender sender)
     {
-        sender.sendMessage(ChatText.info(ChatText.usage(USAGE)));
+        sender.sendMessage(ChatText.info(ChatText.usage(sender, USAGE)));
     }
 
 }

@@ -46,7 +46,7 @@ public class GateShapesCommand implements SubCommand
         // args: [0]=gate [1]=shapes [2]=<reload|validate|enable|disable> [3]=name (optional for reload)
         if (args.length < 3)
         {
-            sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes reload|validate|enable|disable [name]")));
+            sender.sendMessage(ChatText.info(ChatText.usage(sender, "/wormhole gate shapes reload|validate|enable|disable [name]")));
             return true;
         }
 
@@ -62,7 +62,7 @@ public class GateShapesCommand implements SubCommand
         {
             if (name == null)
             {
-                sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes validate <name>")));
+                sender.sendMessage(ChatText.info(ChatText.usage(sender, "/wormhole gate shapes validate <name>")));
                 return true;
             }
             report(sender, name, StargateShapeRegistry.validateShapeFile(fileName(name)), false);
@@ -87,7 +87,7 @@ public class GateShapesCommand implements SubCommand
         final String verb = enable ? ENABLE : DISABLE;
         if (name == null)
         {
-            sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate shapes " + verb + " <name>")));
+            sender.sendMessage(ChatText.info(ChatText.usage(sender, "/wormhole gate shapes " + verb + " <name>")));
             return;
         }
         final String shape = StargateShapeRegistry.getStargateShapes().keySet().stream()

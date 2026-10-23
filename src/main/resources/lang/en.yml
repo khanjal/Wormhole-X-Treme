@@ -66,6 +66,10 @@ usage.label: "Usage: {0}"
 usage.lead: "Usage: "
 
 usage.beam.or: "Or {0}."
+usage.config.reload: "{0} re-reads config.yml."
+usage.config.shows: "{0} shows one, {1} changes it."
+usage.cooldown.seconds: "{0} sets the wait between trips, {1} to {2}."
+usage.cooldown.toggle: "{0} switches cooldowns on or off."
 
 gate.build.not-coordinates: "Those words are not a gate to build at coordinates: give whole numbers or ~ for x y z, then a facing."
 gate.build.no-shape: "No shape called {0}."

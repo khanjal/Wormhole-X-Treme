@@ -305,7 +305,7 @@ public class MaterialCommand implements SubCommand
      */
     private void usage(final CommandSender sender)
     {
-        sender.sendMessage(ChatText.info(ChatText.usage("/wormhole " + kind.command + " <gate> [material]")));
+        sender.sendMessage(ChatText.info(ChatText.usage(sender, "/wormhole " + kind.command + " <gate> [material]")));
         sender.sendMessage(ChatText.info(validMaterials(sender)));
     }
 

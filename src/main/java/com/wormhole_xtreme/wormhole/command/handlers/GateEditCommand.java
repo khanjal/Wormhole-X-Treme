@@ -421,7 +421,7 @@ public class GateEditCommand implements SubCommand
         // args: gate edit <gate> <field> [value]
         if (args.length < 4)
         {
-            sender.sendMessage(ChatText.info(ChatText.usage("/wormhole gate edit <gate> <field> [value]")));
+            sender.sendMessage(ChatText.info(ChatText.usage(sender, "/wormhole gate edit <gate> <field> [value]")));
             sender.sendMessage(fieldList(sender));
             return true;
         }

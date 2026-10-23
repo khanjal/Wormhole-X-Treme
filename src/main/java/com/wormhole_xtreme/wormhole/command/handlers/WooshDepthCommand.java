@@ -27,8 +27,11 @@ public class WooshDepthCommand implements SubCommand
     /** The deepest. Past this the waves reach further than the gate the shape describes. */
     private static final int MAX_DEPTH = 5;
 
-    /** Said whenever the words given do not name a gate and a depth. */
-    private static final String USAGE = ChatText.info(ChatText.usage("/wormhole wooshdepth <gate> [depth]"));
+    /** @return what is said whenever the words given do not name a gate and a depth, in the reader's language */
+    private static String usage(final CommandSender recipient)
+    {
+        return ChatText.info(ChatText.usage(recipient, "/wormhole wooshdepth <gate> [depth]"));
+    }
 
     /**
      * The depths this command accepts, for tab completion.
@@ -97,7 +100,7 @@ public class WooshDepthCommand implements SubCommand
      */
     private static void sendUsage(final CommandSender sender)
     {
-        sender.sendMessage(USAGE);
+        sender.sendMessage(usage(sender));
         sender.sendMessage(validRange(sender));
     }
 

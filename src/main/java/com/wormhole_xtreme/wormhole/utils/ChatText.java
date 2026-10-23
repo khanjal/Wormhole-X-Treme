@@ -124,8 +124,8 @@ public final class ChatText
     }
 
     /**
-     * {@link #usage(CommandSender, String)} in the server's language, for a caller not yet given
-     * its reader.
+     * {@link #usage(CommandSender, String)} in the server's language. No command calls it any more;
+     * it stays for the tests that read the English line through it.
      *
      * @param line
      *            the usage
