@@ -685,8 +685,8 @@ public final class GateViews
         }
         // Right runs along one axis, one way or the other, so the across coordinate is the block's own, signed.
         final Spot plane = cells.get(0);
-        final Spot base = (into.x() != 0) ? new Spot(plane.x(), lowY, lowAcross * right.z())
-            : new Spot(lowAcross * right.x(), lowY, plane.z());
+        final Spot base = (into.x() == 0) ? new Spot(lowAcross * right.x(), lowY, plane.z())
+            : new Spot(plane.x(), lowY, lowAcross * right.z());
         return WindowShape.through(base, into, arrival, width, height);
     }
 

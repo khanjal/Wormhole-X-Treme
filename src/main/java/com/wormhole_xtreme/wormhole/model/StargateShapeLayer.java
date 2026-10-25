@@ -27,7 +27,7 @@ public class StargateShapeLayer
      * belongs to by reading the first frame block it finds. A chevron in that list would
      * have a gate fronted with lamps resolve to the lamp palette, or to no palette at all.
      */
-    private List<Integer[]> layerChevronPositions = new ArrayList<>();
+    private final List<Integer[]> layerChevronPositions = new ArrayList<>();
 
     /**
      * The {@code [S:C]} cells: chevron positions the frame material is also accepted at.

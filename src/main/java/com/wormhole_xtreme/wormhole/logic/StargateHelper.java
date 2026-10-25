@@ -1069,7 +1069,7 @@ public final class StargateHelper
             final Block front = ra.getRelative(frame.facing());
             final Block right = front.getRelative(WorldUtils.getPerpendicularRightDirection(frame.facing()));
             final Block aboveRa = ra.getRelative(BlockFace.UP);
-            final Block[] candidates = new Block[] {front, front.getRelative(BlockFace.UP),
+            final Block[] candidates = {front, front.getRelative(BlockFace.UP),
                 right, right.getRelative(BlockFace.UP), aboveRa};
 
             Block chosen = null;

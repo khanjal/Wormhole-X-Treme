@@ -1333,7 +1333,7 @@ public final class SubCommands
                 out.add(name);
             }
         }
-        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        out.sort(String.CASE_INSENSITIVE_ORDER);
         return out;
     }
 
@@ -1376,7 +1376,7 @@ public final class SubCommands
                 out.add(name);
             }
         }
-        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        out.sort(String.CASE_INSENSITIVE_ORDER);
         return out;
     }
 
@@ -1399,7 +1399,7 @@ public final class SubCommands
                 out.add(name);
             }
         }
-        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        out.sort(String.CASE_INSENSITIVE_ORDER);
         return out;
     }
 
@@ -1547,7 +1547,7 @@ public final class SubCommands
                 out.add(name);
             }
         }
-        Collections.sort(out);
+        out.sort(null);
         return out;
     }
 
@@ -1572,7 +1572,7 @@ public final class SubCommands
                 out.add(name);
             }
         }
-        Collections.sort(out);
+        out.sort(null);
         return out;
     }
 
@@ -1643,7 +1643,7 @@ public final class SubCommands
                 out.add(name);
             }
         }
-        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        out.sort(String.CASE_INSENSITIVE_ORDER);
         return out;
     }
 

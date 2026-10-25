@@ -1216,7 +1216,7 @@ public final class Capture
                 {
                     boxed[i] = i;
                 }
-                Arrays.sort(boxed, (a, b) -> (cells[a] != cells[b]) ? Long.compare(cells[a], cells[b]) : Integer.compare(a, b));
+                Arrays.sort(boxed, (a, b) -> (cells[a] == cells[b]) ? Integer.compare(a, b) : Long.compare(cells[a], cells[b]));
                 for (int i = 0; i < count; i++)
                 {
                     byCell[i] = boxed[i];

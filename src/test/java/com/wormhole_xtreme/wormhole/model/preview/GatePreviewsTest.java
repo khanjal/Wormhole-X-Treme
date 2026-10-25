@@ -2779,14 +2779,14 @@ class GatePreviewsTest
         final Stargate two = mock(Stargate.class);
         final Cell hole = standAGateShortOfOneBlock(one);
         final Cell other = standardLookingNorth().get(1);
-        GatePreviews.gateAt = (w, x, y, z) -> !standing.containsKey(List.of(x, y, z)) ? null
-            : ((x == other.x()) && (y == other.y()) && (z == other.z())) ? two : one;
+        GatePreviews.gateAt = (w, x, y, z) -> standing.containsKey(List.of(x, y, z))
+            ? ((x == other.x()) && (y == other.y()) && (z == other.z())) ? two : one : null;
         GatePreviews.show(owner, standard, null);
 
         assertEquals(GatePreviews.Outcome.IN_THE_WAY, GatePreviews.place(owner, true).outcome());
 
-        GatePreviews.gateAt = (w, x, y, z) -> !standing.containsKey(List.of(x, y, z)) ? null
-            : ((x == other.x()) && (y == other.y()) && (z == other.z())) ? null : one;
+        GatePreviews.gateAt = (w, x, y, z) -> standing.containsKey(List.of(x, y, z))
+            ? ((x == other.x()) && (y == other.y()) && (z == other.z())) ? null : one : null;
         assertEquals(GatePreviews.Outcome.IN_THE_WAY, GatePreviews.place(owner, true).outcome(),
             "a block owned but by no gate is a ring's");
         assertTrue(written.isEmpty());
@@ -3301,7 +3301,7 @@ class GatePreviewsTest
             {
                 indexes.add(index.get(at));
             }
-            Collections.sort(indexes);
+            indexes.sort(null);
             out.add(indexes);
         }
         return out;
@@ -3380,7 +3380,7 @@ class GatePreviewsTest
                 }
             }
         }
-        Collections.sort(out);
+        out.sort(null);
         return out;
     }
 
@@ -3646,7 +3646,7 @@ class GatePreviewsTest
                 out.add(key);
             }
         });
-        Collections.sort(out);
+        out.sort(null);
         return out;
     }
 
@@ -3659,7 +3659,7 @@ class GatePreviewsTest
         {
             union.addAll(ring);
             final List<K> sorted = new ArrayList<>(union);
-            Collections.sort(sorted);
+            sorted.sort(null);
             out.add(sorted);
         }
         return out;
@@ -3911,7 +3911,7 @@ class GatePreviewsTest
                 final Cell cell = openingCells().get(index);
                 keys.add(cell.x() + "," + cell.y() + "," + cell.z());
             }
-            Collections.sort(keys);
+            keys.sort(null);
             out.add(keys);
         }
         return out;

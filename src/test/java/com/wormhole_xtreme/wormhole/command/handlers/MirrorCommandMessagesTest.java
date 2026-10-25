@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -793,7 +792,7 @@ class MirrorCommandMessagesTest
     private static List<String> headerAndSortedRows(final List<String> sent)
     {
         final List<String> rows = new ArrayList<>(sent.subList(1, sent.size()));
-        Collections.sort(rows);
+        rows.sort(null);
         final List<String> sorted = new ArrayList<>(sent.subList(0, 1));
         sorted.addAll(rows);
         return sorted;

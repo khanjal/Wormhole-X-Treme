@@ -51,7 +51,7 @@ class GateViewsTest
         {
             for (int y = 64; y < (64 + height); y++)
             {
-                cells.add((facing.getModZ() != 0) ? new Spot(across, y, 20) : new Spot(20, y, across));
+                cells.add((facing.getModZ() == 0) ? new Spot(20, y, across) : new Spot(across, y, 20));
             }
         }
         return cells;
@@ -71,8 +71,8 @@ class GateViewsTest
         {
             for (final int[] side : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } })
             {
-                ring.add((facing.getModZ() != 0) ? new Spot(cell.x() + side[0], cell.y() + side[1], cell.z())
-                    : new Spot(cell.x(), cell.y() + side[1], cell.z() + side[0]));
+                ring.add((facing.getModZ() == 0) ? new Spot(cell.x(), cell.y() + side[1], cell.z() + side[0])
+                    : new Spot(cell.x() + side[0], cell.y() + side[1], cell.z()));
             }
         }
         ring.removeAll(cells);

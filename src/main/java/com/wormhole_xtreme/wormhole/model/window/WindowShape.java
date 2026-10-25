@@ -829,7 +829,7 @@ public record WindowShape(WindowShape.Spot base, WindowShape.Spot into, WindowSh
      */
     double offCentre(final double[] rect)
     {
-        final double centre = ((into.x() != 0) ? base.z() : base.x()) + 0.5;
+        final double centre = ((into.x() == 0) ? base.x() : base.z()) + 0.5;
         return Math.abs(((rect[0] + rect[1]) / 2.0) - centre);
     }
 

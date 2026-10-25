@@ -63,7 +63,7 @@ class CompleteCommandTest
 
         StargateManager.removeIncompleteStargate(player);
 
-        final String[] args = new String[] { gateName, "idc=", "test" };
+        final String[] args = { gateName, "idc=", "test" };
 
         final Complete subject = new Complete();
         final boolean result = subject.onCommand(player, null, "wormhole", args);
@@ -96,7 +96,7 @@ class CompleteCommandTest
 
         StargateManager.removeIncompleteStargate(player);
 
-        final String[] args = new String[] { gateName, "idc=" };
+        final String[] args = { gateName, "idc=" };
 
         final Complete subject = new Complete();
         final boolean result = subject.onCommand(player, null, "wormhole", args);
