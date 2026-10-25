@@ -317,7 +317,7 @@ class WindowOcclusionTest
             WindowOcclusion.seenThrough(eye(10.5, 65.0, 19.0), window, 10, 64, 20, List.of(window), 0.0), 0.0);
     }
 
-    /** A block in front of the face, or level with the eye, is not behind the opening at all. */
+    /** A block in front of the face, on the eye's side of it, is not behind the opening at all. */
     @Test
     void aBlockInFrontOfTheFaceIsNotSeenThroughIt()
     {
@@ -562,9 +562,9 @@ class WindowOcclusionTest
             "only blocks between the eye and the face hide it");
     }
 
-    /** The rows read run eight above the top of the opening, so a roof of a hut shields the face. */
+    /** The rows read run to eight above the first row over the opening, so a hut's roof shields the face. */
     @Test
-    void aSolidBlockEightAboveTheOpeningTopIsRead()
+    void aSolidBlockEightAboveTheRowOverTheOpeningIsRead()
     {
         solidWorld.add(Cells.key(10, 73, 19));
 
@@ -573,15 +573,26 @@ class WindowOcclusionTest
             "its shadow runs 73 to 75 up, and the top row read is 74");
     }
 
+    /** The top row read, 74, is itself looked at: a block there throws its shadow, not only a block below it. */
+    @Test
+    void aSolidBlockInTheTopRowReadStillThrowsItsShadow()
+    {
+        solidWorld.add(Cells.key(10, 74, 19));
+
+        assertEquals(Set.of(face(10, 74)),
+            WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
+            "its shadow runs 74 to 76.1 up: whole inside row 74, and row 75 is past what is read");
+    }
+
     /** The rows read run eight below the opening's foot, so a floor in front shields the face. */
     @Test
     void aSolidBlockEightBelowTheOpeningFootIsRead()
     {
-        solidWorld.add(Cells.key(10, 57, 19));
+        solidWorld.add(Cells.key(10, 56, 19));
 
-        assertEquals(Set.of(face(10, 57)),
+        assertEquals(Set.of(face(10, 56)),
             WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
-            "its shadow runs 56.1 to 58 up: whole inside row 57");
+            "eight below the foot at 64; its shadow runs 55 to 57 up, cut to row 56, the lowest read");
     }
 
     /** A face that looks along x is read along x: the same case turned a quarter. */
