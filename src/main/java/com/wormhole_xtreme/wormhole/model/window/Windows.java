@@ -909,7 +909,7 @@ public final class Windows
         final Block beside = (face == null) ? null : clicked.getRelative(face);
         for (final Block block : (beside == null) ? List.of(clicked) : List.of(clicked, beside))
         {
-            final BlockData data = view.drawn.get(key(block.getX(), block.getY(), block.getZ()));
+            final BlockData data = view.drawn.get(Cells.key(block.getX(), block.getY(), block.getZ()));
             if (data != null)
             {
                 spots.add(new Location(player.getWorld(), block.getX(), block.getY(), block.getZ()));
@@ -1131,7 +1131,7 @@ public final class Windows
             }
         }
         // Anywhere else in a room drawn for them: the real block behind is not what they clicked.
-        final boolean drawn = view.world.equals(block.getWorld()) && view.drawn.containsKey(key(at.x(), at.y(), at.z()));
+        final boolean drawn = view.world.equals(block.getWorld()) && view.drawn.containsKey(Cells.key(at.x(), at.y(), at.z()));
         return drawn ? nearestWindow(view, block) : null;
     }
 
@@ -1152,7 +1152,7 @@ public final class Windows
         final UUID id = (player == null) ? null : player.getUniqueId();
         final ViewerDrawing view = ((id == null) || (block == null)) ? null : VIEWS.get(id);
         return (view != null) && view.world.equals(block.getWorld())
-            && view.drawn.containsKey(key(block.getX(), block.getY(), block.getZ()));
+            && view.drawn.containsKey(Cells.key(block.getX(), block.getY(), block.getZ()));
     }
 
     /** The mirror nearest a block, of the windows a view is looking into in its world. */
@@ -1867,10 +1867,10 @@ public final class Windows
                 final Spot into = window.shape.into();
                 for (int across = 0; across < window.shape.width(); across++)
                 {
-                    wanted.put(key(banner.getX() - (across * into.z()), banner.getY(), banner.getZ() + (across * into.x())), air);
+                    wanted.put(Cells.key(banner.getX() - (across * into.z()), banner.getY(), banner.getZ() + (across * into.x())), air);
                 }
             }
-            window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
+            window.open.forEach(cell -> wanted.put(Cells.key(cell.x(), cell.y(), cell.z()), barrier));
         }
         for (final WindowState window : nearestFirst(seeing, eye))
         {
@@ -2152,9 +2152,9 @@ public final class Windows
             {
                 continue;
             }
-            final double dx = (unpackX(cell) + 0.5) - from.getX();
-            final double dy = (unpackY(cell) + 0.5) - from.getY();
-            final double dz = (unpackZ(cell) + 0.5) - from.getZ();
+            final double dx = (Cells.unpackX(cell) + 0.5) - from.getX();
+            final double dy = (Cells.unpackY(cell) + 0.5) - from.getY();
+            final double dz = (Cells.unpackZ(cell) + 0.5) - from.getZ();
             final boolean farOff = ((dx * dx) + (dy * dy) + (dz * dz)) > near;
             // No fat eye leaves the far part as it stands.
             final Eye judge = farOff ? fat : own;
@@ -2210,9 +2210,9 @@ public final class Windows
          */
         boolean sees(final WindowState window, final Long cell)
         {
-            final int x = unpackX(cell);
-            final int y = unpackY(cell);
-            final int z = unpackZ(cell);
+            final int x = Cells.unpackX(cell);
+            final int y = Cells.unpackY(cell);
+            final int z = Cells.unpackZ(cell);
             if (!window.shape.mightLandOn(from.getX(), from.getY(), from.getZ(), x, y, z, span))
             {
                 return false;
@@ -2425,7 +2425,7 @@ public final class Windows
         // One ring of wall was not enough -- a pillar two blocks wide in open air passed.
         final WindowShape shape = window.shape;
         final Set<Long> opening = new HashSet<>();
-        shape.forEachOpening((x, y, z) -> opening.add(key(x, y, z)));
+        shape.forEachOpening((x, y, z) -> opening.add(Cells.key(x, y, z)));
         final int reach = WindowFace.wallReach();
         final int[] span = WindowFace.acrossSpan(shape, reach);
         for (int across = span[0]; across <= span[1]; across++)
@@ -2435,7 +2435,7 @@ public final class Windows
                 final long face = WindowFace.faceKey(shape, across, y);
                 if (!opening.contains(face) && !window.solid.contains(face))
                 {
-                    return new Spot(unpackX(face), unpackY(face), unpackZ(face));
+                    return new Spot(Cells.unpackX(face), Cells.unpackY(face), Cells.unpackZ(face));
                 }
             }
         }
@@ -2630,7 +2630,7 @@ public final class Windows
             final Spot cell = shape.behind(at, across, up);
             if (drawable(cell, min, max, centre, reach) && !own.contains(cell))
             {
-                view.put(key(cell.x(), cell.y(), cell.z()), wall);
+                view.put(Cells.key(cell.x(), cell.y(), cell.z()), wall);
             }
         });
         funnel.hollowOn(layer, depth, (at, across, up) ->
@@ -2638,7 +2638,7 @@ public final class Windows
             final Spot cell = shape.behind(at, across, up);
             if (drawable(cell, min, max, centre, reach) && !WindowSight.reallyEmpty(here, cell.x(), cell.y(), cell.z(), now))
             {
-                view.put(key(cell.x(), cell.y(), cell.z()), air);
+                view.put(Cells.key(cell.x(), cell.y(), cell.z()), air);
             }
         });
     }
@@ -3069,7 +3069,7 @@ public final class Windows
                 y <= (shape.base().y() + shape.height() + reach); y++)
             {
                 final long face = WindowFace.faceKey(shape, across, y);
-                if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
+                if (here.getBlockAt(Cells.unpackX(face), y, Cells.unpackZ(face)).getBlockData().isOccluding())
                 {
                     solid.add(face);
                 }
@@ -3241,9 +3241,9 @@ public final class Windows
     /** A cell's place in the order to send it: its sixteen-block band from the eye, then its chunk section. */
     private static long orderOf(final long cell, final Location eye)
     {
-        final int x = unpackX(cell);
-        final int y = unpackY(cell);
-        final int z = unpackZ(cell);
+        final int x = Cells.unpackX(cell);
+        final int y = Cells.unpackY(cell);
+        final int z = Cells.unpackZ(cell);
         final double dx = (x + 0.5) - eye.getX();
         final double dy = (y + 0.5) - eye.getY();
         final double dz = (z + 0.5) - eye.getZ();
@@ -3282,7 +3282,7 @@ public final class Windows
             {
                 if ((Math.abs(x - fromX) > reach) || (Math.abs(z - fromZ) > reach))
                 {
-                    fresh.add(chunkKey(x, z));
+                    fresh.add(Cells.chunkKey(x, z));
                 }
             }
         }
@@ -3292,14 +3292,14 @@ public final class Windows
     /** The chunk a cell is in, as a key. */
     private static long chunkOfCell(final long cell)
     {
-        return chunkKey(unpackX(cell) >> 4, unpackZ(cell) >> 4);
+        return Cells.chunkKey(Cells.unpackX(cell) >> 4, Cells.unpackZ(cell) >> 4);
     }
 
     /** One block, drawn as something else, or null if this world cannot draw it. */
     private static BlockState drawn(final World here, final long cell, final BlockData data)
     {
-        final int x = unpackX(cell);
-        final int z = unpackZ(cell);
+        final int x = Cells.unpackX(cell);
+        final int z = Cells.unpackZ(cell);
         if (!here.isChunkLoaded(x >> 4, z >> 4))
         {
             return null;
@@ -3309,7 +3309,7 @@ public final class Windows
         final Map<Long, BlockState> states = STATES.computeIfAbsent(here.getName(),
             name -> new HashMap<>());
         final BlockState state = states.computeIfAbsent(cell,
-            key -> here.getBlockAt(x, unpackY(key), z).getState());
+            key -> here.getBlockAt(x, Cells.unpackY(key), z).getState());
         try
         {
             state.setBlockData(data);
@@ -3327,14 +3327,14 @@ public final class Windows
     private static void truth(final List<BlockState> changes, final List<TileState> restored,
         final World here, final long cell)
     {
-        final int x = unpackX(cell);
-        final int z = unpackZ(cell);
+        final int x = Cells.unpackX(cell);
+        final int z = Cells.unpackZ(cell);
         // A chunk that has unloaded is one the client dropped too, and it gets a fresh copy.
         if (!here.isChunkLoaded(x >> 4, z >> 4))
         {
             return;
         }
-        final BlockState state = here.getBlockAt(x, unpackY(cell), z).getState();
+        final BlockState state = here.getBlockAt(x, Cells.unpackY(cell), z).getState();
         changes.add(state);
         if (state instanceof TileState tile)
         {
@@ -3403,49 +3403,14 @@ public final class Windows
      */
     private static long eyeKey(final Location eye)
     {
-        return key((int) Math.floor(eye.getX() * 4.0), (int) Math.floor(eye.getY() * 4.0),
+        return Cells.key((int) Math.floor(eye.getX() * 4.0), (int) Math.floor(eye.getY() * 4.0),
             (int) Math.floor(eye.getZ() * 4.0));
     }
 
     /** The chunk an eye is in, as a key. */
     private static long chunkOf(final Location eye)
     {
-        return chunkKey(((int) Math.floor(eye.getX())) >> 4, ((int) Math.floor(eye.getZ())) >> 4);
-    }
-
-    static long chunkKey(final int x, final int z)
-    {
-        return (((long) x) << 32) | (z & 0xFFFFFFFFL);
-    }
-
-    /**
-     * A block position packed into one long: 26 bits of x, 26 of z, 12 of y.
-     *
-     * @param x
-     *            block x; only its low 26 bits are kept
-     * @param y
-     *            block y; only its low 12 bits are kept
-     * @param z
-     *            block z; only its low 26 bits are kept
-     */
-    static long key(final int x, final int y, final int z)
-    {
-        return ((x & 0x3FFFFFFL) << 38) | ((z & 0x3FFFFFFL) << 12) | (y & 0xFFFL);
-    }
-
-    static int unpackX(final long key)
-    {
-        return (int) (key >> 38);
-    }
-
-    static int unpackY(final long key)
-    {
-        return (int) ((key << 52) >> 52);
-    }
-
-    static int unpackZ(final long key)
-    {
-        return (int) ((key << 26) >> 38);
+        return Cells.chunkKey(((int) Math.floor(eye.getX())) >> 4, ((int) Math.floor(eye.getZ())) >> 4);
     }
 
 }

@@ -89,11 +89,11 @@ final class LegacyFixedView
             }
             if (!farAir)
             {
-                view.put(Windows.key(x, y, z), Windows.turned(window, capture.at(fx, fy, fz)));
+                view.put(Cells.key(x, y, z), Windows.turned(window, capture.at(fx, fy, fz)));
             }
             else if (!WindowSight.reallyEmpty(here, x, y, z, now))
             {
-                view.put(Windows.key(x, y, z), air);
+                view.put(Cells.key(x, y, z), air);
             }
             if (view.size() > most)
             {
@@ -183,11 +183,11 @@ final class LegacyFixedView
             }
             if (!capture.isAir(at.x(), at.y(), at.z()))
             {
-                view.put(Windows.key(x, y, z), Windows.turned(window, capture.at(at.x(), at.y(), at.z())));
+                view.put(Cells.key(x, y, z), Windows.turned(window, capture.at(at.x(), at.y(), at.z())));
             }
             else if (!WindowSight.reallyEmpty(here, x, y, z, now))
             {
-                view.put(Windows.key(x, y, z), air);
+                view.put(Cells.key(x, y, z), air);
             }
             return view.size() > most;
         }

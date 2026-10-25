@@ -876,12 +876,12 @@ class StandInsTest
         assertFalse(StandIns.onDrawnFloor(view, floored, onIt), "the floor is captured but not yet drawn for this viewer");
 
         final Spot drawn = floored.shape.hereOf(100, 69, -19);
-        view.drawn.put(Windows.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
+        view.drawn.put(Cells.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
         assertTrue(StandIns.onDrawnFloor(view, floored, onIt), "captured and drawn under its feet");
         assertTrue(StandIns.onDrawnFloor(view, floored, new Location(far, 101.2, 70.0, -18.5)),
             "standing over the block's edge, its side still on it");
         final Spot drawnAir = floored.shape.hereOf(102, 69, -19);
-        view.drawn.put(Windows.key(drawnAir.x(), drawnAir.y(), drawnAir.z()), mock(BlockData.class));
+        view.drawn.put(Cells.key(drawnAir.x(), drawnAir.y(), drawnAir.z()), mock(BlockData.class));
         assertFalse(StandIns.onDrawnFloor(view, floored, new Location(far, 102.5, 70.0, -18.5)),
             "two blocks along, where the capture has air, drawn as air");
         assertFalse(StandIns.onDrawnFloor(view, floored, new Location(far, 100.5, 71.0, -18.5)),
@@ -945,7 +945,7 @@ class StandInsTest
         assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping),
             "in the air over a floor not drawn for this viewer");
         final Spot drawn = floored.shape.hereOf(100, 69, -19);
-        view.drawn.put(Windows.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
+        view.drawn.put(Cells.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
         assertNull(Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping), "a block and a half over a drawn floor");
         when(jumping.getLocation()).thenReturn(new Location(far, 100.5, 73.5, -18.5, 0.0f, 0.0f));
         assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping),
@@ -960,7 +960,7 @@ class StandInsTest
     {
         final WindowState fenced = windowWithFloorAt(100, 69, -19);
         final Spot drawn = fenced.shape.hereOf(100, 69, -19);
-        view.drawn.put(Windows.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
+        view.drawn.put(Cells.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
 
         assertTrue(StandIns.onDrawnFloor(view, fenced, new Location(far, 100.5, 70.5, -18.5)),
             "standing on top of a fence or a wall, a block and a half above its foot");

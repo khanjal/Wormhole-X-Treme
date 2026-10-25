@@ -169,7 +169,7 @@ class WindowsFunnelTest
 
     private static long key(final Spot at)
     {
-        return Windows.key(at.x(), at.y(), at.z());
+        return Cells.key(at.x(), at.y(), at.z());
     }
 
     @Test
@@ -189,7 +189,7 @@ class WindowsFunnelTest
         assertSame(stone, view.get(key(BIG.behind(12, 5, -1))), "the far ground in the room, not a wall of water");
         assertSame(stone, view.get(key(BIG.behind(12, 1, 1))), "the room widens as far as the far opening lets it be seen");
         assertFalse(view.entrySet().stream().anyMatch(entry -> (entry.getValue() == water)
-            && (shapeFor(funnel(16)).layerOf(Windows.unpackX(entry.getKey()), Windows.unpackZ(entry.getKey())) >= 9)),
+            && (shapeFor(funnel(16)).layerOf(Cells.unpackX(entry.getKey()), Cells.unpackZ(entry.getKey())) >= 9)),
             "no wall round the room past the tunnel");
     }
 
@@ -211,9 +211,9 @@ class WindowsFunnelTest
         int hollows = 0;
         for (final Map.Entry<Long, BlockData> entry : view.entrySet())
         {
-            final int x = Windows.unpackX(entry.getKey());
-            final int y = Windows.unpackY(entry.getKey());
-            final int z = Windows.unpackZ(entry.getKey());
+            final int x = Cells.unpackX(entry.getKey());
+            final int y = Cells.unpackY(entry.getKey());
+            final int z = Cells.unpackZ(entry.getKey());
             final int layer = shape.layerOf(x, z);
             final int across = shape.acrossOf(x, z);
             final int up = y - shape.base().y();

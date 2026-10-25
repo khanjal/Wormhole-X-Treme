@@ -166,12 +166,12 @@ final class FixedRegions
     }
 
     /**
-     * A chunk's key: {@link Windows#chunkKey} scrambled by an odd multiplier, which no two chunks
+     * A chunk's key: {@link Cells#chunkKey} scrambled by an odd multiplier, which no two chunks
      * share. Plain, its hash is x xor z, and the chunks behind one window crowd a few hash buckets.
      */
     static long keyOf(final int chunkX, final int chunkZ)
     {
-        return Windows.chunkKey(chunkX, chunkZ) * 0x9E3779B97F4A7C15L;
+        return Cells.chunkKey(chunkX, chunkZ) * 0x9E3779B97F4A7C15L;
     }
 
     /** @return true if any window is indexed: false answers every block event with no lookup at all */

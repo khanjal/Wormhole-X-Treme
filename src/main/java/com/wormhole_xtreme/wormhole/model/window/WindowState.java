@@ -100,7 +100,7 @@ final class WindowState
             this.flip = (shape.into().x() == 0) ? Mirror.LEFT_RIGHT
                 : Mirror.FRONT_BACK;
         }
-        open.forEach(cell -> openKeys.add(Windows.key(cell.x(), cell.y(), cell.z())));
+        open.forEach(cell -> openKeys.add(Cells.key(cell.x(), cell.y(), cell.z())));
     }
 
     /** @return what the sweep knows it by */
