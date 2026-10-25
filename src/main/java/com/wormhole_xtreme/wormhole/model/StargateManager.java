@@ -1001,7 +1001,7 @@ public class StargateManager
             gates.add(keys.nextElement());
         }
 
-        Collections.sort(gates, (a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
+        gates.sort((a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
 
         return gates;
     }
