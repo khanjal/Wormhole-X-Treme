@@ -44,19 +44,19 @@ Released 2026-10-25.
 | Field | Value |
 |---|---|
 | Version (all four sites) | `1.12.0` |
-| Title (Spigot update title, Modrinth version title) | `1.12.0 - Messages in your players' language, config reload and shape switches` |
+| Title (Spigot update title, Modrinth version title) | `1.12.0 - Players' language, config reload, shape switches` |
 | Minecraft (Modrinth game versions, Hangar platform versions, CurseForge Bukkit versions) | 1.20 - 26.3 |
 
 Modrinth, Hangar and CurseForge changelog:
 
 ````markdown
-**Upgrading from 1.11 - nothing to change.** Your `config.yml` is kept as it is, and the settings 1.12 adds (`server-language`, `min-gate-distance`) are appended with their defaults the first time it loads: messages stay English until a player's client language has a lang file, and gates can still be built anywhere.
+**Upgrading from 1.11 - nothing to change.** Your `config.yml` is kept as it is, and the settings 1.12 adds (`server-language`, `min-gate-distance`) are appended with their defaults the first time it loads: messages stay English until a player's client language has a lang file, and gates can still be built anywhere. From 1.10 or earlier, read the 1.11.0 upgrade note below first: an unedited `config.yml` is replaced there. A first install needs none of this.
 
 - **Messages in your players' language**: chat messages follow each player's client language, falling back to `server-language` and then English; put a `lang/<code>.yml` in the plugin folder to add or reword one, and `/wormhole lang export [code]` writes a starter file. More messages become translatable each release; sign text stays English.
 - **Reload the config without a restart**: `/wormhole config -reload` lists each setting it changed, names any value it refused and keeps the old one.
 - **Switch a gate shape off**: `/wormhole gate shapes disable <shape>` and `enable` stop and allow building it without deleting its file; gates already standing keep working.
 - **A minimum distance between gates**: `min-gate-distance` refuses a gate built too close to another in its world; `wormhole.build.mindistance.bypass` exempts. Off until set.
-- **Fixes**: `log-level: off` no longer stops the plugin loading, shape commands refuse a name that leaves the shapes folder, and the mirror capture messages say a far-side capture once.
+- **Fixes**: `log-level: off` no longer stops the plugin loading, shape commands refuse a name that leaves the shapes folder, a doubled apostrophe in the mirror capture messages is a single one, and a far-side capture is logged once.
 
 [Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#1120-2026-10-25)
 ````
@@ -64,14 +64,14 @@ Modrinth, Hangar and CurseForge changelog:
 Spigot update message:
 
 ```
-[B]Upgrading from 1.11 - nothing to change.[/B] Your [ICODE]config.yml[/ICODE] is kept as it is, and the settings 1.12 adds ([ICODE]server-language[/ICODE], [ICODE]min-gate-distance[/ICODE]) are appended with their defaults the first time it loads: messages stay English until a player's client language has a lang file, and gates can still be built anywhere.
+[B]Upgrading from 1.11 - nothing to change.[/B] Your [ICODE]config.yml[/ICODE] is kept as it is, and the settings 1.12 adds ([ICODE]server-language[/ICODE], [ICODE]min-gate-distance[/ICODE]) are appended with their defaults the first time it loads: messages stay English until a player's client language has a lang file, and gates can still be built anywhere. From 1.10 or earlier, read the 1.11.0 upgrade note below first: an unedited [ICODE]config.yml[/ICODE] is replaced there. A first install needs none of this.
 
 [LIST]
 [*][B]Messages in your players' language[/B]: chat messages follow each player's client language, falling back to [ICODE]server-language[/ICODE] and then English; put a [ICODE]lang/<code>.yml[/ICODE] in the plugin folder to add or reword one, and [ICODE]/wormhole lang export [code][/ICODE] writes a starter file. More messages become translatable each release; sign text stays English.
 [*][B]Reload the config without a restart[/B]: [ICODE]/wormhole config -reload[/ICODE] lists each setting it changed, names any value it refused and keeps the old one.
 [*][B]Switch a gate shape off[/B]: [ICODE]/wormhole gate shapes disable <shape>[/ICODE] and [ICODE]enable[/ICODE] stop and allow building it without deleting its file; gates already standing keep working.
 [*][B]A minimum distance between gates[/B]: [ICODE]min-gate-distance[/ICODE] refuses a gate built too close to another in its world; [ICODE]wormhole.build.mindistance.bypass[/ICODE] exempts. Off until set.
-[*][B]Fixes[/B]: [ICODE]log-level: off[/ICODE] no longer stops the plugin loading, shape commands refuse a name that leaves the shapes folder, and the mirror capture messages say a far-side capture once.
+[*][B]Fixes[/B]: [ICODE]log-level: off[/ICODE] no longer stops the plugin loading, shape commands refuse a name that leaves the shapes folder, a doubled apostrophe in the mirror capture messages is a single one, and a far-side capture is logged once.
 [/LIST]
 
 [URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#1120-2026-10-25]Full changelog[/URL]
