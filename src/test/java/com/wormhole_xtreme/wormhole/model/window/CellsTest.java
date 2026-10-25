@@ -63,12 +63,12 @@ class CellsTest
     @Test
     void bitsAboveTheDocumentedWidthAreDroppedWithoutTouchingTheOtherFields()
     {
-        assertEquals(Cells.key(1, 5, 7), Cells.key(0x4000001, 5, 7), "bit 26 of x is dropped");
-        assertEquals(Cells.key(1, 5, 7), Cells.key(Integer.MIN_VALUE + 1, 5, 7), "bit 31 of x is dropped");
-        assertEquals(Cells.key(1, 5, 7), Cells.key(1, 5, 0x4000007), "bit 26 of z is dropped");
-        assertEquals(Cells.key(1, 5, 7), Cells.key(1, 5, Integer.MIN_VALUE + 7), "bit 31 of z is dropped");
-        assertEquals(Cells.key(1, 5, 7), Cells.key(1, 0x1005, 7), "bit 12 of y is dropped");
-        assertEquals(Cells.key(1, 5, 7), Cells.key(1, 0x7FFFF005, 7), "high bits of y are dropped");
+        assertEquals(0x4000007005L, Cells.key(0x4000001, 5, 7), "bit 26 of x is dropped");
+        assertEquals(0x4000007005L, Cells.key(Integer.MIN_VALUE + 1, 5, 7), "bit 31 of x is dropped");
+        assertEquals(0x4000007005L, Cells.key(1, 5, 0x4000007), "bit 26 of z is dropped");
+        assertEquals(0x4000007005L, Cells.key(1, 5, Integer.MIN_VALUE + 7), "bit 31 of z is dropped");
+        assertEquals(0x4000007005L, Cells.key(1, 0x1005, 7), "bit 12 of y is dropped");
+        assertEquals(0x4000007005L, Cells.key(1, 0x7FFFF005, 7), "high bits of y are dropped");
         final long key = Cells.key(0x7FFFFFF, 0x7FFFF, 0x7FFFFFF);
         assertEquals(-1L, key, "every bit of every field is set");
         assertEquals(0, Cells.unpackZ(Cells.key(0x7FFFFFFF, 0, 0)), "a huge x leaves z at 0");

@@ -166,7 +166,7 @@ final class FixedRegions
     }
 
     /**
-     * A chunk's key: {@link Windows#chunkKey} scrambled by an odd multiplier, which no two chunks
+     * A chunk's key: {@link Cells#chunkKey} scrambled by an odd multiplier, which no two chunks
      * share. Plain, its hash is x xor z, and the chunks behind one window crowd a few hash buckets.
      */
     static long keyOf(final int chunkX, final int chunkZ)
