@@ -51,8 +51,8 @@ final class WindowFace
     /** The block of a window's face at a coordinate along it. */
     static long faceKey(final WindowShape shape, final int across, final int y)
     {
-        return (shape.into().x() != 0) ? Windows.key(shape.base().x(), y, across)
-            : Windows.key(across, y, shape.base().z());
+        return (shape.into().x() != 0) ? Cells.key(shape.base().x(), y, across)
+            : Cells.key(across, y, shape.base().z());
     }
 
     /**
@@ -113,7 +113,7 @@ final class WindowFace
     {
         final boolean alongX = shape.into().x() != 0;
         final Set<Long> opening = new HashSet<>();
-        shape.forEachOpening((x, y, z) -> opening.add(Windows.key(x, y, z)));
+        shape.forEachOpening((x, y, z) -> opening.add(Cells.key(x, y, z)));
         final int lowY = shape.base().y() - reach;
         final int highY = shape.base().y() + shape.height() + reach;
         final int[][] steps = { { 1, 0, OPEN_AFTER }, { -1, 0, OPEN_BEFORE }, { 0, 1, OPEN_ABOVE }, { 0, -1, OPEN_BELOW } };
@@ -124,8 +124,8 @@ final class WindowFace
             {
                 continue;
             }
-            final int across = alongX ? Windows.unpackZ(face) : Windows.unpackX(face);
-            final int y = Windows.unpackY(face);
+            final int across = alongX ? Cells.unpackZ(face) : Cells.unpackX(face);
+            final int y = Cells.unpackY(face);
             int open = 0;
             for (final int[] step : steps)
             {
@@ -158,7 +158,7 @@ final class WindowFace
         final List<int[]> cells = new ArrayList<>();
         shape.forEachOpening((x, y, z) ->
         {
-            opening.add(Windows.key(x, y, z));
+            opening.add(Cells.key(x, y, z));
             cells.add(new int[] { alongX ? z : x, y });
         });
         final Set<Long> frame = new LinkedHashSet<>();
@@ -177,8 +177,8 @@ final class WindowFace
             }
         }
         final List<Spot> spots = new ArrayList<>();
-        frame.forEach(face -> spots.add(new Spot(Windows.unpackX(face),
-            Windows.unpackY(face), Windows.unpackZ(face))));
+        frame.forEach(face -> spots.add(new Spot(Cells.unpackX(face),
+            Cells.unpackY(face), Cells.unpackZ(face))));
         return spots;
     }
     /** Static state only. */

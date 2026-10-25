@@ -392,7 +392,7 @@ public final class StandIns
             if (!window.capture.isAir(x, y, z))
             {
                 final WindowShape.Spot here = window.shape.hereOf(x, y, z);
-                if (view.drawn.containsKey(Windows.key(here.x(), here.y(), here.z())))
+                if (view.drawn.containsKey(Cells.key(here.x(), here.y(), here.z())))
                 {
                     return true;
                 }

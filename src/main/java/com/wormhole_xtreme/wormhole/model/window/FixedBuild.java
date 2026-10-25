@@ -305,11 +305,11 @@ final class FixedBuild
         }
         if (!farAir)
         {
-            view.put(Windows.key(hereX, y, hereZ), Windows.turned(window, capture.at(fx, fy, fz)));
+            view.put(Cells.key(hereX, y, hereZ), Windows.turned(window, capture.at(fx, fy, fz)));
         }
         else if (!reallyEmpty(hereX, y, hereZ))
         {
-            view.put(Windows.key(hereX, y, hereZ), air);
+            view.put(Cells.key(hereX, y, hereZ), air);
         }
         over = view.size() > most;
     }
@@ -380,11 +380,11 @@ final class FixedBuild
         }
         if (!capture.isAir(fx, fy, fz))
         {
-            view.put(Windows.key(x, y, z), Windows.turned(window, capture.at(fx, fy, fz)));
+            view.put(Cells.key(x, y, z), Windows.turned(window, capture.at(fx, fy, fz)));
         }
         else if (!reallyEmpty(x, y, z))
         {
-            view.put(Windows.key(x, y, z), air);
+            view.put(Cells.key(x, y, z), air);
         }
         over = view.size() > most;
     }

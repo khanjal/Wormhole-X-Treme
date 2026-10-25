@@ -77,7 +77,7 @@ final class WindowSight
             solidReadAt = now;
         }
         return SOLID.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
-            Windows.key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4)
+            Cells.key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4)
                 && here.getBlockAt(x, y, z).getBlockData().isOccluding());
     }
 
@@ -102,7 +102,7 @@ final class WindowSight
             return Integer.MAX_VALUE;
         }
         return TOPS.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
-            Windows.chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
+            Cells.chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
     }
     /** Forgets every cached read, for a test or a reload. */
     static void clear()

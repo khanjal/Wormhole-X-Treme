@@ -2543,10 +2543,10 @@ class WindowsTest
         for (final int[] spot : new int[][] { { 0, 0, 0 }, { -30000000, -64, 29999999 },
             { 12, 319, -1 }, { -1, -1, -1 } })
         {
-            final long key = Windows.key(spot[0], spot[1], spot[2]);
-            assertEquals(spot[0], Windows.unpackX(key));
-            assertEquals(spot[1], Windows.unpackY(key));
-            assertEquals(spot[2], Windows.unpackZ(key));
+            final long key = Cells.key(spot[0], spot[1], spot[2]);
+            assertEquals(spot[0], Cells.unpackX(key));
+            assertEquals(spot[1], Cells.unpackY(key));
+            assertEquals(spot[2], Cells.unpackZ(key));
         }
     }
 

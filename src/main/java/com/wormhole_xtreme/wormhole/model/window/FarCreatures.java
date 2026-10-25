@@ -159,7 +159,7 @@ public final class FarCreatures
         for (final Entity entity : far.getNearbyEntities(bounds))
         {
             final Location at = entity.getLocation();
-            if (ready.contains(Windows.chunkKey(at.getBlockX() >> 4, at.getBlockZ() >> 4)))
+            if (ready.contains(Cells.chunkKey(at.getBlockX() >> 4, at.getBlockZ() >> 4)))
             {
                 if (copied(entity) || (players && FarPlayers.copied(entity)))
                 {
@@ -190,7 +190,7 @@ public final class FarCreatures
                 }
                 else if (far.getChunkAt(cx, cz).isEntitiesLoaded())
                 {
-                    ready.add(Windows.chunkKey(cx, cz));
+                    ready.add(Cells.chunkKey(cx, cz));
                 }
                 else
                 {

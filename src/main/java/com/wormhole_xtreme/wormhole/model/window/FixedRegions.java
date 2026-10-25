@@ -171,7 +171,7 @@ final class FixedRegions
      */
     static long keyOf(final int chunkX, final int chunkZ)
     {
-        return Windows.chunkKey(chunkX, chunkZ) * 0x9E3779B97F4A7C15L;
+        return Cells.chunkKey(chunkX, chunkZ) * 0x9E3779B97F4A7C15L;
     }
 
     /** @return true if any window is indexed: false answers every block event with no lookup at all */
