@@ -12,7 +12,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Releases:**
 
-- [1.12.0 (unreleased)](#1120-unreleased)
+- [1.12.0 (2026-10-25)](#1120-2026-10-25)
 - [1.11.0 (2026-10-17)](#1110-2026-10-17)
 - [1.10.0 (2026-10-12)](#1100-2026-10-12)
 - [1.9.0 (2026-10-03)](#190-2026-10-03)
@@ -74,14 +74,14 @@ somebody else's release notes, and the record of where this fork came from.
 - [0.31 (1/26/11)](#031-12611)
 - [0.3 (1/26/11)](#03-12611)
 
-## 1.12.0 (unreleased)
+## 1.12.0 (2026-10-25)
 
 ### For server admins
 
 **Added**
 
 - **`/wormhole config -reload` reads `config.yml` again** after it is edited or deployed, without a restart: it lists each setting it changed, names any value it refused and keeps the old one, and a file that cannot be read changes nothing. It does not write the file, apart from what turning `gate-material-groups-autodiscover` on does, as with the command; edited material groups still wait for a restart ([#634](https://github.com/khanjal/Wormhole-X-Treme/issues/634)). [Guide](docs/guide/SERVER.md#configuration)
-- **Chat messages are in each player's client language**, falling back to `server-language` (default `en`, also the language of messages to the console and command blocks) and then English, with a `lang/<code>.yml` of your own in the plugin folder read over the plugin's; the guide lists which messages are translatable so far, more follow, and sign text stays English ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)). [Guide](docs/guide/TRANSLATING.md)
+- **Chat messages are in each player's client language**, falling back to `server-language` (default `en`, also the language of messages to the console and command blocks) and then English, with a `lang/<code>.yml` of your own in the plugin folder read over the plugin's; the guide lists which messages are translatable so far (every command usage and help line is), more follow, and sign text stays English ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)). [Guide](docs/guide/TRANSLATING.md)
 - **`/wormhole lang export [code]` writes a starter lang file**: with no code, `lang/en.yml` with every message commented out, to reword only the lines you uncomment; with a code such as `de`, the English to translate. It never replaces a file already there, and needs `wormhole.config` ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)). [Guide](docs/guide/TRANSLATING.md#rewording-the-english)
 - **`/wormhole gate shapes disable <shape>` and `enable`** stop and allow building a gate shape without deleting its file; gates already standing keep working. The choice is kept in `shapes/gate/disabled-shapes.txt` and survives editing, resaving and updating the shape ([#636](https://github.com/khanjal/Wormhole-X-Treme/issues/636)).
 
@@ -98,6 +98,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 ### Internals
 
+- The configuration, the gate walk-through, the ring step handling and the cell keys moved out of their large classes into smaller ones; nothing a player or admin sees changes ([#430](https://github.com/khanjal/Wormhole-X-Treme/issues/430)).
 - Javadoc `@param` tags that only repeated the parameter name (`@param gate` / `the gate`) are gone ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 - Collections are built with the diamond (`new ArrayList<>()`) instead of repeating their type arguments, in `src/main` and the tests ([#50](https://github.com/khanjal/Wormhole-X-Treme/issues/50)).
 - Chat and sign colours come from the plugin's own colour table rather than Bukkit's `ChatColor`; nothing a player sees changes ([#476](https://github.com/khanjal/Wormhole-X-Treme/issues/476)).
