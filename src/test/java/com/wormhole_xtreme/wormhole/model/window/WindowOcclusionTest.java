@@ -111,7 +111,7 @@ class WindowOcclusionTest
         window.margin = Map.of(face(10, 64), 15);
 
         assertArrayEquals(new double[] { 10.0, 11.0, 64.0, 65.0 },
-            Windows.cover(window, 10, 64, Set.of(), Set.of()), 0.0);
+            WindowOcclusion.cover(window, 10, 64, Set.of(), Set.of()), 0.0);
     }
 
     /** A solid block of the wall with no open side hides all of itself. */
@@ -122,7 +122,7 @@ class WindowOcclusionTest
         window.solid = Set.of(face(12, 66));
 
         assertArrayEquals(new double[] { 12.0, 13.0, 66.0, 67.0 },
-            Windows.cover(window, 12, 66, Set.of(), Set.of()), 0.0);
+            WindowOcclusion.cover(window, 12, 66, Set.of(), Set.of()), 0.0);
     }
 
     /** A wall block open on its before side keeps back the outer half on that side: low across moves in. */
@@ -168,7 +168,7 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         window.solid = Set.of(face(12, 66));
         window.margin = Map.of(face(12, 66), open);
-        return Windows.cover(window, 12, 66, Set.of(), Set.of());
+        return WindowOcclusion.cover(window, 12, 66, Set.of(), Set.of());
     }
 
     /** A block that is neither the opening nor solid hides nothing. */
@@ -177,7 +177,7 @@ class WindowOcclusionTest
     {
         final WindowState window = window(SHAPE, OPENING);
 
-        assertSame(WindowShape.HIDES_NOTHING, Windows.cover(window, 14, 66, Set.of(), Set.of()),
+        assertSame(WindowShape.HIDES_NOTHING, WindowOcclusion.cover(window, 14, 66, Set.of(), Set.of()),
             "no wall and no opening there");
     }
 
@@ -189,7 +189,7 @@ class WindowOcclusionTest
         window.solid = Set.of(face(12, 66));
         window.margin = Map.of(face(12, 66), WindowFace.OPEN_BEFORE);
 
-        assertSame(WindowShape.HIDES_NOTHING, Windows.cover(window, 12, 66, Set.of(face(12, 66)), Set.of()),
+        assertSame(WindowShape.HIDES_NOTHING, WindowOcclusion.cover(window, 12, 66, Set.of(face(12, 66)), Set.of()),
             "open for all, so the wall there hides nothing");
     }
 
@@ -202,9 +202,9 @@ class WindowOcclusionTest
         window.margin = Map.of(face(12, 66), WindowFace.OPEN_BEFORE | WindowFace.OPEN_ABOVE);
 
         assertArrayEquals(new double[] { 12.0, 13.0, 66.0, 67.0 },
-            Windows.cover(window, 12, 66, Set.of(), Set.of(face(12, 66))), 0.0, "the ring's margin is not kept back");
+            WindowOcclusion.cover(window, 12, 66, Set.of(), Set.of(face(12, 66))), 0.0, "the ring's margin is not kept back");
         assertArrayEquals(new double[] { 14.0, 15.0, 66.0, 67.0 },
-            Windows.cover(window, 14, 66, Set.of(), Set.of(face(14, 66))), 0.0, "open air behind a real block is hidden too");
+            WindowOcclusion.cover(window, 14, 66, Set.of(), Set.of(face(14, 66))), 0.0, "open air behind a real block is hidden too");
     }
 
     /** A shielded block that is open for every window is not hidden by the shield, since the opening shows it. */
@@ -214,7 +214,7 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
 
         assertSame(WindowShape.HIDES_NOTHING,
-            Windows.cover(window, 14, 66, Set.of(face(14, 66)), Set.of(face(14, 66))),
+            WindowOcclusion.cover(window, 14, 66, Set.of(face(14, 66)), Set.of(face(14, 66))),
             "the shield counts only where some wall stands");
     }
 
@@ -225,7 +225,7 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
 
         assertArrayEquals(new double[] { 10.0, 11.0, 65.0, 66.0 },
-            Windows.cover(window, 10, 65, Set.of(face(10, 65)), Set.of()), 0.0);
+            WindowOcclusion.cover(window, 10, 65, Set.of(face(10, 65)), Set.of()), 0.0);
     }
 
     // ---- withinFace: a shadow clamped to the face that is read ----
@@ -237,7 +237,7 @@ class WindowOcclusionTest
         final int[] span = { 0, 18 };
 
         assertArrayEquals(new int[] { 11, 9, 64, 64 },
-            Windows.withinFace(new double[] { 10.2, 10.8, 64.0, 65.0 }, span, 56, 82),
+            WindowOcclusion.withinFace(new double[] { 10.2, 10.8, 64.0, 65.0 }, span, 56, 82),
             "the first whole block starts past where the last one ends");
     }
 
@@ -246,7 +246,7 @@ class WindowOcclusionTest
     void aShadowEndingOnABlockEdgeCoversTheBlockBeforeIt()
     {
         assertArrayEquals(new int[] { 10, 11, 64, 65 },
-            Windows.withinFace(new double[] { 10.0, 12.0, 64.0, 66.0 }, new int[] { 0, 18 }, 56, 82),
+            WindowOcclusion.withinFace(new double[] { 10.0, 12.0, 64.0, 66.0 }, new int[] { 0, 18 }, 56, 82),
             "10.0 to 12.0 is blocks 10 and 11, and 12 is not touched");
     }
 
@@ -257,11 +257,11 @@ class WindowOcclusionTest
         final int[] span = { 0, 18 };
 
         assertArrayEquals(new int[] { 31, 18, 70, 70 },
-            Windows.withinFace(new double[] { 30.2, 32.0, 70.0, 71.0 }, span, 56, 82), "past the high end across");
+            WindowOcclusion.withinFace(new double[] { 30.2, 32.0, 70.0, 71.0 }, span, 56, 82), "past the high end across");
         assertArrayEquals(new int[] { 0, -3, 56, 56 },
-            Windows.withinFace(new double[] { -5.5, -2.0, 55.5, 57.0 }, span, 56, 82), "past the low end across");
+            WindowOcclusion.withinFace(new double[] { -5.5, -2.0, 55.5, 57.0 }, span, 56, 82), "past the low end across");
         assertArrayEquals(new int[] { 3, 4, 83, 82 },
-            Windows.withinFace(new double[] { 2.5, 5.0, 83.0, 83.5 }, span, 56, 82), "above the highest row read");
+            WindowOcclusion.withinFace(new double[] { 2.5, 5.0, 83.0, 83.5 }, span, 56, 82), "above the highest row read");
     }
 
     /** Each bound of the clamp is its own: a shadow past only one of them is cut at that one. */
@@ -271,13 +271,13 @@ class WindowOcclusionTest
         final int[] span = { 4, 18 };
 
         assertArrayEquals(new int[] { 4, 12, 60, 62 },
-            Windows.withinFace(new double[] { 1.0, 13.0, 60.0, 63.0 }, span, 56, 82), "low across cut");
+            WindowOcclusion.withinFace(new double[] { 1.0, 13.0, 60.0, 63.0 }, span, 56, 82), "low across cut");
         assertArrayEquals(new int[] { 6, 18, 60, 62 },
-            Windows.withinFace(new double[] { 6.0, 30.0, 60.0, 63.0 }, span, 56, 82), "high across cut");
+            WindowOcclusion.withinFace(new double[] { 6.0, 30.0, 60.0, 63.0 }, span, 56, 82), "high across cut");
         assertArrayEquals(new int[] { 6, 12, 56, 62 },
-            Windows.withinFace(new double[] { 6.0, 13.0, 40.0, 63.0 }, span, 56, 82), "low y cut");
+            WindowOcclusion.withinFace(new double[] { 6.0, 13.0, 40.0, 63.0 }, span, 56, 82), "low y cut");
         assertArrayEquals(new int[] { 6, 12, 60, 82 },
-            Windows.withinFace(new double[] { 6.0, 13.0, 60.0, 99.0 }, span, 56, 82), "high y cut");
+            WindowOcclusion.withinFace(new double[] { 6.0, 13.0, 60.0, 99.0 }, span, 56, 82), "high y cut");
     }
 
     // ---- hideUnder: the blocks of the face a shadow covers whole ----
@@ -288,7 +288,7 @@ class WindowOcclusionTest
     {
         final Set<Long> hidden = new HashSet<>();
 
-        Windows.hideUnder(hidden, SHAPE, WindowShape.UNSEEN, new int[] { 0, 18 }, 56, 82);
+        WindowOcclusion.hideUnder(hidden, SHAPE, WindowShape.UNSEEN, new int[] { 0, 18 }, 56, 82);
 
         assertTrue(hidden.isEmpty(), "no shadow, no cells");
     }
@@ -299,7 +299,7 @@ class WindowOcclusionTest
     {
         final Set<Long> hidden = new HashSet<>();
 
-        Windows.hideUnder(hidden, SHAPE, new double[] { 10.0, 12.0, 64.0, 66.0 }, new int[] { 0, 18 }, 56, 82);
+        WindowOcclusion.hideUnder(hidden, SHAPE, new double[] { 10.0, 12.0, 64.0, 66.0 }, new int[] { 0, 18 }, 56, 82);
 
         assertEquals(Set.of(face(10, 64), face(10, 65), face(11, 64), face(11, 65)), hidden,
             "blocks 10 and 11 across, 64 and 65 up, and nothing beyond");
@@ -314,7 +314,7 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
 
         assertArrayEquals(new double[] { 10.0, 11.0, 64.0, 65.0 },
-            Windows.seenThrough(eye(10.5, 65.0, 19.0), window, 10, 64, 20, List.of(window), 0.0), 0.0);
+            WindowOcclusion.seenThrough(eye(10.5, 65.0, 19.0), window, 10, 64, 20, List.of(window), 0.0), 0.0);
     }
 
     /** A block in front of the face, or level with the eye, is not behind the opening at all. */
@@ -324,7 +324,7 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
 
         assertSame(WindowShape.UNSEEN,
-            Windows.seenThrough(eye(10.5, 65.0, 19.0), window, 10, 64, 17, List.of(window), 0.0));
+            WindowOcclusion.seenThrough(eye(10.5, 65.0, 19.0), window, 10, 64, 17, List.of(window), 0.0));
     }
 
     /** A block whose outline lands beside the opening, off its frame, is not seen through it. */
@@ -335,7 +335,7 @@ class WindowOcclusionTest
         window.frame = List.of(new Spot(11, 64, 20));
 
         assertSame(WindowShape.UNSEEN,
-            Windows.seenThrough(eye(10.5, 65.0, 19.0), window, 14, 64, 20, List.of(window), 0.0));
+            WindowOcclusion.seenThrough(eye(10.5, 65.0, 19.0), window, 14, 64, 20, List.of(window), 0.0));
     }
 
     /** A block landing only on the frame round the opening counts as seen, so it is hidden rather than left out. */
@@ -345,11 +345,11 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         final Location eye = eye(10.5, 65.0, 19.0);
 
-        assertSame(WindowShape.UNSEEN, Windows.seenThrough(eye, window, 12, 64, 20, List.of(window), 0.0),
+        assertSame(WindowShape.UNSEEN, WindowOcclusion.seenThrough(eye, window, 12, 64, 20, List.of(window), 0.0),
             "with no frame there, nothing to land on");
         window.frame = List.of(new Spot(11, 64, 20));
         assertArrayEquals(new double[] { 11.25, 13.0, 64.0, 65.0 },
-            Windows.seenThrough(eye, window, 12, 64, 20, List.of(window), 0.0), 0.0, "the frame block holds it");
+            WindowOcclusion.seenThrough(eye, window, 12, 64, 20, List.of(window), 0.0), 0.0, "the frame block holds it");
     }
 
     /** A far block's outline is widened by half a cell on the low across side before it is matched to the opening. */
@@ -359,10 +359,10 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         final Location eye = eye(10.5, 65.0, 19.0);
 
-        assertSame(WindowShape.UNSEEN, Windows.seenThrough(eye, window, 12, 64, 20, List.of(window), 0.0),
+        assertSame(WindowShape.UNSEEN, WindowOcclusion.seenThrough(eye, window, 12, 64, 20, List.of(window), 0.0),
             "starting at 11.25 it misses the opening, which ends at 11");
         assertArrayEquals(new double[] { 10.75, 13.5, 63.5, 65.5 },
-            Windows.seenThrough(eye, window, 12, 64, 20, List.of(window), 0.5), 0.0);
+            WindowOcclusion.seenThrough(eye, window, 12, 64, 20, List.of(window), 0.5), 0.0);
     }
 
     /** The same on the high across side. */
@@ -372,10 +372,10 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         final Location eye = eye(10.5, 65.0, 19.0);
 
-        assertSame(WindowShape.UNSEEN, Windows.seenThrough(eye, window, 8, 64, 20, List.of(window), 0.0),
+        assertSame(WindowShape.UNSEEN, WindowOcclusion.seenThrough(eye, window, 8, 64, 20, List.of(window), 0.0),
             "ending at 9.75 it misses the opening, which starts at 10");
         assertArrayEquals(new double[] { 7.5, 10.25, 63.5, 65.5 },
-            Windows.seenThrough(eye, window, 8, 64, 20, List.of(window), 0.5), 0.0);
+            WindowOcclusion.seenThrough(eye, window, 8, 64, 20, List.of(window), 0.5), 0.0);
     }
 
     /** The same on the low y side: an outline that starts at the opening's top is widened onto it. */
@@ -385,10 +385,10 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         final Location eye = eye(10.5, 65.0, 19.0);
 
-        assertSame(WindowShape.UNSEEN, Windows.seenThrough(eye, window, 10, 67, 20, List.of(window), 0.0),
+        assertSame(WindowShape.UNSEEN, WindowOcclusion.seenThrough(eye, window, 10, 67, 20, List.of(window), 0.0),
             "starting at 66 it misses the opening, which ends at 66");
         assertArrayEquals(new double[] { 9.5, 11.5, 65.5, 68.5 },
-            Windows.seenThrough(eye, window, 10, 67, 20, List.of(window), 0.5), 0.0);
+            WindowOcclusion.seenThrough(eye, window, 10, 67, 20, List.of(window), 0.5), 0.0);
     }
 
     /** The same on the high y side: an outline that ends at the opening's bottom is widened onto it. */
@@ -398,10 +398,10 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         final Location eye = eye(10.5, 65.0, 19.0);
 
-        assertSame(WindowShape.UNSEEN, Windows.seenThrough(eye, window, 10, 62, 20, List.of(window), 0.0),
+        assertSame(WindowShape.UNSEEN, WindowOcclusion.seenThrough(eye, window, 10, 62, 20, List.of(window), 0.0),
             "ending at 64 it misses the opening, which starts at 64");
         assertArrayEquals(new double[] { 9.5, 11.5, 61.5, 64.5 },
-            Windows.seenThrough(eye, window, 10, 62, 20, List.of(window), 0.5), 0.0);
+            WindowOcclusion.seenThrough(eye, window, 10, 62, 20, List.of(window), 0.5), 0.0);
     }
 
     /** Where two openings in one face both show a block, the one whose middle the line of sight passes nearer has it. */
@@ -414,8 +414,8 @@ class WindowOcclusionTest
         final Location eye = eye(10.5, 65.0, 19.0);
 
         assertArrayEquals(new double[] { 9.5, 11.5, 63.5, 65.5 },
-            Windows.seenThrough(eye, left, 10, 64, 20, seeing, 0.5), 0.0, "its middle is dead centre of the left one");
-        assertSame(WindowShape.UNSEEN, Windows.seenThrough(eye, right, 10, 64, 20, seeing, 0.5),
+            WindowOcclusion.seenThrough(eye, left, 10, 64, 20, seeing, 0.5), 0.0, "its middle is dead centre of the left one");
+        assertSame(WindowShape.UNSEEN, WindowOcclusion.seenThrough(eye, right, 10, 64, 20, seeing, 0.5),
             "the left opening's middle is nearer, and its opening shows the block too");
     }
 
@@ -429,8 +429,8 @@ class WindowOcclusionTest
         final Location eye = eye(11.5, 65.0, 19.0);
         final double[] both = { 10.5, 12.5, 63.5, 65.5 };
 
-        assertArrayEquals(both, Windows.seenThrough(eye, left, 11, 64, 20, seeing, 0.5), 0.0, "left, one block off");
-        assertArrayEquals(both, Windows.seenThrough(eye, right, 11, 64, 20, seeing, 0.5), 0.0, "right, one block off");
+        assertArrayEquals(both, WindowOcclusion.seenThrough(eye, left, 11, 64, 20, seeing, 0.5), 0.0, "left, one block off");
+        assertArrayEquals(both, WindowOcclusion.seenThrough(eye, right, 11, 64, 20, seeing, 0.5), 0.0, "right, one block off");
     }
 
     /** An opening in another face is no rival, however near its middle, since a line of sight cannot pass through both. */
@@ -441,7 +441,7 @@ class WindowOcclusionTest
         final WindowState behind = window(at(10, 25), List.of(new Spot(10, 64, 25)));
 
         assertArrayEquals(new double[] { 9.5, 11.5, 63.5, 65.5 },
-            Windows.seenThrough(eye(10.5, 65.0, 19.0), mine, 10, 64, 20, List.of(mine, behind), 0.5), 0.0);
+            WindowOcclusion.seenThrough(eye(10.5, 65.0, 19.0), mine, 10, 64, 20, List.of(mine, behind), 0.5), 0.0);
     }
 
     /** A neighbour whose own opening the outline misses is no rival either, nearer its middle or not. */
@@ -452,7 +452,7 @@ class WindowOcclusionTest
         final WindowState elsewhere = window(at(10, 20), List.of(new Spot(30, 64, 20)));
 
         assertArrayEquals(new double[] { 9.5, 11.5, 63.5, 65.5 },
-            Windows.seenThrough(eye(10.5, 65.0, 19.0), mine, 10, 64, 20, List.of(mine, elsewhere), 0.5), 0.0);
+            WindowOcclusion.seenThrough(eye(10.5, 65.0, 19.0), mine, 10, 64, 20, List.of(mine, elsewhere), 0.5), 0.0);
     }
 
     // ---- coveredBy: whether the wall hides the rest of a block's outline ----
@@ -463,7 +463,7 @@ class WindowOcclusionTest
     {
         final WindowState window = window(SHAPE, OPENING);
 
-        assertTrue(Windows.coveredBy(window, new double[] { 10.0, 11.0, 64.0, 65.0 }, Set.of(), Set.of(), MOST_BESIDE));
+        assertTrue(WindowOcclusion.coveredBy(window, new double[] { 10.0, 11.0, 64.0, 65.0 }, Set.of(), Set.of(), MOST_BESIDE));
     }
 
     /** The share allowed beside the opening is the one asked for: a sliver passes at a twentieth and fails at none. */
@@ -473,8 +473,8 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         final double[] sliver = { 10.0, 11.04, 64.0, 65.0 };
 
-        assertTrue(Windows.coveredBy(window, sliver, Set.of(), Set.of(), MOST_BESIDE), "1.0 of 1.04 is over 95 percent");
-        assertFalse(Windows.coveredBy(window, sliver, Set.of(), Set.of(), 0.0), "but not all of it");
+        assertTrue(WindowOcclusion.coveredBy(window, sliver, Set.of(), Set.of(), MOST_BESIDE), "1.0 of 1.04 is over 95 percent");
+        assertFalse(WindowOcclusion.coveredBy(window, sliver, Set.of(), Set.of(), 0.0), "but not all of it");
     }
 
     /** Half an outline on the opening is covered when half may be beside it, and not when a twentieth may. */
@@ -484,8 +484,8 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         final double[] half = { 10.0, 12.0, 64.0, 65.0 };
 
-        assertFalse(Windows.coveredBy(window, half, Set.of(), Set.of(), MOST_BESIDE));
-        assertTrue(Windows.coveredBy(window, half, Set.of(), Set.of(), 0.5));
+        assertFalse(WindowOcclusion.coveredBy(window, half, Set.of(), Set.of(), MOST_BESIDE));
+        assertTrue(WindowOcclusion.coveredBy(window, half, Set.of(), Set.of(), 0.5));
     }
 
     /** The blocks real things shield from the eye count towards what covers an outline. */
@@ -495,8 +495,8 @@ class WindowOcclusionTest
         final WindowState window = window(SHAPE, OPENING);
         final double[] beside = { 20.0, 21.0, 64.0, 65.0 };
 
-        assertFalse(Windows.coveredBy(window, beside, Set.of(), Set.of(), MOST_BESIDE), "open air hides nothing");
-        assertTrue(Windows.coveredBy(window, beside, Set.of(), Set.of(face(20, 64)), MOST_BESIDE), "a shield there does");
+        assertFalse(WindowOcclusion.coveredBy(window, beside, Set.of(), Set.of(), MOST_BESIDE), "open air hides nothing");
+        assertTrue(WindowOcclusion.coveredBy(window, beside, Set.of(), Set.of(face(20, 64)), MOST_BESIDE), "a shield there does");
     }
 
     /** A wall block that every window's opening shows through stops covering an outline. */
@@ -507,8 +507,8 @@ class WindowOcclusionTest
         window.solid = Set.of(face(12, 64));
         final double[] onWall = { 12.0, 13.0, 64.0, 65.0 };
 
-        assertTrue(Windows.coveredBy(window, onWall, Set.of(), Set.of(), MOST_BESIDE), "wall there");
-        assertFalse(Windows.coveredBy(window, onWall, Set.of(face(12, 64)), Set.of(), MOST_BESIDE), "open for all");
+        assertTrue(WindowOcclusion.coveredBy(window, onWall, Set.of(), Set.of(), MOST_BESIDE), "wall there");
+        assertFalse(WindowOcclusion.coveredBy(window, onWall, Set.of(face(12, 64)), Set.of(), MOST_BESIDE), "open for all");
     }
 
     // ---- shielded: the face blocks hidden from an eye by real blocks in front ----
@@ -520,7 +520,7 @@ class WindowOcclusionTest
         solidWorld.add(Cells.key(10, 64, 19));
 
         assertEquals(Set.of(face(10, 64)),
-            Windows.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
+            WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
             "its shadow runs 9.94 to 11.06 across and 63.89 to 65 up: whole inside block 10, row 64 only");
     }
 
@@ -538,7 +538,7 @@ class WindowOcclusionTest
                 expected.add(face(across, y));
             }
         }
-        assertEquals(expected, Windows.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
+        assertEquals(expected, WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
             "scale 5 and 3.33 from ten blocks out: 8 to 13 across, 60 to 65 up, 25 whole blocks");
     }
 
@@ -548,7 +548,7 @@ class WindowOcclusionTest
     {
         solidWorld.add(Cells.key(10, 64, 11));
 
-        assertTrue(Windows.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L).isEmpty(),
+        assertTrue(WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L).isEmpty(),
             "nothing beyond eight blocks of the face is looked at");
     }
 
@@ -558,7 +558,7 @@ class WindowOcclusionTest
     {
         solidWorld.add(Cells.key(10, 64, 13));
 
-        assertTrue(Windows.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 15.5), 0L).isEmpty(),
+        assertTrue(WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 15.5), 0L).isEmpty(),
             "only blocks between the eye and the face hide it");
     }
 
@@ -569,7 +569,7 @@ class WindowOcclusionTest
         solidWorld.add(Cells.key(10, 73, 19));
 
         assertEquals(Set.of(face(10, 73), face(10, 74)),
-            Windows.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
+            WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
             "its shadow runs 73 to 75 up, and the top row read is 74");
     }
 
@@ -580,7 +580,7 @@ class WindowOcclusionTest
         solidWorld.add(Cells.key(10, 57, 19));
 
         assertEquals(Set.of(face(10, 57)),
-            Windows.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
+            WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
             "its shadow runs 56.1 to 58 up: whole inside row 57");
     }
 
@@ -593,7 +593,7 @@ class WindowOcclusionTest
         solidWorld.add(Cells.key(19, 64, 10));
 
         assertEquals(Set.of(WindowFace.faceKey(turned, 10, 64)),
-            Windows.shielded(window(turned, List.of(new Spot(20, 64, 10), new Spot(20, 65, 10))),
+            WindowOcclusion.shielded(window(turned, List.of(new Spot(20, 64, 10), new Spot(20, 65, 10))),
                 eye(10.0, 65.0, 10.5), 0L),
             "the layer in front is x 19, and the block it hides is z 10 of the face at x 20");
     }
@@ -607,7 +607,7 @@ class WindowOcclusionTest
         solidWorld.add(Cells.key(10, 64, 21));
 
         assertEquals(Set.of(WindowFace.faceKey(back, 10, 64)),
-            Windows.shielded(window(back, List.of(new Spot(10, 64, 20), new Spot(10, 65, 20))),
+            WindowOcclusion.shielded(window(back, List.of(new Spot(10, 64, 20), new Spot(10, 65, 20))),
                 eye(10.5, 65.0, 30.0), 0L),
             "into -z: the layers in front are z 21 and up, read from the eye at z 30");
     }
