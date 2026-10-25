@@ -416,7 +416,7 @@ image on Modrinth's own CDN.
 
 | Field | Value |
 |---|---|
-| Version number | `1.11.0` |
+| Version number | `1.12.0` |
 | Version title | that version's title in [`versions.md`](versions.md) |
 | Release channel | Release |
 | Loaders | Bukkit, Spigot, Paper, Purpur |
@@ -431,7 +431,7 @@ The changelog field takes Markdown, so the block pastes in as it stands.
 Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.11.0` is the newest release.
+1. **Check which version the project carries.** `v1.12.0` is the newest release.
 2. **Check the live page for the logo now, not at the next upload.** The page was set up on
    2026-09-19 from the copy before Rule 6 was read, which opened with `logo-banner.svg` and
    rendered the icon from `logo.svg`. If either is on the page, replace the icon (step 4) and
