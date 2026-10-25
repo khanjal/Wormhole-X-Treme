@@ -51,8 +51,8 @@ final class WindowFace
     /** The block of a window's face at a coordinate along it. */
     static long faceKey(final WindowShape shape, final int across, final int y)
     {
-        return (shape.into().x() != 0) ? Cells.key(shape.base().x(), y, across)
-            : Cells.key(across, y, shape.base().z());
+        return (shape.into().x() == 0) ? Cells.key(across, y, shape.base().z())
+            : Cells.key(shape.base().x(), y, across);
     }
 
     /**

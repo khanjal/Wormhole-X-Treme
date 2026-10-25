@@ -1084,7 +1084,7 @@ class IrisSweepOrderingTest
             {
                 cells.add(at.getBlockX() + "," + at.getBlockY());
             }
-            Collections.sort(cells);
+            cells.sort(null);
             out.add(cells);
         }
         return out;
@@ -1120,7 +1120,7 @@ class IrisSweepOrderingTest
                 cells.add(at.getBlockX() + "," + at.getBlockY());
             }
         }
-        Collections.sort(cells);
+        cells.sort(null);
         return cells;
     }
 
@@ -1170,7 +1170,7 @@ class IrisSweepOrderingTest
                     cells.add(cell);
                 }
             });
-            Collections.sort(cells);
+            cells.sort(null);
             return cells;
         }
     }
@@ -1184,7 +1184,7 @@ class IrisSweepOrderingTest
         {
             union.addAll(ring);
             final List<String> sorted = new ArrayList<>(union);
-            Collections.sort(sorted);
+            sorted.sort(null);
             out.add(sorted);
         }
         return out;

@@ -312,7 +312,7 @@ public final class GateInteractionHandler
     private static final String NAME_PLACEHOLDER = "<name>";
 
     /** The facings tried when nothing says which way the gate is built. */
-    private static final BlockFace[] ALL_FACINGS = new BlockFace[] {
+    private static final BlockFace[] ALL_FACINGS = {
         BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST,
         BlockFace.WEST, BlockFace.UP, BlockFace.DOWN };
 

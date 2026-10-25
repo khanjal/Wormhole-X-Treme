@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -99,7 +98,7 @@ class SettingNameSpellingTest
     {
         final List<String> names = ConfigManager.settingNames();
         final List<String> sorted = new ArrayList<>(names);
-        Collections.sort(sorted);
+        sorted.sort(null);
         final List<String> hashOrder = ConfigManager.getConfigurations().keySet().stream().map(Enum::name).toList();
         assertNotEquals(sorted, hashOrder, "the map is no test of sorting if it already iterates in order");
         assertEquals(sorted, names, "the hash map's own order is no order a reader can scan");

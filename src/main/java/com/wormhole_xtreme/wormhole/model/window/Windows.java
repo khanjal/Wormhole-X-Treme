@@ -2963,9 +2963,9 @@ public final class Windows
         {
             return new double[] { across, across + 1.0, y, y + 1.0 };
         }
-        return new double[] { across + (((open & WindowFace.OPEN_BEFORE) != 0) ? MARGIN : 0.0),
-            (across + 1.0) - (((open & WindowFace.OPEN_AFTER) != 0) ? MARGIN : 0.0),
-            y + (((open & WindowFace.OPEN_BELOW) != 0) ? MARGIN : 0.0), (y + 1.0) - (((open & WindowFace.OPEN_ABOVE) != 0) ? MARGIN : 0.0) };
+        return new double[] { across + (((open & WindowFace.OPEN_BEFORE) == 0) ? 0.0 : MARGIN),
+            (across + 1.0) - (((open & WindowFace.OPEN_AFTER) == 0) ? 0.0 : MARGIN),
+            y + (((open & WindowFace.OPEN_BELOW) == 0) ? 0.0 : MARGIN), (y + 1.0) - (((open & WindowFace.OPEN_ABOVE) == 0) ? 0.0 : MARGIN) };
     }
 
 

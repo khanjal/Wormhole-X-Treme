@@ -97,8 +97,8 @@ final class WindowState
         }
         else
         {
-            this.flip = (shape.into().x() != 0) ? Mirror.FRONT_BACK
-                : Mirror.LEFT_RIGHT;
+            this.flip = (shape.into().x() == 0) ? Mirror.LEFT_RIGHT
+                : Mirror.FRONT_BACK;
         }
         open.forEach(cell -> openKeys.add(Cells.key(cell.x(), cell.y(), cell.z())));
     }

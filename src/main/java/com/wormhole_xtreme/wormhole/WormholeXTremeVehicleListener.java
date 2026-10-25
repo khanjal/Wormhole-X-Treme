@@ -382,7 +382,7 @@ class WormholeXTremeVehicleListener implements Listener
         final List<Entity> children, final Location safeTarget, final Vector exitSpeed,
         final VehicleKind kind)
     {
-        final int[] attempts = new int[] { 0 };
+        final int[] attempts = { 0 };
         final boolean[] attached = new boolean[children.size()];
         final Runnable[] taskHolder = new Runnable[1];
         taskHolder[0] = () ->

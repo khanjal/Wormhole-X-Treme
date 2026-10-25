@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -135,7 +134,7 @@ class StargateDialManager
             }
         }
 
-        Collections.sort(others, (a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
+        others.sort((a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
         return others;
     }
 

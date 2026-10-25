@@ -532,7 +532,7 @@ class RingAnimatorTest
             seen.add(Integer.valueOf((placement.getY() * 2) + (placement.isTop() ? 1 : 0)));
         }
         final List<Integer> out = new ArrayList<>(seen);
-        Collections.sort(out, Collections.reverseOrder());
+        out.sort(Collections.reverseOrder());
         return out;
     }
 

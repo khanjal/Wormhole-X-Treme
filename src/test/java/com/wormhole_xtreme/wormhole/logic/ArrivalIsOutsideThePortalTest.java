@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -110,9 +109,9 @@ class ArrivalIsOutsideThePortalTest
         }
 
         assertTrue(exitsChecked > 0, "no exit markers were found, so this proved nothing");
-        Collections.sort(inside);
+        inside.sort(null);
         final List<String> expected = new ArrayList<>(LANDS_INSIDE);
-        Collections.sort(expected);
+        expected.sort(null);
         assertEquals(expected, inside,
             "a shape changed which side of its portal it lands arrivals on. Anything listed "
                 + "here can only ever have air in its portal blocks; anything not listed can "
