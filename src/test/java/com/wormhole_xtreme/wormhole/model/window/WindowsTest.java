@@ -1862,10 +1862,10 @@ class WindowsTest
         final int[] span = { 0, 18 };
 
         assertArrayEquals(new int[] { 0, 18, 56, 82 },
-            Windows.withinFace(new double[] { -300.0, 300.0, -200.0, 250.0 }, span, 56, 82),
+            WindowOcclusion.withinFace(new double[] { -300.0, 300.0, -200.0, 250.0 }, span, 56, 82),
             "a shadow six hundred blocks across marks the read face and no more");
         assertArrayEquals(new int[] { 10, 10, 64, 64 },
-            Windows.withinFace(new double[] { 9.9, 11.05, 63.9, 65.1 }, span, 56, 82),
+            WindowOcclusion.withinFace(new double[] { 9.9, 11.05, 63.9, 65.1 }, span, 56, 82),
             "an ordinary shadow marks only the blocks wholly inside it, as before");
     }
 
