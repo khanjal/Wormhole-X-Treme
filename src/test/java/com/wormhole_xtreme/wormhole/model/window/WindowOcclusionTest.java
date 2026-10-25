@@ -45,7 +45,6 @@ class WindowOcclusionTest
     private static final List<Spot> OPENING = List.of(new Spot(10, 64, 20), new Spot(10, 65, 20));
     private static final double MOST_BESIDE = 0.05;
 
-    /** Stub-only mocks: a shadow read asks the world thousands of times, and a recording mock keeps every ask. */
     private World world;
     private Block anchor;
     private Block stone;
@@ -53,6 +52,7 @@ class WindowOcclusionTest
     /** The solid blocks of the world {@link #world} answers for. */
     private final Set<Long> solidWorld = new HashSet<>();
 
+    /** The mocks are stub-only: a shadow read asks the world thousands of times, and a recording mock keeps every ask. */
     @BeforeEach
     void setUp()
     {
@@ -593,6 +593,45 @@ class WindowOcclusionTest
         assertEquals(Set.of(face(10, 56)),
             WindowOcclusion.shielded(window(SHAPE, OPENING), eye(10.5, 65.0, 10.0), 0L),
             "eight below the foot at 64; its shadow runs 55 to 57 up, cut to row 56, the lowest read");
+    }
+
+    /** The across range read reaches its high end: a block at the last coordinate of the span still throws its shadow. */
+    @Test
+    void aSolidBlockAtTheHighEndOfTheSpanReadStillThrowsItsShadow()
+    {
+        solidWorld.add(Cells.key(19, 64, 19));
+
+        assertEquals(Set.of(face(19, 63), face(19, 64)),
+            WindowOcclusion.shielded(window(SHAPE, OPENING), eye(19.5, 65.0, 18.0), 0L),
+            "span 1 to 19 (the opening's 10, eight and one more each way); shadow 18.5 to 20.5 across, 63 to 65 up: cut to block 19");
+    }
+
+    /** The same at the low end of the span. */
+    @Test
+    void aSolidBlockAtTheLowEndOfTheSpanReadStillThrowsItsShadow()
+    {
+        solidWorld.add(Cells.key(1, 64, 19));
+
+        assertEquals(Set.of(face(1, 63), face(1, 64)),
+            WindowOcclusion.shielded(window(SHAPE, OPENING), eye(1.5, 65.0, 18.0), 0L),
+            "shadow 0.5 to 2.5 across, 63 to 65 up: cut to block 1, the first of the span");
+    }
+
+    /** A shadow that runs past either end of the span is cut at that end, so the span's reach is what is marked. */
+    @Test
+    void aShadowRunningPastEitherEndOfTheSpanIsCutAtIt()
+    {
+        solidWorld.add(Cells.key(19, 64, 19));
+        assertEquals(Set.of(face(19, 63), face(19, 64)),
+            WindowOcclusion.shielded(window(SHAPE, OPENING), eye(17.5, 65.0, 18.0), 0L),
+            "high end: shadow 19 to 22.5 across, cut to block 19, the last of the span");
+
+        solidWorld.clear();
+        WindowSight.clear();
+        solidWorld.add(Cells.key(1, 64, 19));
+        assertEquals(Set.of(face(1, 63), face(1, 64)),
+            WindowOcclusion.shielded(window(SHAPE, OPENING), eye(3.5, 65.0, 18.0), 0L),
+            "low end: shadow -1.5 to 2 across, cut to block 1, the first of the span");
     }
 
     /** A face that looks along x is read along x: the same case turned a quarter. */
