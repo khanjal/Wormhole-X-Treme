@@ -2877,7 +2877,7 @@ public final class Windows
      * @return the block's outline on the opening's face, or {@link WindowShape#UNSEEN} if it is
      *         not seen through it
      */
-    private static double[] seenThrough(final Location eye, final WindowState window, final int x,
+    static double[] seenThrough(final Location eye, final WindowState window, final int x,
         final int y, final int z, final List<WindowState> seeing, final double spread)
     {
         final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
@@ -2907,7 +2907,7 @@ public final class Windows
     }
 
     /** Whether most of a block's outline on the face lands where nothing outside can see it. */
-    private static boolean coveredBy(final WindowState window, final double[] rect,
+    static boolean coveredBy(final WindowState window, final double[] rect,
         final Set<Long> allOpen, final Set<Long> shielded, final double mostBeside)
     {
         return window.shape.covered(rect,
@@ -2948,7 +2948,7 @@ public final class Windows
      * block may spill half a block onto it and no more, and with two the inner ring is all wall.
      * A ring hidden by something real in front hides all of itself, as before.
      */
-    private static double[] cover(final WindowState window, final int across, final int y,
+    static double[] cover(final WindowState window, final int across, final int y,
         final Set<Long> allOpen, final Set<Long> shielded)
     {
         // Boxed once for the four lookups below, not once each.
@@ -2978,7 +2978,7 @@ public final class Windows
      * like a thick wall, instead of leaving holes wherever a drawn block's outline strayed past
      * a three-block-wide wall into the open air beside it.
      */
-    private static Set<Long> shielded(final WindowState window, final Location eye, final long now)
+    static Set<Long> shielded(final WindowState window, final Location eye, final long now)
     {
         final WindowShape shape = window.shape;
         final Spot into = shape.into();
@@ -3019,7 +3019,7 @@ public final class Windows
     }
 
     /** Hides the face blocks a shadow covers whole; none for a block that throws none. */
-    private static void hideUnder(final Set<Long> hidden, final WindowShape shape, final double[] rect,
+    static void hideUnder(final Set<Long> hidden, final WindowShape shape, final double[] rect,
         final int[] span, final int lowY, final int highY)
     {
         if (rect == WindowShape.UNSEEN)
