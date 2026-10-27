@@ -52,6 +52,9 @@ public final class GateViews
     /** Before a gate's name, so the sweep cannot mistake it for a mirror's. */
     private static final String PREFIX = "gate:";
 
+    /** The {@code gate-view} level that draws the horizon and nothing behind it. */
+    private static final String HORIZON = "horizon";
+
     /** Gates whose horizon has cleared for their view, by name. */
     private static final Set<String> CLEARED = new HashSet<>();
 
@@ -334,7 +337,7 @@ public final class GateViews
     public static void offerAll()
     {
         final String level = ConfigManager.getGateView();
-        final boolean draws = !"horizon".equals(level);
+        final boolean draws = !HORIZON.equals(level);
         final Set<String> open = new HashSet<>();
         final Set<String> clear = new HashSet<>();
         final Set<String> busy = new HashSet<>();
@@ -462,7 +465,7 @@ public final class GateViews
      */
     public static void dialled(final Stargate gate)
     {
-        if ((gate == null) || "horizon".equals(ConfigManager.getGateView()) || (gate.getGateTarget() == null)
+        if ((gate == null) || HORIZON.equals(ConfigManager.getGateView()) || (gate.getGateTarget() == null)
             || (gate.getGateTarget().getGateName() == null) || !watched(gate))
         {
             return;
@@ -680,7 +683,7 @@ public final class GateViews
 
     private static String statusOf(final Stargate gate, final String level)
     {
-        if ("horizon".equals(level))
+        if (HORIZON.equals(level))
         {
             return "none, the horizon is drawn as it always was";
         }
