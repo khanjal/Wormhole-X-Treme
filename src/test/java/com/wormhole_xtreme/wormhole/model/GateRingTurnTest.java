@@ -74,6 +74,8 @@ class GateRingTurnTest
             .toArray(new String[0]));
         grid = GateBlueprint.inFrontOf(shape, 0, 64, 0, BlockFace.NORTH);
         cells = GateBlueprint.of(shape, grid);
+        // These tests turn the ring, so they start on the pattern that does; the shipped default is NONE.
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
     }
 
     @AfterEach
@@ -82,6 +84,7 @@ class GateRingTurnTest
         PluginTestSupport.scheduler(null);
         PluginTestSupport.remove();
         PluginTestSupport.forgetAllGates();
+        ConfigTestSupport.clear();
     }
 
     private Location at(final Cell c)
@@ -158,7 +161,7 @@ class GateRingTurnTest
     }
 
     /**
-     * Before the first chevron locks, the default TOP turn starts opposite the top and moves a tick
+     * Before the first chevron locks, the TOP turn starts opposite the top and moves a tick
      * at a time, and the chevron locks only once the turn is done.
      */
     @Test
@@ -231,14 +234,14 @@ class GateRingTurnTest
         }
         finally
         {
-            // The default, as the other tests here assume.
+            // The pattern the other tests here start on.
             ConfigTestSupport.set(
                 ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "TOP");
         }
     }
 
     /**
-     * The default TOP turn leaves its light on the top chevron as the first chevron locks, and for
+     * The TOP turn leaves its light on the top chevron as the first chevron locks, and for
      * the rest after it, before setting off for the second; the second locks that much later.
      */
     @Test

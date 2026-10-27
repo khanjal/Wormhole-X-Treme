@@ -26,7 +26,7 @@ final class GateSettings
     /**
      * How a dialling gate's inner ring light moves. A config.yml from before patterns holds
      * {@code true} or {@code false}, read as TOP and NONE; a missing or unreadable value is the
-     * default, TOP.
+     * default, NONE.
      *
      * @return never null
      */
@@ -35,7 +35,7 @@ final class GateSettings
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_DIAL_SPIN);
         final DialSpinPattern pattern = (s == null) ? null
             : DialSpinPattern.parse(String.valueOf(s.getValue()));
-        return (pattern == null) ? DialSpinPattern.TOP : pattern;
+        return (pattern == null) ? DialSpinPattern.NONE : pattern;
     }
 
     /**

@@ -109,7 +109,7 @@ ring turn. A build preview's test dial turns the same way. `gate-dial-spin` pick
 
 | Pattern | Before each chevron locks |
 |---|---|
-| `top` *(default)* | Half the ring to the top chevron, turning the other way each glyph. The light rests on the top as the chevron locks, for half a second, before the ring turns again |
+| `top` | Half the ring to the top chevron, turning the other way each glyph. The light rests on the top as the chevron locks, for half a second, before the ring turns again |
 | `chevron` | From the top anticlockwise to the first chevron, then from each locked chevron to the next, turning the other way each time, a glyph's width at a time over the frame; a chevron lights only as it locks |
 | `lap` | A whole turn clockwise, landing on the chevron: round and round |
 | `fill` | As `pegasus`, lighting the ring behind it as it goes |
@@ -117,7 +117,7 @@ ring turn. A build preview's test dial turns the same way. `gate-dial-spin` pick
 | `chase` | A whole turn anticlockwise from chevron 1 back to it, then from each locked chevron to the next, clockwise to chevron 2 and turning the other way each time |
 | `universe` | As Destiny's gate dials: the whole ring turns about a full turn for each glyph, the other way each time. The top chevron's light rides round from the start, and each chevron lights at the top as it locks and rides round too, rather than lighting in its own place. When the top chevron locks, every one is back in its place. On a dial to another world, the eighth then turns a full turn and locks in its own place |
 | `overshoot` | As `pegasus`, running a little past the chevron and backing onto it |
-| `none` | No ring light |
+| `none` *(default)* | No ring light |
 
 A gate can have its own pattern: `/wormhole gate edit <gate> spin <pattern>`, or `default` to
 go back. A material group can set one for its gates with `dial-spin:` (below). A gate uses its
@@ -740,7 +740,7 @@ Not sounds, but they go with them. In `config.yml` the dial spin is under `# ---
 
 | Setting | Default | What it does |
 |---|---|---|
-| `gate-dial-spin` | `top` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `top`: half the ring to the top chevron, alternating direction, resting there as each chevron locks. `chevron`: from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `lap`: a whole turn clockwise every glyph. `fill`: as `pegasus`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, half the ring, landing on the chevron about to lock, alternating. `chase`: a whole turn anticlockwise to chevron 1, then from each locked chevron to the next, alternating. `universe`: as Destiny's gate dials, about a full turn each glyph, each locked chevron riding round with the ring until the last puts them all back in place. `overshoot`: as `pegasus`, running past and backing onto it. `none`: no ring light. `top` dials slower by resting half a second on the top after each lock, and `universe` a little, by turning about a full turn for each glyph at its own pace; `true` and `false` from older configs mean `top` and `none`. A gate's own `spin`, or its group's `dial-spin`, comes first. |
+| `gate-dial-spin` | `none` | How the inner ring's light moves before each chevron locks, on gates and build previews alike. `top`: half the ring to the top chevron, alternating direction, resting there as each chevron locks. `chevron`: from the top anticlockwise to chevron 1, then from each locked chevron to the next, alternating, a glyph's width at a time. `lap`: a whole turn clockwise every glyph. `fill`: as `pegasus`, lighting everything behind it. `pegasus`: as an Atlantis gate dials, half the ring, landing on the chevron about to lock, alternating. `chase`: a whole turn anticlockwise to chevron 1, then from each locked chevron to the next, alternating. `universe`: as Destiny's gate dials, about a full turn each glyph, each locked chevron riding round with the ring until the last puts them all back in place. `overshoot`: as `pegasus`, running past and backing onto it. `none`: no ring light. `top` dials slower by resting half a second on the top after each lock, and `universe` a little, by turning about a full turn for each glyph at its own pace; `true` and `false` from older configs mean `top` and `none`. A gate's own `spin`, or its group's `dial-spin`, comes first. |
 
 A traveller sees water for 20 ticks on arrival; this is no longer a setting and cannot be turned
 off. It is kept short because the client believes it is swimming for as long as the water shows,

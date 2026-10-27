@@ -375,7 +375,7 @@ class DialSpinPatternTest
         }
         assertEquals(List.of("true", "false"), ConfigManager.valuesFor("PETS_FOLLOW_OWNER"));
         assertTrue(ConfigManager.valuesFor("not-a-setting").isEmpty());
-        assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern(),
+        assertEquals(DialSpinPattern.NONE, ConfigManager.getGateDialSpinPattern(),
             "the default, not the CHEVRON it was");
     }
 
@@ -385,7 +385,7 @@ class DialSpinPatternTest
     {
         ConfigTestSupport.clear();
 
-        assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern());
+        assertEquals(DialSpinPattern.NONE, ConfigManager.getGateDialSpinPattern());
     }
 
     /** FILL leaves the light behind it lit, so it only ever grows. */

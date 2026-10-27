@@ -12,6 +12,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Releases:**
 
+- [1.13.0 (unreleased)](#1130-unreleased)
 - [1.12.0 (2026-10-25)](#1120-2026-10-25)
 - [1.11.0 (2026-10-17)](#1110-2026-10-17)
 - [1.10.0 (2026-10-12)](#1100-2026-10-12)
@@ -73,6 +74,14 @@ somebody else's release notes, and the record of where this fork came from.
 - [0.32 (1/26/11)](#032-12611)
 - [0.31 (1/26/11)](#031-12611)
 - [0.3 (1/26/11)](#03-12611)
+
+## 1.13.0 (unreleased)
+
+### For server admins
+
+**Changed**
+
+- **`gate-dial-spin` defaults to `none`**, as the original plugin dialled: no ring light until a gate, group or the setting asks for one. A `config.yml` that already has the setting keeps its value; `/wormhole config gate-dial-spin top` brings back the 1.12 default ([#697](https://github.com/khanjal/Wormhole-X-Treme/issues/697)).
 
 ## 1.12.0 (2026-10-25)
 

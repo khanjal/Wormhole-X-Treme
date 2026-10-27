@@ -613,14 +613,14 @@ class ConfigAccessorTableTest
             row("isSameWorldOnly", ConfigKeys.SAME_WORLD_ONLY, false, false, true),
             row("isShowGateWelcomeMessage", ConfigKeys.SHOW_GATE_WELCOME_MESSAGE, false, false, true),
             row("getGateDialSpinPattern", ConfigKeys.GATE_DIAL_SPIN,
-                DialSpinPattern.TOP, DialSpinPattern.TOP, DialSpinPattern.LAP),
+                DialSpinPattern.NONE, DialSpinPattern.NONE, DialSpinPattern.LAP),
             dialSpin("CHASE, Pegasus group", DialSpinPattern.CHASE, PEGASUS_ROWS_GROUP,
                 DialSpinPattern.CHASE, DialSpinPattern.CHASE, DialSpinPattern.CHASE),
             dialSpin("null, Pegasus group", null, PEGASUS_ROWS_GROUP,
                 DialSpinPattern.PEGASUS, DialSpinPattern.PEGASUS, DialSpinPattern.PEGASUS),
             dialSpin("null, plain group", null, PLAIN_GROUP,
-                DialSpinPattern.TOP, DialSpinPattern.TOP, DialSpinPattern.LAP),
-            dialSpin("null, null", null, null, DialSpinPattern.TOP, DialSpinPattern.TOP, DialSpinPattern.LAP),
+                DialSpinPattern.NONE, DialSpinPattern.NONE, DialSpinPattern.LAP),
+            dialSpin("null, null", null, null, DialSpinPattern.NONE, DialSpinPattern.NONE, DialSpinPattern.LAP),
             row("isGateRipple", ConfigKeys.GATE_RIPPLE, false, false, true),
             new Row(irisCall("instant, rows group", "instant", PEGASUS_ROWS_GROUP), ConfigKeys.GATE_IRIS_ANIMATION,
                 "instant", "instant", "instant"),
@@ -793,7 +793,7 @@ class ConfigAccessorTableTest
         o.add(odd("getGateDialSpinPattern", ConfigKeys.GATE_DIAL_SPIN, false, DialSpinPattern.NONE));
         o.add(odd("getGateDialSpinPattern", ConfigKeys.GATE_DIAL_SPIN, "off", DialSpinPattern.NONE));
         o.add(odd("getGateDialSpinPattern", ConfigKeys.GATE_DIAL_SPIN, " chase ", DialSpinPattern.CHASE));
-        o.add(odd("getGateDialSpinPattern", ConfigKeys.GATE_DIAL_SPIN, "bogus", DialSpinPattern.TOP));
+        o.add(odd("getGateDialSpinPattern", ConfigKeys.GATE_DIAL_SPIN, "bogus", DialSpinPattern.NONE));
         // Not checked against the animations there are: an unknown one comes back as written
         o.add(odd(irisCall("null, null", null, null), ConfigKeys.GATE_IRIS_ANIMATION, " BOGUS ", "bogus"));
         o.add(odd("getMinGateDistance", ConfigKeys.MIN_GATE_DISTANCE, -5, 0));
