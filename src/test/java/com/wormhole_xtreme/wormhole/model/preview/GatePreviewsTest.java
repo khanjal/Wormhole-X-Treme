@@ -2572,7 +2572,7 @@ class GatePreviewsTest
     }
 
     /**
-     * The default TOP turn rests on the top as a chevron locks: the top is still lit once the lock
+     * The TOP turn rests on the top as a chevron locks: the top is still lit once the lock
      * is drawn, and the next chevron locks the rest later, as a real gate's does.
      */
     @Test

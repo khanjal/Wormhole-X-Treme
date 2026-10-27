@@ -81,7 +81,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Changed**
 
-- **`gate-dial-spin` defaults to `none`**, as the original plugin dialled: no ring light until a gate, group or the setting asks for one. A `config.yml` you have edited keeps its value; `/wormhole config gate-dial-spin top` brings back the 1.12 default ([#697](https://github.com/khanjal/Wormhole-X-Treme/issues/697)).
+- **`gate-dial-spin` defaults to `none`**, as the original plugin dialled: no ring light until a gate, group or the setting asks for one. A `config.yml` keeps its value, unless it is still exactly as 1.10 or earlier wrote it, which is rewritten and gets `none`; `/wormhole config gate-dial-spin top` brings back the 1.12 default ([#697](https://github.com/khanjal/Wormhole-X-Treme/issues/697)).
 
 ## 1.12.0 (2026-10-25)
 
