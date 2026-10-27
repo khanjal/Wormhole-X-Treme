@@ -1056,7 +1056,7 @@ is ready either way; `/dial` darkens it and runs the sequence in order, with the
 another world. A sign dial knows its destination when the button is pressed, so it skips the
 sequence: both ends light the chevrons they need at once, with the lock-in sound, and open.
 
-**The ring turns inside the chevron's interval.** Before each chevron locks, a light runs round
+**The ring can turn inside the chevron's interval.** Before each chevron locks, a light runs round
 the front layer of the ring, nearest the DHD, as the show's ring is the face you look at. It is
 laid from the gate's own recorded frame, the way `regen` lays a shape, and a gate whose frame
 no longer fits its shape gets no ring rather than one drawn beside it. `gate-dial-spin` chooses

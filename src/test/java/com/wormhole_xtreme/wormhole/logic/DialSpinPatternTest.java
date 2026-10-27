@@ -63,7 +63,7 @@ class DialSpinPatternTest
     {
         assertEquals(DialSpinPattern.LAP, DialSpinPattern.parse("lap"));
         assertEquals(DialSpinPattern.PEGASUS, DialSpinPattern.parse(" Pegasus "));
-        assertEquals(DialSpinPattern.TOP, DialSpinPattern.parse("true"), "the old switch on means the default");
+        assertEquals(DialSpinPattern.TOP, DialSpinPattern.parse("true"), "the old switch on means TOP");
         assertEquals(DialSpinPattern.NONE, DialSpinPattern.parse("FALSE"));
         assertEquals(DialSpinPattern.NONE, DialSpinPattern.parse("off"));
         assertEquals(DialSpinPattern.NONE, DialSpinPattern.parse("none"));
@@ -375,17 +375,17 @@ class DialSpinPatternTest
         }
         assertEquals(List.of("true", "false"), ConfigManager.valuesFor("PETS_FOLLOW_OWNER"));
         assertTrue(ConfigManager.valuesFor("not-a-setting").isEmpty());
-        assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern(),
+        assertEquals(DialSpinPattern.NONE, ConfigManager.getGateDialSpinPattern(),
             "the default, not the CHEVRON it was");
     }
 
-    /** A config with no gate-dial-spin at all turns the same default as a fresh one, not the old CHEVRON. */
+    /** A config with no gate-dial-spin at all takes the same default as a fresh one, not the old CHEVRON. */
     @Test
     void aMissingSettingTurnsTheDefault()
     {
         ConfigTestSupport.clear();
 
-        assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern());
+        assertEquals(DialSpinPattern.NONE, ConfigManager.getGateDialSpinPattern());
     }
 
     /** FILL leaves the light behind it lit, so it only ever grows. */

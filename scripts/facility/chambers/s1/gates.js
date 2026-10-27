@@ -27,7 +27,7 @@ const cases = [
   v('preview limits', '`gate-preview-max-blocks`: 10 refuses a preview as too many blocks, 0 says previews are off; the default stands one'),
   v('preview minutes', '`gate-preview-minutes 1`: a preview is gone a minute later, with nobody clearing it'),
   v('iris animation', '`gate-iris-animation instant`: a gate with none of its own shuts its iris in one step, where the default sweeps'),
-  v('dial spin', '`gate-dial-spin none`: the chevrons lock about twice as fast as with the default top rest'),
+  v('dial spin', '`gate-dial-spin none`: the chevrons lock about twice as fast as with the top rest'),
   v('arrival splash', 'water is drawn over the eyes of a traveller arriving through a gate, for a second'),
   v('log level', '`log-level FINE`: a DHD press is logged as [FINE], and not at INFO'),
   v('sign colours', 'sign-color-gate-name RED, -network GOLD, -owner BLUE and sign-glowing-text true: the name sign a gate is built with is written so'),
@@ -214,6 +214,7 @@ async function run(ctx, o) {
       const span = waves.length > 1 ? (waves[waves.length - 1].at - waves[0].at) / (waves.length - 1) : null;
       return { dial, waves: waves.length, span };
     };
+    await ctx.config.set('gate-dial-spin', 'top', 's1');
     obs.top = await once();
     await ctx.config.set('gate-dial-spin', 'none', 's1');
     obs.none = await once();
@@ -360,9 +361,9 @@ function checks(obs, o) {
       }));
   } else if (o.case === 'dial spin') {
     list.push(c('both dials connected, each with its seven chevrons seen', () => [obs.top, obs.none].every((x) => x && /Stargates connected/.test(x.dial) && x.waves === 7)),
-      c('with none, a chevron in 0.35 to 0.65 of the default\'s time (its rest on the top chevron gone)', () => {
+      c('with none, a chevron in 0.35 to 0.65 of top\'s time (its rest on the top chevron gone)', () => {
         if (obs.top.span && obs.none.span && obs.none.span >= obs.top.span * 0.35 && obs.none.span <= obs.top.span * 0.65) return true;
-        throw new Error(`${obs.top && Math.round(obs.top.span)} ms a chevron by default, ${obs.none && Math.round(obs.none.span)} with none`);
+        throw new Error(`${obs.top && Math.round(obs.top.span)} ms a chevron with top, ${obs.none && Math.round(obs.none.span)} with none`);
       }));
   } else if (o.case === 'arrival splash') {
     list.push(c('Probe arrived at Relay with water drawn over its eyes', () => obs.byDefault && obs.byDefault.arrived && obs.byDefault.water > 0));

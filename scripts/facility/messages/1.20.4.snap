@@ -656,7 +656,7 @@ resets	:: error :: You have no place named Pad-W.
 s1 bad values	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
 s1 bad values	:: Available gates ::
 s1 bad values	:: Cleared N previews.
-s1 bad values	:: GATE_DIAL_SPIN = TOP
+s1 bad values	:: GATE_DIAL_SPIN = NONE
 s1 bad values	:: GATE_IRIS_ANIMATION = sweep
 s1 bad values	:: GATE_SOUNDS_ENABLED = true
 s1 bad values	:: GATE_SOUND_VOLUME = N
@@ -738,7 +738,7 @@ s1 every setting	:: ECONOMY_USE_COST = N
 s1 every setting	:: Enable Cooldown timers on stargate usage. Timer only activates on passage through wormholes.
 s1 every setting	:: Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.
 s1 every setting	:: Furthest apart the two ends of a ring pair may be on the ground, in blocks. N is sixteen chunks; gates are the long-haul option. N for no limit.
-s1 every setting	:: GATE_DIAL_SPIN = TOP
+s1 every setting	:: GATE_DIAL_SPIN = NONE
 s1 every setting	:: GATE_IRIS_ANIMATION = sweep
 s1 every setting	:: GATE_MATERIAL_GROUPS_AUTODISCOVER
 s1 every setting	:: GATE_MATERIAL_GROUPS_AUTODISCOVER = true
