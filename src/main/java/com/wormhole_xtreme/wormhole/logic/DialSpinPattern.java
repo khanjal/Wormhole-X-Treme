@@ -48,7 +48,7 @@ public enum DialSpinPattern
 
     /**
      * Reads a pattern by name, whatever its capitals. {@code true} and {@code false} are the
-     * setting's values before it had patterns, and mean the default {@link #TOP} and {@link #NONE}; {@code off} is {@link #NONE} too.
+     * setting's values before it had patterns, and mean {@link #TOP} and {@link #NONE}; {@code off} is {@link #NONE} too.
      *
      * @param raw
      *            the value as written

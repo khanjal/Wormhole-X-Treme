@@ -102,7 +102,7 @@ Gates work in the Nether and the End.
 
 `/dial` finishes a dial the button started; it cannot start one on its own.
 
-**The inner ring turns while a gate dials.** Before each chevron locks, a light runs round the
+**The inner ring can turn while a gate dials.** Before each chevron locks, a light runs round the
 ring, and the chevron locks when it has finished. Only the gate dialling out turns; the gate
 being dialled lights its chevrons in order without it. A sign dial opens at once, so it has no
 ring turn. A build preview's test dial turns the same way. `gate-dial-spin` picks the pattern:
