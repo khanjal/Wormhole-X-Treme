@@ -103,6 +103,21 @@ class MirrorTabCompletionTest
         }
     }
 
+    /** A name that a mirror and a gate share is offered once; debug reads it as the mirror. */
+    @Test
+    void debugOffersAnAmbiguousNameOnce()
+    {
+        final Stargate gate = mock(Stargate.class);
+        when(gate.getGateName()).thenReturn("museum");
+
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(gate));
+
+            assertEquals(List.of("museum"), complete("mirror", "debug", "mus"));
+        }
+    }
+
     private static List<String> complete(final String... args)
     {
         return SubCommands.find("mirror").completeArgs(null, args);

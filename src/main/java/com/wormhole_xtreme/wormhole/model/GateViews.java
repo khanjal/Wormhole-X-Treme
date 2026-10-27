@@ -681,6 +681,7 @@ public final class GateViews
         return lines;
     }
 
+    /** @return whether and why a gate's view is drawn, on one line, for {@link #describe} */
     private static String statusOf(final Stargate gate, final String level)
     {
         if (HORIZON.equals(level))
@@ -696,7 +697,7 @@ public final class GateViews
         }
         if (shapeOf(gate, crossing) == null)
         {
-            return MirrorText.bad("none") + ", its opening cannot show one: lying flat, no frame round it, or too big";
+            return MirrorText.bad("none") + ", its opening cannot show one: lying flat, empty, no frame round it, or too big";
         }
         if (!watched(gate))
         {

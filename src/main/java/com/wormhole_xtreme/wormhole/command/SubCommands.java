@@ -874,7 +874,10 @@ public final class SubCommands
         }
         if (args.length == 3)
         {
-            return prefixed(args[2], both(both(mirrorNames(), gateNames(args[2]).toArray(new String[0])), DEBUG_SWITCHES));
+            // One entry for a name a mirror and a gate share, which debug reads as the mirror.
+            final LinkedHashSet<String> names = new LinkedHashSet<>(Arrays.asList(mirrorNames()));
+            names.addAll(gateNames(args[2]));
+            return prefixed(args[2], both(names.toArray(new String[0]), DEBUG_SWITCHES));
         }
         final boolean afterName = (args.length == 4)
             && Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));
