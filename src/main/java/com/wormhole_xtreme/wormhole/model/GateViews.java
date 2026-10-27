@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.StargateBlockSetup.Redrawn;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.window.Funnel;
 import com.wormhole_xtreme.wormhole.model.window.Place;
@@ -625,17 +626,81 @@ public final class GateViews
      */
     static WindowShape shapeOf(final Stargate gate, final boolean crossing)
     {
-        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || (gate.isGateIrisActive() && !crossing)
-            || (gate.getGateWorld() == null) || (gate.getGateTarget() == null) || (gate.getGateTarget().getGateName() == null))
+        if (blockedBy(gate, crossing) != null)
         {
             return null;
+        }
+        return shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate),
+            Place.of(gate.getGateTarget().getGatePlayerTeleportLocation()));
+    }
+
+    /**
+     * Why an open gate cannot show a view right now, in the words {@code mirror debug} gives.
+     *
+     * @param crossing
+     *            true while its iris is crossing, when a shut iris still shows the view it is closing over
+     * @return the reason, or null when only the shape of its opening is left to decide
+     */
+    private static String blockedBy(final Stargate gate, final boolean crossing)
+    {
+        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || (gate.getGateWorld() == null))
+        {
+            return "its wormhole is not open";
+        }
+        if (gate.isGateIrisActive() && !crossing)
+        {
+            return "its iris is shut";
+        }
+        if ((gate.getGateTarget() == null) || (gate.getGateTarget().getGateName() == null))
+        {
+            return "it is not dialling out; the far end keeps its horizon";
         }
         final Location arrival = gate.getGateTarget().getGatePlayerTeleportLocation();
-        if ((arrival == null) || (arrival.getWorld() == null))
+        return ((arrival == null) || (arrival.getWorld() == null)) ? "its far gate has no arrival point" : null;
+    }
+
+    /**
+     * What a gate's view is doing, for {@code mirror debug <gate>}: the level, and whether and why it is drawn.
+     *
+     * @return lines to say
+     */
+    public static List<String> describe(final Stargate gate)
+    {
+        final String level = ConfigManager.getGateView();
+        final List<String> lines = new ArrayList<>();
+        lines.add(MirrorText.heading("gate ") + MirrorText.quoted(gate.getGateName()));
+        lines.add(MirrorText.field("level", level + " (gate-view)"));
+        lines.add(MirrorText.field("view", statusOf(gate, level)));
+        return lines;
+    }
+
+    private static String statusOf(final Stargate gate, final String level)
+    {
+        if ("horizon".equals(level))
         {
-            return null;
+            return "none, the horizon is drawn as it always was";
         }
-        return shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), Place.of(arrival));
+        final String blocked = blockedBy(gate, false);
+        if (blocked != null)
+        {
+            return MirrorText.bad("none") + ", " + blocked;
+        }
+        if (shapeOf(gate, false) == null)
+        {
+            return MirrorText.bad("none") + ", its opening cannot show one: lying flat, no frame round it, or too big";
+        }
+        if (!watched(gate))
+        {
+            return MirrorText.bad("not drawn") + ", its chunk is not loaded or nobody is within "
+                + ConfigManager.getMirrorProximityDistance() + " blocks (mirror-proximity-distance)";
+        }
+        final long age = Windows.captureSecondsOld(PREFIX + gate.getGateName());
+        if (age < 0)
+        {
+            return "offered to the sweep, no window yet; its capture is being taken";
+        }
+        return MirrorText.good("drawn") + ", capture " + age + "s old" + (CLEARED.contains(gate.getGateName())
+            ? ", its horizon cleared for the view" : ", behind its horizon");
     }
 
     /**

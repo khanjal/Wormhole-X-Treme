@@ -22,6 +22,9 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
+import com.wormhole_xtreme.wormhole.model.GateViews;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
@@ -1284,8 +1287,12 @@ public class MirrorCommand implements SubCommand
         // How many words the command has with no name in it.
         final int bare = (full || all) ? 3 : 2;
         final String name = (args.length > bare) ? args[2] : null;
+        if (sayGateView(sender, name))
+        {
+            return;
+        }
         final QuantumMirror mirror = namedOrLookedAt(sender, name,
-            () -> sayUsage(sender, "debug [<name>] [-all|-full] | debug -views | debug -off|-on"));
+            () -> sayUsage(sender, "debug [<name>|<gate>] [-all|-full] | debug -views | debug -off|-on"));
         if (mirror == null)
         {
             return;
@@ -1311,6 +1318,22 @@ public class MirrorCommand implements SubCommand
             say(sender, MirrorText.field("your eye", String.format(Locale.ROOT, "%.2f,%.2f,%.2f, yaw %.1f, pitch %.1f",
                 eye.getX(), eye.getY(), eye.getZ(), eye.getYaw(), eye.getPitch())));
         }
+    }
+
+    /**
+     * {@code debug <gate>}: how a gate's view is being drawn, for a name no mirror has but a gate does.
+     *
+     * @return true if it was a gate, and has been told
+     */
+    private static boolean sayGateView(final CommandSender sender, final String name)
+    {
+        final Stargate gate = ((name == null) || (MirrorManager.byName(name) != null)) ? null
+            : StargateManager.getStargate(name);
+        if (gate != null)
+        {
+            GateViews.describe(gate).forEach(line -> say(sender, line));
+        }
+        return gate != null;
     }
 
     /** {@code debug -off} and {@code -on}: views off for the sender, or back on. */

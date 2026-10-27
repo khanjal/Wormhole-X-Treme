@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -661,5 +662,109 @@ class GateViewsSweepTest
             captures.verify(() -> Captures.forgetGate("Abydos"), times(1));
             windows.verify(() -> Windows.release("gate:Abydos"), times(1));
         }
+    }
+
+    /** What {@code mirror debug <gate>} says, as one string to look in. */
+    private String said()
+    {
+        return String.join("\n", GateViews.describe(gate));
+    }
+
+    /** What the last sweep found of the gate's window: its capture's age in seconds, or -1 for no window. */
+    private void windowAge(final long seconds)
+    {
+        windows.when(() -> Windows.captureSecondsOld("gate:Abydos")).thenReturn(seconds);
+    }
+
+    /**
+     * At {@code horizon} nothing is drawn behind the opening, and {@code mirror debug} says that is
+     * the setting and not a fault, rather than leaving an admin to wonder why a gate shows no view.
+     */
+    @Test
+    void debugAtHorizonSaysNoViewIsDrawnBecauseOfTheLevel()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+
+        assertTrue(said().contains("horizon (gate-view)"), said());
+        assertTrue(said().contains("the horizon is drawn as it always was"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateWhoseWormholeIsNotOpenHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.isGatePortalOpen()).thenReturn(false);
+
+        assertTrue(said().contains("its wormhole is not open"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateWithAShutIrisHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.isGateIrisActive()).thenReturn(true);
+
+        assertTrue(said().contains("its iris is shut"), said());
+    }
+
+    /** The end that was dialled keeps its horizon, since a window there would invite a step the gate refuses. */
+    @Test
+    void debugSaysTheFarEndKeepsItsHorizon()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateTarget()).thenReturn(null);
+
+        assertTrue(said().contains("not dialling out"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateLyingFlatHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateFacing()).thenReturn(BlockFace.UP);
+
+        assertTrue(said().contains("cannot show one"), said());
+    }
+
+    @Test
+    void debugSaysWhenNobodyIsNearEnoughToBeDrawnTheView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        near(false);
+
+        assertTrue(said().contains("not drawn"), said());
+        assertTrue(said().contains("mirror-proximity-distance"), said());
+    }
+
+    @Test
+    void debugSaysAGateWhoseCaptureIsStillBeingTakenHasNoWindowYet()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        windowAge(-1);
+
+        assertTrue(said().contains("no window yet"), said());
+    }
+
+    @Test
+    void debugSaysHowOldTheCaptureIsOfAGateThatIsDrawn()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        windowAge(7);
+
+        assertTrue(said().contains("drawn"), said());
+        assertTrue(said().contains("capture 7s old"), said());
+        assertTrue(said().contains("behind its horizon"), said());
+    }
+
+    /** At {@code open} a drawn gate has its horizon cleared, and the line says so. */
+    @Test
+    void debugSaysWhenADrawnGateHasItsHorizonCleared()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        drawn(true);
+        windowAge(3);
+        GateViews.offerAll();
+
+        assertTrue(said().contains("its horizon cleared for the view"), said());
     }
 }

@@ -79,6 +79,10 @@ somebody else's release notes, and the record of where this fork came from.
 
 ### For server admins
 
+**Added**
+
+- **`/wormhole mirror debug <gate>` says how a gate's view is being drawn**: the `gate-view` level, and whether the view is drawn and, if not, why (not open, iris shut, the end that was dialled, an opening that cannot show one, nobody near, or its capture still being taken) ([#685](https://github.com/khanjal/Wormhole-X-Treme/issues/685)).
+
 **Changed**
 
 - **`gate-dial-spin` defaults to `none`**, as the original plugin dialled: no ring light until a gate, group or the setting asks for one. A `config.yml` keeps its value, unless it is still exactly as 1.10 or earlier wrote it, which is rewritten and gets `none`; `/wormhole config gate-dial-spin top` brings back the 1.12 default ([#697](https://github.com/khanjal/Wormhole-X-Treme/issues/697)).
