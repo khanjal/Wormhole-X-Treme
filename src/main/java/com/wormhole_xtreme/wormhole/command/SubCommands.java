@@ -858,7 +858,7 @@ public final class SubCommands
     private static final String[] DEBUG_SWITCHES = { "-all", "-full", "-off", "-on", "-views" };
 
     /**
-     * Completions for {@code /wormhole mirror debug [name] [-all|-full]} and {@code debug -off|-on}.
+     * Completions for {@code /wormhole mirror debug [name|gate] [-all|-full]} and {@code debug -off|-on}.
      *
      * @param sender
      *            whoever is typing; offered nothing without {@code wormhole.config}
@@ -874,7 +874,7 @@ public final class SubCommands
         }
         if (args.length == 3)
         {
-            return prefixed(args[2], both(mirrorNames(), DEBUG_SWITCHES));
+            return prefixed(args[2], both(both(mirrorNames(), gateNames(args[2]).toArray(new String[0])), DEBUG_SWITCHES));
         }
         final boolean afterName = (args.length == 4)
             && Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));

@@ -1292,7 +1292,7 @@ public class MirrorCommand implements SubCommand
             return;
         }
         final QuantumMirror mirror = namedOrLookedAt(sender, name,
-            () -> sayUsage(sender, "debug [<name>|<gate>] [-all|-full] | debug -views | debug -off|-on"));
+            () -> sayUsage(sender, "debug [<name>] [-all|-full] | debug <gate> | debug -views | debug -off|-on"));
         if (mirror == null)
         {
             return;

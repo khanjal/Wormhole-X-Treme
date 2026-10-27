@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -696,6 +697,49 @@ class GateViewsSweepTest
         when(gate.isGatePortalOpen()).thenReturn(false);
 
         assertTrue(said().contains("its wormhole is not open"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateWhoseWorldIsNotLoadedHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getGateWorld()).thenReturn(null);
+
+        assertTrue(said().contains("its world is not loaded"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateWhoseFarGateHasNoArrivalPointHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getGateTarget().getGatePlayerTeleportLocation()).thenReturn(null);
+
+        assertTrue(said().contains("its far gate has no arrival point"), said());
+    }
+
+    /**
+     * An iris closing or opening over a gate keeps its view drawn, so a gate crossed by one is not "shut".
+     *
+     * <p>The iris is active for the whole crossing, both ways; reading that as shut told an admin looking
+     * at a view on screen that it had none.
+     */
+    @Test
+    void debugDoesNotCallAnIrisShutWhileItIsCrossing() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.isGateIrisActive()).thenReturn(true);
+        final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
+        running.put("Abydos", 1);
+        windowAge(2);
+        try
+        {
+            assertFalse(said().contains("its iris is shut"), said());
+            assertTrue(said().contains("capture 2s old"), said());
+        }
+        finally
+        {
+            running.remove("Abydos");
+        }
     }
 
     @Test

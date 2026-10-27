@@ -381,7 +381,7 @@ public final class Windows
     }
 
     /**
-     * How old a drawn window's capture is.
+     * How old the capture is of a window the sweep holds.
      *
      * @param name
      *            the window's name

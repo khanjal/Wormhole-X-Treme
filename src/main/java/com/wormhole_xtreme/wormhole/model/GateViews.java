@@ -643,9 +643,13 @@ public final class GateViews
      */
     private static String blockedBy(final Stargate gate, final boolean crossing)
     {
-        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || (gate.getGateWorld() == null))
+        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen())
         {
             return "its wormhole is not open";
+        }
+        if (gate.getGateWorld() == null)
+        {
+            return "its world is not loaded";
         }
         if (gate.isGateIrisActive() && !crossing)
         {
@@ -680,12 +684,14 @@ public final class GateViews
         {
             return "none, the horizon is drawn as it always was";
         }
-        final String blocked = blockedBy(gate, false);
+        // A closing or opening iris still shows the view it crosses over, as the sweep offers it.
+        final boolean crossing = StargateIrisAnimator.isSweeping(gate);
+        final String blocked = blockedBy(gate, crossing);
         if (blocked != null)
         {
             return MirrorText.bad("none") + ", " + blocked;
         }
-        if (shapeOf(gate, false) == null)
+        if (shapeOf(gate, crossing) == null)
         {
             return MirrorText.bad("none") + ", its opening cannot show one: lying flat, no frame round it, or too big";
         }
@@ -697,7 +703,7 @@ public final class GateViews
         final long age = Windows.captureSecondsOld(PREFIX + gate.getGateName());
         if (age < 0)
         {
-            return "offered to the sweep, no window yet; its capture is being taken";
+            return "offered to the sweep, no window yet: its capture is being taken, or failed and waits to be retaken; the log says if it did";
         }
         return MirrorText.good("drawn") + ", capture " + age + "s old" + (CLEARED.contains(gate.getGateName())
             ? ", its horizon cleared for the view" : ", behind its horizon");

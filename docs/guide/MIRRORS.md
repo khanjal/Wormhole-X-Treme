@@ -69,7 +69,8 @@ made one wide stays one wide: `remove` it, hang the second banner, and `create` 
 | `mirror set [name] -capture` | Takes the room's capture again |
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
-| `mirror debug [name\|gate] [-all\|-full\|-on\|-off]` | Why a mirror draws what it draws, or a gate's view. See [below](#what-you-see-in-one) |
+| `mirror debug [name] [-all\|-full\|-on\|-off]` | Why a mirror draws what it draws. See [below](#what-you-see-in-one) |
+| `mirror debug <gate>` | Whether a gate's view is drawn, and if not, why |
 | `mirror debug -views` | Every view you are being drawn, a gate's too, and how far each reaches |
 
 All of them need `wormhole.config`: a mirror moves players between worlds.
@@ -148,7 +149,8 @@ it lists every view you are being drawn, including a gate's (`gate-view`), with 
 capture reaches, whether it was cut to fit, how deep it is drawn and how old it is.
 `mirror debug <gate>` names a gate instead of a mirror and says what `gate-view` is, and whether the gate's
 view is drawn and, if not, why: not open, iris shut, the end that was dialled, an opening that cannot show one,
-nobody near enough, or its capture still being taken. `debug` is not
+nobody near enough, its world not loaded, no arrival point at the far gate, or its capture still
+being taken. `-all` and `-full` are for a mirror. `debug` is not
 in the usage line, but
 tab-completes for anyone who may run it.
 

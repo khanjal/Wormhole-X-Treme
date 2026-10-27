@@ -123,7 +123,7 @@ class MirrorUsageMessagesTest
     {
         assertSays(BASE + "set [<name>] -capture", MIRROR, SET, "-capture");
         assertSays(BASE + "remove [<name>]", MIRROR, "remove");
-        assertSays(BASE + "debug [<name>|<gate>] [-all|-full] | debug -views | debug -off|-on", MIRROR, "debug");
+        assertSays(BASE + "debug [<name>] [-all|-full] | debug <gate> | debug -views | debug -off|-on", MIRROR, "debug");
     }
 
     /** Runs {@code words} as each reader with the looks the registry holds being {@code names}. */

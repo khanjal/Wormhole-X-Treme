@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -12,9 +13,12 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -82,6 +86,21 @@ class MirrorTabCompletionTest
         assertEquals(List.of("-all", "-full"), complete("mirror", "debug", "museum", ""));
         assertEquals(List.of("-full"), complete("mirror", "debug", "museum", "-f"));
         assertTrue(complete("mirror", "debug", "-off", "").isEmpty(), "-off takes nothing after it");
+    }
+
+    /** A gate's name is as good as a mirror's after debug, since it names the gate whose view to explain. */
+    @Test
+    void debugCompletesGateNamesToo()
+    {
+        final Stargate gate = mock(Stargate.class);
+        when(gate.getGateName()).thenReturn("Abydos");
+
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(gate));
+
+            assertEquals(List.of("Abydos"), complete("mirror", "debug", "Ab"));
+        }
     }
 
     private static List<String> complete(final String... args)
