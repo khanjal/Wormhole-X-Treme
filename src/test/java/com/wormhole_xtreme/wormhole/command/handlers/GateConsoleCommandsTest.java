@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -807,8 +808,8 @@ class GateConsoleCommandsTest
         final Stargate mine = new Stargate();
         mine.setGateName("Mine");
         mine.setGateOwner("00000000-0000-0000-0000-000000000009");
-        org.mockito.Mockito.when(player.getUniqueId())
-            .thenReturn(java.util.UUID.fromString("00000000-0000-0000-0000-000000000009"));
+        when(player.getUniqueId())
+            .thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000009"));
         try (Building building = new Building(player);
              MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
         {
