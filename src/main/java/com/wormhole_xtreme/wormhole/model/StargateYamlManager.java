@@ -33,6 +33,9 @@ public class StargateYamlManager
     private static final String OWNER_UUID_KEY = "OwnerUUID";
     /** How a log line names a gate. */
     private static final String GATE_QUOTE = "Gate \"";
+
+    /** What a warning says of a value in a gate file that no setting takes, after the gate's name. */
+    private static final String UNKNOWN_VALUE = "\" has an unknown ";
     /** The gate's own ring pattern (#366); absent when it follows its group and the server. */
     static final String DIAL_SPIN_KEY = "DialSpin";
     /** The gate's own iris animation (#427); absent when it follows its group and the server. */
@@ -227,7 +230,7 @@ public class StargateYamlManager
         final String animation = ConfigManager.parseIrisAnimation(String.valueOf(raw));
         if (animation == null)
         {
-            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + IRIS_ANIMATION_KEY + " \"" + raw
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + UNKNOWN_VALUE + IRIS_ANIMATION_KEY + " \"" + raw
                 + "\"; it follows its group and gate-iris-animation.");
         }
         return animation;
@@ -246,7 +249,7 @@ public class StargateYamlManager
         final String level = ConfigManager.parseGateView(String.valueOf(raw));
         if (level == null)
         {
-            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + VIEW_KEY + " \"" + raw
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + UNKNOWN_VALUE + VIEW_KEY + " \"" + raw
                 + "\"; it follows gate-view.");
         }
         return level;
@@ -267,7 +270,7 @@ public class StargateYamlManager
             DialSpinPattern.parse(String.valueOf(raw));
         if (pattern == null)
         {
-            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + DIAL_SPIN_KEY + " \"" + raw
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + UNKNOWN_VALUE + DIAL_SPIN_KEY + " \"" + raw
                 + "\"; it follows its group and gate-dial-spin.");
         }
         return pattern;
