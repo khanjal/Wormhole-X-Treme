@@ -308,7 +308,7 @@ class CompleteCommandTest
 
             mgr.verify(() -> StargateManager.completeStargate(ArgumentMatchers.any(),
                 ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()),
-                Mockito.never());
+                never());
         }
         finally
         {

@@ -1,11 +1,14 @@
 package com.wormhole_xtreme.wormhole.permissions;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -222,8 +225,8 @@ class ShapePermissionsTest
         final Server server = mock(Server.class);
         final PluginManager manager = mock(PluginManager.class);
         when(server.getPluginManager()).thenReturn(manager);
-        org.mockito.Mockito.doThrow(new IllegalArgumentException("already registered"))
-            .when(manager).addPermission(org.mockito.ArgumentMatchers.any(Permission.class));
+        doThrow(new IllegalArgumentException("already registered"))
+            .when(manager).addPermission(any(Permission.class));
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
@@ -231,7 +234,7 @@ class ShapePermissionsTest
             ShapePermissions.declare(List.of("Standard", "Grand"));
         }
 
-        verify(manager, times(2)).addPermission(org.mockito.ArgumentMatchers.any(Permission.class));
+        verify(manager, times(2)).addPermission(any(Permission.class));
     }
 
     /** Declared to the server so a permissions plugin lists them, for operators by default, and not twice. */
@@ -241,7 +244,8 @@ class ShapePermissionsTest
         final Server server = mock(Server.class);
         final PluginManager manager = mock(PluginManager.class);
         when(server.getPluginManager()).thenReturn(manager);
-        when(manager.getPermission("wormhole.build.grand")).thenReturn(mock(Permission.class));
+        final Permission declared = mock(Permission.class);
+        when(manager.getPermission("wormhole.build.grand")).thenReturn(declared);
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
@@ -262,7 +266,7 @@ class ShapePermissionsTest
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(Bukkit::getServer).thenReturn(null);
-            ShapePermissions.declare(List.of("Standard"));
+            assertDoesNotThrow(() -> ShapePermissions.declare(List.of("Standard")));
         }
     }
 }
