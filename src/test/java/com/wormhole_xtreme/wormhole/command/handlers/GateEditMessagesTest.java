@@ -45,6 +45,7 @@ class GateEditMessagesTest
     private static final String ATLANTIS = "Atlantis";
     private static final String IRIS = "iris-animation";
     private static final String SPIN = "spin";
+    private static final String VIEW = "view";
     private static final String GROUP = "group";
     private static final String TOLLAN = "Tollan";
     private static final String NOWHERE = "Nowhere";
@@ -290,5 +291,45 @@ class GateEditMessagesTest
             + "."));
         verify(qq).sendMessage(ChatText.error("QQ no field " + ChatText.command(BANANA) + "."));
         verify(qq, times(2)).sendMessage(ChatText.info("QQ fields " + qqOptions(GateEditCommand.fieldNames()) + "."));
+    }
+
+    /** What a gate shows once open: its own, or the server's, a refusal, a change, and the list. */
+    @Test
+    void viewLinesReadAsTheyDo()
+    {
+        final Player player = reading("en");
+        gate(ALPHA).setGateView("open");
+        final String server = gate(GAMMA).getEffectiveView();
+        edit(player, ALPHA, VIEW);
+        edit(player, GAMMA, VIEW);
+        edit(player, ALPHA, VIEW, SIDEWAYS);
+        edit(player, ALPHA, VIEW, "behind");
+
+        verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + "'s view is " + ChatText.value("open") + "."));
+        verify(player).sendMessage(ChatText.info(ChatText.name(GAMMA) + "'s view is " + ChatText.value(server)
+            + " (the server default)."));
+        verify(player).sendMessage(ChatText.error("No view called " + ChatText.command(SIDEWAYS) + "."));
+        verify(player, times(3)).sendMessage(ChatText.info("Views are: " + oldOptions(GateEditCommand.viewNames()) + "."));
+        verify(player).sendMessage(ChatText.info(ChatText.name(ALPHA) + "'s view is now " + ChatText.value("behind") + "."));
+    }
+
+    /** The same lines reach a qq admin in qq. */
+    @Test
+    void viewLinesAreInTheReadersLanguage()
+    {
+        final Player player = reading("qq");
+        gate(ALPHA).setGateView("open");
+        final String server = gate(GAMMA).getEffectiveView();
+        edit(player, ALPHA, VIEW);
+        edit(player, GAMMA, VIEW);
+        edit(player, ALPHA, VIEW, SIDEWAYS);
+        edit(player, ALPHA, VIEW, "behind");
+
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " view " + ChatText.value("open") + "."));
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(GAMMA) + " view " + ChatText.value(server)
+            + " QQdefault."));
+        verify(player).sendMessage(ChatText.error("QQ no view " + ChatText.command(SIDEWAYS) + "."));
+        verify(player, times(3)).sendMessage(ChatText.info("QQ views " + qqOptions(GateEditCommand.viewNames()) + "."));
+        verify(player).sendMessage(ChatText.info("QQ " + ChatText.name(ALPHA) + " view now " + ChatText.value("behind") + "."));
     }
 }

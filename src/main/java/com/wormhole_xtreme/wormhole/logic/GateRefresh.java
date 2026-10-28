@@ -112,6 +112,7 @@ public final class GateRefresh
         fresh.setGateIrisDefaultActive(existing.isGateIrisDefaultActive());
         fresh.setGateDialSpin(existing.getGateDialSpin());
         fresh.setGateIrisAnimation(existing.getGateIrisAnimation());
+        fresh.setGateView(existing.getGateView());
         if (existing.isGateMaterialGroupChosen())
         {
             fresh.chooseGateMaterialGroup(existing.getGateMaterialGroup());

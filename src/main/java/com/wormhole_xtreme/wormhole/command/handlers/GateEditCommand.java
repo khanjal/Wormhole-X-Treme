@@ -64,6 +64,9 @@ public class GateEditCommand implements SubCommand
     /** The field for a gate's own iris animation, named as the setting is. */
     private static final String IRIS_ANIMATION = "iris-animation";
 
+    /** The field for a gate's own view level, named as the setting is, less its prefix. */
+    private static final String VIEW = "view";
+
     /** The iris code: the one field a gate's owner may set without {@code wormhole.config}. */
     private static final String IDC = "idc";
 
@@ -95,6 +98,72 @@ public class GateEditCommand implements SubCommand
         FIELDS.put("group", GateEditCommand::setGroup);
         FIELDS.put("spin", GateEditCommand::setSpin);
         FIELDS.put(IRIS_ANIMATION, GateEditCommand::setIrisAnimation);
+        FIELDS.put(VIEW, GateEditCommand::setView);
+    }
+
+    /**
+     * Sets what this gate shows once open (#682), or with {@code default} clears it so the gate follows
+     * {@code gate-view}. Its own level wins over the server's, {@code horizon} over a server at
+     * {@code open} too. No value says what it is.
+     *
+     * @param sender
+     *            who typed it
+     * @param gateName
+     *            the gate
+     * @param value
+     *            a level, {@code default}, or empty
+     * @return true, the command was handled
+     */
+    // Behind the Field interface, whose other implementations do return false.
+    @SuppressWarnings("java:S3516")
+    private static boolean setView(final CommandSender sender, final String gateName, final String value)
+    {
+        final Stargate gate =
+            StargateManager.getStargate(gateName);
+        if (gate == null)
+        {
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, gateName));
+            return true;
+        }
+        final String levels = ChatText.info(Messages.get(sender, "gate.edit.view.list", options(sender, viewNames())));
+        if ((value == null) || value.isEmpty())
+        {
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.edit.view.is", ChatText.name(gate.getGateName()),
+                ChatText.value(gate.getEffectiveView()), viewSource(sender, gate))));
+            sender.sendMessage(levels);
+            return true;
+        }
+        final boolean clear = DEFAULT.equalsIgnoreCase(value.trim());
+        final String level = clear ? null : ConfigManager.parseGateView(value);
+        if ((level == null) && !clear)
+        {
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.edit.view.unknown", ChatText.command(value))));
+            sender.sendMessage(levels);
+            return true;
+        }
+        gate.setGateView(level);
+        StargateDBManager.saveStargate(gate);
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.edit.view.now", ChatText.name(gate.getGateName()),
+            ChatText.value(gate.getEffectiveView()), viewSource(sender, gate))));
+        return true;
+    }
+
+    /** Where a gate's view level comes from, when not its own: only ever the server, which has the one setting. */
+    private static String viewSource(final CommandSender sender, final Stargate gate)
+    {
+        return (gate.getGateView() != null) ? "" : inherited(sender, null);
+    }
+
+    /**
+     * The view levels and {@code default}, for tab completion and messages.
+     *
+     * @return the values {@code gate edit <gate> view} takes
+     */
+    public static List<String> viewNames()
+    {
+        final List<String> names = new ArrayList<>(ConfigManager.GATE_VIEWS);
+        names.add(DEFAULT);
+        return names;
     }
 
     /**

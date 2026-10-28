@@ -795,6 +795,12 @@ public class ConfigManager
         return GateSettings.getGateView();
     }
 
+    /** See {@link GateSettings#getGateView(String)}. */
+    public static String getGateView(final String own)
+    {
+        return GateSettings.getGateView(own);
+    }
+
     /** How deep a gate's first capture step reaches, at most: the rest is filled in behind it. */
     static final int GATE_FIRST_STEP_DEPTH = 32;
 

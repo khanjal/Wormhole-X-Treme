@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -889,6 +890,18 @@ class GateViewsSweepTest
         assertFalse(said().contains("gate-view open"), said());
     }
 
+    /** The hint names the setting that would change the view: the gate's own, when it has one, since it wins. */
+    @Test
+    void debugNamesTheGatesOwnLevelAsTheFixForALavaHorizon()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateView()).thenReturn("behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+
+        assertTrue(said().contains("gate edit Abydos view open shows one"), said());
+        assertFalse(said().contains("gate-view open shows one"), said());
+    }
+
     @Test
     void lavaAndAnEndGatewayHideAViewAndWaterAndANetherPortalDoNot()
     {
@@ -914,6 +927,129 @@ class GateViewsSweepTest
         finally
         {
             GateViews.occludes = real;
+        }
+    }
+
+    /** A gate's own {@code behind} is offered a view though the server is at {@code horizon}. */
+    @Test
+    void aGatesOwnBehindIsOfferedItsViewWhateverTheServerIs()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        when(gate.getGateView()).thenReturn("behind");
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
+    /**
+     * A gate's own {@code horizon} is offered nothing and keeps its horizon though the server is at
+     * {@code open}: its own level wins either way.
+     */
+    @Test
+    void aGatesOwnHorizonKeepsItsHorizonThoughTheServerIsAtOpen()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateView()).thenReturn("horizon");
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(0);
+        assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER), "not cleared for a view");
+    }
+
+    /** A gate with no level of its own follows the server: at {@code open} its horizon is cleared for the view. */
+    @Test
+    void aGateWithNoLevelOfItsOwnFollowsTheServerAtOpen()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+        assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "cleared, as the server says");
+    }
+
+    /** Dialling starts a capture for a gate's own {@code behind} at a server on {@code horizon}, and not for its own horizon at open. */
+    @Test
+    void dialledFollowsTheGatesOwnLevel()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        when(gate.getGateView()).thenReturn("behind");
+
+        GateViews.dialled(gate);
+
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)));
+
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateView()).thenReturn("horizon");
+        GateViews.dialled(gate);
+
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)), times(1));
+    }
+
+    /** A lava gate with its own {@code open} is offered a view at a server on {@code behind}: the hiding is by its own level. */
+    @Test
+    void aLavaGateWithItsOwnOpenIsOfferedAViewAtAServerOnBehind()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getGateView()).thenReturn("open");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
+    @Test
+    void debugSaysWhenTheLevelIsTheGatesOwn()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateView()).thenReturn("horizon");
+
+        assertTrue(said().contains("horizon (this gate's own view; gate-view is open)"), said());
+        assertTrue(said().contains("the horizon is drawn as it always was"), said());
+    }
+
+    /**
+     * A gate's own {@code behind} at a server on {@code horizon} still has the captures of a gate somebody
+     * stands at kept fresh, as at a server on {@code behind}: its views are drawn from them.
+     */
+    @Test
+    void aGatesOwnViewKeepsTheWatchedCapturesFreshAtAServerOnHorizon()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        when(gate.getGateView()).thenReturn("behind");
+        when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(world, 11.5, 64.0, 22.5, 0.0f, 0.0f));
+        manager.when(StargateManager::getAllGatesUnsorted).thenReturn(Set.of(gate));
+        drawn(true);
+
+        try (MockedStatic<Captures> captures = mockStatic(Captures.class))
+        {
+            GateViews.offerAll();
+
+            captures.verify(() -> Captures.refreshGate(eq("Abydos"), any(Place.class), anyInt(), anyLong()));
+        }
+    }
+
+    /** With no gate drawing a view at a server on {@code horizon}, no capture is refreshed: today's behaviour. */
+    @Test
+    void atAServerOnHorizonWithNoViewsNoCaptureIsRefreshed()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(world, 11.5, 64.0, 22.5, 0.0f, 0.0f));
+        manager.when(StargateManager::getAllGatesUnsorted).thenReturn(Set.of(gate));
+        drawn(true);
+
+        try (MockedStatic<Captures> captures = mockStatic(Captures.class))
+        {
+            GateViews.offerAll();
+
+            captures.verifyNoInteractions();
         }
     }
 }

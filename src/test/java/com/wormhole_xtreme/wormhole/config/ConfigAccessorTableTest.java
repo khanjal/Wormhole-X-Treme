@@ -214,6 +214,12 @@ class ConfigAccessorTableTest
             List.of(String.class, MaterialGroup.class), Arrays.asList(own, group));
     }
 
+    /** @return the call {@code getGateView(own)} */
+    private static Call viewCall(final String label, final String own)
+    {
+        return new Call("getGateView(" + label + ")", "getGateView", List.of(String.class), Arrays.asList(own));
+    }
+
     /** @return a row for {@code isIrisAnimated(animation)}, which reads no setting */
     private static Row irisAnimated(final String animation, final boolean answer)
     {
@@ -642,6 +648,10 @@ class ConfigAccessorTableTest
             row("getViewDepth", ConfigKeys.VIEW_DEPTH, 160, 160, 20),
             row("getGateViewFirstDepth", null, 32, 32, 20),
             row("getGateView", ConfigKeys.GATE_VIEW, "horizon", "horizon", "behind"),
+            // A gate's own level wins either way, so the server's setting changes nothing when it has one.
+            new Row(viewCall("null", null), ConfigKeys.GATE_VIEW, "horizon", "horizon", "behind"),
+            new Row(viewCall("horizon", "horizon"), ConfigKeys.GATE_VIEW, "horizon", "horizon", "horizon"),
+            new Row(viewCall("open", "open"), ConfigKeys.GATE_VIEW, "open", "open", "open"),
             row("isGateViewFunnel", ConfigKeys.GATE_VIEW_FUNNEL, true, true, false),
             row("getGateViewFunnelLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 16, 16, 17),
             row("getGateViewFunnelMinLength", ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 0, 0, 15),

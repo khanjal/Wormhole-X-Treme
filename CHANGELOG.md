@@ -81,6 +81,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Added**
 
+- **`/wormhole gate edit <gate> view <horizon|behind|open|default>` gives a gate its own view level**, which wins over `gate-view` even for `horizon` at a server on `open` ([#682](https://github.com/khanjal/Wormhole-X-Treme/issues/682)).
 - **`/wormhole mirror debug <gate>` says how a gate's view is being drawn**: the `gate-view` level, and whether the view is drawn and, if not, why ([#685](https://github.com/khanjal/Wormhole-X-Treme/issues/685)).
 
 **Changed**

@@ -162,6 +162,18 @@ class GateTabCompletionTest
         assertFalse(group.contains("true"));
     }
 
+    /** The view field is offered, and takes the three levels and default. */
+    @Test
+    void viewOffersTheLevelsAndDefault()
+    {
+        gateNamed("alpha");
+
+        assertTrue(complete("gate", "edit", "alpha", "").contains("view"));
+        final List<String> levels = complete("gate", "edit", "alpha", "view", "");
+        assertTrue(levels.containsAll(List.of("horizon", "behind", "open", "default")), "got " + levels);
+        assertFalse(levels.contains("true"), "a switch is not a level");
+    }
+
     /**
      * A material field offers the real name and never its LEGACY_ twin.
      *

@@ -337,11 +337,16 @@ public final class GateViews
         Windows.release(PREFIX + gate.getGateName());
     }
 
+    /** @return what a gate shows once open: its own level (#682), or the server's {@code gate-view} */
+    private static String levelOf(final Stargate gate)
+    {
+        return ConfigManager.getGateView(gate.getGateView());
+    }
+
     /** Offers every open gate that can show a view to the mirror sweep, and clears or restores horizons to match. */
     public static void offerAll()
     {
-        final String level = ConfigManager.getGateView();
-        final boolean draws = !HORIZON.equals(level);
+        final boolean serverDraws = !HORIZON.equals(ConfigManager.getGateView());
         final Set<String> open = new HashSet<>();
         final Set<String> clear = new HashSet<>();
         final Set<String> busy = new HashSet<>();
@@ -354,7 +359,9 @@ public final class GateViews
             {
                 busy.add(gate.getGateName());
             }
-            if (draws)
+            // Each gate's own level, which wins over the server's either way.
+            final String level = levelOf(gate);
+            if (!HORIZON.equals(level))
             {
                 offerGuarded(gate, crossing, "open".equals(level), open, clear);
             }
@@ -362,7 +369,8 @@ public final class GateViews
         OPEN.clear();
         OPEN.addAll(open);
         settleHorizons(clear, busy);
-        if (draws)
+        // The captures of gates somebody stands at are kept fresh while the server shows views or an open gate can show one.
+        if (serverDraws || !open.isEmpty())
         {
             refreshWatched(System.currentTimeMillis());
         }
@@ -469,7 +477,7 @@ public final class GateViews
      */
     public static void dialled(final Stargate gate)
     {
-        if ((gate == null) || HORIZON.equals(ConfigManager.getGateView()) || (gate.getGateTarget() == null)
+        if ((gate == null) || HORIZON.equals(levelOf(gate)) || (gate.getGateTarget() == null)
             || (gate.getGateTarget().getGateName() == null) || hidesView(gate) || !watched(gate))
         {
             return;
@@ -650,7 +658,7 @@ public final class GateViews
      */
     private static boolean hidesView(final Stargate gate)
     {
-        return BEHIND.equals(ConfigManager.getGateView()) && hides(gate.getEffectivePortalMaterial());
+        return BEHIND.equals(levelOf(gate)) && hides(gate.getEffectivePortalMaterial());
     }
 
     /** Whether the game treats a block as occluding; settable so a test needs no server. */
@@ -721,10 +729,11 @@ public final class GateViews
      */
     public static List<String> describe(final Stargate gate)
     {
-        final String level = ConfigManager.getGateView();
+        final String level = levelOf(gate);
         final List<String> lines = new ArrayList<>();
         lines.add(MirrorText.heading("gate ") + MirrorText.quoted(gate.getGateName()));
-        lines.add(MirrorText.field("level", level + " (gate-view)"));
+        lines.add(MirrorText.field("level", level + ((gate.getGateView() == null) ? " (gate-view)"
+            : " (this gate's own view; gate-view is " + ConfigManager.getGateView() + ")")));
         lines.add(MirrorText.field("view", statusOf(gate, level)));
         return lines;
     }
@@ -750,7 +759,8 @@ public final class GateViews
         if (hidesView(gate))
         {
             return MirrorText.bad("none") + ", its horizon is " + gate.getEffectivePortalMaterial()
-                + ", which hides a view behind it, so it keeps its horizon; gate-view open shows one";
+                + ", which hides a view behind it, so it keeps its horizon; "
+                + ((gate.getGateView() == null) ? "gate-view" : ("gate edit " + gate.getGateName() + " view")) + " open shows one";
         }
         if (!watched(gate))
         {
