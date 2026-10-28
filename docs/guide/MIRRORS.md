@@ -105,7 +105,7 @@ The clip is how you can tell it is not a picture painted on the banner: a textur
 as the camera moves past.
 
 **What it shows is a capture** — a photograph of the room, taken from where a traveller lands,
-reaching as far as that world sends and kept in `data/mirror/captures/`. A new mirror's is taken
+reaching as far as that world sends and kept in `data/captures/mirrors/`. A new mirror's is taken
 within a second of `create`; another mirror's room is captured the first time somebody chooses
 it. After that its world need not be loaded, so a mirror in an archived world still shows.
 Nothing retakes a capture on its own: when the room has changed, run `mirror set -capture`.

@@ -859,7 +859,7 @@ horizon. What a view holds does not depend on the gate dialling it: it is the ca
 within the depth, the same capture for every gate.
 
 **A capture is the base, kept, and taken again when that is cheap.** It is written to
-`data/gates/captures/`, one file for each gate whose front it shows, seen through the largest
+`data/captures/gates/`, one file for each gate whose front it shows, seen through the largest
 opening: every smaller opening sits inside that one, on the same middle column and bottom row, so
 what it can see is already there, and one capture serves every gate that dials this one. A Minimal
 gate can still be dialled and shows nothing itself, but a ring gate dialling it shows its front. The file is named for the gate made file-safe, with a hash of the name,

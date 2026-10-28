@@ -1,6 +1,11 @@
 package com.wormhole_xtreme.wormhole.utils;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 /**
  * Every file and folder this plugin owns, named in one place.
@@ -21,13 +26,13 @@ import java.io.File;
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with
  * ├── data/
  * │   ├── gates/&lt;name&gt;.yml       one file per gate
- * │   ├── gates/captures/*.view  what stands in front of a gate, per opening size seen through
+ * │   ├── captures/
+ * │   │   ├── gates/*.view       what stands in front of a gate, per opening size seen through
+ * │   │   └── mirrors/*.view     one photograph of a far side per destination
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
  * │   ├── beam.yml               every destination and place, in one file
  * │   ├── mirror.yml             every quantum mirror, in one file
- * │   ├── freya.yml              who keeps a companion; absent when nobody does
- * │   └── mirror/
- * │       └── captures/*.view    one photograph of a far side per destination
+ * │   └── freya.yml              who keeps a companion; absent when nobody does
  * └── WormholeXTremeDB/
  *     └── WormholeXTreme.sqlite  another fork's database, read by the importer
  * </pre>
@@ -40,6 +45,13 @@ public final class DataLayout
 {
     /** Where this fork keeps what it owns. */
     private static final String DATA = "data";
+
+    private static final String GATES = "gates";
+
+    private static final String CAPTURES = "captures";
+
+    /** The old capture folders already looked at this run, so a clash left behind is not retried on every call. */
+    private static final Set<String> MOVED = ConcurrentHashMap.newKeySet();
 
     /** The folder other forks keep their database in, read but never written. */
     private static final String LEGACY_DATA = "WormholeXTremeDB";
@@ -94,20 +106,87 @@ public final class DataLayout
     /** @return one YAML file per gate */
     public static File gates()
     {
-        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, DATA, "gates");
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, DATA, GATES);
     }
 
     /**
      * The folder of gate captures: what stands in front of a gate, as seen through another's opening (#516).
      *
-     * <p>Beside the gate files, named for the gate they show, and in a folder of their own so the
-     * gate loader, which reads only the {@code .yml} files at the top, never sees them.
+     * <p>Named for the gate they show, and apart from the gate files, so the folder an admin backs
+     * up or hand-edits for gates holds gates only (#655). A folder left in {@code gates/captures/}
+     * by an earlier build is moved in the first time this is asked.
      *
      * @return the folder, which may not exist yet
      */
     public static File gateCaptureDir()
     {
-        return new File(gates(), "captures");
+        final File dir = new File(captures(), GATES);
+        moveCaptures(new File(gates(), CAPTURES), dir);
+        return dir;
+    }
+
+    private static File captures()
+    {
+        return new File(data(), CAPTURES);
+    }
+
+    /**
+     * Moves a folder of captures to where they now live: nothing deleted, nothing overwritten, a
+     * file already at the destination wins. A move that fails leaves the file where it was, for the
+     * admin to find. Looked at once a run: the accessors are asked on every capture lookup.
+     */
+    private static void moveCaptures(final File earlier, final File dir)
+    {
+        if (!MOVED.add(earlier.getAbsolutePath()) || !earlier.isDirectory())
+        {
+            return;
+        }
+        final File parent = dir.getParentFile();
+        if (!dir.exists() && (parent.isDirectory() || parent.mkdirs()) && earlier.renameTo(dir))
+        {
+            return;
+        }
+        final File[] files = earlier.listFiles(File::isFile);
+        if ((files == null) || (!dir.isDirectory() && !dir.mkdirs()))
+        {
+            return;
+        }
+        for (final File file : files)
+        {
+            moveUnlessThere(file, new File(dir, file.getName()));
+        }
+        // Only if that emptied it: a folder with anything left in it stays.
+        if (!deleteIfEmpty(earlier))
+        {
+            PluginLog.log(Level.INFO, "Captures left in " + earlier
+                + ": a file of the same name is already in " + dir + ", or could not be moved.");
+        }
+    }
+
+    /** @return whether the folder is gone: a folder that still holds anything is refused */
+    private static boolean deleteIfEmpty(final File folder)
+    {
+        try
+        {
+            Files.delete(folder.toPath());
+            return true;
+        }
+        catch (final IOException | RuntimeException e)
+        {
+            return false;
+        }
+    }
+
+    private static void moveUnlessThere(final File file, final File target)
+    {
+        try
+        {
+            Files.move(file.toPath(), target.toPath());
+        }
+        catch (final IOException | RuntimeException e)
+        {
+            // Already there, or not movable: the destination wins and the rest is retaken.
+        }
     }
 
     /** @return one YAML file per world, holding every ring pair in it */
@@ -147,22 +226,24 @@ public final class DataLayout
     /**
      * The folder of mirror captures: one photograph of a far side per destination.
      *
-     * <p>Under a {@code mirror/} folder of its own rather than inside a world's, because a
-     * capture is of the far side and belongs to the mirror that looks at it, not to the world
-     * it is of; and a folder rather than a bare {@code mirror-captures/}, so that whatever else
-     * mirrors come to keep has somewhere to go. A folder left by the build that wrote captures
-     * beside the mirror file is moved in the first time this is asked.
+     * <p>Not inside a world's folder, because a capture is of the far side and belongs to the
+     * mirror that looks at it, not to the world it is of. Both earlier homes, {@code mirror/captures/}
+     * and the older {@code mirror-captures/}, are moved in the first time this is asked, so a server
+     * several versions behind still lands in the right folder.
      *
      * @return the folder, which may not exist yet
      */
     public static File mirrorCaptureDir()
     {
-        final File dir = new File(new File(data(), "mirror"), "captures");
-        final File earlier = new File(data(), "mirror-captures");
-        if (earlier.isDirectory() && !dir.exists() && dir.getParentFile().mkdirs() && !earlier.renameTo(dir))
+        final File dir = new File(captures(), "mirrors");
+        final File middle = new File(data(), "mirror");
+        // The newer folder first, so where both hold a capture of the same name the newer one wins.
+        moveCaptures(new File(middle, CAPTURES), dir);
+        moveCaptures(new File(data(), "mirror-captures"), dir);
+        // Left empty by that move; delete() refuses a folder that still holds anything.
+        if (middle.isDirectory() && !deleteIfEmpty(middle))
         {
-            // Left where it was: captures are retaken on the next look, so nothing is lost.
-            return dir;
+            PluginLog.log(Level.FINE, "Left " + middle + ": it holds more than the captures that moved.");
         }
         return dir;
     }
@@ -194,6 +275,6 @@ public final class DataLayout
      */
     public static String[] migratableNames()
     {
-        return new String[] { "gates", "rings", "beam.yml" };
+        return new String[] { GATES, "rings", "beam.yml" };
     }
 }
