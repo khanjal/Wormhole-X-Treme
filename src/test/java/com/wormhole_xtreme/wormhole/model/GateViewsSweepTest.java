@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -246,7 +247,8 @@ class GateViewsSweepTest
     @Test
     void aBigGateDiallingASmallOneIsOfferedNarrowedToItsOpening()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        // At open, since lava hides a view behind its horizon and the gate would be offered none at behind.
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
         opening(10, 18, 64, 17);
         final List<Location> small = new ArrayList<>();
         for (int x = 99; x <= 101; x++)
@@ -810,5 +812,107 @@ class GateViewsSweepTest
         GateViews.offerAll();
 
         assertTrue(said().contains("its horizon cleared for the view"), said());
+    }
+
+    /**
+     * At {@code behind} a lava gate keeps its horizon and takes no capture: the view would be drawn behind
+     * lava, which hides it, so the capture and the drawing would be for nothing.
+     */
+    @Test
+    void atBehindALavaGateIsNotOfferedAViewThatItsHorizonWouldHide()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(0);
+    }
+
+    /** Nor is a capture prepared for it when it is dialled, which is the other place a view is started from. */
+    @Test
+    void atBehindALavaGateNoCaptureIsPreparedWhenItIsDialled()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+
+        GateViews.dialled(gate);
+
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)), never());
+    }
+
+    /** The same gate over water is see-through, so the view is offered as before. */
+    @Test
+    void atBehindAWaterGateIsStillOfferedItsView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
+    /** At {@code open} the horizon is cleared, so lava hides nothing and the view is offered. */
+    @Test
+    void atOpenALavaGateIsOfferedItsViewSinceItsHorizonClears()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
+    @Test
+    void debugSaysAtBehindThatALavaHorizonHidesTheView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+
+        assertTrue(said().contains("its horizon is LAVA, which hides a view behind it"), said());
+        assertTrue(said().contains("gate-view open"), said());
+    }
+
+    /** A gate that cannot show a view at any level is not told to switch to open, which would not help. */
+    @Test
+    void debugDoesNotSuggestOpenForALavaGateThatCannotShowAViewAnyway()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        when(gate.getGateFacing()).thenReturn(BlockFace.UP);
+
+        assertTrue(said().contains("cannot show one"), said());
+        assertFalse(said().contains("gate-view open"), said());
+    }
+
+    @Test
+    void lavaAndAnEndGatewayHideAViewAndWaterAndANetherPortalDoNot()
+    {
+        assertTrue(GateViews.hides(Material.LAVA));
+        assertTrue(GateViews.hides(Material.END_GATEWAY), "it draws as an opaque starfield");
+        assertFalse(GateViews.hides(Material.WATER));
+        assertFalse(GateViews.hides(Material.NETHER_PORTAL));
+        assertFalse(GateViews.hides(Material.AIR), "nothing to hide behind");
+    }
+
+    /** Anything else is as the game says: stone occludes and glass does not. */
+    @Test
+    void otherBlocksHideAViewOnlyIfTheGameSaysTheyOcclude()
+    {
+        final Predicate<Material> real = GateViews.occludes;
+        GateViews.occludes = block -> block == Material.STONE;
+        try
+        {
+            assertTrue(GateViews.hides(Material.STONE));
+            assertFalse(GateViews.hides(Material.GLASS), "see-through, even though it is solid");
+        }
+        finally
+        {
+            GateViews.occludes = real;
+        }
     }
 }

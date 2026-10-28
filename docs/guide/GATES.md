@@ -487,6 +487,11 @@ Water is see-through, so through the tunnel's walls you can see, faintly, whatev
 gate on your side; lava hides it. The far side is still captured whole: the tunnel only changes
 what is drawn.
 
+At `gate-view: behind` the view is drawn behind the horizon, so the horizon has to be see-through to
+show it. A gate whose horizon is lava, or an opaque block, keeps its horizon and takes no capture;
+`gate-view: open` clears the horizon, so it shows the view whatever the horizon is made of.
+`mirror debug <gate>` says when this is why a gate shows none.
+
 In `config.yml` these three are under `# --- Gate views and mirrors ---`, `# -- Gate views --`,
 right after `gate-view`. How far a gate's view reaches is `view-depth`, shared with mirrors: see
 [Mirrors](MIRRORS.md#settings).

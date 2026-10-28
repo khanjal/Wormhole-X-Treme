@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -54,6 +55,9 @@ public final class GateViews
 
     /** The {@code gate-view} level that draws the horizon and nothing behind it. */
     private static final String HORIZON = "horizon";
+
+    /** The {@code gate-view} level that draws the view behind the horizon, which has to be see-through to show it. */
+    private static final String BEHIND = "behind";
 
     /** Gates whose horizon has cleared for their view, by name. */
     private static final Set<String> CLEARED = new HashSet<>();
@@ -466,7 +470,7 @@ public final class GateViews
     public static void dialled(final Stargate gate)
     {
         if ((gate == null) || HORIZON.equals(ConfigManager.getGateView()) || (gate.getGateTarget() == null)
-            || (gate.getGateTarget().getGateName() == null) || !watched(gate))
+            || (gate.getGateTarget().getGateName() == null) || hidesView(gate) || !watched(gate))
         {
             return;
         }
@@ -537,7 +541,7 @@ public final class GateViews
         final Set<String> open, final Set<String> clear)
     {
         final WindowShape shape = shapeOf(gate, crossing);
-        if (shape == null)
+        if ((shape == null) || hidesView(gate))
         {
             return;
         }
@@ -638,6 +642,50 @@ public final class GateViews
     }
 
     /**
+     * Whether a gate's horizon would hide the view at {@code behind}, which draws the view behind it.
+     *
+     * <p>Lava and any solid block are not see-through, so a view behind one is captured, drawn and never
+     * seen. The gate keeps its horizon then, and takes no capture; {@code open} clears the horizon, so it
+     * shows the view whatever the horizon is made of.
+     */
+    private static boolean hidesView(final Stargate gate)
+    {
+        return BEHIND.equals(ConfigManager.getGateView()) && hides(gate.getEffectivePortalMaterial());
+    }
+
+    /** Whether the game treats a block as occluding; settable so a test needs no server. */
+    static Predicate<Material> occludes = GateViews::occludesInGame;
+
+    /**
+     * Whether a block drawn as a gate's horizon hides what is drawn behind it.
+     *
+     * @return true for lava, an end gateway or portal, which draw opaque, and for anything that occludes; false for
+     *         water and a nether portal without asking the server
+     */
+    static boolean hides(final Material horizon)
+    {
+        if ((horizon == Material.WATER) || (horizon == Material.NETHER_PORTAL) || (horizon == Material.AIR))
+        {
+            return false;
+        }
+        return (horizon == Material.LAVA) || (horizon == Material.END_GATEWAY) || (horizon == Material.END_PORTAL)
+            || occludes.test(horizon);
+    }
+
+    /** @return whether the server says a block occludes; false for an item, which no horizon can be drawn from */
+    private static boolean occludesInGame(final Material block)
+    {
+        try
+        {
+            return block.createBlockData().isOccluding();
+        }
+        catch (final IllegalArgumentException e)
+        {
+            return false;
+        }
+    }
+
+    /**
      * Why an open gate cannot show a view right now, in the words {@code mirror debug} gives.
      *
      * @param crossing
@@ -698,6 +746,11 @@ public final class GateViews
         if (shapeOf(gate, crossing) == null)
         {
             return MirrorText.bad("none") + ", its opening cannot show one: lying flat, empty, no frame round it, or too big";
+        }
+        if (hidesView(gate))
+        {
+            return MirrorText.bad("none") + ", its horizon is " + gate.getEffectivePortalMaterial()
+                + ", which hides a view behind it, so it keeps its horizon; gate-view open shows one";
         }
         if (!watched(gate))
         {
