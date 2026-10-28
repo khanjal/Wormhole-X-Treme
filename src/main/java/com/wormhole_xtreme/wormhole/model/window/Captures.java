@@ -868,7 +868,7 @@ public final class Captures
     private static boolean take(final QuantumMirror mirror)
     {
         return (mirror.destination() != null) && request(keyOf(mirror.destination()), "mirror '" + mirror.name() + "'",
-            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, false, NO_CELLS, false);
+            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, new Terms(false, false), NO_CELLS);
     }
 
     /** No blocks left out. */
@@ -940,7 +940,19 @@ public final class Captures
         }
         final boolean fill = depth > ConfigManager.getGateViewFirstDepth();
         return request(key, "gate '" + gate + "'" + (fill ? " out to " + depth : ""), arrival,
-            new int[] { holeWidth, holeHeight }, Math.max(4, depth), fill, signCells(gate), loadedOnly);
+            new int[] { holeWidth, holeHeight }, Math.max(4, depth), new Terms(fill, loadedOnly), signCells(gate));
+    }
+
+    /**
+     * How a capture is taken.
+     *
+     * @param background
+     *            true for one nobody is waiting on, read at half the pace
+     * @param loadedOnly
+     *            true for a retake (#683): only chunks already loaded are read
+     */
+    private record Terms(boolean background, boolean loadedOnly)
+    {
     }
 
     /**
@@ -952,14 +964,13 @@ public final class Captures
      *            {@code {width, height}} of the opening it is seen through
      * @param depth
      *            how far ahead it reaches, or 0 for a mirror's: as far as the far world sends
-     * @param background
-     *            true for a capture nobody is waiting on, read at half the pace
+     * @param terms
+     *            how it is taken
      * @param blank
      *            blocks to leave out of the capture, each {@code {x, y, z}}
      */
     private static boolean request(final String key, final String what, final Place destination,
-        final int[] hole, final int depth, final boolean background, final int[][] blank,
-        final boolean loadedOnly)
+        final int[] hole, final int depth, final Terms terms, final int[][] blank)
     {
         if (JOBS.containsKey(key))
         {
@@ -992,10 +1003,10 @@ public final class Captures
         // A sift is cut to fit its budget as far back as the floor, never short of it: a mirror's view depth, a gate's first step.
         final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewFirstDepth()) : ConfigManager.getViewDepth();
         final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
-        job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
+        job.perTick = terms.background() ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
         job.said = said;
         job.blank = blank;
-        job.loadedOnly = loadedOnly;
+        job.loadedOnly = terms.loadedOnly();
         JOBS.put(key, job);
         job.schedule();
         return true;
