@@ -248,7 +248,7 @@ Wormhole X-Treme was written by [B]Lologarithm[/B] (Ben Echols) and [B]alron[/B]
 
 This fork descends from the original rather than from that one, and brings the plugin to modern Minecraft with rings, beaming and mirrors added.
 
-[B]Dakto[/B] keeps [URL=https://github.com/Daktoo/Wormhole-X-Treme]a fork of that line[/URL] going today, and gave this one a shout-out. Thank you. It is a separate plugin with its own code.
+[B]Dakto[/B] maintains [URL=https://github.com/Daktoo/Wormhole-X-Treme]a fork of that line[/URL], brought up to date for Minecraft 1.21 and published on SpigotMC as WormholeXTreme. It is a separate plugin with its own code.
 
 
 [SIZE=4][B]Licence[/B][/SIZE]

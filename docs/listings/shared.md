@@ -404,8 +404,8 @@ Each version's upload fields and short changelog, in Markdown and in Spigot's BB
 > This fork descends from the original rather than from that one, and brings the plugin to modern
 > Minecraft with rings, beaming and mirrors added.
 >
-> **Dakto** keeps a fork of that line going today (github.com/Daktoo/Wormhole-X-Treme), and gave this
-> one a shout-out. Thank you. It is a separate plugin with its own code.
+> **Dakto** maintains a fork of that line (github.com/Daktoo/Wormhole-X-Treme), brought up to date for
+> Minecraft 1.21 and published on SpigotMC as WormholeXTreme. It is a separate plugin with its own code.
 
 **The Contributors metadata field is a different list:** `Lologarithm, alron, lirelent, Jeremy
 Wood, Khan Jal`. That is the original plugin's own `plugin.yml` authors line with Justin appended,
