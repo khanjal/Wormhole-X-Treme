@@ -51,7 +51,7 @@ class ShapePermissionsTest
     }
 
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         PluginTestSupport.forgetAllGates();
         PluginTestSupport.remove();
