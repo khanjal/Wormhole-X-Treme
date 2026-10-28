@@ -329,4 +329,16 @@ class GateTabCompletionTest
         assertTrue(complete("gate", "regenerate", "").contains("-water"), "the click form takes -water too");
         assertFalse(complete("gate", "validate", "").contains("-water"));
     }
+
+    /** The cost field is offered, and takes an amount or default: only default is worth completing. */
+    @Test
+    void costOffersDefault()
+    {
+        gateNamed("alpha");
+
+        assertTrue(complete("gate", "edit", "alpha", "").contains("cost"));
+        assertEquals(List.of("default"), complete("gate", "edit", "alpha", "cost", ""));
+        assertEquals(List.of("default"), complete("gate", "edit", "alpha", "cost", "de"));
+        assertTrue(complete("gate", "edit", "alpha", "cost", "x").isEmpty());
+    }
 }

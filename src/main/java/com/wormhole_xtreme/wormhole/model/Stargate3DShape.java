@@ -251,6 +251,10 @@ public class Stargate3DShape extends StargateShape
         {
             shapeSoundScale = parseSoundScale(line.split("=")[1]);
         }
+        if (line.startsWith("USE_COST="))
+        {
+            applyUseCost(line.substring("USE_COST=".length()));
+        }
     }
 
     /** {@code Standard}'s width, which sounds as the configured sounds are written. */

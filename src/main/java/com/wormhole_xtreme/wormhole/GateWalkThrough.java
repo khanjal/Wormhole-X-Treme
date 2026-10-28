@@ -568,7 +568,7 @@ final class GateWalkThrough
 
         // Affordability is checked here so the player is turned away for the right reason
         // and in the right order, but the money does not move until the trip is certain.
-        final double pendingUseCost = GateFare.affordable(player);
+        final double pendingUseCost = GateFare.affordable(player, stargate);
         if (pendingUseCost < 0)
         {
             return false;

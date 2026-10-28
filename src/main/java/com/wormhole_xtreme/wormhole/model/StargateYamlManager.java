@@ -45,6 +45,8 @@ public class StargateYamlManager
     static final String VIEW_KEY = "View";
     /** The gate a sign-dialled gate's sign points at, by name; absent until the sign has been used (#706). */
     static final String DIAL_SIGN_TARGET_KEY = "DialSignTarget";
+    /** What a trip through the gate costs, written only when the gate has a cost of its own (#632). */
+    static final String USE_COST_KEY = "UseCost";
     /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
     static final String MATERIAL_GROUP_KEY = "MaterialGroup";
     /** Anything that is not safe in a file name, replaced with an underscore. */
@@ -170,6 +172,7 @@ public class StargateYamlManager
         s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
         s.setGateIrisAnimation(irisAnimationFrom(map.get(IRIS_ANIMATION_KEY), name));
         s.setGateView(viewFrom(map.get(VIEW_KEY), name));
+        s.setGateUseCost(useCostFrom(map.get(USE_COST_KEY), name));
         s.setGateDialSignTargetName((map.get(DIAL_SIGN_TARGET_KEY) == null) ? null : String.valueOf(map.get(DIAL_SIGN_TARGET_KEY)));
         applyChosenGroup(s, map.get(MATERIAL_GROUP_KEY), name);
         return s;
@@ -237,6 +240,29 @@ public class StargateYamlManager
                 + "\"; it follows its group and gate-iris-animation.");
         }
         return animation;
+    }
+
+    private static Double finiteAmount(final double cost)
+    {
+        return (Double.isNaN(cost) || Double.isInfinite(cost) || (cost < 0)) ? null : Double.valueOf(cost);
+    }
+
+    /** A gate file's own use cost, or null to follow its shape and {@code economy-use-cost}; one that is not an amount is said. */
+    private static Double useCostFrom(final Object raw, final String gateName)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        // A number is taken as it is: YAML writes 1.0E7 for ten million, which is a number but not a plain amount.
+        final Double cost = (raw instanceof Number number) ? finiteAmount(number.doubleValue())
+            : StargateShape.parseCost(String.valueOf(raw));
+        if (cost == null)
+        {
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + UNKNOWN_VALUE + USE_COST_KEY + " \"" + raw
+                + "\"; it follows its shape and economy-use-cost.");
+        }
+        return cost;
     }
 
     /**
@@ -476,22 +502,7 @@ public class StargateYamlManager
         {
             map.put(MATERIAL_GROUP_KEY, s.getGateMaterialGroup().getName());
         }
-        if (s.getGateDialSpin() != null)
-        {
-            map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(Locale.ROOT));
-        }
-        if (s.getGateIrisAnimation() != null)
-        {
-            map.put(IRIS_ANIMATION_KEY, s.getGateIrisAnimation());
-        }
-        if (s.getGateView() != null)
-        {
-            map.put(VIEW_KEY, s.getGateView());
-        }
-        if (s.getGateDialSignTargetName() != null)
-        {
-            map.put(DIAL_SIGN_TARGET_KEY, s.getGateDialSignTargetName());
-        }
+        putOwnSettings(map, s);
         final byte[] data = GateSerializer.stargateToBinary(s);
         if (data == null)
         {
@@ -522,6 +533,31 @@ public class StargateYamlManager
         if (PluginLog.isLoggable(Level.FINE))
         {
             PluginLog.log(Level.FINE, "Saved gate to YAML: " + outFile.getAbsolutePath());
+        }
+    }
+
+    /** What a gate sets for itself, each written only once it has been, so a file of a gate that has not stays as it was. */
+    private static void putOwnSettings(final Map<String, Object> map, final Stargate s)
+    {
+        if (s.getGateDialSpin() != null)
+        {
+            map.put(DIAL_SPIN_KEY, s.getGateDialSpin().name().toLowerCase(Locale.ROOT));
+        }
+        if (s.getGateIrisAnimation() != null)
+        {
+            map.put(IRIS_ANIMATION_KEY, s.getGateIrisAnimation());
+        }
+        if (s.getGateView() != null)
+        {
+            map.put(VIEW_KEY, s.getGateView());
+        }
+        if (s.getGateUseCost() != null)
+        {
+            map.put(USE_COST_KEY, s.getGateUseCost());
+        }
+        if (s.getGateDialSignTargetName() != null)
+        {
+            map.put(DIAL_SIGN_TARGET_KEY, s.getGateDialSignTargetName());
         }
     }
 

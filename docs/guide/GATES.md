@@ -215,6 +215,14 @@ group is accepted.
 `SOUND_SCALE=2.5` sets how big the gate sounds, `Standard` being 1.0; without it, the shape's width
 over `Standard`'s 7. See [Sounds](#sounds).
 
+`USE_COST=2.5` is what a trip through a gate of this shape costs when [economy](SERVER.md) is on,
+instead of `economy-use-cost`. `USE_COST=0` makes the shape free; without the line, or with something
+that is not a number from `0` up, its gates follow the server. A single gate can have its own with
+`/wormhole gate edit <gate> cost <amount>`; its own wins over its shape's, which wins over the server's,
+and `default` hands a gate back to them. The fare is the entered gate's, taken once the trip has happened.
+A `USE_COST` changed in a shape file reaches gates already built after a restart or `gate regen`, like any
+other shape setting.
+
 ## Material groups
 
 A gate's **shape** is its geometry; its **material group** is what that geometry is built from.
@@ -674,7 +682,8 @@ the setting does not touch them.
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),
 `woosh` (how far the woosh pushes out), `redstone` and `custom` (`true`/`false`), `idc` (a code, or
 `-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`), `iris-animation` (a
-[style](#how-it-arrives), or `default`), `view` (`horizon`, `behind`, `open`, or `default`).
+[style](#how-it-arrives), or `default`), `view` (`horizon`, `behind`, `open`, or `default`), `cost` (what a
+trip through it costs, `0` for free, or `default`).
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
 The choice is saved with the gate; `group -clear` gives it back to whatever its frame is built from.

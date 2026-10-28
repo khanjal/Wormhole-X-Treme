@@ -338,4 +338,48 @@ class GateYamlRoundTripTest
         assertEquals("charlie", StargateManager.getStargate("used").getGateDialSignTargetName());
         assertNull(StargateManager.getStargate("fresh").getGateDialSignTargetName());
     }
+
+    /** A gate's own use cost (#632) survives a restart, free included; a gate without one writes none. */
+    @Test
+    void aGatesUseCostRoundTripsAndAnUnsetOneStaysUnset() throws Exception
+    {
+        final Stargate free = gate("free");
+        free.setGateUseCost(0.0);
+        final Stargate dear = gate("dear");
+        dear.setGateUseCost(12.5);
+        final Stargate huge = gate("huge");
+        huge.setGateUseCost(10_000_000.0);
+        final Stargate tiny = gate("tiny");
+        tiny.setGateUseCost(0.0001);
+        StargateYamlManager.saveStargate(free, gatesDir());
+        StargateYamlManager.saveStargate(dear, gatesDir());
+        StargateYamlManager.saveStargate(huge, gatesDir());
+        StargateYamlManager.saveStargate(tiny, gatesDir());
+        StargateYamlManager.saveStargate(gate("plain"), gatesDir());
+
+        assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "plain.yml").toPath()),
+            StandardCharsets.UTF_8).contains(StargateYamlManager.USE_COST_KEY + ":"), "nothing written for an unset cost");
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        assertEquals(0.0, StargateManager.getStargate("free").getGateUseCost(), "free is not unset");
+        assertEquals(12.5, StargateManager.getStargate("dear").getGateUseCost());
+        assertEquals(10_000_000.0, StargateManager.getStargate("huge").getGateUseCost(),
+            "YAML writes it as 1.0E7, which is a number though not a plain amount");
+        assertEquals(0.0001, StargateManager.getStargate("tiny").getGateUseCost(), "and 1.0E-4");
+        assertNull(StargateManager.getStargate("plain").getGateUseCost());
+    }
+
+    /** A cost a hand edit made negative is not an amount: the gate follows its shape and the server again. */
+    @Test
+    void aNegativeUseCostInAGateFileIsNotKept()
+    {
+        final Stargate odd = gate("odd");
+        odd.setGateUseCost(-3.0);
+        StargateYamlManager.saveStargate(odd, gatesDir());
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        assertNull(StargateManager.getStargate("odd").getGateUseCost());
+    }
 }

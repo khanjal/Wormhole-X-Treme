@@ -218,4 +218,17 @@ class GateRefreshCarryOverTest
         assertEquals(2, fresh.getGateDialSignIndex());
         assertEquals("charlie", fresh.getGateDialSignTargetName());
     }
+
+    /** A gate's own cost (#632) survives a regen, free included. */
+    @Test
+    void aRegeneratedGateKeepsItsUseCost()
+    {
+        final Stargate existing = new Stargate();
+        existing.setGateUseCost(0.0);
+        final Stargate fresh = new Stargate();
+
+        GateRefresh.carryOverSettings(existing, fresh);
+
+        assertEquals(0.0, fresh.getGateUseCost(), "free is kept, not turned into unset");
+    }
 }
