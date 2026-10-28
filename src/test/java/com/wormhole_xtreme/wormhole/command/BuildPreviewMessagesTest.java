@@ -75,6 +75,7 @@ class BuildPreviewMessagesTest extends BuildPreviewCase
         final GatePreviews.Placed[] answers = {
             placed(GatePreviews.Outcome.NOT_FINDABLE), placed(GatePreviews.Outcome.NOT_LOADED),
             placed(GatePreviews.Outcome.OUTSIDE_BORDER), placed(GatePreviews.Outcome.TOO_CLOSE, "near"),
+            placed(GatePreviews.Outcome.OVER_QUOTA, "full"),
             placed(GatePreviews.Outcome.SHAPE_OFF),
             placed(GatePreviews.Outcome.IN_THE_WAY, "stone at 1 2 3", "4 more"),
             placed(GatePreviews.Outcome.IN_THE_WAY, "dirt"), placed(GatePreviews.Outcome.IN_THE_WAY),
@@ -106,6 +107,7 @@ class BuildPreviewMessagesTest extends BuildPreviewCase
         verify(player).sendMessage(error("Part of it is in an unloaded chunk. Move closer. Nothing placed."));
         verify(player).sendMessage(error("Part of it is outside the world border. Nothing placed."));
         verify(player).sendMessage(error("near Nothing placed."));
+        verify(player).sendMessage(error("full Nothing placed."));
         verify(player).sendMessage(error("That shape is turned off on this server. Nothing placed."));
         verify(player).sendMessage(error("Nothing placed. In the way: " + bad("stone at 1 2 3, 4 more") + ". ")
             + hint(GUIDE) + " marks them.");

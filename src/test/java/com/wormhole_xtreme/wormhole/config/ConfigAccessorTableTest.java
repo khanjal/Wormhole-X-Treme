@@ -506,6 +506,7 @@ class ConfigAccessorTableTest
         d.put(ConfigKeys.GATE_RIPPLE, true);
         d.put(ConfigKeys.GATE_IRIS_ANIMATION, " Spiral ");
         d.put(ConfigKeys.MIN_GATE_DISTANCE, 13);
+        d.put(ConfigKeys.MAX_GATES_PER_PLAYER, 7);
         d.put(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, false);
         d.put(ConfigKeys.GATE_PREVIEW_MINUTES, 14);
         d.put(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5001);
@@ -640,6 +641,7 @@ class ConfigAccessorTableTest
             irisAnimated("sweep", true),
             irisAnimated(null, true),
             row("getMinGateDistance", ConfigKeys.MIN_GATE_DISTANCE, 0, 0, 13),
+            row("getMaxGatesPerPlayer", ConfigKeys.MAX_GATES_PER_PLAYER, 0, 0, 7),
             row("isGateMaterialGroupsAutodiscover", ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, true, false),
             row("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, 10, 10, 14),
             row("getGatePreviewMaxBlocks", ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, 5000, 5001),
@@ -807,6 +809,7 @@ class ConfigAccessorTableTest
         // Not checked against the animations there are: an unknown one comes back as written
         o.add(odd(irisCall("null, null", null, null), ConfigKeys.GATE_IRIS_ANIMATION, " BOGUS ", "bogus"));
         o.add(odd("getMinGateDistance", ConfigKeys.MIN_GATE_DISTANCE, -5, 0));
+        o.add(odd("getMaxGatesPerPlayer", ConfigKeys.MAX_GATES_PER_PLAYER, -5, 0));
         o.add(odd("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, 0, 1));
         o.add(odd("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, -5, 1));
         o.add(odd("getGatePreviewMaxBlocks", ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, -5, 0));

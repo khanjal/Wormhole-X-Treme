@@ -2103,6 +2103,56 @@ class GatePreviewsTest
         }
     }
 
+    /**
+     * Placing at the owner's gate quota writes nothing (#633).
+     *
+     * <p>Checked afterwards, at the offer, it had already built the frame and the DHD, and left them standing as
+     * a structure that was not a gate.
+     */
+    @Test
+    void placingAtTheGateQuotaWritesNothing()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        GatePreviews.show(owner, standard, null);
+        ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 1);
+        final Stargate mine = registeredGateBeside("Mine");
+        mine.setGateOwner(owner.getUniqueId().toString());
+        try
+        {
+            final GatePreviews.Placed placed = GatePreviews.place(owner, true);
+
+            assertEquals(GatePreviews.Outcome.OVER_QUOTA, placed.outcome());
+            assertTrue(placed.inTheWay().get(0).contains("limit"), placed.inTheWay().toString());
+            assertTrue(written.isEmpty(), "blocks were written before the refusal");
+        }
+        finally
+        {
+            StargateManager.removeStargate(mine);
+        }
+    }
+
+    /** A preview laid over a gate already standing is a repair, and a repair is of a gate already counted. */
+    @Test
+    void aPreviewOverAStandingGateIsNotRefusedForTheQuota()
+    {
+        obsidianFramesAreFindable();
+        detectsAGate();
+        GatePreviews.show(owner, standard, null);
+        ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 1);
+        final Stargate mine = registeredGateBeside("Under");
+        mine.setGateOwner(owner.getUniqueId().toString());
+        GatePreviews.gateAt = (w, x, y, z) -> mine;
+        try
+        {
+            assertNotEquals(GatePreviews.Outcome.OVER_QUOTA, GatePreviews.place(owner, false).outcome());
+        }
+        finally
+        {
+            StargateManager.removeStargate(mine);
+        }
+    }
+
     /** A preview laid over a gate already standing is a repair or an obstruction, never "too close". */
     @Test
     void aPreviewOverAStandingGateIsNotRefusedAsTooClose()

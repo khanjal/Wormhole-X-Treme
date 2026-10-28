@@ -37,6 +37,17 @@ nearest gate named. It is checked when the design is found, on `gate complete`, 
 command blocks are not held to it. Rings and gates in other worlds do not count. Anyone with
 `wormhole.build.mindistance.bypass`, which operators have by default, is exempt.
 
+**How many gates.** `max-gates-per-player` (default `0`, no limit) is the most gates one player may own.
+A player who owns that many is refused another, before any fare, with the limit named: when the design is
+found, on `gate complete` and on `gate preview place`, which places nothing. `gate build` with coordinates makes a
+gate with no owner, so it is not held to it. A group can have its own limit with `wormhole.gates.max.<n>`: a player holding several
+has the highest `n`, which replaces the setting whether it is more or fewer, and a node that is not a whole
+number above `0` is ignored. `wormhole.gates.unlimited`, which operators have by default, lifts the limit, and a
+permissions plugin that expands `wormhole.*` or `*` grants it with the rest.
+Only gates that stand count, so a gate taken down frees its place, and one built but not yet named does not.
+`/wormhole gate list` ends with "Gates owned: 2. Your limit: 5." for a player who has a limit; it counts every
+network, whatever list was asked for.
+
 ### Previews
 
 With `wormhole.build.preview`, step 1 also stands the shape up full size in front of you: its
