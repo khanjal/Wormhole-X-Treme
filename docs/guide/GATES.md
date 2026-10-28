@@ -488,7 +488,7 @@ gate on your side; lava hides it. The far side is still captured whole: the tunn
 what is drawn.
 
 At `gate-view: behind` the view is drawn behind the horizon, so the horizon has to be see-through to
-show it. A gate whose horizon is lava, or an opaque block, keeps its horizon and takes no capture;
+show it. A gate whose horizon is lava, or an opaque block, keeps its horizon and takes no capture for its view;
 `gate-view: open` clears the horizon, so it shows the view whatever the horizon is made of.
 `mirror debug <gate>` says when this is why a gate shows none.
 

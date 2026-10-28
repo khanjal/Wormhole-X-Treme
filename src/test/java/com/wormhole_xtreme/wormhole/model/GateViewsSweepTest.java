@@ -894,6 +894,7 @@ class GateViewsSweepTest
     {
         assertTrue(GateViews.hides(Material.LAVA));
         assertTrue(GateViews.hides(Material.END_GATEWAY), "it draws as an opaque starfield");
+        assertTrue(GateViews.hides(Material.END_PORTAL), "and so does an end portal");
         assertFalse(GateViews.hides(Material.WATER));
         assertFalse(GateViews.hides(Material.NETHER_PORTAL));
         assertFalse(GateViews.hides(Material.AIR), "nothing to hide behind");
