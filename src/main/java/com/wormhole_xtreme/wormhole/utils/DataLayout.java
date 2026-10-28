@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole.utils;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 
 /**
  * Every file and folder this plugin owns, named in one place.
@@ -20,14 +22,14 @@ import java.io.File;
  * │   ├── gate/*.shape           the shapes gates are built from
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with
  * ├── data/
- * │   ├── gates/&lt;name&gt;.yml       one file per gate
- * │   ├── gates/captures/*.view  what stands in front of a gate, per opening size seen through
+ * │   ├── gates/&lt;name&gt;.yml       one file per gate, and nothing else
+ * │   ├── captures/
+ * │   │   ├── gates/*.view       what stands in front of a gate, per opening size seen through
+ * │   │   └── mirrors/*.view     one photograph of a far side per destination
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
  * │   ├── beam.yml               every destination and place, in one file
  * │   ├── mirror.yml             every quantum mirror, in one file
- * │   ├── freya.yml              who keeps a companion; absent when nobody does
- * │   └── mirror/
- * │       └── captures/*.view    one photograph of a far side per destination
+ * │   └── freya.yml              who keeps a companion; absent when nobody does
  * └── WormholeXTremeDB/
  *     └── WormholeXTreme.sqlite  another fork's database, read by the importer
  * </pre>
@@ -100,14 +102,62 @@ public final class DataLayout
     /**
      * The folder of gate captures: what stands in front of a gate, as seen through another's opening (#516).
      *
-     * <p>Beside the gate files, named for the gate they show, and in a folder of their own so the
-     * gate loader, which reads only the {@code .yml} files at the top, never sees them.
+     * <p>Named for the gate they show, and apart from the gate files, so the folder an admin backs
+     * up or hand-edits for gates holds gates only (#655). A folder left in {@code gates/captures/}
+     * by an earlier build is moved in the first time this is asked.
      *
      * @return the folder, which may not exist yet
      */
     public static File gateCaptureDir()
     {
-        return new File(gates(), "captures");
+        final File dir = new File(captures(), "gates");
+        moveCaptures(new File(gates(), "captures"), dir);
+        return dir;
+    }
+
+    private static File captures()
+    {
+        return new File(data(), "captures");
+    }
+
+    /**
+     * Moves a folder of captures to where they now live: nothing deleted, nothing overwritten, a
+     * file already at the destination wins. Captures are retaken on the next look, so a move that
+     * fails leaves them where they were and costs a recapture, never data.
+     */
+    private static void moveCaptures(final File earlier, final File dir)
+    {
+        if (!earlier.isDirectory())
+        {
+            return;
+        }
+        if (!dir.exists() && dir.getParentFile().mkdirs() && earlier.renameTo(dir))
+        {
+            return;
+        }
+        final File[] files = earlier.listFiles(File::isFile);
+        if ((files == null) || (!dir.isDirectory() && !dir.mkdirs()))
+        {
+            return;
+        }
+        for (final File file : files)
+        {
+            moveUnlessThere(file, new File(dir, file.getName()));
+        }
+        // Only if that emptied it: a folder with anything left in it stays.
+        earlier.delete();
+    }
+
+    private static void moveUnlessThere(final File file, final File target)
+    {
+        try
+        {
+            Files.move(file.toPath(), target.toPath());
+        }
+        catch (final IOException | RuntimeException e)
+        {
+            // Already there, or not movable: the destination wins and the rest is retaken.
+        }
     }
 
     /** @return one YAML file per world, holding every ring pair in it */
@@ -147,23 +197,21 @@ public final class DataLayout
     /**
      * The folder of mirror captures: one photograph of a far side per destination.
      *
-     * <p>Under a {@code mirror/} folder of its own rather than inside a world's, because a
-     * capture is of the far side and belongs to the mirror that looks at it, not to the world
-     * it is of; and a folder rather than a bare {@code mirror-captures/}, so that whatever else
-     * mirrors come to keep has somewhere to go. A folder left by the build that wrote captures
-     * beside the mirror file is moved in the first time this is asked.
+     * <p>Not inside a world's folder, because a capture is of the far side and belongs to the
+     * mirror that looks at it, not to the world it is of. Both earlier homes, {@code mirror/captures/}
+     * and the older {@code mirror-captures/}, are moved in the first time this is asked, so a server
+     * several versions behind still lands in the right folder.
      *
      * @return the folder, which may not exist yet
      */
     public static File mirrorCaptureDir()
     {
-        final File dir = new File(new File(data(), "mirror"), "captures");
-        final File earlier = new File(data(), "mirror-captures");
-        if (earlier.isDirectory() && !dir.exists() && dir.getParentFile().mkdirs() && !earlier.renameTo(dir))
-        {
-            // Left where it was: captures are retaken on the next look, so nothing is lost.
-            return dir;
-        }
+        final File dir = new File(captures(), "mirrors");
+        moveCaptures(new File(data(), "mirror-captures"), dir);
+        final File middle = new File(data(), "mirror");
+        moveCaptures(new File(middle, "captures"), dir);
+        // Left empty by that move; delete() refuses a folder that still holds anything.
+        middle.delete();
         return dir;
     }
 

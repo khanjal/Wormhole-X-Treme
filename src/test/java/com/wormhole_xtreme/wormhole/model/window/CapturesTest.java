@@ -413,7 +413,7 @@ class CapturesTest
      * so nobody's captures are left behind to puzzle over.
      */
     @Test
-    void anEarlierBuildsCaptureFolderIsMovedUnderMirror() throws IOException
+    void anEarlierBuildsCaptureFolderIsMovedUnderCaptures() throws IOException
     {
         final File data = new File(dataFolder, "data");
         final File earlier = new File(data, "mirror-captures");
@@ -423,7 +423,7 @@ class CapturesTest
 
         final File dir = DataLayout.mirrorCaptureDir();
 
-        assertEquals(new File(new File(data, "mirror"), "captures"), dir);
+        assertEquals(new File(new File(data, "captures"), "mirrors"), dir);
         assertTrue(new File(dir, "world_1_2_3.view").isFile(), "the file came along");
         assertFalse(earlier.exists(), "and the old folder is gone");
     }
