@@ -600,7 +600,7 @@ public class StargateShape
     protected void applyUseCost(final String text)
     {
         final Double cost = parseCost(text);
-        if ((cost == null) && !text.isBlank())
+        if ((cost == null) && (text != null) && !text.isBlank())
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Shape \"" + getShapeName() + "\" has USE_COST=" + text.trim()
                 + ", which is not an amount; its gates follow economy-use-cost.");

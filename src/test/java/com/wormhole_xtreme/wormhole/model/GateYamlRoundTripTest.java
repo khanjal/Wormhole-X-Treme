@@ -347,8 +347,14 @@ class GateYamlRoundTripTest
         free.setGateUseCost(0.0);
         final Stargate dear = gate("dear");
         dear.setGateUseCost(12.5);
+        final Stargate huge = gate("huge");
+        huge.setGateUseCost(10_000_000.0);
+        final Stargate tiny = gate("tiny");
+        tiny.setGateUseCost(0.0001);
         StargateYamlManager.saveStargate(free, gatesDir());
         StargateYamlManager.saveStargate(dear, gatesDir());
+        StargateYamlManager.saveStargate(huge, gatesDir());
+        StargateYamlManager.saveStargate(tiny, gatesDir());
         StargateYamlManager.saveStargate(gate("plain"), gatesDir());
 
         assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "plain.yml").toPath()),
@@ -358,6 +364,9 @@ class GateYamlRoundTripTest
 
         assertEquals(0.0, StargateManager.getStargate("free").getGateUseCost(), "free is not unset");
         assertEquals(12.5, StargateManager.getStargate("dear").getGateUseCost());
+        assertEquals(10_000_000.0, StargateManager.getStargate("huge").getGateUseCost(),
+            "YAML writes it as 1.0E7, which is a number though not a plain amount");
+        assertEquals(0.0001, StargateManager.getStargate("tiny").getGateUseCost(), "and 1.0E-4");
         assertNull(StargateManager.getStargate("plain").getGateUseCost());
     }
 }

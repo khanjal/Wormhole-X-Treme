@@ -213,7 +213,7 @@ class DefaultSettings
 
         group("Economy", "Shared by gates and beaming; both need this enabled before any cost applies.",
             new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.", SECTION),
-            new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. 0.0 to disable.", SECTION),
+            new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate, unless the gate (gate edit <gate> cost) or its shape (USE_COST= in the shape file) sets its own. 0.0 to disable.", SECTION),
             new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. 0.0 to disable.", SECTION)),
 
         group("Stargate sounds", SOUNDS,

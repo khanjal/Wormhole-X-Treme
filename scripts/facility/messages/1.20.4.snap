@@ -705,7 +705,7 @@ s1 every setting	:: /wormhole config -reload re-reads config.yml.
 s1 every setting	:: /wormhole config <name> shows one, /wormhole config <name> <value> changes it.
 s1 every setting	:: Add WorldGuard region flags wormhole-build and wormhole-use, so a region can refuse gate building and gate use. Requires WorldGuard. Turning it off applies at once; turning it on takes a restart. Both default to allow, and WorldGuard's region bypass exempts.
 s1 every setting	:: Amount charged to a player each time they beam. N to disable; economy-enabled must also be true.
-s1 every setting	:: Amount charged to a player each time they walk through a gate. N to disable.
+s1 every setting	:: Amount charged to a player each time they walk through a gate, unless the gate (gate edit <gate> cost) or its shape (USE_COST= in the shape file) sets its own. N to disable.
 s1 every setting	:: Amount charged to a player when they successfully build a new gate. N to disable.
 s1 every setting	:: Annex, Grand, Hall, Horizontal, IrisA, IrisS, Large, Massive, Minimal, Ops,
 s1 every setting	:: At startup, look online for a newer release and say so in the log and to players with wormhole.update.notify as they join. Sends only the plugin and Minecraft versions; never downloads anything. Set false to stop.

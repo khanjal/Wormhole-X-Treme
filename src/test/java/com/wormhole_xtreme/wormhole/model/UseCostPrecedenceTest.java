@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 
@@ -170,6 +171,10 @@ class UseCostPrecedenceTest
         assertNull(standardWith("USE_COST=2,5").getShapeUseCost());
 
         verify(plugin).prettyLog(eq(Level.WARNING), contains("USE_COST=2,5"));
-        verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("# none"));
+        // A line with nothing after the key, and a file without it, are not mistakes worth a warning.
+        standardWith("USE_COST=");
+        standardWith("# none");
+        verify(plugin, never()).prettyLog(eq(Level.WARNING), contains("USE_COST=,"));
+        verify(plugin, times(1)).prettyLog(eq(Level.WARNING), contains("USE_COST"));
     }
 }

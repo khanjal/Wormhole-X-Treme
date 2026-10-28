@@ -242,6 +242,11 @@ public class StargateYamlManager
         return animation;
     }
 
+    private static Double finiteAmount(final double cost)
+    {
+        return (Double.isNaN(cost) || Double.isInfinite(cost) || (cost < 0)) ? null : Double.valueOf(cost);
+    }
+
     /** A gate file's own use cost, or null to follow its shape and {@code economy-use-cost}; one that is not an amount is said. */
     private static Double useCostFrom(final Object raw, final String gateName)
     {
@@ -249,7 +254,9 @@ public class StargateYamlManager
         {
             return null;
         }
-        final Double cost = StargateShape.parseCost(String.valueOf(raw));
+        // A number is taken as it is: YAML writes 1.0E7 for ten million, which is a number but not a plain amount.
+        final Double cost = (raw instanceof Number number) ? finiteAmount(number.doubleValue())
+            : StargateShape.parseCost(String.valueOf(raw));
         if (cost == null)
         {
             PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + UNKNOWN_VALUE + USE_COST_KEY + " \"" + raw

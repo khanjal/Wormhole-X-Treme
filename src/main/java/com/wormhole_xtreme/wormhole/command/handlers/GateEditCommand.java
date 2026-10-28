@@ -200,7 +200,7 @@ public class GateEditCommand implements SubCommand
     /** An amount as a person writes it: {@code 3} and {@code 0.3}, not {@code 3.0} or {@code 1.0E7}. */
     private static String amount(final double cost)
     {
-        return BigDecimal.valueOf(cost).stripTrailingZeros().toPlainString();
+        return Double.isFinite(cost) ? BigDecimal.valueOf(cost).stripTrailingZeros().toPlainString() : String.valueOf(cost);
     }
 
     /**

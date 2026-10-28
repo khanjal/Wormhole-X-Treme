@@ -142,4 +142,16 @@ class GateEditCostTest
 
         verify(sender).sendMessage(plainContains("nowhere"));
     }
+
+    /** A server cost that is not a number (YAML allows .inf and .nan) is said as it is rather than breaking the command. */
+    @Test
+    void aServerCostThatIsNotANumberDoesNotBreakTheCommand()
+    {
+        ConfigTestSupport.set(ConfigKeys.ECONOMY_USE_COST, Double.POSITIVE_INFINITY);
+        gate("alpha");
+
+        run("gate", "edit", "alpha", "cost");
+
+        verify(sender).sendMessage(plainContains("alpha costs Infinity a trip"));
+    }
 }
