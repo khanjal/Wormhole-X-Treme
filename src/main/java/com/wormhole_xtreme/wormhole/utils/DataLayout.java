@@ -46,6 +46,10 @@ public final class DataLayout
     /** Where this fork keeps what it owns. */
     private static final String DATA = "data";
 
+    private static final String GATES = "gates";
+
+    private static final String CAPTURES = "captures";
+
     /** The old capture folders already looked at this run, so a clash left behind is not retried on every call. */
     private static final Set<String> MOVED = ConcurrentHashMap.newKeySet();
 
@@ -102,7 +106,7 @@ public final class DataLayout
     /** @return one YAML file per gate */
     public static File gates()
     {
-        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, DATA, "gates");
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, DATA, GATES);
     }
 
     /**
@@ -116,14 +120,14 @@ public final class DataLayout
      */
     public static File gateCaptureDir()
     {
-        final File dir = new File(captures(), "gates");
-        moveCaptures(new File(gates(), "captures"), dir);
+        final File dir = new File(captures(), GATES);
+        moveCaptures(new File(gates(), CAPTURES), dir);
         return dir;
     }
 
     private static File captures()
     {
-        return new File(data(), "captures");
+        return new File(data(), CAPTURES);
     }
 
     /**
@@ -152,10 +156,24 @@ public final class DataLayout
             moveUnlessThere(file, new File(dir, file.getName()));
         }
         // Only if that emptied it: a folder with anything left in it stays.
-        if (!earlier.delete())
+        if (!deleteIfEmpty(earlier))
         {
             PluginLog.log(Level.INFO, "Captures left in " + earlier
                 + ": a file of the same name is already in " + dir + ", or could not be moved.");
+        }
+    }
+
+    /** @return whether the folder is gone: a folder that still holds anything is refused */
+    private static boolean deleteIfEmpty(final File folder)
+    {
+        try
+        {
+            Files.delete(folder.toPath());
+            return true;
+        }
+        catch (final IOException | RuntimeException e)
+        {
+            return false;
         }
     }
 
@@ -220,10 +238,10 @@ public final class DataLayout
         final File dir = new File(captures(), "mirrors");
         final File middle = new File(data(), "mirror");
         // The newer folder first, so where both hold a capture of the same name the newer one wins.
-        moveCaptures(new File(middle, "captures"), dir);
+        moveCaptures(new File(middle, CAPTURES), dir);
         moveCaptures(new File(data(), "mirror-captures"), dir);
         // Left empty by that move; delete() refuses a folder that still holds anything.
-        if (middle.isDirectory() && !middle.delete())
+        if (middle.isDirectory() && !deleteIfEmpty(middle))
         {
             PluginLog.log(Level.FINE, "Left " + middle + ": it holds more than the captures that moved.");
         }
@@ -257,6 +275,6 @@ public final class DataLayout
      */
     public static String[] migratableNames()
     {
-        return new String[] { "gates", "rings", "beam.yml" };
+        return new String[] { GATES, "rings", "beam.yml" };
     }
 }
