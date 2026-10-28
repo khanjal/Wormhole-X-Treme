@@ -487,11 +487,6 @@ Water is see-through, so through the tunnel's walls you can see, faintly, whatev
 gate on your side; lava hides it. The far side is still captured whole: the tunnel only changes
 what is drawn.
 
-At `gate-view: behind` the view is drawn behind the horizon, so the horizon has to be see-through to
-show it. A gate whose horizon is lava, or an opaque block, keeps its horizon and takes no capture for its view;
-`gate-view: open` clears the horizon, so it shows the view whatever the horizon is made of.
-`mirror debug <gate>` says when this is why a gate shows none.
-
 In `config.yml` these three are under `# --- Gate views and mirrors ---`, `# -- Gate views --`,
 right after `gate-view`. How far a gate's view reaches is `view-depth`, shared with mirrors: see
 [Mirrors](MIRRORS.md#settings).
@@ -501,6 +496,20 @@ right after `gate-view`. How far a gate's view reaches is `view-depth`, shared w
 | `gate-view-funnel` | `true` | Whether a gate dialling a smaller one shows the view at the end of a tunnel; `false` shows the whole view |
 | `gate-view-funnel-length` | `16` | The longest that tunnel may be, 1 to 64 blocks |
 | `gate-view-funnel-min-length` | `0` | The shortest it is, up to `gate-view-funnel-length`; above 0, same-size and small-to-large pairs get a straight tunnel too. 3 is the wormhole look for a Standard gate. No effect while `gate-view-funnel` is `false`. [Details](../GATES.md) |
+
+## Choosing what a gate shows
+
+At `gate-view: behind` the view is drawn behind the horizon, so the horizon has to be see-through to
+show it. A gate whose horizon is lava, or an opaque block, keeps its horizon and takes no capture for its view;
+`gate-view: open` clears the horizon, so it shows the view whatever the horizon is made of.
+`mirror debug <gate>` says when this is why a gate shows none.
+
+A gate can have its own level: `/wormhole gate edit <gate> view <horizon|behind|open>`, or `default`
+to follow `gate-view` again. Its own level wins over the server's whichever way they differ, so
+`horizon` on one gate keeps its horizon at a server on `open`, and `open` shows its view at a server
+on `horizon`. It takes effect on an open gate at the next sweep, with no new dial, and only the level of the
+gate that is dialling out counts: the far end keeps its horizon. It is saved with the gate and kept
+when the gate is regenerated.
 
 ## Redstone
 
@@ -654,7 +663,7 @@ the setting does not touch them.
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),
 `woosh` (how far the woosh pushes out), `redstone` and `custom` (`true`/`false`), `idc` (a code, or
 `-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`), `iris-animation` (a
-[style](#how-it-arrives), or `default`).
+[style](#how-it-arrives), or `default`), `view` (`horizon`, `behind`, `open`, or `default`).
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
 The choice is saved with the gate; `group -clear` gives it back to whatever its frame is built from.

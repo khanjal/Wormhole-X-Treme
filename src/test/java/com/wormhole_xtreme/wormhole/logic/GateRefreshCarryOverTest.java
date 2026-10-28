@@ -186,4 +186,17 @@ class GateRefreshCarryOverTest
 
         assertEquals("spiral", fresh.getGateIrisAnimation());
     }
+
+    /** A gate's own view level (#682) survives a regen. */
+    @Test
+    void aRegeneratedGateKeepsItsView()
+    {
+        final Stargate existing = new Stargate();
+        existing.setGateView("horizon");
+        final Stargate fresh = new Stargate();
+
+        GateRefresh.carryOverSettings(existing, fresh);
+
+        assertEquals("horizon", fresh.getGateView());
+    }
 }

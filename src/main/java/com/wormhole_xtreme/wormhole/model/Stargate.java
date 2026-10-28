@@ -668,6 +668,34 @@ public class Stargate implements GateIris
         return ConfigManager.getGateIrisAnimation(gateIrisAnimation, getGateMaterialGroup());
     }
 
+    /** This gate's own view level (#682), or null to follow {@code gate-view}. */
+    private String gateView = null;
+
+    /**
+     * @return this gate's own view level, or null when it follows the server
+     */
+    public String getGateView()
+    {
+        return gateView;
+    }
+
+    /**
+     * @param level
+     *            horizon, behind or open for this gate whatever the server's {@code gate-view} is, or null to follow it
+     */
+    public void setGateView(final String level)
+    {
+        gateView = level;
+    }
+
+    /**
+     * @return what this gate shows once open: its own level, or the server's
+     */
+    public String getEffectiveView()
+    {
+        return ConfigManager.getGateView(gateView);
+    }
+
     /**
      * @return the ring pattern this gate dials with: its own, its group's, or the server's
      */

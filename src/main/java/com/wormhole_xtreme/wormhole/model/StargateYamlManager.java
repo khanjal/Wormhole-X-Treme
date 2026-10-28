@@ -37,6 +37,9 @@ public class StargateYamlManager
     static final String DIAL_SPIN_KEY = "DialSpin";
     /** The gate's own iris animation (#427); absent when it follows its group and the server. */
     static final String IRIS_ANIMATION_KEY = "IrisAnimation";
+
+    /** A gate's own view level, written only when it has one (#682). */
+    static final String VIEW_KEY = "View";
     /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
     static final String MATERIAL_GROUP_KEY = "MaterialGroup";
     /** Anything that is not safe in a file name, replaced with an underscore. */
@@ -161,6 +164,7 @@ public class StargateYamlManager
         applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
         s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
         s.setGateIrisAnimation(irisAnimationFrom(map.get(IRIS_ANIMATION_KEY), name));
+        s.setGateView(viewFrom(map.get(VIEW_KEY), name));
         applyChosenGroup(s, map.get(MATERIAL_GROUP_KEY), name);
         return s;
     }
@@ -227,6 +231,25 @@ public class StargateYamlManager
                 + "\"; it follows its group and gate-iris-animation.");
         }
         return animation;
+    }
+
+    /**
+     * A gate file's own view level, or null to follow {@code gate-view}; a level the setting does not
+     * take is said out loud, as a pattern's is.
+     */
+    private static String viewFrom(final Object raw, final String gateName)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        final String level = ConfigManager.parseGateView(String.valueOf(raw));
+        if (level == null)
+        {
+            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + "\" has an unknown " + VIEW_KEY + " \"" + raw
+                + "\"; it follows gate-view.");
+        }
+        return level;
     }
 
     /**
@@ -454,6 +477,10 @@ public class StargateYamlManager
         if (s.getGateIrisAnimation() != null)
         {
             map.put(IRIS_ANIMATION_KEY, s.getGateIrisAnimation());
+        }
+        if (s.getGateView() != null)
+        {
+            map.put(VIEW_KEY, s.getGateView());
         }
         final byte[] data = GateSerializer.stargateToBinary(s);
         if (data == null)

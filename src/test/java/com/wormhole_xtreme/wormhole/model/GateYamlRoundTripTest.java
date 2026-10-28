@@ -302,4 +302,22 @@ class GateYamlRoundTripTest
         assertEquals("columns", StargateManager.getStargate("own").getGateIrisAnimation());
         assertNull(StargateManager.getStargate("server").getGateIrisAnimation());
     }
+
+    /** A gate's own view level (#682) survives a restart; one without keeps none, and writes none. */
+    @Test
+    void aGatesViewRoundTripsAndAnUnsetOneStaysUnset() throws Exception
+    {
+        final Stargate own = gate("own");
+        own.setGateView("horizon");
+        StargateYamlManager.saveStargate(own, gatesDir());
+        StargateYamlManager.saveStargate(gate("server"), gatesDir());
+
+        assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "server.yml").toPath()),
+            StandardCharsets.UTF_8).contains(StargateYamlManager.VIEW_KEY + ":"), "nothing written for an unset view");
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        assertEquals("horizon", StargateManager.getStargate("own").getGateView(), "horizon is kept: it is not the same as none");
+        assertNull(StargateManager.getStargate("server").getGateView());
+    }
 }
