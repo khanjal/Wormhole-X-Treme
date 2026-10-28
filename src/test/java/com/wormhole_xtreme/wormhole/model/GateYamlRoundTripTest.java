@@ -372,7 +372,7 @@ class GateYamlRoundTripTest
 
     /** A cost a hand edit made negative is not an amount: the gate follows its shape and the server again. */
     @Test
-    void aNegativeUseCostInAGateFileIsNotKept() throws Exception
+    void aNegativeUseCostInAGateFileIsNotKept()
     {
         final Stargate odd = gate("odd");
         odd.setGateUseCost(-3.0);
