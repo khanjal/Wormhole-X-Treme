@@ -54,6 +54,7 @@ class ShapePermissionsTest
     void tearDown()
     {
         PluginTestSupport.forgetAllGates();
+        PluginTestSupport.remove();
         StargateShapeRegistry.getStargateShapes().remove("Standard");
         StargateShapeRegistry.getStargateShapes().remove("Grand");
     }
