@@ -149,8 +149,8 @@ it lists every view you are being drawn, including a gate's (`gate-view`), with 
 capture reaches, whether it was cut to fit, how deep it is drawn and how old it is.
 `mirror debug <gate>` names a gate instead of a mirror and says what `gate-view` is, and whether the gate's
 view is drawn and, if not, why: not open, iris shut, the end that was dialled, an opening that cannot show one,
-nobody near enough, its world not loaded, no arrival point at the far gate, or its capture still
-being taken. `-all` and `-full` are for a mirror. `debug` is not
+nobody near enough, its world not loaded, no arrival point at the far gate, a horizon that hides the
+view, or its capture still being taken. `-all` and `-full` are for a mirror. `debug` is not
 in the usage line, but
 tab-completes for anyone who may run it.
 

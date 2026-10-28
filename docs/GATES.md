@@ -641,7 +641,8 @@ solid than the real one, so it is only sent where the eye is in open air.
 
 `gate-view` ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)) draws an open gate
 the way a mirror draws its room: the ground in front of the dialled gate, in real blocks sent to
-each viewer, behind the gate's plane. `behind` keeps the horizon in front of it; `open` clears the
+each viewer, behind the gate's plane. `behind` keeps the horizon in front of it, so a gate whose
+horizon is lava or opaque is offered no view at that level; `open` clears the
 horizon once the far side is ready, for whoever is drawn the view and nobody else. It is the mirror
 drawing, not a copy of it: `GateViews` offers each open gate to the mirror sweep as a window, and
 nothing in the world changes.
