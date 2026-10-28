@@ -409,7 +409,7 @@ such as [EssentialsX](https://essentialsx.net/).
 | Setting | Default | What it does |
 |---|---|---|
 | `economy-enabled` | `false` | Nothing is ever charged while this is off. |
-| `economy-use-cost` | `0.0` | Charged each time a player walks through a gate. |
+| `economy-use-cost` | `0.0` | Charged each time a player walks through a gate, unless the gate or its shape has a cost of its own: `gate edit <gate> cost`, then `USE_COST=` in the [shape file](GATES.md#shapes) |
 | `economy-build-cost` | `0.0` | Charged when a player completes a gate. |
 
 - No Vault or no economy provider means charges are skipped.

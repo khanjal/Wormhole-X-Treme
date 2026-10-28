@@ -338,4 +338,26 @@ class GateYamlRoundTripTest
         assertEquals("charlie", StargateManager.getStargate("used").getGateDialSignTargetName());
         assertNull(StargateManager.getStargate("fresh").getGateDialSignTargetName());
     }
+
+    /** A gate's own use cost (#632) survives a restart, free included; a gate without one writes none. */
+    @Test
+    void aGatesUseCostRoundTripsAndAnUnsetOneStaysUnset() throws Exception
+    {
+        final Stargate free = gate("free");
+        free.setGateUseCost(0.0);
+        final Stargate dear = gate("dear");
+        dear.setGateUseCost(12.5);
+        StargateYamlManager.saveStargate(free, gatesDir());
+        StargateYamlManager.saveStargate(dear, gatesDir());
+        StargateYamlManager.saveStargate(gate("plain"), gatesDir());
+
+        assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "plain.yml").toPath()),
+            StandardCharsets.UTF_8).contains(StargateYamlManager.USE_COST_KEY + ":"), "nothing written for an unset cost");
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        assertEquals(0.0, StargateManager.getStargate("free").getGateUseCost(), "free is not unset");
+        assertEquals(12.5, StargateManager.getStargate("dear").getGateUseCost());
+        assertNull(StargateManager.getStargate("plain").getGateUseCost());
+    }
 }

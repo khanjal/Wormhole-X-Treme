@@ -729,7 +729,7 @@ class WormholeXTremeVehicleListener implements Listener
         // The vehicle has gone, so what follows from having travelled can be applied.
         if (!passengers.isEmpty() && (passengers.get(0) instanceof Player driver))
         {
-            GateFare.charge(driver, GateFare.affordable(driver));
+            GateFare.charge(driver, GateFare.affordable(driver, st));
         }
         applyTravelRestrictions(st, pendingRestrictions);
         greetRiders(passengers, arrivedAt);
@@ -954,7 +954,7 @@ class WormholeXTremeVehicleListener implements Listener
             bounceOffClosedIris(st, veh);
             return false;
         }
-        return admitUnderCooldown(p, pendingRestrictions);
+        return admitUnderCooldown(p, st, pendingRestrictions);
     }
 
     /**
@@ -1093,7 +1093,7 @@ class WormholeXTremeVehicleListener implements Listener
      * leave the rider having spent a cooldown and been marked as arriving somewhere they
      * never went.
      */
-    private static boolean admitUnderCooldown(final Player p, final List<Player> pendingRestrictions)
+    private static boolean admitUnderCooldown(final Player p, final Stargate st, final List<Player> pendingRestrictions)
     {
         // Cooldown before fare, the order the player listener asks them in.
         final boolean cooldown = ConfigManager.isUseCooldownEnabled();
@@ -1102,7 +1102,7 @@ class WormholeXTremeVehicleListener implements Listener
             p.sendMessage(StargateRestrictions.cooldownRefusal(p));
             return false;
         }
-        if (GateFare.affordable(p) < 0)
+        if (GateFare.affordable(p, st) < 0)
         {
             return false;
         }

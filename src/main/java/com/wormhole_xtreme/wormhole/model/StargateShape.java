@@ -51,6 +51,8 @@ public class StargateShape
 
     /** The wooshDepth. */
     private int shapeWooshDepth = 0;
+    /** What a trip through a gate of this shape costs, or null to follow {@code economy-use-cost} (#632). */
+    private Double shapeUseCost;
 
     /** The square of the wooshDepth, used in comparisions with squared distance. */
     private int shapeWooshDepthSquared = 0;
@@ -313,6 +315,11 @@ public class StargateShape
             setShapeWooshDepth(Integer.parseInt(line.split("=")[1]));
             return;
         }
+        if (line.trim().startsWith("USE_COST"))
+        {
+            applyUseCost(line.contains("=") ? line.substring(line.indexOf('=') + 1) : "");
+            return;
+        }
         for (final Map.Entry<String, BiConsumer<StargateShape, Material>> key
             : MATERIAL_KEYS.entrySet())
         {
@@ -559,6 +566,68 @@ public class StargateShape
     public int[] getShapeToGateCorner()
     {
         return shapeToGateCorner.clone();
+    }
+
+    /**
+     * What a trip through a gate of this shape costs, in the shape file as {@code USE_COST=1.5}.
+     *
+     * @return the cost, 0 for free, or null to follow {@code economy-use-cost}
+     */
+    public Double getShapeUseCost()
+    {
+        return shapeUseCost;
+    }
+
+    /**
+     * @param shapeUseCost
+     *            the cost, or null for none of its own
+     */
+    public void setShapeUseCost(final Double shapeUseCost)
+    {
+        this.shapeUseCost = shapeUseCost;
+    }
+
+    /** A plain amount: digits, and a decimal point with digits after it, or before it alone. */
+    private static final Pattern AMOUNT = Pattern.compile("\\d+(\\.\\d+)?|\\.\\d+");
+
+    /**
+     * Reads the value of a {@code USE_COST} line into the shape, and says so if it is not an amount: a shape file
+     * with a mistake in it keeps the rest of its settings, and its gates follow {@code economy-use-cost}.
+     *
+     * @param text
+     *            what follows the equals sign
+     */
+    protected void applyUseCost(final String text)
+    {
+        final Double cost = parseCost(text);
+        if ((cost == null) && !text.isBlank())
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Shape \"" + getShapeName() + "\" has USE_COST=" + text.trim()
+                + ", which is not an amount; its gates follow economy-use-cost.");
+        }
+        setShapeUseCost(cost);
+    }
+
+    /**
+     * A cost as written, or null if it is not a plain amount from zero up: no sign, no exponent, no suffix. A
+     * trailing semicolon is dropped, as the shipped shapes write {@code LIGHT_TICKS = 2;}.
+     *
+     * @param text
+     *            the value after the equals sign, or null
+     * @return the cost, or null
+     */
+    public static Double parseCost(final String text)
+    {
+        if (text == null)
+        {
+            return null;
+        }
+        String plain = text.trim();
+        if (plain.endsWith(";"))
+        {
+            plain = plain.substring(0, plain.length() - 1).trim();
+        }
+        return AMOUNT.matcher(plain).matches() ? Double.valueOf(plain) : null;
     }
 
     /**

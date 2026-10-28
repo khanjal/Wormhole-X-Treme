@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -19,6 +20,7 @@ import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -67,6 +69,9 @@ public class GateEditCommand implements SubCommand
     /** The field for a gate's own view level, named as the setting is, less its prefix. */
     private static final String VIEW = "view";
 
+    /** The field for what a trip through a gate costs (#632). */
+    private static final String COST = "cost";
+
     /** The iris code: the one field a gate's owner may set without {@code wormhole.config}. */
     private static final String IDC = "idc";
 
@@ -99,6 +104,7 @@ public class GateEditCommand implements SubCommand
         FIELDS.put("spin", GateEditCommand::setSpin);
         FIELDS.put(IRIS_ANIMATION, GateEditCommand::setIrisAnimation);
         FIELDS.put(VIEW, GateEditCommand::setView);
+        FIELDS.put(COST, GateEditCommand::setCost);
     }
 
     /**
@@ -146,6 +152,79 @@ public class GateEditCommand implements SubCommand
         sender.sendMessage(ChatText.info(Messages.get(sender, "gate.edit.view.now", ChatText.name(gate.getGateName()),
             ChatText.value(gate.getEffectiveView()), viewSource(sender, gate))));
         return true;
+    }
+
+    /**
+     * Sets what a trip through this gate costs (#632), or with {@code default} clears it so the gate follows its
+     * shape and then {@code economy-use-cost}. {@code 0} makes the gate free; only unset falls through. No value says
+     * what it is and where it comes from.
+     *
+     * @param sender
+     *            who typed it
+     * @param gateName
+     *            the gate
+     * @param value
+     *            an amount, {@code default}, or empty
+     * @return true, the command was handled
+     */
+    // Behind the Field interface, whose other implementations do return false.
+    @SuppressWarnings("java:S3516")
+    private static boolean setCost(final CommandSender sender, final String gateName, final String value)
+    {
+        final Stargate gate = StargateManager.getStargate(gateName);
+        if (gate == null)
+        {
+            sender.sendMessage(CommandUtilities.noGateCalled(sender, gateName));
+            return true;
+        }
+        if ((value == null) || value.isEmpty())
+        {
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.edit.cost.is", ChatText.name(gate.getGateName()),
+                ChatText.value(amount(gate.getEffectiveUseCost())), costSource(sender, gate))));
+            return true;
+        }
+        final boolean clear = DEFAULT.equalsIgnoreCase(value.trim());
+        final Double cost = clear ? null : StargateShape.parseCost(value);
+        if ((cost == null) && !clear)
+        {
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.edit.cost.invalid", ChatText.command(value))));
+            return true;
+        }
+        gate.setGateUseCost(cost);
+        StargateDBManager.saveStargate(gate);
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.edit.cost.now", ChatText.name(gate.getGateName()),
+            ChatText.value(amount(gate.getEffectiveUseCost())), costSource(sender, gate))));
+        return true;
+    }
+
+    /** An amount as a person writes it: {@code 3} and {@code 0.3}, not {@code 3.0} or {@code 1.0E7}. */
+    private static String amount(final double cost)
+    {
+        return BigDecimal.valueOf(cost).stripTrailingZeros().toPlainString();
+    }
+
+    /**
+     * What {@code gate edit <gate> cost} takes besides an amount, for tab completion.
+     *
+     * @return {@code default}
+     */
+    public static List<String> costNames()
+    {
+        return List.of(DEFAULT);
+    }
+
+    /** Where a gate's cost comes from, when not its own: its shape's file, else the server's setting. */
+    private static String costSource(final CommandSender sender, final Stargate gate)
+    {
+        if (gate.getGateUseCost() != null)
+        {
+            return "";
+        }
+        if ((gate.getGateShape() != null) && (gate.getGateShape().getShapeUseCost() != null))
+        {
+            return Messages.get(sender, "gate.edit.source.shape", ChatText.name(gate.getGateShape().getShapeName()));
+        }
+        return inherited(sender, null);
     }
 
     /** Where a gate's view level comes from, when not its own: only ever the server, which has the one setting. */

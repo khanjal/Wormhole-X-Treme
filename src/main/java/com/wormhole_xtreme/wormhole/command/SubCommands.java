@@ -723,6 +723,10 @@ public final class SubCommands
             return prefixed(typed,
                 GateEditCommand.viewNames().toArray(new String[0]));
         }
+        if ("cost".equals(field))
+        {
+            return prefixed(typed, GateEditCommand.costNames().toArray(new String[0]));
+        }
         if ("portal".equals(field) || "iris".equals(field) || LIGHT.equals(field))
         {
             return materialNames(typed, false);

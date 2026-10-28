@@ -100,6 +100,8 @@ public class Stargate implements GateIris
     private long gateTempSignTarget = -1;
     /** The network index the sign is pointing at. */
     private int gateDialSignIndex = 0;
+    /** What a trip through this gate costs, or null to follow its shape and then {@code economy-use-cost} (#632). */
+    private Double gateUseCost;
     /** The name of the gate the sign points at, which is what a restored selection is found by (#706); null if none was chosen. */
     private String gateDialSignTargetName;
     /** The temporary target stargate id. */
@@ -1367,6 +1369,42 @@ public class Stargate implements GateIris
     public synchronized int getGateDialSignIndex()
     {
         return gateDialSignIndex;
+    }
+
+    /**
+     * What a trip through this gate costs: its own, else its shape's, else {@code economy-use-cost}. 0 is free, and
+     * only unset falls through.
+     *
+     * @return the cost
+     */
+    public double getEffectiveUseCost()
+    {
+        if (gateUseCost != null)
+        {
+            return gateUseCost;
+        }
+        if ((gateShape != null) && (gateShape.getShapeUseCost() != null))
+        {
+            return gateShape.getShapeUseCost();
+        }
+        return ConfigManager.getEconomyUseCost();
+    }
+
+    /**
+     * @return this gate's own cost, or null if it has none
+     */
+    public Double getGateUseCost()
+    {
+        return gateUseCost;
+    }
+
+    /**
+     * @param gateUseCost
+     *            the cost, or null to follow the shape and the server
+     */
+    public void setGateUseCost(final Double gateUseCost)
+    {
+        this.gateUseCost = gateUseCost;
     }
 
     /**
