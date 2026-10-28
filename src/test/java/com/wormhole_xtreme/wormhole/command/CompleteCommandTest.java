@@ -450,6 +450,6 @@ class CompleteCommandTest
             StargateManager.removeIncompleteStargate(player);
             ConfigTestSupport.clear();
         }
-        verify(player).sendMessage(plainContains("You already own 1 gate"));
+        verify(player).sendMessage(plainContains("Gates owned: 1. Your limit: 1."));
     }
 }

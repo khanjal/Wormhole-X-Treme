@@ -90,16 +90,18 @@ public final class GateQuota
     public static String refusal(final Player player)
     {
         final int limit = limitFor(player);
-        if ((limit <= 0) || (ownedBy(player) < limit))
+        if (limit <= 0)
         {
             return null;
         }
-        final String shown = ChatText.value(String.valueOf(limit));
-        if (limit == 1)
+        final int owned = ownedBy(player);
+        if (owned < limit)
         {
-            return Messages.get(player, "gate.quota.reached.one", shown);
+            return null;
         }
-        return Messages.get(player, "gate.quota.reached.other", shown);
+        // Both numbers: a limit lowered under what a player owns is not "the limit" they own.
+        return Messages.get(player, "gate.quota.reached", ChatText.value(String.valueOf(owned)),
+            ChatText.value(String.valueOf(limit)));
     }
 
     /**

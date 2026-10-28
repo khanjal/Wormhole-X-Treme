@@ -158,7 +158,7 @@ class GateInteractionSpacingTest
 
             GateInteractionHandler.offerNewGate(player, button(), offered);
 
-            verify(player).sendMessage(plainContains("You already own 1 gate"));
+            verify(player).sendMessage(plainContains("Gates owned: 1. Your limit: 1."));
             verify(offered).resetTeleportSign();
             assertNull(StargateManager.getIncompleteStargate(player), "a refused gate must not be held");
         }

@@ -116,22 +116,24 @@ class GateQuotaTest
         assertNull(GateQuota.refusal(player(id)));
 
         own(id, "mine2");
-        assertTrue(ChatText.plain(GateQuota.refusal(player(id))).contains("limit"), GateQuota.refusal(player(id)));
-        assertTrue(ChatText.plain(GateQuota.refusal(player(id))).contains("2 gates"), GateQuota.refusal(player(id)));
+        assertTrue(ChatText.plain(GateQuota.refusal(player(id))).contains("Your limit: 2"), GateQuota.refusal(player(id)));
     }
 
-    /** One gate reads as one, more as gates. */
+    /** The refusal says how many are owned and what the limit is, which differ once a limit is lowered under them. */
     @Test
-    void theRefusalSaysGateOrGates()
+    void theRefusalSaysWhatIsOwnedAndTheLimit()
     {
         final UUID id = UUID.randomUUID();
         own(id, "a");
         ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 1);
-        assertTrue(ChatText.plain(GateQuota.refusal(player(id))).contains("1 gate,"), GateQuota.refusal(player(id)));
+        assertTrue(ChatText.plain(GateQuota.refusal(player(id))).startsWith("Gates owned: 1. Your limit: 1."),
+            GateQuota.refusal(player(id)));
 
         own(id, "b");
+        own(id, "c");
         ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 2);
-        assertTrue(ChatText.plain(GateQuota.refusal(player(id))).contains("2 gates,"), GateQuota.refusal(player(id)));
+        assertTrue(ChatText.plain(GateQuota.refusal(player(id))).startsWith("Gates owned: 3. Your limit: 2."),
+            "a limit lowered under what a player owns: " + GateQuota.refusal(player(id)));
     }
 
     /** A group's node replaces the setting, up or down, and the highest one wins. */

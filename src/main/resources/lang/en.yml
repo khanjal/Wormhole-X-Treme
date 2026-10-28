@@ -183,8 +183,7 @@ gate.restrict.seconds: "{0} seconds"
 gate.restrict.one-second: "1 second"
 
 gate.quota.count: "Gates owned: {0}. Your limit: {1}."
-gate.quota.reached.one: "You already own {0} gate, which is the limit."
-gate.quota.reached.other: "You already own {0} gates, which is the limit."
+gate.quota.reached: "Gates owned: {0}. Your limit: {1}. Nothing more can be built."
 gate.spacing.too-close: "Too close to {0}: {1} blocks away, and gates must be at least {2} apart."
 
 gate.cmd.unknown: "No such gate command: {0}. Try one of: {1}."
