@@ -287,6 +287,9 @@ the original went quiet, through the WolfNetDevelopment fork until 2015.
 This fork descends from the original rather than from that one, and brings the plugin to modern
 Minecraft with rings, beaming and mirrors added.
 
+**Dakto** keeps [a fork of that line](https://github.com/Daktoo/Wormhole-X-Treme) going today, and gave this one a shout-out.
+Thank you. It is a separate plugin with its own code.
+
 ### Licence
 
 Free software under

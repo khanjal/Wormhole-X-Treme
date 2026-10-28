@@ -2,6 +2,8 @@
   <img src="docs/images/logo-banner.svg" alt="Wormhole X-Treme" width="620">
 </p>
 
+<div align="center">
+
 [![CI](https://img.shields.io/github/actions/workflow/status/khanjal/Wormhole-X-Treme/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/khanjal/Wormhole-X-Treme/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fsonarcloud.io%2Fapi%2Fmeasures%2Fcomponent%3Fcomponent%3Dkhanjal_Wormhole-X-Treme%26metricKeys%3Dtests&query=%24.component.measures%5B0%5D.value&suffix=%20passing&label=tests&color=success&logo=junit5&logoColor=white)](https://github.com/khanjal/Wormhole-X-Treme/actions/workflows/ci.yml)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=coverage)](https://sonarcloud.io/component_measures?id=khanjal_Wormhole-X-Treme&metric=coverage)
@@ -13,6 +15,8 @@
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)](#building-from-source)
 [![License](https://img.shields.io/github/license/khanjal/Wormhole-X-Treme?color=blue)](LICENSE)
 [![bStats servers](https://img.shields.io/bstats/servers/34269?label=servers)](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269)
+
+</div>
 
 | Where to get it | Version | Downloads |
 |---|---|---|
@@ -132,6 +136,9 @@ contributions from **lirelent** (Ryan Metzger) and **Jeremy Wood**.
 [WolfNetDevelopment fork](https://github.com/WolfNetDevelopment/Wormhole-X-Treme) until 2015.
 This fork descends from the original rather than theirs, but the plugin's history does not make
 sense without that work.
+
+**Dakto** keeps [a fork of that line](https://github.com/Daktoo/Wormhole-X-Treme) going today, and gave this one a shout-out.
+Thank you. It is a separate plugin with its own code, and shares none with this one.
 
 This fork brings it to modern Minecraft, and adds rings, beaming and mirrors.
 
