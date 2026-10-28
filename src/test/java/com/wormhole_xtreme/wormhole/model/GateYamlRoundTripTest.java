@@ -320,4 +320,22 @@ class GateYamlRoundTripTest
         assertEquals("horizon", StargateManager.getStargate("own").getGateView(), "horizon is kept: it is not the same as none");
         assertNull(StargateManager.getStargate("server").getGateView());
     }
+
+    /** The gate a sign points at (#706) is written by name and read back; a gate whose sign was never used writes none. */
+    @Test
+    void aSignsTargetNameRoundTripsAndAnUnusedOneStaysUnset() throws Exception
+    {
+        final Stargate used = gate("used");
+        used.setGateDialSignTargetName("charlie");
+        StargateYamlManager.saveStargate(used, gatesDir());
+        StargateYamlManager.saveStargate(gate("fresh"), gatesDir());
+
+        assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "fresh.yml").toPath()),
+            StandardCharsets.UTF_8).contains(StargateYamlManager.DIAL_SIGN_TARGET_KEY + ":"), "nothing written for an unused sign");
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        assertEquals("charlie", StargateManager.getStargate("used").getGateDialSignTargetName());
+        assertNull(StargateManager.getStargate("fresh").getGateDialSignTargetName());
+    }
 }

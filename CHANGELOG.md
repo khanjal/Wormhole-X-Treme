@@ -92,6 +92,10 @@ somebody else's release notes, and the record of where this fork came from.
 - **A gate's view is retaken only from chunks that are loaded.** The retake every ten minutes or so at a gate somebody stands at read the far side through `getChunkAt`, which loads a chunk the server had let go of and generates one never visited. It now starts only when the whole box is loaded, and gives up, keeping the old capture, if a chunk is let go meanwhile. The first capture of a gate still loads what it must, since nothing can be drawn until it exists ([#683](https://github.com/khanjal/Wormhole-X-Treme/issues/683)).
 - **`gate-dial-spin` defaults to `none`**, as the original plugin dialled: no ring light until a gate, group or the setting asks for one. A `config.yml` keeps its value, unless it is still exactly as 1.10 or earlier wrote it, which is rewritten and gets `none`; `/wormhole config gate-dial-spin top` brings back the 1.12 default ([#697](https://github.com/khanjal/Wormhole-X-Treme/issues/697)).
 
+**Fixed**
+
+- **A sign gate dials the gate its sign shows.** The sign's choice was kept as a place in a list, saved only when the server stopped cleanly, and `/wormhole refresh` dropped it, so a gate came back dialling the first one in the list while its sign, which lives in the world, still named another. It is kept by the gate's name as well now, saved the moment the sign is clicked, and kept by a refresh; a name no longer in the list falls back to the old place ([#706](https://github.com/khanjal/Wormhole-X-Treme/issues/706)).
+
 ## 1.12.0 (2026-10-25)
 
 ### For server admins

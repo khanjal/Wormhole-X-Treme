@@ -12,6 +12,7 @@ import org.bukkit.block.sign.SignSide;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -35,6 +36,12 @@ class DialSignTargetRestoreTest
     /** The gate under test: sign-powered, three peers to choose between. */
     private Stargate gate;
 
+    /** The sign face the gate writes, so a test can say what it shows. */
+    private SignSide face;
+
+    /** Saving a gate, which a click does: held off the disk, and told to the test. */
+    private MockedStatic<StargateDBManager> db;
+
     @BeforeEach
     void setUp()
     {
@@ -49,6 +56,7 @@ class DialSignTargetRestoreTest
             throw new IllegalStateException(e);
         }
 
+        db = mockStatic(StargateDBManager.class);
         gate = new Stargate();
         gate.setGateName("home");
         gate.setGateSignPowered(true);
@@ -67,6 +75,7 @@ class DialSignTargetRestoreTest
     @AfterEach
     void tearDown()
     {
+        db.close();
         for (final Stargate s : StargateManager.getAllGates())
         {
             StargateManager.removeStargate(s);
@@ -75,14 +84,14 @@ class DialSignTargetRestoreTest
     }
 
     /** A wall sign block whose state can be read and written the way the sign code expects. */
-    private static Block signBlock()
+    private Block signBlock()
     {
         final Block block = mock(Block.class);
         final Sign state = mock(Sign.class);
         when(block.getType()).thenReturn(Material.OAK_WALL_SIGN);
         when(block.getState()).thenReturn(state);
-        final SignSide front = mock(SignSide.class);
-        when(state.getSide(Side.FRONT)).thenReturn(front);
+        face = mock(SignSide.class);
+        when(state.getSide(Side.FRONT)).thenReturn(face);
         return block;
     }
 
@@ -256,5 +265,125 @@ class DialSignTargetRestoreTest
 
         assertNull(gate.getGateDialSignTarget(), "nothing can be resolved from a block that is not a sign");
         assertEquals(1, gate.getGateDialSignIndex(), "and the saved selection survives for when the sign goes back");
+    }
+
+    /**
+     * A restored selection is found by the name it had, not by the place it had in the list (#706).
+     *
+     * <p>The index is a place in a list of peers that moves when a gate is added or removed, and the file's
+     * index is only as new as the last save. The sign in the world still shows the name.
+     */
+    @Test
+    void aSelectionIsFoundByNameWhenTheListHasMoved()
+    {
+        gate.setGateDialSignIndex(0);
+        gate.setGateDialSignTargetName("charlie");
+
+        gate.refreshDialSignTarget();
+
+        assertEquals("charlie", gate.getGateDialSignTarget().getGateName(), "not the first gate in the list");
+        assertEquals(2, gate.getGateDialSignIndex(), "and the index follows the name");
+    }
+
+    /** A name that is no longer in the list falls back to the saved index, as before. */
+    @Test
+    void aSelectionWhoseGateIsGoneFallsBackToTheSavedIndex()
+    {
+        gate.setGateDialSignIndex(1);
+        gate.setGateDialSignTargetName("removed");
+
+        gate.refreshDialSignTarget();
+
+        assertEquals("bravo", gate.getGateDialSignTarget().getGateName());
+    }
+
+    /**
+     * Clicking the sign records the choice by name and saves the gate at once (#706).
+     *
+     * <p>It was written only at shutdown, so a server that stopped any other way came back with the
+     * selection from the last save.
+     */
+    @Test
+    void clickingTheSignRecordsTheNameAndSavesTheGate()
+    {
+        gate.setGateDialSignIndex(0);
+
+        gate.teleportSignClicked(true);
+
+        db.verify(() -> StargateDBManager.saveStargate(gate));
+
+        assertEquals("bravo", gate.getGateDialSignTargetName());
+    }
+
+    /**
+     * Restoring a selection is not a choice: nothing is written for it.
+     *
+     * <p>The name is of a gate no longer there, so the sign is restored to the saved place and its name
+     * changes; that is still not a click.
+     */
+    @Test
+    void restoringASelectionSavesNothing()
+    {
+        gate.setGateDialSignIndex(1);
+        gate.setGateDialSignTargetName("removed");
+
+        gate.refreshDialSignTarget();
+
+        db.verifyNoInteractions();
+    }
+
+    /** A sign nobody has chosen with stays unchosen though a name was left on the gate. */
+    @Test
+    void aNameDoesNotChooseForASignThatWasReset()
+    {
+        gate.setGateDialSignIndex(-1);
+        gate.setGateDialSignTargetName("bravo");
+
+        gate.refreshDialSignTarget();
+
+        assertNull(gate.getGateDialSignTarget(), "a refresh recovers a choice somebody made; it does not make one");
+    }
+
+    /**
+     * A gate saved before the name was kept is found by what its sign shows (#706).
+     *
+     * <p>The sign is in the world, so it is as new as the last click even when the file's index is not:
+     * the gate file said the first gate, and the sign said charlie.
+     */
+    @Test
+    void aGateWithNoSavedNameIsFoundByWhatItsSignShows()
+    {
+        gate.setGateDialSignIndex(0);
+        when(face.getLine(2)).thenReturn("\u00a72\u00bbcharlie\u00ab");
+
+        gate.refreshDialSignTarget();
+
+        assertEquals("charlie", gate.getGateDialSignTarget().getGateName());
+        assertEquals(2, gate.getGateDialSignIndex());
+    }
+
+    /** A sign that shows a peer's name but not as the selection (no markers) leaves the saved index in charge. */
+    @Test
+    void aSignThatShowsNoNameLeavesTheSavedIndex()
+    {
+        gate.setGateDialSignIndex(1);
+        when(face.getLine(2)).thenReturn("-charlie-");
+
+        gate.refreshDialSignTarget();
+
+        assertEquals("bravo", gate.getGateDialSignTarget().getGateName());
+    }
+
+    /** The name the gate saved wins over what the sign shows; the sign is only for a gate with no saved name. */
+    @Test
+    void aSavedNameWinsOverTheSign()
+    {
+        gate.setGateDialSignIndex(0);
+        gate.setGateDialSignTargetName("bravo");
+        when(face.getLine(2)).thenReturn("\u00bbcharlie\u00ab");
+
+        gate.refreshDialSignTarget();
+
+        assertEquals("bravo", gate.getGateDialSignTarget().getGateName());
     }
 }

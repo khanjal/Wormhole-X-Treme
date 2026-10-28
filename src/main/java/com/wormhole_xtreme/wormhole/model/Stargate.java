@@ -100,6 +100,8 @@ public class Stargate implements GateIris
     private long gateTempSignTarget = -1;
     /** The network index the sign is pointing at. */
     private int gateDialSignIndex = 0;
+    /** The name of the gate the sign points at, which is what a restored selection is found by (#706); null if none was chosen. */
+    private String gateDialSignTargetName;
     /** The temporary target stargate id. */
     private long gateTempTargetId = -1;
     /** The Iris deactivation code. */
@@ -1368,6 +1370,17 @@ public class Stargate implements GateIris
     }
 
     /**
+     * The name of the gate the sign points at, kept apart from the index because the index is a place in a list
+     * that moves when a gate is added or removed.
+     *
+     * @return the name, or null if the sign has not been used
+     */
+    public String getGateDialSignTargetName()
+    {
+        return gateDialSignTargetName;
+    }
+
+    /**
      * Gets the gate sign target.
      */
     public Stargate getGateDialSignTarget()
@@ -1989,6 +2002,17 @@ public class Stargate implements GateIris
     public synchronized void setGateDialSignIndex(final int gateDialSignIndex)
     {
         this.gateDialSignIndex = gateDialSignIndex;
+    }
+
+    /**
+     * Sets the name of the gate the sign points at.
+     *
+     * @param gateDialSignTargetName
+     *            the name, or null for none
+     */
+    public void setGateDialSignTargetName(final String gateDialSignTargetName)
+    {
+        this.gateDialSignTargetName = gateDialSignTargetName;
     }
 
     /**
