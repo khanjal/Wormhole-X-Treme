@@ -445,6 +445,8 @@ public class Build implements CommandExecutor
             case NOT_ALLOWED_HERE -> player.sendMessage(RegionFlags.buildRefusedNothingPlaced(player));
             case TOO_CLOSE -> player.sendMessage(ChatText.error(Messages.get(player, "gate.preview.place.too-close",
                 placed.inTheWay().get(0))));
+            case OVER_QUOTA -> player.sendMessage(ChatText.error(Messages.get(player, "gate.preview.place.over-quota",
+                placed.inTheWay().get(0))));
             case SHAPE_OFF -> player.sendMessage(ChatText.error(Messages.get(player, "gate.preview.place.shape-off")));
             case IN_THE_WAY -> linkHint(ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.place.in-the-way",
                 bad(String.join(separator(player), placed.inTheWay()))))), GUIDE)

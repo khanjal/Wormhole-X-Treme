@@ -179,7 +179,9 @@ public class WXPermissions
         {
             return stargate.getGateNetwork().getNetworkName();
         }
-        if ((stargate == null) && (fallback != null))
+        // No network typed is the Public one: "" was taken for a network of that name, which only
+        // wormhole.network.build. admitted, so /wormhole complete without net= refused a plain builder.
+        if ((stargate == null) && (fallback != null) && !fallback.isBlank())
         {
             return fallback;
         }
@@ -253,13 +255,35 @@ public class WXPermissions
             case USE:
                 return maySign(player, networkName) || mayDial(player, networkName);
             case BUILD:
-                return ComplexPermission.BUILD.checkPermission(player)
+                return (ComplexPermission.BUILD.checkPermission(player) || ShapePermissions.mayBuild(player, stargate))
                     && mayBuildOnNetwork(player, networkName);
             default:
                 return false;
         }
     }
 
+
+    /**
+     * Whether the player may build this gate on a network that is named, not yet the gate's own.
+     *
+     * <p>{@code /wormhole complete} names the network a gate will join once it is built, so the
+     * network's build node is checked; and the gate found is checked for its shape, which the
+     * network-only check above leaves open until the shape is known.
+     *
+     * @param player
+     *            who is building
+     * @param gate
+     *            the gate found
+     * @param network
+     *            the network it will join, empty for Public
+     * @return true if the player may
+     */
+    public static boolean checkBuildOf(final Player player, final Stargate gate, final String network)
+    {
+        return checkWXPermissions(player, null, network, PermissionType.BUILD)
+            && (player.isOp() || ComplexPermission.BUILD.checkPermission(player)
+                || ShapePermissions.mayBuild(player, gate));
+    }
 
     /**
      * Whether the player may take this action against a named network directly, for a check

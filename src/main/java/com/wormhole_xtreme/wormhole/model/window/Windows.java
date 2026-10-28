@@ -381,6 +381,19 @@ public final class Windows
     }
 
     /**
+     * How old the capture is of a window the sweep holds.
+     *
+     * @param name
+     *            the window's name
+     * @return whole seconds, or -1 when no window of that name was found by the last sweep
+     */
+    public static long captureSecondsOld(final String name)
+    {
+        final WindowState window = ACTIVE.get(name);
+        return (window == null) ? -1 : window.capture.secondsOld();
+    }
+
+    /**
      * What a player's view is doing, for {@code mirror debug}.
      *
      * @return lines to say

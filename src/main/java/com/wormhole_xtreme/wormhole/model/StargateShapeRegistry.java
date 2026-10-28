@@ -30,6 +30,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
 import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
+import com.wormhole_xtreme.wormhole.permissions.ShapePermissions;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 
 public final class StargateShapeRegistry
@@ -396,6 +397,7 @@ public final class StargateShapeRegistry
             getStargateShapes().put("Standard", new StargateShape());
         }
         rebuildKnownStructureMaterials();
+        ShapePermissions.declare(getStargateShapes().keySet());
         reportShapesWithoutMaterialGroup();
     }
 
@@ -667,6 +669,7 @@ public final class StargateShapeRegistry
             final StargateShape shape = StargateShapeFactory.createShapeFromFile(lines);
             getStargateShapes().put(shape.getShapeName(), shape);
             rebuildKnownStructureMaterials();
+            ShapePermissions.declare(getStargateShapes().keySet());
         }
         return result;
     }

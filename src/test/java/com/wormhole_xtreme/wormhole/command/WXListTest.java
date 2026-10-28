@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
@@ -21,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -298,6 +301,49 @@ class WXListTest
         for (final String n : names)
         {
             assertEquals(1, all.split(n, -1).length - 1, n + " appears exactly once");
+        }
+    }
+
+    /** A player with a gate limit is told how many of how many they own, after the list (#633). */
+    @Test
+    void aLimitedPlayerIsToldHowManyGatesTheyOwn()
+    {
+        ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 3);
+        final Player player = mock(Player.class);
+        when(player.isOp()).thenReturn(true);
+        when(player.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-0000000000a1"));
+        gate("alpha", null).setGateOwner("00000000-0000-0000-0000-0000000000a1");
+        gate("beta", null).setGateOwner("00000000-0000-0000-0000-0000000000b2");
+        sender = player;
+
+        try
+        {
+            list();
+
+            final List<String> sent = messages();
+            assertTrue(ChatText.plain(sent.get(sent.size() - 1)).endsWith("Gates owned: 1. Your limit: 3."), "last, after the names: " + sent);
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+    }
+
+    /** Without a limit the list ends with the names, as before. */
+    @Test
+    void aPlayerWithNoLimitIsToldNothingOfOne()
+    {
+        final Player player = mock(Player.class);
+        when(player.isOp()).thenReturn(true);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        gate("alpha", null);
+        sender = player;
+
+        list();
+
+        for (final String line : messages())
+        {
+            assertTrue(!ChatText.plain(line).contains("Gates owned"), line);
         }
     }
 }

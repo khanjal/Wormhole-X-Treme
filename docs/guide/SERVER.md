@@ -201,11 +201,14 @@ outranks a negated node.
 | `wormhole.use.compass` | false | `/wormhole compass` |
 | `wormhole.list` | false | `/wormhole gate list` |
 | `wormhole.go` | false | `/wormhole go` |
-| `wormhole.build` | op | Building gates |
+| `wormhole.build` | op | Building gates, of every shape |
+| `wormhole.build.<shape>` | op | Building gates of one [shape](GATES.md): its name in lower case, anything but a letter, digit or underscore made an underscore (`Grand Gate` is `wormhole.build.grand_gate`). Give it instead of `wormhole.build` to let a rank build only that shape; a shape called `Preview` or `MinDistance` has none, since those words are nodes above and below. Declared when the shapes load, so a permissions plugin lists them. Two shapes whose names differ only in case or punctuation share a node. `wormhole.build` still builds everything, so it cannot be held and one shape denied: leave it off the rank and grant the shapes. A `wormhole.build.*` grant now includes every shape's node, and so builds every shape |
 | `wormhole.build.preview` | op | `/wormhole gate build` and its [previews](GATES.md#previews), without `wormhole.config` |
 | `wormhole.build.preview.share` | op | `gate preview share`, showing a preview to other players |
 | `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |
 | `wormhole.build.mindistance.bypass` | op | Building closer to another gate than [`min-gate-distance`](GATES.md#building-a-gate) allows |
+| `wormhole.gates.max.<n>` | false | Owning at most `n` gates: the highest `n` a player holds replaces [`max-gates-per-player`](GATES.md#building-a-gate), more or fewer. Any whole number above 0; give it to a group |
+| `wormhole.gates.unlimited` | op | Owning any number of gates, whatever `max-gates-per-player` or a `wormhole.gates.max.<n>` says. A group given `wormhole.*` or `*` by a permissions plugin that expands wildcards has it too |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
 | `wormhole.config` | op | Settings, including `config -reload` and `lang export`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
@@ -406,7 +409,7 @@ such as [EssentialsX](https://essentialsx.net/).
 | Setting | Default | What it does |
 |---|---|---|
 | `economy-enabled` | `false` | Nothing is ever charged while this is off. |
-| `economy-use-cost` | `0.0` | Charged each time a player walks through a gate. |
+| `economy-use-cost` | `0.0` | Charged each time a player walks through a gate, unless the gate or its shape has a cost of its own: `gate edit <gate> cost`, then `USE_COST=` in the [shape file](GATES.md#shapes). |
 | `economy-build-cost` | `0.0` | Charged when a player completes a gate. |
 
 - No Vault or no economy provider means charges are skipped.

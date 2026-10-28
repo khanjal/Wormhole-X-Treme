@@ -641,8 +641,10 @@ solid than the real one, so it is only sent where the eye is in open air.
 
 `gate-view` ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)) draws an open gate
 the way a mirror draws its room: the ground in front of the dialled gate, in real blocks sent to
-each viewer, behind the gate's plane. `behind` keeps the horizon in front of it; `open` clears the
-horizon once the far side is ready, for whoever is drawn the view and nobody else. It is the mirror
+each viewer, behind the gate's plane. `behind` keeps the horizon in front of it, so a gate whose
+horizon is lava or opaque is offered no view at that level; `open` clears the
+horizon once the far side is ready, for whoever is drawn the view and nobody else. `gate edit <gate> view`
+gives one gate its own level, which wins over `gate-view` either way. It is the mirror
 drawing, not a copy of it: `GateViews` offers each open gate to the mirror sweep as a window, and
 nothing in the world changes.
 
@@ -945,9 +947,10 @@ as `view-depth`. "What the server sends" is the world's view distance; on Paper 
   until the iris is shut. An opening iris ends the clearing first, so it opens onto the horizon for
   everybody and the next sweep clears it again for whoever is drawn the view. And the horizon comes
   back for everybody when the last player near enough to be drawn it walks away.
-- **A gate's captures show only in `mirror debug -views`**, which lists every window a player is
+- **A gate's captures show in `mirror debug -views`**, which lists every window a player is
   drawn and says how far each gate's capture reaches, whether it was cut, how deep it is drawn and
-  how old it is; the capture's box and kept blocks are not listed. A gate renamed leaves its old
+  how old it is; the capture's box and kept blocks are not listed. `mirror debug <gate>` says
+  whether the gate's view is drawn and, if not, why. A gate renamed leaves its old
   name's capture behind.
 - **An iris crossing a viewed gate shares a block with the view.** The window is still offered
   while the iris crosses, and at `behind` and `open` its first slab is the cells a block behind the

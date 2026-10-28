@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
@@ -22,16 +23,18 @@ final class GateFare
      *
      * @param player
      *            the traveller
+     * @param gate
+     *            the gate they enter, whose own cost, else its shape's, else the server's is the fare (#632)
      * @return the fare to take once the trip is certain, 0 if there is none, or -1 if they
      *         cannot afford it and have been told so
      */
-    static double affordable(final Player player)
+    static double affordable(final Player player, final Stargate gate)
     {
         if (!ConfigManager.isEconomyEnabled() || !EconomySupport.isAvailable())
         {
             return 0.0;
         }
-        final double useCost = ConfigManager.getEconomyUseCost();
+        final double useCost = gate.getEffectiveUseCost();
         if (useCost <= 0)
         {
             return 0.0;

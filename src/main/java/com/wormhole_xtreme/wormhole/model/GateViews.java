@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -20,6 +21,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.StargateBlockSetup.Redrawn;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.window.Funnel;
 import com.wormhole_xtreme.wormhole.model.window.Place;
@@ -50,6 +52,12 @@ public final class GateViews
 
     /** Before a gate's name, so the sweep cannot mistake it for a mirror's. */
     private static final String PREFIX = "gate:";
+
+    /** The {@code gate-view} level that draws the horizon and nothing behind it. */
+    private static final String HORIZON = "horizon";
+
+    /** The {@code gate-view} level that draws the view behind the horizon, which has to be see-through to show it. */
+    private static final String BEHIND = "behind";
 
     /** Gates whose horizon has cleared for their view, by name. */
     private static final Set<String> CLEARED = new HashSet<>();
@@ -329,11 +337,16 @@ public final class GateViews
         Windows.release(PREFIX + gate.getGateName());
     }
 
+    /** @return what a gate shows once open: its own level (#682), or the server's {@code gate-view} */
+    private static String levelOf(final Stargate gate)
+    {
+        return ConfigManager.getGateView(gate.getGateView());
+    }
+
     /** Offers every open gate that can show a view to the mirror sweep, and clears or restores horizons to match. */
     public static void offerAll()
     {
-        final String level = ConfigManager.getGateView();
-        final boolean draws = !"horizon".equals(level);
+        final boolean serverDraws = !HORIZON.equals(ConfigManager.getGateView());
         final Set<String> open = new HashSet<>();
         final Set<String> clear = new HashSet<>();
         final Set<String> busy = new HashSet<>();
@@ -346,7 +359,9 @@ public final class GateViews
             {
                 busy.add(gate.getGateName());
             }
-            if (draws)
+            // Each gate's own level, which wins over the server's either way.
+            final String level = levelOf(gate);
+            if (!HORIZON.equals(level))
             {
                 offerGuarded(gate, crossing, "open".equals(level), open, clear);
             }
@@ -354,7 +369,8 @@ public final class GateViews
         OPEN.clear();
         OPEN.addAll(open);
         settleHorizons(clear, busy);
-        if (draws)
+        // The captures of gates somebody stands at are kept fresh while the server shows views or an open gate can show one.
+        if (serverDraws || !open.isEmpty())
         {
             refreshWatched(System.currentTimeMillis());
         }
@@ -423,7 +439,7 @@ public final class GateViews
         final Location arrival = gate.getGatePlayerTeleportLocation();
         if ((arrival != null) && (arrival.getWorld() != null) && watched(gate))
         {
-            // To the full depth: somebody is here, so most of the fill's chunks are loaded anyway.
+            // To the full depth, but only once every chunk of it is loaded (#683): the retake never loads one.
             final Place at = Place.of(arrival);
             Captures.refreshGate(gate.getGateName(), at,
                 Captures.gateFillDepth(at, ConfigManager.getGateViewFirstDepth()), REFRESH_SECONDS);
@@ -461,8 +477,8 @@ public final class GateViews
      */
     public static void dialled(final Stargate gate)
     {
-        if ((gate == null) || "horizon".equals(ConfigManager.getGateView()) || (gate.getGateTarget() == null)
-            || (gate.getGateTarget().getGateName() == null) || !watched(gate))
+        if ((gate == null) || HORIZON.equals(levelOf(gate)) || (gate.getGateTarget() == null)
+            || (gate.getGateTarget().getGateName() == null) || hidesView(gate) || !watched(gate))
         {
             return;
         }
@@ -533,7 +549,7 @@ public final class GateViews
         final Set<String> open, final Set<String> clear)
     {
         final WindowShape shape = shapeOf(gate, crossing);
-        if (shape == null)
+        if ((shape == null) || hidesView(gate))
         {
             return;
         }
@@ -625,17 +641,139 @@ public final class GateViews
      */
     static WindowShape shapeOf(final Stargate gate, final boolean crossing)
     {
-        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen() || (gate.isGateIrisActive() && !crossing)
-            || (gate.getGateWorld() == null) || (gate.getGateTarget() == null) || (gate.getGateTarget().getGateName() == null))
+        if (blockedBy(gate, crossing) != null)
         {
             return null;
+        }
+        return shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate),
+            Place.of(gate.getGateTarget().getGatePlayerTeleportLocation()));
+    }
+
+    /**
+     * Whether a gate's horizon would hide the view at {@code behind}, which draws the view behind it.
+     *
+     * <p>Lava and any opaque block are not see-through, so a view behind one is captured, drawn and never
+     * seen. The gate keeps its horizon then, and takes no capture; {@code open} clears the horizon, so it
+     * shows the view whatever the horizon is made of.
+     */
+    private static boolean hidesView(final Stargate gate)
+    {
+        return BEHIND.equals(levelOf(gate)) && hides(gate.getEffectivePortalMaterial());
+    }
+
+    /** Whether the game treats a block as occluding; settable so a test needs no server. */
+    static Predicate<Material> occludes = GateViews::occludesInGame;
+
+    /**
+     * Whether a block drawn as a gate's horizon hides what is drawn behind it.
+     *
+     * @return true for lava, an end gateway or portal, which draw opaque, and for anything that occludes; false for
+     *         water and a nether portal without asking the server
+     */
+    static boolean hides(final Material horizon)
+    {
+        if ((horizon == Material.WATER) || (horizon == Material.NETHER_PORTAL) || (horizon == Material.AIR))
+        {
+            return false;
+        }
+        return (horizon == Material.LAVA) || (horizon == Material.END_GATEWAY) || (horizon == Material.END_PORTAL)
+            || occludes.test(horizon);
+    }
+
+    /** @return whether the server says a block occludes; false for an item, which no horizon can be drawn from */
+    private static boolean occludesInGame(final Material block)
+    {
+        try
+        {
+            return block.createBlockData().isOccluding();
+        }
+        catch (final IllegalArgumentException e)
+        {
+            return false;
+        }
+    }
+
+    /**
+     * Why an open gate cannot show a view right now, in the words {@code mirror debug} gives.
+     *
+     * @param crossing
+     *            true while its iris is crossing, when a shut iris still shows the view it is closing over
+     * @return the reason, or null when only the shape of its opening is left to decide
+     */
+    private static String blockedBy(final Stargate gate, final boolean crossing)
+    {
+        if ((gate == null) || !gate.isGateActive() || !gate.isGatePortalOpen())
+        {
+            return "its wormhole is not open";
+        }
+        if (gate.getGateWorld() == null)
+        {
+            return "its world is not loaded";
+        }
+        if (gate.isGateIrisActive() && !crossing)
+        {
+            return "its iris is shut";
+        }
+        if ((gate.getGateTarget() == null) || (gate.getGateTarget().getGateName() == null))
+        {
+            return "it is not dialling out; the far end keeps its horizon";
         }
         final Location arrival = gate.getGateTarget().getGatePlayerTeleportLocation();
-        if ((arrival == null) || (arrival.getWorld() == null))
+        return ((arrival == null) || (arrival.getWorld() == null)) ? "its far gate has no arrival point" : null;
+    }
+
+    /**
+     * What a gate's view is doing, for {@code mirror debug <gate>}: the level, and whether and why it is drawn.
+     *
+     * @return lines to say
+     */
+    public static List<String> describe(final Stargate gate)
+    {
+        final String level = levelOf(gate);
+        final List<String> lines = new ArrayList<>();
+        lines.add(MirrorText.heading("gate ") + MirrorText.quoted(gate.getGateName()));
+        lines.add(MirrorText.field("level", level + ((gate.getGateView() == null) ? " (gate-view)"
+            : " (this gate's own view; gate-view is " + ConfigManager.getGateView() + ")")));
+        lines.add(MirrorText.field("view", statusOf(gate, level)));
+        return lines;
+    }
+
+    /** @return whether and why a gate's view is drawn, on one line, for {@link #describe} */
+    private static String statusOf(final Stargate gate, final String level)
+    {
+        if (HORIZON.equals(level))
         {
-            return null;
+            return "none, the horizon is drawn as it always was";
         }
-        return shapeOf(gate.getGateFacing(), cellsOf(gate), frameOf(gate), Place.of(arrival));
+        // A closing or opening iris still shows the view it crosses over, as the sweep offers it.
+        final boolean crossing = StargateIrisAnimator.isSweeping(gate);
+        final String blocked = blockedBy(gate, crossing);
+        if (blocked != null)
+        {
+            return MirrorText.bad("none") + ", " + blocked;
+        }
+        if (shapeOf(gate, crossing) == null)
+        {
+            return MirrorText.bad("none") + ", its opening cannot show one: lying flat, empty, no frame round it, or too big";
+        }
+        if (hidesView(gate))
+        {
+            return MirrorText.bad("none") + ", its horizon is " + gate.getEffectivePortalMaterial()
+                + ", which hides a view behind it, so it keeps its horizon; "
+                + ((gate.getGateView() == null) ? "gate-view" : ("gate edit " + gate.getGateName() + " view")) + " open shows one";
+        }
+        if (!watched(gate))
+        {
+            return MirrorText.bad("not drawn") + ", its chunk is not loaded or nobody is within "
+                + ConfigManager.getMirrorProximityDistance() + " blocks (mirror-proximity-distance)";
+        }
+        final long age = Windows.captureSecondsOld(PREFIX + gate.getGateName());
+        if (age < 0)
+        {
+            return "offered to the sweep, no window yet: its capture is being taken, or failed and waits to be retaken; the log says if it did";
+        }
+        return MirrorText.good("drawn") + ", capture " + age + "s old" + (CLEARED.contains(gate.getGateName())
+            ? ", its horizon cleared for the view" : ", behind its horizon");
     }
 
     /**

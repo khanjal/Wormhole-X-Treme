@@ -482,7 +482,8 @@ public class RegenerateCommand implements SubCommand
         s.matchDialSignMaterial();
         if (s.isGateSignPowered() && (s.getGateDialSignBlock() != null))
         {
-            StargateManager.refreshTeleportSign(s, true);
+            // Where it was, not one on: the sign is drawn from the selection the refresh carried over (#706).
+            s.refreshDialSignTarget();
         }
         sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.regenerated", ChatText.name(s.getGateName()))));
     }

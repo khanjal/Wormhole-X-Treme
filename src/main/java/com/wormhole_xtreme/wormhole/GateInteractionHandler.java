@@ -21,6 +21,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.GateQuota;
 import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
@@ -226,6 +227,13 @@ public final class GateInteractionHandler
             player.sendMessage(ChatText.error(tooClose));
             return;
         }
+        final String overQuota = GateQuota.refusal(player);
+        if (overQuota != null)
+        {
+            withdrawOffer(player, newGate);
+            player.sendMessage(ChatText.error(overQuota));
+            return;
+        }
 
         StargateManager.addIncompleteStargate(player, newGate);
         announceValidDesign(player, newGate);
@@ -404,6 +412,12 @@ public final class GateInteractionHandler
     private static void completeDetectedGate(final Player player, final Stargate found,
         final String[] pending)
     {
+        // The name came first, with only a network to check it against; the shape is known now.
+        if (!WXPermissions.checkBuildOf(player, found, pending[2]))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
         if (RegionFlags.refusesBuild(player, found))
         {
             return;
@@ -926,6 +940,12 @@ public final class GateInteractionHandler
             if (tooClose != null)
             {
                 player.sendMessage(ChatText.error(tooClose));
+                return;
+            }
+            final String overQuota = GateQuota.refusal(player);
+            if (overQuota != null)
+            {
+                player.sendMessage(ChatText.error(overQuota));
                 return;
             }
             StargateManager.addIncompleteStargate(player, nearbyGate);

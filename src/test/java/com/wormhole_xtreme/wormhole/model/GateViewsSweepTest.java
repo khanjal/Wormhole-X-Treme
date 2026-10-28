@@ -1,10 +1,13 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -18,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -244,7 +248,8 @@ class GateViewsSweepTest
     @Test
     void aBigGateDiallingASmallOneIsOfferedNarrowedToItsOpening()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        // At open, since lava hides a view behind its horizon and the gate would be offered none at behind.
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
         opening(10, 18, 64, 17);
         final List<Location> small = new ArrayList<>();
         for (int x = 99; x <= 101; x++)
@@ -660,6 +665,391 @@ class GateViewsSweepTest
 
             captures.verify(() -> Captures.forgetGate("Abydos"), times(1));
             windows.verify(() -> Windows.release("gate:Abydos"), times(1));
+        }
+    }
+
+    /** What {@code mirror debug <gate>} says, as one string to look in. */
+    private String said()
+    {
+        return String.join("\n", GateViews.describe(gate));
+    }
+
+    /** What the last sweep found of the gate's window: its capture's age in seconds, or -1 for no window. */
+    private void windowAge(final long seconds)
+    {
+        windows.when(() -> Windows.captureSecondsOld("gate:Abydos")).thenReturn(seconds);
+    }
+
+    /**
+     * At {@code horizon} nothing is drawn behind the opening, and {@code mirror debug} says that is
+     * the setting and not a fault, rather than leaving an admin to wonder why a gate shows no view.
+     */
+    @Test
+    void debugAtHorizonSaysNoViewIsDrawnBecauseOfTheLevel()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+
+        assertTrue(said().contains("horizon (gate-view)"), said());
+        assertTrue(said().contains("the horizon is drawn as it always was"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateWhoseWormholeIsNotOpenHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.isGatePortalOpen()).thenReturn(false);
+
+        assertTrue(said().contains("its wormhole is not open"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateWhoseWorldIsNotLoadedHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getGateWorld()).thenReturn(null);
+
+        assertTrue(said().contains("its world is not loaded"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateWhoseFarGateHasNoArrivalPointHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getGateTarget().getGatePlayerTeleportLocation()).thenReturn(null);
+
+        assertTrue(said().contains("its far gate has no arrival point"), said());
+    }
+
+    /**
+     * An iris closing or opening over a gate keeps its view drawn, so a gate crossed by one is not "shut".
+     *
+     * <p>The iris is active for the whole crossing, both ways; reading that as shut told an admin looking
+     * at a view on screen that it had none.
+     */
+    @Test
+    void debugDoesNotCallAnIrisShutWhileItIsCrossing() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.isGateIrisActive()).thenReturn(true);
+        final Map<String, Integer> running = PrivateStatics.of(StargateIrisAnimator.class, "running");
+        running.put("Abydos", 1);
+        windowAge(2);
+        try
+        {
+            assertFalse(said().contains("its iris is shut"), said());
+            assertTrue(said().contains("capture 2s old"), said());
+        }
+        finally
+        {
+            running.remove("Abydos");
+        }
+    }
+
+    @Test
+    void debugSaysWhyAGateWithAShutIrisHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.isGateIrisActive()).thenReturn(true);
+
+        assertTrue(said().contains("its iris is shut"), said());
+    }
+
+    /** The end that was dialled keeps its horizon, since a window there would invite a step the gate refuses. */
+    @Test
+    void debugSaysTheFarEndKeepsItsHorizon()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateTarget()).thenReturn(null);
+
+        assertTrue(said().contains("not dialling out"), said());
+    }
+
+    @Test
+    void debugSaysWhyAGateLyingFlatHasNoView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateFacing()).thenReturn(BlockFace.UP);
+
+        assertTrue(said().contains("cannot show one"), said());
+    }
+
+    @Test
+    void debugSaysWhenNobodyIsNearEnoughToBeDrawnTheView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        near(false);
+
+        assertTrue(said().contains("not drawn"), said());
+        assertTrue(said().contains("mirror-proximity-distance"), said());
+    }
+
+    @Test
+    void debugSaysAGateWhoseCaptureIsStillBeingTakenHasNoWindowYet()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        windowAge(-1);
+
+        assertTrue(said().contains("no window yet"), said());
+    }
+
+    @Test
+    void debugSaysHowOldTheCaptureIsOfAGateThatIsDrawn()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        windowAge(7);
+
+        assertTrue(said().contains("drawn"), said());
+        assertTrue(said().contains("capture 7s old"), said());
+        assertTrue(said().contains("behind its horizon"), said());
+    }
+
+    /** At {@code open} a drawn gate has its horizon cleared, and the line says so. */
+    @Test
+    void debugSaysWhenADrawnGateHasItsHorizonCleared()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        drawn(true);
+        windowAge(3);
+        GateViews.offerAll();
+
+        assertTrue(said().contains("its horizon cleared for the view"), said());
+    }
+
+    /**
+     * At {@code behind} a lava gate keeps its horizon and takes no capture: the view would be drawn behind
+     * lava, which hides it, so the capture and the drawing would be for nothing.
+     */
+    @Test
+    void atBehindALavaGateIsNotOfferedAViewThatItsHorizonWouldHide()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(0);
+    }
+
+    /** Nor is a capture prepared for it when it is dialled, which is the other place a view is started from. */
+    @Test
+    void atBehindALavaGateNoCaptureIsPreparedWhenItIsDialled()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+
+        GateViews.dialled(gate);
+
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)), never());
+    }
+
+    /** The same gate over water is see-through, so the view is offered as before. */
+    @Test
+    void atBehindAWaterGateIsStillOfferedItsView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
+    /** At {@code open} the horizon is cleared, so lava hides nothing and the view is offered. */
+    @Test
+    void atOpenALavaGateIsOfferedItsViewSinceItsHorizonClears()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
+    @Test
+    void debugSaysAtBehindThatALavaHorizonHidesTheView()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+
+        assertTrue(said().contains("its horizon is LAVA, which hides a view behind it"), said());
+        assertTrue(said().contains("gate-view open"), said());
+    }
+
+    /** A gate that cannot show a view at any level is not told to switch to open, which would not help. */
+    @Test
+    void debugDoesNotSuggestOpenForALavaGateThatCannotShowAViewAnyway()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        when(gate.getGateFacing()).thenReturn(BlockFace.UP);
+
+        assertTrue(said().contains("cannot show one"), said());
+        assertFalse(said().contains("gate-view open"), said());
+    }
+
+    /** The hint names the setting that would change the view: the gate's own, when it has one, since it wins. */
+    @Test
+    void debugNamesTheGatesOwnLevelAsTheFixForALavaHorizon()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateView()).thenReturn("behind");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+
+        assertTrue(said().contains("gate edit Abydos view open shows one"), said());
+        assertFalse(said().contains("gate-view open shows one"), said());
+    }
+
+    @Test
+    void lavaAndAnEndGatewayHideAViewAndWaterAndANetherPortalDoNot()
+    {
+        assertTrue(GateViews.hides(Material.LAVA));
+        assertTrue(GateViews.hides(Material.END_GATEWAY), "it draws as an opaque starfield");
+        assertTrue(GateViews.hides(Material.END_PORTAL), "and so does an end portal");
+        assertFalse(GateViews.hides(Material.WATER));
+        assertFalse(GateViews.hides(Material.NETHER_PORTAL));
+        assertFalse(GateViews.hides(Material.AIR), "nothing to hide behind");
+    }
+
+    /** Anything else is as the game says: stone occludes and glass does not. */
+    @Test
+    void otherBlocksHideAViewOnlyIfTheGameSaysTheyOcclude()
+    {
+        final Predicate<Material> real = GateViews.occludes;
+        GateViews.occludes = block -> block == Material.STONE;
+        try
+        {
+            assertTrue(GateViews.hides(Material.STONE));
+            assertFalse(GateViews.hides(Material.GLASS), "see-through, even though it is solid");
+        }
+        finally
+        {
+            GateViews.occludes = real;
+        }
+    }
+
+    /** A gate's own {@code behind} is offered a view though the server is at {@code horizon}. */
+    @Test
+    void aGatesOwnBehindIsOfferedItsViewWhateverTheServerIs()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        when(gate.getGateView()).thenReturn("behind");
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
+    /**
+     * A gate's own {@code horizon} is offered nothing and keeps its horizon though the server is at
+     * {@code open}: its own level wins either way.
+     */
+    @Test
+    void aGatesOwnHorizonKeepsItsHorizonThoughTheServerIsAtOpen()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateView()).thenReturn("horizon");
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(0);
+        assertEquals(Material.WATER, GateViews.horizonOf(gate, Material.WATER), "not cleared for a view");
+    }
+
+    /** A gate with no level of its own follows the server: at {@code open} its horizon is cleared for the view. */
+    @Test
+    void aGateWithNoLevelOfItsOwnFollowsTheServerAtOpen()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+        assertEquals(Material.AIR, GateViews.horizonOf(gate, Material.WATER), "cleared, as the server says");
+    }
+
+    /** Dialling starts a capture for a gate's own {@code behind} at a server on {@code horizon}, and not for its own horizon at open. */
+    @Test
+    void dialledFollowsTheGatesOwnLevel()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        when(gate.getGateView()).thenReturn("behind");
+
+        GateViews.dialled(gate);
+
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)));
+
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateView()).thenReturn("horizon");
+        GateViews.dialled(gate);
+
+        sources.verify(() -> GateSource.prepare(any(GateSource.class)), times(1));
+    }
+
+    /** A lava gate with its own {@code open} is offered a view at a server on {@code behind}: the hiding is by its own level. */
+    @Test
+    void aLavaGateWithItsOwnOpenIsOfferedAViewAtAServerOnBehind()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
+        when(gate.getGateView()).thenReturn("open");
+        when(gate.getEffectivePortalMaterial()).thenReturn(Material.LAVA);
+        drawn(true);
+
+        GateViews.offerAll();
+
+        offeredTimes(1);
+    }
+
+    @Test
+    void debugSaysWhenTheLevelIsTheGatesOwn()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "open");
+        when(gate.getGateView()).thenReturn("horizon");
+
+        assertTrue(said().contains("horizon (this gate's own view; gate-view is open)"), said());
+        assertTrue(said().contains("the horizon is drawn as it always was"), said());
+    }
+
+    /**
+     * A gate's own {@code behind} at a server on {@code horizon} still has the captures of a gate somebody
+     * stands at kept fresh, as at a server on {@code behind}: its views are drawn from them.
+     */
+    @Test
+    void aGatesOwnViewKeepsTheWatchedCapturesFreshAtAServerOnHorizon()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        when(gate.getGateView()).thenReturn("behind");
+        when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(world, 11.5, 64.0, 22.5, 0.0f, 0.0f));
+        manager.when(StargateManager::getAllGatesUnsorted).thenReturn(Set.of(gate));
+        drawn(true);
+
+        try (MockedStatic<Captures> captures = mockStatic(Captures.class))
+        {
+            GateViews.offerAll();
+
+            captures.verify(() -> Captures.refreshGate(eq("Abydos"), any(Place.class), anyInt(), anyLong()));
+        }
+    }
+
+    /** With no gate drawing a view at a server on {@code horizon}, no capture is refreshed: today's behaviour. */
+    @Test
+    void atAServerOnHorizonWithNoViewsNoCaptureIsRefreshed()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "horizon");
+        when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(world, 11.5, 64.0, 22.5, 0.0f, 0.0f));
+        manager.when(StargateManager::getAllGatesUnsorted).thenReturn(Set.of(gate));
+        drawn(true);
+
+        try (MockedStatic<Captures> captures = mockStatic(Captures.class))
+        {
+            GateViews.offerAll();
+
+            captures.verifyNoInteractions();
         }
     }
 }

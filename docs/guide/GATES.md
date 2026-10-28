@@ -37,6 +37,17 @@ nearest gate named. It is checked when the design is found, on `gate complete`, 
 command blocks are not held to it. Rings and gates in other worlds do not count. Anyone with
 `wormhole.build.mindistance.bypass`, which operators have by default, is exempt.
 
+**How many gates.** `max-gates-per-player` (default `0`, no limit) is the most gates one player may own.
+A player who owns that many is refused another, before any fare, with the limit named: when the design is
+found, on `gate complete` and on `gate preview place`, which places nothing. `gate build` with coordinates makes a
+gate with no owner, so it is not held to it. A group can have its own limit with `wormhole.gates.max.<n>`: a player holding several
+has the highest `n`, which replaces the setting whether it is more or fewer, and a node that is not a whole
+number above `0` is ignored. `wormhole.gates.unlimited`, which operators have by default, lifts the limit, and a
+permissions plugin that expands `wormhole.*` or `*` grants it with the rest.
+Only gates that stand count, so a gate taken down frees its place, and one built but not yet named does not.
+`/wormhole gate list` ends with "Gates owned: 2. Your limit: 5." for a player who has a limit; it counts every
+network, whatever list was asked for.
+
 ### Previews
 
 With `wormhole.build.preview`, step 1 also stands the shape up full size in front of you: its
@@ -203,6 +214,14 @@ group is accepted.
 
 `SOUND_SCALE=2.5` sets how big the gate sounds, `Standard` being 1.0; without it, the shape's width
 over `Standard`'s 7. See [Sounds](#sounds).
+
+`USE_COST=2.5` is what a trip through a gate of this shape costs when [economy](SERVER.md) is on,
+instead of `economy-use-cost`. `USE_COST=0` makes the shape free; without the line, or with something
+that is not a number from `0` up, its gates follow the server. A single gate can have its own with
+`/wormhole gate edit <gate> cost <amount>`; its own wins over its shape's, which wins over the server's,
+and `default` hands a gate back to them. The fare is the entered gate's, taken once the trip has happened.
+A `USE_COST` changed in a shape file reaches gates already built after a restart or `gate regen`, like any
+other shape setting.
 
 ## Material groups
 
@@ -497,6 +516,20 @@ right after `gate-view`. How far a gate's view reaches is `view-depth`, shared w
 | `gate-view-funnel-length` | `16` | The longest that tunnel may be, 1 to 64 blocks |
 | `gate-view-funnel-min-length` | `0` | The shortest it is, up to `gate-view-funnel-length`; above 0, same-size and small-to-large pairs get a straight tunnel too. 3 is the wormhole look for a Standard gate. No effect while `gate-view-funnel` is `false`. [Details](../GATES.md) |
 
+## Choosing what a gate shows
+
+At `gate-view: behind` the view is drawn behind the horizon, so the horizon has to be see-through to
+show it. A gate whose horizon is lava, or an opaque block, keeps its horizon and takes no capture for its view;
+`gate-view: open` clears the horizon, so it shows the view whatever the horizon is made of.
+`mirror debug <gate>` says when this is why a gate shows none.
+
+A gate can have its own level: `/wormhole gate edit <gate> view <horizon|behind|open>`, or `default`
+to follow `gate-view` again. Its own level wins over the server's whichever way they differ, so
+`horizon` on one gate keeps its horizon at a server on `open`, and `open` shows its view at a server
+on `horizon`. It takes effect on an open gate at the next sweep, with no new dial, and only the level of the
+gate that is dialling out counts: the far end keeps its horizon. It is saved with the gate and kept
+when the gate is regenerated.
+
 ## Redstone
 
 A redstone gate is a **sign gate with a redstone input**. Redstone does not choose a destination —
@@ -649,7 +682,8 @@ the setting does not touch them.
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),
 `woosh` (how far the woosh pushes out), `redstone` and `custom` (`true`/`false`), `idc` (a code, or
 `-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`), `iris-animation` (a
-[style](#how-it-arrives), or `default`).
+[style](#how-it-arrives), or `default`), `view` (`horizon`, `behind`, `open`, or `default`), `cost` (what a
+trip through it costs, `0` for free, or `default`).
 
 `group` changes what the gate *draws* — portal, lights, iris — not the frame blocks somebody built.
 The choice is saved with the gate; `group -clear` gives it back to whatever its frame is built from.

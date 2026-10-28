@@ -214,6 +214,12 @@ class ConfigAccessorTableTest
             List.of(String.class, MaterialGroup.class), Arrays.asList(own, group));
     }
 
+    /** @return the call {@code getGateView(own)} */
+    private static Call viewCall(final String label, final String own)
+    {
+        return new Call("getGateView(" + label + ")", "getGateView", List.of(String.class), Arrays.asList(own));
+    }
+
     /** @return a row for {@code isIrisAnimated(animation)}, which reads no setting */
     private static Row irisAnimated(final String animation, final boolean answer)
     {
@@ -500,6 +506,7 @@ class ConfigAccessorTableTest
         d.put(ConfigKeys.GATE_RIPPLE, true);
         d.put(ConfigKeys.GATE_IRIS_ANIMATION, " Spiral ");
         d.put(ConfigKeys.MIN_GATE_DISTANCE, 13);
+        d.put(ConfigKeys.MAX_GATES_PER_PLAYER, 7);
         d.put(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, false);
         d.put(ConfigKeys.GATE_PREVIEW_MINUTES, 14);
         d.put(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5001);
@@ -634,6 +641,7 @@ class ConfigAccessorTableTest
             irisAnimated("sweep", true),
             irisAnimated(null, true),
             row("getMinGateDistance", ConfigKeys.MIN_GATE_DISTANCE, 0, 0, 13),
+            row("getMaxGatesPerPlayer", ConfigKeys.MAX_GATES_PER_PLAYER, 0, 0, 7),
             row("isGateMaterialGroupsAutodiscover", ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, true, false),
             row("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, 10, 10, 14),
             row("getGatePreviewMaxBlocks", ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, 5000, 5001),
@@ -642,6 +650,10 @@ class ConfigAccessorTableTest
             row("getViewDepth", ConfigKeys.VIEW_DEPTH, 160, 160, 20),
             row("getGateViewFirstDepth", null, 32, 32, 20),
             row("getGateView", ConfigKeys.GATE_VIEW, "horizon", "horizon", "behind"),
+            // A gate's own level wins either way, so the server's setting changes nothing when it has one.
+            new Row(viewCall("null", null), ConfigKeys.GATE_VIEW, "horizon", "horizon", "behind"),
+            new Row(viewCall("horizon", "horizon"), ConfigKeys.GATE_VIEW, "horizon", "horizon", "horizon"),
+            new Row(viewCall("open", "open"), ConfigKeys.GATE_VIEW, "open", "open", "open"),
             row("isGateViewFunnel", ConfigKeys.GATE_VIEW_FUNNEL, true, true, false),
             row("getGateViewFunnelLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 16, 16, 17),
             row("getGateViewFunnelMinLength", ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 0, 0, 15),
@@ -797,6 +809,7 @@ class ConfigAccessorTableTest
         // Not checked against the animations there are: an unknown one comes back as written
         o.add(odd(irisCall("null, null", null, null), ConfigKeys.GATE_IRIS_ANIMATION, " BOGUS ", "bogus"));
         o.add(odd("getMinGateDistance", ConfigKeys.MIN_GATE_DISTANCE, -5, 0));
+        o.add(odd("getMaxGatesPerPlayer", ConfigKeys.MAX_GATES_PER_PLAYER, -5, 0));
         o.add(odd("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, 0, 1));
         o.add(odd("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, -5, 1));
         o.add(odd("getGatePreviewMaxBlocks", ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, -5, 0));

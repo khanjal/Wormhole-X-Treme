@@ -186,4 +186,49 @@ class GateRefreshCarryOverTest
 
         assertEquals("spiral", fresh.getGateIrisAnimation());
     }
+
+    /** A gate's own view level (#682) survives a regen. */
+    @Test
+    void aRegeneratedGateKeepsItsView()
+    {
+        final Stargate existing = new Stargate();
+        existing.setGateView("horizon");
+        final Stargate fresh = new Stargate();
+
+        GateRefresh.carryOverSettings(existing, fresh);
+
+        assertEquals("horizon", fresh.getGateView());
+    }
+
+    /**
+     * A refreshed gate's sign keeps what it was set to (#706).
+     *
+     * <p>The new gate started with the index at 0, so a sign showing the third gate dialled the first.
+     */
+    @Test
+    void aRefreshedGateKeepsItsSignSelection()
+    {
+        final Stargate existing = new Stargate();
+        existing.setGateDialSignIndex(2);
+        existing.setGateDialSignTargetName("charlie");
+        final Stargate fresh = new Stargate();
+
+        GateRefresh.carryOverSettings(existing, fresh);
+
+        assertEquals(2, fresh.getGateDialSignIndex());
+        assertEquals("charlie", fresh.getGateDialSignTargetName());
+    }
+
+    /** A gate's own cost (#632) survives a regen, free included. */
+    @Test
+    void aRegeneratedGateKeepsItsUseCost()
+    {
+        final Stargate existing = new Stargate();
+        existing.setGateUseCost(0.0);
+        final Stargate fresh = new Stargate();
+
+        GateRefresh.carryOverSettings(existing, fresh);
+
+        assertEquals(0.0, fresh.getGateUseCost(), "free is kept, not turned into unset");
+    }
 }

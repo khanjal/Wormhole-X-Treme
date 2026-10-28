@@ -555,4 +555,36 @@ class GateTollAndRefusalOrderTest
         assertFalse(stepFrom(BZ - 0.5).isCancelled(), "a step within the portal is not held");
         verify(walker).sendMessage(contains("Cross-world travel is disabled"));
     }
+
+    /**
+     * The fare is the cost of the gate walked into, not the server's and not the far gate's (#632).
+     *
+     * <p>The far gate has a dearer cost of its own here, so a fare taken from the wrong end is 99, not 9.
+     */
+    @Test
+    void theFareIsTheCostOfTheGateWalkedInto()
+    {
+        aFareOf(FARE, true);
+        economy.when(() -> EconomySupport.canAfford(walker, 9.0)).thenReturn(Boolean.TRUE);
+        src.setGateUseCost(9.0);
+        dst.setGateUseCost(99.0);
+
+        walkIn();
+
+        economy.verify(() -> EconomySupport.charge(walker, 9.0));
+        economy.verify(() -> EconomySupport.charge(walker, FARE), never());
+        economy.verify(() -> EconomySupport.charge(walker, 99.0), never());
+    }
+
+    /** A gate made free charges nothing, though the server charges every other. */
+    @Test
+    void aFreeGateChargesNothingThoughTheServerCharges()
+    {
+        aFareOf(FARE, true);
+        src.setGateUseCost(0.0);
+
+        walkIn();
+
+        nobodyIsCharged();
+    }
 }

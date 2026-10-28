@@ -718,6 +718,15 @@ public final class SubCommands
             return prefixed(typed,
                 GateEditCommand.spinNames().toArray(new String[0]));
         }
+        if ("view".equals(field))
+        {
+            return prefixed(typed,
+                GateEditCommand.viewNames().toArray(new String[0]));
+        }
+        if ("cost".equals(field))
+        {
+            return prefixed(typed, GateEditCommand.costNames().toArray(new String[0]));
+        }
         if ("portal".equals(field) || "iris".equals(field) || LIGHT.equals(field))
         {
             return materialNames(typed, false);
@@ -858,7 +867,7 @@ public final class SubCommands
     private static final String[] DEBUG_SWITCHES = { "-all", "-full", "-off", "-on", "-views" };
 
     /**
-     * Completions for {@code /wormhole mirror debug [name] [-all|-full]} and {@code debug -off|-on}.
+     * Completions for {@code /wormhole mirror debug [name|gate] [-all|-full]} and {@code debug -off|-on}.
      *
      * @param sender
      *            whoever is typing; offered nothing without {@code wormhole.config}
@@ -874,7 +883,10 @@ public final class SubCommands
         }
         if (args.length == 3)
         {
-            return prefixed(args[2], both(mirrorNames(), DEBUG_SWITCHES));
+            // One entry for a name a mirror and a gate share, which debug reads as the mirror.
+            final LinkedHashSet<String> names = new LinkedHashSet<>(Arrays.asList(mirrorNames()));
+            names.addAll(gateNames(args[2]));
+            return prefixed(args[2], both(names.toArray(new String[0]), DEBUG_SWITCHES));
         }
         final boolean afterName = (args.length == 4)
             && Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));

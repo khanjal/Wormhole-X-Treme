@@ -79,9 +79,24 @@ somebody else's release notes, and the record of where this fork came from.
 
 ### For server admins
 
+**Added**
+
+- **`wormhole.build.<shape>` lets a rank build one gate shape** without `wormhole.build`, which stays the wildcard for every shape, so nothing changes until a server leaves it off a rank. The node is the shape's name in lower case with anything but a letter, digit or underscore made an underscore (`wormhole.build.grand_gate`); each is declared to the server when the shapes load, so a permissions plugin lists them. `wormhole.use.<shape>` is not part of this. A server that gave a rank `wormhole.build.*` (which never included `wormhole.build` itself, so built nothing) now lets it build every shape ([#631](https://github.com/khanjal/Wormhole-X-Treme/issues/631)).
+- **`/wormhole complete <name>` without `net=` no longer refuses a builder holding only `wormhole.build`.** A network left out was read as a network called "", which only `wormhole.network.build.` admitted, so a player who was not an operator had to type `net=Public`; it is the Public network now, for `/wormhole gate build` without `net=` as well.
+- **`max-gates-per-player` limits how many gates one player may own** (default `0`, no limit, so nothing changes on upgrade). A player at the limit is refused another, before any fare, when the design is found, on `gate complete` and on `gate preview place`, which then places nothing. `wormhole.gates.max.<n>` gives a group its own limit (the highest a player holds wins, up or down), `wormhole.gates.unlimited` lifts it (operators have it), and `/wormhole gate list` ends with "Gates owned: 2. Your limit: 5." for a limited player. Only gates that stand count. Handing a gate to another player with `owner` is not held to the new owner's limit ([#633](https://github.com/khanjal/Wormhole-X-Treme/issues/633)).
+- **A gate or a shape can have its own use cost.** `economy-use-cost` charged every gate alike. `/wormhole gate edit <gate> cost <amount>` gives one gate a cost, `USE_COST=<amount>` in a shape file gives every gate of that shape one, and `default` hands a gate back. The gate's own wins, then its shape's, then the setting; `0` is free and only an unset cost falls through. The fare is the entered gate's, asked before the trip and taken after it as before ([#632](https://github.com/khanjal/Wormhole-X-Treme/issues/632)).
+- **`/wormhole gate edit <gate> view <horizon|behind|open|default>` gives a gate its own view level**, which wins over `gate-view` even for `horizon` at a server on `open` ([#682](https://github.com/khanjal/Wormhole-X-Treme/issues/682)).
+- **`/wormhole mirror debug <gate>` says how a gate's view is being drawn**: the `gate-view` level, and whether the view is drawn and, if not, why ([#685](https://github.com/khanjal/Wormhole-X-Treme/issues/685)).
+
 **Changed**
 
+- **`gate-view: behind` leaves a gate with a lava or opaque horizon as it is**; `open` clears it for the view ([#684](https://github.com/khanjal/Wormhole-X-Treme/issues/684)).
+- **A gate's view is retaken only from chunks that are loaded.** The retake every ten minutes or so at a gate somebody stands at read the far side through `getChunkAt`, which loads a chunk the server had let go of and generates one never visited. It now starts only when the whole box is loaded, and gives up, keeping the old capture, if a chunk is let go meanwhile. The first capture of a gate still loads what it must, since nothing can be drawn until it exists ([#683](https://github.com/khanjal/Wormhole-X-Treme/issues/683)).
 - **`gate-dial-spin` defaults to `none`**, as the original plugin dialled: no ring light until a gate, group or the setting asks for one. A `config.yml` keeps its value, unless it is still exactly as 1.10 or earlier wrote it, which is rewritten and gets `none`; `/wormhole config gate-dial-spin top` brings back the 1.12 default ([#697](https://github.com/khanjal/Wormhole-X-Treme/issues/697)).
+
+**Fixed**
+
+- **A sign gate dials the gate its sign shows.** The sign's choice was kept as a place in a list, saved only when the server stopped cleanly, and `/wormhole refresh` dropped it, so a gate came back dialling the first one in the list while its sign, which lives in the world, still named another. It is kept by the gate's name as well now, saved the moment the sign is clicked, and kept by a refresh; a name no longer in the list falls back to the old place ([#706](https://github.com/khanjal/Wormhole-X-Treme/issues/706)).
 
 ## 1.12.0 (2026-10-25)
 

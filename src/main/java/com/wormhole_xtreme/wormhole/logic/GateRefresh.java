@@ -112,6 +112,11 @@ public final class GateRefresh
         fresh.setGateIrisDefaultActive(existing.isGateIrisDefaultActive());
         fresh.setGateDialSpin(existing.getGateDialSpin());
         fresh.setGateIrisAnimation(existing.getGateIrisAnimation());
+        fresh.setGateView(existing.getGateView());
+        fresh.setGateUseCost(existing.getGateUseCost());
+        // The sign's choice, which a refreshed gate otherwise started again at the first gate in the list (#706).
+        fresh.setGateDialSignIndex(existing.getGateDialSignIndex());
+        fresh.setGateDialSignTargetName(existing.getGateDialSignTargetName());
         if (existing.isGateMaterialGroupChosen())
         {
             fresh.chooseGateMaterialGroup(existing.getGateMaterialGroup());

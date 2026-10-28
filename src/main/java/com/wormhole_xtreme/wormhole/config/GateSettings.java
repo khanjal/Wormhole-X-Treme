@@ -224,6 +224,19 @@ final class GateSettings
     }
 
     /**
+     * What one gate shows once open (#682): its own level, which wins over the server's whichever way
+     * it differs, or {@code gate-view}.
+     *
+     * @param own
+     *            the gate's own level, or null to follow the server
+     * @return horizon, behind or open
+     */
+    static String getGateView(final String own)
+    {
+        return (own != null) ? own : getGateView();
+    }
+
+    /**
      * How far past a gate's opening its view is captured and drawn first (#516): 32, or
      * {@code view-depth} if that is shallower.
      *

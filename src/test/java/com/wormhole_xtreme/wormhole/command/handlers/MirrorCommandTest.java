@@ -48,6 +48,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
@@ -199,6 +201,50 @@ class MirrorCommandTest
         assertTrue(lines.stream().anyMatch(line -> line.contains(
             "view: " + MirrorText.VALUE_COLOUR + "you are looking into no window")), "your view: " + lines);
         assertTrue(lines.stream().anyMatch(line -> line.contains("debug museum -all")), "and how to see the rest: " + lines);
+    }
+
+    /**
+     * A name that no mirror has but a gate does says how that gate's view is drawn, instead of refusing it as an unknown mirror.
+     *
+     * <p>The gate here is not open, so the reason is the one it can give; the level above it shows the
+     * command reached the gate and not the mirror path.
+     */
+    @Test
+    void debugNamingAGateSaysHowItsViewIsDrawn()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.GATE_VIEW, "behind");
+        final Stargate gate = mock(Stargate.class);
+        when(gate.getGateName()).thenReturn("Abydos");
+
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(gate);
+            run(player, "mirror", "debug", "Abydos");
+        }
+
+        verify(player).sendMessage(contains("level: " + MirrorText.VALUE_COLOUR + "behind (gate-view)"));
+        verify(player).sendMessage(contains("its wormhole is not open"));
+    }
+
+    /** A mirror and a gate with one name: the mirror is what {@code debug} has always meant by it. */
+    @Test
+    void debugNamingAMirrorThatIsAlsoAGateNameStillMeansTheMirror()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new BlockPlace("world", 1, 64, 1),
+            new Place("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        final Stargate gate = mock(Stargate.class);
+        when(gate.getGateName()).thenReturn("museum");
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(() -> StargateManager.getStargate("museum")).thenReturn(gate);
+            run(player, "mirror", "debug", "museum");
+        }
+
+        verify(player).sendMessage(contains(MirrorText.heading("mirror ")));
+        verify(player, never()).sendMessage(contains("(gate-view)"));
     }
 
     /**

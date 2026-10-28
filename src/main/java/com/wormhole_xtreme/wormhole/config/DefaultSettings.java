@@ -153,6 +153,7 @@ class DefaultSettings
                 new Setting(ConfigKeys.GATE_IRIS_ANIMATION, "sweep", "How an iris crosses its opening: sweep (rings, from the rim in), spiral (a wedge turning outwards), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.", SECTION)),
             sub("Building, previews and server load",
                 new Setting(ConfigKeys.MIN_GATE_DISTANCE, 0, "Least distance in blocks between two gates in one world, centre to centre. Building, completing or placing a gate closer is refused, before any fare, unless the builder has wormhole.build.mindistance.bypass, which operators have by default. 0 for no limit.", SECTION),
+                new Setting(ConfigKeys.MAX_GATES_PER_PLAYER, 0, "How many gates one player may own. Building one more is refused, before any fare. A player with wormhole.gates.max.<n> has the highest such n instead, and wormhole.gates.unlimited lifts the limit; operators have that by default. 0 for no limit.", SECTION),
                 new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.", SECTION),
                 new Setting(ConfigKeys.GATE_PREVIEW_MINUTES, 10, "Minutes a gate preview, stood up by /wormhole gate build, stays up after its owner last used a gate build or gate preview command. At least 1.", SECTION),
                 new Setting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, "Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about 1100. 0 turns previews off.", SECTION))),
@@ -161,7 +162,7 @@ class DefaultSettings
             sub("",
                 new Setting(ConfigKeys.VIEW_DEPTH, 160, "How far past its opening a mirror's room, or an open gate's far side, is drawn, 4 to 160; past it this world shows through. 160 is ten chunks, about as far as a server sends. A gate shows the first 32 at once and fills in the rest behind. Lower it for a smoother view.", SECTION)),
             sub("Gate views",
-                new Setting(ConfigKeys.GATE_VIEW, "horizon", "What an open gate shows once its kawoosh settles: horizon (the event horizon, as always), behind (where it goes, seen through the horizon), or open (where it goes, with no horizon). Upright gates with a frame round their opening, so not Minimal. An experiment, see #516.", SECTION),
+                new Setting(ConfigKeys.GATE_VIEW, "horizon", "What an open gate shows once its kawoosh settles: horizon (the event horizon, as always), behind (where it goes, seen through a see-through horizon; lava and opaque ones show none), or open (where it goes, with no horizon). Upright gates with a frame round their opening, so not Minimal. An experiment, see #516.", SECTION),
                 new Setting(ConfigKeys.GATE_VIEW_FUNNEL, true, "When a gate dials a smaller one, gate-view shows the far side at the end of a tunnel the small gate's size, walled in this gate's portal material, so the view does not show past the small gate's walls and ceiling. False shows the whole view, as a gate the same size would.", SECTION),
                 new Setting(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 16, "The longest that tunnel may be, 1 to 64 blocks. It is a block longer for each block narrower the far gate is, and one more for the layer behind the opening that is its own size: four from Large to Standard, thirteen from Massive to Standard, sixteen from Grand to Minimal.", SECTION),
                 new Setting(ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 0, "The shortest that tunnel is, up to gate-view-funnel-length; none while gate-view-funnel is false. Above 0, a gate the same size or bigger is seen down a straight tunnel too, and every tunnel runs straight for this or three fifths of this gate's opening, the longer, before it narrows. 0 for none.", SECTION)),
@@ -212,7 +213,7 @@ class DefaultSettings
 
         group("Economy", "Shared by gates and beaming; both need this enabled before any cost applies.",
             new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin. When false every cost below is ignored.", SECTION),
-            new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. 0.0 to disable.", SECTION),
+            new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate, unless the gate (gate edit <gate> cost) or its shape (USE_COST= in the shape file) sets its own. 0.0 to disable.", SECTION),
             new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. 0.0 to disable.", SECTION)),
 
         group("Stargate sounds", SOUNDS,

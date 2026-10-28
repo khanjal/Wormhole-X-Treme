@@ -4,6 +4,7 @@ import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -16,6 +17,11 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
 
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -268,6 +274,54 @@ class CompleteCommandTest
     }
 
     /**
+     * A shape-only builder is held to the shape the gate reads as at completion (#631).
+     *
+     * <p>The sign twin of a frame is another shape, found when {@code complete} reads the design
+     * again. A player holding only {@code wormhole.build.standard} was let through the first click
+     * as Standard and would have completed the other shape without its node.
+     */
+    @Test
+    void aReReadingThatChangesTheShapeIsCheckedAgainstTheNewShape()
+    {
+        final Player player = builder("shaper");
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission("wormhole.build.standard")).thenReturn(true);
+        final StargateShape standard = new StargateShape();
+        final StargateShape signed = new StargateShape();
+        signed.setShapeName("StandardSignDial");
+        StargateShapeRegistry.getStargateShapes().put("Standard", standard);
+        final Stargate held = new Stargate();
+        held.setGateName("Held");
+        held.setGateShape(standard);
+        final Stargate twin = new Stargate();
+        twin.setGateName("Held");
+        twin.setGateShape(signed);
+        twin.setGateSignPowered(true);
+        StargateManager.addIncompleteStargate(player, held);
+        try (MockedStatic<StargateHelper> helper = Mockito.mockStatic(StargateHelper.class);
+            MockedStatic<StargateManager> mgr =
+                Mockito.mockStatic(StargateManager.class, Mockito.CALLS_REAL_METHODS))
+        {
+            helper.when(() -> StargateHelper.checkStargate(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any())).thenReturn(held);
+            helper.when(() -> StargateHelper.checkNewStargate(ArgumentMatchers.any(), ArgumentMatchers.any()))
+                .thenReturn(twin);
+
+            new Complete().onCommand(player, null, "wormhole", new String[] {"Named"});
+
+            mgr.verify(() -> StargateManager.completeStargate(ArgumentMatchers.any(),
+                ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()),
+                never());
+        }
+        finally
+        {
+            StargateManager.removeIncompleteStargate(player);
+            StargateShapeRegistry.getStargateShapes().remove("Standard");
+        }
+        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+    }
+
+    /**
      * Holds a part-built gate called Held, runs {@code complete Named} with the second
      * detection of the held shape answering as told and a scan of every shape finding
      * {@code anyShape}, and returns the gate that reached completion.
@@ -360,5 +414,42 @@ class CompleteCommandTest
 
         assertNull(Complete.getPendingCompletion(player));
         verify(player).sendMessage(plainContains("cannot start with -;"));
+    }
+
+    /**
+     * A gate is not completed for a player at their gate quota, and nothing is charged (#633).
+     *
+     * <p>The frame can stand when the quota is reached through another route, so completing asks again, as it
+     * does for spacing, before any fare.
+     */
+    @Test
+    void aPlayerAtTheirQuotaDoesNotCompleteAGate()
+    {
+        final Player player = builder("limited");
+        ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 1);
+        final Stargate mine = new Stargate();
+        mine.setGateName("Mine");
+        mine.setGateOwner(player.getUniqueId().toString());
+        final Stargate held = new Stargate();
+        held.setGateName("Held");
+        StargateManager.addIncompleteStargate(player, held);
+        try (MockedStatic<StargateManager> mgr =
+            Mockito.mockStatic(StargateManager.class, Mockito.CALLS_REAL_METHODS))
+        {
+            mgr.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(mine));
+
+            final boolean done = Complete.completeAndCharge(player, "Named", "", "", "failed", null);
+
+            assertFalse(done);
+            mgr.verify(() -> StargateManager.completeStargate(ArgumentMatchers.any(),
+                ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()),
+                never());
+        }
+        finally
+        {
+            StargateManager.removeIncompleteStargate(player);
+            ConfigTestSupport.clear();
+        }
+        verify(player).sendMessage(plainContains("Gates owned: 1. Your limit: 1."));
     }
 }
