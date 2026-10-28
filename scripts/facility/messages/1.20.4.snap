@@ -770,6 +770,7 @@ s1 every setting	:: How fast the rings run their countdown, rise, flash, return 
 s1 every setting	:: How loud beam sounds are. Volume also sets audible range: N is heard about sixteen blocks away.
 s1 every setting	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
 s1 every setting	:: How loud ring sounds are. Volume also sets audible range: N is heard about sixteen blocks away.
+s1 every setting	:: How many gates one player may own. Building one more is refused, before any fare. A player with wormhole.gates.max.<n> has the highest such n instead, and wormhole.gates.unlimited lifts the limit; operators have that by default. N for no limit.
 s1 every setting	:: How many mirrors one world may hold. N by default: a mirror is the door into its world, and a right-click scrolls through the mirrors of every other. N for no limit.
 s1 every setting	:: How many ring pairs one player may own. N for no limit.
 s1 every setting	:: How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FINE, FINER or FINEST, least to most.
@@ -784,6 +785,7 @@ s1 every setting	:: MAP_SHOW_GATES = true
 s1 every setting	:: MAP_SHOW_IRIS_GATES = true
 s1 every setting	:: MAP_SHOW_MIRRORS = true
 s1 every setting	:: MAP_SHOW_RINGS = true
+s1 every setting	:: MAX_GATES_PER_PLAYER = N
 s1 every setting	:: MAX_OPEN_SECONDS = N
 s1 every setting	:: METRICS_ENABLED = false
 s1 every setting	:: MIN_GATE_DISTANCE = N

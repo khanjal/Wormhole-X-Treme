@@ -207,6 +207,8 @@ outranks a negated node.
 | `wormhole.build.preview.share` | op | `gate preview share`, showing a preview to other players |
 | `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |
 | `wormhole.build.mindistance.bypass` | op | Building closer to another gate than [`min-gate-distance`](GATES.md#building-a-gate) allows |
+| `wormhole.gates.max.<n>` | false | Owning at most `n` gates: the highest `n` a player holds replaces [`max-gates-per-player`](GATES.md#building-a-gate), more or fewer. Any whole number above 0; give it to a group |
+| `wormhole.gates.unlimited` | op | Owning any number of gates, whatever `max-gates-per-player` or a `wormhole.gates.max.<n>` says. A group given `wormhole.*` or `*` by a permissions plugin that expands wildcards has it too |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
 | `wormhole.config` | op | Settings, including `config -reload` and `lang export`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |

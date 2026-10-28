@@ -54,6 +54,9 @@ permissions:
   wormhole.build.mindistance.bypass:
     description: Allow building a gate closer to another than min-gate-distance allows.
     default: op
+  wormhole.gates.unlimited:
+    description: Allow owning more gates than max-gates-per-player or wormhole.gates.max.<n> allows.
+    default: op
   wormhole.config:
     description: Allow changing plugin configuration via command.
     default: op

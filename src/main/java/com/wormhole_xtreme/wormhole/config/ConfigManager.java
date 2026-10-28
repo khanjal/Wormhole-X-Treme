@@ -145,6 +145,8 @@ public class ConfigManager
         GATE_PREVIEW_MAX_BLOCKS,
         /** Least distance between two gates in one world; 0 for none (#635). */
         MIN_GATE_DISTANCE,
+        /** Most gates one player may own; 0 for no limit (#633). */
+        MAX_GATES_PER_PLAYER,
         RING_SOUNDS_ENABLED,
         RING_SOUND_VOLUME,
         RING_SOUND_OPEN,
@@ -867,6 +869,16 @@ public class ConfigManager
     public static int getMinGateDistance()
     {
         return Math.max(0, intSetting(ConfigKeys.MIN_GATE_DISTANCE, 0));
+    }
+
+    /**
+     * The most gates one player may own, before any group's own limit.
+     *
+     * @return gates, 0 for no limit
+     */
+    public static int getMaxGatesPerPlayer()
+    {
+        return Math.max(0, intSetting(ConfigKeys.MAX_GATES_PER_PLAYER, 0));
     }
 
     /** See {@link RingSettings#isRingSoundsEnabled()}. */
