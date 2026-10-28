@@ -89,6 +89,12 @@ class CapturesTest
     private BlockData torch;
     /** Every column, as "x,z", whose blocks a capture has read. */
     private final Set<String> columnsRead = new HashSet<>();
+
+    /** Whether the far world has its chunks loaded, which a test turns off to let them go. */
+    private boolean chunksLoaded = true;
+
+    /** One chunk, {@code {x, z}}, that is not loaded though the rest are, or null. */
+    private int[] chunkLetGo;
     private final BlockData air = mock(BlockData.class);
     private final BlockData sand = mock(BlockData.class);
     private final QuantumMirror mirror = new QuantumMirror("museum",
@@ -118,6 +124,11 @@ class CapturesTest
         when(far.getMinHeight()).thenReturn(-64);
         when(far.getMaxHeight()).thenReturn(320);
         when(far.getEnvironment()).thenReturn(World.Environment.NORMAL);
+        chunksLoaded = true;
+        chunkLetGo = null;
+        when(far.isChunkLoaded(anyInt(), anyInt())).thenAnswer(invocation -> chunksLoaded
+            && ((chunkLetGo == null) || (chunkLetGo[0] != (int) invocation.getArgument(0))
+                || (chunkLetGo[1] != (int) invocation.getArgument(1))));
         // Sand up to y 69 everywhere, air above: the arrival point stands on the beach. A test may
         // stand a torch on the sand three blocks ahead, at (100, 70, -18), which the world's
         // surface heightmap counts and the snapshot's own -- blocks a player collides with -- does not.
@@ -1121,6 +1132,86 @@ class CapturesTest
             Captures.step(1000);
             assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 40, -1L), "older than the limit");
         });
+    }
+
+    /**
+     * A gate's capture is not retaken while a chunk of its box is not loaded (#683).
+     *
+     * <p>The retake read through {@code getChunkAt}, which loads a chunk the server had let go of, and
+     * generates one never visited. Every ten minutes at a gate whose far end nobody stood at, that was
+     * the whole box loaded again to learn nothing a loaded chunk would have changed.
+     */
+    @Test
+    void aGatesCaptureIsNotRetakenWhileItsChunksAreNotLoaded()
+    {
+        takeGateCapture(8);
+        chunksLoaded = false;
+
+        withServer(() -> assertEquals(0, Captures.refreshGate(GATE, mirror.destination(), 8, -1L),
+            "old, but its chunks are not loaded"));
+
+        assertEquals(0, Captures.taking(), "and no job is left reading");
+        chunksLoaded = true;
+        withServer(() -> assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, -1L),
+            "the same capture is retaken once they are loaded: it was the chunks that stopped it"));
+    }
+
+    /**
+     * One chunk of the box not loaded is enough to hold a retake back, wherever in the box it is (#683).
+     *
+     * <p>The beach's box is chunks 5 to 6 across and -2 to -1 deep, so each of the four is a corner: a check
+     * that stopped one chunk short, or looked at the arrival's chunk alone, would pass one of them.
+     */
+    @Test
+    void aGatesCaptureWaitsForEveryChunkOfItsBox()
+    {
+        takeGateCapture(8);
+
+        for (final int[] edge : new int[][] { { 5, -2 }, { 6, -2 }, { 5, -1 }, { 6, -1 } })
+        {
+            chunkLetGo = edge;
+            withServer(() -> assertEquals(0, Captures.refreshGate(GATE, mirror.destination(), 8, -1L),
+                "chunk " + edge[0] + "," + edge[1] + " is not loaded"));
+        }
+        chunkLetGo = null;
+        withServer(() -> assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, -1L),
+            "all of them loaded"));
+    }
+
+    /**
+     * A retake that meets a chunk let go of mid-way gives up and leaves the old capture drawn (#683).
+     *
+     * <p>Carrying on would have loaded the chunk, which is what a retake must not do; finishing
+     * without it would have replaced the capture with one holding a gap.
+     */
+    @Test
+    void aRetakeGivesUpWhenAChunkIsLetGoMeanwhile()
+    {
+        takeGateCapture(8);
+        final Capture before = Captures.get(gateKey());
+        withServer(() ->
+        {
+            assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, -1L));
+            chunksLoaded = false;
+            Captures.step(1000);
+        });
+
+        assertEquals(0, Captures.taking(), "the job is over");
+        assertSame(before, Captures.get(gateKey()), "and the capture drawn is the old one, not a gappy new one");
+    }
+
+    /**
+     * The first capture of a gate still loads what it must (#683).
+     *
+     * <p>Nothing is drawn until it exists, and the owner chose a disk read for it over a gate that stays a horizon.
+     */
+    @Test
+    void theFirstCaptureOfAGateStillLoadsChunks()
+    {
+        chunksLoaded = false;
+        takeGateCapture(8);
+
+        assertNotNull(Captures.get(gateKey()), "taken though none of its chunks was loaded");
     }
 
     /**
