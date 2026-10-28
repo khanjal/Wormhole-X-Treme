@@ -644,7 +644,7 @@ public final class GateViews
     /**
      * Whether a gate's horizon would hide the view at {@code behind}, which draws the view behind it.
      *
-     * <p>Lava and any solid block are not see-through, so a view behind one is captured, drawn and never
+     * <p>Lava and any opaque block are not see-through, so a view behind one is captured, drawn and never
      * seen. The gate keeps its horizon then, and takes no capture; {@code open} clears the horizon, so it
      * shows the view whatever the horizon is made of.
      */
