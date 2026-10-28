@@ -111,21 +111,47 @@ class DataLayoutCapturesTest
         assertEquals("old", read(new File(earlier, "alpha.view")), "and the clash is left, nothing deleted");
     }
 
-    /** Asking again, or on a server with no captures, changes nothing. */
+    /** A server with no captures is left with nothing created by being asked. */
     @Test
-    void askingAgainOrWithNothingToMoveIsHarmless() throws IOException
+    void askingWithNothingToMoveCreatesNothing()
     {
-        final File first = DataLayout.gateCaptureDir();
-        assertFalse(first.exists(), "asking creates nothing");
+        assertFalse(DataLayout.gateCaptureDir().exists());
+        assertFalse(DataLayout.mirrorCaptureDir().exists());
         assertFalse(DataLayout.gates().exists());
+        assertFalse(new File(data, "captures").exists());
+    }
 
+    /**
+     * A clash left in the old folder is looked at once a run, not on every capture lookup.
+     *
+     * <p>The accessors are asked for every lookup, often on the main thread, so a folder that can
+     * never be emptied (a file in both places) must not be walked and failed on each time.
+     */
+    @Test
+    void aFolderThatCouldNotBeEmptiedIsNotRetried() throws IOException
+    {
+        final File dir = new File(new File(data, "captures"), "gates");
+        write(new File(dir, "alpha.view"), "new");
         final File earlier = new File(DataLayout.gates(), "captures");
-        assertTrue(earlier.mkdirs());
-        write(new File(earlier, "alpha.view"), "capture");
+        write(new File(earlier, "alpha.view"), "old");
         DataLayout.gateCaptureDir();
+        write(new File(earlier, "beta.view"), "later");
+
         DataLayout.gateCaptureDir();
 
-        assertEquals("capture", read(new File(first, "alpha.view")));
+        assertTrue(new File(earlier, "beta.view").isFile(), "not walked a second time");
+        assertFalse(new File(dir, "beta.view").exists());
+    }
+
+    /** The emptied mirror/ folder goes, but a plain file of that name is not ours to delete. */
+    @Test
+    void aFileNamedMirrorIsNotDeleted() throws IOException
+    {
+        write(new File(data, "mirror"), "an admin's backup");
+
+        DataLayout.mirrorCaptureDir();
+
+        assertEquals("an admin's backup", read(new File(data, "mirror")));
     }
 
     private static void write(final File file, final String text) throws IOException

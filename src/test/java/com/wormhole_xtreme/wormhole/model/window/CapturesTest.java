@@ -406,10 +406,10 @@ class CapturesTest
 
 
     /**
-     * A captures folder left beside the mirror file by an earlier build is moved under mirror/.
+     * A captures folder left beside the mirror file by an earlier build is moved under captures/.
      *
-     * <p>Captures moved from data/mirror-captures/ to data/mirror/captures/ so that whatever
-     * else mirrors keep has a folder to go in. The old folder is moved rather than abandoned,
+     * <p>Captures moved from data/mirror-captures/ to data/captures/mirrors/ (#655), apart from
+     * the saved gates. The old folder is moved rather than abandoned,
      * so nobody's captures are left behind to puzzle over.
      */
     @Test

@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole.utils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Every file and folder this plugin owns, named in one place.
@@ -22,7 +24,7 @@ import java.nio.file.Files;
  * │   ├── gate/*.shape           the shapes gates are built from
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with
  * ├── data/
- * │   ├── gates/&lt;name&gt;.yml       one file per gate, and nothing else
+ * │   ├── gates/&lt;name&gt;.yml       one file per gate
  * │   ├── captures/
  * │   │   ├── gates/*.view       what stands in front of a gate, per opening size seen through
  * │   │   └── mirrors/*.view     one photograph of a far side per destination
@@ -42,6 +44,9 @@ public final class DataLayout
 {
     /** Where this fork keeps what it owns. */
     private static final String DATA = "data";
+
+    /** The old capture folders already looked at this run, so a clash left behind is not retried on every call. */
+    private static final Set<String> MOVED = ConcurrentHashMap.newKeySet();
 
     /** The folder other forks keep their database in, read but never written. */
     private static final String LEGACY_DATA = "WormholeXTremeDB";
@@ -122,16 +127,17 @@ public final class DataLayout
 
     /**
      * Moves a folder of captures to where they now live: nothing deleted, nothing overwritten, a
-     * file already at the destination wins. Captures are retaken on the next look, so a move that
-     * fails leaves them where they were and costs a recapture, never data.
+     * file already at the destination wins. A move that fails leaves the file where it was, for the
+     * admin to find. Looked at once a run: the accessors are asked on every capture lookup.
      */
     private static void moveCaptures(final File earlier, final File dir)
     {
-        if (!earlier.isDirectory())
+        if (!MOVED.add(earlier.getAbsolutePath()) || !earlier.isDirectory())
         {
             return;
         }
-        if (!dir.exists() && dir.getParentFile().mkdirs() && earlier.renameTo(dir))
+        final File parent = dir.getParentFile();
+        if (!dir.exists() && (parent.isDirectory() || parent.mkdirs()) && earlier.renameTo(dir))
         {
             return;
         }
@@ -211,7 +217,10 @@ public final class DataLayout
         final File middle = new File(data(), "mirror");
         moveCaptures(new File(middle, "captures"), dir);
         // Left empty by that move; delete() refuses a folder that still holds anything.
-        middle.delete();
+        if (middle.isDirectory())
+        {
+            middle.delete();
+        }
         return dir;
     }
 
