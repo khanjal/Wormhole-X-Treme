@@ -317,6 +317,13 @@ class StargateDialManager
     {
         if (teleportSign && gate.getGateDialSignBlock() != null)
         {
+            // A refresh or regenerate puts a new gate under the old one's name, on the same sign, and the old one's
+            // reset arrives two ticks later: it would blank what the new gate has just drawn there (#706).
+            final Stargate successor = StargateManager.getStargate(gate.getGateName());
+            if ((successor != null) && (successor != gate))
+            {
+                return;
+            }
             final BlockState bState = gate.getGateDialSignBlock().getState();
             if (!(bState instanceof Sign))
             {

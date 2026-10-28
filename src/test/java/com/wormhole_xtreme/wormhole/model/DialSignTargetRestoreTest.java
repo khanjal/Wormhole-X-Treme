@@ -386,4 +386,40 @@ class DialSignTargetRestoreTest
 
         assertEquals("bravo", gate.getGateDialSignTarget().getGateName());
     }
+
+    /**
+     * The reset of a gate that was replaced under its name leaves the sign alone (#706).
+     *
+     * <p>A regenerate puts a new gate on the same sign; the old one's idle reset, two ticks behind, blanked
+     * what the new one had just drawn.
+     */
+    @Test
+    void theResetOfAGateThatWasReplacedLeavesTheSignAlone()
+    {
+        final Stargate replaced = new Stargate();
+        replaced.setGateName("home");
+        replaced.setGateDialSignBlock(gate.getGateDialSignBlock());
+        replaced.setGateDialSignIndex(2);
+
+        StargateDialManager.resetSign(replaced, true);
+
+        assertEquals(2, replaced.getGateDialSignIndex(), "gate is the one registered as home, replaced is not");
+    }
+
+    /** A gate nothing replaced is reset as before, including one being removed. */
+    @Test
+    void theResetOfAGateNothingReplacedStillGoesIdle()
+    {
+        gate.setGateDialSignIndex(2);
+
+        StargateDialManager.resetSign(gate, true);
+
+        assertEquals(-1, gate.getGateDialSignIndex());
+        StargateManager.removeStargate(gate);
+        gate.setGateDialSignIndex(2);
+
+        StargateDialManager.resetSign(gate, true);
+
+        assertEquals(-1, gate.getGateDialSignIndex(), "with no successor, a removed gate's sign goes idle too");
+    }
 }

@@ -1465,8 +1465,12 @@ public class StargateManager
             signGate.setGateDialSignIndex(0);
             // Drawn again where it stands, by name: a click moved it on by one, so a gate removed and put back
             // (a regenerate) sent every sign that pointed at it to the gate after it (#706).
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-                signGate::refreshDialSignTarget);
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
+            {
+                signGate.refreshDialSignTarget();
+                // Where it lands is a choice made for it, and an unclean stop would otherwise bring back the old one.
+                StargateDBManager.saveStargate(signGate);
+            });
         }
     }
 
