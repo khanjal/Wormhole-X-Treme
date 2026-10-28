@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.permissions;
 
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -10,6 +11,7 @@ import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
+import org.bukkit.plugin.PluginManager;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -104,8 +106,9 @@ public final class ShapePermissions
      */
     public static void declare(final Collection<String> shapeNames)
     {
-        final Server server = Bukkit.getServer();
-        if ((server == null) || (server.getPluginManager() == null))
+        // None before the server exists (a test, or startup order): then there is nothing to declare to.
+        final PluginManager manager = Optional.ofNullable(Bukkit.getServer()).map(Server::getPluginManager).orElse(null);
+        if (manager == null)
         {
             return;
         }
@@ -114,9 +117,9 @@ public final class ShapePermissions
             final String node = buildNode(name);
             try
             {
-                if ((node != null) && (server.getPluginManager().getPermission(node) == null))
+                if ((node != null) && (manager.getPermission(node) == null))
                 {
-                    server.getPluginManager().addPermission(new Permission(node,
+                    manager.addPermission(new Permission(node,
                         "Allow building a " + name + " gate.", PermissionDefault.OP));
                 }
             }
