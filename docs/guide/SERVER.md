@@ -345,7 +345,8 @@ The HSQLDB and SQLite backends of earlier versions are gone. Files an older buil
 kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is
 swapped. So are the captures an earlier build kept in `data/gates/captures/` and
 `data/mirror/captures/`, which now live in `data/captures/` from the first time they are needed; a file already at
-the new place is never overwritten. A SQLite database from *another* fork is left where it is and read by `gate import`,
+the new place is never overwritten. The old folders are looked at once each time the server starts, so
+restore a backup of captures into the new folders. A SQLite database from *another* fork is left where it is and read by `gate import`,
 below.
 
 ## Upgrading

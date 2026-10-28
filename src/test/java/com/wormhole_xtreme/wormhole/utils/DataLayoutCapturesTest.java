@@ -92,6 +92,20 @@ class DataLayoutCapturesTest
         assertFalse(new File(data, "mirror").exists(), "and so is the emptied mirror/ folder");
     }
 
+    /** Where the two older mirror folders hold the same capture, the newer folder's is kept. */
+    @Test
+    void theNewerMirrorFolderWinsAClashWithTheOlderOne() throws IOException
+    {
+        final File oldest = new File(data, "mirror-captures");
+        write(new File(oldest, "same.view"), "stale");
+        final File middle = new File(new File(data, "mirror"), "captures");
+        write(new File(middle, "same.view"), "fresh");
+
+        final File dir = DataLayout.mirrorCaptureDir();
+
+        assertEquals("fresh", read(new File(dir, "same.view")), "not the two-builds-old photograph");
+    }
+
     /** A file already in the new folder is never overwritten, and the old one stays to be seen. */
     @Test
     void aFileAlreadyAtTheDestinationWins() throws IOException

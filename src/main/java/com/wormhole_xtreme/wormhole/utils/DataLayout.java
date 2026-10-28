@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 /**
  * Every file and folder this plugin owns, named in one place.
@@ -151,7 +152,11 @@ public final class DataLayout
             moveUnlessThere(file, new File(dir, file.getName()));
         }
         // Only if that emptied it: a folder with anything left in it stays.
-        earlier.delete();
+        if (!earlier.delete())
+        {
+            PluginLog.log(Level.INFO, "Captures left in " + earlier
+                + ": a file of the same name is already in " + dir + ", or could not be moved.");
+        }
     }
 
     private static void moveUnlessThere(final File file, final File target)
@@ -213,13 +218,14 @@ public final class DataLayout
     public static File mirrorCaptureDir()
     {
         final File dir = new File(captures(), "mirrors");
-        moveCaptures(new File(data(), "mirror-captures"), dir);
         final File middle = new File(data(), "mirror");
+        // The newer folder first, so where both hold a capture of the same name the newer one wins.
         moveCaptures(new File(middle, "captures"), dir);
+        moveCaptures(new File(data(), "mirror-captures"), dir);
         // Left empty by that move; delete() refuses a folder that still holds anything.
-        if (middle.isDirectory())
+        if (middle.isDirectory() && !middle.delete())
         {
-            middle.delete();
+            PluginLog.log(Level.FINE, "Left " + middle + ": it holds more than the captures that moved.");
         }
         return dir;
     }
