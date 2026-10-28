@@ -945,9 +945,10 @@ as `view-depth`. "What the server sends" is the world's view distance; on Paper 
   until the iris is shut. An opening iris ends the clearing first, so it opens onto the horizon for
   everybody and the next sweep clears it again for whoever is drawn the view. And the horizon comes
   back for everybody when the last player near enough to be drawn it walks away.
-- **A gate's captures show only in `mirror debug -views`**, which lists every window a player is
+- **A gate's captures show in `mirror debug -views`**, which lists every window a player is
   drawn and says how far each gate's capture reaches, whether it was cut, how deep it is drawn and
-  how old it is; the capture's box and kept blocks are not listed. A gate renamed leaves its old
+  how old it is; the capture's box and kept blocks are not listed. `mirror debug <gate>` says
+  whether the gate's view is drawn and, if not, why. A gate renamed leaves its old
   name's capture behind.
 - **An iris crossing a viewed gate shares a block with the view.** The window is still offered
   while the iris crosses, and at `behind` and `open` its first slab is the cells a block behind the
