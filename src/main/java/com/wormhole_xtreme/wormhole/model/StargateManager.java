@@ -19,8 +19,6 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
-import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
-import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.utils.BlockKey;
 
@@ -1465,8 +1463,14 @@ public class StargateManager
         if (hasSomewhereElse)
         {
             signGate.setGateDialSignIndex(0);
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-                new StargateUpdateRunnable(signGate, ActionToTake.DIAL_SIGN_CLICK));
+            // Drawn again where it stands, by name: a click moved it on by one, so a gate removed and put back
+            // (a regenerate) sent every sign that pointed at it to the gate after it (#706).
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
+            {
+                signGate.refreshDialSignTarget();
+                // Where it lands is a choice made for it, and an unclean stop would otherwise bring back the old one.
+                StargateDBManager.saveStargate(signGate);
+            });
         }
     }
 

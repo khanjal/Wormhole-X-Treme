@@ -184,8 +184,10 @@ class StargateDialManager
             return;
         }
 
-        // Advance the selection index.
-        int idx = gate.getGateDialSignIndex();
+        // Advance the selection index, found again by name first (#706): the saved index is a place in a list
+        // that moves when a gate is added or removed, and the sign in the world still shows the name.
+        final String saved = (gate.getGateDialSignTargetName() != null) ? gate.getGateDialSignTargetName() : shownName(face);
+        int idx = placeOfSaved(others, saved, gate.getGateDialSignIndex());
         if (idx < 0)
         {
             if (step == 0)
@@ -209,6 +211,14 @@ class StargateDialManager
 
         final Stargate current = others.get(idx);
         gate.setGateDialSignTarget(current);
+        final boolean chosen = !current.getGateName().equals(gate.getGateDialSignTargetName());
+        gate.setGateDialSignTargetName(current.getGateName());
+        if (chosen && (step != 0))
+        {
+            // A click is saved now: the file was written only at shutdown, and a server that stopped any other way
+            // came back with the selection from the last save, usually the first gate in the list.
+            StargateDBManager.saveStargate(gate);
+        }
 
         if (others.size() == 1)
         {
@@ -229,6 +239,57 @@ class StargateDialManager
         gate.getGateDialSign().update(true, false);
     }
 
+
+    /**
+     * The name the sign is showing as selected, for a gate saved before the name was kept.
+     *
+     * <p>The sign lives in the world, so it is as new as the last click even when the gate file is not.
+     *
+     * @param face
+     *            the sign's front, before its lines are rewritten
+     * @return the name between the markers on the middle line, or null if there is none
+     */
+    private static String shownName(final SignSide face)
+    {
+        final String line = SignText.get(face, 2);
+        if (line == null)
+        {
+            return null;
+        }
+        final String plain = SignStyle.stripFormatting(line).trim();
+        if ((plain.length() < 3) || (plain.charAt(0) != '\u00bb') || (plain.charAt(plain.length() - 1) != '\u00ab'))
+        {
+            return null;
+        }
+        return plain.substring(1, plain.length() - 1);
+    }
+
+    /**
+     * Where the saved selection is in the list now.
+     *
+     * @param others
+     *            the peers the sign cycles through
+     * @param name
+     *            the name of the gate last selected, or null
+     * @param index
+     *            the place it had in the list when saved, kept if the name is not found
+     * @return the place of the named gate, else the saved index
+     */
+    private static int placeOfSaved(final List<Stargate> others, final String name, final int index)
+    {
+        if ((name == null) || (index < 0))
+        {
+            return index;
+        }
+        for (int i = 0; i < others.size(); i++)
+        {
+            if (others.get(i).getGateName().equals(name))
+            {
+                return i;
+            }
+        }
+        return index;
+    }
 
     /**
      * Wraps the selected destination in markers, so it reads as chosen even in monochrome.
@@ -256,6 +317,13 @@ class StargateDialManager
     {
         if (teleportSign && gate.getGateDialSignBlock() != null)
         {
+            // A refresh or regenerate puts a new gate under the old one's name, on the same sign, and the old one's
+            // reset arrives two ticks later: it would blank what the new gate has just drawn there (#706).
+            final Stargate successor = StargateManager.getStargate(gate.getGateName());
+            if ((successor != null) && (successor != gate))
+            {
+                return;
+            }
             final BlockState bState = gate.getGateDialSignBlock().getState();
             if (!(bState instanceof Sign))
             {

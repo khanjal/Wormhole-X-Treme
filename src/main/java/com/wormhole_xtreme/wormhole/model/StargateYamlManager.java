@@ -43,6 +43,8 @@ public class StargateYamlManager
 
     /** A gate's own view level, written only when it has one (#682). */
     static final String VIEW_KEY = "View";
+    /** The gate a sign-dialled gate's sign points at, by name; absent until the sign has been used (#706). */
+    static final String DIAL_SIGN_TARGET_KEY = "DialSignTarget";
     /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
     static final String MATERIAL_GROUP_KEY = "MaterialGroup";
     /** Anything that is not safe in a file name, replaced with an underscore. */
@@ -168,6 +170,7 @@ public class StargateYamlManager
         s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
         s.setGateIrisAnimation(irisAnimationFrom(map.get(IRIS_ANIMATION_KEY), name));
         s.setGateView(viewFrom(map.get(VIEW_KEY), name));
+        s.setGateDialSignTargetName((map.get(DIAL_SIGN_TARGET_KEY) == null) ? null : String.valueOf(map.get(DIAL_SIGN_TARGET_KEY)));
         applyChosenGroup(s, map.get(MATERIAL_GROUP_KEY), name);
         return s;
     }
@@ -484,6 +487,10 @@ public class StargateYamlManager
         if (s.getGateView() != null)
         {
             map.put(VIEW_KEY, s.getGateView());
+        }
+        if (s.getGateDialSignTargetName() != null)
+        {
+            map.put(DIAL_SIGN_TARGET_KEY, s.getGateDialSignTargetName());
         }
         final byte[] data = GateSerializer.stargateToBinary(s);
         if (data == null)

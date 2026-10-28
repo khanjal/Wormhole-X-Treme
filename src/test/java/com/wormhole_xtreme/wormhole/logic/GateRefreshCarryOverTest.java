@@ -199,4 +199,23 @@ class GateRefreshCarryOverTest
 
         assertEquals("horizon", fresh.getGateView());
     }
+
+    /**
+     * A refreshed gate's sign keeps what it was set to (#706).
+     *
+     * <p>The new gate started with the index at 0, so a sign showing the third gate dialled the first.
+     */
+    @Test
+    void aRefreshedGateKeepsItsSignSelection()
+    {
+        final Stargate existing = new Stargate();
+        existing.setGateDialSignIndex(2);
+        existing.setGateDialSignTargetName("charlie");
+        final Stargate fresh = new Stargate();
+
+        GateRefresh.carryOverSettings(existing, fresh);
+
+        assertEquals(2, fresh.getGateDialSignIndex());
+        assertEquals("charlie", fresh.getGateDialSignTargetName());
+    }
 }
