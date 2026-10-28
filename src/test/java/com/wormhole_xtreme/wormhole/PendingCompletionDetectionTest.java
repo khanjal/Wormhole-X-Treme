@@ -32,12 +32,15 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.command.Complete;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 
 /**
  * Finishing a gate by clicking its DHD, once {@code /wormhole complete} is waiting.
@@ -70,6 +73,8 @@ class PendingCompletionDetectionTest
         player = mock(Player.class);
         when(player.getName()).thenReturn("builder");
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        // An operator may build any shape; the tests of a shape's own node say otherwise.
+        when(player.isOp()).thenReturn(true);
 
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -89,6 +94,8 @@ class PendingCompletionDetectionTest
         Complete.removePendingCompletion(player);
         StargateManager.removeIncompleteStargate(player);
         GateSpatialIndex.clear();
+        StargateShapeRegistry.getStargateShapes().remove("Standard");
+        StargateShapeRegistry.getStargateShapes().remove("Grand");
         for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
         {
             if (s != null)
@@ -258,5 +265,84 @@ class PendingCompletionDetectionTest
         assertNull(StargateManager.getStargate("Detected"), "a refused gate must not be registered");
         assertNull(StargateManager.getIncompleteStargate(player));
         assertNull(Complete.getPendingCompletion(player), "the click is spent either way");
+    }
+
+    /** Loads a shape, and returns a detected gate of that one. */
+    private static Stargate detectedGateOf(final String shapeName)
+    {
+        final StargateShape shape = new StargateShape();
+        shape.setShapeName(shapeName);
+        StargateShapeRegistry.getStargateShapes().put(shapeName, shape);
+        final Stargate found = detectedGate();
+        found.setGateShape(shape);
+        return found;
+    }
+
+    private void clickFinding(final Stargate found)
+    {
+        try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class))
+        {
+            helper.when(() -> StargateHelper.checkNewStargate(any(Block.class), any(BlockFace.class)))
+                .thenReturn(null);
+            helper.when(() -> StargateHelper.checkNewStargate(clicked, BlockFace.WEST))
+                .thenReturn(found);
+
+            click();
+        }
+    }
+
+    /**
+     * A gate named first and clicked after is held to the node of the shape the click found (#631).
+     *
+     * <p>Naming it was checked against the network alone, with any shape's node enough, so the frame
+     * clicked could be a larger shape than the one the player may build.
+     */
+    @Test
+    void aDetectedGateOfAShapeThePlayerMayNotBuildIsNotCompleted()
+    {
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission("wormhole.build.standard")).thenReturn(true);
+        StargateShapeRegistry.getStargateShapes().put("Standard", new StargateShape());
+        Complete.addPendingCompletion(player, "Detected", "", "");
+
+        clickFinding(detectedGateOf("Grand"));
+
+        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        assertNull(StargateManager.getStargate("Detected"), "a refused gate must not be registered");
+        assertNull(StargateManager.getIncompleteStargate(player));
+    }
+
+    /** And a frame of the shape the player may build gets past that check to the completion. */
+    @Test
+    void aDetectedGateOfAShapeThePlayerMayBuildIsNotRefused()
+    {
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission("wormhole.build.grand")).thenReturn(true);
+        Complete.addPendingCompletion(player, "Detected", "", "");
+
+        clickFinding(detectedGateOf("Grand"));
+
+        verify(player, never()).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+    }
+
+    /**
+     * The shape check is made against the network the player named, not the IDC beside it (#631).
+     *
+     * <p>The pending completion holds the name, the IDC and the network in that order; a gate with an
+     * IDC and no network is on the Public one, and a named network wants its own build node.
+     */
+    @Test
+    void theDetectedGateIsCheckedAgainstTheNamedNetworkNotTheIdc()
+    {
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission("wormhole.build.grand")).thenReturn(true);
+
+        Complete.addPendingCompletion(player, "Detected", "1234", "");
+        clickFinding(detectedGateOf("Grand"));
+        verify(player, never()).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+
+        Complete.addPendingCompletion(player, "Detected", "", "secret");
+        clickFinding(detectedGateOf("Grand"));
+        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
     }
 }

@@ -404,6 +404,12 @@ public final class GateInteractionHandler
     private static void completeDetectedGate(final Player player, final Stargate found,
         final String[] pending)
     {
+        // The name came first, with only a network to check it against; the shape is known now.
+        if (!WXPermissions.checkBuildOf(player, found, pending[2]))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
         if (RegionFlags.refusesBuild(player, found))
         {
             return;

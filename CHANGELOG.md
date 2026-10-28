@@ -81,6 +81,8 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Added**
 
+- **`wormhole.build.<shape>` lets a rank build one gate shape** without `wormhole.build`, which stays the wildcard for every shape, so nothing changes until a server leaves it off a rank. The node is the shape's name in lower case with anything but a letter, digit or underscore made an underscore (`wormhole.build.grand_gate`); each is declared to the server when the shapes load, so a permissions plugin lists them. `wormhole.use.<shape>` is not part of this. A server that gave a rank `wormhole.build.*` (which never included `wormhole.build` itself, so built nothing) now lets it build every shape ([#631](https://github.com/khanjal/Wormhole-X-Treme/issues/631)).
+- **`/wormhole complete <name>` without `net=` no longer refuses a builder holding only `wormhole.build`.** A network left out was read as a network called "", which only `wormhole.network.build.` admitted, so a player who was not an operator had to type `net=Public`; it is the Public network now.
 - **`/wormhole gate edit <gate> view <horizon|behind|open|default>` gives a gate its own view level**, which wins over `gate-view` even for `horizon` at a server on `open` ([#682](https://github.com/khanjal/Wormhole-X-Treme/issues/682)).
 - **`/wormhole mirror debug <gate>` says how a gate's view is being drawn**: the `gate-view` level, and whether the view is drawn and, if not, why ([#685](https://github.com/khanjal/Wormhole-X-Treme/issues/685)).
 
