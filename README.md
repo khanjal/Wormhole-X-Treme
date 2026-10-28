@@ -137,8 +137,8 @@ contributions from **lirelent** (Ryan Metzger) and **Jeremy Wood**.
 This fork descends from the original rather than theirs, but the plugin's history does not make
 sense without that work.
 
-**Dakto** keeps [a fork of that line](https://github.com/Daktoo/Wormhole-X-Treme) going today, and gave this one a shout-out.
-Thank you. It is a separate plugin with its own code, and shares none with this one.
+**Dakto** maintains [a fork of that line](https://github.com/Daktoo/Wormhole-X-Treme), brought up to date for Minecraft 1.21 and
+published on SpigotMC as WormholeXTreme. It is a separate plugin with its own code.
 
 This fork brings it to modern Minecraft, and adds rings, beaming and mirrors.
 
