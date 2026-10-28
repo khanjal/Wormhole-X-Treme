@@ -201,7 +201,8 @@ outranks a negated node.
 | `wormhole.use.compass` | false | `/wormhole compass` |
 | `wormhole.list` | false | `/wormhole gate list` |
 | `wormhole.go` | false | `/wormhole go` |
-| `wormhole.build` | op | Building gates |
+| `wormhole.build` | op | Building gates, of every shape |
+| `wormhole.build.<shape>` | op | Building gates of one [shape](GATES.md): its name in lower case, anything but a letter, digit or underscore made an underscore (`Grand Gate` is `wormhole.build.grand_gate`). Give it instead of `wormhole.build` to let a rank build only that shape; a shape called `Preview` or `MinDistance` has none, since those words are nodes above and below. Declared when the shapes load, so a permissions plugin lists them. Two shapes whose names differ only in case or punctuation share a node. `wormhole.build` still builds everything, so it cannot be held and one shape denied: leave it off the rank and grant the shapes. A `wormhole.build.*` grant now includes every shape's node, and so builds every shape |
 | `wormhole.build.preview` | op | `/wormhole gate build` and its [previews](GATES.md#previews), without `wormhole.config` |
 | `wormhole.build.preview.share` | op | `gate preview share`, showing a preview to other players |
 | `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |

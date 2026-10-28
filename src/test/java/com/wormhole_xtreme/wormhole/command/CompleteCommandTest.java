@@ -16,6 +16,9 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -265,6 +268,54 @@ class CompleteCommandTest
             detection -> detection.thenThrow(new IllegalStateException("malformed shape")), null);
         assertEquals("Held", completed.getGateName(), "the gate first detected was not the one completed");
         verify(player, never()).sendMessage(contains("Invalid arguments"));
+    }
+
+    /**
+     * A shape-only builder is held to the shape the gate reads as at completion (#631).
+     *
+     * <p>The sign twin of a frame is another shape, found when {@code complete} reads the design
+     * again. A player holding only {@code wormhole.build.standard} was let through the first click
+     * as Standard and would have completed the other shape without its node.
+     */
+    @Test
+    void aReReadingThatChangesTheShapeIsCheckedAgainstTheNewShape()
+    {
+        final Player player = builder("shaper");
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission("wormhole.build.standard")).thenReturn(true);
+        final StargateShape standard = new StargateShape();
+        final StargateShape signed = new StargateShape();
+        signed.setShapeName("StandardSignDial");
+        StargateShapeRegistry.getStargateShapes().put("Standard", standard);
+        final Stargate held = new Stargate();
+        held.setGateName("Held");
+        held.setGateShape(standard);
+        final Stargate twin = new Stargate();
+        twin.setGateName("Held");
+        twin.setGateShape(signed);
+        twin.setGateSignPowered(true);
+        StargateManager.addIncompleteStargate(player, held);
+        try (MockedStatic<StargateHelper> helper = Mockito.mockStatic(StargateHelper.class);
+            MockedStatic<StargateManager> mgr =
+                Mockito.mockStatic(StargateManager.class, Mockito.CALLS_REAL_METHODS))
+        {
+            helper.when(() -> StargateHelper.checkStargate(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any())).thenReturn(held);
+            helper.when(() -> StargateHelper.checkNewStargate(ArgumentMatchers.any(), ArgumentMatchers.any()))
+                .thenReturn(twin);
+
+            new Complete().onCommand(player, null, "wormhole", new String[] {"Named"});
+
+            mgr.verify(() -> StargateManager.completeStargate(ArgumentMatchers.any(),
+                ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()),
+                never());
+        }
+        finally
+        {
+            StargateManager.removeIncompleteStargate(player);
+            StargateShapeRegistry.getStargateShapes().remove("Standard");
+        }
+        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
     }
 
     /**

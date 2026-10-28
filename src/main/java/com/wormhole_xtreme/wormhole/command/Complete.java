@@ -210,6 +210,13 @@ public class Complete implements CommandExecutor, TabCompleter
         final String network, final String incompleteName)
     {
         rereadDesign(player);
+        // The sign a player hangs after the first click can turn the frame into another shape.
+        final Stargate held = StargateManager.getIncompleteStargate(player);
+        if ((held != null) && !WXPermissions.checkBuildOf(player, held, network))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
         completeAndCharge(player, name, idc, network,
             Messages.get(player, "gate.complete.failed", ChatText.name(incompleteName)),
             "/wormhole complete failed for player " + player.getName() + " - incomplete gate exists: " + incompleteName);
