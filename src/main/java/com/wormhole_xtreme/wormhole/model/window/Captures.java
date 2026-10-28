@@ -480,7 +480,38 @@ public final class Captures
         // Captures seen through a smaller opening, from before one served them all, are only disk now.
         gateKeysFor(gate).stream().filter(other -> !other.equals(key)).forEach(Captures::forgetKey);
         return (stale(key, arrival, depth, olderThanSeconds) && !JOBS.containsKey(key)
-            && requestGate(key, gate, arrival, GATE_OPENING, GATE_OPENING, depth)) ? 1 : 0;
+            && boxLoaded(arrival, depth)
+            && requestGate(key, gate, arrival, GATE_OPENING, GATE_OPENING, depth, true)) ? 1 : 0;
+    }
+
+    /**
+     * Whether every chunk a gate's capture reads is loaded now (#683).
+     *
+     * <p>A retake reads only what is loaded: a chunk the server has let go of is not loaded again
+     * (nor generated) to freshen a view, and the old capture is drawn until the chunks are back.
+     * Judged before the job starts, so a gate whose far side is unloaded does not start one every sweep.
+     *
+     * @return true if the far world is not loaded to ask (the request says so), or all of the box is
+     */
+    private static boolean boxLoaded(final Place arrival, final int depth)
+    {
+        final World far = Bukkit.getWorld(arrival.worldName());
+        if (far == null)
+        {
+            return true;
+        }
+        final int[] box = needed(arrival, Math.max(4, depth), far.getMinHeight(), far.getMaxHeight());
+        for (int chunkX = box[0] >> 4; chunkX <= (box[3] >> 4); chunkX++)
+        {
+            for (int chunkZ = box[2] >> 4; chunkZ <= (box[5] >> 4); chunkZ++)
+            {
+                if (!far.isChunkLoaded(chunkX, chunkZ))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -837,7 +868,7 @@ public final class Captures
     private static boolean take(final QuantumMirror mirror)
     {
         return (mirror.destination() != null) && request(keyOf(mirror.destination()), "mirror '" + mirror.name() + "'",
-            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, false, NO_CELLS);
+            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, false, NO_CELLS, false);
     }
 
     /** No blocks left out. */
@@ -891,13 +922,25 @@ public final class Captures
     public static boolean requestGate(final String key, final String gate, final Place arrival,
         final int holeWidth, final int holeHeight, final int depth)
     {
+        return requestGate(key, gate, arrival, holeWidth, holeHeight, depth, false);
+    }
+
+    /**
+     * @param loadedOnly
+     *            true for a retake (#683): the job reads only chunks already loaded, and gives up,
+     *            leaving the old capture, if one is let go meanwhile. The first capture, with
+     *            nothing to draw yet, loads what it must.
+     */
+    private static boolean requestGate(final String key, final String gate, final Place arrival,
+        final int holeWidth, final int holeHeight, final int depth, final boolean loadedOnly)
+    {
         if (loading(key))
         {
             return false;
         }
         final boolean fill = depth > ConfigManager.getGateViewFirstDepth();
         return request(key, "gate '" + gate + "'" + (fill ? " out to " + depth : ""), arrival,
-            new int[] { holeWidth, holeHeight }, Math.max(4, depth), fill, signCells(gate));
+            new int[] { holeWidth, holeHeight }, Math.max(4, depth), fill, signCells(gate), loadedOnly);
     }
 
     /**
@@ -915,7 +958,8 @@ public final class Captures
      *            blocks to leave out of the capture, each {@code {x, y, z}}
      */
     private static boolean request(final String key, final String what, final Place destination,
-        final int[] hole, final int depth, final boolean background, final int[][] blank)
+        final int[] hole, final int depth, final boolean background, final int[][] blank,
+        final boolean loadedOnly)
     {
         if (JOBS.containsKey(key))
         {
@@ -951,6 +995,7 @@ public final class Captures
         job.perTick = background ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
         job.said = said;
         job.blank = blank;
+        job.loadedOnly = loadedOnly;
         JOBS.put(key, job);
         job.schedule();
         return true;
@@ -1296,6 +1341,8 @@ public final class Captures
         private int perTick = CHUNKS_PER_TICK;
         /** Blocks left out of the capture: a gate's name sign, which hangs on a frame the view does not keep. */
         private int[][] blank = NO_CELLS;
+        /** Reads only chunks that are loaded, and gives up when one is not: a retake (#683). */
+        private boolean loadedOnly;
         private final int floor;
 
         /**
@@ -1367,6 +1414,11 @@ public final class Captures
             if (next < chunks.size())
             {
                 final int[] chunk = chunks.get(next++);
+                if (loadedOnly && !far.isChunkLoaded(chunk[0], chunk[1]))
+                {
+                    abandon();
+                    return;
+                }
                 try
                 {
                     copy(reader.read(far, chunk[0], chunk[1]), chunk[0] << 4, chunk[1] << 4);
@@ -1594,6 +1646,16 @@ public final class Captures
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
                     + " blocks ahead to keep under " + most + " blocks") : ""));
             save(capture, fileOf(key));
+        }
+
+        /** Gives up a retake that met a chunk no longer loaded: the old capture stays, and the next sweep tries again. */
+        private void abandon()
+        {
+            done = true;
+            cancel();
+            JOBS.remove(key, this);
+            WormholeXTreme.getThisPlugin().prettyLog(said, "Retake of " + key + " given up: chunk "
+                + "no longer loaded in " + far.getName());
         }
 
         void cancel()

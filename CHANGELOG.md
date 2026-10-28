@@ -87,6 +87,7 @@ somebody else's release notes, and the record of where this fork came from.
 **Changed**
 
 - **`gate-view: behind` leaves a gate with a lava or opaque horizon as it is**; `open` clears it for the view ([#684](https://github.com/khanjal/Wormhole-X-Treme/issues/684)).
+- **A gate's view is retaken only from chunks that are loaded.** The retake every ten minutes or so at a gate somebody stands at read the far side through `getChunkAt`, which loads a chunk the server had let go of and generates one never visited. It now starts only when the whole box is loaded, and gives up, keeping the old capture, if a chunk is let go meanwhile. The first capture of a gate still loads what it must, since nothing can be drawn until it exists ([#683](https://github.com/khanjal/Wormhole-X-Treme/issues/683)).
 - **`gate-dial-spin` defaults to `none`**, as the original plugin dialled: no ring light until a gate, group or the setting asks for one. A `config.yml` keeps its value, unless it is still exactly as 1.10 or earlier wrote it, which is rewritten and gets `none`; `/wormhole config gate-dial-spin top` brings back the 1.12 default ([#697](https://github.com/khanjal/Wormhole-X-Treme/issues/697)).
 
 ## 1.12.0 (2026-10-25)

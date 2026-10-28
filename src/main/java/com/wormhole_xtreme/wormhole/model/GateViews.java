@@ -439,7 +439,7 @@ public final class GateViews
         final Location arrival = gate.getGatePlayerTeleportLocation();
         if ((arrival != null) && (arrival.getWorld() != null) && watched(gate))
         {
-            // To the full depth: somebody is here, so most of the fill's chunks are loaded anyway.
+            // To the full depth, but only once every chunk of it is loaded (#683): the retake never loads one.
             final Place at = Place.of(arrival);
             Captures.refreshGate(gate.getGateName(), at,
                 Captures.gateFillDepth(at, ConfigManager.getGateViewFirstDepth()), REFRESH_SECONDS);
