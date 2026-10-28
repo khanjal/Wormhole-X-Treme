@@ -369,4 +369,17 @@ class GateYamlRoundTripTest
         assertEquals(0.0001, StargateManager.getStargate("tiny").getGateUseCost(), "and 1.0E-4");
         assertNull(StargateManager.getStargate("plain").getGateUseCost());
     }
+
+    /** A cost a hand edit made negative is not an amount: the gate follows its shape and the server again. */
+    @Test
+    void aNegativeUseCostInAGateFileIsNotKept() throws Exception
+    {
+        final Stargate odd = gate("odd");
+        odd.setGateUseCost(-3.0);
+        StargateYamlManager.saveStargate(odd, gatesDir());
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        assertNull(StargateManager.getStargate("odd").getGateUseCost());
+    }
 }
