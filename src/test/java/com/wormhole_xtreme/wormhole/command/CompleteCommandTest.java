@@ -4,6 +4,7 @@ import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -16,6 +17,8 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.stubbing.OngoingStubbing;
 
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
@@ -411,5 +414,42 @@ class CompleteCommandTest
 
         assertNull(Complete.getPendingCompletion(player));
         verify(player).sendMessage(plainContains("cannot start with -;"));
+    }
+
+    /**
+     * A gate is not completed for a player at their gate quota, and nothing is charged (#633).
+     *
+     * <p>The frame can stand when the quota is reached through another route, so completing asks again, as it
+     * does for spacing, before any fare.
+     */
+    @Test
+    void aPlayerAtTheirQuotaDoesNotCompleteAGate()
+    {
+        final Player player = builder("limited");
+        ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 1);
+        final Stargate mine = new Stargate();
+        mine.setGateName("Mine");
+        mine.setGateOwner(player.getUniqueId().toString());
+        final Stargate held = new Stargate();
+        held.setGateName("Held");
+        StargateManager.addIncompleteStargate(player, held);
+        try (MockedStatic<StargateManager> mgr =
+            Mockito.mockStatic(StargateManager.class, Mockito.CALLS_REAL_METHODS))
+        {
+            mgr.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(mine));
+
+            final boolean done = Complete.completeAndCharge(player, "Named", "", "", "failed", null);
+
+            assertFalse(done);
+            mgr.verify(() -> StargateManager.completeStargate(ArgumentMatchers.any(),
+                ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()),
+                never());
+        }
+        finally
+        {
+            StargateManager.removeIncompleteStargate(player);
+            ConfigTestSupport.clear();
+        }
+        verify(player).sendMessage(plainContains("You already own 1 gate"));
     }
 }

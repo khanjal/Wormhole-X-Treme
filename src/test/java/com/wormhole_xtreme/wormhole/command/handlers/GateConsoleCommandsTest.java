@@ -791,4 +791,41 @@ class GateConsoleCommandsTest
             ConfigTestSupport.clear();
         }
     }
+
+    /**
+     * A coordinate build is not held to the gate quota (#633).
+     *
+     * <p>It completes its gate with no builder, so the gate has no owner and never counts: refusing it
+     * would punish a player for something that cannot take them over the limit, and letting them build
+     * one under it would enforce nothing.
+     */
+    @Test
+    void aCoordinateBuildIsNotHeldToTheGateQuota()
+    {
+        final Player player = mock(Player.class);
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MAX_GATES_PER_PLAYER, 1);
+        final Stargate mine = new Stargate();
+        mine.setGateName("Mine");
+        mine.setGateOwner("00000000-0000-0000-0000-000000000009");
+        org.mockito.Mockito.when(player.getUniqueId())
+            .thenReturn(java.util.UUID.fromString("00000000-0000-0000-0000-000000000009"));
+        try (Building building = new Building(player);
+             MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class))
+        {
+            perms.when(() -> WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG)).thenReturn(true);
+            perms.when(() -> WXPermissions.checkWXPermissions(player, "", WXPermissions.PermissionType.BUILD)).thenReturn(true);
+            building.previews.when(() -> GatePreviews.placeAt(any(), any(), any(), any())).thenReturn(
+                new GatePreviews.Placed(GatePreviews.Outcome.NOT_LOADED, List.of(), null, null));
+            openingAt(building);
+            building.gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(mine));
+
+            building.build("Standard", "A", "world", "0", "-60", "0", "south");
+
+            building.previews.verify(() -> GatePreviews.placeAt(any(), any(), any(), any()));
+        }
+        finally
+        {
+            ConfigTestSupport.clear();
+        }
+    }
 }

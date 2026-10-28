@@ -127,4 +127,65 @@ class GateInteractionSpacingTest
             StargateManager.removeIncompleteStargate(player);
         }
     }
+
+    /** A gate the builder owns, so a quota counts it. */
+    private Stargate ownedBy(final Player player, final String name)
+    {
+        final Stargate gate = gateAt(name, 1000, false);
+        when(gate.isOwner(player)).thenReturn(true);
+        return gate;
+    }
+
+    /**
+     * A builder at their gate quota is refused when offered another, and nothing is held (#633).
+     *
+     * <p>The offer is the first place a player hears of it: the frame stands and the DHD is pressed, and
+     * what comes back is the limit, not an invitation to name a gate that cannot be built.
+     */
+    @Test
+    void aBuilderAtTheirQuotaIsRefusedAndNothingIsHeld()
+    {
+        ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 1);
+        final Player player = builder();
+        final Stargate mine = ownedBy(player, "Mine");
+        final Stargate offered = gateAt("Offered", 5, true);
+        try (MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class);
+            MockedStatic<StargateManager> gates = mockStatic(StargateManager.class, Mockito.CALLS_REAL_METHODS))
+        {
+            perms.when(() -> WXPermissions.checkWXPermissions(player, offered, WXPermissions.PermissionType.BUILD))
+                .thenReturn(true);
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(mine));
+
+            GateInteractionHandler.offerNewGate(player, button(), offered);
+
+            verify(player).sendMessage(plainContains("You already own 1 gate"));
+            verify(offered).resetTeleportSign();
+            assertNull(StargateManager.getIncompleteStargate(player), "a refused gate must not be held");
+        }
+    }
+
+    /** One gate short of the quota, the same offer is held. */
+    @Test
+    void aBuilderUnderTheirQuotaIsHeld()
+    {
+        ConfigTestSupport.set(ConfigKeys.MAX_GATES_PER_PLAYER, 2);
+        final Player player = builder();
+        final Stargate mine = ownedBy(player, "Mine");
+        final Stargate offered = gateAt("Offered", 5, false);
+        try (MockedStatic<WXPermissions> perms = mockStatic(WXPermissions.class);
+            MockedStatic<StargateManager> gates = mockStatic(StargateManager.class, Mockito.CALLS_REAL_METHODS))
+        {
+            perms.when(() -> WXPermissions.checkWXPermissions(player, offered, WXPermissions.PermissionType.BUILD))
+                .thenReturn(true);
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(mine));
+
+            GateInteractionHandler.offerNewGate(player, button(), offered);
+
+            assertNotNull(StargateManager.getIncompleteStargate(player));
+        }
+        finally
+        {
+            StargateManager.removeIncompleteStargate(player);
+        }
+    }
 }

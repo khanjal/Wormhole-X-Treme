@@ -11,6 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.GateQuota;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -75,6 +76,14 @@ public class WXList implements CommandExecutor
             sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.none")));
         }
         sendGateNames(sender, gates);
+        if (sender instanceof Player player)
+        {
+            final String standing = GateQuota.standing(player);
+            if (standing != null)
+            {
+                sender.sendMessage(ChatText.info(standing));
+            }
+        }
     }
 
     /**

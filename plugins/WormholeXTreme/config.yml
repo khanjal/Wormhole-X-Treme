@@ -1,0 +1,397 @@
+# Start here: the settings most often changed, and the group each is under.
+#   pets-follow-owner           General
+#   timeout-shutdown            Stargates
+#   max-open-seconds            Stargates
+#   use-cooldown-enabled        Stargates
+#   wormhole-use-is-teleport    Stargates
+#   same-world-only             Stargates
+#   gate-dial-spin              Stargates
+#   ring-max-link-distance      Transport rings
+#   ring-max-pairs-per-player   Transport rings
+#   economy-enabled             Economy
+#   gate-sounds-enabled         Stargate sounds
+#   gate-sound-volume           Stargate sounds
+
+# --- General ---
+# How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FINE, FINER or
+# FINEST, least to most.
+log-level: INFO
+# If true, gates ignore permission nodes even when a Vault permission provider
+# is installed: anyone may use, dial and travel by gate; only operators may
+# build one; and removing, configuring or going to one with /wormhole go is left
+# to operators and its owner.
+permissions-support-disable: false
+# Whether tamed wolves, cats and parrots that are following a player, not
+# sitting, travel with them through gates, rings, beams and mirrors.
+pets-follow-owner: true
+# Whether a command the plugin names in chat can be clicked to run it, with
+# hover text saying what it does. False sends plain text, as servers without
+# Paper or Spigot do anyway.
+clickable-chat: true
+# The language of messages sent to the console and command blocks, such as de or
+# pt_br (and, later, the log and text the server puts in the world); players see
+# their own client's language. A message it lacks is in English. Only some
+# messages are translatable so far; sign text stays English.
+server-language: en
+
+# --- Stargates ---
+# -- Opening and closing --
+# Seconds a gate stays activated, waiting to be dialled, before it times out.
+timeout-activate: 30
+# Seconds a dialled gate stays open before shutting down. 0 keeps it open until
+# something goes through.
+timeout-shutdown: 38
+# Longest a wormhole may stay open, in seconds, however often it is re-dialled.
+# Measured from when it first opened, so a gate re-triggered on a schedule
+# cannot hold it open forever. 0 for no limit.
+max-open-seconds: 300
+# Whether a redstone signal on an already-open gate pushes its shutdown back.
+# Never past max-open-seconds, so traffic can hold a gate open but not
+# indefinitely.
+redstone-extend-open-time: true
+
+# -- Travel --
+# Enable Cooldown timers on stargate usage. Timer only activates on passage
+# through wormholes.
+use-cooldown-enabled: false
+# Seconds a player must wait between gate trips, when the cooldown above is
+# enabled.
+use-cooldown-seconds: 120
+# Whether wormhole.use is needed to travel at all. False lets anyone travel but
+# only permitted players activate a gate; true limits travel too.
+wormhole-use-is-teleport: false
+# If set to true, a gate cannot dial a gate in another world, and nothing -- a
+# player, a cart, a mob, an item or an arrow -- crosses between worlds by gate.
+same-world-only: false
+# Whether a player arriving through a gate is told in chat which gate they
+# arrived at. Gates only: rings and beams name their destination whatever this
+# is set to.
+show-gate-welcome-message: false
+
+# -- Effects --
+# How a dialling gate's inner ring light moves before each chevron locks: TOP,
+# CHEVRON, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE. Each is
+# described in the gate guide. TOP rests half a second on the top chevron after
+# each lock, and UNIVERSE turns at its own pace, so both dial a little slower.
+gate-dial-spin: NONE
+# Whether an open gate's event horizon ripples, in rings out from its middle: as
+# something goes in or comes out, and now and then while somebody is near.
+# Upright gates only; the gate guide says which show it and how. Off while it is
+# new.
+gate-ripple: false
+
+# -- Iris --
+# How an iris crosses its opening: sweep (rings, from the rim in), spiral (a
+# wedge turning outwards), rows (top and bottom in), columns (both sides in), or
+# instant. Only the picture moves; the blocks are placed in one go whichever it
+# is.
+gate-iris-animation: sweep
+
+# -- Building, previews and server load --
+# Least distance in blocks between two gates in one world, centre to centre.
+# Building, completing or placing a gate closer is refused, before any fare,
+# unless the builder has wormhole.build.mindistance.bypass, which operators have
+# by default. 0 for no limit.
+min-gate-distance: 0
+# How many gates one player may own. Building one more is refused, before any
+# fare. A player with wormhole.gates.max.<n> has the highest such n instead, and
+# wormhole.gates.unlimited lifts the limit; operators have that by default. 0
+# for no limit.
+max-gates-per-player: 0
+# When a gate shape uses a frame material no material group claims, add that
+# palette to gate-material-groups automatically. Ambiguous palettes are skipped.
+# Set false to curate the list by hand.
+gate-material-groups-autodiscover: true
+# Minutes a gate preview, stood up by /wormhole gate build, stays up after its
+# owner last used a gate build or gate preview command. At least 1.
+gate-preview-minutes: 10
+# Most blocks all build previews on the server may show at once, each one an
+# entity its owner alone sees. Every shipped shape shown once is about 1100. 0
+# turns previews off.
+gate-preview-max-blocks: 5000
+
+# --- Gate views and mirrors ---
+# How far past its opening a mirror's room, or an open gate's far side, is
+# drawn, 4 to 160; past it this world shows through. 160 is ten chunks, about as
+# far as a server sends. A gate shows the first 32 at once and fills in the rest
+# behind. Lower it for a smoother view.
+view-depth: 160
+
+# -- Gate views --
+# What an open gate shows once its kawoosh settles: horizon (the event horizon,
+# as always), behind (where it goes, seen through a see-through horizon; lava
+# and opaque ones show none), or open (where it goes, with no horizon). Upright
+# gates with a frame round their opening, so not Minimal. An experiment, see
+# #516.
+gate-view: horizon
+# When a gate dials a smaller one, gate-view shows the far side at the end of a
+# tunnel the small gate's size, walled in this gate's portal material, so the
+# view does not show past the small gate's walls and ceiling. False shows the
+# whole view, as a gate the same size would.
+gate-view-funnel: true
+# The longest that tunnel may be, 1 to 64 blocks. It is a block longer for each
+# block narrower the far gate is, and one more for the layer behind the opening
+# that is its own size: four from Large to Standard, thirteen from Massive to
+# Standard, sixteen from Grand to Minimal.
+gate-view-funnel-length: 16
+# The shortest that tunnel is, up to gate-view-funnel-length; none while
+# gate-view-funnel is false. Above 0, a gate the same size or bigger is seen
+# down a straight tunnel too, and every tunnel runs straight for this or three
+# fifths of this gate's opening, the longer, before it narrows. 0 for none.
+gate-view-funnel-min-length: 0
+
+# -- Mirror views --
+# How close a player must be, in blocks, for a mirror's banner to give way to
+# the room it shows, and how near they must stay for it to stay on.
+mirror-proximity-distance: 16
+
+# -- Creatures and players in a view --
+# Whether the creatures standing in a mirror's or an open gate's far room show
+# through it, as stand-ins only the viewer sees. mirror-entity-load-radius keeps
+# the far side loaded while watched; players only with mirror-show-players. The
+# stand-ins are real entities, which other plugins count.
+mirror-show-entities: false
+# With mirror-show-entities on too, whether the players in a view's far room
+# show as well: a mannequin from 1.21.9, an armour stand wearing their head
+# before. Off by default: it shows who is at the destination, by their real
+# skin, not a disguise's. Never anyone hidden by hidePlayer; a hide done in
+# packets is not seen.
+mirror-show-players: false
+# With mirror-show-entities on, how many chunks in front of a watched view's far
+# side are held, as /forceload holds them, so its creatures show at once: 15 at
+# 2, about 63 loaded with the ring round them, which can generate terrain. 0
+# holds nothing. Read up to 4.
+mirror-entity-load-radius: 2
+
+# -- Quantum mirrors --
+# How many mirrors one world may hold. 1 by default: a mirror is the door into
+# its world, and a right-click scrolls through the mirrors of every other. 0 for
+# no limit.
+mirror-per-world-limit: 1
+# Whether a mirror names itself and the world it opens onto above the hotbar,
+# while a player looks at it from within about six blocks. Only mirrors that go
+# somewhere say anything.
+mirror-approach-message: true
+
+# --- Gate signs ---
+# Whether the plugin's own sign text glows. Off, because glow outlines every
+# character and fights the colours below; true is more legible from a distance.
+sign-glowing-text: false
+# Whether a player-placed dial sign is converted to the gate's own sign
+# material, keeping its text and facing. False leaves the sign exactly as
+# placed.
+sign-dial-match-material: true
+# Colour of a gate's own name, on both its name sign and its dial sign. One of
+# the sixteen chat colours, such as AQUA, GOLD or LIGHT_PURPLE.
+sign-color-gate-name: DARK_AQUA
+# Colour of the network line on a gate's name sign.
+sign-color-network: GRAY
+# Colour of the owner line on a gate's name sign.
+sign-color-owner: GRAY
+# Colour of the destination currently selected on a dial sign. Keep it distinct
+# from the neighbours either side.
+sign-color-selected: DARK_GREEN
+# Colour of the destinations either side of the selected one on a dial sign.
+sign-color-neighbour: GRAY
+
+# --- Transport rings ---
+# -- Timing --
+# Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.
+ring-cooldown-ticks: 600
+# How fast the rings run their countdown, rise, flash, return and refusal
+# outline: 2.0 is twice as fast, 0.5 half as fast. Read from 0.5 to 2.0; the
+# countdown never drops under thirty ticks, so stepping clear stays possible.
+ring-animation-speed: 1.0
+
+# -- Refusal outline --
+# Briefly light a ring's pattern for a player it turns away, so they can see
+# where it is. Idle rings are invisible.
+ring-outline-on-refusal: true
+
+# -- Placement and limits --
+# Block layers of passenger volume, from the ring plane into the room, at least
+# 2. Matters most for ceiling rings.
+ring-reach: 4
+# Required distance between ring anchors, in blocks. Overlap is refused
+# regardless of this.
+ring-min-separation: 8
+# Furthest apart the two ends of a ring pair may be on the ground, in blocks.
+# 256 is sixteen chunks; gates are the long-haul option. 0 for no limit.
+ring-max-link-distance: 256
+# How far below its plane a ceiling ring will look for the floor, in blocks. Its
+# rings stack up from there, so it needs a floor near enough to reach.
+ring-max-ceiling-drop: 10
+# How many ring pairs one player may own. 0 for no limit.
+ring-max-pairs-per-player: 10
+
+# -- New ring pairs --
+# What a newly built ring pair starts as: PUBLIC or PRIVATE.
+ring-default-access: PRIVATE
+# How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a
+# time).
+ring-default-style: CONCURRENT
+# What the ring pad lights up as while it is working.
+ring-default-light: REDSTONE_LAMP
+# What a ring turns to as the transport light passes through it. Set it apart
+# from the pad light to make the transport its own moment.
+ring-default-flash: GLOWSTONE
+
+# --- Beaming ---
+# -- Animation --
+# How fast the beam gathers, rises, descends and fades: 2.0 is twice as fast,
+# 0.5 half as fast. Read from 0.5 to 2.0.
+beam-animation-speed: 1.0
+
+# -- Cooldown and cost --
+# Whether beam travel has a per-player cooldown at all.
+beam-use-cooldown-enabled: false
+# Seconds a player must wait between beams, when the cooldown above is enabled.
+beam-use-cooldown-seconds: 120
+# Amount charged to a player each time they beam. 0.0 to disable;
+# economy-enabled must also be true.
+beam-economy-use-cost: 0.0
+
+# --- Economy ---
+# Shared by gates and beaming; both need this enabled before any cost applies.
+#
+# Enable Vault economy integration. Requires Vault and an economy plugin. When
+# false every cost below is ignored.
+economy-enabled: false
+# Amount charged to a player each time they walk through a gate. 0.0 to disable.
+economy-use-cost: 0.0
+# Amount charged to a player when they successfully build a new gate. 0.0 to
+# disable.
+economy-build-cost: 0.0
+
+# --- Stargate sounds ---
+# Any sound name the client knows works, including one from a resource pack. Set
+# any of these to none for silence.
+#
+# Whether stargates make any noise. Everything below is ignored when this is
+# false.
+gate-sounds-enabled: false
+# How loud gate sounds are. Volume also sets audible range: 1.5 carries about
+# twenty-four blocks.
+gate-sound-volume: 1.5
+
+# -- Dialling --
+# Played as a gate begins to dial.
+gate-sound-activate: "block.conduit.activate"
+# Played once per chevron as it locks, pitch climbing through the sequence.
+gate-sound-chevron: "block.iron_trapdoor.close"
+# Played with the last chevron as it locks, before the wormhole forms.
+gate-sound-lock: "block.beacon.power_select"
+
+# -- Open wormhole --
+# Played once as the wormhole establishes: the heavy splash, pitched down for
+# size.
+gate-sound-kawoosh: "entity.player.splash.high_speed"
+# The soft running water an open wormhole makes while it stands there.
+gate-sound-ambient: "ambient.underwater.loop"
+# Played as a wormhole closes.
+gate-sound-close: "block.conduit.deactivate"
+
+# -- Iris --
+# The iris closing over a gate, pitched down a little since it is a shield
+# rather than a door.
+gate-sound-iris-close: "block.iron_door.close"
+# The iris opening.
+gate-sound-iris-open: "block.iron_door.open"
+
+# --- Transport ring sounds ---
+# Any sound name the client knows works, including one from a resource pack. Set
+# any of these to none for silence.
+#
+# Whether rings make any noise. Everything below is ignored when this is false.
+ring-sounds-enabled: true
+# How loud ring sounds are. Volume also sets audible range: 1.0 is heard about
+# sixteen blocks away.
+ring-sound-volume: 1.0
+# Played at both ends as the pad opens and the countdown starts.
+ring-sound-open: "block.beacon.activate"
+# Played once per ring as it leaves the pad and again as it returns, pitch
+# climbing going out and falling coming back.
+ring-sound-ring: "block.piston.extend"
+# Played at both ends at the moment of transport.
+ring-sound-flash: "block.beacon.power_select"
+# Played at both ends as the pad closes.
+ring-sound-close: "block.beacon.deactivate"
+# Played to a player a ring turns away, wherever they are standing. Heard by
+# them alone.
+ring-sound-refused: "block.note_block.bass"
+
+# --- Beaming sounds ---
+# Any sound name the client knows works, including one from a resource pack. Set
+# any of these to none for silence.
+#
+# Whether beaming makes any noise. Everything below is ignored when this is
+# false.
+beam-sounds-enabled: true
+# How loud beam sounds are. Volume also sets audible range: 1.0 is heard about
+# sixteen blocks away.
+beam-sound-volume: 1.0
+# Played the instant a beam sequence starts.
+beam-sound-charge: "block.respawn_anchor.charge"
+# Played the instant the real teleport fires, partway through the rise.
+beam-sound-depart: "entity.enderman.teleport"
+# Played once the column finishes descending at the destination.
+beam-sound-arrive: "entity.shulker.teleport"
+
+# --- Integrations ---
+# Other plugins and services this one can talk to. Each is optional.
+
+# -- Protection and logging --
+# Log the blocks that building and taking down gates and rings place and remove
+# to CoreProtect, so they can be rolled back. Requires CoreProtect. A running
+# gate's water, levers and iris are not logged.
+coreprotect-enabled: false
+# Add WorldGuard region flags wormhole-build and wormhole-use, so a region can
+# refuse gate building and gate use. Requires WorldGuard. Turning it off applies
+# at once; turning it on takes a restart. Both default to allow, and
+# WorldGuard's region bypass exempts.
+worldguard-enabled: false
+
+# -- Web maps --
+# Show gates, rings, public beam destinations and quantum mirrors on a Dynmap
+# web map, each as its own layer, with a line between dialled gates. Requires
+# Dynmap. Players' private beam places are never shown.
+dynmap-enabled: false
+# Show gates, rings, public beam destinations and quantum mirrors on a BlueMap
+# web map, each as its own marker set, with a line between dialled gates.
+# Requires BlueMap. Players' private beam places are never shown.
+bluemap-enabled: false
+# Show gates, rings, public beam destinations and quantum mirrors on a squaremap
+# web map, each as its own layer, with a line between dialled gates. Requires
+# squaremap, which runs on Paper. Players' private beam places are never shown.
+squaremap-enabled: false
+# Show gates, rings, public beam destinations and quantum mirrors on a Pl3xMap
+# web map, each as its own layer, with a line between dialled gates. Requires
+# Pl3xMap, built for the server's Minecraft version. Players' private beam
+# places are never shown.
+pl3xmap-enabled: false
+# Whether gates, and the lines between dialled gates, appear on the web map, as
+# their own layer.
+map-show-gates: true
+# Whether transport rings appear on the web map, as their own layer.
+map-show-rings: true
+# Whether public beam destinations appear on the web map, as their own layer.
+map-show-beams: true
+# Whether quantum mirrors appear on the web map, as their own layer.
+map-show-mirrors: true
+# Whether gates with an iris code appear on the web map. Set false on a PvP
+# server where a gate's location is a secret.
+map-show-iris-gates: true
+
+# -- Placeholders, metrics and updates --
+# Register the %wormhole_...% PlaceholderAPI expansion. Requires PlaceholderAPI.
+# Exposes gates_total, gates_open, gates_owned and nearest_gate.
+placeholders-enabled: false
+# Send anonymous usage counts to bstats.org: Minecraft version, server software,
+# and how many gates, rings, beams and mirrors are in use. No names, coordinates
+# or addresses; bStats keeps a random id so it counts each server once. Set
+# false to stop; bStats/config.yml turns it off for every plugin.
+metrics-enabled: true
+# At startup, look online for a newer release and say so in the log and to
+# players with wormhole.update.notify as they join. Sends only the plugin and
+# Minecraft versions; never downloads anything. Set false to stop.
+update-check: true

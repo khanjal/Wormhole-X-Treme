@@ -49,6 +49,7 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.GateQuota;
 import com.wormhole_xtreme.wormhole.model.GateSpacing;
 import com.wormhole_xtreme.wormhole.model.DrawnHorizon;
 import com.wormhole_xtreme.wormhole.model.IrisLayering;
@@ -199,6 +200,8 @@ public final class GatePreviews
         NOT_ALLOWED_HERE,
         /** It would stand closer to another gate than {@code min-gate-distance} allows, and nothing was placed; {@code inTheWay} holds why. */
         TOO_CLOSE,
+        /** Its owner already owns as many gates as they may (#633), and nothing was placed; {@code inTheWay} holds why. */
+        OVER_QUOTA,
         /** An admin turned its shape off since it was shown, and nothing was placed. */
         SHAPE_OFF
     }
@@ -621,11 +624,18 @@ public final class GatePreviews
         {
             return new Placed(Outcome.NOT_ALLOWED_HERE, List.of(), null, null);
         }
-        final String tooClose = standsOverAGate(preview) ? null
+        final boolean overAGateNow = standsOverAGate(preview);
+        final String tooClose = overAGateNow ? null
             : GateSpacing.refusal(owner, preview.world(), openingBlocks(preview));
         if (tooClose != null)
         {
             return new Placed(Outcome.TOO_CLOSE, List.of(tooClose), null, null);
+        }
+        // A repair is of a gate already counted; only a new one is held to the quota.
+        final String overQuota = overAGateNow ? null : GateQuota.refusal(owner);
+        if (overQuota != null)
+        {
+            return new Placed(Outcome.OVER_QUOTA, List.of(overQuota), null, null);
         }
         return PreviewPlacer.place(preview, overAGate);
     }
