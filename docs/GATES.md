@@ -454,6 +454,17 @@ unrelated second gate was switched off early.
 Each palette closes its own block, which is why the iris is a fifth material rather than one
 shared shield.
 
+How it crosses is `gate-iris-animation`; each, closing over an idle `Standard` gate and opening
+again:
+
+| `sweep` *(default)* | `spiral` | `rows` |
+|---|---|---|
+| ![A Standard gate iris closing and opening: rings, in from the rim and out from the middle](images/gates/iris-sweep.webp) | ![A Standard gate iris closing and opening: a wedge turning round the middle](images/gates/iris-spiral.webp) | ![A Standard gate iris closing and opening: rows, in from the top and bottom](images/gates/iris-rows.webp) |
+
+| `columns` | `instant` |
+|---|---|
+| ![A Standard gate iris closing and opening: columns, in from both sides](images/gates/iris-columns.webp) | ![A Standard gate iris closing and opening: all at once](images/gates/iris-instant.webp) |
+
 The iris is a shield, and on an upright gate it is **drawn**, the same way the portal is: the
 server keeps the opening empty and each nearby client is sent the iris material for those cells.
 A drawing cannot stop anything by itself, so what the blocks used to do is now explicit — the
@@ -1066,6 +1077,22 @@ no longer fits its shape gets no ring rather than one drawn beside it. `gate-dia
 the pattern, and a pattern only chooses which ring blocks are lit on each tick of the chevron's
 own interval, so the dial's pace is the shape's `LIGHT_TICKS` whatever the look. Only the gate
 dialling out turns: on the show, the gate being dialled just lights.
+
+| `none` *(default)* | `top` | `chevron` |
+|---|---|---|
+| ![A Standard gate dialling: chevrons locking in order with no ring light](images/gates/dial-none.webp) | ![A Standard gate dialling: the ring light running to the top chevron before each lock](images/gates/dial-top.webp) | ![A Standard gate dialling: the ring light stepping from each locked chevron to the next](images/gates/dial-chevron.webp) |
+
+| `lap` | `fill` | `pegasus` |
+|---|---|---|
+| ![A Standard gate dialling: the ring light making a whole turn before each lock](images/gates/dial-lap.webp) | ![A Standard gate dialling: the ring lighting up behind the light as it runs](images/gates/dial-fill.webp) | ![A Standard gate dialling: the ring light running half the ring to each chevron](images/gates/dial-pegasus.webp) |
+
+| `chase` | `universe` | `overshoot` |
+|---|---|---|
+| ![A Standard gate dialling: the ring light chasing from each locked chevron to the next](images/gates/dial-chase.webp) | ![A Standard gate dialling: the whole ring turning, the chevrons riding round with it](images/gates/dial-universe.webp) | ![A Standard gate dialling: the ring light running past each chevron and backing onto it](images/gates/dial-overshoot.webp) |
+
+The reels are the facility's (`--gallery dial-`), drawn by its viewer rather than the game, so
+the water is still and there are no particles; [CAPTURES.md](CAPTURES.md#what-was-shot-and-where-it-landed)
+says how they are made.
 
 **The woosh is waves.** A shape authoring `:W#n` markers says exactly what each wave is; one that
 does not falls back to `WOOSH_DEPTH` or a per-gate override, and wave *n* is derived on demand as

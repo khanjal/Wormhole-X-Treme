@@ -10,6 +10,8 @@
 //   reel, dial     from the dial command until the wormhole has opened and settled (the ring
 //                  pattern and the chevrons locking)
 //   reel, kawoosh  the woosh going out and back, from just before the wormhole is drawn
+//   reel, iris     the iris closing over the idle gate and opening again, pulled at its lever by
+//                  Probe2 from a pocket under the floor, out of the camera's sight
 // A reel is made with the server slowed (`/tick rate`, 1.20.3 and later), so a software renderer
 // that paints a few frames a second still catches every tick of the plugin's animation; the GIF's
 // delays put the time back (reel.retime).
@@ -45,8 +47,14 @@ const NET = 'Studio';
 // What a gate build lays back in the floor (gatekit.FLOORS), to be painted over with the studio's.
 const FLOOR_AFTER_BUILD = require('./gatekit').FLOORS[O];
 
-/** The ring patterns, as `gate-dial-spin` takes them (all but `none`, which has no ring light to show). */
-const SPINS = ['top', 'chevron', 'lap', 'fill', 'pegasus', 'chase', 'universe', 'overshoot'];
+/** The ring patterns, as `gate-dial-spin` takes them; `none`, the default, first. */
+const SPINS = ['none', 'top', 'chevron', 'lap', 'fill', 'pegasus', 'chase', 'universe', 'overshoot'];
+/** The iris animations, as `gate edit <gate> iris-animation` takes them; `sweep`, the default, first. */
+const IRISES = ['sweep', 'spiral', 'rows', 'columns', 'instant'];
+/** The field of view of a scene framed close (the viewer's own is 75). */
+const CLOSE_FOV = 55;
+/** The iris code the subject is given for an iris scene: the lever does nothing without one. */
+const IDC = 'GALLERY';
 /** The shapes the console can build, in the order the guide shows them. */
 const SHAPES = ['Massive', 'Grand', 'Large', 'Standard', 'Minimal', 'Horizontal'];
 
@@ -80,7 +88,7 @@ function groups(config = CONFIG) {
 /** Every scene, in the order they are built (a run rebuilds the gate only when its shape changes). */
 function catalog(groupNames = groups()) {
   const out = [];
-  const gate = (shape, group = 'Standard', spin = null) => ({ shape, group, spin });
+  const gate = (shape, group = 'Standard', spin = null, iris = null) => ({ shape, group, spin, iris });
   for (const shape of SHAPES) {
     const view = shapes.isFlat(shape) ? 'high' : 'front';
     out.push({ name: `gate-${shape.toLowerCase()}-idle`, kind: 'still', state: 'idle', subject: gate(shape), view });
@@ -90,7 +98,9 @@ function catalog(groupNames = groups()) {
     out.push({ name: `palette-${group.toLowerCase()}-idle`, kind: 'still', state: 'idle', subject: gate('Standard', group), view: 'quarter' });
     out.push({ name: `palette-${group.toLowerCase()}-open`, kind: 'still', state: 'open', subject: gate('Standard', group), view: 'quarter' });
   }
-  for (const spin of SPINS) out.push({ name: `dial-${spin}`, kind: 'reel', action: 'dial', subject: gate('Standard', 'Standard', spin), view: 'front' });
+  // The ring and the iris are the subject, not the DHD in front: a narrower field of view fills the frame with them.
+  for (const spin of SPINS) out.push({ name: `dial-${spin}`, kind: 'reel', action: 'dial', subject: gate('Standard', 'Standard', spin), view: 'front', fov: CLOSE_FOV });
+  for (const iris of IRISES) out.push({ name: `iris-${iris}`, kind: 'reel', action: 'iris', subject: gate('Standard', 'Standard', null, iris), view: 'front', fov: CLOSE_FOV });
   for (const shape of SHAPES) {
     out.push({ name: `kawoosh-${shape.toLowerCase()}`, kind: 'reel', action: 'kawoosh', subject: gate(shape), view: shapes.isFlat(shape) ? 'high' : 'quarter' });
   }
@@ -158,6 +168,16 @@ function camera(geom, kind) {
 }
 
 // ---- the studio ---------------------------------------------------------------------------
+
+/**
+ * Where a gate of `shape` stands in the studio: on the floor, its lowest block resting on it, so
+ * the whole ring is in view; a flat gate lies in the floor, as it is built.
+ */
+function studioPlace(kit, shape) {
+  const flush = kit.place(shape, 'south', { cx: 0, openingAt: STUDIO.plane });
+  if (shapes.isFlat(shape)) return flush;
+  return kit.place(shape, 'south', { cx: 0, openingAt: STUDIO.plane, floorY: -flush.bounds.y0 });
+}
 
 /** Forceloads the studio's chunks and lays its floor and backdrop. Returns the problems it met. */
 async function buildStudio(srv, dim = O) {
@@ -284,6 +304,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   const errors = [];
   let browser = null;
   let flying = false;
+  let pocket = null;
 
   /** The subject gate of `s`: rebuilt if its shape or group changed, redressed, set to its ring pattern. */
   const subject = async (s) => {
@@ -295,14 +316,43 @@ async function takeScenes(fac, viewer, scenes, outDir, {
         await tidy(kit, state.geom);
         state.key = null;
       }
-      state.geom = kit.place(s.shape, 'south', { cx: 0, openingAt: STUDIO.plane });
+      state.geom = studioPlace(kit, s.shape);
       await kit.build(SUBJECT, state.geom, { net: NET });
       await tidy(kit, state.geom);
       if (s.group !== DEFAULT_GROUP) await dress(kit, state.geom, s.group, config);
       state.key = key;
     }
     await kit.edit(SUBJECT, 'spin', s.spin || 'default');
+    await kit.edit(SUBJECT, 'iris-animation', s.iris || 'default');
+    if (s.iris) await kit.edit(SUBJECT, 'idc', IDC);
     return state.geom;
+  };
+
+  /**
+   * Probe2, opped and in creative, standing in a pocket dug under the floor beneath the iris lever:
+   * near enough to reach it, and hidden from the camera by the floor. Probe cannot pull it itself
+   * without turning the camera.
+   */
+  const puller = async (geom) => {
+    if (!geom.lever) throw new Error(`${geom.name} has no iris lever`);
+    const l = geom.lever;
+    const p2 = await fac.second();
+    await srv.run('op Probe2');
+    await srv.run('gamemode creative Probe2');
+    await srv.run(`execute in ${O} run fill ${l.x} -4 ${l.z} ${l.x} -3 ${l.z} minecraft:air`);
+    await srv.run(`execute in ${O} run setblock ${l.x} -5 ${l.z} ${STUDIO.floor}`);
+    await p2.teleport({ x: l.x + 0.5, y: -4, z: l.z + 0.5 }, O);
+    pocket = l;
+    return p2;
+  };
+
+  /** Waits until Probe is shown something in every opening cell: the iris fully across. */
+  const irisAcross = async (geom, ms) => {
+    const end = Date.now() + ms;
+    while (!geom.opening.every((c) => !isAir(bot.blockAt(new Vec3(c.x, c.y, c.z))))) {
+      if (Date.now() > end) throw new Error('the iris never closed across the whole opening');
+      await sleep(25);
+    }
   };
 
   const shut = async () => {
@@ -311,8 +361,11 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     await kit.waitShut(probe, state.geom, 8000);
   };
 
-  /** Puts Probe at the camera and opens the viewer's page on what it sees; resolves once it has painted. */
-  const frame = async (page, geom, view, token) => {
+  /**
+   * Puts Probe at the camera and opens the viewer's page on what it sees; resolves once it has painted.
+   * Every view looks north at the subject, so water is drawn without its north faces (lib/viewer.js).
+   */
+  const frame = async (page, geom, view, token, fov) => {
     await page.goto('about:blank');
     const cam = camera(geom, view);
     bot.creative.startFlying();
@@ -322,7 +375,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     await bot.waitForChunksToLoad();
     errors.length = 0;
     const chunks = () => viewer.chunks(token);
-    await page.goto(`${viewer.url}first/?shot=${token}`, { waitUntil: 'load' });
+    await page.goto(`${viewer.url}first/?shot=${token}&liquid=front${fov ? `&fov=${fov}` : ''}`, { waitUntil: 'load' });
     await page.waitForSelector('canvas', { timeout: 15000 });
     await sleep(3000);
     return chunks;
@@ -363,19 +416,31 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     return { name: s.name, file, ok: verdict.ok, detail, label: verdict.ok ? 'still' : 'STILL PROBLEM' };
   };
 
-  /** One reel: from the dial command until the wormhole has opened and settled, the server slowed throughout. */
+  /**
+   * One reel, the server slowed throughout: from the dial command until the wormhole has opened and
+   * settled, or for an iris, from the lever until it has closed, held a moment and opened again.
+   */
   const makeReel = async (page, s, geom, size, t0) => {
     const file = path.join(outDir, `${s.name}.gif`);
+    const p2 = s.action === 'iris' ? await puller(geom) : null;
     const rec = await reel.startReel(page, { width: size.w, height: size.h });
     let frames = [];
     let openedAt = Date.now();
     try {
       if (canSlow) await must(srv, `tick rate ${rate}`, /tick rate/i);
       await sleep(500);
-      await dial();
-      await firstDrawn(geom, 60000 * factor);
-      openedAt = Date.now();
-      await kit.waitOpen(probe, geom, 60000 * factor);
+      if (p2) {
+        await p2.click(geom.lever);
+        await irisAcross(geom, 60000 * factor);
+        await sleep(1000 * factor);
+        await p2.click(geom.lever);
+        if (!(await kit.waitShut(probe, geom, 60000 * factor))) throw new Error('the iris never opened again');
+      } else {
+        await dial();
+        await firstDrawn(geom, 60000 * factor);
+        openedAt = Date.now();
+        await kit.waitOpen(probe, geom, 60000 * factor);
+      }
       await sleep(1000);
     } finally {
       // The recording first: if the server has gone, the screencast must not be left running.
@@ -384,7 +449,11 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     }
     if (s.action === 'kawoosh') frames = reel.from(frames, openedAt - 500 * factor);
     const written = await reel.writeGif(file, frames, { slow: factor });
-    const moved = frames.length > 1 && !frames[0].png.equals(frames[frames.length - 1].png);
+    reel.writeFrames(path.join(outDir, `${s.name}.frames`), frames, { slow: factor });
+    // An iris reel ends as it began, open, so it is judged by any frame differing from the first.
+    const moved = s.action === 'iris'
+      ? frames.some((f) => !f.png.equals(frames[0].png))
+      : frames.length > 1 && !frames[0].png.equals(frames[frames.length - 1].png);
     const ok = written.frames >= 5 && moved && errors.length === 0;
     const detail = `${((Date.now() - t0) / 1000).toFixed(0)} s, ${written.frames} frames, ${written.seconds.toFixed(1)} s at real speed, ${(written.bytes / 1048576).toFixed(1)} MB${moved ? '' : '; the first frame and the last are the same'}${errors.length ? `; page errors: ${errors.slice(0, 3).join(' / ')}` : ''}`;
     return { name: s.name, file, ok, detail, label: ok ? 'reel' : 'REEL PROBLEM' };
@@ -408,7 +477,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
         const geom = await subject(s.subject);
         await shut();
         const token = `g${process.pid}-${i}-${Date.now()}`;
-        const chunks = await frame(page, geom, s.view, token);
+        const chunks = await frame(page, geom, s.view, token, s.fov);
         const held = await shots.settle({ shoot: () => page.screenshot({ type: 'png' }), chunks, settleMs: Math.max(0, settleMs - 3000) });
         if (!held.still) throw new Error('the picture never held still before the scene began');
         const done = s.kind === 'still' ? await still(page, s, geom, chunks, t0) : await makeReel(page, s, geom, size, t0);
@@ -423,6 +492,12 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   } finally {
     if (browser) await browser.close().catch(() => {});
     if (flying) { try { bot.creative.stopFlying(); } catch { /* left */ } }
+    if (pocket) {
+      await srv.run('deop Probe2').catch(() => {});
+      await srv.run('gamemode adventure Probe2').catch(() => {});
+      if (fac.probe2) await fac.probe2.teleport(campus.TRANSIT.home).catch(() => {});
+      await srv.run(`execute in ${O} run fill ${pocket.x} -4 ${pocket.z} ${pocket.x} -3 ${pocket.z} ${STUDIO.floor}`).catch(() => {});
+    }
     if (canSlow) await srv.run('tick rate 20').catch(() => {});
     for (const name of [SUBJECT, PARTNER]) await kit.remove(name).catch(() => {});
     if (flying) await probe.teleport(campus.TRANSIT.home).catch(() => {});
@@ -437,4 +512,4 @@ function asResults(done) {
   return done.map((s) => ({ section: 'gallery', name: s.name, ok: s.ok, detail: s.file ? `${s.file} (${s.detail})` : s.detail }));
 }
 
-module.exports = { STUDIO, SPINS, SHAPES, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, takeScenes, asResults, EYE };
+module.exports = { STUDIO, SPINS, IRISES, SHAPES, studioPlace, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, takeScenes, asResults, EYE };

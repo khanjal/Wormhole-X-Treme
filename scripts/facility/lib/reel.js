@@ -146,4 +146,22 @@ async function writeGif(file, frames, { slow = 1, hold = 1500, minGap = 40 } = {
   return { file, frames: timing.length, seconds: timing.reduce((n, k) => n + k.delay, 0) / 1000, bytes: bytes.length };
 }
 
-module.exports = { startReel, retime, writeGif, decode, own, sizeOf, paletteOf, changed, from };
+/**
+ * The frames a GIF of `frames` would show, as full-colour PNGs in `dir` with their delays in
+ * timing.json: what an encoder without GIF's 256 colours (animated WebP, say) is made from.
+ */
+function writeFrames(dir, frames, { slow = 1, hold = 1500, minGap = 40 } = {}) {
+  if (!frames.length) throw new Error('no frames were recorded');
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+  const timing = retime(frames.map((f) => f.t), { slow, hold, minGap });
+  const out = timing.map((k, i) => {
+    const name = `${String(i).padStart(4, '0')}.png`;
+    fs.writeFileSync(path.join(dir, name), frames[k.index].png);
+    return { file: name, delay: k.delay };
+  });
+  fs.writeFileSync(path.join(dir, 'timing.json'), JSON.stringify(out));
+  return { dir, frames: out.length };
+}
+
+module.exports = { startReel, retime, writeGif, writeFrames, decode, own, sizeOf, paletteOf, changed, from };
