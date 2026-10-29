@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,7 +60,6 @@ class FixedViewTest
     private BlockData water;
     private BlockData stone;
     private MockedStatic<Bukkit> bukkit;
-    private final List<Boolean> cancelled = new ArrayList<>();
 
     @BeforeEach
     void setUp() throws Exception
@@ -74,7 +74,7 @@ class FixedViewTest
         when(anchor.getWorld()).thenReturn(world);
         water = mock(BlockData.class);
         stone = mock(BlockData.class);
-        bukkit = org.mockito.Mockito.mockStatic(Bukkit.class);
+        bukkit = mockStatic(Bukkit.class);
         bukkit.when(() -> Bukkit.createBlockData(Material.WATER)).thenReturn(water);
         bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(mock(BlockData.class));
         Windows.clear();
@@ -145,10 +145,7 @@ class FixedViewTest
     {
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(scheduler.runTaskTimer(any(Plugin.class), any(Runnable.class), anyLong(), anyLong())).thenAnswer(call ->
-        {
-            cancelled.add(false);
-            return mock(BukkitTask.class);
-        });
+            mock(BukkitTask.class));
         PluginTestSupport.scheduler(scheduler);
     }
 
@@ -403,7 +400,7 @@ class FixedViewTest
             final double dz = (Cells.unpackZ(cell) + 0.5) - centre[2];
             final double d2 = (dx * dx) + (dy * dy) + (dz * dz);
             final int root = (int) Math.round(Math.sqrt(d2));
-            if ((root > 0) && (root * root == d2))
+            if ((root > 0) && (root * root == d2) && ((dx != 0) || (dy != 0)))
             {
                 onTheSphere = cell;
                 depth = root;

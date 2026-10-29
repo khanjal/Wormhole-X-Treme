@@ -213,7 +213,7 @@ scratch benchmark on one desktop, not a server; the read times varied two-fold b
 
 ### How the room is built
 
-A walled window draws its room whole, the same from every eye (`Windows.fixedView`): every block
+A walled window draws its room whole, the same from every eye (`FixedView.fixedView`): every block
 its capture kept that lies behind the wall within the depth of the opening's middle, and air where
 the far side's seen air lies over a real block that is not empty. That last is the only thing the
 room reads from this world, and it is why a room has to be built again at all: a block put down

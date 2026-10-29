@@ -328,7 +328,7 @@ class WindowsFunnelTest
     }
 
     @Test
-    void aTunnelThatTakesTheViewPastItsLimitIsTooMany() throws ReflectiveOperationException
+    void aTunnelThatTakesTheViewPastItsLimitIsTooMany()
     {
         final Map<Long, BlockData> tooMany = FixedView.TOO_MANY;
         final WindowState window = new WindowState(gate(funnel(16)), solidEverywhere());

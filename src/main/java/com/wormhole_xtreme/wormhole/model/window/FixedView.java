@@ -28,11 +28,6 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  */
 final class FixedView
 {
-    /** Static helpers only. */
-    private FixedView()
-    {
-    }
-
     /** How old a fixed view may get before it is built again with nothing reported changed: for what no event says (#609). */
     static final long BACKSTOP_MILLIS = 600_000L;
 
@@ -57,6 +52,11 @@ final class FixedView
 
     /** What {@link #fixedTo} gives for a view past its limit, told apart by identity from any real view. */
     static final Map<Long, BlockData> TOO_MANY = Collections.unmodifiableMap(new HashMap<>());
+
+    /** Static helpers only. */
+    private FixedView()
+    {
+    }
 
     /**
      * Whether a window's fixed view is the one to draw: there, from its current capture, depth and
@@ -139,7 +139,7 @@ final class FixedView
      * the whole far side is drawn once, and built again when something behind the wall changes.
      * The cost is that a viewer sees the far side in place of the real world behind that wall
      * from anywhere else they can see it, a doorway round the side, while they are looking in.
-     * A view past {@link #mostFixedFor} blocks is cut shallower until it fits.
+     * A view past {@link Windows#mostFixedFor} blocks is cut shallower until it fits.
      *
      * <p>Built a few milliseconds a tick (#609): in one go it was a tick of most of a second, once a
      * minute per watched window. The old view, if any, is drawn until the new one is whole.

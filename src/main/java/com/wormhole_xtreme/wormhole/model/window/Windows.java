@@ -63,7 +63,7 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  *
  * <p>Nothing in the world changes, the way a gate's event horizon changes nothing. A viewer is
  * sent the banner as air, the open part of the opening as barrier -- invisible, and at least as
- * solid as what it covers -- and the room behind it, held whole ({@link #fixedView}). A mirror
+ * solid as what it covers -- and the room behind it, held whole ({@link FixedView#fixedView}). A mirror
  * walled to the proximity distance with no neighbour is sent the room as it is, the same from
  * every eye, since the wall hides its edges. Any other is sent the room clipped to the eye
  * ({@link #clipWhole}): only the blocks they could see through an opening from where their eye
@@ -142,7 +142,7 @@ public final class Windows
     private static final long FIXED_MILLIS = 60_000L;
 
     /** How far past a view's depth a changed block still counts as behind it: a door or a bed is two blocks. */
-    static final int CHANGE_SLACK = 2;
+    private static final int CHANGE_SLACK = 2;
 
     /** Most blocks one fixed view may hold; past it the depth is cut until it fits. */
     private static final int MOST_FIXED = 250_000;
@@ -2132,7 +2132,7 @@ public final class Windows
         final int dz = Math.max(Math.abs(box[2] - far.z()), Math.abs(box[5] - far.z())) + 1;
         final int depth = (int) Math.ceil(Math.sqrt(((double) dx * dx) + ((double) dy * dy) + ((double) dz * dz))) + 1;
         final Map<Long, BlockData> blocks = FixedView.fixedTo(window, depth, Integer.MAX_VALUE);
-        window.full = new Whole((blocks == FixedView.TOO_MANY) ? new HashMap<>() : blocks, depth);
+        window.full = new Whole(FixedView.tooMany(blocks) ? new HashMap<>() : blocks, depth);
         window.fullFrom = window.capture;
         return window.full;
     }
