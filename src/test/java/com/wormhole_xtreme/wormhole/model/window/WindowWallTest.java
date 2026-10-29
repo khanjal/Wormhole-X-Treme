@@ -190,7 +190,9 @@ class WindowWallTest
 
         WindowWall.refreshSolid(window, 1000L + Windows.RESAMPLE_MILLIS);
 
-        assertEquals(wholeFace(window).size(), window.solid.size() - window.openKeys.size(),
+        final Set<Long> expected = wholeFace(window);
+        expected.addAll(window.openKeys);
+        assertEquals(expected, window.solid,
             "a resample later: the face is read again, the opening's blocks too, being solid here");
         assertEquals(1000L + Windows.RESAMPLE_MILLIS, window.solidAt, "and the time of the reading noted");
     }

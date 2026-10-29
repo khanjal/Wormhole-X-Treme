@@ -13,8 +13,8 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * Reading the wall round a window's opening from the world: whether it is solid all round, where the
  * first gap in it is, which blocks in front of the opening close part of it (#430).
  *
- * <p>Moved out of {@link Windows} verbatim, but for the members the rest of the package calls being
- * package-private. {@link WindowFace} is the geometry these read the world into.
+ * <p>Moved out of {@link Windows} verbatim; only {@link #refreshSolid} is package-private where it was
+ * private, for {@code Windows}' own call. {@link WindowFace} is the geometry these read the world into.
  */
 final class WindowWall
 {
