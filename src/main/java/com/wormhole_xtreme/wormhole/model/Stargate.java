@@ -364,32 +364,6 @@ public class Stargate implements GateIris
     }
 
     /**
-     * Whether this gate's portal lies flat, every block of it at one height.
-     *
-     * <p>Distinguishes a gate standing upright from one lying flat in the ground without
-     * having to know which shape built it, which matters because the two are left in
-     * different directions.
-     *
-     * @return true if the gate has portal blocks and they all share one height
-     */
-    private boolean isPortalFlat()
-    {
-        if (gatePortalBlocks.isEmpty())
-        {
-            return false;
-        }
-        final int y = gatePortalBlocks.get(0).getBlockY();
-        for (final Location block : gatePortalBlocks)
-        {
-            if (block.getBlockY() != y)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
      * Moves this gate's arrival point out of its own portal if that is where it sits.
      *
      * <p>Travellers should step out of a wormhole, not stand in it. Arriving inside means
@@ -409,47 +383,14 @@ public class Stargate implements GateIris
      */
     public boolean normalizeGatePlayerTeleportLocation()
     {
-        if ((gatePlayerTeleportLocation == null) || (gateFacing == null))
+        final Location moved = PortalExit.normalized(gatePlayerTeleportLocation, gateFacing, gateWorld,
+            gatePortalBlocks, this::isGatePortalBlockAt);
+        if (moved == null)
         {
             return false;
         }
-        if (!isGatePortalBlockAt(gatePlayerTeleportLocation.getBlockX(),
-                                 gatePlayerTeleportLocation.getBlockY(),
-                                 gatePlayerTeleportLocation.getBlockZ()))
-        {
-            return false;
-        }
-        // Which way is out depends on how the portal lies, and the portal blocks say that
-        // without needing to know which shape built the gate. A gate standing upright is
-        // left through its face, along the gate's facing. A gate lying flat is left
-        // upward — stepping along a horizontal facing there would slide the traveller
-        // across the portal and out through the frame ring instead of clear of it.
-        final boolean portalIsFlat = isPortalFlat();
-        final int stepX = portalIsFlat ? 0 : gateFacing.getModX();
-        final int stepY = portalIsFlat ? 1 : gateFacing.getModY();
-        final int stepZ = portalIsFlat ? 0 : gateFacing.getModZ();
-        if ((stepX == 0) && (stepY == 0) && (stepZ == 0))
-        {
-            return false;
-        }
-
-        // One step does it for a portal one block thick; the loop covers a deeper one and
-        // stops rather than walking away for ever if that direction cannot get out.
-        final int maxSteps = 4;
-        for (int step = 1; step <= maxSteps; step++)
-        {
-            final double x = gatePlayerTeleportLocation.getX() + (stepX * step);
-            final double y = gatePlayerTeleportLocation.getY() + (stepY * step);
-            final double z = gatePlayerTeleportLocation.getZ() + (stepZ * step);
-            final Location candidate = new Location(gateWorld, x, y, z,
-                gatePlayerTeleportLocation.getYaw(), gatePlayerTeleportLocation.getPitch());
-            if (!isGatePortalBlockAt(candidate.getBlockX(), candidate.getBlockY(), candidate.getBlockZ()))
-            {
-                gatePlayerTeleportLocation = candidate;
-                return true;
-            }
-        }
-        return false;
+        gatePlayerTeleportLocation = moved;
+        return true;
     }
 
     /**
@@ -475,62 +416,10 @@ public class Stargate implements GateIris
      */
     public boolean recomputeGatePlayerTeleportLocation()
     {
-        if ((gateWorld == null) || (gateFacing == null))
+        final Location fixed = PortalExit.recomputed(gateWorld, gateFacing, getGatePortalBlocks());
+        if (fixed == null)
         {
             return false;
-        }
-        final List<Location> portal = getGatePortalBlocks();
-        if ((portal == null) || portal.isEmpty())
-        {
-            return false;
-        }
-
-        int lowest = Integer.MAX_VALUE;
-        for (final Location l : portal)
-        {
-            lowest = Math.min(lowest, l.getBlockY());
-        }
-        long sumX = 0;
-        long sumZ = 0;
-        int counted = 0;
-        for (final Location l : portal)
-        {
-            if (l.getBlockY() == lowest)
-            {
-                sumX += l.getBlockX();
-                sumZ += l.getBlockZ();
-                counted++;
-            }
-        }
-        if (counted == 0)
-        {
-            return false;
-        }
-
-        final boolean flat = isPortalFlat();
-        final int stepX = flat ? 0 : gateFacing.getModX();
-        final int stepY = flat ? 1 : 0;
-        final int stepZ = flat ? 0 : gateFacing.getModZ();
-        if ((stepX == 0) && (stepY == 0) && (stepZ == 0))
-        {
-            return false;
-        }
-
-        // Block centres, so a traveller lands in the middle of the block rather than on its
-        // corner, and at its floor rather than inside it.
-        final double x = Math.round((double) sumX / counted) + 0.5 + stepX;
-        final double y = (double) lowest + stepY;
-        final double z = Math.round((double) sumZ / counted) + 0.5 + stepZ;
-        final Location fixed = new Location(gateWorld, x, y, z);
-        try
-        {
-            fixed.setYaw(WorldUtils
-                .getDegreesFromBlockFace(gateFacing));
-            fixed.setPitch(0f);
-        }
-        catch (final RuntimeException ignore)
-        {
-            // A yaw that cannot be worked out is not worth losing the position over.
         }
         gatePlayerTeleportLocation = fixed;
         return true;
