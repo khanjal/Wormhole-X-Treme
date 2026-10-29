@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import static com.wormhole_xtreme.wormhole.model.window.WindowStore.ACTIVE;
-import static com.wormhole_xtreme.wormhole.model.window.WindowStore.changes;
 
 import java.util.HashMap;
 import java.util.HashSet;

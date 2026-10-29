@@ -61,7 +61,6 @@ class WindowComposeTest
     private BlockData air;
     private BlockData barrier;
     private BlockData stone;
-    private BlockData glass;
     private MockedStatic<Bukkit> bukkit;
     private MockedStatic<MirrorPackets> packets;
 
@@ -91,7 +90,6 @@ class WindowComposeTest
         air = mock(BlockData.class);
         barrier = mock(BlockData.class);
         stone = mock(BlockData.class);
-        glass = mock(BlockData.class);
         bukkit = mockStatic(Bukkit.class);
         bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
         bukkit.when(() -> Bukkit.createBlockData(Material.BARRIER)).thenReturn(barrier);
