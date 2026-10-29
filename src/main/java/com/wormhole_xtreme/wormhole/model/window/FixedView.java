@@ -24,7 +24,8 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * A walled window's fixed view: when the one held is still the one to draw, how it is built and put in, the
  * tunnel into it and where a block lies inside it (#430).
  *
- * <p>Moved out of {@link Windows} verbatim.
+ * <p>Moved out of {@link Windows} verbatim, but for {@code fixedView}, {@code install} and
+ * {@code TOO_MANY} made package-private.
  */
 final class FixedView
 {

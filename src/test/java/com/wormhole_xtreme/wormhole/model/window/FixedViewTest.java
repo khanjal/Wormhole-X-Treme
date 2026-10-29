@@ -44,7 +44,7 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 /**
  * When a held view is still the one to draw, how a finished build goes in, and the geometry round a view (#430).
  *
- * <p>Characterised before the fixed view moved out of {@code Windows}, on the conditions the older
+ * <p>Written for the move out of {@code Windows}, on the conditions the older
  * rebuild, build and funnel tests left unpinned: each test below fails when the one condition it is
  * named for is taken out of {@link FixedView}.
  */
