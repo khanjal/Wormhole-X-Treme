@@ -230,6 +230,34 @@ class WindowComposeTest
     }
 
     @Test
+    void whereBannerPatternsCannotBeSentBackTheBannerStaysUpButTheOpeningIsStillBarred()
+    {
+        packets.when(MirrorPackets::available).thenReturn(false);
+        final WindowShape pair = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), ARRIVAL, 2, 1);
+        final WindowState window = window("gate:Abydos", 30, 70, 40, pair);
+
+        final Map<Long, BlockData> wanted = compose(new ViewerDrawing(world), eye(EYE[0], EYE[1], EYE[2]), window,
+            whole(window, room(3)), 1000L, new Windows.Budget());
+
+        assertFalse(wanted.containsKey(key(30, 70, 40)), "no banner is aired on plain 1.20");
+        assertSame(barrier, wanted.get(key(10, 64, 20)), "the opening is barred all the same");
+    }
+
+    @Test
+    void aWalkThroughWindowIsNeitherBarredNorBannered()
+    {
+        final List<Spot> open = new ArrayList<>();
+        WIDE.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
+        final WindowState window = new WindowState(new Source("gate:Abydos", anchorAt(world, 30, 70, 40), WIDE, open, true),
+            null);
+
+        final Map<Long, BlockData> wanted = compose(new ViewerDrawing(world), eye(EYE[0], EYE[1], EYE[2]), window,
+            whole(window, room(3)), 1000L, new Windows.Budget());
+
+        assertTrue(wanted.isEmpty(), "its opening is walked into, not drawn: " + wanted.size());
+    }
+
+    @Test
     void aRoomNotYetHeldLeavesTheBannerAndTheWallAlone()
     {
         final WindowState window = window("gate:Abydos", 30, 70, 40, WIDE);
