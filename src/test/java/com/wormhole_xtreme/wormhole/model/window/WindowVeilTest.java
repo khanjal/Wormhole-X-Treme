@@ -39,9 +39,9 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
- * A mirror leaves the companion's visibility alone.
+ * What a mirror hides from a viewer, and what it judges to be inside the view (#430).
  *
- * <p>She is hidden by default and shown to her owner. For such an entity a hide removes the
+ * <p>The first tests are about the companion: a mirror leaves her visibility alone. She is hidden by default and shown to her owner. For such an entity a hide removes the
  * owner's exception and a show adds one, so a mirror veiling her took her away from her owner and
  * then, on unveiling, showed her to whichever other player had been looking.
  */
