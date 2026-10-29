@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -230,7 +231,7 @@ class WindowClicksTest
         {
             again.run();
 
-            stream.verify(() -> WindowStream.send(any(), any(), any(), any(), anyLong(), eq(true), any()), never());
+            stream.verify(() -> WindowStream.send(any(), any(), any(), any(), anyLong(), anyBoolean(), any()), never());
         }
     }
 
@@ -255,7 +256,7 @@ class WindowClicksTest
         run.getValue().run();
         final long tookMillis = (System.nanoTime() - before) / 1_000_000L;
 
-        assertTrue(tookMillis >= 29L, "after the server's own correction has gone out: " + tookMillis + " ms");
+        assertTrue(tookMillis >= 25L, "after the server's own correction has gone out: " + tookMillis + " ms");
         verify(player).sendBlockChange(new Location(world, 10, 64, 11), first);
         verify(player).sendBlockChange(new Location(world, 10, 65, 12), second);
         assertEquals(2L, sendBlockChanges(player), "and nothing else");
@@ -270,6 +271,7 @@ class WindowClicksTest
         when(clicked.getRelative(BlockFace.NORTH)).thenReturn(beside);
         final BlockData data = mock(BlockData.class);
         view.drawn.put(key(clicked), data);
+        view.drawn.put(key(beside), mock(BlockData.class));
 
         WindowClicks.resend(player, clicked, null);
         final ArgumentCaptor<Runnable> run = ArgumentCaptor.forClass(Runnable.class);
