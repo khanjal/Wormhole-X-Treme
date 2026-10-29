@@ -291,7 +291,7 @@ class WindowDebugTest
     {
         final WindowState gappy = window("gate:Abydos");
         looking("gate:Abydos");
-        final Spot gap = Windows.gapBeside(gappy);
+        final Spot gap = WindowWall.gapBeside(gappy);
         final BlockData dirt = mock(BlockData.class);
         when(dirt.getAsString()).thenReturn("minecraft:dirt");
         final Block elsewhere = mock(Block.class);

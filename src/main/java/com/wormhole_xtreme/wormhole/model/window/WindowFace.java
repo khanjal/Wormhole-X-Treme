@@ -63,7 +63,7 @@ final class WindowFace
      * case that matters ({@link WindowCompose#farCellFor}).
      *
      * @param solid
-     *            the solid blocks of its face, as {@link Windows#refreshSolid} read them
+     *            the solid blocks of its face, as {@link WindowWall#refreshSolid} read them
      * @param reach
      *            how far out the face was read
      * @return the border, in blocks, from 0 to {@code reach}
