@@ -261,6 +261,31 @@ class WindowVeilTest
         verify(player, never()).showEntity(any(), any(Entity.class));
     }
 
+    /**
+     * Two or more refused in one redraw are all left out, and the one that was not refused is kept (#716).
+     *
+     * <p>Taking one out of the map being looped over threw on whichever creature came next, out of the
+     * redraw; one refusal was enough when another creature followed it, and three of four makes that certain.
+     */
+    @Test
+    void severalCreaturesTheServerWillNotHideDoNotBreakTheRedraw()
+    {
+        final Player player = mock(Player.class);
+        final ViewerDrawing view = new ViewerDrawing(mock(World.class));
+        final Entity first = creature();
+        final Entity second = creature();
+        final Entity third = creature();
+        final Entity fine = creature();
+        for (final Entity refused : List.of(first, second, third))
+        {
+            doThrow(new IllegalStateException("not hideable")).when(player).hideEntity(any(), eq(refused));
+        }
+
+        WindowVeil.veil(player, view, List.of(first, second, third, fine));
+
+        assertEquals(Set.of(fine.getUniqueId()), view.veiled.keySet(), "only the one that was hidden is remembered");
+    }
+
     /** A creature the server refuses to hide is not remembered as hidden, or it would be shown without ever being hidden. */
     @Test
     void aCreatureTheServerWillNotHideIsNotRemembered()
