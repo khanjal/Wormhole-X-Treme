@@ -158,7 +158,7 @@ final class WindowCompose
      * the cell, kept no nearer the face than the eye itself, since a cell four blocks wide can
      * reach past the wall.
      */
-    private static Location fatEye(final Location eye, final double cell, final WindowShape shape)
+    static Location fatEye(final Location eye, final double cell, final WindowShape shape)
     {
         final Location from = eye.clone();
         from.setX(middleOf(eye.getX(), cell));
@@ -435,7 +435,7 @@ final class WindowCompose
     }
 
     /** The face a block must land on to be seen through a window: its opening and frame, and a block round them. */
-    private static double[] spanOf(final WindowState window)
+    static double[] spanOf(final WindowState window)
     {
         final boolean alongX = window.shape.into().x() != 0;
         final double[] span = { Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE };
