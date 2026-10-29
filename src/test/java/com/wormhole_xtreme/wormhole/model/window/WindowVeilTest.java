@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -23,10 +25,10 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Cat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -45,10 +47,14 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  */
 class WindowVeilTest
 {
+    private WormholeXTreme plugin;
+
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
+        ConfigTestSupport.clear();
         FreyaCompanion.forgetAll();
     }
 
@@ -210,7 +216,62 @@ class WindowVeilTest
         assertFalse(WindowVeil.inAnyView(eye(), beside, List.of(window), Map.of(), window.openKeys),
             "the eye cannot see it through the opening");
 
+        assertFalse(WindowVeil.stillSeen(eye(), beside, List.of(window), Map.of()), "nor is it seen at all");
+
         assertTrue(WindowVeil.inAnyView(eye(), beside, List.of(window), held, window.openKeys));
         assertTrue(WindowVeil.stillSeen(eye(), beside, List.of(window), held));
+    }
+
+    private static Entity creature()
+    {
+        final Entity entity = mock(Entity.class);
+        when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
+        return entity;
+    }
+
+    /** What has just come inside the view is hidden from the viewer, and what has left it is shown again. */
+    @Test
+    void veilingHidesWhatCameInsideAndShowsWhatLeft()
+    {
+        final Player player = mock(Player.class);
+        final ViewerDrawing view = new ViewerDrawing(mock(World.class));
+        final Entity left = creature();
+        final Entity came = creature();
+        view.veiled.put(left.getUniqueId(), left);
+
+        WindowVeil.veil(player, view, List.of(came));
+
+        verify(player).showEntity(plugin, left);
+        verify(player).hideEntity(plugin, came);
+        assertEquals(Set.of(came.getUniqueId()), view.veiled.keySet(), "what is hidden now is only what is inside now");
+    }
+
+    /** What stays inside the view is not hidden a second time. */
+    @Test
+    void veilingLeavesAloneWhatWasAlreadyHidden()
+    {
+        final Player player = mock(Player.class);
+        final ViewerDrawing view = new ViewerDrawing(mock(World.class));
+        final Entity stays = creature();
+        view.veiled.put(stays.getUniqueId(), stays);
+
+        WindowVeil.veil(player, view, List.of(stays));
+
+        verify(player, never()).hideEntity(any(), any(Entity.class));
+        verify(player, never()).showEntity(any(), any(Entity.class));
+    }
+
+    /** A creature the server refuses to hide is not remembered as hidden, or it would be shown without ever being hidden. */
+    @Test
+    void aCreatureTheServerWillNotHideIsNotRemembered()
+    {
+        final Player player = mock(Player.class);
+        final ViewerDrawing view = new ViewerDrawing(mock(World.class));
+        final Entity refused = creature();
+        doThrow(new IllegalStateException("not hideable")).when(player).hideEntity(any(), eq(refused));
+
+        WindowVeil.veil(player, view, List.of(refused));
+
+        assertTrue(view.veiled.isEmpty());
     }
 }
