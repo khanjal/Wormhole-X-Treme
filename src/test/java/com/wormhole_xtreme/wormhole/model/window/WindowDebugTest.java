@@ -287,6 +287,28 @@ class WindowDebugTest
     // --- How a window is drawn ---
 
     @Test
+    void aWindowWithAGapInItsWallSaysWhereTheGapIsAndWhatIsThere()
+    {
+        final WindowState gappy = window("gate:Abydos");
+        looking("gate:Abydos");
+        final Spot gap = Windows.gapBeside(gappy);
+        final BlockData dirt = mock(BlockData.class);
+        when(dirt.getAsString()).thenReturn("minecraft:dirt");
+        final Block elsewhere = mock(Block.class);
+        when(elsewhere.getBlockData()).thenReturn(dirt);
+        final BlockData stoneHere = mock(BlockData.class);
+        when(stoneHere.getAsString()).thenReturn("minecraft:stone");
+        final Block atGap = mock(Block.class);
+        when(atGap.getBlockData()).thenReturn(stoneHere);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(elsewhere);
+        when(world.getBlockAt(gap.x(), gap.y(), gap.z())).thenReturn(atGap);
+
+        assertEquals("gate:Abydos: whole to depth 0, clipped to each eye: wall within " + WindowFace.wallReach()
+            + " open at " + gap.x() + "," + gap.y() + "," + gap.z() + " (minecraft:stone)",
+            line(summarised(), "gate:Abydos"), "the first block of the face that is open, and what it is");
+    }
+
+    @Test
     void aHeldRoomIsSaidWithItsBlocksAndWhetherItIsBeingBuiltAgain()
     {
         final WindowState walled = window("gate:Abydos");

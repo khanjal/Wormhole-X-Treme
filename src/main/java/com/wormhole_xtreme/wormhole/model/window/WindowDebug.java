@@ -18,8 +18,8 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * What the window drawing says about itself for {@code mirror debug}: a viewer's view in full or in
  * brief, and how each window is being drawn and why (#430).
  *
- * <p>Moved out of {@link Windows} verbatim, but for the members Windows and its tests call being
- * package-private. Public, as {@code describe} and {@code summary} are the command's.
+ * <p>Moved out of {@link Windows} verbatim; public because {@code describe} and {@code summary} are
+ * the command's.
  */
 public final class WindowDebug
 {
