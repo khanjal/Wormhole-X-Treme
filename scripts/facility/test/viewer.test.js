@@ -18,6 +18,31 @@ test('the viewer draws 1.20.4 and 1.21.11 with its nearest assets and refuses 26
   assert.throws(() => viewer.assetVersion('26.1.2'), /cannot draw Minecraft 26\.1\.2/);
 });
 
+const PV_PUBLIC = path.join(path.dirname(require.resolve('prismarine-viewer/package.json')), 'public');
+
+test('the page bundle reads its field of view from ?fov= and hands its query to the mesher', () => {
+  const out = viewer.fovBundle(fs.readFileSync(path.join(PV_PUBLIC, 'index.js'), 'utf8'));
+  assert.ok(out.includes('PerspectiveCamera(Number(new URLSearchParams(location.search).get("fov"))||75,'));
+  assert.ok(out.includes('new Worker(t+location.search)'));
+  assert.ok(!out.includes('PerspectiveCamera(75,'));
+  assert.doesNotThrow(() => new Function(out));
+  assert.throws(() => viewer.fovBundle('nothing to patch'), /page patch needs updating/);
+});
+
+test('the mesher keeps a liquid inside its tile and, asked, draws no north face on it', () => {
+  const out = viewer.liquidBundle(fs.readFileSync(path.join(PV_PUBLIC, 'worker.js'), 'utf8'));
+  assert.ok(out.startsWith('const wxLiquidFront=new URLSearchParams(self.location.search).get("liquid")==="front";'));
+  assert.ok(out.includes('r.t_uvs.push(d+m*(.02+.96*e[3]),b+h*(.02+.96*e[4]*(e[1]?1:n)))'));
+  assert.ok(out.includes('if(wxLiquidFront&&p[2]===-1)continue;'));
+  // The face's direction is `p` where the check is put in, as the bundle names it.
+  assert.ok(out.includes('const{dir:p,corners:u}=o[_]'));
+  assert.doesNotThrow(() => new Function(out));
+  assert.throws(() => viewer.liquidBundle('nothing to patch'), /liquid patch needs updating/);
+  // A rebuild that keeps the check's text but renames the direction would throw in every worker.
+  const renamed = fs.readFileSync(path.join(PV_PUBLIC, 'worker.js'), 'utf8').replace('const{dir:p,corners:u}=o[_]', 'const{dir:q,corners:u}=o[_]');
+  assert.throws(() => viewer.liquidBundle(renamed), /no longer names a liquid face's direction/);
+});
+
 test('the viewer port follows the game port like Dynmap\'s and refuses one below 1024', () => {
   assert.strictEqual(viewer.viewerPort(25590), 3007);
   assert.strictEqual(viewer.viewerPort(25780), 3197);

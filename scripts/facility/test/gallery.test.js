@@ -9,6 +9,7 @@ const os = require('os');
 const path = require('path');
 const gallery = require('../lib/gallery');
 const shapes = require('../lib/shapes');
+const { GateKit } = require('../lib/gatekit');
 
 test('Minecraft faces south at yaw 0, east at -90, west at 90 and north at 180', () => {
   assert.deepStrictEqual(gallery.lookAt({ x: 0, y: 5, z: 10 }, { x: 0, y: 5, z: 0 }), { yaw: -180, pitch: 0 });
@@ -73,10 +74,31 @@ test('every scene has its own name, a shape the console builds, a known group an
     assert.ok(shapes.consoleBuildable(s.subject.shape), `${s.name}: ${s.subject.shape}`);
     assert.ok(groups.includes(s.subject.group), `${s.name}: group ${s.subject.group}`);
     assert.ok(s.subject.spin === null || gallery.SPINS.includes(s.subject.spin), `${s.name}: spin ${s.subject.spin}`);
+    assert.ok(s.subject.iris === null || gallery.IRISES.includes(s.subject.iris), `${s.name}: iris ${s.subject.iris}`);
     assert.ok(['front', 'quarter', 'high'].includes(s.view), `${s.name}: view ${s.view}`);
     assert.ok(['still', 'reel'].includes(s.kind));
-    assert.ok(s.kind === 'still' ? ['idle', 'open'].includes(s.state) : ['dial', 'kawoosh'].includes(s.action), s.name);
+    assert.ok(s.kind === 'still' ? ['idle', 'open'].includes(s.state) : ['dial', 'kawoosh', 'iris'].includes(s.action), s.name);
+    assert.strictEqual(s.action === 'iris', s.subject.iris !== null, `${s.name}: an iris reel, and only one, names a style`);
   }
+});
+
+test('an upright gate stands on the studio floor and a flat one lies in it', () => {
+  const kit = new GateKit(null);
+  for (const shape of gallery.SHAPES) {
+    const geom = gallery.studioPlace(kit, shape);
+    if (shapes.isFlat(shape)) assert.ok(geom.bounds.y0 < 0, `${shape} lies in the floor`);
+    else assert.strictEqual(geom.bounds.y0, 0, `${shape}'s lowest block rests on the floor`);
+  }
+});
+
+test('the iris reels are every animation the plugin has, on a gate with an iris lever', () => {
+  const java = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'src', 'main', 'java', 'com', 'wormhole_xtreme', 'wormhole', 'model', 'IrisSweep.java'), 'utf8');
+  const styles = /enum Style\s*\{([^;]*);/.exec(java)[1].replace(/\/\*\*[\s\S]*?\*\//g, '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  // `instant` is not a style, it is no animation at all, but the setting takes it alongside them.
+  assert.deepStrictEqual([...gallery.IRISES].sort(), [...styles, 'instant'].sort());
+  const reels = gallery.catalog().filter((s) => s.action === 'iris');
+  assert.deepStrictEqual(reels.map((s) => s.name), gallery.IRISES.map((n) => `iris-${n}`));
+  for (const s of reels) assert.ok(new GateKit(null).place(s.subject.shape, 'south', { cx: 0, openingAt: gallery.STUDIO.plane }).lever, `${s.subject.shape} has an iris lever`);
 });
 
 test('a gate lying in the floor is seen from above, never square on', () => {
@@ -85,9 +107,9 @@ test('a gate lying in the floor is seen from above, never square on', () => {
   for (const s of flat) assert.strictEqual(s.view, 'high', s.name);
 });
 
-test("the ring patterns are the plugin\'s, bar none, and the shapes are the ones the console builds", () => {
+test("the ring patterns are the plugin\'s, none included, and the shapes are the ones the console builds", () => {
   const src = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'src', 'main', 'java', 'com', 'wormhole_xtreme', 'wormhole', 'logic', 'DialSpinPattern.java'), 'utf8');
-  const named = [...src.matchAll(/^\s{4}([A-Z_]+)[,;(]/gm)].map((m) => m[1].toLowerCase()).filter((n) => n !== 'none');
+  const named = [...src.matchAll(/^\s{4}([A-Z_]+)[,;(]/gm)].map((m) => m[1].toLowerCase());
   assert.deepStrictEqual([...gallery.SPINS].sort(), named.sort());
   const built = fs.readdirSync(shapes.SHAPE_DIR).map((f) => f.replace(/\.shape$/, '')).filter(shapes.consoleBuildable);
   assert.deepStrictEqual([...gallery.SHAPES].sort(), built.sort());

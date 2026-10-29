@@ -130,6 +130,20 @@ ring turn. A build preview's test dial turns the same way. `gate-dial-spin` pick
 | `overshoot` | As `pegasus`, running a little past the chevron and backing onto it |
 | `none` *(default)* | No ring light |
 
+Each pattern on a `Standard` gate, from the dial until the wormhole settles:
+
+| `none` *(default)* | `top` | `chevron` |
+|---|---|---|
+| ![A Standard gate dialling: chevrons locking in order with no ring light](../images/gates/dial-none.webp) | ![A Standard gate dialling: the ring light running to the top chevron before each lock](../images/gates/dial-top.webp) | ![A Standard gate dialling: the ring light stepping from each locked chevron to the next](../images/gates/dial-chevron.webp) |
+
+| `lap` | `fill` | `pegasus` |
+|---|---|---|
+| ![A Standard gate dialling: the ring light making a whole turn before each lock](../images/gates/dial-lap.webp) | ![A Standard gate dialling: the ring lighting up behind the light as it runs](../images/gates/dial-fill.webp) | ![A Standard gate dialling: the ring light running half the ring to each chevron](../images/gates/dial-pegasus.webp) |
+
+| `chase` | `universe` | `overshoot` |
+|---|---|---|
+| ![A Standard gate dialling: the ring light chasing from each locked chevron to the next](../images/gates/dial-chase.webp) | ![A Standard gate dialling: the whole ring turning, the chevrons riding round with it](../images/gates/dial-universe.webp) | ![A Standard gate dialling: the ring light running past each chevron and backing onto it](../images/gates/dial-overshoot.webp) |
+
 A gate can have its own pattern: `/wormhole gate edit <gate> spin <pattern>`, or `default` to
 go back. A material group can set one for its gates with `dial-spin:` (below). A gate uses its
 own pattern, then its group's, then `gate-dial-spin`; a build preview uses its group's, then
@@ -386,6 +400,16 @@ with only one ring -- `Minimal` -- is one step.
 | `rows` | Rows, in from the top and bottom at once |
 | `columns` | Columns, in from both sides at once |
 | `instant` | No animation; the iris is simply there |
+
+Each on a `Standard` gate, closing and opening again:
+
+| `sweep` *(default)* | `spiral` | `rows` |
+|---|---|---|
+| ![A Standard gate iris closing and opening: rings, in from the rim and out from the middle](../images/gates/iris-sweep.webp) | ![A Standard gate iris closing and opening: a wedge turning round the middle](../images/gates/iris-spiral.webp) | ![A Standard gate iris closing and opening: rows, in from the top and bottom](../images/gates/iris-rows.webp) |
+
+| `columns` | `instant` |
+|---|---|
+| ![A Standard gate iris closing and opening: columns, in from both sides](../images/gates/iris-columns.webp) | ![A Standard gate iris closing and opening: all at once](../images/gates/iris-instant.webp) |
 
 A gate can have its own: `/wormhole gate edit <gate> iris-animation <style>`, or `default` to go
 back. A material group can set one for its gates with `iris-animation:`. A gate uses its own, then

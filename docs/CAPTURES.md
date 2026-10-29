@@ -181,6 +181,8 @@ animation rather than embedding it to run forever.
 | Capture | File | Appears in |
 |---|---|---|
 | A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [README](../README.md), [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation) |
+| Each ring pattern dialling a Standard gate | `gates/dial-<pattern>.webp` | [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation). Made by the facility, below. |
+| Each iris animation closing and opening | `gates/iris-<style>.webp` | [guide/GATES.md](guide/GATES.md#how-it-arrives), [GATES.md](GATES.md#the-iris). Made by the facility, below. |
 | The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
 | `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
 | The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [guide/GATES.md](guide/GATES.md#material-groups), [GATES.md](GATES.md#palettes-are-separate-from-shapes) |
@@ -201,6 +203,24 @@ which is what the section is actually about.
 deploying ring stack, so the shot cannot be framed from outside in survival or creative. In
 spectator the camera has no collision, and the countdown is long enough to arm the ring and fly
 back out before anything rises.
+
+## Reels the facility makes
+
+The ring patterns and iris animations are a set of fourteen, the same gate from the same place
+each time, so they are made by the research facility rather than by hand. A software renderer
+films the studio, so a new pattern or style is a line in its catalogue and a rerun, not a
+recording session:
+
+```
+node scripts/facility/run-facility.js 1.21.4 --gallery dial-,iris-
+python scripts/reel_webp.py .local-server/gallery/1.21.4 docs/images/gates dial- iris-
+```
+
+The second step reads each reel's full-colour frames, not its GIF, which has only 256 colours
+for the horizon's blues. [DEVELOPMENT.md](DEVELOPMENT.md#seeing-the-facility---viewer---shots---gallery---schematics)
+has the studio's details. The renderer is not the game: water is a still texture, there are no
+particles, and the light is its own, so the hand-made capture above stays the one that shows
+what a dial looks like in play.
 
 ## The diagrams are not these captures
 

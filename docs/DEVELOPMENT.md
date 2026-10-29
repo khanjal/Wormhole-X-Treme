@@ -902,7 +902,7 @@ self-test is as it was without them.
 node scripts/facility/run-facility.js 1.21.11 --viewer           # hold, with a browser view of Probe
 node scripts/facility/run-facility.js 1.21.11 --shots all        # a PNG per vantage point, then stop
 node scripts/facility/run-facility.js 1.21.11 --shots gate-room,range --selftest
-node scripts/facility/run-facility.js 1.21.11 --gallery dial-,kawoosh-   # documentation GIFs, then stop
+node scripts/facility/run-facility.js 1.21.11 --gallery dial-,iris-   # documentation reels, then stop
 node scripts/facility/run-facility.js 1.21.11 --with worldedit --schematics ../my-schematics
 ```
 
@@ -957,11 +957,31 @@ the run (and let go of at the end), in the same noon light every time; the subje
 are taken down at the end. `--gallery` takes scene names or a prefix ending in a dash, `all` if
 none: `gate-<shape>-idle` and `-open` (a PNG of each of the six console-buildable shapes, built
 and dialled), `palette-<group>-idle` and `-open` (a Standard gate dressed in each material group
-of `config.yml`), `dial-<pattern>` (a GIF of the gate dialling in each ring pattern, `none`
-excepted, from the dial command until the wormhole has opened) and `kawoosh-<shape>` (the woosh
-going out and back, from just before the first block of it is drawn in or in front of the opening). Files go to
-`.local-server/gallery/<version>/` (`--gallery-out <dir>` for another folder, such as
-`docs/images/`). Stills are 1280 × 720, reels 800 × 450.
+of `config.yml`), `dial-<pattern>` (a GIF of the gate dialling in each ring pattern, from the
+dial command until the wormhole has opened), `iris-<animation>` (each `gate-iris-animation`
+closing over the idle gate and opening again) and `kawoosh-<shape>` (the woosh going out and
+back, from just before the first block of it is drawn in or in front of the opening). Files go to
+`.local-server/gallery/<version>/` (`--gallery-out <dir>` for another folder; not one under
+`docs/`, since each reel leaves a folder of full-colour frames beside it). Stills are 1280 × 720, reels 800 × 450. An upright gate stands on the studio
+floor, its lowest block resting on it, so the whole ring is in view; a flat one lies in it.
+
+The dial and iris reels are framed close: the page is opened with a 55° field of view instead of
+the viewer's 75°, which fills the frame with the ring without walking the camera into the DHD in
+front of it. prismarine-viewer hard-codes its field of view, so `lib/viewer.js` serves its page
+bundle with that one call reading `?fov=` instead. It also serves the mesher's bundle changed in
+two places for water: on every page its texture is kept a third of a pixel inside its tile, where
+it sampled the next tile's edge, and with `?liquid=front`, which every gallery page passes since it
+always looks north, a liquid has no north faces. Both faces of a sheet of water are drawn see-through in
+no order, so a front face drawn first hid the back face beside it and the horizon showed as a
+grid. Each change checks that the bundle still has exactly the code it replaces, and the viewer
+refuses to start if not, so an upgrade of prismarine-viewer fails loudly rather than drawing the
+old way.
+
+The iris lever is pulled by Probe2, opped and in creative for the run, from a pocket dug under
+the floor beneath it: near enough to reach and out of the camera's sight, where Probe pulling it
+would turn the camera. The pocket is filled and Probe2 put back as a visitor at the end. Each reel
+also leaves `<name>.frames/`, its frames as full-colour PNGs with their delays in `timing.json`,
+which `scripts/reel_webp.py` turns into the animated WebP the docs use ([CAPTURES.md](CAPTURES.md#reels-the-facility-makes)).
 
 A reel is recorded with the server slowed, `tick rate 5` (`--gallery-slow <n>`, 1 to 20, for another factor;
 1.20.3 and later, a server before that records at full speed), because software rendering paints a

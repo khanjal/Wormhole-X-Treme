@@ -24,6 +24,53 @@ const { setupRoutes } = require('prismarine-viewer/lib/common');
 // prismarine-viewer's own copies, the ones its page was built against.
 const fromViewer = (name) => require(require.resolve(name, { paths: [PV_DIR] }));
 
+// The page's own field of view, as its bundle hard-codes it, and how it starts its mesher.
+const BUNDLE_FOV = 'PerspectiveCamera(75,';
+const BUNDLE_WORKER = 'const e=new Worker(t);';
+
+/**
+ * The page's bundle with its field of view read from the page's ?fov= (75 without one), and its
+ * query handed on to the mesher: a narrower view frames a subject tighter without moving the
+ * camera into what stands in front of it.
+ */
+function fovBundle(text) {
+  for (const at of [BUNDLE_FOV, BUNDLE_WORKER]) {
+    if (text.split(at).length !== 2) throw new Error(`prismarine-viewer ${PV_VERSION}'s bundle has no single ${at}: the page patch needs updating`);
+  }
+  return text.replace(BUNDLE_FOV, 'PerspectiveCamera(Number(new URLSearchParams(location.search).get("fov"))||75,')
+    .replace(BUNDLE_WORKER, 'const e=new Worker(t+location.search);');
+}
+
+// The mesher's texture coordinates for a liquid's faces, as its bundle has them: to the very edge of
+// the 16-pixel tile, so the nearest-pixel sampling draws a line of the neighbouring tile round every
+// block of water (a gate's horizon shows as a grid).
+const WORKER_LIQUID_UV = 'r.t_uvs.push(e[3]*m+d,e[4]*h*(e[1]?1:n)+b)';
+// Where it has decided to draw a liquid's face, `p` its direction.
+const WORKER_LIQUID_FACE = 'if(g.position.y<0)continue;let v=[1,1,1];';
+// What names the face's direction `p` in that loop, which the face check reads.
+const WORKER_LIQUID_DIR = 'const{dir:p,corners:u}=o[_]';
+
+/**
+ * The mesher's bundle with a liquid's texture coordinates kept a third of a pixel inside the tile,
+ * and with ?liquid=front, no north face on a liquid. Both faces of a sheet of water are drawn see-through
+ * in no particular order, so a front face drawn first hides the back face beside it and every block
+ * edge shows as a pale line; a page that only looks north never sees a north face anyway.
+ */
+function liquidBundle(text) {
+  for (const at of [WORKER_LIQUID_UV, WORKER_LIQUID_FACE]) {
+    if (text.split(at).length !== 2) throw new Error(`prismarine-viewer ${PV_VERSION}'s worker has no single ${at}: the liquid patch needs updating`);
+  }
+  // The same loop: its direction named last before the face check, and no other loop's in between.
+  const face = text.indexOf(WORKER_LIQUID_FACE);
+  const dir = text.lastIndexOf(WORKER_LIQUID_DIR, face);
+  if (dir < 0 || face - dir > 400 || text.slice(dir + 1, face).includes('const{dir:')) {
+    throw new Error(`prismarine-viewer ${PV_VERSION}'s worker no longer names a liquid face's direction ${WORKER_LIQUID_DIR}: the liquid patch needs updating`);
+  }
+  return 'const wxLiquidFront=new URLSearchParams(self.location.search).get("liquid")==="front";\n'
+    + text.replace(WORKER_LIQUID_UV, 'r.t_uvs.push(d+m*(.02+.96*e[3]),b+h*(.02+.96*e[4]*(e[1]?1:n)))')
+      .replace(WORKER_LIQUID_FACE, 'if(g.position.y<0)continue;if(wxLiquidFront&&p[2]===-1)continue;let v=[1,1,1];');
+}
+
 /** The viewer's web port for a game port: 3007 on 25590, offset one for one with the game port. */
 const BASE_GAME_PORT = 25590;
 const BASE_VIEWER_PORT = 3007;
@@ -224,6 +271,10 @@ async function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
   app.use((req, res, next) => (localHost(req.headers.host) ? next() : res.status(403).end()));
   // Exactly /first: Express matches /first/ to a /first route as well, which would loop.
   app.get(/^\/first$/, (req, res) => res.redirect('/first/'));
+  const bundle = fovBundle(require('fs').readFileSync(path.join(PV_DIR, 'public', 'index.js'), 'utf8'));
+  app.get(/^(\/first)?\/index\.js$/, (req, res) => res.type('application/javascript').send(bundle));
+  const worker = liquidBundle(require('fs').readFileSync(path.join(PV_DIR, 'public', 'worker.js'), 'utf8'));
+  app.get(/^(\/first)?\/worker\.js$/, (req, res) => res.type('application/javascript').send(worker));
   setupRoutes(app, '/first');
   setupRoutes(app, '');
   const srv = http.createServer(app);
@@ -302,5 +353,6 @@ async function startViewer(bot, { port, viewDistance = 8, log = () => {} }) {
 }
 
 module.exports = {
+  fovBundle, liquidBundle,
   viewerPort, assetVersion, stateMap, encode, decode, translator, relay, shotToken, localHost, allowLocal, startViewer, PV_VERSION, RENAMED,
 };
