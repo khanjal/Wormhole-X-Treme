@@ -82,6 +82,7 @@ class WindowStreamTest
         return new Location(null, x, y, z);
     }
 
+    // There is no Collection<BlockState>.class, so the captor has to be made from a raw Class.
     @SuppressWarnings("unchecked")
     private List<BlockState> sent()
     {
