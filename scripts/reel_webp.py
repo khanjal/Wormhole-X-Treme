@@ -9,7 +9,7 @@ GIF, so the horizon's blues are not cut down to GIF's 256 colours. Names are ree
 ending in a dash; none means every reel in the folder. Needs Pillow (`pip install Pillow`).
 
 720 pixels wide at quality 70 is docs/CAPTURES.md's size: the dial and iris reels come to
-about 1.4 MB together.
+about 1.6 MB together.
 """
 import json
 import os

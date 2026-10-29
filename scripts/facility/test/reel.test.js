@@ -147,6 +147,27 @@ test('a frame of another size is left out and its time goes to its neighbour', a
   }
 });
 
+test('the frames a WebP is made from are the GIF\'s: the same kept frames, at the same delays', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wx-reel-'));
+  try {
+    const frames = [
+      { t: 0, recv: 0, png: png(32, 24, [200, 200, 200]) },
+      { t: 0.1, recv: 1, png: png(16, 12, [10, 10, 10]) },
+      { t: 0.2, recv: 2, png: png(32, 24, [200, 200, 200], { x: 4, y: 4, size: 6 }, [20, 40, 160]) },
+    ];
+    const gif = await reel.writeGif(path.join(dir, 'x.gif'), frames, { slow: 1, minGap: 40, hold: 500 });
+    const out = reel.writeFrames(path.join(dir, 'x.frames'), frames, { slow: 1, minGap: 40, hold: 500 });
+    const timing = JSON.parse(fs.readFileSync(path.join(out.dir, 'timing.json'), 'utf8'));
+    assert.strictEqual(out.frames, gif.frames);
+    assert.ok(Math.abs(timing.reduce((n, k) => n + k.delay, 0) / 1000 - gif.seconds) < 0.001);
+    // Full colour: the last kept frame is the original PNG, byte for byte, not a palette's version of it.
+    assert.ok(fs.readFileSync(path.join(out.dir, timing[timing.length - 1].file)).equals(frames[2].png));
+    for (const k of timing) assert.strictEqual(PNG.sync.read(fs.readFileSync(path.join(out.dir, k.file))).width, 32);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('a reel with no frames is refused rather than written empty', async () => {
   await assert.rejects(reel.writeGif(path.join(os.tmpdir(), 'wx-none.gif'), []), /no frames/);
 });

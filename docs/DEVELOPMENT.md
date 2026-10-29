@@ -969,9 +969,9 @@ The dial and iris reels are framed close: the page is opened with a 55° field o
 the viewer's 75°, which fills the frame with the ring without walking the camera into the DHD in
 front of it. prismarine-viewer hard-codes its field of view, so `lib/viewer.js` serves its page
 bundle with that one call reading `?fov=` instead. It also serves the mesher's bundle changed in
-two places for water: its texture is kept a third of a pixel inside its tile, where it sampled
-the next tile's edge, and with `?liquid=front`, which every gallery page passes since it always
-looks north, a liquid has no north faces. Both faces of a sheet of water are drawn see-through in
+two places for water: on every page its texture is kept a third of a pixel inside its tile, where
+it sampled the next tile's edge, and with `?liquid=front`, which every gallery page passes since it
+always looks north, a liquid has no north faces. Both faces of a sheet of water are drawn see-through in
 no order, so a front face drawn first hid the back face beside it and the horizon showed as a
 grid. Each change checks that the bundle still has exactly the code it replaces, and the viewer
 refuses to start if not, so an upgrade of prismarine-viewer fails loudly rather than drawing the

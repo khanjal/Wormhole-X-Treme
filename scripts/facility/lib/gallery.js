@@ -337,12 +337,13 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     if (!geom.lever) throw new Error(`${geom.name} has no iris lever`);
     const l = geom.lever;
     const p2 = await fac.second();
+    pocket = l; // before anything is changed, so a failure from here on is still put back
     await srv.run('op Probe2');
     await srv.run('gamemode creative Probe2');
     await srv.run(`execute in ${O} run fill ${l.x} -4 ${l.z} ${l.x} -3 ${l.z} minecraft:air`);
     await srv.run(`execute in ${O} run setblock ${l.x} -5 ${l.z} ${STUDIO.floor}`);
     await p2.teleport({ x: l.x + 0.5, y: -4, z: l.z + 0.5 }, O);
-    pocket = l;
+    await p2.bot.waitForChunksToLoad();
     return p2;
   };
 
@@ -358,7 +359,8 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   const shut = async () => {
     await kit.force(SUBJECT);
     await kit.force(PARTNER);
-    await kit.waitShut(probe, state.geom, 8000);
+    // False, not null: Probe can see the opening and it is still drawn (an iris a failed scene left shut).
+    if ((await kit.waitShut(probe, state.geom, 8000)) === false) throw new Error(`${SUBJECT} did not shut and clear before the scene`);
   };
 
   /**

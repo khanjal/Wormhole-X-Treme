@@ -119,14 +119,7 @@ function from(frames, wallMs) {
 async function writeGif(file, frames, { slow = 1, hold = 1500, minGap = 40 } = {}) {
   if (!frames.length) throw new Error('no frames were recorded');
   const gif = (await import('gifenc')).default;
-  const sizes = new Map();
-  for (const f of frames) {
-    const s = sizeOf(f.png);
-    const k = `${s.width}x${s.height}`;
-    sizes.set(k, { ...s, n: (sizes.get(k) || { n: 0 }).n + 1 });
-  }
-  const { width, height } = [...sizes.values()].sort((a, b) => b.n - a.n)[0];
-  const same = frames.filter((f) => { const s = sizeOf(f.png); return s.width === width && s.height === height; });
+  const { width, height, same } = commonest(frames);
   const timing = retime(same.map((f) => f.t), { slow, hold, minGap });
   const decoded = (i) => decode(same[timing[i].index].png);
   const pal = paletteOf(timing.length, decoded, gif);
@@ -146,6 +139,19 @@ async function writeGif(file, frames, { slow = 1, hold = 1500, minGap = 40 } = {
   return { file, frames: timing.length, seconds: timing.reduce((n, k) => n + k.delay, 0) / 1000, bytes: bytes.length };
 }
 
+/** The frames of the size most of them are, and that size: a frame painted mid-resize is left out. */
+function commonest(frames) {
+  const sizes = new Map();
+  for (const f of frames) {
+    const s = sizeOf(f.png);
+    const k = `${s.width}x${s.height}`;
+    sizes.set(k, { ...s, n: (sizes.get(k) || { n: 0 }).n + 1 });
+  }
+  const { width, height } = [...sizes.values()].sort((a, b) => b.n - a.n)[0];
+  const same = frames.filter((f) => { const s = sizeOf(f.png); return s.width === width && s.height === height; });
+  return { width, height, same };
+}
+
 /**
  * The frames a GIF of `frames` would show, as full-colour PNGs in `dir` with their delays in
  * timing.json: what an encoder without GIF's 256 colours (animated WebP, say) is made from.
@@ -154,10 +160,11 @@ function writeFrames(dir, frames, { slow = 1, hold = 1500, minGap = 40 } = {}) {
   if (!frames.length) throw new Error('no frames were recorded');
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });
-  const timing = retime(frames.map((f) => f.t), { slow, hold, minGap });
+  const { same } = commonest(frames);
+  const timing = retime(same.map((f) => f.t), { slow, hold, minGap });
   const out = timing.map((k, i) => {
     const name = `${String(i).padStart(4, '0')}.png`;
-    fs.writeFileSync(path.join(dir, name), frames[k.index].png);
+    fs.writeFileSync(path.join(dir, name), same[k.index].png);
     return { file: name, delay: k.delay };
   });
   fs.writeFileSync(path.join(dir, 'timing.json'), JSON.stringify(out));
