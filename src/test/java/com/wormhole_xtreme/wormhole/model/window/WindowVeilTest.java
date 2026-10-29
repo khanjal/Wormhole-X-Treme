@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -109,7 +108,7 @@ class WindowVeilTest
         return new Location(null, 5.0, 65.0, 20.5);
     }
 
-    /** The first block behind the wall, within the sweep of cells, seen through the opening and covered or not. */
+    /** The first block behind the wall, within the sweep of cells, seen through the opening and covered or not; empty for none. */
     private static int[] cellSeen(final WindowState window, final boolean covered)
     {
         final List<WindowState> seeing = List.of(window);
@@ -128,7 +127,7 @@ class WindowVeilTest
                 }
             }
         }
-        return null;
+        return new int[0];
     }
 
     private static Location at(final int[] cell)
@@ -174,7 +173,7 @@ class WindowVeilTest
     {
         final WindowState window = window();
         final int[] cell = cellSeen(window, false);
-        assertNotNull(cell, "a cell seen through the opening whose outline the wall does not cover");
+        assertEquals(3, cell.length, "a cell seen through the opening whose outline the wall does not cover");
 
         assertFalse(WindowVeil.inAnyView(eye(), at(cell), List.of(window), Map.of(), window.openKeys));
     }
@@ -185,7 +184,7 @@ class WindowVeilTest
     {
         final WindowState window = window();
         final int[] cell = cellSeen(window, true);
-        assertNotNull(cell, "a cell seen through the opening whose outline lands on it");
+        assertEquals(3, cell.length, "a cell seen through the opening whose outline lands on it");
 
         assertTrue(WindowVeil.inAnyView(eye(), at(cell), List.of(window), Map.of(), window.openKeys));
     }
@@ -196,7 +195,7 @@ class WindowVeilTest
     {
         final WindowState window = window();
         final int[] cell = cellSeen(window, false);
-        assertNotNull(cell);
+        assertEquals(3, cell.length, "a cell seen through the opening");
 
         assertTrue(WindowVeil.stillSeen(eye(), at(cell), List.of(window), Map.of()));
     }
