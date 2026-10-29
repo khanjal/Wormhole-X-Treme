@@ -124,6 +124,17 @@ class WindowStreamTest
     }
 
     @Test
+    void aCellJustPastSixteenBlocksSortsAfterOneInTheFirstBandWhateverItsChunk()
+    {
+        final long past = Cells.key(20, 64, 0);
+        final long within = Cells.key(-5, 64, 0);
+        final Set<Long> held = new LinkedHashSet<>(List.of(past, within));
+
+        assertArrayEquals(new long[] { within, past }, WindowStream.nearestFirst(held, eyeAt(0.5, 64.5, 0.5)),
+            "nineteen blocks out is the second band, though its chunk would sort it first");
+    }
+
+    @Test
     void nothingIsFreshWhenTheEyeHasStayedInItsChunk()
     {
         final Set<Long> fresh = WindowStream.freshChunks(viewer, Cells.chunkKey(3, 4), Cells.chunkKey(3, 4));
@@ -177,6 +188,8 @@ class WindowStreamTest
     {
         assertEquals(Cells.chunkKey(-1, 1), WindowStream.chunkOfCell(Cells.key(-1, 64, 17)),
             "x = -1 is chunk -1 and z = 17 is chunk 1");
+        assertEquals(Cells.chunkKey(1, -2), WindowStream.chunkOfCell(Cells.key(17, 64, -17)),
+            "x = 17 is chunk 1, not 0, and z = -17 is chunk -2");
     }
 
     @Test
@@ -335,13 +348,14 @@ class WindowStreamTest
     @Test
     void whatWasOwedFromAnEarlierRedrawIsOwedNoLonger()
     {
+        Windows.streamPerTick = 0;
         view.pending.put(Cells.key(90, 64, 90), stone);
         view.undrawable = 7;
         final long cell = Cells.key(1, 64, 1);
 
         WindowStream.send(viewer, view, Map.of(cell, glass), eyeAt(0.5, 64.5, 0.5), 1000L, false, Set.of());
 
-        assertFalse(view.pending.containsKey(Cells.key(90, 64, 90)), "this redraw says what is owed");
+        assertEquals(Set.of(cell), view.pending.keySet(), "nothing streamed, so this redraw's debt is all that is left");
         assertEquals(0, view.undrawable);
     }
 
