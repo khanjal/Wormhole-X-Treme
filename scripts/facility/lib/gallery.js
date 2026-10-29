@@ -51,7 +51,8 @@ const NET = 'Studio';
  */
 const FAR = { name: 'StudioN', dim: campus.NETHER, cx: 18, openingAt: 24, floorY: 64 };
 // What a gate build lays back in the floor (gatekit.FLOORS), to be painted over with the studio's.
-const FLOOR_AFTER_BUILD = require('./gatekit').FLOORS[O];
+const { FLOORS } = require('./gatekit');
+const FLOOR_AFTER_BUILD = FLOORS[O];
 
 /** The ring patterns, as `gate-dial-spin` takes them; `none`, the default, first. */
 const SPINS = ['none', 'top', 'chevron', 'lap', 'fill', 'pegasus', 'chase', 'universe', 'overshoot'];
@@ -531,8 +532,12 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     for (const name of [SUBJECT, PARTNER]) await kit.remove(name).catch(() => {});
     if (farGeom) {
       await kit.remove(FAR.name).catch(() => {});
-      // A gate flush with the Range's floor leaves its bottom row's trench behind it.
+      // A gate flush with the Range's floor leaves its bottom row's trench behind it, and restoreSite
+      // keeps a lever's cell under the floor open for a gate that still stands: this one is gone.
       await kit.restoreSite(farGeom, { dim: FAR.dim, floorY: FAR.floorY }).catch(() => {});
+      const l = farGeom.lever;
+      if (l && l.y < FAR.floorY) await srv.run(`execute in ${FAR.dim} run setblock ${l.x} ${l.y} ${l.z} ${FLOORS[FAR.dim]}`).catch(() => {});
+      await srv.run(`execute in ${FAR.dim} run kill @e[type=minecraft:item,x=${FAR.cx},y=${FAR.floorY},z=${FAR.openingAt},distance=..16]`).catch(() => {});
     }
     if (flying) await probe.teleport(campus.TRANSIT.home).catch(() => {});
     // The studio's chunks are not kept loaded for a self-test or a kept world that follows.

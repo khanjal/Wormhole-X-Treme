@@ -207,7 +207,7 @@ back out before anything rises.
 
 ## Reels the facility makes
 
-The ring patterns and iris animations are a set of fifteen, with the dial to another world, the same gate from the same place
+The ring patterns, the iris animations and the dial to another world are a set of fifteen, the same gate from the same place
 each time, so they are made by the research facility rather than by hand. A software renderer
 films the studio, so a new pattern or style is a line in its catalogue and a rerun, not a
 recording session:

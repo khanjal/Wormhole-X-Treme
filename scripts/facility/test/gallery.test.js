@@ -101,6 +101,11 @@ test('the partner in another world stands in the Range\'s clear south strip, ins
   assert.ok(box.z0 >= 12 && box.z1 < room.z1, `z ${box.z0}..${box.z1}`);
   assert.ok(box.x0 > room.x0 && box.x1 < room.x1, `x ${box.x0}..${box.x1}`);
   assert.strictEqual(gallery.FAR.floorY, room.y0);
+  // Loaded for the whole run, as the Range is: the gallery forceloads nothing in the nether itself.
+  const chunk = (v) => Math.floor(v / 16);
+  assert.ok(campus.FORCELOAD.some((f) => f.dim === gallery.FAR.dim
+    && chunk(box.x0) >= f.from[0] && chunk(box.x1) <= f.to[0] && chunk(box.z0) >= f.from[1] && chunk(box.z1) <= f.to[1]),
+  'the far site is inside a nether forceload rectangle');
   const scene = gallery.catalog().find((s) => s.far);
   assert.ok(scene && scene.action === 'dial' && scene.name.startsWith('dial-'), 'one dial reel is to the far partner');
 });
