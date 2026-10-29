@@ -14,7 +14,7 @@ import org.bukkit.block.BlockState;
  * <p>Moved out of {@code Windows} so the clusters that come after it can read and write the
  * same state without being nested in a 3,000-line class. Package-private, and used through
  * static imports, so the bodies that moved with them did not change. {@link Windows#clear()}
- * still resets all of it.
+ * still resets all of it but {@link #trimmedAt} and {@link #drawnListener}, which it never did.
  */
 final class WindowStore
 {

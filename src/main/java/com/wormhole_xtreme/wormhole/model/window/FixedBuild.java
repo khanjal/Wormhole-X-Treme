@@ -31,7 +31,7 @@ final class FixedBuild
     final WindowState window;
     /** The depth asked for; the view may be cut shallower to fit. */
     final int configured;
-    /** What {@link Windows#changes} stood at when it was asked for. */
+    /** What {@link WindowStore#changes} stood at when it was asked for. */
     final long changesSeen;
     /** The most blocks the view may hold. */
     private final int most;
