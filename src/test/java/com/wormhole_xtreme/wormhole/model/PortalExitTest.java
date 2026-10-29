@@ -141,7 +141,7 @@ class PortalExitTest
     }
 
     @Test
-    void anArrivalPointIsLeftAloneWhenItIsNotInThePortalOrThereIsNoFacingOrNoDirection()
+    void anArrivalPointIsLeftAloneWhenItIsNotInThePortalOrThereIsNoFacingOrNoPoint()
     {
         final List<Location> portal = upright(1);
 

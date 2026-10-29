@@ -29,6 +29,7 @@ final class PortalExit
     {
     }
 
+    /** Whether the portal has blocks and all share one height: it lies flat, and is left upward, not along a facing. */
     static boolean isFlat(final List<Location> portal)
     {
         if (portal.isEmpty())
@@ -46,6 +47,7 @@ final class PortalExit
         return true;
     }
 
+    /** The arrival point moved out of the portal if it sits inside it, or null if it is already clear. */
     static Location normalized(final Location current, final BlockFace facing, final World world,
         final List<Location> portal, final Inside inside)
     {
@@ -89,6 +91,7 @@ final class PortalExit
         return null;
     }
 
+    /** The arrival point worked out again from the portal's bottom row and the facing, or null if there is none. */
     static Location recomputed(final World world, final BlockFace facing, final List<Location> portal)
     {
         if ((world == null) || (facing == null))
