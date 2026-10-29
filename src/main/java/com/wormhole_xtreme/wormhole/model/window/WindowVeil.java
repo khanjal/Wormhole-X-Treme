@@ -143,21 +143,25 @@ final class WindowVeil
                 }
             }
         }
-        for (final Map.Entry<UUID, Entity> entry : now.entrySet())
-        {
-            if (!view.veiled.containsKey(entry.getKey()))
-            {
-                try
-                {
-                    player.hideEntity(WormholeXTreme.getThisPlugin(), entry.getValue());
-                }
-                catch (final RuntimeException refused)
-                {
-                    now.remove(entry.getKey());
-                }
-            }
-        }
+        // Removed through the set, not the map: taking one out of the map mid-loop threw as soon as
+        // a second creature came in the same redraw (#716).
+        now.entrySet().removeIf(entry -> !view.veiled.containsKey(entry.getKey())
+            && refusesToHide(player, entry.getValue()));
         view.veiled.clear();
         view.veiled.putAll(now);
+    }
+
+    /** Whether the server will not hide this creature from the viewer: it is then not remembered as hidden. */
+    private static boolean refusesToHide(final Player player, final Entity entity)
+    {
+        try
+        {
+            player.hideEntity(WormholeXTreme.getThisPlugin(), entity);
+            return false;
+        }
+        catch (final RuntimeException refused)
+        {
+            return true;
+        }
     }
 }
