@@ -115,13 +115,13 @@ class WindowStreamTest
     @Test
     void aBandIsSixteenBlocksWideAndTheNextBandSortsAfterIt()
     {
-        final long inside = Cells.key(7, 64, 0);
+        final long inside = Cells.key(6, 64, 0);
         final long outside = Cells.key(9, 64, 0);
         final Set<Long> held = new LinkedHashSet<>(List.of(outside, inside));
 
         assertArrayEquals(new long[] { inside, outside },
             WindowStream.nearestFirst(held, eyeAt(-8.5, 64.5, 0.5)),
-            "15.5 blocks out is in the first band and 17.5 the second, both in one chunk section");
+            "15 blocks out is in the first band and 18 the second, both in one chunk section");
     }
 
     @Test
