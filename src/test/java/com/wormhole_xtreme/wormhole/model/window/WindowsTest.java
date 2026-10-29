@@ -1055,7 +1055,7 @@ class WindowsTest
             projected[2] = projectedByTheLastRedraw(viewer);
         });
 
-        assertEquals(1.5, Windows.farCellFor(2), "two blocks of wall: a cell of a block and a half");
+        assertEquals(1.5, WindowCompose.farCellFor(2), "two blocks of wall: a cell of a block and a half");
         assertTrue(projected[0] > 0, "a step inside the cell projects the near layers");
         assertTrue(projected[1] < (2 * projected[0]),
             "a whole-block move inside the cell projects the near layers alone: " + projected[0] + " then "
@@ -1142,8 +1142,8 @@ class WindowsTest
             said.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
         });
 
-        assertEquals(4.0, Windows.farCellFor(5), "five blocks of wall: a cell of four");
-        assertEquals(4.0, Windows.farCellFor(16), "a wall solid as far as it is read: still four");
+        assertEquals(4.0, WindowCompose.farCellFor(5), "five blocks of wall: a cell of four");
+        assertEquals(4.0, WindowCompose.farCellFor(16), "a wall solid as far as it is read: still four");
         assertTrue(projected[0] > 0, "a step inside the cell projects the near layers");
         for (int step = 1; step < 3; step++)
         {
@@ -1221,8 +1221,8 @@ class WindowsTest
             projected[1] = projectedByTheLastRedraw(viewer);
         });
 
-        assertEquals(0.5, Windows.farCellFor(1), "a one-block wall: half a block");
-        assertEquals(0.5, Windows.farCellFor(0), "no wall at all: no less than half a block");
+        assertEquals(0.5, WindowCompose.farCellFor(1), "a one-block wall: half a block");
+        assertEquals(0.5, WindowCompose.farCellFor(0), "no wall at all: no less than half a block");
         assertTrue(projected[0] > 0, "a step within the half block projects the near layers");
         assertTrue(projected[1] > (2 * projected[0]),
             "a step into the other half of the same block projects the far layers too: " + projected[0] + " then "
