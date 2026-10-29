@@ -3,10 +3,12 @@ package com.wormhole_xtreme.wormhole.model.window;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,6 +17,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -165,7 +168,7 @@ class WindowStreamTest
         final Set<Long> fresh = WindowStream.freshChunks(viewer, Cells.chunkKey(3, 4), Cells.chunkKey(3, 4));
 
         assertTrue(fresh.isEmpty(), "no chunk is handed over");
-        assertFalse(fresh == WindowStream.ALL_CHUNKS, "and it is not the every-chunk marker");
+        assertNotSame(WindowStream.ALL_CHUNKS, fresh, "and it is not the every-chunk marker");
     }
 
     @Test
@@ -325,7 +328,7 @@ class WindowStreamTest
         when(world.getBlockAt(1, 64, 1)).thenAnswer(call ->
         {
             final BlockState state = mock(BlockState.class);
-            org.mockito.Mockito.doThrow(new IllegalArgumentException("sign")).when(state).setBlockData(glass);
+            doThrow(new IllegalArgumentException("sign")).when(state).setBlockData(glass);
             final Block block = mock(Block.class);
             when(block.getState()).thenReturn(state);
             return block;
@@ -434,7 +437,7 @@ class WindowStreamTest
         Windows.streamPerTick = 0;
         final long far = Cells.key(100, 64, 0);
         final long near = Cells.key(2, 64, 0);
-        final Map<Long, BlockData> wanted = new java.util.LinkedHashMap<>();
+        final Map<Long, BlockData> wanted = new LinkedHashMap<>();
         wanted.put(far, stone);
         wanted.put(near, stone);
 
