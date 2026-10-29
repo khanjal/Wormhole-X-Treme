@@ -961,8 +961,8 @@ of `config.yml`), `dial-<pattern>` (a GIF of the gate dialling in each ring patt
 dial command until the wormhole has opened), `iris-<animation>` (each `gate-iris-animation`
 closing over the idle gate and opening again) and `kawoosh-<shape>` (the woosh going out and
 back, from just before the first block of it is drawn in or in front of the opening). Files go to
-`.local-server/gallery/<version>/` (`--gallery-out <dir>` for another folder, such as
-`docs/images/`). Stills are 1280 × 720, reels 800 × 450. An upright gate stands on the studio
+`.local-server/gallery/<version>/` (`--gallery-out <dir>` for another folder; not one under
+`docs/`, since each reel leaves a folder of full-colour frames beside it). Stills are 1280 × 720, reels 800 × 450. An upright gate stands on the studio
 floor, its lowest block resting on it, so the whole ring is in view; a flat one lies in it.
 
 The dial and iris reels are framed close: the page is opened with a 55° field of view instead of

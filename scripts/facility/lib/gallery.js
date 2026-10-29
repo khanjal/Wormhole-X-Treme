@@ -300,7 +300,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   const config = readGroups();
   fs.mkdirSync(outDir, { recursive: true });
   const out = [];
-  const state = { key: null, geom: null };
+  const state = { key: null, geom: null, idc: false };
   const errors = [];
   let browser = null;
   let flying = false;
@@ -317,6 +317,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
         state.key = null;
       }
       state.geom = studioPlace(kit, s.shape);
+      state.idc = false;
       await kit.build(SUBJECT, state.geom, { net: NET });
       await tidy(kit, state.geom);
       if (s.group !== DEFAULT_GROUP) await dress(kit, state.geom, s.group, config);
@@ -324,7 +325,10 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     }
     await kit.edit(SUBJECT, 'spin', s.spin || 'default');
     await kit.edit(SUBJECT, 'iris-animation', s.iris || 'default');
-    if (s.iris) await kit.edit(SUBJECT, 'idc', IDC);
+    // The code places the iris lever; a scene without an iris has neither in its picture.
+    if (s.iris && !state.idc) await kit.edit(SUBJECT, 'idc', IDC);
+    if (!s.iris && state.idc) await kit.edit(SUBJECT, 'idc', '-clear');
+    state.idc = Boolean(s.iris);
     return state.geom;
   };
 
@@ -344,6 +348,8 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     await srv.run(`execute in ${O} run setblock ${l.x} -5 ${l.z} ${STUDIO.floor}`);
     await p2.teleport({ x: l.x + 0.5, y: -4, z: l.z + 0.5 }, O);
     await p2.bot.waitForChunksToLoad();
+    const lever = p2.bot.blockAt(new Vec3(l.x, l.y, l.z));
+    if (!lever || lever.name !== 'lever') throw new Error(`no iris lever at ${l.x} ${l.y} ${l.z} (${lever ? lever.name : 'not loaded'}): was the iris code refused?`);
     return p2;
   };
 
@@ -453,8 +459,9 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     const written = await reel.writeGif(file, frames, { slow: factor });
     reel.writeFrames(path.join(outDir, `${s.name}.frames`), frames, { slow: factor });
     // An iris reel ends as it began, open, so it is judged by any frame differing from the first.
+    const kept = reel.commonest(frames).same;
     const moved = s.action === 'iris'
-      ? frames.some((f) => !f.png.equals(frames[0].png))
+      ? kept.some((f) => !f.png.equals(kept[0].png))
       : frames.length > 1 && !frames[0].png.equals(frames[frames.length - 1].png);
     const ok = written.frames >= 5 && moved && errors.length === 0;
     const detail = `${((Date.now() - t0) / 1000).toFixed(0)} s, ${written.frames} frames, ${written.seconds.toFixed(1)} s at real speed, ${(written.bytes / 1048576).toFixed(1)} MB${moved ? '' : '; the first frame and the last are the same'}${errors.length ? `; page errors: ${errors.slice(0, 3).join(' / ')}` : ''}`;

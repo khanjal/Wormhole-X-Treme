@@ -47,6 +47,8 @@ function fovBundle(text) {
 const WORKER_LIQUID_UV = 'r.t_uvs.push(e[3]*m+d,e[4]*h*(e[1]?1:n)+b)';
 // Where it has decided to draw a liquid's face, `p` its direction.
 const WORKER_LIQUID_FACE = 'if(g.position.y<0)continue;let v=[1,1,1];';
+// What names the face's direction `p` in that loop, which the face check reads.
+const WORKER_LIQUID_DIR = 'const{dir:p,corners:u}=o[_]';
 
 /**
  * The mesher's bundle with a liquid's texture coordinates kept a third of a pixel inside the tile,
@@ -57,6 +59,12 @@ const WORKER_LIQUID_FACE = 'if(g.position.y<0)continue;let v=[1,1,1];';
 function liquidBundle(text) {
   for (const at of [WORKER_LIQUID_UV, WORKER_LIQUID_FACE]) {
     if (text.split(at).length !== 2) throw new Error(`prismarine-viewer ${PV_VERSION}'s worker has no single ${at}: the liquid patch needs updating`);
+  }
+  // The same loop: its direction named last before the face check, and no other loop's in between.
+  const face = text.indexOf(WORKER_LIQUID_FACE);
+  const dir = text.lastIndexOf(WORKER_LIQUID_DIR, face);
+  if (dir < 0 || face - dir > 400 || text.slice(dir + 1, face).includes('const{dir:')) {
+    throw new Error(`prismarine-viewer ${PV_VERSION}'s worker no longer names a liquid face's direction ${WORKER_LIQUID_DIR}: the liquid patch needs updating`);
   }
   return 'const wxLiquidFront=new URLSearchParams(self.location.search).get("liquid")==="front";\n'
     + text.replace(WORKER_LIQUID_UV, 'r.t_uvs.push(d+m*(.02+.96*e[3]),b+h*(.02+.96*e[4]*(e[1]?1:n)))')

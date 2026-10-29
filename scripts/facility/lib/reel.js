@@ -171,4 +171,4 @@ function writeFrames(dir, frames, { slow = 1, hold = 1500, minGap = 40 } = {}) {
   return { dir, frames: out.length };
 }
 
-module.exports = { startReel, retime, writeGif, writeFrames, decode, own, sizeOf, paletteOf, changed, from };
+module.exports = { startReel, retime, writeGif, writeFrames, commonest, decode, own, sizeOf, paletteOf, changed, from };

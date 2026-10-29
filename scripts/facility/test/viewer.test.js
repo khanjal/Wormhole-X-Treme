@@ -38,6 +38,9 @@ test('the mesher keeps a liquid inside its tile and, asked, draws no north face 
   assert.ok(out.includes('const{dir:p,corners:u}=o[_]'));
   assert.doesNotThrow(() => new Function(out));
   assert.throws(() => viewer.liquidBundle('nothing to patch'), /liquid patch needs updating/);
+  // A rebuild that keeps the check's text but renames the direction would throw in every worker.
+  const renamed = fs.readFileSync(path.join(PV_PUBLIC, 'worker.js'), 'utf8').replace('const{dir:p,corners:u}=o[_]', 'const{dir:q,corners:u}=o[_]');
+  assert.throws(() => viewer.liquidBundle(renamed), /no longer names a liquid face's direction/);
 });
 
 test('the viewer port follows the game port like Dynmap\'s and refuses one below 1024', () => {
