@@ -3060,7 +3060,7 @@ class WindowsTest
         assertTrue(StandIns.isStandIn(standIn));
         when(farZombie.getLocation()).thenThrow(new IllegalStateException("gone wrong"));
 
-        Windows.followStandIns();
+        WindowCreatures.followStandIns();
 
         verify(standIn).remove();
         assertFalse(StandIns.isStandIn(standIn));
