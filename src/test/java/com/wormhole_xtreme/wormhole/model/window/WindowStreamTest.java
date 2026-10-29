@@ -115,13 +115,37 @@ class WindowStreamTest
     @Test
     void aBandIsSixteenBlocksWideAndTheNextBandSortsAfterIt()
     {
-        final long inside = Cells.key(6, 64, 0);
-        final long outside = Cells.key(9, 64, 0);
+        final long inside = Cells.key(16, 64, 0);
+        final long outside = Cells.key(15, 64, 0);
         final Set<Long> held = new LinkedHashSet<>(List.of(outside, inside));
 
         assertArrayEquals(new long[] { inside, outside },
-            WindowStream.nearestFirst(held, eyeAt(-8.5, 64.5, 0.5)),
-            "15 blocks out is in the first band and 18 the second, both in one chunk section");
+            WindowStream.nearestFirst(held, eyeAt(32.0, 64.5, 0.5)),
+            "15.5 blocks out is in the first band and 16.5 the second, though the second is in the lower chunk");
+    }
+
+    @Test
+    void cellsInOneBandAndChunkAreGroupedByVerticalSection()
+    {
+        final long low = Cells.key(1, 64, 1);
+        final long high = Cells.key(1, 80, 1);
+        final long beside = Cells.key(2, 64, 2);
+        final Set<Long> held = new LinkedHashSet<>(List.of(low, high, beside));
+
+        assertArrayEquals(new long[] { low, beside, high }, WindowStream.nearestFirst(held, eyeAt(0.5, 64.5, 0.5)),
+            "the one in the next section up comes after the two in the eye's");
+    }
+
+    @Test
+    void cellsInOneBandAreGroupedByTheChunkAlongZ()
+    {
+        final long first = Cells.key(1, 64, 1);
+        final long north = Cells.key(1, 64, 20);
+        final long second = Cells.key(2, 64, 2);
+        final Set<Long> held = new LinkedHashSet<>(List.of(first, north, second));
+
+        assertArrayEquals(new long[] { first, second, north }, WindowStream.nearestFirst(held, eyeAt(0.5, 64.5, 0.5)),
+            "the one in the next chunk along z comes after the two in the first");
     }
 
     @Test
@@ -182,6 +206,50 @@ class WindowStreamTest
             strip.add(Cells.chunkKey(4, z));
         }
         assertEquals(strip, fresh, "the shorter of the two distances, 2, and one over for the edge: x = 4, z = -3..3");
+    }
+
+    @Test
+    void steppingOneChunkAlongZHandsOverTheStripToo()
+    {
+        when(viewer.getWorld()).thenReturn(world);
+        when(world.getViewDistance()).thenReturn(2);
+        when(viewer.getClientViewDistance()).thenReturn(10);
+
+        final Set<Long> fresh = WindowStream.freshChunks(viewer, Cells.chunkKey(0, 0), Cells.chunkKey(0, 1));
+
+        final Set<Long> strip = new HashSet<>();
+        for (int x = -3; x <= 3; x++)
+        {
+            strip.add(Cells.chunkKey(x, 4));
+        }
+        assertEquals(strip, fresh, "z = 4 for x = -3..3, and nothing from the rows already held");
+    }
+
+    @Test
+    void whatIsSentCountsAgainstTheServersShareOfWork()
+    {
+        WindowStore.workSpent = 0;
+        view.pending.put(Cells.key(1, 64, 1), stone);
+        view.pending.put(Cells.key(2, 64, 1), stone);
+
+        WindowStream.stream(viewer, view, 10);
+
+        assertEquals(2, WindowStore.workSpent, "one for each block change sent");
+    }
+
+    @Test
+    void aTakenBackCellInAChunkThatIsNotLoadedIsLeftAloneAndNotLoaded()
+    {
+        when(world.isChunkLoaded(0, 0)).thenReturn(false);
+        final long cell = Cells.key(1, 64, 1);
+        view.drawn.put(cell, glass);
+        view.pending.put(cell, null);
+
+        WindowStream.stream(viewer, view, 10);
+
+        verify(world, never()).getBlockAt(anyInt(), anyInt(), anyInt());
+        verify(viewer, never()).sendBlockChanges(any(Collection.class));
+        assertFalse(view.drawn.containsKey(cell), "it is forgotten all the same");
     }
 
     @Test
