@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -33,7 +34,6 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -203,9 +203,13 @@ class WindowCreaturesTest
         final WindowCompose.Wholes wholes)
     {
         WindowCreatures.showStandIns(viewer, view, eye(), seeing, wholes, 1000L);
-        final ArgumentCaptor<List<FarCreatures.Wanted>> list = ArgumentCaptor.forClass(List.class);
-        standIns.verify(() -> StandIns.show(eq(viewer), eq(view), list.capture(), eq(1000L)));
-        return list.getValue();
+        final List<List<FarCreatures.Wanted>> seen = new ArrayList<>();
+        standIns.verify(() -> StandIns.show(eq(viewer), eq(view), argThat(list ->
+        {
+            seen.add(list);
+            return true;
+        }), eq(1000L)));
+        return seen.get(0);
     }
 
     // --- Following ---
@@ -289,7 +293,7 @@ class WindowCreaturesTest
     }
 
     @Test
-    void aLivingViewerWithNoneToLoseKeepsWhatTheyHaveAndIsShownTheRest()
+    void aLivingViewerWithNoStandInsLosesNoneAndIsOfferedWhatIsInView()
     {
         final ViewerDrawing view = new ViewerDrawing(here);
 
@@ -452,6 +456,27 @@ class WindowCreaturesTest
     }
 
     @Test
+    void aPlayerAmongTheCreaturesIsCountedAsOne()
+    {
+        final WindowState window = window("gate:Abydos", 0, 0, 0);
+        final Player other = mock(Player.class);
+        when(other.isValid()).thenReturn(true);
+        when(other.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(other.getLocation()).thenReturn(new Location(far, 100.5, 70.0, -25.5));
+        window.creatures = List.of(other, creature());
+        final ViewerDrawing view = new ViewerDrawing(here);
+
+        try (MockedStatic<FarPlayers> players = mockStatic(FarPlayers.class))
+        {
+            shown(view, List.of(window), drawnWhole(window));
+        }
+
+        final CreatureTally tally = view.tallies.get("gate:Abydos");
+        assertEquals(2, tally.found, "both are found");
+        assertEquals(1, tally.players, "one of them is a player");
+    }
+
+    @Test
     void aCreatureSkippedIsTalliedWhy()
     {
         final WindowState window = window("gate:Abydos", 0, 0, 0);
@@ -528,9 +553,13 @@ class WindowCreaturesTest
     private Map<String, List<FarChunkHolds.Area>> held(final long now)
     {
         WindowCreatures.holdFarAreas(now);
-        final ArgumentCaptor<Map<String, List<FarChunkHolds.Area>>> watched = ArgumentCaptor.forClass(Map.class);
-        holds.verify(() -> FarChunkHolds.settle(watched.capture(), eq(now)));
-        return watched.getValue();
+        final List<Map<String, List<FarChunkHolds.Area>>> seen = new ArrayList<>();
+        holds.verify(() -> FarChunkHolds.settle(argThat(watched ->
+        {
+            seen.add(watched);
+            return true;
+        }), eq(now)));
+        return seen.get(0);
     }
 
     private ViewerDrawing watching(final int x, final int y, final int z, final String... names)
