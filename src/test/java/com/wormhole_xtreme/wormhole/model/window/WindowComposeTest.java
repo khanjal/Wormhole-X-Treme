@@ -404,12 +404,15 @@ class WindowComposeTest
         }
         window.solid = solid;
         final long far = key(37, 66, 0);
-        final Windows.Whole room = room(40, far);
+        // And the block at (14, 100, 0) lands up 72.54 to 73, past the opening's span (to 72) the same way.
+        final long high = key(14, 100, 0);
+        final Windows.Whole room = room(40, far, high);
 
         final Map<Long, BlockData> wanted = compose(new ViewerDrawing(world), eye(EYE[0], EYE[1], EYE[2]), window,
             clipped(window, room), 1000L, new Windows.Budget());
 
         assertTrue(wanted.containsKey(far), "a block that lands in the wall for some eye of the cell is drawn");
+        assertTrue(wanted.containsKey(high), "so is one that lands above it");
     }
 
     // --- The far part's cache ---
