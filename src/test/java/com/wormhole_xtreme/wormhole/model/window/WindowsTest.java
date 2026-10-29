@@ -273,7 +273,7 @@ class WindowsTest
         withServer(() ->
         {
             WindowSweep.tick();
-            Windows.resendFor("museum");
+            WindowClicks.resendFor("museum");
             WindowSweep.tick();
         });
 
@@ -307,7 +307,7 @@ class WindowsTest
                 final Block opening = world.getBlockAt(10, 64, 11);
                 final Block bannerBlock = world.getBlockAt(10, 64, 10);
                 when(opening.getRelative(BlockFace.NORTH)).thenReturn(bannerBlock);
-                Windows.resend(viewer, opening, BlockFace.NORTH);
+                WindowClicks.resend(viewer, opening, BlockFace.NORTH);
                 final ArgumentCaptor<Runnable> soon = ArgumentCaptor.forClass(Runnable.class);
                 verify(scheduler).runTaskAsynchronously(ArgumentMatchers.any(Plugin.class),
                     soon.capture());
@@ -352,7 +352,7 @@ class WindowsTest
             withServer(() ->
             {
                 WindowSweep.tick();
-                Windows.resend(viewer);
+                WindowClicks.resend(viewer);
                 final ArgumentCaptor<Runnable> later = ArgumentCaptor.forClass(Runnable.class);
                 verify(scheduler, Mockito.atLeastOnce()).scheduleSyncDelayedTask(
                     ArgumentMatchers.any(Plugin.class), later.capture(),
@@ -2189,7 +2189,7 @@ class WindowsTest
                 clearInvocations(scheduler);
                 pause();
                 Windows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
-                Windows.resend(viewer);
+                WindowClicks.resend(viewer);
                 midway.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
                 runBooked(scheduler);
                 after.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
@@ -2228,7 +2228,7 @@ class WindowsTest
             withServer(() ->
             {
                 WindowSweep.tick();
-                Windows.resend(viewer);
+                WindowClicks.resend(viewer);
                 drawn[0] = drawnCount(viewer);
                 runBooked(scheduler);
                 drawn[1] = drawnCount(viewer);
@@ -2269,8 +2269,8 @@ class WindowsTest
         withServer(WindowSweep::tick);
 
         assertSame(MirrorManager.byName("museum"),
-            Windows.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
-        assertNull(Windows.clicked(viewer, blockAt(40, 63, 12, true)),
+            WindowClicks.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
+        assertNull(WindowClicks.clicked(viewer, blockAt(40, 63, 12, true)),
             "a block nowhere near the view is nothing to do with the mirror");
     }
 
@@ -2293,16 +2293,16 @@ class WindowsTest
         for (int z = 12; (z < 40) && (drawn == null); z++)
         {
             final Block candidate = blockAt(10, 63, z, true);
-            if (Windows.drew(viewer, candidate))
+            if (WindowClicks.drew(viewer, candidate))
             {
                 drawn = candidate;
             }
         }
         assertNotNull(drawn, "the room behind the opening is drawn somewhere along its middle");
-        assertSame(MirrorManager.byName("museum"), Windows.clicked(viewer, drawn),
+        assertSame(MirrorManager.byName("museum"), WindowClicks.clicked(viewer, drawn),
             "a click on it is a click on the mirror");
-        assertFalse(Windows.drew(viewer, blockAt(40, 63, 12, true)), "and nothing else is");
-        assertFalse(Windows.drew(playerAt(10.5, 7.5), drawn), "and only for whoever is shown it");
+        assertFalse(WindowClicks.drew(viewer, blockAt(40, 63, 12, true)), "and nothing else is");
+        assertFalse(WindowClicks.drew(playerAt(10.5, 7.5), drawn), "and only for whoever is shown it");
     }
 
     /** Every right-click on the server comes through here, and almost nobody is looking in. */
@@ -2311,7 +2311,7 @@ class WindowsTest
     {
         final Block wall = mock(Block.class);
 
-        assertNull(Windows.clicked(playerAt(10.5, 7.5), wall));
+        assertNull(WindowClicks.clicked(playerAt(10.5, 7.5), wall));
 
         verifyNoInteractions(wall);
     }
@@ -2349,7 +2349,7 @@ class WindowsTest
         final Map<Spot, BlockData> drawn = positions(sent);
         assertNotSame(barrier, drawn.get(new Spot(10, 64, 11)), "the opening is the gate's to walk into");
         assertNotSame(barrier, drawn.get(new Spot(10, 63, 11)), "all of it");
-        assertNull(Windows.clicked(viewer, blockAt(10, 63, 11, true)), "and a click into it travels no mirror");
+        assertNull(WindowClicks.clicked(viewer, blockAt(10, 63, 11, true)), "and a click into it travels no mirror");
     }
 
     /** What the drawing told of each viewer after each redraw: their windows, or null for a drawing gone with them. */
