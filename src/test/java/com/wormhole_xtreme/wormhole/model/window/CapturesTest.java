@@ -406,14 +406,14 @@ class CapturesTest
 
 
     /**
-     * A captures folder left beside the mirror file by an earlier build is moved under mirror/.
+     * A captures folder left beside the mirror file by an earlier build is moved under captures/.
      *
-     * <p>Captures moved from data/mirror-captures/ to data/mirror/captures/ so that whatever
-     * else mirrors keep has a folder to go in. The old folder is moved rather than abandoned,
+     * <p>Captures moved from data/mirror-captures/ to data/captures/mirrors/ (#655), apart from
+     * the saved gates. The old folder is moved rather than abandoned,
      * so nobody's captures are left behind to puzzle over.
      */
     @Test
-    void anEarlierBuildsCaptureFolderIsMovedUnderMirror() throws IOException
+    void anEarlierBuildsCaptureFolderIsMovedUnderCaptures() throws IOException
     {
         final File data = new File(dataFolder, "data");
         final File earlier = new File(data, "mirror-captures");
@@ -423,7 +423,7 @@ class CapturesTest
 
         final File dir = DataLayout.mirrorCaptureDir();
 
-        assertEquals(new File(new File(data, "mirror"), "captures"), dir);
+        assertEquals(new File(new File(data, "captures"), "mirrors"), dir);
         assertTrue(new File(dir, "world_1_2_3.view").isFile(), "the file came along");
         assertFalse(earlier.exists(), "and the old folder is gone");
     }
