@@ -131,7 +131,7 @@ public final class Captures
      * {@code view-depth} to make a mirror cheaper cut every capture to match, and raising
      * it again meant taking every one again, loading each room's world for a few seconds. The
      * reach is the capture's own now, and the depth says how much of it a view draws
-     * ({@code Windows.fixedTo}), so the depth can change without a capture being touched.
+     * ({@code FixedView.fixedTo}), so the depth can change without a capture being touched.
      * Never past {@link #MOST_REACH}: a box that size is what the bits of a capture being taken
      * are sized for, and past ten chunks a client has nothing to show anyway.
      *

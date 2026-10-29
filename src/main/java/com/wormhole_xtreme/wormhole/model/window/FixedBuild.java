@@ -18,7 +18,7 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  * <p>Built in one go, the walk behind a mirror's opening took 300 to 800 ms of one tick, once a
  * minute per watched window. A step is sixteen columns of the capture at most, or one column of the
  * volume behind the opening for a capture without seen air, or one layer of the tunnel;
- * {@link FixedBuilds} runs as many a tick as its budget allows. The blocks are those {@link Windows#fixedTo} gives: the same cells, read the same way,
+ * {@link FixedBuilds} runs as many a tick as its budget allows. The blocks are those {@link FixedView#fixedTo} gives: the same cells, read the same way,
  * with the depth cut by a quarter and the walk begun again whenever the view will not fit.
  *
  * <p>The only live-world read is whether a real block behind the opening is empty, where the far
@@ -107,7 +107,7 @@ final class FixedBuild
         this.here = window.anchor().getWorld();
         this.shape = window.shape;
         this.capture = window.capture;
-        this.centre = Windows.centreOf(shape);
+        this.centre = FixedView.centreOf(shape);
         this.min = here.getMinHeight();
         this.max = here.getMaxHeight();
         begin(configured);
@@ -262,7 +262,7 @@ final class FixedBuild
         final Funnel funnel = window.source.funnel();
         if (!over && (funnel != null) && (tunnelLayer < Math.min(depth, funnel.taper())))
         {
-            Windows.tunnelLayer(window, view, tunnelLayer, depth, Windows.now());
+            FixedView.tunnelLayer(window, view, tunnelLayer, depth, Windows.now());
             tunnelLayer++;
             return;
         }
@@ -281,7 +281,7 @@ final class FixedBuild
         finished = true;
     }
 
-    /** One block the capture kept, as {@link Windows#fixedTo} draws it for a capture with seen air. */
+    /** One block the capture kept, as {@link FixedView#fixedTo} draws it for a capture with seen air. */
     private void keptAt(final int fx, final int fy, final int fz, final boolean farAir)
     {
         cellsLastStep++;
@@ -305,7 +305,7 @@ final class FixedBuild
         }
         if (!farAir)
         {
-            view.put(Cells.key(hereX, y, hereZ), Windows.turned(window, capture.at(fx, fy, fz)));
+            view.put(Cells.key(hereX, y, hereZ), FixedView.turned(window, capture.at(fx, fy, fz)));
         }
         else if (!reallyEmpty(hereX, y, hereZ))
         {
@@ -335,7 +335,7 @@ final class FixedBuild
     }
 
     /**
-     * One column of the volume behind the opening, as {@link Windows#fixedTo} walks it for a complete
+     * One column of the volume behind the opening, as {@link FixedView#fixedTo} walks it for a complete
      * capture: every block of it inside the depth.
      *
      * @return true once the last column is walked
@@ -380,7 +380,7 @@ final class FixedBuild
         }
         if (!capture.isAir(fx, fy, fz))
         {
-            view.put(Cells.key(x, y, z), Windows.turned(window, capture.at(fx, fy, fz)));
+            view.put(Cells.key(x, y, z), FixedView.turned(window, capture.at(fx, fy, fz)));
         }
         else if (!reallyEmpty(x, y, z))
         {

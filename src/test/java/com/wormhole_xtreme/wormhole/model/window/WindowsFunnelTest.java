@@ -175,7 +175,7 @@ class WindowsFunnelTest
     @Test
     void aViewWalkedThroughTheVolumeIsAHollowWalledTunnelThenTheRoom()
     {
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel(16)), solidEverywhere()), 16,
+        final Map<Long, BlockData> view = FixedView.fixedTo(new WindowState(gate(funnel(16)), solidEverywhere()), 16,
             Integer.MAX_VALUE);
 
         assertSame(air, view.get(key(TUNNEL)), "the tunnel is hollow, though the far side is stone everywhere");
@@ -204,7 +204,7 @@ class WindowsFunnelTest
     {
         final Funnel funnel = funnel(16);
         final WindowShape shape = shapeFor(funnel);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16,
+        final Map<Long, BlockData> view = FixedView.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16,
             Integer.MAX_VALUE);
         int stones = 0;
         int walls = 0;
@@ -245,7 +245,7 @@ class WindowsFunnelTest
     {
         final Funnel funnel = funnel(16);
         final Spot arrival = new Spot(100, 70, 200);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16,
+        final Map<Long, BlockData> view = FixedView.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16,
             Integer.MAX_VALUE);
 
         assertEquals(arrival, shapeFor(funnel).farOf(15, 64, 11), "nine layers in, on the middle column and bottom row");
@@ -258,7 +258,7 @@ class WindowsFunnelTest
     {
         final Funnel funnel = funnel(16);
         final WindowShape shape = shapeFor(funnel);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel),
+        final Map<Long, BlockData> view = FixedView.fixedTo(new WindowState(gate(funnel),
             keptAtFar(farOf(shape, INSIDE, OUTSIDE, TUNNEL))), 16, Integer.MAX_VALUE);
 
         assertSame(stone, view.get(key(INSIDE)), "kept inside the room");
@@ -270,9 +270,9 @@ class WindowsFunnelTest
     @Test
     void withNoFunnelTheWholeViewIsDrawnAndNoWall()
     {
-        final Map<Long, BlockData> walked = Windows.fixedTo(new WindowState(gate(null), solidEverywhere()), 16,
+        final Map<Long, BlockData> walked = FixedView.fixedTo(new WindowState(gate(null), solidEverywhere()), 16,
             Integer.MAX_VALUE);
-        final Map<Long, BlockData> kept = Windows.fixedTo(new WindowState(gate(null), keptAtFar(farOf(BIG, INSIDE, OUTSIDE))),
+        final Map<Long, BlockData> kept = FixedView.fixedTo(new WindowState(gate(null), keptAtFar(farOf(BIG, INSIDE, OUTSIDE))),
             16, Integer.MAX_VALUE);
 
         assertSame(stone, walked.get(key(OUTSIDE)), "same-size and small-to-large views are as they were");
@@ -287,23 +287,23 @@ class WindowsFunnelTest
     {
         final WindowState window = new WindowState(gate(funnel(16)), solidEverywhere());
 
-        final Map<Long, BlockData> view = Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE);
+        final Map<Long, BlockData> view = FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE);
 
         assertSame(water, view.get(key(BIG.behind(8, 2, -2))), "the collar's corner");
         assertSame(water, view.get(key(BIG.behind(7, 2, 0))), "a layer before it");
-        assertNull(Windows.tunnelled(window, new HashMap<>(), 7, 0L, Integer.MAX_VALUE).get(key(BIG.behind(7, 2, 0))),
+        assertNull(FixedView.tunnelled(window, new HashMap<>(), 7, 0L, Integer.MAX_VALUE).get(key(BIG.behind(7, 2, 0))),
             "none at the depth");
-        final Map<Long, BlockData> ten = Windows.tunnelled(window, new HashMap<>(), 10, 0L, Integer.MAX_VALUE);
+        final Map<Long, BlockData> ten = FixedView.tunnelled(window, new HashMap<>(), 10, 0L, Integer.MAX_VALUE);
         assertSame(water, ten.get(key(BIG.behind(8, 2, 1))), "inside a depth of ten from the opening's middle");
         assertNull(ten.get(key(BIG.behind(8, 2, -2))), "past it, though short of ten layers");
         assertSame(water, view.get(key(BIG.behind(5, 5, -1))), "the tunnel's floor, above the world's");
         assertSame(water, view.get(key(BIG.behind(5, 1, 0))), "a side, on the bottom row");
         when(world.getMinHeight()).thenReturn(64);
-        assertNull(Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(BIG.behind(5, 5, -1))),
+        assertNull(FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(BIG.behind(5, 5, -1))),
             "never below the world's floor");
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getMaxHeight()).thenReturn(64);
-        assertNull(Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(BIG.behind(5, 1, 0))),
+        assertNull(FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(BIG.behind(5, 1, 0))),
             "nor at or above its ceiling");
     }
 
@@ -312,32 +312,32 @@ class WindowsFunnelTest
     {
         final WindowState window = new WindowState(gate(funnel(16)), solidEverywhere());
 
-        assertSame(air, Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(TUNNEL)));
-        assertNull(Windows.tunnelled(window, new HashMap<>(), 3, 0L, Integer.MAX_VALUE).get(key(TUNNEL)),
+        assertSame(air, FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(TUNNEL)));
+        assertNull(FixedView.tunnelled(window, new HashMap<>(), 3, 0L, Integer.MAX_VALUE).get(key(TUNNEL)),
             "a view three deep holds none of the tunnel's third layer");
         when(world.getMaxHeight()).thenReturn(70);
-        assertNull(Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(TUNNEL)),
+        assertNull(FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(TUNNEL)),
             "nor above the world's ceiling");
         when(world.getMaxHeight()).thenReturn(320);
         when(world.getName()).thenReturn("world");
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(60);
         WindowSight.clear();
-        assertNull(Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(TUNNEL)),
+        assertNull(FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(TUNNEL)),
             "nor where the real world is already empty: nothing to send");
     }
 
     @Test
-    void aTunnelThatTakesTheViewPastItsLimitIsTooMany() throws ReflectiveOperationException
+    void aTunnelThatTakesTheViewPastItsLimitIsTooMany()
     {
-        final Map<Long, BlockData> tooMany = PrivateStatics.of(Windows.class, "TOO_MANY");
+        final Map<Long, BlockData> tooMany = FixedView.TOO_MANY;
         final WindowState window = new WindowState(gate(funnel(16)), solidEverywhere());
 
-        assertSame(tooMany, Windows.tunnelled(window, new HashMap<>(), 16, 0L, 10), "cut shallower, as any view past its limit");
-        final Map<Long, BlockData> view = Windows.tunnelled(window, new HashMap<>(), 16, 0L, 100_000);
+        assertSame(tooMany, FixedView.tunnelled(window, new HashMap<>(), 16, 0L, 10), "cut shallower, as any view past its limit");
+        final Map<Long, BlockData> view = FixedView.tunnelled(window, new HashMap<>(), 16, 0L, 100_000);
         assertNotNull(view);
         assertTrue(view.size() > 10, view.size() + " tunnel blocks fit under a limit that big");
-        assertSame(tooMany, Windows.tunnelled(window, tooMany, 16, 0L, 100_000), "a view already past its limit stays so");
+        assertSame(tooMany, FixedView.tunnelled(window, tooMany, 16, 0L, 100_000), "a view already past its limit stays so");
     }
 
     /**
@@ -364,7 +364,7 @@ class WindowsFunnelTest
 
         Windows.offer(gate(funnel(16)), capture);
         assertSame(room, offered.get("gate:Abydos").fixed, "the same funnel: kept");
-        assertTrue(Windows.fixedIsFresh(offered.get("gate:Abydos"), now), "and drawn as it is");
+        assertTrue(FixedView.fixedIsFresh(offered.get("gate:Abydos"), now), "and drawn as it is");
 
         final Funnel same = funnel(16);
         final List<Spot> open = new ArrayList<>();
@@ -373,7 +373,7 @@ class WindowsFunnelTest
             same.farShape());
         Windows.offer(new GateSource("gate:Abydos", anchor, shapeFor(lava), open, ARRIVAL, "Chulak", 16, lava), capture);
         assertSame(room, offered.get("gate:Abydos").fixed, "another funnel on the same shape: drawn meanwhile");
-        assertFalse(Windows.fixedIsFresh(offered.get("gate:Abydos"), now), "but built again");
+        assertFalse(FixedView.fixedIsFresh(offered.get("gate:Abydos"), now), "but built again");
         Windows.offer(gate(funnel(4)), capture);
         assertNull(offered.get("gate:Abydos").fixed, "a shorter tunnel moves the far side: another shape, nothing kept");
         Windows.offer(gate(null), capture);
@@ -445,7 +445,7 @@ class WindowsFunnelTest
     {
         final Spot ring = BIG.behind(1, -1, 5);
         final WindowState window = new WindowState(gate(funnel(16)), solidEverywhere());
-        assertSame(water, Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(ring)),
+        assertSame(water, FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).get(key(ring)),
             "beside the first layer, with no gate known: the wall");
         final Stargate abydos = mock(Stargate.class);
         when(abydos.getGateStructureBlocks()).thenReturn(List.of(new Location(null, ring.x(), ring.y(), ring.z())));
@@ -453,7 +453,7 @@ class WindowsFunnelTest
         {
             manager.when(() -> StargateManager.getStargate("Abydos")).thenReturn(abydos);
 
-            final Map<Long, BlockData> view = Windows.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE);
+            final Map<Long, BlockData> view = FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE);
 
             assertFalse(view.containsKey(key(ring)), "a block of the gate's frame there is left as it is");
             assertSame(water, view.get(key(BIG.behind(1, -1, 4))), "the wall beside it is drawn");
@@ -478,9 +478,9 @@ class WindowsFunnelTest
         }
         final Funnel funnel = Funnel.of(BIG, null, same, 16, 3, Material.WATER);
         final Spot arrival = new Spot(100, 70, 200);
-        final Map<Long, BlockData> view = Windows.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16,
+        final Map<Long, BlockData> view = FixedView.fixedTo(new WindowState(gate(funnel), solidEverywhere()), 16,
             Integer.MAX_VALUE);
-        final Map<Long, BlockData> landing = Windows.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16,
+        final Map<Long, BlockData> landing = FixedView.fixedTo(new WindowState(gate(funnel), keptAtFar(arrival)), 16,
             Integer.MAX_VALUE);
 
         assertEquals(7, funnel.taper(), "three fifths of eleven, to the nearest");

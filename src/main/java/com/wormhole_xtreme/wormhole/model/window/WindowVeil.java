@@ -83,7 +83,7 @@ final class WindowVeil
         for (final WindowState window : seeing)
         {
             final Windows.Whole whole = fixed.get(window);
-            final boolean inView = (whole != null) ? Windows.insideFixed(window, x, y, z, whole.depth())
+            final boolean inView = (whole != null) ? FixedView.insideFixed(window, x, y, z, whole.depth())
                 : seenAndCovered(eye, window, x, y, z, seeing, allOpen);
             if (inView)
             {
@@ -106,7 +106,7 @@ final class WindowVeil
         for (final WindowState window : seeing)
         {
             final Windows.Whole whole = fixed.get(window);
-            final boolean seen = (whole != null) ? Windows.insideFixed(window, x, y, z, whole.depth())
+            final boolean seen = (whole != null) ? FixedView.insideFixed(window, x, y, z, whole.depth())
                 : (WindowOcclusion.seenThrough(eye, window, x, y, z, seeing, 0.0) != WindowShape.UNSEEN);
             if (seen)
             {

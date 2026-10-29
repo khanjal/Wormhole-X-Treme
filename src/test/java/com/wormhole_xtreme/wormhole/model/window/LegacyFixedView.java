@@ -34,8 +34,8 @@ final class LegacyFixedView
         {
             return TOO_MANY;
         }
-        final Map<Long, BlockData> tunnelled = Windows.tunnelled(window, view, depth, now, most);
-        return Windows.tooMany(tunnelled) ? TOO_MANY : tunnelled;
+        final Map<Long, BlockData> tunnelled = FixedView.tunnelled(window, view, depth, now, most);
+        return FixedView.tooMany(tunnelled) ? TOO_MANY : tunnelled;
     }
 
     /** As the old {@code fixedView} cut it: a quarter shallower until it fits, empty past four. */
@@ -58,7 +58,7 @@ final class LegacyFixedView
         final WindowShape shape = window.shape;
         final Capture capture = window.capture;
         final World here = window.anchor().getWorld();
-        final double[] centre = Windows.centreOf(shape);
+        final double[] centre = FixedView.centreOf(shape);
         final int min = here.getMinHeight();
         final int max = here.getMaxHeight();
         final BlockData air = Bukkit.createBlockData(Material.AIR);
@@ -89,7 +89,7 @@ final class LegacyFixedView
             }
             if (!farAir)
             {
-                view.put(Cells.key(x, y, z), Windows.turned(window, capture.at(fx, fy, fz)));
+                view.put(Cells.key(x, y, z), FixedView.turned(window, capture.at(fx, fy, fz)));
             }
             else if (!WindowSight.reallyEmpty(here, x, y, z, now))
             {
@@ -148,7 +148,7 @@ final class LegacyFixedView
             this.alongX = shape.into().x() != 0;
             this.sign = alongX ? shape.into().x() : shape.into().z();
             this.baseAlong = alongX ? shape.base().x() : shape.base().z();
-            this.centre = Windows.centreOf(shape);
+            this.centre = FixedView.centreOf(shape);
             this.centreAcross = centre[alongX ? 2 : 0];
             this.min = here.getMinHeight();
             this.max = here.getMaxHeight();
@@ -183,7 +183,7 @@ final class LegacyFixedView
             }
             if (!capture.isAir(at.x(), at.y(), at.z()))
             {
-                view.put(Cells.key(x, y, z), Windows.turned(window, capture.at(at.x(), at.y(), at.z())));
+                view.put(Cells.key(x, y, z), FixedView.turned(window, capture.at(at.x(), at.y(), at.z())));
             }
             else if (!WindowSight.reallyEmpty(here, x, y, z, now))
             {

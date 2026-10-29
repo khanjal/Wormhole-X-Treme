@@ -38,7 +38,7 @@ import org.bukkit.event.world.StructureGrowEvent;
  * answers each from one empty check. Then {@link Windows#changed} answers a block nowhere near a
  * held view from one lookup. What no event reports -- a command's fill, WorldEdit, a dispenser, a
  * block that pops off, this plugin's own block writes, a chunk generated beside the view -- is
- * caught by the views' long backstop ({@link Windows#BACKSTOP_MILLIS}).
+ * caught by the views' long backstop ({@link FixedView#BACKSTOP_MILLIS}).
  *
  * <p>{@code BlockSpreadEvent} and {@code BlockFormEvent} each have their own handler list, so the
  * subclass is heard once, by its own handler; the same holds for {@code BlockGrowEvent}.
