@@ -4,8 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.bukkit.block.BlockState;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +42,24 @@ class WindowStoreTest
     {
         Windows.clear();
         PluginTestSupport.remove();
+    }
+
+    /**
+     * A field added to the store is a field this test has to know about.
+     *
+     * <p>The reset test below names its fields by hand, so a new one forgotten in both
+     * {@code clear()} and that test would pass. Listing the store's fields here makes adding one a
+     * visible decision: reset it and assert it, or say it is left alone like the two below.
+     */
+    @Test
+    void theStoreHoldsExactlyTheFieldsThisTestKnowsAbout()
+    {
+        final Set<String> held = Arrays.stream(WindowStore.class.getDeclaredFields()).map(Field::getName)
+            .collect(Collectors.toCollection(TreeSet::new));
+
+        assertEquals(new TreeSet<>(Arrays.asList("ACTIVE", "BLIND", "CHANGED", "FIRST_CHANGED", "FULL", "OFFERED",
+            "STATES", "VIEWS", "changes", "sweepRoomBlocks", "sweeps", "workSecond", "workSpent",
+            "trimmedAt", "drawnListener")), held, "reset in clear() and below, or left alone: trimmedAt, drawnListener");
     }
 
     /** Every table and counter in the store is empty or zero again after a clear. */
