@@ -45,14 +45,11 @@ import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
@@ -142,7 +139,7 @@ public final class Windows
     static final int SURROUND = 8;
 
     /** The most of a block's outline that may land beside the opening for it to be drawn. */
-    private static final double MOST_BESIDE = 0.05;
+    static final double MOST_BESIDE = 0.05;
 
     /** The same for a block already drawn, so a step does not take it away and the next give it back. */
     private static final double KEPT_BESIDE = 0.15;
@@ -798,7 +795,7 @@ public final class Windows
         }
         final UUID id = player.getUniqueId();
         final ViewerDrawing view = VIEWS.get(id);
-        if ((view == null) && !nearAWindow(player, to))
+        if ((view == null) && !WindowViewers.nearAWindow(player, to))
         {
             return;
         }
@@ -1077,7 +1074,7 @@ public final class Windows
                 // All of it now: no tick is coming to stream the rest.
                 send(player, entry.getValue(), new HashMap<>(), player.getEyeLocation(), now, false, Set.of());
                 stream(player, entry.getValue(), Integer.MAX_VALUE);
-                veil(player, entry.getValue(), List.of());
+                WindowVeil.veil(player, entry.getValue(), List.of());
             }
         }
         clear();
@@ -1170,7 +1167,7 @@ public final class Windows
     {
         final UUID id = player.getUniqueId();
         ViewerDrawing view = viewInWorld(id, player);
-        final List<WindowState> seeing = seenBy(player, eye);
+        final List<WindowState> seeing = WindowViewers.seenBy(player, eye);
         if (view == null)
         {
             if (seeing.isEmpty())
@@ -1223,7 +1220,7 @@ public final class Windows
         final Map<Long, BlockData> wanted = compose(view, eye, seeing, wholes, now, inside, budget);
         workSpent += budget.projected;
         send(player, view, wanted, eye, now, (now - view.fullAt) >= RESEND_MILLIS, freshChunks(player, view.chunk, chunk));
-        veil(player, view, inside);
+        WindowVeil.veil(player, view, inside);
         // After the send, so a stand-in's floor is judged by what the viewer has just been drawn.
         showStandIns(player, view, eye, seeing, wholes, now);
         final long took = now() - now;
@@ -1478,7 +1475,7 @@ public final class Windows
         final Set<WindowState> drawn = new HashSet<>(fixed.keySet());
         drawn.addAll(wholes.clipped().keySet());
         final Predicate<FarCreatures.Wanted> kept =
-            wanted -> !drawn.contains(wanted.window()) || stillSeen(eye, wanted.here(), seeing, fixed);
+            wanted -> !drawn.contains(wanted.window()) || WindowVeil.stillSeen(eye, wanted.here(), seeing, fixed);
         final List<FarCreatures.Wanted> inRoom = new ArrayList<>();
         view.tallies.clear();
         for (final WindowState window : nearestFirst(seeing, eye))
@@ -1494,7 +1491,7 @@ public final class Windows
         // The costly view test runs nearest first and stops at the cap: a farm far off costs a sort, not a projection each.
         final List<FarCreatures.Wanted> chosen = FarCreatures.choose(inRoom, eye, FarCreatures.MOST_PER_VIEWER,
             FarCreatures.keepOrShow(view.standIns.keySet(), kept,
-                wanted -> drawn.contains(wanted.window()) && inAnyView(eye, wanted.here(), seeing, fixed, allOpen)));
+                wanted -> drawn.contains(wanted.window()) && WindowVeil.inAnyView(eye, wanted.here(), seeing, fixed, allOpen)));
         chosen.forEach(wanted -> view.tallies.get(wanted.window().name()).shown++);
         return chosen;
     }
@@ -1732,89 +1729,6 @@ public final class Windows
     }
 
     /**
-     * The windows a player is close enough to, in front of, and can actually see, in a stable
-     * order.
-     *
-     * <p>Seeing means a clear line from the eye to some open block of the opening, through the
-     * real world. Without that, somebody in a corridor was "in front of" every alcove mirror on
-     * the same wall, and a redraw spent its whole budget walking the cones of four mirrors the
-     * corridor walls hid from them, cutting short the one they were looking at.
-     */
-    private static List<WindowState> seenBy(final Player player, final Location eye)
-    {
-        final double radius = ConfigManager.getMirrorProximityDistance();
-        final Location at = player.getLocation();
-        final long now = now();
-        final List<WindowState> seeing = new ArrayList<>();
-        if (BLIND.contains(player.getUniqueId()))
-        {
-            return seeing;
-        }
-        final String fullName = FULL.get(player.getUniqueId());
-        for (final WindowState window : ACTIVE.values())
-        {
-            // A mirror drawn whole for an admin stays drawn wherever they stand, looking or not,
-            // so they can walk round what the capture holds.
-            if (!window.open.isEmpty() && window.name().equals(fullName)
-                && window.anchor().getWorld().equals(player.getWorld()))
-            {
-                seeing.add(window);
-                continue;
-            }
-            if (!window.open.isEmpty() && window.anchor().getWorld().equals(player.getWorld())
-                && (fromBanner(window.anchor(), at.getX(), at.getY(), at.getZ()) <= (radius * radius))
-                && window.shape.inFront(eye.getX(), eye.getZ())
-                && canSee(player.getWorld(), eye, window, now))
-            {
-                seeing.add(window);
-            }
-        }
-        seeing.sort(Comparator.comparing(WindowState::name));
-        return seeing;
-    }
-
-    /**
-     * Most lines of sight tried to one window's opening per redraw.
-     *
-     * <p>A Grand gate's opening is 274 cells. Every one of them blocked -- somebody behind a wall in
-     * front of a gate -- cost some 80 ms a redraw where a Large gate's 52 had cost about 14.
-     */
-    static final int MOST_SIGHT_LINES = 64;
-
-    /**
-     * Whether a clear line runs from an eye to any open block of a window's opening: to every block of
-     * one up to {@link #MOST_SIGHT_LINES}, and to that many spread evenly over a bigger one.
-     */
-    static boolean canSee(final World here, final Location eye, final WindowState window,
-        final long now)
-    {
-        final int stride = Math.max(1, (window.open.size() + MOST_SIGHT_LINES - 1) / MOST_SIGHT_LINES);
-        for (int i = 0; i < window.open.size(); i += stride)
-        {
-            if (WindowSight.clearLine(here, eye, window.open.get(i), window.shape.into(), now))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** Whether somebody not yet looking into anything has just come within range of a window. */
-    private static boolean nearAWindow(final Player player, final Location to)
-    {
-        final double radius = ConfigManager.getMirrorProximityDistance();
-        for (final WindowState window : ACTIVE.values())
-        {
-            if (window.anchor().getWorld().equals(player.getWorld())
-                && (fromBanner(window.anchor(), to.getX(), to.getY(), to.getZ()) <= (radius * radius)))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Every block one viewer should be shown, and what as; and every creature of their own world
      * standing inside the view, to be hidden from them.
      *
@@ -1873,7 +1787,7 @@ public final class Windows
         }
         if (!seeing.isEmpty())
         {
-            creaturesInside(seeing.get(0).anchor().getWorld(), eye, deepest(seeing), seeing, fixed,
+            WindowVeil.creaturesInside(seeing.get(0).anchor().getWorld(), eye, deepest(seeing), seeing, fixed,
                 allOpen, inside);
         }
         return wanted;
@@ -2703,138 +2617,6 @@ public final class Windows
         return ((dx * dx) + (dy * dy) + (dz * dz)) < ((double) depth * depth);
     }
 
-    /**
-     * The viewer's own world's creatures standing inside the view.
-     *
-     * <p>A drawn block hides what is behind it, but a creature is not a block: an armour stand
-     * on the real side kept standing in the middle of the far side. Anything within the radius
-     * whose position is seen through an opening is hidden from the viewer, and shown again when
-     * it is not. Other players are left alone: hiding one would take them off the tab list too.
-     */
-    private static void creaturesInside(final World here, final Location eye, final int radius,
-        final List<WindowState> seeing, final Map<WindowState, Whole> fixed, final Set<Long> allOpen,
-        final List<Entity> inside)
-    {
-        // Depth is from the opening, and the eye may be the proximity distance from that.
-        final double reach = Math.max(radius, ConfigManager.getViewDepth())
-            + ConfigManager.getMirrorProximityDistance() + 1.0;
-        for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
-        {
-            if (veilable(entity) && inAnyView(eye, entity.getLocation(), seeing, fixed, allOpen))
-            {
-                inside.add(entity);
-            }
-        }
-    }
-
-    /**
-     * Whether a mirror may hide this entity from a viewer.
-     *
-     * <p>Not a player, which would drop off the tab list. Not anything else that is already hidden
-     * by default for somebody: a preview's displays and their interactions, and the companion, whom
-     * a hide takes from her owner and the later show hands to a stranger.
-     *
-     * @param entity
-     *            an entity near the viewer
-     * @return true if a mirror may veil it
-     */
-    static boolean veilable(final Entity entity)
-    {
-        return !(entity instanceof Player)
-            && !(entity instanceof Display)
-            && !(entity instanceof Interaction)
-            && !FreyaCompanion.isCompanion(entity)
-            && !StandIns.isStandIn(entity);
-    }
-
-    /** Whether a place is inside the view through any of these windows, as {@link #creaturesInside} judges it. */
-    private static boolean inAnyView(final Location eye, final Location at, final List<WindowState> seeing,
-        final Map<WindowState, Whole> fixed, final Set<Long> allOpen)
-    {
-        final int x = at.getBlockX();
-        final int y = at.getBlockY();
-        final int z = at.getBlockZ();
-        for (final WindowState window : seeing)
-        {
-            final Whole whole = fixed.get(window);
-            final boolean inView = (whole != null) ? insideFixed(window, x, y, z, whole.depth())
-                : seenAndCovered(eye, window, x, y, z, seeing, allOpen);
-            if (inView)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * The looser test a stand-in already shown is kept by: seen through an opening at all, the wall
-     * hiding its outline or not, so one at the edge of the view is not spawned and removed each step.
-     */
-    private static boolean stillSeen(final Location eye, final Location at, final List<WindowState> seeing,
-        final Map<WindowState, Whole> fixed)
-    {
-        final int x = at.getBlockX();
-        final int y = at.getBlockY();
-        final int z = at.getBlockZ();
-        for (final WindowState window : seeing)
-        {
-            final Whole whole = fixed.get(window);
-            final boolean seen = (whole != null) ? insideFixed(window, x, y, z, whole.depth())
-                : (WindowOcclusion.seenThrough(eye, window, x, y, z, seeing, 0.0) != WindowShape.UNSEEN);
-            if (seen)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** Whether a block is seen through a clipped window from an eye and lands where the wall hides the rest. */
-    private static boolean seenAndCovered(final Location eye, final WindowState window, final int x, final int y,
-        final int z, final List<WindowState> seeing, final Set<Long> allOpen)
-    {
-        final double[] rect = WindowOcclusion.seenThrough(eye, window, x, y, z, seeing, 0.0);
-        return (rect != WindowShape.UNSEEN) && WindowOcclusion.coveredBy(window, rect, allOpen, Set.of(), MOST_BESIDE);
-    }
-
-    /** Hides from a viewer what is now inside their view, and shows again what no longer is. */
-    private static void veil(final Player player, final ViewerDrawing view, final List<Entity> inside)
-    {
-        final Map<UUID, Entity> now = new HashMap<>();
-        inside.forEach(entity -> now.put(entity.getUniqueId(), entity));
-        for (final Map.Entry<UUID, Entity> entry : view.veiled.entrySet())
-        {
-            if (!now.containsKey(entry.getKey()))
-            {
-                try
-                {
-                    player.showEntity(WormholeXTreme.getThisPlugin(), entry.getValue());
-                }
-                catch (final RuntimeException gone)
-                {
-                    // An entity that has since left the world is nothing to show.
-                }
-            }
-        }
-        for (final Map.Entry<UUID, Entity> entry : now.entrySet())
-        {
-            if (!view.veiled.containsKey(entry.getKey()))
-            {
-                try
-                {
-                    player.hideEntity(WormholeXTreme.getThisPlugin(), entry.getValue());
-                }
-                catch (final RuntimeException refused)
-                {
-                    now.remove(entry.getKey());
-                }
-            }
-        }
-        view.veiled.clear();
-        view.veiled.putAll(now);
-    }
-
     /** What one redraw did, across every window a viewer sees. */
     private static final class Budget
     {
@@ -2859,7 +2641,7 @@ public final class Windows
     }
 
     /** How far a point is from a banner block's corner, squared, without making a Location per ask. */
-    private static double fromBanner(final Block banner, final double x, final double y, final double z)
+    static double fromBanner(final Block banner, final double x, final double y, final double z)
     {
         final double dx = x - banner.getX();
         final double dy = y - banner.getY();

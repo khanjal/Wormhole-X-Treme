@@ -564,7 +564,7 @@ class WindowsGateTest
     }
 
     /**
-     * Whether a viewer can see into a big gate tries at most {@link Windows#MOST_SIGHT_LINES} lines of sight.
+     * Whether a viewer can see into a big gate tries at most {@link WindowViewers#MOST_SIGHT_LINES} lines of sight.
      *
      * <p>It tried every cell of the opening, on the main thread, each redraw: for somebody behind a
      * wall in front of a Grand gate, 274 blocked lines, some 80 ms a redraw against a Large gate's 14.
@@ -580,13 +580,13 @@ class WindowsGateTest
             sight.when(() -> WindowSight.clearLine(any(), any(), any(), any(), anyLong()))
                 .thenAnswer(call -> (lines.incrementAndGet() < 0));
 
-            assertFalse(Windows.canSee(world, eye, windowOf(18, 17), 0L), "every line blocked");
+            assertFalse(WindowViewers.canSee(world, eye, windowOf(18, 17), 0L), "every line blocked");
             final int grand = lines.getAndSet(0);
-            assertFalse(Windows.canSee(world, eye, windowOf(8, 8), 0L));
+            assertFalse(WindowViewers.canSee(world, eye, windowOf(8, 8), 0L));
             final int large = lines.get();
 
-            assertTrue(grand <= Windows.MOST_SIGHT_LINES, grand + " lines into 306 cells, not every one");
-            assertTrue(grand >= (Windows.MOST_SIGHT_LINES / 2), grand + " lines, spread over the opening");
+            assertTrue(grand <= WindowViewers.MOST_SIGHT_LINES, grand + " lines into 306 cells, not every one");
+            assertTrue(grand >= (WindowViewers.MOST_SIGHT_LINES / 2), grand + " lines, spread over the opening");
             assertEquals(64, large, "an opening of 64 cells is tried at every one, as before");
         }
     }

@@ -101,7 +101,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 ### Internals
 
-- The window drawing's shared state moved out of `Windows` into `WindowStore`, the first step in splitting that class by subsystem; nothing a player or admin sees changes ([#430](https://github.com/khanjal/Wormhole-X-Treme/issues/430)).
+- The window drawing's shared state, the hiding of creatures inside a view and the question of which windows a player can see moved out of `Windows` into `WindowStore`, `WindowVeil` and `WindowViewers`, the first steps in splitting that class by subsystem; nothing a player or admin sees changes ([#430](https://github.com/khanjal/Wormhole-X-Treme/issues/430)).
 
 ## 1.12.0 (2026-10-25)
 
