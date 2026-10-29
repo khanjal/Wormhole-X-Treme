@@ -188,11 +188,6 @@ class WindowCreaturesTest
         return new WindowCompose.Wholes(whole, new HashMap<>());
     }
 
-    private static WindowCompose.Wholes drawnClipped(final WindowState window)
-    {
-        return new WindowCompose.Wholes(new HashMap<>(), Map.of(window, new Windows.Whole(new HashMap<>(), 1)));
-    }
-
     private Location eye()
     {
         return new Location(here, 10.5, 65.5, 24.5);
