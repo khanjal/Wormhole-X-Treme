@@ -264,7 +264,8 @@ class WindowVeilTest
     /**
      * Two or more refused in one redraw are all left out, and the one that was not refused is kept (#716).
      *
-     * <p>Taking one out of the map being looped over threw on the next creature, out of the redraw.
+     * <p>Taking one out of the map being looped over threw on whichever creature came next, out of the
+     * redraw; one refusal was enough when another creature followed it, and three of four makes that certain.
      */
     @Test
     void severalCreaturesTheServerWillNotHideDoNotBreakTheRedraw()
