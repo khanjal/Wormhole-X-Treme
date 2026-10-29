@@ -350,8 +350,8 @@ class WindowsFunnelTest
         final Capture capture = solidEverywhere();
         Windows.offer(gate(funnel(16)), capture);
         Windows.finish();
-        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
-        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+        final Map<String, WindowState> active = PrivateStatics.of(WindowStore.class, "ACTIVE");
+        final Map<String, WindowState> offered = PrivateStatics.of(WindowStore.class, "OFFERED");
         final Map<Long, BlockData> room = new HashMap<>();
         final long now = Windows.now();
         final WindowState held = active.get("gate:Abydos");
@@ -385,7 +385,7 @@ class WindowsFunnelTest
     void anAdminsWholeViewIsLetGoWhenTheFunnelChanges() throws ReflectiveOperationException
     {
         final Capture capture = solidEverywhere();
-        final Map<UUID, String> full = PrivateStatics.of(Windows.class, "FULL");
+        final Map<UUID, String> full = PrivateStatics.of(WindowStore.class, "FULL");
         full.put(UUID.randomUUID(), "gate:Abydos");
         // The same shape both ways: only the funnel differs.
         final Funnel longer = funnel(16);
@@ -395,8 +395,8 @@ class WindowsFunnelTest
         BIG.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
         Windows.offer(gate(longer), capture);
         Windows.finish();
-        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
-        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+        final Map<String, WindowState> active = PrivateStatics.of(WindowStore.class, "ACTIVE");
+        final Map<String, WindowState> offered = PrivateStatics.of(WindowStore.class, "OFFERED");
         final Windows.Whole whole = new Windows.Whole(new HashMap<>(), 16);
         active.get("gate:Abydos").full = whole;
         active.get("gate:Abydos").fullFrom = capture;

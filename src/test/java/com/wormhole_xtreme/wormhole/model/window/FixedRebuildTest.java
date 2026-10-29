@@ -192,7 +192,7 @@ class FixedRebuildTest
     private static Map<String, WindowState> held() throws ReflectiveOperationException
     {
         Windows.finish();
-        return PrivateStatics.of(Windows.class, "ACTIVE");
+        return PrivateStatics.of(WindowStore.class, "ACTIVE");
     }
 
     /** Gives a held window a room built at a time, as a finished build would. */

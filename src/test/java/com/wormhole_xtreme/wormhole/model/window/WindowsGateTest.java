@@ -268,8 +268,8 @@ class WindowsGateTest
         Captures.install(key(), first);
         assertTrue(GateSource.offer(gate, false));
         Windows.finish();
-        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
-        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+        final Map<String, WindowState> active = PrivateStatics.of(WindowStore.class, "ACTIVE");
+        final Map<String, WindowState> offered = PrivateStatics.of(WindowStore.class, "OFFERED");
         final Map<Long, BlockData> room = new HashMap<>();
         final long now = Windows.now();
         final WindowState held = active.get(NAME);
@@ -297,8 +297,8 @@ class WindowsGateTest
             gate.shape(), gate.open(), 16);
         Windows.offer(mirror, capture(32));
         Windows.finish();
-        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
-        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+        final Map<String, WindowState> active = PrivateStatics.of(WindowStore.class, "ACTIVE");
+        final Map<String, WindowState> offered = PrivateStatics.of(WindowStore.class, "OFFERED");
         final Map<Long, BlockData> room = new HashMap<>();
         active.get("museum").fixed = room;
         active.get("museum").fixedUsedAt = System.currentTimeMillis();
@@ -362,7 +362,7 @@ class WindowsGateTest
         {
             assertTrue(GateSource.offer(gate, false));
         }
-        final Map<String, WindowState> offered = PrivateStatics.of(Windows.class, "OFFERED");
+        final Map<String, WindowState> offered = PrivateStatics.of(WindowStore.class, "OFFERED");
 
         assertEquals(48, offered.get(NAME).depth(), "the fill's depth, not the first step's 16");
     }
