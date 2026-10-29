@@ -56,20 +56,20 @@ class WindowVeilTest
         when(owner.getLocation()).thenReturn(new Location(world, 0.0, 64.0, 0.0));
         FreyaCompanion.spawnFor(owner);
 
-        assertFalse(Windows.veilable(freya),
+        assertFalse(WindowVeil.veilable(freya),
             "veiling her hides her from her owner and unveiling shows her to a stranger");
     }
 
     @Test
     void anOrdinaryCatIsStillVeiled()
     {
-        assertTrue(Windows.veilable(mock(Cat.class)),
+        assertTrue(WindowVeil.veilable(mock(Cat.class)),
             "only the companion is exempt; a real cat inside the view is still hidden");
     }
 
     @Test
     void playersAreNeverVeiled()
     {
-        assertFalse(Windows.veilable(mock(Player.class)), "hiding a player drops them off the tab list");
+        assertFalse(WindowVeil.veilable(mock(Player.class)), "hiding a player drops them off the tab list");
     }
 }
