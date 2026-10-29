@@ -330,7 +330,7 @@ class WindowsFunnelTest
     @Test
     void aTunnelThatTakesTheViewPastItsLimitIsTooMany() throws ReflectiveOperationException
     {
-        final Map<Long, BlockData> tooMany = PrivateStatics.of(Windows.class, "TOO_MANY");
+        final Map<Long, BlockData> tooMany = FixedView.TOO_MANY;
         final WindowState window = new WindowState(gate(funnel(16)), solidEverywhere());
 
         assertSame(tooMany, FixedView.tunnelled(window, new HashMap<>(), 16, 0L, 10), "cut shallower, as any view past its limit");
