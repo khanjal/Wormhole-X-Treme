@@ -16,7 +16,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * How fast a viewer's windows are redrawn: the rest after a slow redraw, the catch-up of a move
  * that came too soon, what has not changed, and this second's and this sweep's shares of work (#430).
  *
- * <p>Moved out of {@link Windows} verbatim, but for the members Windows calls being package-private.
+ * <p>Moved out of {@link Windows} verbatim, but for the members Windows and its tests call being
+ * package-private.
  * The tunable counters stay in {@code Windows}, where the tests set them.
  */
 final class WindowPacing
