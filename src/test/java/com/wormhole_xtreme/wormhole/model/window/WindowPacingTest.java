@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -258,6 +259,7 @@ class WindowPacingTest
 
         assertFalse(view.catchUpQueued, "no longer queued");
         assertNull(view.pendingEye, "the move that was waiting is taken");
+        verify(player, never()).getWorld();
     }
 
     @Test
@@ -269,6 +271,7 @@ class WindowPacingTest
         when(player.isOnline()).thenReturn(true);
 
         assertDoesNotThrow(catchUp::run, "no eye to draw from");
+        verify(player, never()).getWorld();
         assertFalse(view.catchUpQueued, "and it is queued no more");
     }
 
