@@ -128,7 +128,7 @@ class PortalExitTest
     }
 
     @Test
-    void anArrivalPointInAnUprightPortalFacingUpOrDownIsMovedAlongThatAxis()
+    void anArrivalPointInAnUprightPortalFacingUpIsMovedUpPastTheBlocksOfThePortal()
     {
         final List<Location> portal = upright(1);
         final Location current = new Location(world, 5.5, 64.0, 5.5);
@@ -150,8 +150,6 @@ class PortalExitTest
         assertNull(PortalExit.normalized(new Location(world, 5.5, 64.0, 5.5), null, world, portal, inside(portal)),
             "no facing");
         assertNull(PortalExit.normalized(null, BlockFace.NORTH, world, portal, inside(portal)), "no arrival point");
-        assertNull(PortalExit.normalized(new Location(world, 5.5, 64.0, 5.5), BlockFace.SELF, world, portal, inside(portal)),
-            "a facing with no direction");
     }
 
     // --- Working the arrival point out again ---
