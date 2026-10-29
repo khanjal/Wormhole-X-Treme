@@ -132,7 +132,7 @@ class WindowStreamTest
         final long beside = Cells.key(2, 64, 2);
         final Set<Long> held = new LinkedHashSet<>(List.of(low, high, beside));
 
-        assertArrayEquals(new long[] { low, beside, high }, WindowStream.nearestFirst(held, eyeAt(0.5, 64.5, 0.5)),
+        assertArrayEquals(new long[] { low, beside, high }, WindowStream.nearestFirst(held, eyeAt(0.5, 72.5, 10.5)),
             "the one in the next section up comes after the two in the eye's");
     }
 
@@ -144,7 +144,7 @@ class WindowStreamTest
         final long second = Cells.key(2, 64, 2);
         final Set<Long> held = new LinkedHashSet<>(List.of(first, north, second));
 
-        assertArrayEquals(new long[] { first, second, north }, WindowStream.nearestFirst(held, eyeAt(0.5, 64.5, 0.5)),
+        assertArrayEquals(new long[] { first, second, north }, WindowStream.nearestFirst(held, eyeAt(0.5, 72.5, 10.5)),
             "the one in the next chunk along z comes after the two in the first");
     }
 
