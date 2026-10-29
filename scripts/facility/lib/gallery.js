@@ -10,6 +10,7 @@
 //   reel, dial     from the dial command until the wormhole has opened and settled (the ring
 //                  pattern and the chevrons locking)
 //   reel, kawoosh  the woosh going out and back, from just before the wormhole is drawn
+//   reel, dial to another world  the same, to a partner in the nether: the eighth chevron locks too
 //   reel, iris     the iris closing over the idle gate and opening again, pulled at its lever by
 //                  Probe2 from a pocket under the floor, out of the camera's sight
 // A reel is made with the server slowed (`/tick rate`, 1.20.3 and later), so a software renderer
@@ -44,6 +45,11 @@ function forceRect(s = STUDIO) {
 const SUBJECT = 'StudioA';
 const PARTNER = 'StudioB';
 const NET = 'Studio';
+/**
+ * The partner in another world, for the dial that locks an eighth chevron: in the Range's south
+ * strip, which its wing keeps clear, on the Range's floor. Built only for a run with that scene.
+ */
+const FAR = { name: 'StudioN', dim: campus.NETHER, cx: 18, openingAt: 24, floorY: 64 };
 // What a gate build lays back in the floor (gatekit.FLOORS), to be painted over with the studio's.
 const FLOOR_AFTER_BUILD = require('./gatekit').FLOORS[O];
 
@@ -100,6 +106,7 @@ function catalog(groupNames = groups()) {
   }
   // The ring and the iris are the subject, not the DHD in front: a narrower field of view fills the frame with them.
   for (const spin of SPINS) out.push({ name: `dial-${spin}`, kind: 'reel', action: 'dial', subject: gate('Standard', 'Standard', spin), view: 'front', fov: CLOSE_FOV });
+  out.push({ name: 'dial-other-world', kind: 'reel', action: 'dial', far: true, subject: gate('Standard', 'Standard', 'none'), view: 'front', fov: CLOSE_FOV });
   for (const iris of IRISES) out.push({ name: `iris-${iris}`, kind: 'reel', action: 'iris', subject: gate('Standard', 'Standard', null, iris), view: 'front', fov: CLOSE_FOV });
   for (const shape of SHAPES) {
     out.push({ name: `kawoosh-${shape.toLowerCase()}`, kind: 'reel', action: 'kawoosh', subject: gate(shape), view: shapes.isFlat(shape) ? 'high' : 'quarter' });
@@ -168,6 +175,11 @@ function camera(geom, kind) {
 }
 
 // ---- the studio ---------------------------------------------------------------------------
+
+/** Where the partner in another world stands: flush with the Range's floor, as the Range gate is. */
+function farPlace(kit) {
+  return kit.place('Standard', 'south', { cx: FAR.cx, openingAt: FAR.openingAt, floorY: FAR.floorY });
+}
 
 /**
  * Where a gate of `shape` stands in the studio: on the floor, its lowest block resting on it, so
@@ -305,6 +317,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   let browser = null;
   let flying = false;
   let pocket = null;
+  let farGeom = null;
 
   /** The subject gate of `s`: rebuilt if its shape or group changed, redressed, set to its ring pattern. */
   const subject = async (s) => {
@@ -365,6 +378,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   const shut = async () => {
     await kit.force(SUBJECT);
     await kit.force(PARTNER);
+    if (farGeom) await kit.force(FAR.name);
     // False, not null: Probe can see the opening and it is still drawn (an iris a failed scene left shut).
     if ((await kit.waitShut(probe, state.geom, 8000)) === false) throw new Error(`${SUBJECT} did not shut and clear before the scene`);
   };
@@ -404,8 +418,8 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     throw new Error('the woosh never began: nothing was drawn in or in front of the opening');
   };
 
-  const dial = async () => {
-    const said = (await kit.dial(SUBJECT, PARTNER)).text;
+  const dial = async (to = PARTNER) => {
+    const said = (await kit.dial(SUBJECT, to)).text;
     if (!/connected/i.test(said)) throw new Error(`the dial was refused: ${said || 'no answer'}`);
   };
 
@@ -444,7 +458,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
         await p2.click(geom.lever);
         if (!(await kit.waitShut(probe, geom, 60000 * factor))) throw new Error('the iris never opened again');
       } else {
-        await dial();
+        await dial(s.far ? FAR.name : PARTNER);
         await firstDrawn(geom, 60000 * factor);
         openedAt = Date.now();
         await kit.waitOpen(probe, geom, 60000 * factor);
@@ -471,10 +485,16 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   try {
     const problems = await buildStudio(srv);
     for (const p of problems) log(`  studio problem: ${p}`);
-    for (const name of [SUBJECT, PARTNER]) if (await kit.exists(name)) await kit.remove(name);
+    for (const name of [SUBJECT, PARTNER, FAR.name]) if (await kit.exists(name)) await kit.remove(name);
     const partner = await kit.build(PARTNER, kit.place('Standard', 'south', { cx: 0, openingAt: STUDIO.partnerAt }), { net: NET });
     await tidy(kit, partner.geom);
     log(`  studio ready; partner ${PARTNER}: ${partner.text}`);
+    if (scenes.some((s) => s.far)) {
+      const geom = farPlace(kit);
+      farGeom = geom;
+      const far = await kit.build(FAR.name, geom, { dim: FAR.dim, net: NET, floorY: FAR.floorY });
+      log(`  partner in another world ${FAR.name}: ${far.text}`);
+    }
     browser = await shots.launchBrowser(launch);
     const page = await browser.newPage();
     page.on('pageerror', (e) => errors.push(e.message));
@@ -509,6 +529,11 @@ async function takeScenes(fac, viewer, scenes, outDir, {
     }
     if (canSlow) await srv.run('tick rate 20').catch(() => {});
     for (const name of [SUBJECT, PARTNER]) await kit.remove(name).catch(() => {});
+    if (farGeom) {
+      await kit.remove(FAR.name).catch(() => {});
+      // A gate flush with the Range's floor leaves its bottom row's trench behind it.
+      await kit.restoreSite(farGeom, { dim: FAR.dim, floorY: FAR.floorY }).catch(() => {});
+    }
     if (flying) await probe.teleport(campus.TRANSIT.home).catch(() => {});
     // The studio's chunks are not kept loaded for a self-test or a kept world that follows.
     await srv.run(`execute in ${O} run forceload remove ${forceRect().join(' ')}`).catch(() => {});
@@ -521,4 +546,4 @@ function asResults(done) {
   return done.map((s) => ({ section: 'gallery', name: s.name, ok: s.ok, detail: s.file ? `${s.file} (${s.detail})` : s.detail }));
 }
 
-module.exports = { STUDIO, SPINS, IRISES, SHAPES, studioPlace, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, takeScenes, asResults, EYE };
+module.exports = { STUDIO, FAR, SPINS, IRISES, SHAPES, studioPlace, farPlace, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, takeScenes, asResults, EYE };

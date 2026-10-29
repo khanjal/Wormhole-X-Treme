@@ -182,6 +182,7 @@ animation rather than embedding it to run forever.
 |---|---|---|
 | A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [README](../README.md), [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation) |
 | Each ring pattern dialling a Standard gate | `gates/dial-<pattern>.webp` | [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation). Made by the facility, below. |
+| A dial to another world: the eighth chevron | `gates/dial-other-world.webp` | [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation). Made by the facility, below. |
 | Each iris animation closing and opening | `gates/iris-<style>.webp` | [guide/GATES.md](guide/GATES.md#how-it-arrives), [GATES.md](GATES.md#the-iris). Made by the facility, below. |
 | The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
 | `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
@@ -206,7 +207,7 @@ back out before anything rises.
 
 ## Reels the facility makes
 
-The ring patterns and iris animations are a set of fourteen, the same gate from the same place
+The ring patterns and iris animations are a set of fifteen, with the dial to another world, the same gate from the same place
 each time, so they are made by the research facility rather than by hand. A software renderer
 films the studio, so a new pattern or style is a line in its catalogue and a rerun, not a
 recording session:

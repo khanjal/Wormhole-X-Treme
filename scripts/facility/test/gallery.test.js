@@ -91,6 +91,20 @@ test('an upright gate stands on the studio floor and a flat one lies in it', () 
   }
 });
 
+test('the partner in another world stands in the Range\'s clear south strip, inside its walls, on its floor', () => {
+  const campus = require('../lib/campus');
+  const room = campus.WINGS.find((w) => w.id === 'range').room;
+  const geom = gallery.farPlace(new GateKit(null));
+  const box = new GateKit(null).siteBox(geom);
+  assert.strictEqual(gallery.FAR.dim, campus.WINGS.find((w) => w.id === 'range').dim);
+  // The wing keeps z 12 to its south wall clear; the walls are at x0, x1 and z1.
+  assert.ok(box.z0 >= 12 && box.z1 < room.z1, `z ${box.z0}..${box.z1}`);
+  assert.ok(box.x0 > room.x0 && box.x1 < room.x1, `x ${box.x0}..${box.x1}`);
+  assert.strictEqual(gallery.FAR.floorY, room.y0);
+  const scene = gallery.catalog().find((s) => s.far);
+  assert.ok(scene && scene.action === 'dial' && scene.name.startsWith('dial-'), 'one dial reel is to the far partner');
+});
+
 test('the iris reels are every animation the plugin has, on a gate with an iris lever', () => {
   const java = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'src', 'main', 'java', 'com', 'wormhole_xtreme', 'wormhole', 'model', 'IrisSweep.java'), 'utf8');
   const styles = /enum Style\s*\{([^;]*);/.exec(java)[1].replace(/\/\*\*[\s\S]*?\*\//g, '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -122,7 +136,7 @@ test('select takes names, dash prefixes and all, and refuses what it does not kn
   assert.deepStrictEqual(gallery.select('dial-lap', all).map((s) => s.name), ['dial-lap']);
   assert.deepStrictEqual(gallery.select('kawoosh-', all).map((s) => s.name), gallery.SHAPES.map((n) => `kawoosh-${n.toLowerCase()}`));
   // In catalog order and once each, whatever order and repeats it was asked in.
-  assert.deepStrictEqual(gallery.select('dial-lap,dial-top,dial-', all).map((s) => s.name), gallery.SPINS.map((n) => `dial-${n}`));
+  assert.deepStrictEqual(gallery.select('dial-lap,dial-top,dial-', all).map((s) => s.name), [...gallery.SPINS.map((n) => `dial-${n}`), 'dial-other-world']);
   assert.throws(() => gallery.select('dial-lap,dail-top', all), /no gallery scene named dail-top/);
   assert.throws(() => gallery.select('dial', all), /no gallery scene named dial /);
 });

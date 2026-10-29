@@ -1064,6 +1064,8 @@ the top (a horizontal gate's far edge) last. `:L#8` is the eighth, at the bottom
 gate's near edge), lit after the top one only when the other gate is in another world (*The
 Fifth Race*). Every shipped ring gate but `Minimal` has one.
 
+![A Standard gate dialling a gate in the Nether: seven chevrons, then the eighth at the bottom, then the kawoosh](images/gates/dial-other-world.webp)
+
 **The button lights every chevron at once, and `/dial` dials the ones it needs.** Until `/dial`
 the gate has no destination, so it cannot know whether an eighth is wanted. Lit all at once, it
 is ready either way; `/dial` darkens it and runs the sequence in order, with the eighth only for
