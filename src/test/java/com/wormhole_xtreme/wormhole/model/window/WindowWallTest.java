@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -144,7 +145,7 @@ class WindowWallTest
             assertEquals(edge[1], gap.y(), "at the height it is at");
             assertEquals(Cells.unpackX(face), gap.x(), "and the x");
             assertEquals(Cells.unpackZ(face), gap.z(), "and the z");
-            assertTrue(!WindowWall.walled(window), "so the wall is not solid");
+            assertFalse(WindowWall.walled(window), "so the wall is not solid");
         }
     }
 
@@ -206,5 +207,6 @@ class WindowWallTest
         WindowWall.refreshSolid(window, Windows.RESAMPLE_MILLIS);
 
         assertTrue(window.solid.isEmpty(), "nothing occludes: nothing is solid");
+        assertEquals(Windows.RESAMPLE_MILLIS, window.solidAt, "and it was read, at that time");
     }
 }
