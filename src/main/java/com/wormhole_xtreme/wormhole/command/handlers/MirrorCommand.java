@@ -38,6 +38,7 @@ import com.wormhole_xtreme.wormhole.model.window.WindowSweep;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorStamp;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
+import com.wormhole_xtreme.wormhole.model.window.WindowDebug;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -1278,7 +1279,7 @@ public class MirrorCommand implements SubCommand
             final Player player = asPlayer(sender);
             if (player != null)
             {
-                Windows.describe(player).forEach(line -> say(sender, line));
+                WindowDebug.describe(player).forEach(line -> say(sender, line));
             }
             return;
         }
@@ -1313,7 +1314,7 @@ public class MirrorCommand implements SubCommand
         Captures.describe(mirror).forEach(line -> say(sender, line));
         if (sender instanceof Player player)
         {
-            Windows.describe(player).forEach(line -> say(sender, line));
+            WindowDebug.describe(player).forEach(line -> say(sender, line));
             final Location eye = player.getEyeLocation();
             say(sender, MirrorText.field("your eye", String.format(Locale.ROOT, "%.2f,%.2f,%.2f, yaw %.1f, pitch %.1f",
                 eye.getX(), eye.getY(), eye.getZ(), eye.getYaw(), eye.getPitch())));
@@ -1373,7 +1374,7 @@ public class MirrorCommand implements SubCommand
         say(sender, Captures.summary(mirror));
         if (sender instanceof Player player)
         {
-            Windows.summary(player).forEach(line -> say(sender, line));
+            WindowDebug.summary(player).forEach(line -> say(sender, line));
         }
         say(sender, "  " + MirrorText.command("/wormhole mirror debug " + mirror.name() + " -all") + " for the rest.");
     }

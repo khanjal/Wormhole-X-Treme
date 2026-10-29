@@ -432,8 +432,8 @@ class WindowsFunnelTest
         final Capture capture = mock(Capture.class);
         when(capture.bounds()).thenReturn(new int[] { 80, 60, 199, 120, 80, 240 });
 
-        assertEquals(40, Windows.reachAhead(new WindowState(gate(funnel(16)), capture)), "from z 200 to 240");
-        assertEquals(40, Windows.reachAhead(new WindowState(gate(null), capture)));
+        assertEquals(40, WindowDebug.reachAhead(new WindowState(gate(funnel(16)), capture)), "from z 200 to 240");
+        assertEquals(40, WindowDebug.reachAhead(new WindowState(gate(null), capture)));
     }
 
     /**

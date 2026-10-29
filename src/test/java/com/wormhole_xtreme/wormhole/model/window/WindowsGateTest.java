@@ -525,7 +525,7 @@ class WindowsGateTest
             final WindowState window = new WindowState(new GateSource(NAME, anchor, shape, List.of(), arrival, "Chulak", 16),
                 held);
 
-            assertEquals(40, Windows.reachAhead(window), "facing yaw " + facing[0]);
+            assertEquals(40, WindowDebug.reachAhead(window), "facing yaw " + facing[0]);
         }
     }
 
