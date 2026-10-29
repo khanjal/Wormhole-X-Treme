@@ -107,7 +107,7 @@ final class FixedBuild
         this.here = window.anchor().getWorld();
         this.shape = window.shape;
         this.capture = window.capture;
-        this.centre = Windows.centreOf(shape);
+        this.centre = FixedView.centreOf(shape);
         this.min = here.getMinHeight();
         this.max = here.getMaxHeight();
         begin(configured);
@@ -262,7 +262,7 @@ final class FixedBuild
         final Funnel funnel = window.source.funnel();
         if (!over && (funnel != null) && (tunnelLayer < Math.min(depth, funnel.taper())))
         {
-            Windows.tunnelLayer(window, view, tunnelLayer, depth, Windows.now());
+            FixedView.tunnelLayer(window, view, tunnelLayer, depth, Windows.now());
             tunnelLayer++;
             return;
         }
@@ -305,7 +305,7 @@ final class FixedBuild
         }
         if (!farAir)
         {
-            view.put(Cells.key(hereX, y, hereZ), Windows.turned(window, capture.at(fx, fy, fz)));
+            view.put(Cells.key(hereX, y, hereZ), FixedView.turned(window, capture.at(fx, fy, fz)));
         }
         else if (!reallyEmpty(hereX, y, hereZ))
         {
@@ -380,7 +380,7 @@ final class FixedBuild
         }
         if (!capture.isAir(fx, fy, fz))
         {
-            view.put(Cells.key(x, y, z), Windows.turned(window, capture.at(fx, fy, fz)));
+            view.put(Cells.key(x, y, z), FixedView.turned(window, capture.at(fx, fy, fz)));
         }
         else if (!reallyEmpty(x, y, z))
         {

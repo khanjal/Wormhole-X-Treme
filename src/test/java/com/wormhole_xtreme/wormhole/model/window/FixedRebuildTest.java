@@ -225,7 +225,7 @@ class FixedRebuildTest
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
         final long now = Windows.now();
-        final Map<Long, BlockData> old = builtAt(window, now - Windows.BACKSTOP_MILLIS);
+        final Map<Long, BlockData> old = builtAt(window, now - FixedView.BACKSTOP_MILLIS);
 
         assertSame(old, Windows.heldRoom(window, now, true), "the old room is drawn as its rebuild starts");
         assertTrue(FixedBuilds.building("gate:Abydos"), "and a rebuild is under way");
@@ -260,7 +260,7 @@ class FixedRebuildTest
         Windows.offer(gate("gate:Chulak", AWAY), capture(AWAY));
         final Map<String, WindowState> held = held();
         final long now = Windows.now();
-        final long built = now - Windows.REBUILD_GAP_MILLIS - 1L;
+        final long built = now - FixedView.REBUILD_GAP_MILLIS - 1L;
         builtAt(held.get("gate:Abydos"), built);
         builtAt(held.get("gate:Chulak"), built);
         // Indexed by the next sweep, as each now holds a room.
@@ -269,21 +269,21 @@ class FixedRebuildTest
         final Map<String, WindowState> settled = held();
         final WindowState abydos = settled.get("gate:Abydos");
         final WindowState chulak = settled.get("gate:Chulak");
-        assertTrue(Windows.fixedIsFresh(abydos, now) && Windows.fixedIsFresh(chulak, now), "both fresh to begin with");
+        assertTrue(FixedView.fixedIsFresh(abydos, now) && FixedView.fixedIsFresh(chulak, now), "both fresh to begin with");
 
         final Spot inFront = SHAPE.behind(-2, 2, 1);
         Windows.changed(world, inFront.x(), inFront.y(), inFront.z());
-        assertTrue(Windows.fixedIsFresh(abydos, now), "a block in front of the wall is no part of the view");
+        assertTrue(FixedView.fixedIsFresh(abydos, now), "a block in front of the wall is no part of the view");
         final World other = mock(World.class);
         when(other.getName()).thenReturn("world_nether");
         final Spot behind = SHAPE.behind(6, 2, 1);
         Windows.changed(other, behind.x(), behind.y(), behind.z());
-        assertTrue(Windows.fixedIsFresh(abydos, now), "nor the same place in another world");
+        assertTrue(FixedView.fixedIsFresh(abydos, now), "nor the same place in another world");
 
         Windows.changed(world, behind.x(), behind.y(), behind.z());
 
-        assertFalse(Windows.fixedIsFresh(abydos, now), "six blocks behind the opening: built again");
-        assertTrue(Windows.fixedIsFresh(chulak, now), "a window a thousand blocks off is left as it is");
+        assertFalse(FixedView.fixedIsFresh(abydos, now), "six blocks behind the opening: built again");
+        assertTrue(FixedView.fixedIsFresh(chulak, now), "a window a thousand blocks off is left as it is");
     }
 
     /** A change within a few seconds of the last build waits for the gap, so a flowing river does not rebuild every tick. */
@@ -301,8 +301,8 @@ class FixedRebuildTest
 
         Windows.changed(world, behind.x(), behind.y(), behind.z());
 
-        assertTrue(Windows.fixedIsFresh(window, now + Windows.REBUILD_GAP_MILLIS - 1L), "drawn as it is within the gap");
-        assertFalse(Windows.fixedIsFresh(window, now + Windows.REBUILD_GAP_MILLIS), "built again once it is past");
+        assertTrue(FixedView.fixedIsFresh(window, now + FixedView.REBUILD_GAP_MILLIS - 1L), "drawn as it is within the gap");
+        assertFalse(FixedView.fixedIsFresh(window, now + FixedView.REBUILD_GAP_MILLIS), "built again once it is past");
     }
 
     /** With nothing reported changed, a room is built again after the backstop, for what no event says, and not before. */
@@ -314,9 +314,9 @@ class FixedRebuildTest
         final long now = Windows.now();
         builtAt(window, now);
 
-        assertTrue(Windows.fixedIsFresh(window, now + 60_001L), "a minute on: no longer the old refresh");
-        assertTrue(Windows.fixedIsFresh(window, (now + Windows.BACKSTOP_MILLIS) - 1L), "just short of the backstop");
-        assertFalse(Windows.fixedIsFresh(window, now + Windows.BACKSTOP_MILLIS), "built again at it");
+        assertTrue(FixedView.fixedIsFresh(window, now + 60_001L), "a minute on: no longer the old refresh");
+        assertTrue(FixedView.fixedIsFresh(window, (now + FixedView.BACKSTOP_MILLIS) - 1L), "just short of the backstop");
+        assertFalse(FixedView.fixedIsFresh(window, now + FixedView.BACKSTOP_MILLIS), "built again at it");
     }
 
     /** A window taken down while its room is being built leaves no build and no ticker behind. */
@@ -347,7 +347,7 @@ class FixedRebuildTest
         FixedBuilds.nanosPerTick = 0L;
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
-        final Map<Long, BlockData> old = builtAt(window, Windows.now() - Windows.BACKSTOP_MILLIS);
+        final Map<Long, BlockData> old = builtAt(window, Windows.now() - FixedView.BACKSTOP_MILLIS);
         Windows.heldRoom(window, Windows.now(), true);
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState now = held().get("gate:Abydos");
@@ -417,7 +417,7 @@ class FixedRebuildTest
         Windows.offer(gate("gate:Chulak", AWAY), capture(AWAY));
         final Map<String, WindowState> held = held();
         final long now = Windows.now();
-        final Map<Long, BlockData> old = builtAt(held.get("gate:Abydos"), now - Windows.BACKSTOP_MILLIS);
+        final Map<Long, BlockData> old = builtAt(held.get("gate:Abydos"), now - FixedView.BACKSTOP_MILLIS);
         Windows.heldRoom(held.get("gate:Abydos"), now, true);
         Windows.heldRoom(held.get("gate:Chulak"), now, true);
 
@@ -512,19 +512,19 @@ class FixedRebuildTest
         Windows.heldRoom(window, time[0], true);
         tick();
         final Map<Long, BlockData> first = window.fixed;
-        assertTrue(Windows.fixedIsFresh(window, time[0] + Windows.BACKSTOP_MILLIS - 1L),
+        assertTrue(FixedView.fixedIsFresh(window, time[0] + FixedView.BACKSTOP_MILLIS - 1L),
             "nothing changed while it was built: fresh to the backstop");
 
-        time[0] += Windows.BACKSTOP_MILLIS;
+        time[0] += FixedView.BACKSTOP_MILLIS;
         rebuildWithAChangeDuring(window, time, 7_000L);
         final long putIn = time[0];
 
         assertNotSame(first, window.fixed, "the new room is in");
         assertEquals(putIn, window.fixedAt, "put in when it finished");
         assertEquals(4_100L, window.fixedTook, "its 41 steps at a tenth of a second, not the seven seconds it waited");
-        assertEquals(16_400L, Windows.rebuildWait(window), "four times what its steps took");
-        assertTrue(Windows.fixedIsFresh(window, putIn + 16_399L), "drawn as it is until then");
-        assertFalse(Windows.fixedIsFresh(window, putIn + 16_400L), "then built again for the change made during its build");
+        assertEquals(16_400L, FixedView.rebuildWait(window), "four times what its steps took");
+        assertTrue(FixedView.fixedIsFresh(window, putIn + 16_399L), "drawn as it is until then");
+        assertFalse(FixedView.fixedIsFresh(window, putIn + 16_400L), "then built again for the change made during its build");
     }
 
     /** Changes that keep coming double the wait, to two minutes at most; a build with none meanwhile puts it back to the gap. */
@@ -544,32 +544,32 @@ class FixedRebuildTest
         final long[] waits = new long[10];
         for (int i = 0; i < waits.length; i++)
         {
-            time[0] += Windows.rebuildWait(window);
+            time[0] += FixedView.rebuildWait(window);
             rebuildWithAChangeDuring(window, time, 0L);
-            waits[i] = Windows.rebuildWait(window);
+            waits[i] = FixedView.rebuildWait(window);
         }
 
-        assertEquals(Windows.REBUILD_GAP_MILLIS, waits[0], "the first: the gap");
-        assertEquals(2 * Windows.REBUILD_GAP_MILLIS, waits[1], "then doubled");
-        assertEquals(4 * Windows.REBUILD_GAP_MILLIS, waits[2], "and doubled again");
-        assertEquals(Windows.MOST_REBUILD_WAIT_MILLIS, waits[9], "capped at two minutes");
-        assertEquals(120_000L, Windows.MOST_REBUILD_WAIT_MILLIS, "two minutes, so a real change waits no longer behind churn");
+        assertEquals(FixedView.REBUILD_GAP_MILLIS, waits[0], "the first: the gap");
+        assertEquals(2 * FixedView.REBUILD_GAP_MILLIS, waits[1], "then doubled");
+        assertEquals(4 * FixedView.REBUILD_GAP_MILLIS, waits[2], "and doubled again");
+        assertEquals(FixedView.MOST_REBUILD_WAIT_MILLIS, waits[9], "capped at two minutes");
+        assertEquals(120_000L, FixedView.MOST_REBUILD_WAIT_MILLIS, "two minutes, so a real change waits no longer behind churn");
 
-        time[0] += Windows.rebuildWait(window);
+        time[0] += FixedView.rebuildWait(window);
         Windows.heldRoom(window, time[0], true);
         tick();
-        assertEquals(Windows.REBUILD_GAP_MILLIS, Windows.rebuildWait(window), "built with nothing changing meanwhile: back to the gap");
+        assertEquals(FixedView.REBUILD_GAP_MILLIS, FixedView.rebuildWait(window), "built with nothing changing meanwhile: back to the gap");
 
         // A change a second after each room goes in, never during a build, is changes coming on too.
         for (int i = 0; i < 2; i++)
         {
             time[0] += 1000L;
             Windows.changed(world, behind.x(), behind.y(), behind.z());
-            time[0] += Windows.rebuildWait(window);
+            time[0] += FixedView.rebuildWait(window);
             Windows.heldRoom(window, time[0], true);
             tick();
         }
-        assertEquals(2 * Windows.REBUILD_GAP_MILLIS, Windows.rebuildWait(window), "a change soon after each went in doubles it too");
+        assertEquals(2 * FixedView.REBUILD_GAP_MILLIS, FixedView.rebuildWait(window), "a change soon after each went in doubles it too");
     }
 
     /** Two changes, and a look while the rebuild runs, are one rebuild. */
@@ -581,7 +581,7 @@ class FixedRebuildTest
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
         final long now = Windows.now();
-        builtAt(window, now - Windows.REBUILD_GAP_MILLIS - 1L);
+        builtAt(window, now - FixedView.REBUILD_GAP_MILLIS - 1L);
         FixedRegions.index(window);
         final Spot behind = SHAPE.behind(4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
@@ -609,7 +609,7 @@ class FixedRebuildTest
             Windows.offer(gate("gate:Abydos", shape), capture(shape));
             final WindowState window = held().get("gate:Abydos");
             final long now = Windows.now();
-            builtAt(window, now - Windows.REBUILD_GAP_MILLIS - 1L);
+            builtAt(window, now - FixedView.REBUILD_GAP_MILLIS - 1L);
             FixedRegions.index(window);
             // On the opening's middle column and row: depth 16, and two more.
             final Spot outside = shape.behind(18, 2, 2);
@@ -617,9 +617,9 @@ class FixedRebuildTest
             assertEquals(outside.z() >> 4, inside.z() >> 4, "the same chunk, at " + base);
 
             Windows.changed(world, outside.x(), outside.y(), outside.z());
-            assertTrue(Windows.fixedIsFresh(window, now), "eighteen deep is past it, at " + base);
+            assertTrue(FixedView.fixedIsFresh(window, now), "eighteen deep is past it, at " + base);
             Windows.changed(world, inside.x(), inside.y(), inside.z());
-            assertFalse(Windows.fixedIsFresh(window, now), "seventeen deep is inside, at " + base);
+            assertFalse(FixedView.fixedIsFresh(window, now), "seventeen deep is inside, at " + base);
         }
     }
 
@@ -630,14 +630,14 @@ class FixedRebuildTest
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
         final long now = Windows.now();
-        builtAt(window, now - Windows.REBUILD_GAP_MILLIS - 1L);
+        builtAt(window, now - FixedView.REBUILD_GAP_MILLIS - 1L);
         FixedRegions.index(window);
         final ViewChangeListener listener = new ViewChangeListener();
 
         listener.onBreak(breaking(SHAPE.behind(-3, 2, 1)));
-        assertTrue(Windows.fixedIsFresh(window, now), "a block in front of the wall");
+        assertTrue(FixedView.fixedIsFresh(window, now), "a block in front of the wall");
         listener.onBreak(breaking(SHAPE.behind(5, 2, 1)));
-        assertFalse(Windows.fixedIsFresh(window, now), "a block behind it");
+        assertFalse(FixedView.fixedIsFresh(window, now), "a block behind it");
     }
 
     private BlockBreakEvent breaking(final Spot at)
@@ -675,19 +675,19 @@ class FixedRebuildTest
             Windows.heldRoom(window, time[0], true);
             assertTrue(window.fixedPartial, "its build read a chunk that was not loaded");
             waits[i] = window.fixedPartialWait;
-            assertTrue(Windows.fixedIsFresh(window, (window.fixedAt + waits[i]) - 1L), "fresh until the wait is up");
-            assertFalse(Windows.fixedIsFresh(window, window.fixedAt + waits[i]), "then built again");
+            assertTrue(FixedView.fixedIsFresh(window, (window.fixedAt + waits[i]) - 1L), "fresh until the wait is up");
+            assertFalse(FixedView.fixedIsFresh(window, window.fixedAt + waits[i]), "then built again");
             time[0] = window.fixedAt + waits[i];
         }
 
-        assertEquals(Windows.FIRST_PARTIAL_RETRY_MILLIS, waits[0], "fifteen seconds first");
-        assertEquals(2 * Windows.FIRST_PARTIAL_RETRY_MILLIS, waits[1], "then thirty");
-        assertEquals(Windows.PARTIAL_BACKSTOP_MILLIS, waits[3], "then a minute at most");
+        assertEquals(FixedView.FIRST_PARTIAL_RETRY_MILLIS, waits[0], "fifteen seconds first");
+        assertEquals(2 * FixedView.FIRST_PARTIAL_RETRY_MILLIS, waits[1], "then thirty");
+        assertEquals(FixedView.PARTIAL_BACKSTOP_MILLIS, waits[3], "then a minute at most");
 
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         Windows.heldRoom(window, time[0], true);
         assertFalse(window.fixedPartial, "every chunk loaded");
-        assertTrue(Windows.fixedIsFresh(window, (window.fixedAt + Windows.BACKSTOP_MILLIS) - 1L), "back to the backstop");
+        assertTrue(FixedView.fixedIsFresh(window, (window.fixedAt + FixedView.BACKSTOP_MILLIS) - 1L), "back to the backstop");
     }
 
     /**
@@ -707,11 +707,11 @@ class FixedRebuildTest
         tick();
         final Spot behind = SHAPE.behind(4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
-        time[0] += Windows.REBUILD_GAP_MILLIS;
+        time[0] += FixedView.REBUILD_GAP_MILLIS;
         Windows.heldRoom(window, time[0], true);
         tick();
 
-        assertTrue(Windows.fixedIsFresh(window, (window.fixedAt + Windows.BACKSTOP_MILLIS) - 1L),
+        assertTrue(FixedView.fixedIsFresh(window, (window.fixedAt + FixedView.BACKSTOP_MILLIS) - 1L),
             "the change before it began is in it: fresh to the backstop");
     }
 
@@ -762,7 +762,7 @@ class FixedRebuildTest
         final WindowState next = held().get("gate:Abydos");
 
         assertSame(room, next.fixed, "the same room, carried by the next sweep");
-        assertTrue(Windows.fixedIsFresh(next, Windows.now()), "and drawn as it is");
+        assertTrue(FixedView.fixedIsFresh(next, Windows.now()), "and drawn as it is");
         Windows.heldRoom(next, Windows.now(), true);
         assertEquals(0, FixedBuilds.count(), "no build asked for again");
     }
@@ -777,16 +777,16 @@ class FixedRebuildTest
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
         final long now = Windows.now();
-        builtAt(window, now - Windows.REBUILD_GAP_MILLIS - 1L);
+        builtAt(window, now - FixedView.REBUILD_GAP_MILLIS - 1L);
         window.fixedDepth = 8;
         FixedRegions.index(window);
         final Spot past = SHAPE.behind(12, 2, 2);
         final Spot within = SHAPE.behind(9, 2, 2);
 
         Windows.changed(world, past.x(), past.y(), past.z());
-        assertTrue(Windows.fixedIsFresh(window, now), "twelve deep, past a cut to eight and two");
+        assertTrue(FixedView.fixedIsFresh(window, now), "twelve deep, past a cut to eight and two");
         Windows.changed(world, within.x(), within.y(), within.z());
-        assertFalse(Windows.fixedIsFresh(window, now), "nine deep is within it");
+        assertFalse(FixedView.fixedIsFresh(window, now), "nine deep is within it");
     }
 
     /**

@@ -331,7 +331,7 @@ public final class StandIns
         final int z = at.getBlockZ();
         final World here = at.getWorld();
         // Skipped rather than clamped: a stand-in moved to the world's edge stands somewhere its creature is not.
-        return Windows.insideFixed(window, x, y, z, window.depth() + (held ? HELD_SLACK : 0))
+        return FixedView.insideFixed(window, x, y, z, window.depth() + (held ? HELD_SLACK : 0))
             && window.showsFar(x, y, z, held ? HELD_SLACK : 0)
             && (y >= here.getMinHeight())
             && (y < here.getMaxHeight()) && here.isChunkLoaded(x >> 4, z >> 4)

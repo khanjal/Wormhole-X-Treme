@@ -755,16 +755,16 @@ class WindowsTest
         {
             Windows.clock = () -> time[0];
             WindowSweep.tick();
-            assertTrue(Windows.holdsFixedView("museum"), "held while looked through");
+            assertTrue(FixedView.holdsFixedView("museum"), "held while looked through");
             stand(viewer, 10.5, -40.0);
             time[0] += 30_000L;
             WindowSweep.tick();
-            assertTrue(Windows.holdsFixedView("museum"), "and for a while after");
+            assertTrue(FixedView.holdsFixedView("museum"), "and for a while after");
             time[0] += 31_000L;
             WindowSweep.tick();
         });
 
-        assertFalse(Windows.holdsFixedView("museum"), "let go a minute after the last look");
+        assertFalse(FixedView.holdsFixedView("museum"), "let go a minute after the last look");
     }
 
     /**

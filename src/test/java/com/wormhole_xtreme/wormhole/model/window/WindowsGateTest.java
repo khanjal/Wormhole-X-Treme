@@ -281,12 +281,12 @@ class WindowsGateTest
 
         assertTrue(GateSource.offer(gate, false));
         assertSame(room, offered.get(NAME).fixed, "the same capture: the room built from it is kept");
-        assertTrue(Windows.fixedIsFresh(offered.get(NAME), now), "and drawn as it is");
+        assertTrue(FixedView.fixedIsFresh(offered.get(NAME), now), "and drawn as it is");
 
         Captures.install(key(), capture(32));
         assertTrue(GateSource.offer(gate, false));
         assertSame(room, offered.get(NAME).fixed, "a fresh capture: the old room is still drawn meanwhile");
-        assertFalse(Windows.fixedIsFresh(offered.get(NAME), now), "but built again from the fresh capture");
+        assertFalse(FixedView.fixedIsFresh(offered.get(NAME), now), "but built again from the fresh capture");
     }
 
     /** A mirror's held room, unlike a gate's, outlives a fresh capture until it is rebuilt from it. */

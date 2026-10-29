@@ -140,7 +140,7 @@ final class FixedRegions
     static List<Long> chunksOf(final WindowShape shape, final int depth)
     {
         final boolean alongX = shape.into().x() != 0;
-        final double[] centre = Windows.centreOf(shape);
+        final double[] centre = FixedView.centreOf(shape);
         final int sign = alongX ? shape.into().x() : shape.into().z();
         final int base = alongX ? shape.base().x() : shape.base().z();
         final int nearAlong = base + sign;
