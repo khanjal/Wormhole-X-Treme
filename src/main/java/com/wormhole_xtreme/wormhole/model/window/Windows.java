@@ -103,7 +103,7 @@ public final class Windows
     static final long REDRAW_MILLIS = 100L;
 
     /** The same, in ticks, for the redraw that catches a viewer up after they stop. */
-    private static final long REDRAW_TICKS = 2L;
+    static final long REDRAW_TICKS = 2L;
 
     /**
      * Least time between two redraws of a viewer at a small opening, drawn twice as often (#309).
@@ -769,7 +769,7 @@ public final class Windows
         if ((view != null) && ((now - view.composedAt) < view.rest))
         {
             view.pendingEye = eye;
-            catchUpLater(player, view);
+            WindowPacing.catchUpLater(player, view);
             return;
         }
         update(player, eye, now, false);
@@ -1123,7 +1123,7 @@ public final class Windows
     }
 
     /** Redraws one player's view from where their eye is, sending only what needs sending. */
-    private static void update(final Player player, final Location eye, final long now,
+    static void update(final Player player, final Location eye, final long now,
         final boolean fromSweep)
     {
         final UUID id = player.getUniqueId();
@@ -1144,13 +1144,13 @@ public final class Windows
         seeing.forEach(window -> refreshSolid(window, now));
         // A viewer who starts inside the second's share finishes; later ones wait. Crossing into a
         // new chunk is never kept waiting, since the chunk arriving erases what was drawn.
-        final boolean mayWork = (crossed && (view.chunk != Long.MIN_VALUE)) || !overBudget(now);
+        final boolean mayWork = (crossed && (view.chunk != Long.MIN_VALUE)) || !WindowPacing.overBudget(now);
         final WindowCompose.Wholes wholes = WindowCompose.wholesOf(seeing, now, mayWork, FULL.get(id));
         // Made only of windows drawn whole, the view is the same from wherever the eye is.
         final boolean eyeMatters = wholes.whole().size() < seeing.size();
         final String stamp = stampOf(seeing, wholes);
         if (!crossed && (fromSweep || !eyeMatters)
-            && unchanged(view, seeing, eyeMatters ? eyeKey(eye) : view.eye, stamp, now))
+            && WindowPacing.unchanged(view, seeing, eyeMatters ? eyeKey(eye) : view.eye, stamp, now))
         {
             keepAsDrawn(player, view, eye, now, eyeMatters, fromSweep);
             // Kept as drawn, so judged against what is drawn: a creature moves, or walks in, while the viewer stands still.
@@ -1159,7 +1159,7 @@ public final class Windows
             tellDrawn(id, player, view.mirrors);
             return;
         }
-        if (fromSweep && !crossed && !view.stamp.isEmpty() && !view.stamp.equals(stamp) && roomShareSpent(wholes))
+        if (fromSweep && !crossed && !view.stamp.isEmpty() && !view.stamp.equals(stamp) && WindowPacing.roomShareSpent(wholes))
         {
             // Rooms enough were redrawn this sweep -- a rebuilt room swapped in under many viewers at
             // once -- so this viewer keeps what they see until the next (#609).
@@ -1187,7 +1187,7 @@ public final class Windows
         final long took = now() - now;
         view.lastRedraw = new Redraw(budget.projected, budget.near, budget.fixed, budget.fixedDepth,
             new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), took);
-        view.rest = restAfter(took, smallestOpen(seeing));
+        view.rest = WindowPacing.restAfter(took, WindowPacing.smallestOpen(seeing));
         view.stamp = stamp;
         view.mirrors = names(seeing);
         view.fixedNames = names(new ArrayList<>(wholes.whole().keySet()));
@@ -1242,7 +1242,7 @@ public final class Windows
         if (!fromSweep)
         {
             view.pendingEye = eye;
-            catchUpLater(player, view);
+            WindowPacing.catchUpLater(player, view);
         }
     }
 
@@ -1289,116 +1289,6 @@ public final class Windows
     }
 
     /**
-     * How long a viewer's next redraw on a move waits, after one that took this long.
-     *
-     * <p>A redraw right against a deep mirror projects the whole half-sphere and took sixty-five
-     * milliseconds, ten times a second: two thirds of the main thread for one viewer. It rests
-     * three times as long as it took, so a viewer costs at most a quarter of a tick's time, and a
-     * quick redraw still comes ten times a second.
-     *
-     * <p>A small opening comes twice as often ({@link #SMALL_REDRAW_MILLIS}), so what it drew is
-     * taken away sooner as the viewer moves. The rest for a slow redraw is unchanged by that: the
-     * cost cap is the same multiple of the same measurement, so a small opening that somehow took
-     * sixty-five milliseconds still rests nearly two hundred.
-     *
-     * @param tookMillis
-     *            how long the last redraw took
-     * @param openCells
-     *            the smallest opening being looked through, in blocks, or zero for none known
-     * @return the least time before the next, in milliseconds
-     */
-    static long restAfter(final long tookMillis, final int openCells)
-    {
-        final long least = ((openCells > 0) && (openCells <= SMALL_OPEN)) ? SMALL_REDRAW_MILLIS : REDRAW_MILLIS;
-        return Math.max(least, restFactor * tookMillis);
-    }
-
-    /**
-     * The smallest opening a viewer is looking through, in blocks, or zero if they are through none.
-     *
-     * <p>The smallest decides the pace, because it is the one whose edges the lingering shows
-     * past: a viewer at a banner-wide mirror beside a wide one is redrawn for the banner.
-     *
-     * @param seeing
-     *            the windows this viewer is looking through
-     * @return the smallest opening's size in blocks, or zero
-     */
-    private static int smallestOpen(final List<WindowState> seeing)
-    {
-        int smallest = 0;
-        for (final WindowState window : seeing)
-        {
-            final int cells = window.open.size();
-            if ((smallest == 0) || (cells < smallest))
-            {
-                smallest = cells;
-            }
-        }
-        return smallest;
-    }
-
-    /** Whether nothing a view depends on has changed since it was last drawn. */
-    private static boolean unchanged(final ViewerDrawing view, final List<WindowState> seeing, final long eye,
-        final String stamp, final long now)
-    {
-        return (view.eye == eye) && view.stamp.equals(stamp) && ((now - view.composedAt) < RESAMPLE_MILLIS)
-            && (view.generation == Captures.generation()) && view.mirrors.equals(names(seeing));
-    }
-
-    /**
-     * How many ticks until a deferred move is drawn: not before the rest is up, and no later
-     * than the pace allows, so a small opening's catch-up comes a tick out rather than two.
-     *
-     * @param restMillis
-     *            the viewer's rest after their last redraw
-     * @param elapsedMillis
-     *            how long ago that redraw was
-     * @return the delay in ticks
-     */
-    static long catchUpTicks(final long restMillis, final long elapsedMillis)
-    {
-        final long floor = (restMillis <= SMALL_REDRAW_MILLIS) ? 1L : REDRAW_TICKS;
-        return Math.max(floor, ((restMillis - elapsedMillis) + 49L) / 50L);
-    }
-
-    /** Queues one redraw for a viewer who moved too soon after the last, if none is queued. */
-    private static void catchUpLater(final Player player, final ViewerDrawing view)
-    {
-        if (view.catchUpQueued)
-        {
-            return;
-        }
-        try
-        {
-            final long ticks = catchUpTicks(view.rest, now() - view.composedAt);
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-                () -> catchUp(player), ticks);
-            view.catchUpQueued = true;
-        }
-        catch (final RuntimeException noScheduler)
-        {
-            // No scheduler yet, during startup or in tests. The next move or sweep catches up.
-        }
-    }
-
-    /** Draws a viewer from where they last moved to, if that was never drawn. */
-    private static void catchUp(final Player player)
-    {
-        final ViewerDrawing view = VIEWS.get(player.getUniqueId());
-        if (view == null)
-        {
-            return;
-        }
-        view.catchUpQueued = false;
-        final Location eye = view.pendingEye;
-        view.pendingEye = null;
-        if ((eye != null) && player.isOnline())
-        {
-            update(player, eye, now(), false);
-        }
-    }
-
-    /**
      * Notes a block behind any window changing: placed, broken, blown up, pushed, burnt, flowed into
      * (#609). Each window whose view it lies inside is built again, a few milliseconds a tick, the
      * old view drawn meanwhile.
@@ -1431,33 +1321,6 @@ public final class Windows
                 FIRST_CHANGED.putIfAbsent(name, now());
             }
         }
-    }
-
-    /**
-     * Whether this sweep's share of room redraws is spent; if not, counts this viewer's rooms against it.
-     *
-     * @return true if the viewer is to wait for the next sweep
-     */
-    private static boolean roomShareSpent(final WindowCompose.Wholes wholes)
-    {
-        if (sweepRoomBlocks >= roomBlocksPerSweep)
-        {
-            return true;
-        }
-        wholes.whole().values().forEach(whole -> sweepRoomBlocks += whole.blocks().size());
-        wholes.clipped().values().forEach(whole -> sweepRoomBlocks += whole.blocks().size());
-        return false;
-    }
-
-    /** Whether this second's share of work is spent, starting a new second's if one has begun. */
-    private static boolean overBudget(final long now)
-    {
-        if ((now - workSecond) >= 1000L)
-        {
-            workSecond = now;
-            workSpent = 0;
-        }
-        return workSpent >= workPerSecond;
     }
 
     /**
@@ -1619,7 +1482,7 @@ public final class Windows
         return open;
     }
 
-    private static Set<String> names(final List<WindowState> windows)
+    static Set<String> names(final List<WindowState> windows)
     {
         final Set<String> names = new HashSet<>();
         windows.forEach(window -> names.add(window.name()));
