@@ -164,7 +164,7 @@ public final class WindowDebug
     /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
     private static String howDrawn(final WindowState window, final boolean fixedForViewer)
     {
-        final Spot gap = Windows.gapBeside(window);
+        final Spot gap = WindowWall.gapBeside(window);
         final String clipped = "whole " + toDepth(window) + ", clipped to each eye: ";
         if (gap != null)
         {

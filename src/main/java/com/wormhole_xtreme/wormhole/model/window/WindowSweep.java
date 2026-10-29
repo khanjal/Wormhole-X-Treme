@@ -192,7 +192,7 @@ public final class WindowSweep
         {
             Captures.request(showing);
         }
-        Windows.offer(new MirrorSource(showing, banner, shape, Windows.openCells(shape, banner.getWorld())), capture);
+        Windows.offer(new MirrorSource(showing, banner, shape, WindowWall.openCells(shape, banner.getWorld())), capture);
         return true;
     }
 

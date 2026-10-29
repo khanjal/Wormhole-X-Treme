@@ -219,7 +219,7 @@ final class WindowCompose
         final double apart = MirrorPlacement.apartToDrawWhole();
         for (final WindowState window : seeing)
         {
-            final boolean alone = Windows.walled(window) && noWindowWithin(window, apart);
+            final boolean alone = WindowWall.walled(window) && noWindowWithin(window, apart);
             final Map<Long, BlockData> room = heldRoom(window, now, mayWork);
             if (room != null)
             {
