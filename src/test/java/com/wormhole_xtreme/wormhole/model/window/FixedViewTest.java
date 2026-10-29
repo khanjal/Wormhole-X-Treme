@@ -76,7 +76,8 @@ class FixedViewTest
         stone = mock(BlockData.class);
         bukkit = mockStatic(Bukkit.class);
         bukkit.when(() -> Bukkit.createBlockData(Material.WATER)).thenReturn(water);
-        bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(mock(BlockData.class));
+        final BlockData air = mock(BlockData.class);
+        bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
         Windows.clear();
         WindowSight.clear();
     }
