@@ -22,7 +22,6 @@ import org.bukkit.util.BoundingBox;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.utils.BlockKey;
-import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * WormholeXtreme Stargate Class/Instance.
