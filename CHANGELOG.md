@@ -102,7 +102,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 ### Internals
 
-- The window drawing's shared state, the hiding of creatures inside a view, the question of which windows a player can see, the sending of a window's blocks to a viewer, the held view behind a walled window, the composing of what a viewer is shown, the choosing of the far creatures they are shown, the pacing of their redraws, the text `mirror debug` prints about them and what a click on a window does moved out of `Windows` into `WindowStore`, `WindowVeil`, `WindowViewers`, `WindowStream`, `FixedView`, `WindowCompose`, `WindowCreatures`, `WindowPacing`, `WindowDebug` and `WindowClicks`, the first steps in splitting that class by subsystem; nothing a player or admin sees changes ([#430](https://github.com/khanjal/Wormhole-X-Treme/issues/430)).
+- The window drawing's shared state, the hiding of creatures inside a view, the question of which windows a player can see, the sending of a window's blocks to a viewer, the held view behind a walled window, the composing of what a viewer is shown, the choosing of the far creatures they are shown, the pacing of their redraws, the text `mirror debug` prints about them, what a click on a window does and the reading of the wall round an opening moved out of `Windows` into `WindowStore`, `WindowVeil`, `WindowViewers`, `WindowStream`, `FixedView`, `WindowCompose`, `WindowCreatures`, `WindowPacing`, `WindowDebug`, `WindowClicks` and `WindowWall`, the first steps in splitting that class by subsystem; nothing a player or admin sees changes ([#430](https://github.com/khanjal/Wormhole-X-Treme/issues/430)).
 
 ## 1.12.0 (2026-10-25)
 
