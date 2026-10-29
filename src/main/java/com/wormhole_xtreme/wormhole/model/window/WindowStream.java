@@ -43,7 +43,7 @@ final class WindowStream
 
     /**
      * Sends a viewer what changed since their last drawing, or all of it when asked to: a tick's
-     * worth now ({@link Windows#Windows.streamPerTick}) and the rest a tick apart, nearest the eye first and a
+     * worth now ({@link Windows#streamPerTick}) and the rest a tick apart, nearest the eye first and a
      * chunk section at a time, so the client re-meshes each section once and no frame waits for
      * all of them. What was owed from an earlier redraw is owed no longer; this one says what is.
      *

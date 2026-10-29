@@ -115,12 +115,13 @@ class WindowStreamTest
     @Test
     void aBandIsSixteenBlocksWideAndTheNextBandSortsAfterIt()
     {
-        final long inside = Cells.key(15, 64, 0);
-        final long outside = Cells.key(17, 64, 0);
+        final long inside = Cells.key(7, 64, 0);
+        final long outside = Cells.key(9, 64, 0);
         final Set<Long> held = new LinkedHashSet<>(List.of(outside, inside));
 
         assertArrayEquals(new long[] { inside, outside },
-            WindowStream.nearestFirst(held, eyeAt(0.5, 64.5, 0.5)), "fifteen blocks out is in the first band");
+            WindowStream.nearestFirst(held, eyeAt(-8.5, 64.5, 0.5)),
+            "15.5 blocks out is in the first band and 17.5 the second, both in one chunk section");
     }
 
     @Test
@@ -357,6 +358,21 @@ class WindowStreamTest
 
         assertEquals(Set.of(cell), view.pending.keySet(), "nothing streamed, so this redraw's debt is all that is left");
         assertEquals(0, view.undrawable);
+    }
+
+    @Test
+    void whatIsOwedIsQueuedNearestTheEyeFirst()
+    {
+        Windows.streamPerTick = 0;
+        final long far = Cells.key(100, 64, 0);
+        final long near = Cells.key(2, 64, 0);
+        final Map<Long, BlockData> wanted = new java.util.LinkedHashMap<>();
+        wanted.put(far, stone);
+        wanted.put(near, stone);
+
+        WindowStream.send(viewer, view, wanted, eyeAt(0.5, 64.5, 0.5), 1000L, false, Set.of());
+
+        assertEquals(List.of(near, far), new ArrayList<>(view.pending.keySet()), "the near one goes out first");
     }
 
     @Test
