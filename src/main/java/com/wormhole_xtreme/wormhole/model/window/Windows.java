@@ -1,5 +1,21 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.ACTIVE;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.BLIND;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.CHANGED;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.FIRST_CHANGED;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.FULL;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.OFFERED;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.STATES;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.VIEWS;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.changes;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.drawnListener;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.sweepRoomBlocks;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.sweeps;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.trimmedAt;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.workSecond;
+import static com.wormhole_xtreme.wormhole.model.window.WindowStore.workSpent;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.logging.Level;
@@ -160,15 +175,6 @@ public final class Windows
     /** How far past a view's depth a changed block still counts as behind it: a door or a bed is two blocks. */
     private static final int CHANGE_SLACK = 2;
 
-    /** How many changes behind any window have been reported, ever: the clock {@link #CHANGED} is read on. */
-    private static long changes;
-
-    /** The count {@link #changes} stood at when a block last changed behind each window, by name. */
-    private static final Map<String, Long> CHANGED = new HashMap<>();
-
-    /** When a block first changed behind each window since its view was last put in, by name. */
-    private static final Map<String, Long> FIRST_CHANGED = new HashMap<>();
-
     /** Most blocks one fixed view may hold; past it the depth is cut until it fits. */
     private static final int MOST_FIXED = 250_000;
 
@@ -247,9 +253,6 @@ public final class Windows
      */
     static int workPerSecond = WORK_PER_SECOND;
 
-    private static long workSecond;
-    private static int workSpent;
-
     /** Blocks of held rooms one sweep redraws for viewers it has drawn before, by default. */
     private static final long ROOM_BLOCKS_PER_SWEEP = 250_000L;
 
@@ -264,35 +267,8 @@ public final class Windows
      */
     static long roomBlocksPerSweep = ROOM_BLOCKS_PER_SWEEP;
 
-    /** Blocks of held rooms this sweep has redrawn so far. */
-    private static long sweepRoomBlocks;
-
-    /** How many sweeps have run: where the next one starts among the viewers. */
-    private static long sweeps;
-
     /** What the time is; settable so a test can let a minute pass. */
     static LongSupplier clock = System::currentTimeMillis;
-
-    /** Every window the last sweep found, by mirror name. */
-    private static final Map<String, WindowState> ACTIVE = new HashMap<>();
-
-    /** Windows found by the sweep in progress. */
-    private static final Map<String, WindowState> OFFERED = new HashMap<>();
-
-    /** What each viewer's client has been told, by player. */
-    private static final Map<UUID, ViewerDrawing> VIEWS = new ConcurrentHashMap<>();
-
-    /** Block states reused between redraws, by world and block, rather than read again. */
-    private static final Map<String, Map<Long, BlockState>> STATES = new HashMap<>();
-
-    /** When {@link #STATES} was last trimmed to the blocks still being drawn. */
-    private static long trimmedAt;
-
-    /** Players who asked to see the world as it is, with no view drawn for them: admins checking. */
-    private static final Set<UUID> BLIND = ConcurrentHashMap.newKeySet();
-
-    /** Players who asked for one mirror drawn whole and unlimited, by the mirror's name. */
-    private static final Map<UUID, String> FULL = new ConcurrentHashMap<>();
 
     /**
      * Told which windows a viewer is drawn after a redraw (#516).
@@ -310,11 +286,6 @@ public final class Windows
          */
         void drawn(UUID viewer, Player player, Set<String> windows);
     }
-
-    /** Told after each redraw which windows the viewer is drawn: an open gate's horizon follows it. */
-    private static DrawnListener drawnListener = (viewer, player, windows) ->
-    {
-    };
 
     /** A window's far side drawn whole: the blocks, and the depth they reach from the opening. */
     record Whole(Map<Long, BlockData> blocks, int depth)

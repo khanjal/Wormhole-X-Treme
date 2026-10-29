@@ -780,8 +780,8 @@ class WindowsTest
         final Player first = playerAt(10.5, 7.5);
         final Player second = playerAt(10.5, 6.5);
         when(world.getPlayers()).thenReturn(List.of(first, second));
-        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(Windows.class, "VIEWS");
-        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
+        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(WindowStore.class, "VIEWS");
+        final Map<String, WindowState> active = PrivateStatics.of(WindowStore.class, "ACTIVE");
         final int[] redrawn = new int[2];
 
         withServer(() ->
@@ -826,8 +826,8 @@ class WindowsTest
         final Player first = playerAt(10.5, 7.5);
         final Player second = playerAt(10.5, 6.5);
         when(world.getPlayers()).thenReturn(List.of(first, second));
-        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(Windows.class, "VIEWS");
-        final Map<String, WindowState> active = PrivateStatics.of(Windows.class, "ACTIVE");
+        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(WindowStore.class, "VIEWS");
+        final Map<String, WindowState> active = PrivateStatics.of(WindowStore.class, "ACTIVE");
         final boolean[] reached = new boolean[2];
 
         withServer(() ->
@@ -859,7 +859,7 @@ class WindowsTest
         final Player first = playerAt(10.5, 7.5);
         final Player second = playerAt(10.5, 6.5);
         when(world.getPlayers()).thenReturn(List.of(first, second));
-        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(Windows.class, "VIEWS");
+        final Map<UUID, ViewerDrawing> views = PrivateStatics.of(WindowStore.class, "VIEWS");
         final long[] composed = new long[4];
 
         withServer(() ->
