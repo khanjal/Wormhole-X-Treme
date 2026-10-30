@@ -5,12 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -40,6 +44,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  */
 class NameSignBookkeepingTest
 {
+    private WormholeXTreme plugin;
     private Stargate gate;
     private Block nameHolder;
     private Block signBlock;
@@ -49,7 +54,8 @@ class NameSignBookkeepingTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
         gate = new Stargate();
         gate.setGateName("signed");
         gate.setGateFacing(BlockFace.NORTH);
@@ -110,6 +116,7 @@ class NameSignBookkeepingTest
         GateFittings.setupGateSign(gate, true);
 
         verify(signBlock, never()).setType(any(), anyBoolean());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("frame material"));
     }
 
     @Test

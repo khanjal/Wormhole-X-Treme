@@ -27,8 +27,8 @@ import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
- * Handles all physical block placement and removal for a stargate: the name
- * sign, iris lever, portal fills, and gate/portal block deletion.
+ * Handles the physical block placement and removal for a stargate: portal fills
+ * and gate/portal block deletion, plus the drawing.
  *
  * <p>All methods are static and operate on a {@link Stargate} instance.
  */

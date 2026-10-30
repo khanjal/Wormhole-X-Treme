@@ -236,7 +236,6 @@ final class GateFittings
         placeBlock.setType(Material.AIR);
     }
 
-
     /**
      * Decides whether a dial sign should be converted to the gate's sign material.
      *
@@ -365,7 +364,6 @@ final class GateFittings
         }
         side.setGlowingText(glowing);
     }
-
 
     /**
      * Places or removes the iris control lever below the DHD block.
