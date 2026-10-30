@@ -665,6 +665,11 @@ What is sent, twice an hour:
   does a frame that matches none, that is not needed. Otherwise a gate nobody has used since the
   server started, in a chunk that is not loaded, is `unknown`: finding its material would load the
   chunk, and the counts are taken on the server thread;
+- which block the gates' frames are built from, as the plugin knows it from the gate's material group
+  or its shape (`obsidian`, `lapis_block` and so on, the game's own block names, whatever your
+  groups are called), counted by gate and read the same way: a
+  gate nobody has used since the server started, in a chunk that is not loaded, is `unknown` here
+  too, and with more than one material group that is more gates than for the portal;
 - the `gate-dial-spin` pattern, `gate-view`, `gate-iris-animation`, and whether `gate-ripple` and
   `gate-sounds-enabled` are on;
 - which of Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap

@@ -402,4 +402,74 @@ class StargateEffectiveMaterialTest
 
         assertNull(gateInWorld(world).getEffectivePortalMaterialIfLoaded());
     }
+
+    /**
+     * The frame material, asked for without loading anything, is the same as the portal's: a gate
+     * whose group is not yet known and whose frame is in an unloaded chunk answers null and reads no
+     * block, and finds its group once the chunk is there.
+     *
+     * <p>bStats counts the gates' frame materials on the server thread too. The shape's own frame
+     * is obsidian, so with only Atlantis (lapis) loaded the groups do not agree with it, and the
+     * block has to be read.
+     */
+    @Test
+    void frameMaterialIsNotLookedUpInAnUnloadedChunk()
+    {
+        final World world = Mockito.mock(World.class);
+        final Block frame = Mockito.mock(Block.class);
+        Mockito.when(frame.getType()).thenReturn(Material.LAPIS_BLOCK);
+        Mockito.when(world.getBlockAt(33, 64, -17)).thenReturn(frame);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+
+        assertNull(gate.getEffectiveStructureMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(true);
+        assertEquals(Material.LAPIS_BLOCK, gate.getEffectiveStructureMaterialIfLoaded(),
+            "the group is still found on a later ask, the first having cached nothing");
+        Mockito.verify(world, Mockito.times(1)).getBlockAt(33, 64, -17);
+    }
+
+    /** When every group builds the shape's own frame the group does not matter, so no chunk need be read. */
+    @Test
+    void frameMaterialNeedsNoChunkWhenEveryGroupAgreesWithTheShape()
+    {
+        final Map<String, Object> plain = new LinkedHashMap<>();
+        plain.put("structure", "OBSIDIAN");
+        plain.put("portal", "WATER");
+        MaterialGroupRegistry.load(Map.of("Plain", plain));
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+
+        assertEquals(Material.OBSIDIAN, gateInWorld(world).getEffectiveStructureMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+    }
+
+    /** A gate with a frame of its own choosing answers with it, and needs no chunk to say so. */
+    @Test
+    void frameMaterialOfACustomGateNeedsNoChunk()
+    {
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(Mockito.anyInt(), Mockito.anyInt())).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+        gate.setGateCustom(true);
+        gate.setGateCustomStructureMaterial(Material.NETHER_BRICKS);
+
+        assertEquals(Material.NETHER_BRICKS, gate.getEffectiveStructureMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+    }
+
+    /** A gate whose group is already known needs no chunk, so it answers wherever it is. */
+    @Test
+    void frameMaterialOfAGateWithAKnownGroupNeedsNoChunk()
+    {
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(Mockito.anyInt(), Mockito.anyInt())).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+
+        assertEquals(Material.LAPIS_BLOCK, gate.getEffectiveStructureMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+    }
 }

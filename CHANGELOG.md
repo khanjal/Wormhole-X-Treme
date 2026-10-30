@@ -87,6 +87,7 @@ somebody else's release notes, and the record of where this fork came from.
 - **A gate or a shape can have its own use cost.** `economy-use-cost` charged every gate alike. `/wormhole gate edit <gate> cost <amount>` gives one gate a cost, `USE_COST=<amount>` in a shape file gives every gate of that shape one, and `default` hands a gate back. The gate's own wins, then its shape's, then the setting; `0` is free and only an unset cost falls through. The fare is the entered gate's, asked before the trip and taken after it as before ([#632](https://github.com/khanjal/Wormhole-X-Treme/issues/632)).
 - **`/wormhole gate edit <gate> view <horizon|behind|open|default>` gives a gate its own view level**, which wins over `gate-view` even for `horizon` at a server on `open` ([#682](https://github.com/khanjal/Wormhole-X-Treme/issues/682)).
 - **`/wormhole mirror debug <gate>` says how a gate's view is being drawn**: the `gate-view` level, and whether the view is drawn and, if not, why ([#685](https://github.com/khanjal/Wormhole-X-Treme/issues/685)).
+- **bStats also counts which block the gates' frames are built from** (`gate_material`, a new pie): the game's own block name, `obsidian` or `lapis_block`, however a server's material groups are called, so no name a server chose is sent. It is read like the portal material, without loading a chunk: a gate nobody has used since the server started, in a chunk that is not loaded, is `unknown`. `metrics-enabled: false` stops it with the rest ([#239](https://github.com/khanjal/Wormhole-X-Treme/issues/239)).
 
 **Changed**
 

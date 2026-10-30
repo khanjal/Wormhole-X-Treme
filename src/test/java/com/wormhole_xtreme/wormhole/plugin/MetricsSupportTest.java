@@ -84,7 +84,7 @@ class MetricsSupportTest
                 final Object json = chart.getRequestJsonObject((message, error) -> { throw new AssertionError(message, error); }, true);
                 final String id = chartId(chart);
                 ids.add(id);
-                if (List.of("gate_shapes", "portal_material").contains(id))
+                if (List.of("gate_shapes", "portal_material", "gate_material").contains(id))
                 {
                     Assertions.assertNull(json, id + " is not sent while there is no gate to count");
                 }
@@ -96,7 +96,7 @@ class MetricsSupportTest
             }
             assertEquals(List.of("gates", "ring_pairs", "beam_destinations", "mirrors", "gate_dial_spin",
                 "gate_view", "gate_ripple", "gate_sounds", "gate_iris_animation", "gate_shapes",
-                "portal_material", "integrations"), ids,
+                "portal_material", "gate_material", "integrations"), ids,
                 "the ids the charts on bstats.org were made with");
 
             MetricsSupport.disableMetrics();
@@ -232,5 +232,38 @@ class MetricsSupportTest
         assertEquals("instant", MetricsSupport.irisAnimation("instant"));
         assertEquals("other", MetricsSupport.irisAnimation("wibble"));
         assertEquals("other", MetricsSupport.irisAnimation(null));
+    }
+
+    /** Each gate is counted under the name of the block its frame is built from, whatever the group is called. */
+    @Test
+    void frameMaterialsAreCountedPerGateByTheBlockTheyAreBuiltFrom()
+    {
+        final Map<String, Integer> counts = MetricsSupport.frameMaterialCounts(List.of(
+            frameGate(Material.OBSIDIAN), frameGate(Material.OBSIDIAN), frameGate(Material.LAPIS_BLOCK),
+            frameGate(Material.NETHER_BRICKS)));
+
+        assertEquals(Map.of("obsidian", 2, "lapis_block", 1, "nether_bricks", 1), counts);
+    }
+
+    /** A gate whose frame only loading a chunk would tell is counted as unknown, as the portal chart does. */
+    @Test
+    void aGateWhoseFrameIsInAnUnloadedChunkIsUnknownRatherThanLoadedToFindOut()
+    {
+        assertEquals(Map.of("unknown", 1, "obsidian", 1), MetricsSupport.frameMaterialCounts(
+            List.of(frameGate(null), frameGate(Material.OBSIDIAN))));
+    }
+
+    /** With no gates there is nothing to count, which the chart leaves unsent. */
+    @Test
+    void noGatesHaveNoFrameMaterialsToCount()
+    {
+        Assertions.assertTrue(MetricsSupport.frameMaterialCounts(List.of()).isEmpty());
+    }
+
+    private static Stargate frameGate(final Material frame)
+    {
+        final Stargate gate = Mockito.mock(Stargate.class);
+        Mockito.when(gate.getEffectiveStructureMaterialIfLoaded()).thenReturn(frame);
+        return gate;
     }
 }
