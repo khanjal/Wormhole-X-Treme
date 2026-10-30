@@ -146,7 +146,7 @@ class ChevronLightingTest
 
         assertFalse(gate.isGateLightsActive());
         assertEquals(0, gate.getGateAnimationStep3D());
-        assertFalse(gate.isGateAnimationRemoving());
+        assertFalse(gate.runtime().isGateAnimationRemoving());
     }
 
     /** Asked to light a gate whose lights are already off mid-sequence, it starts over. */
@@ -154,7 +154,7 @@ class ChevronLightingTest
     void aSequenceInterruptedPartWayThroughStartsAgain()
     {
         final Stargate gate = gateWithLightWaves(4);
-        gate.setGateLightingCurrentIteration(2);
+        gate.runtime().setGateLightingCurrentIteration(2);
         gate.setGateLightsActive(false);
 
         try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
@@ -168,7 +168,7 @@ class ChevronLightingTest
             blocks.verify(() -> StargateBlockSetup.undrawBlocks(any(Stargate.class), any()),
                 atLeastOnce());
         }
-        assertEquals(0, gate.getGateLightingCurrentIteration());
+        assertEquals(0, gate.runtime().getGateLightingCurrentIteration());
         assertFalse(gate.isGateLightsActive());
     }
 
@@ -277,7 +277,7 @@ class ChevronLightingTest
             gate.relightChevrons();
 
             blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), any()), times(8));
-            assertEquals(0, gate.getGateLightingCurrentIteration());
+            assertEquals(0, gate.runtime().getGateLightingCurrentIteration());
             assertEquals(true, gate.isGateLightsActive(), "still lit, so the sequence does not restart itself");
 
             StargateAnimator.lightStargate(gate, true);
@@ -301,7 +301,7 @@ class ChevronLightingTest
         gate.setGateTarget(eightChevronGate("beta", here));
         gate.setGateActive(true);
         gate.setGateLightsActive(true);
-        gate.setGateLightingCurrentIteration(6);
+        gate.runtime().setGateLightingCurrentIteration(6);
 
         try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
              MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))
@@ -313,7 +313,7 @@ class ChevronLightingTest
 
         verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class),
             eq(Stargate.LAST_CHEVRON_PAUSE_TICKS));
-        assertEquals(0, gate.getGateLightingCurrentIteration(), "the seventh was the last");
+        assertEquals(0, gate.runtime().getGateLightingCurrentIteration(), "the seventh was the last");
     }
 
     /** A chevron before the last locks with its own sound only. */
@@ -322,7 +322,7 @@ class ChevronLightingTest
     {
         final Stargate gate = eightChevronGate("alpha", world("here"));
         gate.setGateLightsActive(true);
-        gate.setGateLightingCurrentIteration(2);
+        gate.runtime().setGateLightingCurrentIteration(2);
 
         try (MockedStatic<StargateBlockSetup> blocks = mockStatic(StargateBlockSetup.class);
              MockedStatic<GateSounds> sounds = mockStatic(GateSounds.class))

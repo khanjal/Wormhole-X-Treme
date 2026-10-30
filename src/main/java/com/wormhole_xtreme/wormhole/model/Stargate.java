@@ -128,12 +128,17 @@ public class Stargate implements GateIris
     private Block gateRedstoneSignActivationBlock;
     /** The gate redstone gate activated block. */
     private Block gateRedstoneGateActivatedBlock;
+    /** What a gate is doing right now that is not saved: its scheduler tasks, its animation and its sign order. */
+    private final GateRuntime gateRuntime = new GateRuntime();
+
+    /** @return the gate's unsaved working state, which the animator, the dial manager and the lifecycle share */
+    GateRuntime runtime()
+    {
+        return gateRuntime;
+    }
+
     /** The Name block holder. Where we place the stargate name sign. */
     private Block gateNameBlockHolder;
-    /** The gate activate scheduler task id. */
-    private int gateActivateTaskId;
-    /** The gate shutdown scheduler task id. */
-    private int gateShutdownTaskId;
 
     /**
      * When this wormhole opened, in milliseconds, or 0 while closed.
@@ -192,20 +197,12 @@ public class Stargate implements GateIris
         }
         return (gateOpenedAtMillis + (maxOpenSeconds * 1000L)) - System.currentTimeMillis();
     }
-    /** The gate after shutdown scheduler task id. */
-    private int gateAfterShutdownTaskId;
     /** The woosh animation's step counter -- the only one, since the separately-tracked 2D
      *  animation was folded into this same state machine. Idle is 0: StargateAnimator's
      *  kawoosh trigger and its wave index both read this as 0 meaning "nothing has happened
      *  yet", so starting it at 1 meant a gate's first-ever opening skipped both the kawoosh
      *  sound and the shape's first woosh wave. */
     private int gateAnimationStep3D = 0;
-    /** The animation removing. */
-    private boolean gateAnimationRemoving = false;
-    /** The current_lighting_iteration. */
-    private int gateLightingCurrentIteration = 0;
-    /** How many chevrons this dial has locked, for a player who arrives before the wormhole forms. */
-    private int gateChevronsLocked = 0;
     /** List of all blocks contained in this stargate, including buttons and levers. */
     private final List<Location> gateStructureBlocks = new ArrayList<>();
     /** List of all blocks that that are part of the "portal". */
@@ -214,10 +211,6 @@ public class Stargate implements GateIris
     private final List<List<Location>> gateLightBlocks = new ArrayList<>();
     /** List of all blocks that woosh in order when gate is active. */
     private final List<List<Location>> gateWooshBlocks = new ArrayList<>();
-    /** The Animated blocks. */
-    private final ArrayList<Block> gateAnimatedBlocks = new ArrayList<>();
-    /** The gate_order. */
-    private final HashMap<Integer, Stargate> gateSignOrder = new HashMap<>();
 
     /** The gate custom. */
     private boolean gateCustom = false;
@@ -1008,30 +1001,6 @@ public class Stargate implements GateIris
     }
 
     /**
-     * Gets the gate activate task id.
-     */
-    int getGateActivateTaskId()
-    {
-        return gateActivateTaskId;
-    }
-
-    /**
-     * Gets the gate after shutdown task id.
-     */
-    int getGateAfterShutdownTaskId()
-    {
-        return gateAfterShutdownTaskId;
-    }
-
-    /**
-     * Gets the gate animated blocks.
-     */
-    ArrayList<Block> getGateAnimatedBlocks()
-    {
-        return gateAnimatedBlocks;
-    }
-
-    /**
      * Gets the gate animation step.
      * 
      * @return the gate animation step
@@ -1259,14 +1228,6 @@ public class Stargate implements GateIris
     }
 
     /**
-     * Gets the gate lighting current iteration.
-     */
-    int getGateLightingCurrentIteration()
-    {
-        return gateLightingCurrentIteration;
-    }
-
-    /**
      * Gets the gate minecart teleport location.
      */
     public Location getGateMinecartTeleportLocation()
@@ -1430,22 +1391,6 @@ public class Stargate implements GateIris
     }
 
     /**
-     * Gets the gate shutdown task id.
-     */
-    int getGateShutdownTaskId()
-    {
-        return gateShutdownTaskId;
-    }
-
-    /**
-     * Gets the gate sign order.
-     */
-    HashMap<Integer, Stargate> getGateSignOrder()
-    {
-        return gateSignOrder;
-    }
-
-    /**
      * Gets the gate structure blocks.
      */
     public List<Location> getGateStructureBlocks()
@@ -1536,14 +1481,6 @@ public class Stargate implements GateIris
     public void setGatePortalOpen(final boolean gatePortalOpen)
     {
         this.gatePortalOpen = gatePortalOpen;
-    }
-
-    /**
-     * Checks if is gate animation removing.
-     */
-    boolean isGateAnimationRemoving()
-    {
-        return gateAnimationRemoving;
     }
 
     /**
@@ -1657,14 +1594,6 @@ public class Stargate implements GateIris
     }
 
     /**
-     * Sets the gate activate task id.
-     */
-    void setGateActivateTaskId(final int gateActivateTaskId)
-    {
-        this.gateActivateTaskId = gateActivateTaskId;
-    }
-
-    /**
      * Sets the gate active.
      */
     public void setGateActive(final boolean gateActive)
@@ -1676,22 +1605,6 @@ public class Stargate implements GateIris
         }
         this.gateActive = gateActive;
         StargateManager.setGateOpenState(this, gateActive);
-    }
-
-    /**
-     * Sets the gate after shutdown task id.
-     */
-    void setGateAfterShutdownTaskId(final int gateAfterShutdownTaskId)
-    {
-        this.gateAfterShutdownTaskId = gateAfterShutdownTaskId;
-    }
-
-    /**
-     * Sets the gate animation removing.
-     */
-    void setGateAnimationRemoving(final boolean gateAnimationRemoving)
-    {
-        this.gateAnimationRemoving = gateAnimationRemoving;
     }
 
     /**
@@ -1904,26 +1817,6 @@ public class Stargate implements GateIris
     }
 
     /**
-     * Sets the gate lighting current iteration.
-     */
-    void setGateLightingCurrentIteration(final int gateLightingCurrentIteration)
-    {
-        this.gateLightingCurrentIteration = gateLightingCurrentIteration;
-    }
-
-    /** @return how many chevrons this dial has locked so far */
-    int getGateChevronsLocked()
-    {
-        return gateChevronsLocked;
-    }
-
-    /** Sets how many chevrons this dial has locked so far. */
-    void setGateChevronsLocked(final int gateChevronsLocked)
-    {
-        this.gateChevronsLocked = gateChevronsLocked;
-    }
-
-    /**
      * Sets the gate lit.
      */
     public void setGateLightsActive(final boolean gateLightsActive)
@@ -2074,14 +1967,6 @@ public class Stargate implements GateIris
         {
             this.gateShapeName = gateShapeName;
         }
-    }
-
-    /**
-     * Sets the gate shutdown task id.
-     */
-    void setGateShutdownTaskId(final int gateShutdownTaskId)
-    {
-        this.gateShutdownTaskId = gateShutdownTaskId;
     }
 
     /**

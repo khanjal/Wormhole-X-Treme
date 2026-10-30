@@ -180,7 +180,7 @@ class GateRingTurnTest
 
             blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), argThat(l -> holds(l, start))));
             blocks.verify(() -> StargateBlockSetup.drawLights(gate, first), never());
-            assertEquals(0, gate.getGateLightingCurrentIteration(), "no chevron locked yet");
+            assertEquals(0, gate.runtime().getGateLightingCurrentIteration(), "no chevron locked yet");
 
             final int ticks = gate.getEffectiveLightTicks();
             for (int tick = 1; tick <= ticks; tick++)
@@ -189,7 +189,7 @@ class GateRingTurnTest
             }
 
             blocks.verify(() -> StargateBlockSetup.drawLights(gate, first));
-            assertEquals(1, gate.getGateLightingCurrentIteration());
+            assertEquals(1, gate.runtime().getGateLightingCurrentIteration());
         }
         // A tick at a time through the turn, and once more after the chevron locks: the next turn is the wait.
         verify(scheduler, times(gate.getEffectiveLightTicks() + 1)).scheduleSyncDelayedTask(any(Plugin.class),
@@ -225,10 +225,10 @@ class GateRingTurnTest
                     for (int tick = 0; tick < ticks; tick++)
                     {
                         StargateAnimator.lightStargate(gate, true);
-                        assertEquals(0, gate.getGateLightingCurrentIteration(), pattern + ": nothing locked at tick " + tick);
+                        assertEquals(0, gate.runtime().getGateLightingCurrentIteration(), pattern + ": nothing locked at tick " + tick);
                     }
                     StargateAnimator.lightStargate(gate, true);
-                    assertEquals(1, gate.getGateLightingCurrentIteration(), pattern + ": locked after " + ticks + " ticks");
+                    assertEquals(1, gate.runtime().getGateLightingCurrentIteration(), pattern + ": locked after " + ticks + " ticks");
                 }
             }
         }
@@ -259,7 +259,7 @@ class GateRingTurnTest
             {
                 StargateAnimator.lightStargate(gate, true);
             }
-            assertEquals(1, gate.getGateLightingCurrentIteration());
+            assertEquals(1, gate.runtime().getGateLightingCurrentIteration());
             for (int tick = 0; tick < DialSpin.TOP_HOLD_TICKS; tick++)
             {
                 StargateAnimator.lightStargate(gate, true);
@@ -271,10 +271,10 @@ class GateRingTurnTest
             for (int tick = 1; tick < ticks; tick++)
             {
                 StargateAnimator.lightStargate(gate, true);
-                assertEquals(1, gate.getGateLightingCurrentIteration(), "still turning at tick " + tick);
+                assertEquals(1, gate.runtime().getGateLightingCurrentIteration(), "still turning at tick " + tick);
             }
             StargateAnimator.lightStargate(gate, true);
-            assertEquals(2, gate.getGateLightingCurrentIteration());
+            assertEquals(2, gate.runtime().getGateLightingCurrentIteration());
         }
     }
 
@@ -306,7 +306,7 @@ class GateRingTurnTest
                 blocks.clearInvocations();
                 StargateAnimator.lightStargate(gate, true);
 
-                assertEquals(1, gate.getGateLightingCurrentIteration());
+                assertEquals(1, gate.runtime().getGateLightingCurrentIteration());
                 blocks.verify(() -> StargateBlockSetup.drawLights(eq(gate), argThat(l -> holds(l, origin))));
                 blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, origin))), never());
                 blocks.verify(() -> StargateBlockSetup.drawLights(gate, gate.getGateLightBlocks().get(1)), never());
@@ -351,7 +351,7 @@ class GateRingTurnTest
                     }
                     if (glyph < Stargate.LOCAL_CHEVRONS)
                     {
-                        assertEquals(glyph, gate.getGateLightingCurrentIteration(), "locked glyph " + glyph);
+                        assertEquals(glyph, gate.runtime().getGateLightingCurrentIteration(), "locked glyph " + glyph);
                     }
                 }
                 sounds.verify(() -> GateSounds.locked(gate));
@@ -465,7 +465,7 @@ class GateRingTurnTest
         {
             StargateAnimator.lightStargate(far, true);
         }
-        assertEquals(1, far.getGateLightingCurrentIteration(), "the far gate's first chevron locked");
+        assertEquals(1, far.runtime().getGateLightingCurrentIteration(), "the far gate's first chevron locked");
         verify(scheduler).scheduleSyncDelayedTask(any(Plugin.class), any(Runnable.class), eq(turn));
     }
 
@@ -540,8 +540,8 @@ class GateRingTurnTest
                 StargateAnimator.lightStargate(still, true);
                 StargateAnimator.lightStargate(turning, true);
             }
-            assertEquals(1, still.getGateLightingCurrentIteration(), "NONE locks the first chevron at once");
-            assertEquals(0, turning.getGateLightingCurrentIteration(), "the server's TOP is still turning");
+            assertEquals(1, still.runtime().getGateLightingCurrentIteration(), "NONE locks the first chevron at once");
+            assertEquals(0, turning.runtime().getGateLightingCurrentIteration(), "the server's TOP is still turning");
 
             ConfigTestSupport.set(
                 ConfigManager.ConfigKeys.GATE_DIAL_SPIN, "NONE");
@@ -594,7 +594,7 @@ class GateRingTurnTest
             StargateAnimator.lightStargate(gate, true);
 
             blocks.verify(() -> StargateBlockSetup.undrawBlocks(eq(gate), argThat(l -> holds(l, start))));
-            assertEquals(1, gate.getGateLightingCurrentIteration(), "and the chevron locks without a turn");
+            assertEquals(1, gate.runtime().getGateLightingCurrentIteration(), "and the chevron locks without a turn");
         }
     }
 }

@@ -490,11 +490,11 @@ class StargateDialManager
             return false;
         }
 
-        if (gate.getGateShutdownTaskId() > 0)
+        if (gate.runtime().getGateShutdownTaskId() > 0)
         {
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateShutdownTaskId());
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateShutdownTaskId());
         }
-        gate.setGateShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+        gate.runtime().setGateShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.SHUTDOWN), delay));
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
@@ -526,13 +526,13 @@ class StargateDialManager
     static void dialStargate(final Stargate gate, final boolean atOnce)
     {
         WorldUtils.scheduleChunkLoad(gate.getGatePlayerTeleportLocation().getBlock());
-        if (gate.getGateShutdownTaskId() > 0)
+        if (gate.runtime().getGateShutdownTaskId() > 0)
         {
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateShutdownTaskId());
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateShutdownTaskId());
         }
-        if (gate.getGateAfterShutdownTaskId() > 0)
+        if (gate.runtime().getGateAfterShutdownTaskId() > 0)
         {
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateAfterShutdownTaskId());
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateAfterShutdownTaskId());
         }
 
         // Measured from when the wormhole first opened, so re-dialling does not restart it.
@@ -553,12 +553,12 @@ class StargateDialManager
 
         if (timeout > 0)
         {
-            gate.setGateShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+            gate.runtime().setGateShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
                 WormholeXTreme.getThisPlugin(),
                 new StargateUpdateRunnable(gate, ActionToTake.SHUTDOWN), timeout));
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                GATE_PREFIX + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + "\" created.");
-            if (gate.getGateShutdownTaskId() == -1)
+                GATE_PREFIX + gate.getGateName() + "\" ShutdownTaskID \"" + gate.runtime().getGateShutdownTaskId() + "\" created.");
+            if (gate.runtime().getGateShutdownTaskId() == -1)
             {
                 gate.shutdownStargate(true, StargateShutdownEvent.Reason.TIMEOUT);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
@@ -567,7 +567,7 @@ class StargateDialManager
             }
         }
 
-        if ((gate.getGateShutdownTaskId() > 0) || (timeout == 0))
+        if ((gate.runtime().getGateShutdownTaskId() > 0) || (timeout == 0))
         {
             if (!gate.isGateActive())
             {
@@ -612,9 +612,9 @@ class StargateDialManager
                 "Dial prevented: target '" + target.getGateName() + "' is in another world, and same-world-only is on.");
             return false;
         }
-        if (gate.getGateActivateTaskId() > 0)
+        if (gate.runtime().getGateActivateTaskId() > 0)
         {
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateActivateTaskId());
         }
         final String refusal = force ? null : whyNotDialable(gate, target);
         if (refusal != null)

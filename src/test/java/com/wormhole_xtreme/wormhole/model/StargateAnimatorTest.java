@@ -100,7 +100,7 @@ class StargateAnimatorTest
             "nothing should be drawn, so nothing should need a world to draw it on");
 
         assertEquals(0, gate.getGateAnimationStep3D(), "the woosh never starts");
-        assertFalse(gate.isGateAnimationRemoving(), "and is not left half-retracted either");
+        assertFalse(gate.runtime().isGateAnimationRemoving(), "and is not left half-retracted either");
     }
 
     /**
@@ -175,12 +175,12 @@ class StargateAnimatorTest
         // One entry, at index 0 -- null so the block-undrawing branch, which needs a live
         // World, is never reached; this test only cares about the counter.
         gate.getGateWooshBlocks().add(null);
-        gate.setGateAnimationRemoving(true);
+        gate.runtime().setGateAnimationRemoving(true);
         gate.setGateAnimationStep3D(0);
 
         StargateAnimator.animateOpening(gate);
 
-        assertFalse(gate.isGateAnimationRemoving(), "closing must still clear the removing flag");
+        assertFalse(gate.runtime().isGateAnimationRemoving(), "closing must still clear the removing flag");
         assertEquals(0, gate.getGateAnimationStep3D(),
             "step3D must return to 0 once closing finishes, or the next opening's kawoosh "
                 + "check fails and its first woosh-depth index is off by one");
@@ -207,12 +207,12 @@ class StargateAnimatorTest
         gate.setGateActive(true);
         gate.getGateWooshBlocks().add(null);
         gate.getGateWooshBlocks().add(null);
-        gate.setGateAnimationRemoving(true);
+        gate.runtime().setGateAnimationRemoving(true);
         gate.setGateAnimationStep3D(1);
 
         StargateAnimator.animateOpening(gate);
 
-        assertTrue(gate.isGateAnimationRemoving(),
+        assertTrue(gate.runtime().isGateAnimationRemoving(),
             "step 1 must not be treated as the last retraction step -- index 0 is still owed an "
                 + "undraw, so retraction must still be in progress after this tick, not settled");
         assertEquals(0, gate.getGateAnimationStep3D(),
@@ -241,7 +241,7 @@ class StargateAnimatorTest
 
         assertEquals(0, gate.getGateAnimationStep3D(),
             "an inactive gate must not start a fresh opening, even with a nonzero woosh depth configured");
-        assertFalse(gate.isGateAnimationRemoving(),
+        assertFalse(gate.runtime().isGateAnimationRemoving(),
             "nor may it begin retracting an opening it never started");
     }
 
@@ -255,17 +255,17 @@ class StargateAnimatorTest
         // and closingTheWooshResetsStep3DBackToZeroForTheNextOpening above already covers
         // the normal-completion case.
         final Stargate gate = new Stargate();
-        gate.getGateAnimatedBlocks().add(mock(Block.class));
+        gate.runtime().getGateAnimatedBlocks().add(mock(Block.class));
         gate.setGateAnimationStep3D(1);
-        gate.setGateAnimationRemoving(true);
+        gate.runtime().setGateAnimationRemoving(true);
 
         StargateAnimator.lightStargate(gate, false);
 
-        assertTrue(gate.getGateAnimatedBlocks().isEmpty(),
+        assertTrue(gate.runtime().getGateAnimatedBlocks().isEmpty(),
             "closing must undraw and forget whatever the woosh left showing, not just whatever "
                 + "its own retraction already knew to look for");
         assertEquals(0, gate.getGateAnimationStep3D());
-        assertFalse(gate.isGateAnimationRemoving());
+        assertFalse(gate.runtime().isGateAnimationRemoving());
     }
 
     /**
@@ -286,13 +286,13 @@ class StargateAnimatorTest
         gate.setGateCustom(true);
         gate.setGateCustomWooshDepth(0);
         gate.setGateAnimationStep3D(3);
-        gate.setGateAnimationRemoving(true);
+        gate.runtime().setGateAnimationRemoving(true);
 
         StargateAnimator.animateOpening(gate);
 
         assertEquals(0, gate.getGateAnimationStep3D(),
             "a gate that cannot animate must not keep a half-finished woosh counter");
-        assertFalse(gate.isGateAnimationRemoving());
+        assertFalse(gate.runtime().isGateAnimationRemoving());
     }
 
     /** The wormhole forms when the opening settles, and not before: that is what travel waits for. */
@@ -328,12 +328,12 @@ class StargateAnimatorTest
         {
             gate.getGateLightBlocks().add(new ArrayList<>());
         }
-        gate.setGateChevronsLocked(2);
+        gate.runtime().setGateChevronsLocked(2);
 
         StargateAnimator.animateOpening(gate);
         assertFalse(gate.isGatePortalOpen(), "two chevrons locked of seven");
 
-        gate.setGateChevronsLocked(7);
+        gate.runtime().setGateChevronsLocked(7);
         StargateAnimator.animateOpening(gate);
         assertTrue(gate.isGatePortalOpen(), "all seven locked, so this woosh is the dial's own");
     }
@@ -357,7 +357,7 @@ class StargateAnimatorTest
         final Block drawn = mock(Block.class);
         final Location at = new Location(null, 1, 2, 3);
         when(drawn.getLocation()).thenReturn(at);
-        gate.getGateAnimatedBlocks().add(drawn);
+        gate.runtime().getGateAnimatedBlocks().add(drawn);
         gate.setGateAnimationStep3D(1);
         gate.setGateIrisActive(true);
 
@@ -374,7 +374,7 @@ class StargateAnimatorTest
             gate.setGateIrisActive(false);
         }
 
-        assertTrue(gate.getGateAnimatedBlocks().isEmpty(), "nothing is left counted as showing");
+        assertTrue(gate.runtime().getGateAnimatedBlocks().isEmpty(), "nothing is left counted as showing");
         assertEquals(0, gate.getGateAnimationStep3D(), "and the woosh is over");
     }
 

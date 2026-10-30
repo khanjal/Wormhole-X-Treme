@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,6 +43,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 class ExtendOpenTimeTest
 {
     private Stargate gate;
+    private GateRuntime runtime;
     private BukkitScheduler scheduler;
     private MockedStatic<ConfigManager> config;
 
@@ -53,6 +55,8 @@ class ExtendOpenTimeTest
         PluginTestSupport.scheduler(scheduler);
 
         gate = mock(Stargate.class);
+        runtime = new GateRuntime();
+        when(gate.runtime()).thenReturn(runtime);
         when(gate.getGateName()).thenReturn("alpha");
         when(gate.isGateActive()).thenReturn(true);
 
@@ -142,27 +146,27 @@ class ExtendOpenTimeTest
     @Test
     void anAlreadyPendingShutdownIsCancelledRatherThanLeftToFireFirst()
     {
-        when(gate.getGateShutdownTaskId()).thenReturn(77);
+        runtime.setGateShutdownTaskId(77);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenReturn(88);
 
         assertTrue(StargateDialManager.extendOpenTime(gate), "an open gate should extend");
 
         verify(scheduler).cancelTask(77);
-        verify(gate).setGateShutdownTaskId(88);
+        assertEquals(88, runtime.getGateShutdownTaskId(), "the new timer's task is the one kept");
     }
 
     /** A gate with no shutdown pending has nothing to cancel, and still gets its timer. */
     @Test
     void aGateWithNoPendingShutdownIsStillGivenOne()
     {
-        when(gate.getGateShutdownTaskId()).thenReturn(0);
+        runtime.setGateShutdownTaskId(0);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenReturn(91);
 
         assertTrue(StargateDialManager.extendOpenTime(gate), "an open gate should extend");
 
         verify(scheduler, never()).cancelTask(0);
-        verify(gate).setGateShutdownTaskId(91);
+        assertEquals(91, runtime.getGateShutdownTaskId(), "the new timer's task is the one kept");
     }
 }

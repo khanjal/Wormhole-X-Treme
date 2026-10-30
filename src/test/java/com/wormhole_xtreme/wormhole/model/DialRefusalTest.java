@@ -42,6 +42,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 class DialRefusalTest
 {
     private Stargate gate;
+    private GateRuntime runtime;
 
     @BeforeEach
     void setUp() throws Exception
@@ -50,7 +51,8 @@ class DialRefusalTest
 
         gate = mock(Stargate.class);
         when(gate.getGateName()).thenReturn("alpha");
-        when(gate.getGateActivateTaskId()).thenReturn(0);
+        runtime = new GateRuntime();
+        when(gate.runtime()).thenReturn(runtime);
         // Enough of a location for the forced path, which gets as far as scheduling a
         // chunk load before the local activation it is really waiting on fails.
         final World world = mock(World.class);
@@ -369,7 +371,7 @@ class DialRefusalTest
         final World there = mock(World.class);
         when(gate.getGateWorld()).thenReturn(here);
         when(target.getGateWorld()).thenReturn(there);
-        when(gate.getGateActivateTaskId()).thenReturn(7);
+        runtime.setGateActivateTaskId(7);
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         ConfigTestSupport.set(ConfigKeys.SAME_WORLD_ONLY, true);

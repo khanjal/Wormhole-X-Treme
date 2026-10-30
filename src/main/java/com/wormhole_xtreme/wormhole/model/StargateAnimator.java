@@ -59,7 +59,7 @@ class StargateAnimator
         // Closed and dialled again since this was booked: the new dial's chevrons are still
         // locking, and it books its own woosh after the last.
         final List<List<Location>> lights = gate.getGateLightBlocks();
-        if ((lights != null) && (gate.getGateChevronsLocked() < lastWave(gate, lights)))
+        if ((lights != null) && (gate.runtime().getGateChevronsLocked() < lastWave(gate, lights)))
         {
             return;
         }
@@ -71,7 +71,7 @@ class StargateAnimator
         // too decides what that stage draws, whether the iris hides it, and what comes next.
         // With no waves a leftover counter means nothing, and would read as a negative stage.
         final int stage = (waveCount == 0) ? 0
-            : WooshSequence.stageOf(gate.getGateAnimationStep3D(), gate.isGateAnimationRemoving(), waveCount);
+            : WooshSequence.stageOf(gate.getGateAnimationStep3D(), gate.runtime().isGateAnimationRemoving(), waveCount);
         final int next = WooshSequence.play(stage, waveCount, gate, new GateCanvas(gate, wooshMaterial));
         if (next < 0)
         {
@@ -79,7 +79,7 @@ class StargateAnimator
         }
         final WooshSequence.Step step = WooshSequence.at(next, waveCount);
         gate.setGateAnimationStep3D(step.index());
-        gate.setGateAnimationRemoving(step.move() == WooshSequence.Move.BACK);
+        gate.runtime().setGateAnimationRemoving(step.move() == WooshSequence.Move.BACK);
         scheduleNextWooshTick(gate);
     }
 
@@ -122,7 +122,7 @@ class StargateAnimator
             // Not filled: the horizon drawn over the portal cells would stand where the iris is.
             // Opening the iris later draws the portal through setIrisState.
             gate.setGateAnimationStep3D(0);
-            gate.setGateAnimationRemoving(false);
+            gate.runtime().setGateAnimationRemoving(false);
             // Formed behind the iris; the iris itself is what keeps travellers out now. A sweep
             // still crossing layers the gate itself when it finishes.
             gate.setGatePortalOpen(gate.isGateActive());
@@ -171,11 +171,11 @@ class StargateAnimator
                 final Block block = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
                 if (out)
                 {
-                    gate.getGateAnimatedBlocks().add(block);
+                    gate.runtime().getGateAnimatedBlocks().add(block);
                 }
                 else
                 {
-                    gate.getGateAnimatedBlocks().remove(block);
+                    gate.runtime().getGateAnimatedBlocks().remove(block);
                 }
             }
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, gate.getGateName() + (out ? " Woosh Adding: " : " Woosh Removing: ")
@@ -195,7 +195,7 @@ class StargateAnimator
         private static void settleIntoOpenPortal(final Stargate gate, final Material wooshMaterial)
         {
             gate.setGateAnimationStep3D(0);
-            gate.setGateAnimationRemoving(false);
+            gate.runtime().setGateAnimationRemoving(false);
             gate.setGatePortalOpen(gate.isGateActive());
             if (gate.isGateLightsActive())
             {
@@ -305,8 +305,8 @@ class StargateAnimator
      */
     private static void lightNextChevron(final Stargate gate)
     {
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Lighting up Order: " + gate.getGateLightingCurrentIteration());
-        if ((gate.getGateLightingCurrentIteration() == 0) && !gate.isGateLightsActive())
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Lighting up Order: " + gate.runtime().getGateLightingCurrentIteration());
+        if ((gate.runtime().getGateLightingCurrentIteration() == 0) && !gate.isGateLightsActive())
         {
             // Not when relighting: the gate already made its activation sound when it lit.
             gate.setGateLightsActive(true);
@@ -317,7 +317,7 @@ class StargateAnimator
             // The gate went dark part-way through the sequence, so start it over rather
             // than carrying on from wherever the counter had reached.
             darkenStargate(gate);
-            gate.setGateLightingCurrentIteration(0);
+            gate.runtime().setGateLightingCurrentIteration(0);
             return;
         }
 
@@ -330,9 +330,9 @@ class StargateAnimator
         {
             return;
         }
-        final int step = gate.getGateLightingCurrentIteration() + 1;
-        gate.setGateLightingCurrentIteration(step);
-        gate.setGateChevronsLocked(step);
+        final int step = gate.runtime().getGateLightingCurrentIteration() + 1;
+        gate.runtime().setGateLightingCurrentIteration(step);
+        gate.runtime().setGateChevronsLocked(step);
         drawLightWave(gate, waves, step);
         scheduleNextStep(gate, waves, step);
     }
@@ -400,7 +400,7 @@ class StargateAnimator
     {
         if (step >= lastWave(gate, waves))
         {
-            gate.setGateLightingCurrentIteration(0);
+            gate.runtime().setGateLightingCurrentIteration(0);
             if (gate.isGateActive())
             {
                 WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
@@ -515,7 +515,7 @@ class StargateAnimator
      */
     private static boolean turnRing(final Stargate gate, final List<List<Location>> waves)
     {
-        final int glyph = gate.getGateLightingCurrentIteration() + 1;
+        final int glyph = gate.runtime().getGateLightingCurrentIteration() + 1;
         final DialSpin spin = turns(gate) ? spinOf(gate) : null;
         if (spin == null)
         {
@@ -642,7 +642,7 @@ class StargateAnimator
             return lastWave(gate, waves);
         }
         // A Universe gate's locked chevrons ride its ring, and are back in place only once the last locks.
-        return ridesTheRing(gate) ? 0 : Math.min(lastWave(gate, waves), gate.getGateChevronsLocked());
+        return ridesTheRing(gate) ? 0 : Math.min(lastWave(gate, waves), gate.runtime().getGateChevronsLocked());
     }
 
     /**
@@ -667,7 +667,7 @@ class StargateAnimator
     static void lightAll(final Stargate gate)
     {
         gate.setGateLightsActive(true);
-        gate.setGateLightingCurrentIteration(0);
+        gate.runtime().setGateLightingCurrentIteration(0);
         GateSounds.activated(gate);
         final List<List<Location>> waves = gate.getGateLightBlocks();
         if (waves == null)
@@ -694,11 +694,11 @@ class StargateAnimator
     static void openAtOnce(final Stargate gate)
     {
         gate.setGateLightsActive(true);
-        gate.setGateLightingCurrentIteration(0);
+        gate.runtime().setGateLightingCurrentIteration(0);
         final List<List<Location>> waves = gate.getGateLightBlocks();
         if (waves != null)
         {
-            gate.setGateChevronsLocked(lastWave(gate, waves));
+            gate.runtime().setGateChevronsLocked(lastWave(gate, waves));
             for (int step = 1; step <= lastWave(gate, waves); step++)
             {
                 if (waves.get(step) != null)
@@ -732,8 +732,8 @@ class StargateAnimator
                 }
             }
         }
-        gate.setGateLightingCurrentIteration(0);
-        gate.setGateChevronsLocked(0);
+        gate.runtime().setGateLightingCurrentIteration(0);
+        gate.runtime().setGateChevronsLocked(0);
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
     }
@@ -744,7 +744,7 @@ class StargateAnimator
     private static void darkenStargate(final Stargate gate)
     {
         gate.setGateLightsActive(false);
-        gate.setGateChevronsLocked(0);
+        gate.runtime().setGateChevronsLocked(0);
         // The ring's light may be part way round; put back whatever it was showing.
         final Turning turning = TURNING.remove(gate);
         if ((turning != null) && !turning.cells.isEmpty())
@@ -766,7 +766,7 @@ class StargateAnimator
         }
         undrawLeftoverWoosh(gate);
         gate.setGateAnimationStep3D(0);
-        gate.setGateAnimationRemoving(false);
+        gate.runtime().setGateAnimationRemoving(false);
     }
 
     /**
@@ -786,11 +786,11 @@ class StargateAnimator
      */
     private static void undrawLeftoverWoosh(final Stargate gate)
     {
-        if (gate.getGateAnimatedBlocks().isEmpty())
+        if (gate.runtime().getGateAnimatedBlocks().isEmpty())
         {
             return;
         }
-        StargateBlockSetup.undrawBlocks(gate, gate.getGateAnimatedBlocks().stream().map(Block::getLocation).toList());
-        gate.getGateAnimatedBlocks().clear();
+        StargateBlockSetup.undrawBlocks(gate, gate.runtime().getGateAnimatedBlocks().stream().map(Block::getLocation).toList());
+        gate.runtime().getGateAnimatedBlocks().clear();
     }
 }
