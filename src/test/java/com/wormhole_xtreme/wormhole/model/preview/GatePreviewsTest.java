@@ -67,6 +67,7 @@ import org.bukkit.Axis;
 import org.bukkit.WorldBorder;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.FaceAttachable;
+import org.bukkit.block.data.Lightable;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Switch;
 import org.mockito.ArgumentCaptor;
@@ -4063,7 +4064,7 @@ class GatePreviewsTest
     @Test
     void aLitChevronBlockIsSwitchedOnRatherThanReplacedByTheLight()
     {
-        final org.bukkit.block.data.Lightable lamp = mock(org.bukkit.block.data.Lightable.class);
+        final Lightable lamp = mock(Lightable.class);
         data.put(Material.REDSTONE_LAMP, lamp);
         final MaterialGroup atlantis = new MaterialGroup(
             "Atlantis", Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,

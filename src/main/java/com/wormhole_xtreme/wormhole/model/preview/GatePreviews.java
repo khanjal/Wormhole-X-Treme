@@ -1461,7 +1461,8 @@ public final class GatePreviews
                 GatePreview.removeAt(preview.beyondDisplays(), i);
                 continue;
             }
-            PreviewFrame.spawnMissing(owner, preview, preview.openingDisplays(), i, world, preview.opening().get(i), PreviewFrame.openingData(preview));
+            PreviewFrame.spawnMissing(owner, preview, preview.openingDisplays(), i, world, preview.opening().get(i),
+                PreviewFrame.openingData(preview));
             spawnBeyond(owner, preview, i, stacked);
         }
         if (preview.open() && !stacked)
