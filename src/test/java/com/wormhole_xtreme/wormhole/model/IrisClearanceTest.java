@@ -105,7 +105,7 @@ class IrisClearanceTest
         final Zombie zombie = zombieAt(BY);
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(item, zombie));
 
-        StargateBlockSetup.clearIrisPath(gate);
+        IrisClearance.clearIrisPath(gate);
 
         assertEquals(1, teleports(zombie), "a living thing in the opening is moved");
         assertEquals(0, teleports(item), "a dropped item does not suffocate and is not carried to the exit");
@@ -120,7 +120,7 @@ class IrisClearanceTest
         PetTestSupport.standsWhereTeleported(player, new Location(world, BX + 0.5, BY, BZ + 0.5));
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(player));
 
-        StargateBlockSetup.clearIrisPath(gate);
+        IrisClearance.clearIrisPath(gate);
 
         verify(player).setNoDamageTicks(5);
     }
@@ -136,7 +136,7 @@ class IrisClearanceTest
         {
             utils.when(() -> WorldUtils.findSafePlayerLocation(any(Location.class))).thenReturn(exit);
 
-            StargateBlockSetup.clearIrisPath(gate);
+            IrisClearance.clearIrisPath(gate);
 
             utils.verify(() -> WorldUtils.findSafePlayerLocation(any(Location.class)), times(1));
         }
@@ -146,7 +146,7 @@ class IrisClearanceTest
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(outside));
         try (MockedStatic<WorldUtils> utils = mockStatic(WorldUtils.class))
         {
-            StargateBlockSetup.clearIrisPath(gate);
+            IrisClearance.clearIrisPath(gate);
 
             utils.verify(() -> WorldUtils.findSafePlayerLocation(any(Location.class)), never());
         }
@@ -166,7 +166,7 @@ class IrisClearanceTest
         when(two.getVehicle()).thenReturn(mount);
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(one, two));
 
-        StargateBlockSetup.clearIrisPath(gate);
+        IrisClearance.clearIrisPath(gate);
 
         assertEquals(1, teleports(mount), "the stack goes once, not once per rider");
     }
@@ -186,7 +186,7 @@ class IrisClearanceTest
         }
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(seats[0]));
 
-        StargateBlockSetup.clearIrisPath(gate);
+        IrisClearance.clearIrisPath(gate);
 
         assertEquals(1, teleports(seats[16]), "sixteen seats down is where it stops");
         assertEquals(0, teleports(seats[0]), "not the rider who was found");
@@ -202,7 +202,7 @@ class IrisClearanceTest
         final Zombie fine = zombieAt(BY);
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(broken, fine));
 
-        assertDoesNotThrow(() -> StargateBlockSetup.clearIrisPath(gate));
+        assertDoesNotThrow(() -> IrisClearance.clearIrisPath(gate));
 
         assertEquals(1, teleports(fine), "the one after the failure is still moved");
     }
@@ -217,19 +217,19 @@ class IrisClearanceTest
         noWorld.setGateName("NoWorld");
         noWorld.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
         noWorld.setGatePlayerTeleportLocation(exit);
-        assertDoesNotThrow(() -> StargateBlockSetup.clearIrisPath(noWorld), "no world to ask");
+        assertDoesNotThrow(() -> IrisClearance.clearIrisPath(noWorld), "no world to ask");
 
         final Stargate noBox = new Stargate();
         noBox.setGateName("NoBox");
         noBox.setGateWorld(world);
         noBox.setGatePlayerTeleportLocation(exit);
-        StargateBlockSetup.clearIrisPath(noBox);
+        IrisClearance.clearIrisPath(noBox);
 
         final Stargate noExit = new Stargate();
         noExit.setGateName("NoExit");
         noExit.setGateWorld(world);
         noExit.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
-        StargateBlockSetup.clearIrisPath(noExit);
+        IrisClearance.clearIrisPath(noExit);
 
         // any() and not any(BoundingBox.class): the latter does not match the null a missing box passes.
         verify(world, never()).getNearbyEntities((BoundingBox) any());

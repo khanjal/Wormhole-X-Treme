@@ -27,7 +27,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * <li>Every real block placed raises a {@code BlockPhysicsEvent} for water, pistons and every
  * protection plugin on the server. A sweep would turn one toggle into a wave of them per
  * ring.</li>
- * <li>{@link StargateBlockSetup#clearIrisPath} moves anything living out of the opening before
+ * <li>{@link IrisClearance#clearIrisPath} moves anything living out of the opening before
  * the blocks land. Once, up front, not ring by ring as a closing sweep encloses somebody.</li>
  * </ul>
  *
