@@ -104,8 +104,8 @@ class CoreProtectHookTest
         final Block lever = world.getBlockAt(3, 70, 3);
         gate.setGateIrisLeverBlock(lever);
 
-        StargateBlockSetup.setupIrisLever(gate, true);
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, true);
+        GateFittings.setupIrisLever(gate, false);
 
         assertEquals(List.of("placed #wormhole LEVER 70 over AIR", "removed #wormhole LEVER 70"), logged);
     }
@@ -141,7 +141,7 @@ class CoreProtectHookTest
         standing.put(List.of(3, 70, 3), Material.STONE);
         gate.setGateIrisLeverBlock(world.getBlockAt(3, 70, 3));
 
-        StargateBlockSetup.setupIrisLever(gate, true);
+        GateFittings.setupIrisLever(gate, true);
 
         assertEquals(List.of("placed #wormhole LEVER 70 over STONE"), logged);
     }

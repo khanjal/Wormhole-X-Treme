@@ -77,7 +77,7 @@ class NameSignBookkeepingTest
     @Test
     void aPlacedSignIsOneOfTheGatesBlocks()
     {
-        StargateBlockSetup.setupGateSign(gate, true);
+        GateFittings.setupGateSign(gate, true);
 
         assertTrue(gate.getGateStructureBlocks().contains(signAt),
             "so removing the gate takes the sign down with it");
@@ -89,7 +89,7 @@ class NameSignBookkeepingTest
         when(signBlock.getType()).thenReturn(Material.OAK_WALL_SIGN);
         gate.getGateStructureBlocks().add(signAt);
 
-        StargateBlockSetup.setupGateSign(gate, false);
+        GateFittings.setupGateSign(gate, false);
 
         verify(signBlock).setType(Material.AIR);
         assertFalse(gate.getGateStructureBlocks().contains(signAt),
@@ -107,7 +107,7 @@ class NameSignBookkeepingTest
             "the fixture needs a chevron that is not also the ring, or this proves nothing");
         when(signBlock.getType()).thenReturn(chevron);
 
-        StargateBlockSetup.setupGateSign(gate, true);
+        GateFittings.setupGateSign(gate, true);
 
         verify(signBlock, never()).setType(any(), anyBoolean());
     }
@@ -119,7 +119,7 @@ class NameSignBookkeepingTest
         {
             config.when(ConfigManager::isSignGlowingText).thenReturn(Boolean.TRUE);
 
-            StargateBlockSetup.setupGateSign(gate, true);
+            GateFittings.setupGateSign(gate, true);
 
             verify(front).setGlowingText(true);
         }
@@ -132,7 +132,7 @@ class NameSignBookkeepingTest
         {
             config.when(ConfigManager::isSignGlowingText).thenReturn(Boolean.FALSE);
 
-            StargateBlockSetup.setupGateSign(gate, true);
+            GateFittings.setupGateSign(gate, true);
 
             verify(front).setGlowingText(false);
         }

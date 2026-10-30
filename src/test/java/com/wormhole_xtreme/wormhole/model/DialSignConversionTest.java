@@ -146,7 +146,7 @@ class DialSignConversionTest
     @Test
     void theTextOnBothFacesSurvivesTheRestyle()
     {
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         assertArrayEquals(FRONT, linesWrittenTo(newFront), "the front is put back as it was");
         assertArrayEquals(BACK, linesWrittenTo(newBack), "and so is the back");
@@ -161,7 +161,7 @@ class DialSignConversionTest
     @Test
     void eachFaceKeepsItsOwnGlow()
     {
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         verify(newFront).setGlowingText(true);
         verify(newBack).setGlowingText(false);
@@ -176,7 +176,7 @@ class DialSignConversionTest
     @Test
     void theSignStillFacesTheWayItDid()
     {
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         verify(newData).setFacing(BlockFace.EAST);
         verify(block).setBlockData(newData, false);
@@ -192,7 +192,7 @@ class DialSignConversionTest
     @Test
     void theGateIsGivenTheReplacementSignToWriteThrough()
     {
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         verify(gate).setGateDialSign(after);
         verify(after).update(true, false);
@@ -208,7 +208,7 @@ class DialSignConversionTest
     @Test
     void theBlockIsRetypedWithoutPhysics()
     {
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         verify(block).setType(Material.CRIMSON_WALL_SIGN, false);
         verify(block, never()).setType(any(Material.class));
@@ -224,7 +224,7 @@ class DialSignConversionTest
     @Test
     void whatIsOnTheSignIsReadBeforeTheBlockIsChanged() throws ReflectiveOperationException
     {
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         final InOrder order = inOrder(oldFront, block, newFront);
         SignLines.read(order.verify(oldFront));
@@ -238,7 +238,7 @@ class DialSignConversionTest
     {
         SignLines.hold(oldFront, new String[] { "kept", null, null, "also kept" });
 
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         assertArrayEquals(new String[] { "kept", "", "", "also kept" }, linesWrittenTo(newFront));
     }
@@ -254,7 +254,7 @@ class DialSignConversionTest
     {
         SignLines.hold(oldFront, new String[] { "a", "b", "c", "d", "e", "f" });
 
-        assertDoesNotThrow(() -> StargateBlockSetup.matchDialSignMaterial(gate));
+        assertDoesNotThrow(() -> GateFittings.matchDialSignMaterial(gate));
 
         assertArrayEquals(new String[] { "a", "b", "c", "d" }, linesWrittenTo(newFront), "a fifth line was written");
     }
@@ -270,7 +270,7 @@ class DialSignConversionTest
     {
         when(block.getState()).thenThrow(new IllegalStateException("chunk went away"));
 
-        assertDoesNotThrow(() -> StargateBlockSetup.matchDialSignMaterial(gate));
+        assertDoesNotThrow(() -> GateFittings.matchDialSignMaterial(gate));
 
         verify(plugin).prettyLog(eq(Level.WARNING),
             eq("Could not match dial sign material on gate alpha"),
@@ -292,7 +292,7 @@ class DialSignConversionTest
         final BlockState notASign = mock(BlockState.class);
         when(block.getState()).thenReturn(notASign);
 
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         verify(block, never()).setType(any(Material.class), anyBoolean());
         verify(gate, never()).setGateDialSign(any(Sign.class));
@@ -313,7 +313,7 @@ class DialSignConversionTest
     {
         SignLines.hold(oldFront, null);
 
-        StargateBlockSetup.matchDialSignMaterial(gate);
+        GateFittings.matchDialSignMaterial(gate);
 
         assertArrayEquals(BACK, linesWrittenTo(newBack), "the other face is still put back");
         verify(newFront).setGlowingText(true);
@@ -334,7 +334,7 @@ class DialSignConversionTest
             logged.add(placed ? "placed" : "removed"));
         try
         {
-            StargateBlockSetup.matchDialSignMaterial(gate);
+            GateFittings.matchDialSignMaterial(gate);
         }
         finally
         {

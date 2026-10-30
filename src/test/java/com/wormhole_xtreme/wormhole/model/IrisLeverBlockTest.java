@@ -59,7 +59,7 @@ class IrisLeverBlockTest
     @Test
     void theLeverHangsOnTheWallFacingTheWayTheGateFaces()
     {
-        StargateBlockSetup.setupIrisLever(gate, true);
+        GateFittings.setupIrisLever(gate, true);
 
         verify(lever).setType(Material.LEVER);
         verify(data).setAttachedFace(FaceAttachable.AttachedFace.WALL);
@@ -70,7 +70,7 @@ class IrisLeverBlockTest
     @Test
     void thePlacedLeverIsOneOfTheGatesBlocks()
     {
-        StargateBlockSetup.setupIrisLever(gate, true);
+        GateFittings.setupIrisLever(gate, true);
 
         assertTrue(gate.getGateStructureBlocks().contains(leverAt),
             "so removing the gate takes the lever down with it");
@@ -82,7 +82,7 @@ class IrisLeverBlockTest
         when(lever.getType()).thenReturn(Material.LEVER);
         gate.getGateStructureBlocks().add(leverAt);
 
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, false);
 
         verify(lever).setType(Material.AIR);
         assertFalse(gate.getGateStructureBlocks().contains(leverAt));

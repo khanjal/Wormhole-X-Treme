@@ -1937,7 +1937,7 @@ public class Stargate implements GateIris
      */
     public void setupGateSign(final boolean create)
     {
-        StargateBlockSetup.setupGateSign(this, create);
+        GateFittings.setupGateSign(this, create);
     }
 
     /**
@@ -1948,7 +1948,7 @@ public class Stargate implements GateIris
      */
     public void setupIrisLever(final boolean create)
     {
-        StargateBlockSetup.setupIrisLever(this, create);
+        GateFittings.setupIrisLever(this, create);
     }
 
     /**
@@ -1970,7 +1970,7 @@ public class Stargate implements GateIris
      */
     public void matchDialSignMaterial()
     {
-        StargateBlockSetup.matchDialSignMaterial(this);
+        GateFittings.matchDialSignMaterial(this);
     }
 
     /**
