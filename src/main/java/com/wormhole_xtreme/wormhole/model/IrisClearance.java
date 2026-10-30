@@ -23,10 +23,9 @@ import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
- * Moving whoever is standing in a gate's opening clear before its iris closes over it (#430, #734).
+ * Moving whoever stands in a gate's opening clear before its iris closes over it (#430, #734).
  *
- * <p>Moved out of {@link StargateBlockSetup} verbatim; {@link StargateBlockSetup#fillGateIris} calls
- * {@link #clearIrisPath} before it places the iris.
+ * <p>{@link StargateBlockSetup#fillGateIris} calls {@link #clearIrisPath} before it places the iris.
  */
 final class IrisClearance
 {
@@ -37,11 +36,11 @@ final class IrisClearance
     {
     }
 
-
     /**
      * Moves anyone standing in the gate opening clear before the iris covers it.
      *
-     * <p>A horizontal gate's iris is real blocks, and {@link StargateBlockSetup#fillGateIris} places them
+     * <p>A horizontal gate's iris is real blocks, and
+     * {@link StargateBlockSetup#fillGateIris} places them
      * without looking at who was there. Every path that closes an iris can therefore land
      * solid blocks inside a player: the gate shutting down onto an iris that defaults closed,
      * an activation timing out, someone flipping the iris lever, or an IDC being cleared. A

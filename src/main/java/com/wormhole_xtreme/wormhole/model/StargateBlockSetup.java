@@ -50,7 +50,6 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class StargateBlockSetup
 {
-
     private StargateBlockSetup() {}
 
     // -----------------------------------------------------------------------
