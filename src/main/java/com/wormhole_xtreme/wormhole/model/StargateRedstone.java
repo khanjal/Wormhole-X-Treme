@@ -15,8 +15,6 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 /**
  * The redstone a gate carries: its dial and sign wires, the gate-activated lever, and the dial
  * lever's state (#430, #734).
- *
- * <p>Moved out of {@link StargateBlockSetup} verbatim.
  */
 final class StargateRedstone
 {

@@ -42,7 +42,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * Handles all physical block placement and removal for a stargate: the name
- * sign, iris lever, redstone wiring, portal fills, and gate/portal block deletion.
+ * sign, iris lever, portal fills, and gate/portal block deletion.
  *
  * <p>All methods are static and operate on a {@link Stargate} instance.
  */

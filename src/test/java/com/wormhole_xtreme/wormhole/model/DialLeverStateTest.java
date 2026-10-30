@@ -45,14 +45,14 @@ class DialLeverStateTest
         PluginTestSupport.remove();
     }
 
-    /** A slot block in a chunk (0,0) of the test world, whose material is {@code first} and then {@code later}. */
+    /** A slot block in chunk (2,-2) of the test world, whose material is {@code first} and then {@code later}. */
     private Block slot(final Material first, final Material... later)
     {
         final Block b = mock(Block.class);
         when(b.getType()).thenReturn(first, later);
         when(b.getWorld()).thenReturn(world);
-        when(b.getX()).thenReturn(Integer.valueOf(1));
-        when(b.getZ()).thenReturn(Integer.valueOf(1));
+        when(b.getX()).thenReturn(Integer.valueOf(40));
+        when(b.getZ()).thenReturn(Integer.valueOf(-20));
         return b;
     }
 
@@ -127,7 +127,7 @@ class DialLeverStateTest
 
         verify(data).setPowered(true);
         verify(slot).setBlockData(data);
-        verify(world).loadChunk(0, 0);
+        verify(world).loadChunk(2, -2);
         verify(world, never()).unloadChunkRequest(anyInt(), anyInt());
     }
 
@@ -142,7 +142,7 @@ class DialLeverStateTest
         StargateRedstone.toggleDialLeverState(gateWith(slot, false), false);
 
         verify(data).setPowered(false);
-        verify(world).unloadChunkRequest(0, 0);
+        verify(world).unloadChunkRequest(2, -2);
         verify(world, never()).loadChunk(anyInt(), anyInt());
     }
 }

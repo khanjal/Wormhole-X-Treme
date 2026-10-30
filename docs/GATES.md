@@ -1235,6 +1235,8 @@ model/StargateDialManager.java     the sign UI and the two-sided dial handshake
 model/StargateLifecycle.java       activation, shutdown, timers, iris state
 model/StargateAnimator.java        chevron lighting and the woosh
 model/StargateBlockSetup.java      block placement, portal drawing, arrival splash
+model/StargateRedstone.java        dial and sign wires, the output lever, the dial lever's state
+model/IrisClearance.java           moving whoever stands in the opening clear of a closing iris
 model/GateSounds.java              what a gate sounds like
 model/GateSerializer.java          GateData, save versions 3 to 9
 model/StargateYamlManager.java     one file per gate
