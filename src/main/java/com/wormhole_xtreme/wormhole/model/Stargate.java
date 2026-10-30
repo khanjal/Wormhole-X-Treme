@@ -1411,9 +1411,6 @@ public class Stargate implements GateIris
         return loadedVersion;
     }
 
-    /**
-     * Checks if is gate active.
-     */
     public boolean isGateActive()
     {
         return gateActive;
@@ -1442,26 +1439,17 @@ public class Stargate implements GateIris
         this.gatePortalOpen = gatePortalOpen;
     }
 
-    /**
-     * Checks if is gate custom.
-     */
     public boolean isGateCustom()
     {
         return gateCustom;
     }
 
-    /**
-     * Checks if is gate iris active.
-     */
     @Override
     public boolean isGateIrisActive()
     {
         return gateIrisActive;
     }
 
-    /**
-     * Checks if is gate iris default active.
-     */
     public boolean isGateIrisDefaultActive()
     {
         return gateIrisDefaultActive;
@@ -1477,25 +1465,16 @@ public class Stargate implements GateIris
         return gateLightsActive;
     }
 
-    /**
-     * Checks if is gate recently active.
-     */
     public boolean isGateRecentlyActive()
     {
         return gateRecentlyActive;
     }
 
-    /**
-     * Checks if is gate redstone powered.
-     */
     public boolean isGateRedstonePowered()
     {
         return gateRedstonePowered;
     }
 
-    /**
-     * Checks if is gate sign powered.
-     */
     public boolean isGateSignPowered()
     {
         return gateSignPowered;
@@ -1563,9 +1542,6 @@ public class Stargate implements GateIris
         StargateManager.setGateOpenState(this, gateActive);
     }
 
-    /**
-     * Sets the gate animation step.
-     */
     void setGateAnimationStep3D(final int gateAnimationStep3D)
     {
         this.gateAnimationStep3D = gateAnimationStep3D;
