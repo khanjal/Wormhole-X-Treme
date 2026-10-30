@@ -45,23 +45,26 @@ bStats adds these for every plugin; the plugin sends nothing for them.
 | `gate_iris_animation` | Iris Animation | Simple Pie | `sweep`, `spiral`, `rows`, `columns`, `instant`, `other` |
 | `gate_shapes` | Gate Shapes | Advanced Pie | `Standard`, `StandardSignDial`, `Minimal`, `MinimalSignDial`, `Horizontal`, `HorizontalSignDial`, `Large`, `Grand`, `Massive`, `custom` |
 | `portal_material` | Portal Material - per gate | Advanced Pie | `water`, `lava`, `nether_portal`, `end_gateway`, `end_portal`, `other`, `unknown` |
+| `gate_material` | Gate Material - per gate | Advanced Pie | the game's block names for the frame, lower case (`obsidian`, `lapis_block`, `nether_bricks`, ...), and `unknown` |
 | `integrations` | Integrations | Advanced Pie | `Vault`, `LuckPerms`, `PlaceholderAPI`, `CoreProtect`, `WorldGuard`, `dynmap`, `BlueMap`, `squaremap`, `Pl3xMap`, `none` |
 
 - **A range** is one of `0`, `1-5`, `6-20`, `21-50`, `51-200`, `200+`.
 - **Simple Pie** charts send one value per server. **Advanced Pie** charts send a name and a
-  count: `gate_shapes` and `portal_material` count per gate, `integrations` counts each plugin
+  count: `gate_shapes`, `portal_material` and `gate_material` count per gate, `integrations` counts each plugin
   once, and sends `none` when there are none, since a chart with no entries is not sent. For the
-  same reason `gate_shapes` and `portal_material` only count servers with at least one gate, so
+  same reason `gate_shapes`, `portal_material` and `gate_material` only count servers with at least one gate, so
   their totals are lower than `servers`.
 - Every value is from a closed set. The plugin never sends a name a server chose: a shape that
   does not ship with it, or a gate with no shape, is `custom`, a material outside the five is `other`, and an iris
-  animation that is not one of the five is `other`.
+  animation that is not one of the five is `other`. `gate_material` is the exception to "a short list": it
+  is the block's own name, one of the game's, however a server's material group is called.
 
 ## When the plugin changes
 
 The dashboard does not follow the code. Add or edit the chart there when you:
 
-- add a chart, in `MetricsSupport`: create it with the same ID and type;
+- add a chart, in `MetricsSupport`: create it with the same ID and type (`gate_material`, an
+  Advanced Pie, has to be created on the dashboard before its counts show);
 - change any of the below: the Metrics section of [guide/SERVER.md](guide/SERVER.md) repeats the
   same lists, so edit it too;
 - change `range()`: it sets the values of `gates`, `ring_pairs`, `beam_destinations` and `mirrors`

@@ -87,6 +87,8 @@ public final class MetricsSupport
             () -> shapeCounts(StargateManager.getAllGatesUnsorted())));
         started.addCustomChart(new AdvancedPie("portal_material",
             () -> portalMaterialCounts(StargateManager.getAllGatesUnsorted())));
+        started.addCustomChart(new AdvancedPie("gate_material",
+            () -> frameMaterialCounts(StargateManager.getAllGatesUnsorted())));
         started.addCustomChart(new AdvancedPie("integrations",
             () -> integrations(name -> Bukkit.getPluginManager().isPluginEnabled(name))));
         metrics = started;
@@ -155,6 +157,25 @@ public final class MetricsSupport
             final String material = (portal == null) ? "unknown" : portal.name().toLowerCase(Locale.ROOT);
             counts.merge(("unknown".equals(material) || PORTAL_MATERIALS.contains(material)) ? material : "other",
                 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    /**
+     * How many gates are built from each frame material, by the block's name: whatever a server's
+     * material groups are called, the block under them is one of the game's own. A gate whose frame
+     * only a chunk load would tell is {@code unknown}, since this runs on the server thread and must
+     * not load one.
+     *
+     * @return material to count; empty with no gates
+     */
+    static Map<String, Integer> frameMaterialCounts(final Collection<Stargate> gates)
+    {
+        final Map<String, Integer> counts = new LinkedHashMap<>();
+        for (final Stargate gate : gates)
+        {
+            final Material frame = gate.getEffectiveStructureMaterialIfLoaded();
+            counts.merge((frame == null) ? "unknown" : frame.name().toLowerCase(Locale.ROOT), 1, Integer::sum);
         }
         return counts;
     }
