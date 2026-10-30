@@ -138,6 +138,6 @@ class StrandedLiquidWooshTest
     @Test
     void aGateThatIsNotThereHasNothingToScan()
     {
-        assertTrue(StargateBlockSetup.strandedLiquid(null).isEmpty());
+        assertTrue(StrandedLiquid.strandedLiquid(null).isEmpty());
     }
 }

@@ -70,12 +70,6 @@ class StargateBlockSetup
     /** Radius, in blocks, within which clients are sent portal visual updates. */
     private static final double VISUAL_RADIUS = 64.0;
 
-    /** Ticks a traveller sees water as they come out of a gate: short, or the client predicts swimming. */
-    static final long SPLASH_TICKS = 20L;
-
-    /** How often the arrival splash is redrawn while it is showing, in ticks. */
-    private static final long SPLASH_REDRAW_INTERVAL = 2L;
-
     /**
      * Which gates each player is currently being shown a portal for.
      *
@@ -183,108 +177,6 @@ class StargateBlockSetup
                 p.sendBlockChange(at, data);
             }
         }
-    }
-
-    /**
-     * Shows a traveller a moment of water as they come out of a gate.
-     *
-     * <p>The client draws its underwater overlay from whichever block it believes its camera
-     * is in, so one block sent at eye height is the whole effect: they surface out of the
-     * event horizon and it clears. Nobody else sees anything, and nothing is written.
-     *
-     * <p>Deliberately brief, and that is not just taste. Water is physics to the client, not
-     * decoration -- for as long as it believes it is submerged it predicts swimming, and the
-     * server does not agree. A short flash is over before that argument can be felt. It is
-     * the one drawing here that makes the client's world <em>less</em> solid than the real
-     * one, which is the direction that caused trouble before, so it is kept to a moment.
-     *
-     * <p>Only sent where the eye is in open air. Water drawn over somebody's ceiling would be
-     * a strange thing to see, and the arrival point is out in the open in any case.
-     *
-     * @param player
-     *            the traveller who has just arrived
-     */
-    public static void splashArrival(final Player player)
-    {
-        if ((player == null) || !player.isOnline())
-        {
-            return;
-        }
-        try
-        {
-            final Block eye = player.getEyeLocation().getBlock();
-            if (!eye.getType().isAir())
-            {
-                return;
-            }
-            final Location at = eye.getLocation();
-            // Drawn again every couple of ticks rather than once. An arrival hands the
-            // client a fresh copy of the chunk, and a fresh copy erases anything drawn into
-            // the old one -- so a single block change lands before the chunk does and is
-            // wiped by it. How long that takes is not observable from here and is not fixed:
-            // a hop to a nearby gate reuses chunks the client already has, while a trip
-            // across the world makes it fetch everything from scratch. The portal redraw
-            // above hit exactly this and answered it the same way.
-            for (long t = 0L; t < SPLASH_TICKS; t += SPLASH_REDRAW_INTERVAL)
-            {
-                drawSplash(player, at, true, t);
-            }
-            drawSplash(player, at, false, SPLASH_TICKS);
-        }
-        catch (final RuntimeException ignore)
-        {
-            // Decoration. Not worth a log line on the travel path.
-        }
-    }
-
-    /**
-     * Draws or clears the arrival splash after a delay.
-     *
-     * @param player
-     *            the traveller
-     * @param at
-     *            the block their eye was in when they landed
-     * @param water
-     *            true to show water, false to put the real block back
-     * @param delay
-     *            how many ticks to wait
-     */
-    private static void drawSplash(final Player player, final Location at, final boolean water,
-        final long delay)
-    {
-        WormholeXTreme.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(),
-            () ->
-            {
-                if (!player.isOnline())
-                {
-                    return;
-                }
-                try
-                {
-                    if (water)
-                    {
-                        // Only while they are still in it. Somebody who has walked on is
-                        // no longer surfacing, and redrawing would put water behind them.
-                        if (player.getEyeLocation().getBlock().getLocation().equals(at))
-                        {
-                            player.sendBlockChange(at, Material.WATER.createBlockData());
-                        }
-                        return;
-                    }
-                    // Read again rather than remember: somebody may have put something
-                    // there in the meantime, and the real block is always the right
-                    // answer. A chunk arriving later than this shows the truth anyway,
-                    // so the failure that is left over is a splash nobody saw rather
-                    // than water nobody can clear.
-                    final Block now = at.getWorld().getBlockAt(at.getBlockX(),
-                        at.getBlockY(), at.getBlockZ());
-                    player.sendBlockChange(at, now.getBlockData());
-                }
-                catch (final RuntimeException ignore)
-                {
-                    // As above.
-                }
-            }, Math.max(1L, delay));
     }
 
     /**
@@ -439,63 +331,6 @@ class StargateBlockSetup
         final BlockData fixtureOn, final BlockData lightData)
     {
         return MaterialUtils.litChevron(standing, chevronMaterial, fixtureOn, lightData);
-    }
-
-    /**
-     * Real water or lava still standing in a closed gate's opening or woosh.
-     *
-     * <p>The portal and the woosh are drawn to clients now, but older versions built them from
-     * real blocks, and a dial that glitched part-way could leave some behind. Nothing standing
-     * there belongs to the gate, though a gate built underwater has ordinary water in those cells,
-     * which is why clearing it is asked for rather than done.
-     *
-     * @return the liquid blocks, none while the gate is open
-     */
-    public static List<Block> strandedLiquid(final Stargate gate)
-    {
-        final List<Block> found = new ArrayList<>();
-        if ((gate == null) || gate.isGateActive() || (gate.getGateWorld() == null))
-        {
-            return found;
-        }
-        final List<Location> cells = new ArrayList<>(gate.getGatePortalBlocks());
-        for (int i = 0; i < StargateAnimator.wooshWaveCount(gate); i++)
-        {
-            final List<Location> wave = StargateAnimator.wooshWave(gate, i);
-            if (wave != null)
-            {
-                cells.addAll(wave);
-            }
-        }
-        final Set<String> seen = new HashSet<>();
-        for (final Location cell : cells)
-        {
-            if (!seen.add(cell.getBlockX() + "," + cell.getBlockY() + "," + cell.getBlockZ()))
-            {
-                continue;
-            }
-            final Block block = gate.getGateWorld().getBlockAt(cell.getBlockX(), cell.getBlockY(), cell.getBlockZ());
-            if ((block.getType() == Material.WATER) || (block.getType() == Material.LAVA))
-            {
-                found.add(block);
-            }
-        }
-        return found;
-    }
-
-    /**
-     * Clears the real water and lava standing in a closed gate's opening and woosh.
-     *
-     * @return how many blocks were cleared
-     */
-    public static int clearStrandedLiquid(final Stargate gate)
-    {
-        final List<Block> liquid = strandedLiquid(gate);
-        for (final Block block : liquid)
-        {
-            block.setType(Material.AIR);
-        }
-        return liquid.size();
     }
 
     /**

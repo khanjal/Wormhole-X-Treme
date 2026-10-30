@@ -99,7 +99,7 @@ class ArrivalSplashTest
     {
         when(player.isOnline()).thenReturn(false);
 
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
 
         assertTrue(steps.isEmpty());
     }
@@ -107,7 +107,7 @@ class ArrivalSplashTest
     @Test
     void noPlayerIsNotAnError()
     {
-        assertDoesNotThrow(() -> StargateBlockSetup.splashArrival(null));
+        assertDoesNotThrow(() -> ArrivalSplash.splashArrival(null));
         assertTrue(steps.isEmpty());
     }
 
@@ -116,7 +116,7 @@ class ArrivalSplashTest
     {
         when(eyeBlock.getType()).thenReturn(Material.STONE);
 
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
 
         assertTrue(steps.isEmpty(), "water drawn over somebody's ceiling would be a strange thing to see");
     }
@@ -130,15 +130,15 @@ class ArrivalSplashTest
     @Test
     void waterIsRedrawnEveryOtherTickAndThenCleared()
     {
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
 
-        assertEquals(List.of(1L, 2L, 4L, 6L, 8L, 10L, 12L, 14L, 16L, 18L, StargateBlockSetup.SPLASH_TICKS), delays);
+        assertEquals(List.of(1L, 2L, 4L, 6L, 8L, 10L, 12L, 14L, 16L, 18L, ArrivalSplash.SPLASH_TICKS), delays);
     }
 
     @Test
     void aWaterStepSendsWaterWhileTheTravellerIsStillInTheCell()
     {
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
 
         steps.get(0).run();
 
@@ -148,7 +148,7 @@ class ArrivalSplashTest
     @Test
     void aWaterStepSendsNothingOnceTheTravellerHasWalkedOn()
     {
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
         when(eyeBlock.getLocation()).thenReturn(new Location(world, 6, 70, 5));
 
         steps.get(0).run();
@@ -159,7 +159,7 @@ class ArrivalSplashTest
     @Test
     void aWaterStepSendsNothingToSomebodyWhoHasLeft()
     {
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
         when(player.isOnline()).thenReturn(false);
 
         steps.get(0).run();
@@ -175,7 +175,7 @@ class ArrivalSplashTest
         final BlockData realData = mock(BlockData.class);
         when(real.getBlockData()).thenReturn(realData);
         when(world.getBlockAt(5, 70, 5)).thenReturn(real);
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
 
         steps.get(steps.size() - 1).run();
 
@@ -190,7 +190,7 @@ class ArrivalSplashTest
         final BlockData realData = mock(BlockData.class);
         when(real.getBlockData()).thenReturn(realData);
         when(world.getBlockAt(5, 70, 5)).thenReturn(real);
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
         when(eyeBlock.getLocation()).thenReturn(new Location(world, 9, 70, 9));
 
         steps.get(steps.size() - 1).run();
@@ -203,14 +203,14 @@ class ArrivalSplashTest
     {
         when(player.getEyeLocation()).thenThrow(new IllegalStateException("gone"));
 
-        assertDoesNotThrow(() -> StargateBlockSetup.splashArrival(player));
+        assertDoesNotThrow(() -> ArrivalSplash.splashArrival(player));
         verifyNoInteractions(scheduler);
     }
 
     @Test
     void aStepThatFailsIsSwallowed()
     {
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
         when(player.getEyeLocation()).thenThrow(new IllegalStateException("gone"));
 
         assertDoesNotThrow(() -> steps.get(0).run());

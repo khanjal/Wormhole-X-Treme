@@ -797,7 +797,7 @@ public class StargateManager
      */
     public static void splashArrival(final Player player)
     {
-        StargateBlockSetup.splashArrival(player);
+        ArrivalSplash.splashArrival(player);
     }
 
     /**
