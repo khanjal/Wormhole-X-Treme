@@ -6,6 +6,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * The moment of water a traveller sees as they come out of a gate (#430, #734).
@@ -51,7 +52,7 @@ final class ArrivalSplash
         try
         {
             final Block eye = player.getEyeLocation().getBlock();
-            if (!eye.getType().isAir())
+            if (!MaterialUtils.isAirMaterial(eye.getType()))
             {
                 return;
             }
