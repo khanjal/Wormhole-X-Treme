@@ -43,7 +43,7 @@ final class ArrivalSplash
      * @param player
      *            the traveller who has just arrived
      */
-    public static void splashArrival(final Player player)
+    static void splashArrival(final Player player)
     {
         if ((player == null) || !player.isOnline())
         {

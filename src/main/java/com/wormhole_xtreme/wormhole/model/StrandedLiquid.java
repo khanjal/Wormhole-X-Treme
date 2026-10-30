@@ -29,7 +29,7 @@ final class StrandedLiquid
      *
      * @return the liquid blocks, none while the gate is open
      */
-    public static List<Block> strandedLiquid(final Stargate gate)
+    static List<Block> strandedLiquid(final Stargate gate)
     {
         final List<Block> found = new ArrayList<>();
         if ((gate == null) || gate.isGateActive() || (gate.getGateWorld() == null))
@@ -66,7 +66,7 @@ final class StrandedLiquid
      *
      * @return how many blocks were cleared
      */
-    public static int clearStrandedLiquid(final Stargate gate)
+    static int clearStrandedLiquid(final Stargate gate)
     {
         final List<Block> liquid = strandedLiquid(gate);
         for (final Block block : liquid)
