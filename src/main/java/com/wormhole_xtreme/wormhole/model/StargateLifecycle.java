@@ -59,12 +59,12 @@ class StargateLifecycle
         final boolean wasActive = gate.isGateActive();
         // While the wormhole still shows, so a ripple's rings in the opening are put back to the horizon.
         HorizonRipple.forget(gate);
-        if (gate.getGateShutdownTaskId() > 0)
+        if (gate.runtime().getGateShutdownTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                GATE_PREFIX + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + CANCELLED_TAIL);
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateShutdownTaskId());
-            gate.setGateShutdownTaskId(-1);
+                GATE_PREFIX + gate.getGateName() + "\" ShutdownTaskID \"" + gate.runtime().getGateShutdownTaskId() + CANCELLED_TAIL);
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateShutdownTaskId());
+            gate.runtime().setGateShutdownTaskId(-1);
         }
 
         if (gate.getGateTarget() != null)
@@ -139,16 +139,16 @@ class StargateLifecycle
      */
     static void startActivationTimer(final Stargate gate, final Player p)
     {
-        if (gate.getGateActivateTaskId() > 0)
+        if (gate.runtime().getGateActivateTaskId() > 0)
         {
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateActivateTaskId());
         }
         final int timeout = ConfigManager.getTimeoutActivate() * 20;
-        gate.setGateActivateTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+        gate.runtime().setGateActivateTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, p, ActionToTake.DEACTIVATE), timeout));
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-            GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.getGateActivateTaskId() + "\" created.");
+            GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.runtime().getGateActivateTaskId() + "\" created.");
     }
 
     /**
@@ -156,12 +156,12 @@ class StargateLifecycle
      */
     static void stopActivationTimer(final Stargate gate)
     {
-        if (gate.getGateActivateTaskId() > 0)
+        if (gate.runtime().getGateActivateTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.getGateActivateTaskId() + CANCELLED_TAIL);
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
-            gate.setGateActivateTaskId(-1);
+                GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.runtime().getGateActivateTaskId() + CANCELLED_TAIL);
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateActivateTaskId());
+            gate.runtime().setGateActivateTaskId(-1);
         }
     }
 
@@ -170,12 +170,12 @@ class StargateLifecycle
      */
     static void stopAfterShutdownTimer(final Stargate gate)
     {
-        if (gate.getGateAfterShutdownTaskId() > 0)
+        if (gate.runtime().getGateAfterShutdownTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                GATE_PREFIX + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.getGateAfterShutdownTaskId() + CANCELLED_TAIL);
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateAfterShutdownTaskId());
-            gate.setGateAfterShutdownTaskId(-1);
+                GATE_PREFIX + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.runtime().getGateAfterShutdownTaskId() + CANCELLED_TAIL);
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateAfterShutdownTaskId());
+            gate.runtime().setGateAfterShutdownTaskId(-1);
         }
         gate.setGateRecentlyActive(false);
     }
@@ -192,11 +192,11 @@ class StargateLifecycle
      */
     static void timeoutStargate(final Stargate gate, final Player p)
     {
-        if (gate.getGateActivateTaskId() > 0)
+        if (gate.runtime().getGateActivateTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.getGateActivateTaskId() + "\" timed out.");
-            gate.setGateActivateTaskId(-1);
+                GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.runtime().getGateActivateTaskId() + "\" timed out.");
+            gate.runtime().setGateActivateTaskId(-1);
         }
         // By gate identity, not by player: removeActivatedStargate(p) would remove
         // whatever gate is *currently* mapped for p, which is wrong the moment the same
@@ -414,25 +414,25 @@ class StargateLifecycle
      */
     static void startAfterShutdownTimer(final Stargate gate)
     {
-        if (gate.getGateAfterShutdownTaskId() > 0)
+        if (gate.runtime().getGateAfterShutdownTaskId() > 0)
         {
-            WormholeXTreme.getScheduler().cancelTask(gate.getGateAfterShutdownTaskId());
+            WormholeXTreme.getScheduler().cancelTask(gate.runtime().getGateAfterShutdownTaskId());
         }
         // Stopping the server shuts open gates while the plugin is disabled, when the scheduler throws
         // on a new task; nothing is left to wait for, so the flag goes now.
         if (!WormholeXTreme.getThisPlugin().isEnabled())
         {
-            gate.setGateAfterShutdownTaskId(-1);
+            gate.runtime().setGateAfterShutdownTaskId(-1);
             gate.setGateRecentlyActive(false);
             return;
         }
         final int timeout = 60;
-        gate.setGateAfterShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+        gate.runtime().setGateAfterShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.AFTERSHUTDOWN), timeout));
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-            GATE_PREFIX + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.getGateAfterShutdownTaskId() + "\" created.");
-        if (gate.getGateAfterShutdownTaskId() == -1)
+            GATE_PREFIX + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.runtime().getGateAfterShutdownTaskId() + "\" created.");
+        if (gate.runtime().getGateAfterShutdownTaskId() == -1)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
                 "Failed to schdule wormhole after shutdown, received task id of -1.");

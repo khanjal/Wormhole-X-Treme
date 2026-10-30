@@ -95,7 +95,7 @@ class StargateLifecycleTest
 
             StargateLifecycle.startAfterShutdownTimer(gate);
 
-            assertEquals(7, gate.getGateAfterShutdownTaskId(), "the follow-up task should be the one kept");
+            assertEquals(7, gate.runtime().getGateAfterShutdownTaskId(), "the follow-up task should be the one kept");
             assertTrue(gate.isGateRecentlyActive(), "the flag stays until the follow-up clears it");
         }
         finally
@@ -120,7 +120,7 @@ class StargateLifecycleTest
     {
         // When task id <= 0, no scheduler call is made — only the flag is cleared.
         gate.setGateRecentlyActive(true);
-        gate.setGateAfterShutdownTaskId(-1);
+        gate.runtime().setGateAfterShutdownTaskId(-1);
 
         StargateLifecycle.stopAfterShutdownTimer(gate);
 
@@ -131,12 +131,12 @@ class StargateLifecycleTest
     @Test
     void stopAfterShutdownTimerSetsTaskIdMinusOneWhenAlreadyNegative()
     {
-        gate.setGateAfterShutdownTaskId(-1);
+        gate.runtime().setGateAfterShutdownTaskId(-1);
 
         StargateLifecycle.stopAfterShutdownTimer(gate);
 
         // id was already -1; the if-body is skipped, so it stays -1
-        assertEquals(-1, gate.getGateAfterShutdownTaskId());
+        assertEquals(-1, gate.runtime().getGateAfterShutdownTaskId());
     }
 
     // -----------------------------------------------------------------------
@@ -147,12 +147,12 @@ class StargateLifecycleTest
     void stopActivationTimerNoopWhenNoActiveTask()
     {
         // id <= 0 → the body of the if is never entered; no WormholeXTreme call made
-        gate.setGateActivateTaskId(-1);
+        gate.runtime().setGateActivateTaskId(-1);
 
         // Must not throw
         StargateLifecycle.stopActivationTimer(gate);
 
-        assertEquals(-1, gate.getGateActivateTaskId());
+        assertEquals(-1, gate.runtime().getGateActivateTaskId());
     }
 
     // -----------------------------------------------------------------------
@@ -268,7 +268,7 @@ class StargateLifecycleTest
     void timeoutStargateWithNullPlayerDeactivatesLights()
     {
         // activateTaskId <= 0 → no WormholeXTreme logging call
-        gate.setGateActivateTaskId(-1);
+        gate.runtime().setGateActivateTaskId(-1);
         gate.setGateLightsActive(true);
         // getGateLightBlocks() returns null by default → lightStargate(false) just clears the flag
 
@@ -281,7 +281,7 @@ class StargateLifecycleTest
     @Test
     void timeoutStargateWithNullPlayerRestoresIrisWhenDefaultActive()
     {
-        gate.setGateActivateTaskId(-1);
+        gate.runtime().setGateActivateTaskId(-1);
         gate.setGateLightsActive(false);
         gate.setGateIrisDefaultActive(true);
         gate.setGateIrisActive(false);
@@ -310,12 +310,12 @@ class StargateLifecycleTest
         final Player player = mock(Player.class);
         final Stargate gate1 = new Stargate();
         gate1.setGateName("Gate1");
-        gate1.setGateActivateTaskId(-1);
+        gate1.runtime().setGateActivateTaskId(-1);
         gate1.setGateLightsActive(true);
 
         final Stargate gate2 = new Stargate();
         gate2.setGateName("Gate2");
-        gate2.setGateActivateTaskId(-1);
+        gate2.runtime().setGateActivateTaskId(-1);
         gate2.setGateLightsActive(true);
 
         StargateManager.addActivatedStargate(player, gate1);

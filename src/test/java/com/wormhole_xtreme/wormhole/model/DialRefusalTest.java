@@ -42,6 +42,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 class DialRefusalTest
 {
     private Stargate gate;
+    private GateRuntime runtime;
 
     @BeforeEach
     void setUp() throws Exception
@@ -50,7 +51,8 @@ class DialRefusalTest
 
         gate = mock(Stargate.class);
         when(gate.getGateName()).thenReturn("alpha");
-        when(gate.getGateActivateTaskId()).thenReturn(0);
+        runtime = new GateRuntime();
+        when(gate.runtime()).thenReturn(runtime);
         // Enough of a location for the forced path, which gets as far as scheduling a
         // chunk load before the local activation it is really waiting on fails.
         final World world = mock(World.class);
@@ -369,7 +371,7 @@ class DialRefusalTest
         final World there = mock(World.class);
         when(gate.getGateWorld()).thenReturn(here);
         when(target.getGateWorld()).thenReturn(there);
-        when(gate.getGateActivateTaskId()).thenReturn(7);
+        runtime.setGateActivateTaskId(7);
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PluginTestSupport.scheduler(scheduler);
         ConfigTestSupport.set(ConfigKeys.SAME_WORLD_ONLY, true);
@@ -382,6 +384,32 @@ class DialRefusalTest
         finally
         {
             ConfigTestSupport.clear();
+            PluginTestSupport.scheduler(null);
+        }
+    }
+
+    /**
+     * The counterpart: a dial refused for any other reason has already cancelled a lit gate's activation timer.
+     *
+     * <p>The cancel comes before the refusals that depend on the target, so the gate is not left
+     * lit with a timer that would put it out while it waits to be dialled again.
+     */
+    @Test
+    void aDialRefusedByTheTargetHasAlreadyCancelledTheActivationTimer() throws Exception
+    {
+        final Stargate target = dialableTarget();
+        when(target.isGateIrisActive()).thenReturn(true);
+        runtime.setGateActivateTaskId(7);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            assertFalse(StargateDialManager.dialStargate(gate, target, false));
+
+            verify(scheduler).cancelTask(7);
+        }
+        finally
+        {
             PluginTestSupport.scheduler(null);
         }
     }

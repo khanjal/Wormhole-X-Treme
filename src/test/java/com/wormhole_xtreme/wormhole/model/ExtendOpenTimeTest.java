@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -11,6 +12,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +46,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 class ExtendOpenTimeTest
 {
     private Stargate gate;
+    private GateRuntime runtime;
     private BukkitScheduler scheduler;
     private MockedStatic<ConfigManager> config;
 
@@ -53,6 +58,8 @@ class ExtendOpenTimeTest
         PluginTestSupport.scheduler(scheduler);
 
         gate = mock(Stargate.class);
+        runtime = new GateRuntime();
+        when(gate.runtime()).thenReturn(runtime);
         when(gate.getGateName()).thenReturn("alpha");
         when(gate.isGateActive()).thenReturn(true);
 
@@ -142,27 +149,51 @@ class ExtendOpenTimeTest
     @Test
     void anAlreadyPendingShutdownIsCancelledRatherThanLeftToFireFirst()
     {
-        when(gate.getGateShutdownTaskId()).thenReturn(77);
+        runtime.setGateShutdownTaskId(77);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenReturn(88);
 
         assertTrue(StargateDialManager.extendOpenTime(gate), "an open gate should extend");
 
         verify(scheduler).cancelTask(77);
-        verify(gate).setGateShutdownTaskId(88);
+        assertEquals(88, runtime.getGateShutdownTaskId(), "the new timer's task is the one kept");
     }
 
     /** A gate with no shutdown pending has nothing to cancel, and still gets its timer. */
     @Test
     void aGateWithNoPendingShutdownIsStillGivenOne()
     {
-        when(gate.getGateShutdownTaskId()).thenReturn(0);
+        runtime.setGateShutdownTaskId(0);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenReturn(91);
 
         assertTrue(StargateDialManager.extendOpenTime(gate), "an open gate should extend");
 
         verify(scheduler, never()).cancelTask(0);
-        verify(gate).setGateShutdownTaskId(91);
+        assertEquals(91, runtime.getGateShutdownTaskId(), "the new timer's task is the one kept");
+    }
+
+    /**
+     * Dialling a gate with both earlier timers still pending cancels both.
+     *
+     * <p>A re-dial books a fresh shutdown, so the old shutdown has to go, and the follow-up that
+     * clears the recently-active flag has to go with it or it fires against the new opening.
+     */
+    @Test
+    void dialingAGateWithItsEarlierTimersPendingCancelsBoth()
+    {
+        final World world = mock(World.class);
+        final Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);
+        when(world.getBlockAt(any(Location.class))).thenReturn(block);
+        when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(world, 1, 64, 1));
+        runtime.setGateShutdownTaskId(5);
+        runtime.setGateAfterShutdownTaskId(6);
+
+        StargateDialManager.dialStargate(gate, false);
+
+        verify(scheduler).cancelTask(5);
+        verify(scheduler).cancelTask(6);
     }
 }
