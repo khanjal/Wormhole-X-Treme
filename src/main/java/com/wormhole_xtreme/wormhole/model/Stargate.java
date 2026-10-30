@@ -13,15 +13,12 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
-import com.wormhole_xtreme.wormhole.utils.BlockKey;
 
 /**
  * WormholeXtreme Stargate Class/Instance.
@@ -241,102 +238,8 @@ public class Stargate implements GateIris
     /** The gate custom woosh depth squared. */
     private int gateCustomWooshDepthSquared = -1;
 
-    /**
-     * Portal block positions as a set, for O(1) containment. Built lazily.
-     *
-     * <p>Packed positions rather than {@link Location} keys. This set is asked on every
-     * player move that lands on a gate block, on every entity the periodic sweep finds near
-     * an active gate, and once per open gate whenever any player crosses a block boundary --
-     * and a Location key meant allocating a Location to ask the question. The world is not
-     * part of the key because the set belongs to one gate, which is in one world; the world
-     * was never actually discriminating here, since the old key was always built with this
-     * gate's own {@code gateWorld}.
-     */
-    private Set<Long> gatePortalBlockLookup = null;
-
-    /** Bounding box enclosing every portal block, for one-shot entity queries. Built lazily. */
-    private BoundingBox gatePortalBounds = null;
-
-    /** Portal block count the caches were built from, used to spot a changed gate. */
-    private int gatePortalCacheSize = -1;
-
-    /**
-     * Rebuilds the portal block caches if the portal block list has changed size.
-     *
-     * <p>The list is exposed mutably via {@link #getGatePortalBlocks()}, so there is no
-     * mutation hook to invalidate on. Size is a good enough signal in practice: portal
-     * blocks are populated once during detection and cleared wholesale on teardown.
-     */
-    private void refreshPortalCaches()
-    {
-        if ((gatePortalBlockLookup != null) && (gatePortalCacheSize == gatePortalBlocks.size()))
-        {
-            return;
-        }
-        final Set<Long> lookup =
-            new HashSet<>(Math.max(16, gatePortalBlocks.size() * 2));
-        final Extents extents = new Extents();
-        for (final Location l : gatePortalBlocks)
-        {
-            if (l == null)
-            {
-                continue;
-            }
-            lookup.add(Long.valueOf(BlockKey.pack(
-                l.getBlockX(), l.getBlockY(), l.getBlockZ())));
-            extents.include(l);
-        }
-        gatePortalBlockLookup = lookup;
-        gatePortalBounds = lookup.isEmpty() ? null : extents.toBoundingBox();
-        gatePortalCacheSize = gatePortalBlocks.size();
-    }
-
-    /**
-     * The corner-to-corner span of a set of blocks, accumulated one block at a time.
-     *
-     * <p>Six running values tracked by hand is what made the cache rebuild hard to read; the
-     * work is the same, but the loop that uses this now says what it is doing rather than
-     * spelling out twelve comparisons.
-     */
-    private static final class Extents
-    {
-        private int minX = Integer.MAX_VALUE;
-        private int minY = Integer.MAX_VALUE;
-        private int minZ = Integer.MAX_VALUE;
-        private int maxX = Integer.MIN_VALUE;
-        private int maxY = Integer.MIN_VALUE;
-        private int maxZ = Integer.MIN_VALUE;
-
-        /**
-         * Widens the span to take in one more block.
-         *
-         * @param l
-         *            the block's location
-         */
-        void include(final Location l)
-        {
-            minX = Math.min(minX, l.getBlockX());
-            minY = Math.min(minY, l.getBlockY());
-            minZ = Math.min(minZ, l.getBlockZ());
-            maxX = Math.max(maxX, l.getBlockX());
-            maxY = Math.max(maxY, l.getBlockY());
-            maxZ = Math.max(maxZ, l.getBlockZ());
-        }
-
-        /**
-         * The span as a box.
-         *
-         * <p>The maxima gain a block, because a block's location names its corner and the box
-         * has to enclose the whole of it -- a one-block portal would otherwise be a box of
-         * zero volume that contains nothing.
-         *
-         * @return the enclosing box
-         */
-        BoundingBox toBoundingBox()
-        {
-            return new BoundingBox(minX, minY, minZ, maxX + 1.0, maxY + 1.0, maxZ + 1.0);
-        }
-    }
+    /** The portal blocks as a set and a box, for the questions asked on every move. */
+    private final PortalCache gatePortalCache = new PortalCache(gatePortalBlocks);
 
     /**
      * Checks whether the given block coordinates are one of this gate's portal blocks.
@@ -357,9 +260,7 @@ public class Stargate implements GateIris
      */
     public boolean isGatePortalBlockAt(final int x, final int y, final int z)
     {
-        refreshPortalCaches();
-        return gatePortalBlockLookup.contains(Long.valueOf(
-            BlockKey.pack(x, y, z)));
+        return gatePortalCache.contains(x, y, z);
     }
 
     /**
@@ -436,8 +337,7 @@ public class Stargate implements GateIris
      */
     public BoundingBox getGatePortalBounds()
     {
-        refreshPortalCaches();
-        return gatePortalBounds;
+        return gatePortalCache.bounds();
     }
 
     /**
