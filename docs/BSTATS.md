@@ -61,8 +61,10 @@ bStats adds these for every plugin; the plugin sends nothing for them.
   however a server's material groups are called.
 - `gate_material` has a larger `unknown` than `portal_material`. A gate's frame is found from the
   world the first time anything asks, and until then a gate in an unloaded chunk cannot be told
-  without loading it. Groups differ in their frame (never in having to share a portal), so on a
-  server with more than one group that is every gate nobody has used since it started.
+  without loading it. Two groups can share a portal material but never a frame block, so with two or
+  more groups the frame always depends on the group, and that is every gate nobody has used since
+  the server started. The value is the frame as the plugin knows it: its group's block, or the
+  shape's own where the frame matches no group.
 
 ## When the plugin changes
 
