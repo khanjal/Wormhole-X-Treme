@@ -70,7 +70,8 @@ class NameSignBookkeepingTest
         front = mock(SignSide.class);
         when(state.getSide(Side.FRONT)).thenReturn(front);
         when(signBlock.getState()).thenReturn(state);
-        when(signBlock.getBlockData()).thenReturn(mock(Directional.class));
+        final Directional signData = mock(Directional.class);
+        when(signBlock.getBlockData()).thenReturn(signData);
     }
 
     @AfterEach
