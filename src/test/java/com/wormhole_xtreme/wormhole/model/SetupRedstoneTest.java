@@ -66,7 +66,7 @@ class SetupRedstoneTest
         final Block lever = blockOf(Material.AIR, 3);
         final Stargate gate = gateOf(true, dial, sign, lever);
 
-        StargateBlockSetup.setupRedstone(gate, true);
+        StargateRedstone.setupRedstone(gate, true);
 
         verify(dial).setType(Material.REDSTONE_WIRE);
         verify(sign).setType(Material.REDSTONE_WIRE);
@@ -82,7 +82,7 @@ class SetupRedstoneTest
         final Block lever = blockOf(Material.AIR, 3);
         final Stargate gate = gateOf(false, dial, sign, lever);
 
-        StargateBlockSetup.setupRedstone(gate, true);
+        StargateRedstone.setupRedstone(gate, true);
 
         verifyNoInteractions(dial, sign);
         verify(lever).setType(Material.LEVER);
@@ -100,7 +100,7 @@ class SetupRedstoneTest
         gate.getGateStructureBlocks().add(sign.getLocation());
         gate.getGateStructureBlocks().add(lever.getLocation());
 
-        StargateBlockSetup.setupRedstone(gate, false);
+        StargateRedstone.setupRedstone(gate, false);
 
         verify(dial).setType(Material.AIR);
         verify(sign).setType(Material.AIR);
@@ -114,7 +114,7 @@ class SetupRedstoneTest
         final Block lever = blockOf(Material.STONE, 3);
         final Stargate gate = gateOf(false, null, null, lever);
 
-        StargateBlockSetup.setupRedstone(gate, false);
+        StargateRedstone.setupRedstone(gate, false);
 
         verify(lever, never()).setType(ArgumentMatchers.any());
     }

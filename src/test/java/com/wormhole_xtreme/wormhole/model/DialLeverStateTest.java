@@ -73,7 +73,7 @@ class DialLeverStateTest
         final Switch data = mock(Switch.class);
         when(slot.getBlockData()).thenReturn(data);
 
-        StargateBlockSetup.toggleDialLeverState(gateWith(slot, true), true);
+        StargateRedstone.toggleDialLeverState(gateWith(slot, true), true);
 
         verify(slot).setType(Material.LEVER);
         verify(data).setFacing(BlockFace.EAST);
@@ -85,7 +85,7 @@ class DialLeverStateTest
     {
         final Block slot = slot(Material.AIR);
 
-        StargateBlockSetup.toggleDialLeverState(gateWith(slot, true), false);
+        StargateRedstone.toggleDialLeverState(gateWith(slot, true), false);
 
         verify(slot, never()).setType(ArgumentMatchers.any());
     }
@@ -95,7 +95,7 @@ class DialLeverStateTest
     {
         final Block slot = slot(Material.OAK_BUTTON);
 
-        StargateBlockSetup.toggleDialLeverState(gateWith(slot, true), true);
+        StargateRedstone.toggleDialLeverState(gateWith(slot, true), true);
 
         verify(slot, never()).setType(ArgumentMatchers.any());
         verify(slot, never()).setBlockData(ArgumentMatchers.any());
@@ -110,7 +110,7 @@ class DialLeverStateTest
         final Switch data = mock(Switch.class);
         when(slot.getBlockData()).thenReturn(data);
 
-        StargateBlockSetup.toggleDialLeverState(gateWith(slot, false), true);
+        StargateRedstone.toggleDialLeverState(gateWith(slot, false), true);
 
         verify(slot).setType(Material.LEVER);
     }
@@ -123,7 +123,7 @@ class DialLeverStateTest
         when(slot.getBlockData()).thenReturn(data);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
 
-        StargateBlockSetup.toggleDialLeverState(gateWith(slot, true), false);
+        StargateRedstone.toggleDialLeverState(gateWith(slot, true), false);
 
         verify(data).setPowered(true);
         verify(slot).setBlockData(data);
@@ -139,7 +139,7 @@ class DialLeverStateTest
         when(slot.getBlockData()).thenReturn(data);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
 
-        StargateBlockSetup.toggleDialLeverState(gateWith(slot, false), false);
+        StargateRedstone.toggleDialLeverState(gateWith(slot, false), false);
 
         verify(data).setPowered(false);
         verify(world).unloadChunkRequest(0, 0);
