@@ -244,14 +244,16 @@ class IrisClearanceTest
     void aDrawnIrisClearsTheOpeningToo()
     {
         gate.setGateFacing(BlockFace.NORTH);
-        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(mock(Block.class));
+        final Block cell = mock(Block.class);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(cell);
+        final BlockData iris = mock(BlockData.class);
         final Zombie zombie = zombieAt(BY);
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(zombie));
 
         try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
         {
             materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), eq(BlockFace.NORTH)))
-                .thenReturn(mock(BlockData.class));
+                .thenReturn(iris);
 
             StargateBlockSetup.fillGateIris(gate, Material.STONE);
         }
