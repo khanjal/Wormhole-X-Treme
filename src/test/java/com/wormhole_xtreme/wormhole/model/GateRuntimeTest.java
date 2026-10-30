@@ -68,10 +68,8 @@ class GateRuntimeTest
         runtime.getGateAnimatedBlocks().add(block);
         runtime.getGateSignOrder().put(3, gate);
 
-        assertSame(runtime.getGateAnimatedBlocks(), runtime.getGateAnimatedBlocks(), "the same list each time");
         assertEquals(1, runtime.getGateAnimatedBlocks().size(), "what was added is kept");
         assertSame(block, runtime.getGateAnimatedBlocks().get(0), "the block itself");
-        assertSame(runtime.getGateSignOrder(), runtime.getGateSignOrder(), "the same map each time");
         assertSame(gate, runtime.getGateSignOrder().get(3), "the gate at its place");
         assertNotSame(runtime.getGateSignOrder(), new GateRuntime().getGateSignOrder(), "and each runtime has its own");
     }

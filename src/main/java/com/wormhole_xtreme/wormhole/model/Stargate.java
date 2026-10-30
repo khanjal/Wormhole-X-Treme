@@ -129,13 +129,6 @@ public class Stargate implements GateIris
     private Block gateRedstoneGateActivatedBlock;
     /** What a gate is doing right now that is not saved: its scheduler tasks, its animation and its sign order. */
     private final GateRuntime gateRuntime = new GateRuntime();
-
-    /** @return the gate's unsaved working state, which the animator, the dial manager and the lifecycle share */
-    GateRuntime runtime()
-    {
-        return gateRuntime;
-    }
-
     /** The Name block holder. Where we place the stargate name sign. */
     private Block gateNameBlockHolder;
 
@@ -330,6 +323,12 @@ public class Stargate implements GateIris
     public BoundingBox getGatePortalBounds()
     {
         return gatePortalCache.bounds();
+    }
+
+    /** @return the gate's unsaved working state, which the animator, the dial manager and the lifecycle share */
+    GateRuntime runtime()
+    {
+        return gateRuntime;
     }
 
     /**
