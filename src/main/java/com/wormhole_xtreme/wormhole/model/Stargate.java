@@ -1181,9 +1181,6 @@ public class Stargate implements GateIris
         return gateDialSignTarget;
     }
 
-    /**
-     * Gets the gate facing.
-     */
     public BlockFace getGateFacing()
     {
         return gateFacing;
@@ -1199,9 +1196,6 @@ public class Stargate implements GateIris
         return gateId;
     }
 
-    /**
-     * Gets the gate iris deactivation code.
-     */
     public String getGateIrisDeactivationCode()
     {
         return gateIrisDeactivationCode;
@@ -1217,33 +1211,21 @@ public class Stargate implements GateIris
         return gateIrisLeverBlock;
     }
 
-    /**
-     * Gets the gate light blocks.
-     */
     public List<List<Location>> getGateLightBlocks()
     {
         return gateLightBlocks;
     }
 
-    /**
-     * Gets the gate minecart teleport location.
-     */
     public Location getGateMinecartTeleportLocation()
     {
         return gateMinecartTeleportLocation;
     }
 
-    /**
-     * Gets the gate name.
-     */
     public String getGateName()
     {
         return gateName;
     }
 
-    /**
-     * Gets the gate name block holder.
-     */
     public Block getGateNameBlockHolder()
     {
         return gateNameBlockHolder;
@@ -1334,9 +1316,6 @@ public class Stargate implements GateIris
         return gatePlayerTeleportLocation;
     }
 
-    /**
-     * Gets the gate portal blocks.
-     */
     public List<Location> getGatePortalBlocks()
     {
         return gatePortalBlocks;
@@ -1362,9 +1341,6 @@ public class Stargate implements GateIris
         return gateRedstoneDialMonitorBlocks;
     }
 
-    /**
-     * Gets the gate redstone gate activated block.
-     */
     public Block getGateRedstoneGateActivatedBlock()
     {
         return gateRedstoneGateActivatedBlock;
@@ -1380,17 +1356,11 @@ public class Stargate implements GateIris
         return gateRedstoneSignActivationBlock;
     }
 
-    /**
-     * Gets the gate shape.
-     */
     public StargateShape getGateShape()
     {
         return gateShape;
     }
 
-    /**
-     * Gets the gate structure blocks.
-     */
     public List<Location> getGateStructureBlocks()
     {
         return gateStructureBlocks;
@@ -1406,9 +1376,6 @@ public class Stargate implements GateIris
         return gateTarget;
     }
 
-    /**
-     * Gets the gate temp sign target.
-     */
     long getGateTempSignTarget()
     {
         return gateTempSignTarget;
@@ -1424,17 +1391,11 @@ public class Stargate implements GateIris
         return gateTempTargetId;
     }
 
-    /**
-     * Gets the gate woosh blocks.
-     */
     public List<List<Location>> getGateWooshBlocks()
     {
         return gateWooshBlocks;
     }
 
-    /**
-     * Gets the gate world.
-     */
     public World getGateWorld()
     {
         return gateWorld;
@@ -1450,9 +1411,6 @@ public class Stargate implements GateIris
         return loadedVersion;
     }
 
-    /**
-     * Checks if is gate active.
-     */
     public boolean isGateActive()
     {
         return gateActive;
@@ -1481,26 +1439,17 @@ public class Stargate implements GateIris
         this.gatePortalOpen = gatePortalOpen;
     }
 
-    /**
-     * Checks if is gate custom.
-     */
     public boolean isGateCustom()
     {
         return gateCustom;
     }
 
-    /**
-     * Checks if is gate iris active.
-     */
     @Override
     public boolean isGateIrisActive()
     {
         return gateIrisActive;
     }
 
-    /**
-     * Checks if is gate iris default active.
-     */
     public boolean isGateIrisDefaultActive()
     {
         return gateIrisDefaultActive;
@@ -1516,25 +1465,16 @@ public class Stargate implements GateIris
         return gateLightsActive;
     }
 
-    /**
-     * Checks if is gate recently active.
-     */
     public boolean isGateRecentlyActive()
     {
         return gateRecentlyActive;
     }
 
-    /**
-     * Checks if is gate redstone powered.
-     */
     public boolean isGateRedstonePowered()
     {
         return gateRedstonePowered;
     }
 
-    /**
-     * Checks if is gate sign powered.
-     */
     public boolean isGateSignPowered()
     {
         return gateSignPowered;
@@ -1591,9 +1531,6 @@ public class Stargate implements GateIris
         StargateDialManager.resetTeleportSign(this);
     }
 
-    /**
-     * Sets the gate active.
-     */
     public void setGateActive(final boolean gateActive)
     {
         // Re-dialling an open gate keeps its wormhole; opening or closing one starts it unformed.
@@ -1605,17 +1542,11 @@ public class Stargate implements GateIris
         StargateManager.setGateOpenState(this, gateActive);
     }
 
-    /**
-     * Sets the gate animation step.
-     */
     void setGateAnimationStep3D(final int gateAnimationStep3D)
     {
         this.gateAnimationStep3D = gateAnimationStep3D;
     }
 
-    /**
-     * Sets the gate custom.
-     */
     public void setGateCustom(final boolean gateCustom)
     {
         this.gateCustom = gateCustom;
@@ -1760,25 +1691,16 @@ public class Stargate implements GateIris
         this.gateDialSignTarget = gateDialSignTarget;
     }
 
-    /**
-     * Sets the gate facing.
-     */
     public void setGateFacing(final BlockFace gateFacing)
     {
         this.gateFacing = gateFacing;
     }
 
-    /**
-     * Sets the gate id.
-     */
     void setGateId(final long gateId)
     {
         this.gateId = gateId;
     }
 
-    /**
-     * Sets the gate iris active.
-     */
     public void setGateIrisActive(final boolean gateIrisActive)
     {
         this.gateIrisActive = gateIrisActive;
@@ -1790,17 +1712,11 @@ public class Stargate implements GateIris
         StargateManager.setGateIrisState(this, gateIrisActive);
     }
 
-    /**
-     * Sets the gate iris deactivation code.
-     */
     public void setGateIrisDeactivationCode(final String gateIrisDeactivationCode)
     {
         this.gateIrisDeactivationCode = gateIrisDeactivationCode;
     }
 
-    /**
-     * Sets the gate iris default active.
-     */
     public void setGateIrisDefaultActive(final boolean gateIrisDefaultActive)
     {
         this.gateIrisDefaultActive = gateIrisDefaultActive;
@@ -1822,25 +1738,16 @@ public class Stargate implements GateIris
         this.gateLightsActive = gateLightsActive;
     }
 
-    /**
-     * Sets the gate minecart teleport location.
-     */
     public void setGateMinecartTeleportLocation(final Location gateMinecartTeleportLocation)
     {
         this.gateMinecartTeleportLocation = gateMinecartTeleportLocation;
     }
 
-    /**
-     * Sets the gate name.
-     */
     public void setGateName(final String gateName)
     {
         this.gateName = gateName;
     }
 
-    /**
-     * Sets the gate name block holder.
-     */
     public void setGateNameBlockHolder(final Block gateNameBlockHolder)
     {
         this.gateNameBlockHolder = gateNameBlockHolder;
@@ -1886,9 +1793,6 @@ public class Stargate implements GateIris
         this.gatePlayerTeleportLocation = gatePlayerTeleportLocation;
     }
 
-    /**
-     * Sets the gate recently active.
-     */
     void setGateRecentlyActive(final boolean gateRecentlyActive)
     {
         this.gateRecentlyActive = gateRecentlyActive;
@@ -1902,17 +1806,11 @@ public class Stargate implements GateIris
         this.gateRedstoneDialActivationBlock = gateRedstoneDialActivationBlock;
     }
 
-    /**
-     * Sets the gate redstone gate activated block.
-     */
     public void setGateRedstoneGateActivatedBlock(final Block gateRedstoneGateActivatedBlock)
     {
         this.gateRedstoneGateActivatedBlock = gateRedstoneGateActivatedBlock;
     }
 
-    /**
-     * Sets the gate redstone powered.
-     */
     public void setGateRedstonePowered(final boolean gateRedstonePowered)
     {
         this.gateRedstonePowered = gateRedstonePowered;
@@ -1926,9 +1824,6 @@ public class Stargate implements GateIris
         this.gateRedstoneSignActivationBlock = gateRedstoneSignActivationBlock;
     }
 
-    /**
-     * Sets the gate shape.
-     */
     public void setGateShape(final StargateShape gateShape)
     {
         this.gateShape = gateShape;
@@ -1967,41 +1862,26 @@ public class Stargate implements GateIris
         }
     }
 
-    /**
-     * Sets the gate sign powered.
-     */
     public void setGateSignPowered(final boolean gateSignPowered)
     {
         this.gateSignPowered = gateSignPowered;
     }
 
-    /**
-     * Sets the gate target.
-     */
     void setGateTarget(final Stargate gateTarget)
     {
         this.gateTarget = gateTarget;
     }
 
-    /**
-     * Sets the gate temp sign target.
-     */
     public void setGateTempSignTarget(final long gateTempSignTarget)
     {
         this.gateTempSignTarget = gateTempSignTarget;
     }
 
-    /**
-     * Sets the gate temp target id.
-     */
     public void setGateTempTargetId(final long gateTempTargetId)
     {
         this.gateTempTargetId = gateTempTargetId;
     }
 
-    /**
-     * Sets the gate world.
-     */
     public void setGateWorld(final World gateWorld)
     {
         this.gateWorld = gateWorld;
@@ -2044,9 +1924,6 @@ public class Stargate implements GateIris
         StargateLifecycle.setIrisState(this, irisactive);
     }
 
-    /**
-     * Sets the loaded version.
-     */
     public void setLoadedVersion(final byte loadedVersion)
     {
         this.loadedVersion = loadedVersion;
