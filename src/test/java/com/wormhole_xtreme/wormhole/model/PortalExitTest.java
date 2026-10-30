@@ -36,11 +36,6 @@ class PortalExitTest
         world = mock(World.class);
     }
 
-    private Location at(final double x, final double y, final double z)
-    {
-        return new Location(world, x, y, z);
-    }
-
     private Location block(final int x, final int y, final int z)
     {
         return new Location(world, x, y, z);
