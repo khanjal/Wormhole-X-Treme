@@ -1959,7 +1959,7 @@ public class Stargate implements GateIris
      */
     public void setupRedstone(final boolean create)
     {
-        StargateBlockSetup.setupRedstone(this, create);
+        StargateRedstone.setupRedstone(this, create);
     }
 
     /**
@@ -1981,7 +1981,7 @@ public class Stargate implements GateIris
      */
     private void setupRedstoneDialWire(final boolean create)
     {
-        StargateBlockSetup.setupRedstoneDialWire(this, create);
+        StargateRedstone.setupRedstoneDialWire(this, create);
     }
 
     /**
@@ -1992,7 +1992,7 @@ public class Stargate implements GateIris
      */
     private void setupRedstoneGateActivatedLever(final boolean create)
     {
-        StargateBlockSetup.setupRedstoneGateActivatedLever(this, create);
+        StargateRedstone.setupRedstoneGateActivatedLever(this, create);
     }
 
     /**
@@ -2003,7 +2003,7 @@ public class Stargate implements GateIris
      */
     private void setupRedstoneSignDialWire(final boolean create)
     {
-        StargateBlockSetup.setupRedstoneSignDialWire(this, create);
+        StargateRedstone.setupRedstoneSignDialWire(this, create);
     }
 
     /**
@@ -2117,7 +2117,7 @@ public class Stargate implements GateIris
      */
     public void toggleDialLeverState(final boolean regenerate)
     {
-        StargateBlockSetup.toggleDialLeverState(this, regenerate);
+        StargateRedstone.toggleDialLeverState(this, regenerate);
     }
 
     /**
@@ -2136,7 +2136,7 @@ public class Stargate implements GateIris
      */
     void toggleRedstoneGateActivatedPower()
     {
-        StargateBlockSetup.toggleRedstoneGateActivatedPower(this);
+        StargateRedstone.toggleRedstoneGateActivatedPower(this);
     }
 
     /**

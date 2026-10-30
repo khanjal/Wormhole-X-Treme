@@ -210,7 +210,7 @@ class StargateBlockSetupTest
         gate.setGateRedstonePowered(false);
         gate.setGateRedstoneGateActivatedBlock(leverBlock);
 
-        StargateBlockSetup.toggleRedstoneGateActivatedPower(gate);
+        StargateRedstone.toggleRedstoneGateActivatedPower(gate);
 
         verifyNoInteractions(leverBlock);
     }
@@ -222,7 +222,7 @@ class StargateBlockSetupTest
         gate.setGateRedstoneGateActivatedBlock(null);
 
         // Must not throw a NullPointerException
-        assertDoesNotThrow(() -> StargateBlockSetup.toggleRedstoneGateActivatedPower(gate));
+        assertDoesNotThrow(() -> StargateRedstone.toggleRedstoneGateActivatedPower(gate));
     }
 
     @Test
@@ -233,7 +233,7 @@ class StargateBlockSetupTest
         gate.setGateRedstonePowered(true);
         gate.setGateRedstoneGateActivatedBlock(block);
 
-        StargateBlockSetup.toggleRedstoneGateActivatedPower(gate);
+        StargateRedstone.toggleRedstoneGateActivatedPower(gate);
 
         verify(block, never()).getBlockData();
     }
@@ -249,7 +249,7 @@ class StargateBlockSetupTest
         gate.setGateActive(true);
         gate.setGateRedstoneGateActivatedBlock(leverBlock);
 
-        StargateBlockSetup.toggleRedstoneGateActivatedPower(gate);
+        StargateRedstone.toggleRedstoneGateActivatedPower(gate);
 
         verify(powerable).setPowered(true);
         verify(leverBlock).setBlockData(powerable);
@@ -266,7 +266,7 @@ class StargateBlockSetupTest
         gate.setGateActive(false);
         gate.setGateRedstoneGateActivatedBlock(leverBlock);
 
-        StargateBlockSetup.toggleRedstoneGateActivatedPower(gate);
+        StargateRedstone.toggleRedstoneGateActivatedPower(gate);
 
         verify(powerable).setPowered(false);
         verify(leverBlock).setBlockData(powerable);

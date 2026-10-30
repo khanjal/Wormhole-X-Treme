@@ -47,8 +47,8 @@ class RedstoneLeverClaimTest
         final Stargate gate = new Stargate();
         gate.setGateRedstoneGateActivatedBlock(lever);
 
-        StargateBlockSetup.setupRedstoneGateActivatedLever(gate, true);
-        StargateBlockSetup.setupRedstoneGateActivatedLever(gate, true);
+        StargateRedstone.setupRedstoneGateActivatedLever(gate, true);
+        StargateRedstone.setupRedstoneGateActivatedLever(gate, true);
 
         assertTrue(gate.getGateStructureBlocks().contains(at), "the lever is one of the gate's blocks");
         Assertions.assertEquals(1, gate.getGateStructureBlocks().size(),
@@ -65,7 +65,7 @@ class RedstoneLeverClaimTest
         final Stargate gate = new Stargate();
         gate.setGateRedstoneGateActivatedBlock(stone);
 
-        StargateBlockSetup.setupRedstoneGateActivatedLever(gate, true);
+        StargateRedstone.setupRedstoneGateActivatedLever(gate, true);
 
         verify(stone, never()).setType(ArgumentMatchers.any());
         assertTrue(gate.getGateStructureBlocks().isEmpty(), "somebody's block is not claimed");

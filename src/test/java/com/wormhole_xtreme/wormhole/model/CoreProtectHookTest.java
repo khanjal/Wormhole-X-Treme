@@ -121,8 +121,8 @@ class CoreProtectHookTest
         gate.setGateWorld(world);
         gate.setGateRedstoneDialActivationBlock(world.getBlockAt(5, 70, 5));
 
-        StargateBlockSetup.setupRedstoneDialWire(gate, true);
-        StargateBlockSetup.setupRedstoneDialWire(gate, true);
+        StargateRedstone.setupRedstoneDialWire(gate, true);
+        StargateRedstone.setupRedstoneDialWire(gate, true);
 
         assertEquals(List.of("placed #wormhole REDSTONE_WIRE 70 over AIR"), logged);
     }
@@ -158,7 +158,7 @@ class CoreProtectHookTest
         gate.setGateFacing(BlockFace.NORTH);
         gate.setGateDialLeverBlock(world.getBlockAt(5, 66, 5));
 
-        StargateBlockSetup.toggleDialLeverState(gate, true);
+        StargateRedstone.toggleDialLeverState(gate, true);
 
         assertEquals(List.of("placed #wormhole LEVER 66 over AIR"), logged);
     }
