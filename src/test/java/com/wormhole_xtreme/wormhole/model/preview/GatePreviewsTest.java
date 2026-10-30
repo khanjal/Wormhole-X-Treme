@@ -4076,7 +4076,7 @@ class GatePreviewsTest
         dialStep.run();
 
         verify(lamp).setLit(true);
-        verify(chevron, Mockito.times(2)).setBlock(lamp);
+        verify(chevron, times(2)).setBlock(lamp);
         verify(chevron, never()).setBlock(data.get(Material.GLOWSTONE));
     }
 
