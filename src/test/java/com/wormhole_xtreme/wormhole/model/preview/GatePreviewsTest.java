@@ -3966,4 +3966,144 @@ class GatePreviewsTest
         }
         return out;
     }
+
+    // -----------------------------------------------------------------------
+    // How the frame is drawn and the guide styled, pinned before it moves (#734)
+    // -----------------------------------------------------------------------
+
+    /** With the guide off, whatever stands in the opening is not marked: the mark is part of the guide. */
+    @Test
+    void withTheGuideOffABlockInTheOpeningIsNotMarked()
+    {
+        final Cell inTheWay = GateBlueprint.openingOf(standard,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).get(0);
+        place(inTheWay, Material.COBBLESTONE);
+
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.tick();
+
+        assertEquals(STANDARD_BLOCKS, spawned.size(), "only the gate itself is drawn");
+        assertFalse(data.containsKey(Material.RED_STAINED_GLASS), "and no red glass was asked for");
+    }
+
+    /** Every display is lit to the full, or the preview goes dark in a shadow and in a cave. */
+    @Test
+    void everyDisplayIsDrawnAtFullBrightness()
+    {
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(STANDARD_BLOCKS, spawned.size());
+        for (final BlockDisplay display : spawned)
+        {
+            verify(display).setBrightness(argThat(b -> (b.getBlockLight() == 15) && (b.getSkyLight() == 15)));
+        }
+    }
+
+    /** The box over the button is a responsive six-tenths of a block, centred on the cell. */
+    @Test
+    void theButtonsBoxIsAResponsiveSixTenthsOfABlockCentredOnItsCell()
+    {
+        final Cell button = standardLookingNorth().stream().filter(c -> c.part() == Part.BUTTON).findFirst()
+            .orElseThrow();
+
+        GatePreviews.show(owner, standard, null);
+
+        final Interaction box = buttons.get(0);
+        verify(box).setInteractionWidth(0.6f);
+        verify(box).setInteractionHeight(0.6f);
+        verify(box).setResponsive(true);
+        final Location at = creation.places.get(creation.places.size() - 1);
+        assertEquals(button.x() + 0.5, at.getX(), 1e-9);
+        assertEquals(button.y() + 0.2, at.getY(), 1e-6, "a fifth of a block up, so a six-tenths box sits in the middle");
+        assertEquals(button.z() + 0.5, at.getZ(), 1e-9);
+    }
+
+    /** A small display is centred in its cell and a wrong one grown evenly about it, not pushed to a corner. */
+    @Test
+    void aSmallDisplayIsCentredInItsCellAndAWrongOneGrownEvenlyAboutIt()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay wrong = spawned.get(1);
+        final BlockDisplay left = spawned.get(2);
+        place(cells.get(1), Material.DIRT);
+
+        GatePreviews.guide(owner);
+
+        assertEquals(0.25f, translationOf(left), 1e-6f, "(1 - 0.5) / 2");
+        assertEquals(-0.01f, translationOf(wrong), 1e-6f, "(1 - 1.02) / 2");
+    }
+
+    private static float translationOf(final BlockDisplay display)
+    {
+        final ArgumentCaptor<Transformation> drawn = ArgumentCaptor.forClass(Transformation.class);
+        verify(display, Mockito.atLeastOnce()).setTransformation(drawn.capture());
+        return drawn.getValue().getTranslation().x();
+    }
+
+    /**
+     * A cell whose chunk is not loaded is not read, so the guide has nothing to say about it and
+     * its display stands whole, where reading it as air would shrink it to a block still to place.
+     */
+    @Test
+    void aChunkThatIsNotLoadedIsNotReadAndItsDisplaysAreDrawnWhole()
+    {
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay left = spawned.get(2);
+        GatePreviews.guide(owner);
+        assertEquals(0.5f, scaleOf(left), 1e-6f);
+
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+        GatePreviews.tick();
+
+        assertEquals(1.0f, scaleOf(left), 1e-6f);
+    }
+
+    /** A lit chevron of a gate with chevron blocks is that block switched on, not the light material. */
+    @Test
+    void aLitChevronBlockIsSwitchedOnRatherThanReplacedByTheLight()
+    {
+        final org.bukkit.block.data.Lightable lamp = mock(org.bukkit.block.data.Lightable.class);
+        data.put(Material.REDSTONE_LAMP, lamp);
+        final MaterialGroup atlantis = new MaterialGroup(
+            "Atlantis", Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
+            Material.REDSTONE_LAMP);
+        GatePreviews.show(owner, standard, atlantis);
+        final BlockDisplay chevron = ringDisplaysOfWave(1).get(0);
+
+        GatePreviews.activate(owner);
+        dialStep.run();
+
+        verify(lamp).setLit(true);
+        verify(chevron, Mockito.times(2)).setBlock(lamp);
+        verify(chevron, never()).setBlock(data.get(Material.GLOWSTONE));
+    }
+
+    /** The dial sign is turned to face the builder as the button is, when the sign can face that way. */
+    @Test
+    void theDialSignIsTurnedToFaceTheBuilderToo() throws Exception
+    {
+        final Stargate3DShape signDial = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/StandardSignDial.shape")).toArray(new String[0]));
+        final Directional sign = mock(Directional.class);
+        when(sign.getFaces()).thenReturn(Set.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST));
+        GatePreviews.blockData = material -> (material == Material.OAK_WALL_SIGN) ? sign : mock(BlockData.class);
+
+        GatePreviews.show(owner, signDial, null);
+
+        verify(sign).setFacing(BlockFace.SOUTH);
+    }
+
+    /** A button that cannot face the builder's way is left as it is, rather than given a face it cannot hang on. */
+    @Test
+    void aButtonThatCannotFaceTheBuilderIsLeftAsItIs()
+    {
+        final Directional button = mock(Directional.class);
+        when(button.getFaces()).thenReturn(Set.of(BlockFace.UP));
+        GatePreviews.blockData = material -> (material == Material.STONE_BUTTON) ? button : mock(BlockData.class);
+
+        GatePreviews.show(owner, standard, null);
+
+        verify(button, never()).setFacing(any(BlockFace.class));
+    }
 }
