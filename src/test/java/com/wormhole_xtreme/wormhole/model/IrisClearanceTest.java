@@ -231,7 +231,8 @@ class IrisClearanceTest
         noExit.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
         StargateBlockSetup.clearIrisPath(noExit);
 
-        verify(world, never()).getNearbyEntities(any(BoundingBox.class));
+        // any() and not any(BoundingBox.class): the latter does not match the null a missing box passes.
+        verify(world, never()).getNearbyEntities((BoundingBox) any());
         assertEquals(0, teleports(zombie), "nobody is moved for a gate that cannot say where to");
     }
 
