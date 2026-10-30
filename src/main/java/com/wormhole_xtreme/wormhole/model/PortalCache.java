@@ -20,34 +20,6 @@ final class PortalCache
     private final List<Location> portal;
 
     /**
-     * @param portal
-     *            the gate's own portal block list, which the gate lets callers change
-     */
-    PortalCache(final List<Location> portal)
-    {
-        this.portal = portal;
-    }
-
-    /**
-     * Whether the given block is one of the portal's.
-     *
-     * @return true if it is
-     */
-    boolean contains(final int x, final int y, final int z)
-    {
-        refresh();
-        return lookup.contains(Long.valueOf(
-            BlockKey.pack(x, y, z)));
-    }
-
-    /** @return the box enclosing every portal block, or null if there are none */
-    BoundingBox bounds()
-    {
-        refresh();
-        return bounds;
-    }
-
-    /**
      * Portal block positions as a set, for O(1) containment. Built lazily.
      *
      * <p>Packed positions rather than {@link Location} keys. This set is asked on every
@@ -65,6 +37,40 @@ final class PortalCache
 
     /** Portal block count the caches were built from, used to spot a changed gate. */
     private int size = -1;
+
+    /**
+     * @param portal
+     *            the gate's own portal block list, which the gate lets callers change
+     */
+    PortalCache(final List<Location> portal)
+    {
+        this.portal = portal;
+    }
+
+    /**
+     * Whether the given block is one of the portal's.
+     *
+     * @param x
+     *            block x
+     * @param y
+     *            block y
+     * @param z
+     *            block z
+     * @return true if it is
+     */
+    boolean contains(final int x, final int y, final int z)
+    {
+        refresh();
+        return lookup.contains(Long.valueOf(
+            BlockKey.pack(x, y, z)));
+    }
+
+    /** @return the box enclosing every portal block, or null if there are none */
+    BoundingBox bounds()
+    {
+        refresh();
+        return bounds;
+    }
 
     /**
      * Rebuilds the portal block caches if the portal block list has changed size.
