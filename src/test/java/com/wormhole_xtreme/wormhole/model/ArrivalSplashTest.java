@@ -208,6 +208,16 @@ class ArrivalSplashTest
     }
 
     @Test
+    void theClearStepThatFailsIsSwallowedToo()
+    {
+        when(world.getBlockAt(5, 70, 5)).thenThrow(new IllegalStateException("world gone"));
+        ArrivalSplash.splashArrival(player);
+
+        assertDoesNotThrow(() -> steps.get(steps.size() - 1).run());
+        verify(player, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    @Test
     void aStepThatFailsIsSwallowed()
     {
         ArrivalSplash.splashArrival(player);

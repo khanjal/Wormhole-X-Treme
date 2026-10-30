@@ -62,7 +62,7 @@ final class ArrivalSplash
             // wiped by it. How long that takes is not observable from here and is not fixed:
             // a hop to a nearby gate reuses chunks the client already has, while a trip
             // across the world makes it fetch everything from scratch. The portal redraw
-            // above hit exactly this and answered it the same way.
+            // in StargateBlockSetup hit exactly this and answered it the same way.
             for (long t = 0L; t < SPLASH_TICKS; t += SPLASH_REDRAW_INTERVAL)
             {
                 drawSplash(player, at, true, t);
