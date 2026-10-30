@@ -3,8 +3,10 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -22,6 +24,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Horse;
 import org.bukkit.entity.Item;
@@ -37,6 +40,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.PetTestSupport;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -234,6 +238,26 @@ class IrisClearanceTest
         // any() and not any(BoundingBox.class): the latter does not match the null a missing box passes.
         verify(world, never()).getNearbyEntities((BoundingBox) any());
         assertEquals(0, teleports(zombie), "nobody is moved for a gate that cannot say where to");
+    }
+
+    @Test
+    void aDrawnIrisClearsTheOpeningToo()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(mock(Block.class));
+        final Zombie zombie = zombieAt(BY);
+        when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(zombie));
+
+        try (MockedStatic<MaterialUtils> materials = mockStatic(MaterialUtils.class))
+        {
+            materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), eq(BlockFace.NORTH)))
+                .thenReturn(mock(BlockData.class));
+
+            StargateBlockSetup.fillGateIris(gate, Material.STONE);
+        }
+
+        assertTrue(StargateBlockSetup.irisIsDrawn(gate), "a vertical gate's iris is only a picture");
+        assertEquals(1, teleports(zombie), "and whoever stands in it is still moved out");
     }
 
     @Test
