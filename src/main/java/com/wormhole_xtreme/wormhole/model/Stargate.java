@@ -127,7 +127,7 @@ public class Stargate implements GateIris
     private Block gateRedstoneSignActivationBlock;
     /** The gate redstone gate activated block. */
     private Block gateRedstoneGateActivatedBlock;
-    /** What a gate is doing right now that is not saved: its scheduler tasks, its animation and its sign order. */
+    /** What a gate is doing right now that is not saved: its scheduler tasks and its animation. */
     private final GateRuntime gateRuntime = new GateRuntime();
     /** The Name block holder. Where we place the stargate name sign. */
     private Block gateNameBlockHolder;

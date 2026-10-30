@@ -11,7 +11,7 @@ import org.bukkit.block.Block;
 import org.junit.jupiter.api.Test;
 
 /**
- * What a gate is doing right now that is not saved: each value reads back as set, and the two collections
+ * What a gate is doing right now that is not saved: each value reads back as set, and the animated blocks
  * are the gate's own, not a copy (#430).
  *
  * <p>Written for the move out of {@link Stargate}: each test fails when the one assignment or the one
@@ -32,7 +32,6 @@ class GateRuntimeTest
         assertEquals(0, runtime.getGateLightingCurrentIteration(), "no chevron lit");
         assertEquals(0, runtime.getGateChevronsLocked(), "none locked");
         assertTrue(runtime.getGateAnimatedBlocks().isEmpty(), "no animated blocks");
-        assertTrue(runtime.getGateSignOrder().isEmpty(), "no sign order");
     }
 
     @Test
@@ -59,19 +58,16 @@ class GateRuntimeTest
     }
 
     @Test
-    void theAnimatedBlocksAndTheSignOrderAreTheOnesTheGateKeepsNotCopies()
+    void theAnimatedBlocksAreTheOnesTheGateKeepsNotCopies()
     {
         final GateRuntime runtime = new GateRuntime();
         final Block block = mock(Block.class);
-        final Stargate gate = mock(Stargate.class);
 
         runtime.getGateAnimatedBlocks().add(block);
-        runtime.getGateSignOrder().put(3, gate);
 
         assertEquals(1, runtime.getGateAnimatedBlocks().size(), "what was added is kept");
         assertSame(block, runtime.getGateAnimatedBlocks().get(0), "the block itself");
-        assertSame(gate, runtime.getGateSignOrder().get(3), "the gate at its place");
-        assertNotSame(runtime.getGateSignOrder(), new GateRuntime().getGateSignOrder(), "and each runtime has its own");
+        assertNotSame(runtime.getGateAnimatedBlocks(), new GateRuntime().getGateAnimatedBlocks(), "and each runtime has its own");
     }
 
     @Test
