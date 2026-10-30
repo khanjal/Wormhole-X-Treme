@@ -6,7 +6,7 @@ import org.bukkit.block.Block;
 
 /**
  * What a gate is doing right now that is not saved: its scheduler task ids, where its animation is,
- * how many chevrons are locked and the order of its sign's targets (#430).
+ * how many chevrons are locked (#430).
  *
  * <p>Moved out of {@link Stargate} as it was, fields and accessors both; the gate holds one and hands it
  * to the animator, the dial manager and the lifecycle through {@link Stargate#runtime()}.

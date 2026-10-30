@@ -11,7 +11,7 @@ import org.bukkit.block.Block;
 import org.junit.jupiter.api.Test;
 
 /**
- * What a gate is doing right now that is not saved: each value reads back as set, and the two collections
+ * What a gate is doing right now that is not saved: each value reads back as set, and the animated blocks
  * are the gate's own, not a copy (#430).
  *
  * <p>Written for the move out of {@link Stargate}: each test fails when the one assignment or the one
