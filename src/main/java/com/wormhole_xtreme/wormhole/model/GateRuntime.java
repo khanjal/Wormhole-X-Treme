@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import org.bukkit.block.Block;
 
@@ -28,8 +27,6 @@ final class GateRuntime
     private int gateChevronsLocked = 0;
     /** The Animated blocks. */
     private final ArrayList<Block> gateAnimatedBlocks = new ArrayList<>();
-    /** The gate_order. */
-    private final HashMap<Integer, Stargate> gateSignOrder = new HashMap<>();
 
     /**
      * Gets the gate activate task id.
@@ -129,13 +126,5 @@ final class GateRuntime
     ArrayList<Block> getGateAnimatedBlocks()
     {
         return gateAnimatedBlocks;
-    }
-
-    /**
-     * Gets the gate sign order.
-     */
-    HashMap<Integer, Stargate> getGateSignOrder()
-    {
-        return gateSignOrder;
     }
 }

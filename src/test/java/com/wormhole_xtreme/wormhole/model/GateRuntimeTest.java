@@ -32,7 +32,6 @@ class GateRuntimeTest
         assertEquals(0, runtime.getGateLightingCurrentIteration(), "no chevron lit");
         assertEquals(0, runtime.getGateChevronsLocked(), "none locked");
         assertTrue(runtime.getGateAnimatedBlocks().isEmpty(), "no animated blocks");
-        assertTrue(runtime.getGateSignOrder().isEmpty(), "no sign order");
     }
 
     @Test
@@ -59,19 +58,16 @@ class GateRuntimeTest
     }
 
     @Test
-    void theAnimatedBlocksAndTheSignOrderAreTheOnesTheGateKeepsNotCopies()
+    void theAnimatedBlocksAreTheOnesTheGateKeepsNotCopies()
     {
         final GateRuntime runtime = new GateRuntime();
         final Block block = mock(Block.class);
-        final Stargate gate = mock(Stargate.class);
 
         runtime.getGateAnimatedBlocks().add(block);
-        runtime.getGateSignOrder().put(3, gate);
 
         assertEquals(1, runtime.getGateAnimatedBlocks().size(), "what was added is kept");
         assertSame(block, runtime.getGateAnimatedBlocks().get(0), "the block itself");
-        assertSame(gate, runtime.getGateSignOrder().get(3), "the gate at its place");
-        assertNotSame(runtime.getGateSignOrder(), new GateRuntime().getGateSignOrder(), "and each runtime has its own");
+        assertNotSame(runtime.getGateAnimatedBlocks(), new GateRuntime().getGateAnimatedBlocks(), "and each runtime has its own");
     }
 
     @Test
