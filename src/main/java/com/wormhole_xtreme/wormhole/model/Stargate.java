@@ -13,15 +13,12 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
-import com.wormhole_xtreme.wormhole.utils.BlockKey;
 
 /**
  * WormholeXtreme Stargate Class/Instance.
