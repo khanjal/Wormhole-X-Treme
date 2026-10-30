@@ -88,7 +88,7 @@ class IrisLeverPlacementTest
         final Block irisBlock = blockAt(10, 64, 20);
         final Stargate gate = gateWithButton(irisBlock);
 
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, false);
 
         assertSame(irisBlock, gate.getGateIrisLeverBlock(),
             "back from the button face, down to the base, then forward along the gate facing");
@@ -108,7 +108,7 @@ class IrisLeverPlacementTest
         final Stargate gate = gateWithButton(irisBlock);
         gate.setGateRedstoneDialActivationBlock(blockAt(10, 64, 20));
 
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, false);
 
         assertNull(gate.getGateIrisLeverBlock(),
             "the redstone dial block was there first and keeps the spot");
@@ -122,7 +122,7 @@ class IrisLeverPlacementTest
         final Stargate gate = gateWithButton(irisBlock);
         gate.setGateRedstoneSignActivationBlock(blockAt(10, 64, 20));
 
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, false);
 
         assertNull(gate.getGateIrisLeverBlock());
     }
@@ -135,7 +135,7 @@ class IrisLeverPlacementTest
         final Stargate gate = gateWithButton(irisBlock);
         gate.setGateRedstoneDialActivationBlock(blockAt(11, 64, 20));
 
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, false);
 
         assertSame(irisBlock, gate.getGateIrisLeverBlock());
     }
@@ -155,7 +155,7 @@ class IrisLeverPlacementTest
             "Name=Redstone", "REDSTONE_ACTIVATED=TRUE", "GateShape=", "Layer#1=",
             "[S][S]", "[S:EP][S]", "" }));
 
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, false);
 
         assertNull(gate.getGateIrisLeverBlock(),
             "a redstone-dialled gate has no button for the walk to start from");
@@ -172,7 +172,7 @@ class IrisLeverPlacementTest
         gate.setGateFacing(BlockFace.SOUTH);
         gate.setGateIrisLeverBlock(notALever);
 
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, false);
 
         verify(notALever, never()).setType(Material.AIR);
     }

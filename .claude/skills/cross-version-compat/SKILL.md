@@ -48,7 +48,7 @@ static init.
 - Never narrow one of these to `RuntimeException`. That silently breaks the fallback.
 - Never widen to `Throwable`. That swallows `OutOfMemoryError`, and Sonar flags it (S1181).
 - The load-bearing sites include `MaterialUtils.probeBlockCheck`,
-  `Ring.resolveSlabTag`, the sign restore in `StargateBlockSetup`, `EconomySupport`,
+  `Ring.resolveSlabTag`, the sign restore in `GateFittings`, `EconomySupport`,
   `PermissionsSupport`, `GateEntityScanner`, `MirrorPackets`, `MirrorStamp` and
   `HiddenEntities`.
 - If a Sonar sweep asks to narrow one of these, read whether the guarded call is

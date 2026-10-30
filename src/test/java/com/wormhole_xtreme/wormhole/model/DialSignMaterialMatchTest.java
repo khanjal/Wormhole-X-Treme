@@ -18,7 +18,7 @@ class DialSignMaterialMatchTest
     @Test
     void aSignOfTheWrongWoodIsConverted()
     {
-        assertTrue(StargateBlockSetup.shouldMatchDialSignMaterial(
+        assertTrue(GateFittings.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, Material.CRIMSON_WALL_SIGN, true));
     }
 
@@ -33,14 +33,14 @@ class DialSignMaterialMatchTest
     @Test
     void aSignThatAlreadyMatchesIsLeftAlone()
     {
-        assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
+        assertFalse(GateFittings.shouldMatchDialSignMaterial(
             Material.CRIMSON_WALL_SIGN, Material.CRIMSON_WALL_SIGN, true));
     }
 
     @Test
     void nothingHappensWhenTheServerHasTurnedThisOff()
     {
-        assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
+        assertFalse(GateFittings.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, Material.CRIMSON_WALL_SIGN, false),
             "a server that wants players' own signs left alone must get exactly that");
     }
@@ -55,10 +55,10 @@ class DialSignMaterialMatchTest
     @Test
     void aGateAskingForSomethingThatIsNotAWallSignIsRefused()
     {
-        assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
+        assertFalse(GateFittings.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, Material.STONE, true),
             "converting to a non-sign would break dialling, not restyle it");
-        assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
+        assertFalse(GateFittings.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, Material.OAK_SIGN, true),
             "a standing sign is not a wall sign and cannot hang on the [D] block");
     }
@@ -73,16 +73,16 @@ class DialSignMaterialMatchTest
     @Test
     void aBlockThatIsNoLongerASignIsNotTurnedIntoOne()
     {
-        assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
+        assertFalse(GateFittings.shouldMatchDialSignMaterial(
             Material.AIR, Material.CRIMSON_WALL_SIGN, true));
-        assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
+        assertFalse(GateFittings.shouldMatchDialSignMaterial(
             Material.STONE, Material.CRIMSON_WALL_SIGN, true));
     }
 
     @Test
     void aGateWithNoSignMaterialResolvedConvertsNothing()
     {
-        assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
+        assertFalse(GateFittings.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, null, true));
     }
 }

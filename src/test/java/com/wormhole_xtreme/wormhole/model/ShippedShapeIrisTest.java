@@ -20,7 +20,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  * Every shipped shape can take an iris.
  *
  * <p>A shape says where the iris lever hangs with {@code :IA}. Leave it out and
- * {@code StargateBlockSetup.setupIrisLever} works the position out from the DHD button
+ * {@code GateFittings.setupIrisLever} works the position out from the DHD button
  * instead — but only for a shape that does <em>not</em> declare
  * {@code REDSTONE_ACTIVATED=TRUE}, because that flag turns the fallback off.
  *
