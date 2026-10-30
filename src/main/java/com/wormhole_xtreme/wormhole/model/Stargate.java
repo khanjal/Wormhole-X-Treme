@@ -690,8 +690,8 @@ public class Stargate implements GateIris
      * The frame material, unless working it out would load a chunk (#239).
      *
      * <p>The same rule as {@link #getEffectivePortalMaterialIfLoaded()}, for the frame: bStats counts
-     * every gate's on the server thread, and a gate whose group is not known yet would otherwise load
-     * its chunk to find it.
+     * the gates' frames on the server thread, and a gate whose group is not known yet would otherwise
+     * load its chunk to find it.
      *
      * @return the frame material, or null if only loading a chunk would tell
      */

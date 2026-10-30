@@ -446,6 +446,20 @@ class StargateEffectiveMaterialTest
         Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
     }
 
+    /** A gate with a frame of its own choosing answers with it, and needs no chunk to say so. */
+    @Test
+    void frameMaterialOfACustomGateNeedsNoChunk()
+    {
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(Mockito.anyInt(), Mockito.anyInt())).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+        gate.setGateCustom(true);
+        gate.setGateCustomStructureMaterial(Material.NETHER_BRICKS);
+
+        assertEquals(Material.NETHER_BRICKS, gate.getEffectiveStructureMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+    }
+
     /** A gate whose group is already known needs no chunk, so it answers wherever it is. */
     @Test
     void frameMaterialOfAGateWithAKnownGroupNeedsNoChunk()

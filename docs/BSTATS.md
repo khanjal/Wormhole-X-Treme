@@ -54,10 +54,15 @@ bStats adds these for every plugin; the plugin sends nothing for them.
   once, and sends `none` when there are none, since a chart with no entries is not sent. For the
   same reason `gate_shapes`, `portal_material` and `gate_material` only count servers with at least one gate, so
   their totals are lower than `servers`.
-- Every value is from a closed set. The plugin never sends a name a server chose: a shape that
-  does not ship with it, or a gate with no shape, is `custom`, a material outside the five is `other`, and an iris
-  animation that is not one of the five is `other`. `gate_material` is the exception to "a short list": it
-  is the block's own name, one of the game's, however a server's material group is called.
+- The plugin never sends a name a server chose: a shape that does not ship with it, or a gate with
+  no shape, is `custom`, a portal material outside the five is `other`, and an iris animation that
+  is not one of the five is `other`. Every value is from a closed set, but not every set is short:
+  `gate_material` is the frame block's own name, one of the game's (a few hundred in practice),
+  however a server's material groups are called.
+- `gate_material` has a larger `unknown` than `portal_material`. A gate's frame is found from the
+  world the first time anything asks, and until then a gate in an unloaded chunk cannot be told
+  without loading it. Groups differ in their frame (never in having to share a portal), so on a
+  server with more than one group that is every gate nobody has used since it started.
 
 ## When the plugin changes
 
@@ -77,4 +82,5 @@ The dashboard does not follow the code. Add or edit the chart there when you:
 
 The dashboard's **Enable filters** option is described there as enforcing input rules. If it is
 on for a chart, enter the values above as spelled, capitals included, or a value left out may be
-rejected.
+rejected. Leave it off for `gate_material`: its values are every block the game has, so a filter
+would drop most of them.
