@@ -41,6 +41,9 @@ public final class MetricsSupport
     private static final Set<String> PORTAL_MATERIALS =
         Set.of("water", "lava", "nether_portal", "end_gateway", "end_portal");
 
+    /** What a chart counts a gate under when only loading its chunk would tell. */
+    private static final String UNKNOWN = "unknown";
+
     /** The plugins this one has an optional integration with, as they name themselves. */
     private static final List<String> INTEGRATIONS = List.of("Vault", "LuckPerms", "PlaceholderAPI",
         "CoreProtect", "WorldGuard", "dynmap", "BlueMap", "squaremap", "Pl3xMap");
@@ -154,8 +157,8 @@ public final class MetricsSupport
         for (final Stargate gate : gates)
         {
             final Material portal = gate.getEffectivePortalMaterialIfLoaded();
-            final String material = (portal == null) ? "unknown" : portal.name().toLowerCase(Locale.ROOT);
-            counts.merge(("unknown".equals(material) || PORTAL_MATERIALS.contains(material)) ? material : "other",
+            final String material = (portal == null) ? UNKNOWN : portal.name().toLowerCase(Locale.ROOT);
+            counts.merge((UNKNOWN.equals(material) || PORTAL_MATERIALS.contains(material)) ? material : "other",
                 1, Integer::sum);
         }
         return counts;
@@ -175,7 +178,7 @@ public final class MetricsSupport
         for (final Stargate gate : gates)
         {
             final Material frame = gate.getEffectiveStructureMaterialIfLoaded();
-            counts.merge((frame == null) ? "unknown" : frame.name().toLowerCase(Locale.ROOT), 1, Integer::sum);
+            counts.merge((frame == null) ? UNKNOWN : frame.name().toLowerCase(Locale.ROOT), 1, Integer::sum);
         }
         return counts;
     }
