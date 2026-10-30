@@ -387,4 +387,30 @@ class DialRefusalTest
             PluginTestSupport.scheduler(null);
         }
     }
+
+    /**
+     * The counterpart: a dial refused for any other reason has already cancelled a lit gate's activation timer.
+     *
+     * <p>The cancel comes before the refusals that depend on the target, so the gate is not left
+     * lit with a timer that would put it out while it waits to be dialled again.
+     */
+    @Test
+    void aDialRefusedByTheTargetHasAlreadyCancelledTheActivationTimer() throws Exception
+    {
+        final Stargate target = dialableTarget();
+        when(target.isGateIrisActive()).thenReturn(true);
+        runtime.setGateActivateTaskId(7);
+        final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            assertFalse(StargateDialManager.dialStargate(gate, target, false));
+
+            verify(scheduler).cancelTask(7);
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+    }
 }

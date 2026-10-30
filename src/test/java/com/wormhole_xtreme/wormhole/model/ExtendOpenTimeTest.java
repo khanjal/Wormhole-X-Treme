@@ -12,6 +12,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -168,5 +171,29 @@ class ExtendOpenTimeTest
 
         verify(scheduler, never()).cancelTask(0);
         assertEquals(91, runtime.getGateShutdownTaskId(), "the new timer's task is the one kept");
+    }
+
+    /**
+     * Dialling a gate with both earlier timers still pending cancels both.
+     *
+     * <p>A re-dial books a fresh shutdown, so the old shutdown has to go, and the follow-up that
+     * clears the recently-active flag has to go with it or it fires against the new opening.
+     */
+    @Test
+    void dialingAGateWithItsEarlierTimersPendingCancelsBoth()
+    {
+        final World world = mock(World.class);
+        final Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);
+        when(world.getBlockAt(any(Location.class))).thenReturn(block);
+        when(gate.getGatePlayerTeleportLocation()).thenReturn(new Location(world, 1, 64, 1));
+        runtime.setGateShutdownTaskId(5);
+        runtime.setGateAfterShutdownTaskId(6);
+
+        StargateDialManager.dialStargate(gate, false);
+
+        verify(scheduler).cancelTask(5);
+        verify(scheduler).cancelTask(6);
     }
 }
