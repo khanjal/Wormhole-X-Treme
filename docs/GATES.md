@@ -1234,7 +1234,9 @@ model/MaterialGroupRegistry.java   the palettes, keyed by frame material
 model/StargateDialManager.java     the sign UI and the two-sided dial handshake
 model/StargateLifecycle.java       activation, shutdown, timers, iris state
 model/StargateAnimator.java        chevron lighting and the woosh
-model/StargateBlockSetup.java      block placement, portal drawing, arrival splash
+model/StargateBlockSetup.java      block placement, portal drawing
+model/ArrivalSplash.java           the moment of water a traveller sees on arrival
+model/StrandedLiquid.java          real water and lava left in a closed gate's opening
 model/StargateRedstone.java        dial and sign wires, the output lever, the dial lever's state
 model/GateFittings.java            the name sign, the dial sign's material, the iris lever
 model/IrisClearance.java           moving whoever stands in the opening clear of a closing iris

@@ -1483,13 +1483,13 @@ public class Stargate implements GateIris
     /** @return real water or lava standing in this closed gate's opening or woosh, left by older versions */
     public List<Block> strandedLiquid()
     {
-        return StargateBlockSetup.strandedLiquid(this);
+        return StrandedLiquid.strandedLiquid(this);
     }
 
     /** @return how many water or lava blocks were cleared from this closed gate's opening and woosh */
     public int clearStrandedLiquid()
     {
-        return StargateBlockSetup.clearStrandedLiquid(this);
+        return StrandedLiquid.clearStrandedLiquid(this);
     }
 
     /** Lights every chevron at once, for a gate activated and waiting for a destination. */
