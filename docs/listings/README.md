@@ -64,12 +64,12 @@ changes, you change it there and then carry it into whichever site files quote i
   **SpigotMC has no such rule** — its Terms & Rules were read and carry no AI clause — so the logo
   stays there. **Hangar has no AI rule either** (checked 2026-10-31), so it keeps the logo. **CurseForge is
   unchecked**, so it never got the logo: its icon is the same gameplay crop as Modrinth's.
-- **Modrinth withheld the project from search** under its rule 6.2.2 on projects primarily made by
-  AI, and that is accepted, not appealed. Releases still go up there, because the update check
-  asks Modrinth first. See [`modrinth.md`](modrinth.md#status-unlisted-by-modrinths-moderators-and-accepted).
   Reasoning in
   [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page). Clips and screenshots
   are real captures and are not affected.
+- **Modrinth withheld the project from search** under its rule 6.2.2 on projects primarily made by
+  AI, and that is accepted, not appealed. Releases still go up there, because the update check
+  asks Modrinth first. See [`modrinth.md`](modrinth.md#status-unlisted-by-modrinths-moderators-and-accepted).
 - **The README carries a badge table**, one row per site with a version and a downloads column.
   SpigotMC's badges come from Spiget, by resource id: `img.shields.io/spiget/version/138936` and
   `spiget/downloads/138936`. Modrinth's are `modrinth/v/wormhole-x-treme` and

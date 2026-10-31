@@ -17,8 +17,8 @@ between filling this in and it appearing.
 6.2.2** ("Projects may not be published publicly if the contents are primarily or entirely a
 product of AI output"). The API reports the project's `status` as `withheld`. This was not
 appealed, and should not be: the rule fits. On 2026-10-31 `git blame` over `src/main/java`
-traced about 6% of the surviving lines to the 2011 original and the rest to this fork, which
-was written with Claude Code. "A fifteen-year-old plugin brought forward" is true of the design
+dated about 6% of the surviving lines to before this fork began on 2026-05-05; the rest were
+written in this fork, with Claude Code. "A fifteen-year-old plugin brought forward" is true of the design
 and the lineage, not of the code as it stands.
 
 What withheld means in practice, checked on 2026-10-31:
@@ -114,8 +114,9 @@ capture from a running server, recorded and encoded per [`docs/CAPTURES.md`](../
 Compositing and video encoding are not generative AI. The four animated WebP clips and the six
 gallery PNGs all stay.
 
-**On 6.2.2**, which says a project may not be "entirely or primarily comprised of content created
-or derived from generative AI output": this was read on 2026-09-20 as clear, on the grounds that
+**On 6.2.2**, which now reads "Projects may not be published publicly if the contents are
+primarily or entirely a product of AI output" (the 2026-09-20 reading was worded differently, to
+the same effect): this was read on 2026-09-20 as clear, on the grounds that
 the plugin is a human-written 2011 original modernised under review. Modrinth's moderators read
 it the other way and withheld the project, and the measured code supports them; see
 [Status](#status-unlisted-by-modrinths-moderators-and-accepted). The disclosure was honest, and
