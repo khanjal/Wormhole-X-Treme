@@ -2499,6 +2499,164 @@ class GatePreviewsTest
         verify(sam, times(21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
     }
 
+    /** Dials the held preview until its woosh is under way, with the wormhole not yet open. */
+    private void dialIntoTheWoosh()
+    {
+        final GatePreview preview = thePreview();
+        for (int step = 0; (step < 2000) && (preview.wooshStage() < 1) && !preview.open(); step++)
+        {
+            dialStep.run();
+        }
+        assertFalse(preview.open(), "the woosh is still going out");
+    }
+
+    /** The last block a viewer was sent in each cell, which is what they are still looking at. */
+    private Map<List<Integer>, BlockData> lastSights(final Player viewer)
+    {
+        final Map<List<Integer>, BlockData> last = new HashMap<>();
+        for (final Invocation i : mockingDetails(viewer).getInvocations())
+        {
+            if (i.getMethod().getName().equals("sendBlockChange"))
+            {
+                final Location at = i.getArgument(0);
+                last.put(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), i.getArgument(1));
+            }
+        }
+        return last;
+    }
+
+    /**
+     * An owner who leaves mid-woosh takes the woosh back from the viewers, not only the opening.
+     *
+     * <p>The kawoosh stands in cells of its own, which the opening's do not cover. A viewer was
+     * left looking at water in the air.
+     */
+    @Test
+    void anOwnerLeavingMidWooshTakesTheWooshBackFromViewers()
+    {
+        final Player alex = onlineHere("Alex");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.share(owner, alex);
+        GatePreviews.activate(owner);
+        dialIntoTheWoosh();
+        assertTrue(lastSights(alex).containsValue(data.get(Material.WATER)), "the woosh reached them");
+
+        GatePreviews.forget(owner.getUniqueId());
+
+        assertFalse(lastSights(alex).containsValue(data.get(Material.WATER)), "and none is left showing");
+    }
+
+    /**
+     * Somebody shared a preview mid-woosh is caught up on the woosh, and has it taken back when
+     * they are unshared.
+     */
+    @Test
+    void aViewerSharedWithMidWooshIsSentItAndHasItTakenBackWhenUnshared()
+    {
+        final Player lee = onlineHere("Lee");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        dialIntoTheWoosh();
+
+        GatePreviews.share(owner, lee);
+        assertTrue(lastSights(lee).containsValue(data.get(Material.WATER)), "caught up on the woosh going out");
+
+        GatePreviews.share(owner, lee);
+        assertFalse(lastSights(lee).containsValue(data.get(Material.WATER)), "and none is left showing");
+    }
+
+    /** Somebody who went offline is not watching, though the preview is still shared with them. */
+    @Test
+    void aViewerWhoWentOfflineIsNotWatching()
+    {
+        final Player alex = onlineHere("Alex");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.share(owner, alex);
+        assertEquals(List.of(owner, alex), GatePreviews.watching(owner, thePreview()), "watching while here");
+
+        others.remove(alex.getUniqueId());
+
+        assertEquals(List.of(owner), GatePreviews.watching(owner, thePreview()));
+    }
+
+    /** Sharing with somebody who is offline shows them nothing, and is not an error. */
+    @Test
+    void sharingWithSomebodyWhoIsOfflineShowsThemNothing()
+    {
+        final Player alex = onlineHere("Alex");
+        others.remove(alex.getUniqueId());
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(GatePreviews.Shared.SHARED, GatePreviews.share(owner, alex));
+
+        verify(alex, never()).showEntity(any(), any());
+        assertEquals(Set.of(), thePreview().shownTo(), "they are not among those shown it");
+        assertEquals(new GatePreviews.Audience(false, List.of("Alex")), GatePreviews.audience(owner),
+            "though it is still shared with them, for when they are back");
+    }
+
+    /** Unsharing somebody who went offline takes them off the list without touching them. */
+    @Test
+    void unsharingSomebodyWhoWentOfflineDropsThemFromThoseShownIt()
+    {
+        final Player alex = onlineHere("Alex");
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.share(owner, alex);
+        assertEquals(Set.of(alex.getUniqueId()), thePreview().shownTo());
+        others.remove(alex.getUniqueId());
+
+        assertEquals(GatePreviews.Shared.UNSHARED, GatePreviews.share(owner, alex));
+
+        assertEquals(Set.of(), thePreview().shownTo());
+    }
+
+    /**
+     * Unsharing a stacked preview forgets which side the viewer was on. A viewer shared with again
+     * later is dealt a side afresh, and not one from before.
+     */
+    @Test
+    void unsharingAStackedPreviewForgetsWhichSideTheViewerWasOn()
+    {
+        openThePreview();
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        final Player lee = viewerAlong("Lee", 4);
+        assertTrue(thePreview().sides().containsKey(lee.getUniqueId()), "dealt a side while shared");
+
+        GatePreviews.share(owner, lee);
+
+        assertFalse(thePreview().sides().containsKey(lee.getUniqueId()));
+    }
+
+    /**
+     * Somebody in front of a stacked preview is sent the wormhole where they see it and nowhere
+     * else: the ring cells are the wrong ones for them.
+     */
+    @Test
+    void aViewerSharedWithInFrontOfAStackedPreviewIsSentNothingInTheRing()
+    {
+        openThePreview();
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        final Player lee = viewerAlong("Lee", 4);
+
+        assertTrue(wormholeSendsAlong(lee, -1) > 0, "the wormhole is behind the ring for them");
+        assertEquals(0, wormholeSendsAlong(lee, 0), "and none is in the ring");
+    }
+
+    /** A preview that is not mid-sweep leaves no sweep bookkeeping for a viewer shared with it. */
+    @Test
+    void aViewerSharedWithAnIdlePreviewHasNoSweepBookkeeping()
+    {
+        final Player alex = onlineHere("Alex");
+        GatePreviews.show(owner, standard, null);
+
+        GatePreviews.share(owner, alex);
+
+        assertFalse(thePreview().sweepDrawn().containsKey(alex.getUniqueId()));
+    }
+
     /**
      * Shared with everyone, a preview is shown to whoever is in its world, including anyone arriving
      * later, and stops being counted for anyone who leaves; sharing again hides it from them.
