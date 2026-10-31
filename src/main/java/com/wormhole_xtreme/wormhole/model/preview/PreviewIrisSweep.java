@@ -207,7 +207,7 @@ final class PreviewIrisSweep
         {
             return;
         }
-        final List<IrisLayering.Placement> now = GatePreviews.layersFor(preview, to);
+        final List<IrisLayering.Placement> now = PreviewLayers.layersFor(preview, to);
         if (!now.equals(preview.sweepSides().put(player.getUniqueId(), now)))
         {
             redrawSwept(player, preview, now);
@@ -220,7 +220,7 @@ final class PreviewIrisSweep
      */
     private static boolean movesOffTheRing(final GatePreview preview)
     {
-        return GatePreviews.upright(preview) && DrawnHorizon.standsIn(preview.palette().iris());
+        return PreviewLayers.upright(preview) && DrawnHorizon.standsIn(preview.palette().iris());
     }
 
     /**
@@ -239,7 +239,7 @@ final class PreviewIrisSweep
             List<IrisLayering.Placement> layers = null;
             if (offTheRing)
             {
-                layers = GatePreviews.layersFor(preview, viewer.getLocation());
+                layers = PreviewLayers.layersFor(preview, viewer.getLocation());
                 preview.sweepSides().put(viewer.getUniqueId(), layers);
             }
             redrawSwept(viewer, preview, layers);
@@ -262,7 +262,7 @@ final class PreviewIrisSweep
         for (int i = 0; i < preview.opening().size(); i++)
         {
             final Cell cell = preview.opening().get(i);
-            final IrisLayering.At ring = GatePreviews.at(cell);
+            final IrisLayering.At ring = PreviewLayers.at(cell);
             final IrisLayering.At wanted = sweptTo(preview, i, ring, layers);
             final IrisLayering.At was = held.put(i, wanted);
             if (wanted.equals(was))
@@ -271,7 +271,7 @@ final class PreviewIrisSweep
             }
             if (was != null)
             {
-                GatePreviews.takeBackAt(viewer, preview, was);
+                PreviewLayers.takeBackAt(viewer, preview, was);
             }
             drawSweptAt(viewer, preview, cell, wanted);
         }
@@ -281,14 +281,14 @@ final class PreviewIrisSweep
     private static void drawSweptAt(final Player viewer, final GatePreview preview, final Cell cell,
         final IrisLayering.At where)
     {
-        final IrisLayering.At ring = GatePreviews.at(cell);
+        final IrisLayering.At ring = PreviewLayers.at(cell);
         if (where.equals(ring))
         {
             GatePreviews.sendTo(viewer, preview, List.of(cell));
             return;
         }
         viewer.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
-            GatePreviews.horizonData(preview, ring, new IrisLayering.Placement(ring, where)));
+            PreviewLayers.horizonData(preview, ring, new IrisLayering.Placement(ring, where)));
     }
 
     /**
@@ -357,7 +357,7 @@ final class PreviewIrisSweep
     private static IrisLayering.At heldAt(final List<Cell> opening, final List<IrisLayering.Placement> settled,
         final int index)
     {
-        return (settled == null) ? GatePreviews.at(opening.get(index)) : settled.get(index).horizon();
+        return (settled == null) ? PreviewLayers.at(opening.get(index)) : settled.get(index).horizon();
     }
 
     /** Hands every watcher back whatever a sweep stood off the ring for them, and forgets what it drew. */
@@ -369,9 +369,9 @@ final class PreviewIrisSweep
                 preview.sweepDrawn().getOrDefault(viewer.getUniqueId(), Map.of());
             held.forEach((index, where) ->
             {
-                if (!where.equals(GatePreviews.at(preview.opening().get(index))))
+                if (!where.equals(PreviewLayers.at(preview.opening().get(index))))
                 {
-                    GatePreviews.takeBackAt(viewer, preview, where);
+                    PreviewLayers.takeBackAt(viewer, preview, where);
                 }
             });
         }

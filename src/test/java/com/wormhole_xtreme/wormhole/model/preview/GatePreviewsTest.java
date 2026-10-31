@@ -4815,7 +4815,7 @@ class GatePreviewsTest
         final GateGrid grid = mock(GateGrid.class);
         when(preview.grid()).thenReturn(grid);
         when(grid.facing()).thenReturn(facing);
-        return GatePreviews.upright(preview);
+        return PreviewLayers.upright(preview);
     }
 
     /** The viewer in front is shown the ring's iris and not the one beyond it. */
@@ -4913,7 +4913,7 @@ class GatePreviewsTest
         final List<IrisLayering.Placement> layers = thePreview().sides().get(front.getUniqueId());
         for (int i = 0; i < opening.size(); i++)
         {
-            assertTrue((layers.get(i).horizon() == null) || layers.get(i).horizon().equals(GatePreviews.at(opening.get(i))),
+            assertTrue((layers.get(i).horizon() == null) || layers.get(i).horizon().equals(PreviewLayers.at(opening.get(i))),
                 "cell " + i + " has no layer beyond the ring");
         }
     }
@@ -4928,7 +4928,7 @@ class GatePreviewsTest
         final GatePreview preview = thePreview();
         assertNotNull(preview.beyondDisplays().get(0), "stacked, so the far iris stands");
         final Cell cell = preview.opening().get(0);
-        final IrisLayering.At beyond = GatePreviews.at(cell).moved(previewFacing(), 1);
+        final IrisLayering.At beyond = PreviewLayers.at(cell).moved(previewFacing(), 1);
         standing.put(List.of(beyond.x(), beyond.y(), beyond.z()), Material.STONE);
 
         GatePreviews.draw(owner, preview);
