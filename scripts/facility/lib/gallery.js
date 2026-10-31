@@ -183,6 +183,17 @@ function farPlace(kit) {
 }
 
 /**
+ * Removes the studio's gates a killed run left. Returns the far gate's place when one stood, as
+ * removing it leaves a trench in the Range's floor that the run's end must fill; otherwise null.
+ */
+async function clearLeftovers(kit) {
+  for (const name of [SUBJECT, PARTNER]) if (await kit.exists(name)) await kit.remove(name);
+  if (!(await kit.exists(FAR.name))) return null;
+  await kit.remove(FAR.name);
+  return farPlace(kit);
+}
+
+/**
  * Where a gate of `shape` stands in the studio: on the floor, its lowest block resting on it, so
  * the whole ring is in view; a flat gate lies in the floor, as it is built.
  */
@@ -486,7 +497,7 @@ async function takeScenes(fac, viewer, scenes, outDir, {
   try {
     const problems = await buildStudio(srv);
     for (const p of problems) log(`  studio problem: ${p}`);
-    for (const name of [SUBJECT, PARTNER, FAR.name]) if (await kit.exists(name)) await kit.remove(name);
+    farGeom = await clearLeftovers(kit);
     const partner = await kit.build(PARTNER, kit.place('Standard', 'south', { cx: 0, openingAt: STUDIO.partnerAt }), { net: NET });
     await tidy(kit, partner.geom);
     log(`  studio ready; partner ${PARTNER}: ${partner.text}`);
@@ -551,4 +562,4 @@ function asResults(done) {
   return done.map((s) => ({ section: 'gallery', name: s.name, ok: s.ok, detail: s.file ? `${s.file} (${s.detail})` : s.detail }));
 }
 
-module.exports = { STUDIO, FAR, SPINS, IRISES, SHAPES, studioPlace, farPlace, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, takeScenes, asResults, EYE };
+module.exports = { STUDIO, FAR, SPINS, IRISES, SHAPES, studioPlace, farPlace, clearLeftovers, DEFAULT_GROUP, readGroups, groups, catalog, select, lookAt, camera, buildStudio, forceRect, wooshCells, dress, must, slowdown, takeScenes, asResults, EYE };

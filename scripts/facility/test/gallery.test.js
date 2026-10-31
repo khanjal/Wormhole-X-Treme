@@ -97,17 +97,31 @@ test('the partner in another world stands in the Range\'s clear south strip, ins
   const geom = gallery.farPlace(new GateKit(null));
   const box = new GateKit(null).siteBox(geom);
   assert.strictEqual(gallery.FAR.dim, campus.WINGS.find((w) => w.id === 'range').dim);
-  // The wing keeps z 12 to its south wall clear; the walls are at x0, x1 and z1.
+  // The wing keeps z 12 to its south wall clear; the room is its interior, the walls one block outside it.
   assert.ok(box.z0 >= 12 && box.z1 < room.z1, `z ${box.z0}..${box.z1}`);
   assert.ok(box.x0 > room.x0 && box.x1 < room.x1, `x ${box.x0}..${box.x1}`);
   assert.strictEqual(gallery.FAR.floorY, room.y0);
   // Loaded for the whole run, as the Range is: the gallery forceloads nothing in the nether itself.
   const chunk = (v) => Math.floor(v / 16);
   assert.ok(campus.FORCELOAD.some((f) => f.dim === gallery.FAR.dim
-    && chunk(box.x0) >= f.from[0] && chunk(box.x1) <= f.to[0] && chunk(box.z0) >= f.from[1] && chunk(box.z1) <= f.to[1]),
+    && chunk(box.x0) >= chunk(f.from[0]) && chunk(box.x1) <= chunk(f.to[0])
+    && chunk(box.z0) >= chunk(f.from[1]) && chunk(box.z1) <= chunk(f.to[1])),
   'the far site is inside a nether forceload rectangle');
   const scene = gallery.catalog().find((s) => s.far);
   assert.ok(scene && scene.action === 'dial' && scene.name.startsWith('dial-'), 'one dial reel is to the far partner');
+});
+
+test('a far gate a killed run left is removed, and its site is handed back for the run\'s end to restore', async () => {
+  class Kit extends GateKit {
+    constructor(standing) { super(null); this.standing = new Set(standing); this.removed = []; }
+    async exists(name) { return this.standing.has(name); }
+    async remove(name) { this.standing.delete(name); this.removed.push(name); }
+  }
+  const stale = new Kit([gallery.FAR.name, 'StudioA']);
+  assert.deepStrictEqual(await gallery.clearLeftovers(stale), gallery.farPlace(new GateKit(null)));
+  assert.deepStrictEqual(stale.removed.sort(), [gallery.FAR.name, 'StudioA'].sort());
+  // No far gate standing, nothing in the Range to restore.
+  assert.strictEqual(await gallery.clearLeftovers(new Kit(['StudioB'])), null);
 });
 
 test('the iris reels are every animation the plugin has, on a gate with an iris lever', () => {
