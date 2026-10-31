@@ -63,8 +63,8 @@ What withheld means in practice, checked on 2026-10-31:
 **The two disclosure toggles are Modrinth's alone.** Spigot and Hangar have no equivalent, which
 is why they live here rather than in `shared.md`. Both are structured fields with their own
 explanation boxes, and both are enabled. `shared.md`'s [AI disclosure](shared.md#ai-disclosure)
-prose stays as it is — the explanations below are built on it deliberately, so the two do not
-drift apart when one is edited.
+prose stays as it is; the explanation below is a shorter version of it, so a change of fact in
+one has to be carried into the other.
 
 **Contains AI-generated content: on, all three boxes.** The form asks it to be enabled for any
 AI-generated assets or text, or a substantial amount of AI-generated code.
@@ -79,21 +79,15 @@ AI-generated assets or text, or a substantial amount of AI-generated code.
 - **Not ticked, and worth saying out loud because people assume it:** nothing here calls a model
   at runtime. The plugin's design and functionality do not rely on generative AI.
 
-> Wormhole X-Treme is a fifteen-year-old plugin brought forward, not a new one generated. The
-> original was written in 2011 by Lologarithm and alron; this fork modernises it and adds
-> transport rings, beaming and quantum mirrors.
->
-> Much of that modernisation work was done with Claude Code under review, and the commit history
-> records it. Nothing merges on that basis alone: every change goes through the test suite, the
-> full build matrix and static analysis, and a maintainer reads it.
->
-> The documentation and this listing were drafted the same way, as was the project's placeholder
-> logo — its SVG was hand-authored as markup rather than image-generated, but written with Claude
-> Code at a maintainer's direction, which TRADEMARK.md states in as many words.
->
-> No image on this page is AI-generated. The icon, the gallery and every screenshot are real
-> captures from a running Minecraft server, cropped but not generated. The placeholder logo is deliberately not used here;
-> replacing it with a commissioned mark is tracked as issue #187.
+> A 2011 plugin brought forward. Most of the modernisation, the new features, the docs and this
+> listing were written with Claude Code; every change is tested across the full version matrix
+> and reviewed by the maintainer before release. The placeholder logo was also made with Claude
+> Code and is not used on this page. The icon, gallery and screenshots are real captures from a
+> running server.
+
+Shortened on 2026-10-31, after the project was withheld, for readability only: it claims what
+the longer version did, and "most" is the measured figure, not a softening. Do not cut it to
+"some parts of code" to match other listings; for this project that is not true.
 
 ### Rule 6: no AI-generated images on the page
 
