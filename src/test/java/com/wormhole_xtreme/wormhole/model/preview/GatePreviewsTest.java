@@ -2579,6 +2579,19 @@ class GatePreviewsTest
         assertEquals(List.of(owner), GatePreviews.watching(owner, thePreview()));
     }
 
+    /** An owner who is in another world is not watching a preview that stands in this one. */
+    @Test
+    void anOwnerInAnotherWorldIsNotWatching()
+    {
+        GatePreviews.show(owner, standard, null);
+        assertEquals(List.of(owner), GatePreviews.watching(owner, thePreview()), "watching from the same world");
+
+        final World elsewhere = mock(World.class);
+        when(owner.getWorld()).thenReturn(elsewhere);
+
+        assertEquals(List.of(), GatePreviews.watching(owner, thePreview()));
+    }
+
     /** Sharing with somebody who is offline shows them nothing, and is not an error. */
     @Test
     void sharingWithSomebodyWhoIsOfflineShowsThemNothing()
