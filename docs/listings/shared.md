@@ -30,7 +30,7 @@ SpigotMC, Modrinth and Hangar were published on 2026-09-19. CurseForge was submi
 | Site | URL |
 |---|---|
 | SpigotMC | <https://www.spigotmc.org/resources/wormhole-x-treme.138936/> (resource id 138936) |
-| Modrinth | <https://modrinth.com/plugin/wormhole-x-treme> (slug `wormhole-x-treme`) |
+| Modrinth | <https://modrinth.com/plugin/wormhole-x-treme> (slug `wormhole-x-treme`) — withheld from search by its moderators; see [`modrinth.md`](modrinth.md#status-unlisted-by-modrinths-moderators-and-accepted) |
 | Hangar | <https://hangar.papermc.io/khanjal/Wormhole-X-Treme> |
 | CurseForge | <https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme> (slug `wormhole-x-treme`) |
 | BukkitDev | <https://dev.bukkit.org/projects/wormhole-x-treme> — the same CurseForge project, shown on dev.bukkit.org. Nothing to fill in separately. |
@@ -95,7 +95,7 @@ stack, the beam timing strip. Render to PNG before using them anywhere that will
 **Both logo images are AI-authored, and at least one site forbids that on the page.** Modrinth's
 Content Rules 6.2.1 bans any page image "created or derived from generative AI output", so its
 icon is cropped from a gameplay capture and its description carries no banner. SpigotMC's rules
-carry no AI clause, so the logo stays there; Hangar's and CurseForge's are unchecked, and
+and Hangar's carry no AI clause, so the logo stays there; CurseForge's are unchecked, and
 CurseForge uses the Modrinth crop rather than find out. The reasoning is in
 [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page); every clip and screenshot
 is a real capture and is unaffected.

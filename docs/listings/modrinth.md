@@ -8,8 +8,34 @@ Rows marked **(confirmed)** were read off the real form while the project was be
 looking; check those against the page and correct them here.
 
 Modrinth takes **Markdown**, not BBCode, so the description below is close to `shared.md` as
-written. A project is **submitted for review** before it goes public **(assumed)**; expect a wait
-between filling this in and it appearing.
+written. A project is **submitted for review** before it goes public (confirmed on 2026-10-31: the
+project was withheld at that step); expect a wait between filling this in and it appearing.
+
+## Status: unlisted by Modrinth's moderators, and accepted
+
+**Modrinth withheld the project from public listing in late October 2026, under Content Rules
+6.2.2** ("Projects may not be published publicly if the contents are primarily or entirely a
+product of AI output"). The API reports the project's `status` as `withheld`. This was not
+appealed, and should not be: the rule fits. On 2026-10-31, counting lines of `src/main/java` by `git blame` author date, about 5% of the
+surviving lines (4,495 of 97,754) predated this fork's first commits on 2026-05-04; the rest were
+written in this fork, with Claude Code. "A fifteen-year-old plugin brought forward" is true of the design
+and the lineage, not of the code as it stands.
+
+What withheld means in practice, checked on 2026-10-31:
+
+- **The page and the API still answer**, so direct links, the README badges and
+  [`UpdateCheck`](../../src/main/java/com/wormhole_xtreme/wormhole/plugin/UpdateCheck.java) all
+  keep working. The project just no longer appears in Modrinth's search.
+- **Keep uploading each release here, for the update check's sake.** It asks Modrinth first and
+  treats any release Modrinth names as final, so a project left on an old version would tell
+  every server on a Minecraft version that release covers that it is up to date. If Modrinth refuses uploads to a withheld project, or removes
+  it, the update check has to stop asking Modrinth first; until then the uploads are the
+  cheaper fix.
+- **Do not re-submit for review**, and do not trim the AI disclosure below to get past one.
+  The description's "On how this is built" block is deliberately left as it is for now; if it
+  changes, [`shared.md`](shared.md)'s copy changes with it.
+- SpigotMC, Hangar, CurseForge and GitHub releases are where people find the plugin now.
+  SpigotMC and Hangar have no AI rule; see [`hangar.md`](hangar.md).
 
 ---
 
@@ -39,8 +65,8 @@ between filling this in and it appearing.
 **The two disclosure toggles are Modrinth's alone.** Spigot and Hangar have no equivalent, which
 is why they live here rather than in `shared.md`. Both are structured fields with their own
 explanation boxes, and both are enabled. `shared.md`'s [AI disclosure](shared.md#ai-disclosure)
-prose stays as it is — the explanations below are built on it deliberately, so the two do not
-drift apart when one is edited.
+prose stays as it is; the explanation below is a shorter version of it, so a change of fact in
+one has to be carried into the other.
 
 **Contains AI-generated content: on, all three boxes.** The form asks it to be enabled for any
 AI-generated assets or text, or a substantial amount of AI-generated code.
@@ -55,21 +81,15 @@ AI-generated assets or text, or a substantial amount of AI-generated code.
 - **Not ticked, and worth saying out loud because people assume it:** nothing here calls a model
   at runtime. The plugin's design and functionality do not rely on generative AI.
 
-> Wormhole X-Treme is a fifteen-year-old plugin brought forward, not a new one generated. The
-> original was written in 2011 by Lologarithm and alron; this fork modernises it and adds
-> transport rings, beaming and quantum mirrors.
->
-> Much of that modernisation work was done with Claude Code under review, and the commit history
-> records it. Nothing merges on that basis alone: every change goes through the test suite, the
-> full build matrix and static analysis, and a maintainer reads it.
->
-> The documentation and this listing were drafted the same way, as was the project's placeholder
-> logo — its SVG was hand-authored as markup rather than image-generated, but written with Claude
-> Code at a maintainer's direction, which TRADEMARK.md states in as many words.
->
-> No image on this page is AI-generated. The icon, the gallery and every screenshot are real
-> captures from a running Minecraft server, cropped but not generated. The placeholder logo is deliberately not used here;
-> replacing it with a commissioned mark is tracked as issue #187.
+> A 2011 plugin brought forward. Most of the modernisation, the new features, the docs and this
+> listing were written with Claude Code; every change is tested across the full version matrix
+> and reviewed by the maintainer before release. The placeholder logo was also made with Claude
+> Code and is not used on this page. The icon, gallery and screenshots are real captures from a
+> running server.
+
+Shortened on 2026-10-31, after the project was withheld, for readability only: it claims what
+the longer version did, and "most" is the measured figure, not a softening. Do not cut it to
+"some parts of code" to match other listings; for this project that is not true.
 
 ### Rule 6: no AI-generated images on the page
 
@@ -90,13 +110,15 @@ capture from a running server, recorded and encoded per [`docs/CAPTURES.md`](../
 Compositing and video encoding are not generative AI. The four animated WebP clips and the six
 gallery PNGs all stay.
 
-**On 6.2.2**, which says a project may not be "entirely or primarily comprised of content created
-or derived from generative AI output": this project reads as clear — a human-written 2011 plugin
-modernised under review, with the history to show it. But "primarily" is a moderator's judgement
-rather than a test anyone can run, and the honesty of the explanation above is the protection.
-Do not trim that explanation to look better.
+**On 6.2.2**, which now reads "Projects may not be published publicly if the contents are
+primarily or entirely a product of AI output" (the 2026-09-20 reading was worded differently, to
+the same effect): this was read on 2026-09-20 as clear, on the grounds that
+the plugin is a human-written 2011 original modernised under review. Modrinth's moderators read
+it the other way and withheld the project, and the measured code supports them; see
+[Status](#status-unlisted-by-modrinths-moderators-and-accepted). The disclosure was honest, and
+it stays as written.
 
-**Rule text provenance:** quoted from Modrinth's Content Rules as Justin read them on 2026-09-20.
+**Rule text provenance:** quoted from Modrinth's Content Rules (the 6.2.1 wording was read on 2026-09-20; 6.2.2 was re-read on 2026-10-31).
 Re-read section 6 before the next upload; it is the sort of rule that gets tightened.
 
 **Contains derivative content: on.** The form asks it to be enabled for a fork or a project
@@ -431,10 +453,12 @@ The changelog field takes Markdown, so the block pastes in as it stands.
 
 ## Keeping it current
 
-Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
-so there is a jar to upload. What is left:
+Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>, withheld from public
+listing in late October 2026 — see [Status](#status-unlisted-by-modrinths-moderators-and-accepted).
+Releases still go up here for the update check. What is left:
 
-1. **Check which version the project carries.** `v1.12.0` is the newest release.
+1. **Check which version the project carries.** It carried `1.12.0`, the newest release, on
+   2026-10-31.
 2. **Check the live page for the logo now, not at the next upload.** The page was set up on
    2026-09-19 from the copy before Rule 6 was read, which opened with `logo-banner.svg` and
    rendered the icon from `logo.svg`. If either is on the page, replace the icon (step 4) and
