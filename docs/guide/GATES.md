@@ -157,6 +157,12 @@ seconds before the wormhole forms, whatever the pattern.
 
 ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
 
+**A dial to another world locks an eighth chevron**, at the bottom of the ring, after the top
+one; a dial within the world stops at seven. Every shipped ring gate but `Minimal` has one. Here
+on `none`, to a gate in the Nether:
+
+![A Standard gate dialling a gate in the Nether: seven chevrons, then the eighth at the bottom, then the kawoosh](../images/gates/dial-other-world.webp)
+
 A dial is refused when the target's iris is closed, the target is already active, or another
 gate already points at it. `/wormhole gate force <gate>` dials past those.
 

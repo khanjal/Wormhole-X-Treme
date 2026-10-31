@@ -958,7 +958,10 @@ are taken down at the end. `--gallery` takes scene names or a prefix ending in a
 none: `gate-<shape>-idle` and `-open` (a PNG of each of the six console-buildable shapes, built
 and dialled), `palette-<group>-idle` and `-open` (a Standard gate dressed in each material group
 of `config.yml`), `dial-<pattern>` (a GIF of the gate dialling in each ring pattern, from the
-dial command until the wormhole has opened), `iris-<animation>` (each `gate-iris-animation`
+dial command until the wormhole has opened), `dial-other-world` (the same on `none` to a partner
+in the nether, `StudioN`, so the eighth chevron locks too; it stands in the Range's clear south
+strip, is built only for a run with that scene and is taken down after, the Range's floor laid
+back), `iris-<animation>` (each `gate-iris-animation`
 closing over the idle gate and opening again) and `kawoosh-<shape>` (the woosh going out and
 back, from just before the first block of it is drawn in or in front of the opening). Files go to
 `.local-server/gallery/<version>/` (`--gallery-out <dir>` for another folder; not one under
