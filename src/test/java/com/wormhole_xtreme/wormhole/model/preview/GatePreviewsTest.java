@@ -4329,4 +4329,338 @@ class GatePreviewsTest
         assertEquals(List.of(1L, 1L, 1L, 1L, 1L, 1L, 1L, hold, 1L, 1L, 1L, 1L, 1L), dialDelays,
             "every booking a tick at least, the hold after the last chevron as ever");
     }
+
+    /** Whether a block change is the ice a see-through iris's sweep stands the wormhole in. */
+    private boolean isIce(final BlockData sent)
+    {
+        return (sent == data.get(Material.BLUE_ICE)) || (sent == data.get(Material.PACKED_ICE));
+    }
+
+    /** Every block a viewer was sent since the invocations were last cleared, by position. */
+    private static Map<List<Integer>, List<BlockData>> sentSince(final Player viewer)
+    {
+        final Map<List<Integer>, List<BlockData>> sent = new HashMap<>();
+        mockingDetails(viewer).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("sendBlockChange"))
+            .filter(i -> i.getArguments().length == 2)
+            .forEach(i ->
+            {
+                final Location at = i.getArgument(0);
+                sent.computeIfAbsent(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), k -> new ArrayList<>())
+                    .add(i.getArgument(1));
+            });
+        return sent;
+    }
+
+    /** Standard with its opening cut down to some cells of its middle row, the rest frame. */
+    private static Stargate3DShape standardOpeningOf(final int cells) throws Exception
+    {
+        return standardWith(line ->
+        {
+            if (!line.contains("[P]"))
+            {
+                return line;
+            }
+            if (!line.startsWith("[S:L#5]"))
+            {
+                return line.replace("[P]", "[S]");
+            }
+            int kept = 0;
+            String out = line;
+            for (int at = out.indexOf("[P]"); at >= 0; at = out.indexOf("[P]", at + 3))
+            {
+                if (++kept > cells)
+                {
+                    out = out.substring(0, at) + "[S]" + out.substring(at + 3);
+                }
+            }
+            return out;
+        });
+    }
+
+    /**
+     * An iris over a one-cell opening is instant, and over two cells it sweeps.
+     *
+     * <p>A sweep is a ring at a time; one cell has no rings to speak of, and the line is drawn at two.
+     */
+    @Test
+    void anIrisOverAOneCellOpeningIsInstantAndOverATwoCellOneSweeps() throws Exception
+    {
+        GatePreviews.show(owner, standardOpeningOf(1), null);
+        assertEquals(1, thePreview().opening().size(), "the fixture has one cell to sweep");
+        GatePreviews.iris(owner);
+        assertTrue(irisPending.isEmpty(), "one cell: nothing booked, the iris is shut at once");
+        assertFalse(thePreview().sweeping());
+        GatePreviews.clearAll(owner);
+
+        GatePreviews.show(owner, standardOpeningOf(2), null);
+        assertEquals(2, thePreview().opening().size(), "the fixture has two cells to sweep");
+        GatePreviews.iris(owner);
+        assertEquals(1, irisPending.size(), "two cells: a sweep, with its next step booked");
+        assertTrue(thePreview().sweeping());
+    }
+
+    /**
+     * An instant iris draws every ring of itself at once and takes them all away at once.
+     *
+     * <p>The sweep starts from what the iris was; the instant path has to set the set itself, or the
+     * draw that follows draws what the iris was.
+     */
+    @Test
+    void anInstantIrisDrawsAndTakesAwayTheWholeIrisAtOnce()
+    {
+        MaterialGroupRegistry.load(Map.of("Snap",
+            Map.of("structure", "OBSIDIAN", "iris-animation", "instant")));
+        GatePreviews.show(owner, standard, null);
+
+        GatePreviews.iris(owner);
+
+        assertTrue(irisPending.isEmpty(), "no sweep is booked");
+        assertEquals(STANDARD_BLOCKS + STANDARD_OPENING, spawned.size(), "the whole iris is drawn");
+        assertEquals(STANDARD_OPENING, countStanding(), "and stands");
+
+        GatePreviews.iris(owner);
+
+        assertTrue(irisPending.isEmpty());
+        assertEquals(0, countStanding(), "opening it takes the whole iris away at once");
+    }
+
+    /**
+     * Toggling the iris sets every standing display to what it should show now, sweep or instant.
+     *
+     * <p>A display's block is set once on spawning and again only when something restyles; a toggle
+     * that skipped it would leave a display showing whatever it was last given.
+     */
+    @Test
+    void togglingTheIrisRestylesTheStandingDisplaysWhicheverWayItCrosses()
+    {
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay ring = spawned.get(0);
+
+        clearInvocations(ring);
+        GatePreviews.iris(owner);
+        verify(ring, atLeastOnce()).setBlock(any(BlockData.class));
+        finishIrisSweep();
+
+        MaterialGroupRegistry.load(Map.of("Snap",
+            Map.of("structure", "OBSIDIAN", "iris-animation", "instant")));
+        clearInvocations(ring);
+        GatePreviews.iris(owner);
+        assertTrue(irisPending.isEmpty(), "this one is instant");
+        verify(ring, atLeastOnce()).setBlock(any(BlockData.class));
+    }
+
+    /**
+     * A sweep called off leaves its own record of what each viewer holds, and the next sweep goes by it.
+     *
+     * <p>The ice a closing sweep stood behind the covered rings is only taken back by a sweep that
+     * knows where it is. Replacing the record with what the viewer was last settled on lost it, and
+     * the ice stayed on them for good.
+     */
+    @Test
+    void aSweepCalledOffMidWayIsTakenBackFromByTheNext()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce),
+            "ice stands behind the covered rings: the fixture is part way through");
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().noneMatch(this::isIce),
+            "the opening sweep took the ice the closing one left");
+    }
+
+    /** What a sweep drew for a viewer is forgotten once it has settled, so the next starts from the layers. */
+    @Test
+    void aSweepThatSettlesForgetsWhatItDrewForTheViewer()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertFalse(thePreview().sweepDrawn().isEmpty(), "part way through, it holds a record for the viewer");
+
+        finishIrisSweep();
+
+        assertFalse(thePreview().sweeping());
+        assertTrue(thePreview().sweepDrawn().isEmpty(), "and none once it has settled");
+    }
+
+    /**
+     * A viewer who walks round a preview and back mid-sweep has the wormhole behind the ring again.
+     *
+     * <p>The crossing is told apart from the last by the side it recorded. A move that did not record
+     * the side it moved to compared the walk back against the side before the walk, found nothing
+     * changed, and left the viewer with the wormhole where it was on the far side.
+     */
+    @Test
+    void aViewerWhoWalksRoundMidSweepAndBackHasTheWormholeBehindAgain()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+
+        walkTo(walker, -4);
+        assertTrue(lastSentPerCellAlong(walker, -1).values().stream().noneMatch(this::isIce),
+            "from behind the wormhole keeps the ring");
+        walkTo(walker, 4);
+
+        assertTrue(lastSentPerCellAlong(walker, -1).values().stream().anyMatch(this::isIce),
+            "and back in front the covered rings' wormhole is behind the gate again");
+    }
+
+    /** A sweep over a preview with no wormhole showing draws none for a viewer who walks round it. */
+    @Test
+    void aViewerWalkingRoundAClosedPreviewMidSweepIsSentNothing()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        clearInvocations(walker);
+
+        walkTo(walker, -4);
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * A wormhole first sent by a sweep is taken back when the gate is shut down.
+     *
+     * <p>Taking back only reaches cells recorded as sent. A dial that finished while the iris was
+     * still sweeping sends its wormhole through the sweep, which has to record it as it does the
+     * plain draw's.
+     */
+    @Test
+    void aWormholeFirstSentMidSweepIsTakenBackWhenTheGateShutsDown()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        assertFalse(irisPending.isEmpty(), "the iris is part way across");
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        assertTrue(thePreview().open(), "the dial opened it with the sweep still going");
+        assertFalse(irisPending.isEmpty());
+        assertTrue(lastSentPerCellAlong(owner, 0).values().stream().allMatch(d -> d == portalData()),
+            "the wormhole was sent to the owner by the sweep");
+
+        GatePreviews.activate(owner);
+
+        assertFalse(thePreview().open());
+        assertTrue(lastSentPerCellAlong(owner, 0).values().stream().noneMatch(d -> d == portalData()),
+            "and the owner is shown what really stands there once it is shut");
+    }
+
+    /**
+     * Shutting a gate down mid-sweep hands the viewer back what the sweep stood off the ring, and
+     * the ring cells only once.
+     */
+    @Test
+    void shuttingDownMidSweepHandsBackTheIceAndForgetsWhatTheSweepDrew()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        final Player behind = viewerAlong("Bea", -4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce), "ice stands for Fran");
+        clearInvocations(behind);
+
+        GatePreviews.activate(owner);
+
+        assertFalse(thePreview().open(), "shut down");
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().noneMatch(this::isIce),
+            "Fran has the ice taken back");
+        assertTrue(thePreview().sweepDrawn().isEmpty(), "and the sweep's record is gone");
+        final Map<List<Integer>, List<BlockData>> sent = sentSince(behind);
+        final BlockFace facing = previewFacing();
+        for (final Cell cell : openingCells())
+        {
+            final List<Integer> key = List.of(cell.x(), cell.y(), cell.z());
+            assertEquals(1, sent.getOrDefault(key, List.of()).size(),
+                "Bea, whose wormhole never left the ring, has it restored once: " + key + " facing " + facing);
+        }
+    }
+
+    /**
+     * A palette change mid-sweep is sent again to the viewer in front, wormhole and all.
+     *
+     * <p>A step sends only what moved, so the redraw that follows a change has to put the whole
+     * picture right: here the covered rings' wormholes behind the gate, which a client that lost
+     * them would otherwise never be sent again.
+     */
+    @Test
+    void aChangeMidSweepSendsTheViewerInFrontTheSweepsWholePictureAgain()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce), "the fixture is part way");
+        clearInvocations(front);
+
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.RED_STAINED_GLASS);
+
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce),
+            "the covered rings' wormhole is sent again, behind the gate");
+    }
+
+    /**
+     * A sweep that starts on an iris settled with nowhere beyond the ring for the wormhole starts
+     * cleanly, holding the wormhole in the ring for that viewer.
+     */
+    @Test
+    void aSweepStartingOnAnIrisWithNowhereBehindTheRingHoldsNothingOffIt()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final BlockFace facing = previewFacing();
+        for (final Cell cell : openingCells())
+        {
+            standing.put(List.of(cell.x() - facing.getModX(), cell.y() - facing.getModY(), cell.z() - facing.getModZ()),
+                Material.STONE);
+        }
+        viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        assertFalse(thePreview().sweeping(), "settled shut");
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertFalse(thePreview().sweeping(), "and the opening sweep ran to its end");
+        assertTrue(thePreview().sweepDrawn().isEmpty());
+    }
+
+    /** Calling a sweep off twice drops its booking once: the first took it out of the register. */
+    @Test
+    void callingASweepOffTwiceCancelsItsBookingOnce()
+    {
+        watchTheSweep();
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        stepIrisSweep(1);
+        final BukkitTask booked = irisTasks.get(irisTasks.size() - 1);
+
+        GatePreviews.cancelIrisSweep(thePreview());
+        GatePreviews.cancelIrisSweep(thePreview());
+
+        verify(booked, times(1)).cancel();
+    }
 }
