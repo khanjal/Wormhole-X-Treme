@@ -172,7 +172,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   `top` sweeps half the ring and reverses each glyph, `chevron` steps from each locked chevron to
   the next, `lap` takes a whole turn clockwise, `fill` lights the ring behind it as it goes,
   `pegasus` dials as an Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two
-  more, and `none` turns it off. A gate, or a whole material group, can pick its own.
+  more, and `none`, the default, turns it off. A gate, or a whole material group, can pick its own.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
 - **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the
   last lying flat to be dropped into rather than walked through. Shapes are plain text files:

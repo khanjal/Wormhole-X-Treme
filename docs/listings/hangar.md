@@ -184,7 +184,7 @@ Each has its own section below.
 
 A frame of blocks, a button, and `/dial`. Chevrons light in the show's order, the last one locks
 in with its own sound, and then the kawoosh. Shapes ship from Minimal to Massive, plus a
-Horizontal one that lies flat; a choice of dial-spin patterns, per gate if you like; an eighth chevron for a cross-world
+Horizontal one that lies flat; a choice of dial-spin patterns, off by default, per gate if you like; an eighth chevron for a cross-world
 destination; an iris that sweeps shut, with remote codes; sign and redstone dialling. Shapes and material palettes
 are plain text files you can edit, and `/wormhole gate build` stands the shape full size in front
 of you as a guide before you place a block. An open gate can also show where it goes and ripple, as an

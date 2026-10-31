@@ -44,17 +44,17 @@ Released 2026-11-01.
 | Field | Value |
 |---|---|
 | Version (all four sites) | `1.13.0` |
-| Title (Spigot update title, Modrinth version title) | `1.13.0 - Per-shape permissions, gate limits, gate costs` |
+| Title (Spigot update title, Modrinth version title) | `1.13.0 - Per-shape build permission, gate limits, gate costs` |
 | Minecraft (Modrinth game versions, Hangar platform versions, CurseForge Bukkit versions) | 1.20 - 26.3 |
 
 Modrinth, Hangar and CurseForge changelog:
 
 ````markdown
-**Upgrading from 1.12 - nothing to change.** Your `config.yml` is kept as it is, `gate-dial-spin` included, so gates dial with the ring light they had. The new `max-gates-per-player` is appended at `0`, no limit, the first time it loads. Captures move to `data/captures/` by themselves the first time they are needed. From 1.10 or earlier, read the 1.11.0 upgrade note below first: an unedited `config.yml` is replaced there, and gets the new `gate-dial-spin: none`. A first install needs none of this.
+**Upgrading from 1.12 - nothing to change.** Your `config.yml` is kept as it is, `gate-dial-spin` included, so gates dial with the ring light they had. One permission changes: a rank holding `wormhole.build.*` without `wormhole.build` built nothing before and now builds every shape (first bullet). The new `max-gates-per-player` is appended at `0`, no limit, the first time it loads. Captures move to `data/captures/` by themselves the first time they are needed. From 1.10 or earlier, read the 1.11.0 upgrade note below first: an unedited `config.yml` is replaced there, and gets the new `gate-dial-spin: none`. A first install needs none of this.
 
-- **Build permission per shape**: `wormhole.build.<shape>` lets a rank build one gate shape, its name in lower case with anything but a letter, digit or underscore made an underscore (`wormhole.build.grand_gate`); `wormhole.build` still allows every shape. A rank given `wormhole.build.*` now builds every shape.
+- **Build permission per shape**: `wormhole.build.<shape>` lets a rank build one gate shape, its name in lower case with anything but a letter, digit or underscore made an underscore (`wormhole.build.standard`); `wormhole.build` still allows every shape. A rank given `wormhole.build.*` now builds every shape.
 - **A gate limit per player**: `max-gates-per-player` caps the gates one player may own, off at `0`; `wormhole.gates.max.<n>` gives a group its own limit, `wormhole.gates.unlimited` lifts it, and `/wormhole gate list` shows a limited player their count and limit.
-- **A use cost per gate or shape**: `/wormhole gate edit <gate> cost <amount>` gives one gate its own cost and `USE_COST=<amount>` in a shape file gives every gate of that shape one; `default` hands a gate back to `economy-use-cost`.
+- **A use cost per gate or shape**: `/wormhole gate edit <gate> cost <amount>` gives one gate its own cost and `USE_COST=<amount>` in a shape file gives every gate of that shape one; `default` clears a gate's own, so it follows its shape and then `economy-use-cost`.
 - **A view level per gate**: `/wormhole gate edit <gate> view <horizon|behind|open|default>` wins over `gate-view`, and `/wormhole mirror debug <gate>` says how a gate's view is drawn and, if it is not, why.
 - **No ring light by default**: `gate-dial-spin` now defaults to `none`, as the original plugin dialled; `/wormhole config gate-dial-spin top` brings back the 1.12 default.
 - **Captures move to `data/captures/`**, `gates/` and `mirrors/`, so `data/gates/` holds gate files only. A script reading the old capture folders must look in the new ones.
@@ -69,12 +69,12 @@ Modrinth, Hangar and CurseForge changelog:
 Spigot update message:
 
 ```
-[B]Upgrading from 1.12 - nothing to change.[/B] Your [ICODE]config.yml[/ICODE] is kept as it is, [ICODE]gate-dial-spin[/ICODE] included, so gates dial with the ring light they had. The new [ICODE]max-gates-per-player[/ICODE] is appended at [ICODE]0[/ICODE], no limit, the first time it loads. Captures move to [ICODE]data/captures/[/ICODE] by themselves the first time they are needed. From 1.10 or earlier, read the 1.11.0 upgrade note below first: an unedited [ICODE]config.yml[/ICODE] is replaced there, and gets the new [ICODE]gate-dial-spin: none[/ICODE]. A first install needs none of this.
+[B]Upgrading from 1.12 - nothing to change.[/B] Your [ICODE]config.yml[/ICODE] is kept as it is, [ICODE]gate-dial-spin[/ICODE] included, so gates dial with the ring light they had. One permission changes: a rank holding [ICODE]wormhole.build.*[/ICODE] without [ICODE]wormhole.build[/ICODE] built nothing before and now builds every shape (first bullet). The new [ICODE]max-gates-per-player[/ICODE] is appended at [ICODE]0[/ICODE], no limit, the first time it loads. Captures move to [ICODE]data/captures/[/ICODE] by themselves the first time they are needed. From 1.10 or earlier, read the 1.11.0 upgrade note below first: an unedited [ICODE]config.yml[/ICODE] is replaced there, and gets the new [ICODE]gate-dial-spin: none[/ICODE]. A first install needs none of this.
 
 [LIST]
-[*][B]Build permission per shape[/B]: [ICODE]wormhole.build.<shape>[/ICODE] lets a rank build one gate shape, its name in lower case with anything but a letter, digit or underscore made an underscore ([ICODE]wormhole.build.grand_gate[/ICODE]); [ICODE]wormhole.build[/ICODE] still allows every shape. A rank given [ICODE]wormhole.build.*[/ICODE] now builds every shape.
+[*][B]Build permission per shape[/B]: [ICODE]wormhole.build.<shape>[/ICODE] lets a rank build one gate shape, its name in lower case with anything but a letter, digit or underscore made an underscore ([ICODE]wormhole.build.standard[/ICODE]); [ICODE]wormhole.build[/ICODE] still allows every shape. A rank given [ICODE]wormhole.build.*[/ICODE] now builds every shape.
 [*][B]A gate limit per player[/B]: [ICODE]max-gates-per-player[/ICODE] caps the gates one player may own, off at [ICODE]0[/ICODE]; [ICODE]wormhole.gates.max.<n>[/ICODE] gives a group its own limit, [ICODE]wormhole.gates.unlimited[/ICODE] lifts it, and [ICODE]/wormhole gate list[/ICODE] shows a limited player their count and limit.
-[*][B]A use cost per gate or shape[/B]: [ICODE]/wormhole gate edit <gate> cost <amount>[/ICODE] gives one gate its own cost and [ICODE]USE_COST=<amount>[/ICODE] in a shape file gives every gate of that shape one; [ICODE]default[/ICODE] hands a gate back to [ICODE]economy-use-cost[/ICODE].
+[*][B]A use cost per gate or shape[/B]: [ICODE]/wormhole gate edit <gate> cost <amount>[/ICODE] gives one gate its own cost and [ICODE]USE_COST=<amount>[/ICODE] in a shape file gives every gate of that shape one; [ICODE]default[/ICODE] clears a gate's own, so it follows its shape and then [ICODE]economy-use-cost[/ICODE].
 [*][B]A view level per gate[/B]: [ICODE]/wormhole gate edit <gate> view <horizon|behind|open|default>[/ICODE] wins over [ICODE]gate-view[/ICODE], and [ICODE]/wormhole mirror debug <gate>[/ICODE] says how a gate's view is drawn and, if it is not, why.
 [*][B]No ring light by default[/B]: [ICODE]gate-dial-spin[/ICODE] now defaults to [ICODE]none[/ICODE], as the original plugin dialled; [ICODE]/wormhole config gate-dial-spin top[/ICODE] brings back the 1.12 default.
 [*][B]Captures move to [ICODE]data/captures/[/ICODE][/B], [ICODE]gates/[/ICODE] and [ICODE]mirrors/[/ICODE], so [ICODE]data/gates/[/ICODE] holds gate files only. A script reading the old capture folders must look in the new ones.
