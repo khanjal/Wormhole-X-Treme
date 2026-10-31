@@ -4467,8 +4467,15 @@ class GatePreviewsTest
         stepIrisSweep(2);
         assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce),
             "ice stands behind the covered rings: the fixture is part way through");
+        clearInvocations(front);
 
         GatePreviews.iris(owner);
+        final Set<List<Integer>> ringKeys = new HashSet<>();
+        openingCells().forEach(cell -> ringKeys.add(List.of(cell.x(), cell.y(), cell.z())));
+        final long ringCellsResent = sentSince(front).keySet().stream().filter(ringKeys::contains).count();
+        assertTrue(ringCellsResent < (ringKeys.size() / 2),
+            "the first step goes by what the closing sweep drew, so it restores few of the ring cells: "
+                + ringCellsResent + " of " + ringKeys.size());
         finishIrisSweep();
 
         assertTrue(lastSentPerCellAlong(front, -1).values().stream().noneMatch(this::isIce),
