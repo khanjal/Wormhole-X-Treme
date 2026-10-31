@@ -3505,7 +3505,7 @@ class GatePreviewsTest
             assertTrue(sweepingWhenDrawn.stream().noneMatch(sweeping -> sweeping),
                 "and it was no longer sweeping when it did (closing: " + closing + "): " + sweepingWhenDrawn);
             assertFalse(thePreview().sweeping(), "and it stays unregistered");
-            GatePreviews.cancelIrisSweep(thePreview());
+            PreviewIrisSweep.cancelIrisSweep(thePreview());
             // Only the last: the step that settled must not be the one cancelled in its place.
             verify(irisTasks.get(irisTasks.size() - 1), never()).cancel();
             irisDelays.clear();
@@ -3533,7 +3533,7 @@ class GatePreviewsTest
         assertTrue(thePreview().sweeping(), "and sweeping");
         final BukkitTask booked = irisTasks.get(irisTasks.size() - 1);
 
-        GatePreviews.cancelIrisSweep(thePreview());
+        PreviewIrisSweep.cancelIrisSweep(thePreview());
 
         verify(booked).cancel();
         assertTrue(irisPending.isEmpty(), "the booked step is dropped, not left to run: " + irisPending.keySet());
@@ -4665,8 +4665,8 @@ class GatePreviewsTest
         stepIrisSweep(1);
         final BukkitTask booked = irisTasks.get(irisTasks.size() - 1);
 
-        GatePreviews.cancelIrisSweep(thePreview());
-        GatePreviews.cancelIrisSweep(thePreview());
+        PreviewIrisSweep.cancelIrisSweep(thePreview());
+        PreviewIrisSweep.cancelIrisSweep(thePreview());
 
         verify(booked, times(1)).cancel();
     }
