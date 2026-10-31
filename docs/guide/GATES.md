@@ -155,6 +155,12 @@ a tick, where the chevron's time would rush it: about five seconds of turning, a
 than the others on a Standard gate and no more on Grand or Massive. The last chevron holds two
 seconds before the wormhole forms, whatever the pattern.
 
+**A dial to another world locks an eighth chevron**, at the bottom of the ring, after the top
+one; a dial within the world stops at seven. Every shipped ring gate but `Minimal` has one. Here
+on `none`, to a gate in the Nether:
+
+![A Standard gate dialling a gate in the Nether: seven chevrons, then the eighth at the bottom, then the kawoosh](../images/gates/dial-other-world.webp)
+
 ![A Standard gate dialling: chevrons light in sequence, then the kawoosh](../images/gates/gate-dial.webp)
 
 A dial is refused when the target's iris is closed, the target is already active, or another
