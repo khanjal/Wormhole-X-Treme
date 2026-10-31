@@ -24,7 +24,7 @@
 | [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) | [![SpigotMC version](https://img.shields.io/spiget/version/138936?label=version&logo=spigotmc&logoColor=white)](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) | [![SpigotMC downloads](https://img.shields.io/spiget/downloads/138936?label=downloads&logo=spigotmc&logoColor=white)](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) |
 | [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) | [![Hangar version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fhangar.papermc.io%2Fapi%2Fv1%2Fprojects%2FWormhole-X-Treme%2Fversions%3Flimit%3D1&query=%24.result%5B0%5D.name&label=version&color=blue)](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) | [![Hangar downloads](https://img.shields.io/hangar/dt/Wormhole-X-Treme?label=downloads&color=blue)](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) |
 | [CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) · [BukkitDev](https://dev.bukkit.org/projects/wormhole-x-treme) | [![CurseForge version](https://img.shields.io/curseforge/v/1742170?label=version&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) | [![CurseForge downloads](https://img.shields.io/curseforge/dt/1742170?label=downloads&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) |
-| [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) (unlisted) | [![Modrinth version](https://img.shields.io/modrinth/v/wormhole-x-treme?label=version&logo=modrinth&logoColor=white)](https://modrinth.com/plugin/wormhole-x-treme) | [![Modrinth downloads](https://img.shields.io/modrinth/dt/wormhole-x-treme?label=downloads&logo=modrinth&logoColor=white)](https://modrinth.com/plugin/wormhole-x-treme) |
+| [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) | [![Modrinth version](https://img.shields.io/modrinth/v/wormhole-x-treme?label=version&logo=modrinth&logoColor=white)](https://modrinth.com/plugin/wormhole-x-treme) | [![Modrinth downloads](https://img.shields.io/modrinth/dt/wormhole-x-treme?label=downloads&logo=modrinth&logoColor=white)](https://modrinth.com/plugin/wormhole-x-treme) |
 
 Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.3.
 
@@ -66,7 +66,7 @@ Drop the jar into `plugins/` and start the server. No dependencies.
 [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) ·
 [CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) ·
 [BukkitDev](https://dev.bukkit.org/projects/wormhole-x-treme) ·
-[Modrinth](https://modrinth.com/plugin/wormhole-x-treme) (unlisted)
+[Modrinth](https://modrinth.com/plugin/wormhole-x-treme)
 
 **Already running Wormhole X-Treme?** Swapping the jar keeps your gates, and the plugin moves its
 own folders into their current places on the first startup. Gates from an older fork's SQLite
