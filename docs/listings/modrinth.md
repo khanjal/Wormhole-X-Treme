@@ -11,6 +11,30 @@ Modrinth takes **Markdown**, not BBCode, so the description below is close to `s
 written. A project is **submitted for review** before it goes public **(assumed)**; expect a wait
 between filling this in and it appearing.
 
+## Status: unlisted by Modrinth's moderators, and accepted
+
+**Modrinth withheld the project from public listing in late October 2026, under Content Rules
+6.2.2** ("Projects may not be published publicly if the contents are primarily or entirely a
+product of AI output"). The API reports the project's `status` as `withheld`. This was not
+appealed, and should not be: the rule fits. On 2026-10-31 `git blame` over `src/main/java`
+traced about 6% of the surviving lines to the 2011 original and the rest to this fork, which
+was written with Claude Code. "A fifteen-year-old plugin brought forward" is true of the design
+and the lineage, not of the code as it stands.
+
+What withheld means in practice, checked on 2026-10-31:
+
+- **The page and the API still answer**, so direct links, the README badges and
+  [`UpdateCheck`](../../src/main/java/com/wormhole_xtreme/wormhole/plugin/UpdateCheck.java) all
+  keep working. The project just no longer appears in Modrinth's search.
+- **Keep uploading each release here, for the update check's sake.** It asks Modrinth first and
+  treats any release Modrinth names as final, so a project left on an old version would tell
+  every server it is up to date. If Modrinth refuses uploads to a withheld project, or removes
+  it, the update check has to stop asking Modrinth first; until then the uploads are the
+  cheaper fix.
+- **Do not re-submit for review**, and do not trim the AI disclosure below to get past one.
+- SpigotMC, Hangar, CurseForge and GitHub releases are where people find the plugin now.
+  SpigotMC and Hangar have no AI rule; see [`hangar.md`](hangar.md).
+
 ---
 
 ## Fields
@@ -91,10 +115,11 @@ Compositing and video encoding are not generative AI. The four animated WebP cli
 gallery PNGs all stay.
 
 **On 6.2.2**, which says a project may not be "entirely or primarily comprised of content created
-or derived from generative AI output": this project reads as clear — a human-written 2011 plugin
-modernised under review, with the history to show it. But "primarily" is a moderator's judgement
-rather than a test anyone can run, and the honesty of the explanation above is the protection.
-Do not trim that explanation to look better.
+or derived from generative AI output": this was read on 2026-09-20 as clear, on the grounds that
+the plugin is a human-written 2011 original modernised under review. Modrinth's moderators read
+it the other way and withheld the project, and the measured code supports them; see
+[Status](#status-unlisted-by-modrinths-moderators-and-accepted). The disclosure was honest, and
+it stays as written.
 
 **Rule text provenance:** quoted from Modrinth's Content Rules as Justin read them on 2026-09-20.
 Re-read section 6 before the next upload; it is the sort of rule that gets tightened.
@@ -431,10 +456,12 @@ The changelog field takes Markdown, so the block pastes in as it stands.
 
 ## Keeping it current
 
-Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
-so there is a jar to upload. What is left:
+Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>, withheld from public
+listing in late October 2026 — see [Status](#status-unlisted-by-modrinths-moderators-and-accepted).
+Releases still go up here for the update check. What is left:
 
-1. **Check which version the project carries.** `v1.12.0` is the newest release.
+1. **Check which version the project carries.** It carried `1.12.0`, the newest release, on
+   2026-10-31.
 2. **Check the live page for the logo now, not at the next upload.** The page was set up on
    2026-09-19 from the copy before Rule 6 was read, which opened with `logo-banner.svg` and
    rendered the icon from `logo.svg`. If either is on the page, replace the icon (step 4) and
