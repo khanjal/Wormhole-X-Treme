@@ -4994,7 +4994,8 @@ class GatePreviewsTest
         final Player walker = viewerAlong("Wes", -4);
         GatePreviews.iris(owner);
         finishIrisSweep();
-        when(walker.getWorld()).thenReturn(mock(World.class));
+        final World elsewhere = mock(World.class);
+        when(walker.getWorld()).thenReturn(elsewhere);
         clearInvocations(walker);
 
         GatePreviews.moved(walker, alongTheFacing(4));
@@ -5024,7 +5025,8 @@ class GatePreviewsTest
             irisPending.remove(id).run();
         }
         assertTrue(thePreview().sweeping(), "still sweeping");
-        when(away.getWorld()).thenReturn(mock(World.class));
+        final World elsewhere = mock(World.class);
+        when(away.getWorld()).thenReturn(elsewhere);
         clearInvocations(away, here);
 
         GatePreviews.moved(here, alongTheFacing(-4));
