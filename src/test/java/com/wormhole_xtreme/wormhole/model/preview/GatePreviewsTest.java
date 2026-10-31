@@ -2670,6 +2670,51 @@ class GatePreviewsTest
         assertFalse(thePreview().sweepDrawn().containsKey(alex.getUniqueId()));
     }
 
+    /** Opens the fixture's preview with a shared viewer who has been sent the wormhole. */
+    private Player openForAViewer()
+    {
+        openThePreview();
+        final Player alex = onlineHere("Alex");
+        GatePreviews.share(owner, alex);
+        assertTrue(lastSights(alex).containsValue(data.get(Material.WATER)), "the wormhole reached them");
+        return alex;
+    }
+
+    /** Removing the preview an owner is looking at takes its wormhole back from the viewers. */
+    @Test
+    void removingTheLookedAtPreviewTakesTheWormholeBackFromViewers()
+    {
+        final Player alex = openForAViewer();
+
+        assertTrue(GatePreviews.clearLookedAt(owner));
+
+        assertFalse(lastSights(alex).containsValue(data.get(Material.WATER)), "none is left showing");
+    }
+
+    /** A preview that times out takes its wormhole back from the viewers as it goes. */
+    @Test
+    void aPreviewThatTimesOutTakesTheWormholeBackFromViewers()
+    {
+        final Player alex = openForAViewer();
+
+        now[0] += 60 * 60_000L;
+        GatePreviews.tick();
+
+        assertEquals(0, GatePreviews.countOf(owner.getUniqueId()), "it timed out");
+        assertFalse(lastSights(alex).containsValue(data.get(Material.WATER)), "none is left showing");
+    }
+
+    /** Disabling the plugin takes every wormhole back from the viewers. */
+    @Test
+    void restoringAllPreviewsTakesTheWormholeBackFromViewers()
+    {
+        final Player alex = openForAViewer();
+
+        GatePreviews.restoreAll();
+
+        assertFalse(lastSights(alex).containsValue(data.get(Material.WATER)), "none is left showing");
+    }
+
     /**
      * Shared with everyone, a preview is shown to whoever is in its world, including anyone arriving
      * later, and stops being counted for anyone who leaves; sharing again hides it from them.
