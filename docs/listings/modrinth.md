@@ -8,16 +8,16 @@ Rows marked **(confirmed)** were read off the real form while the project was be
 looking; check those against the page and correct them here.
 
 Modrinth takes **Markdown**, not BBCode, so the description below is close to `shared.md` as
-written. A project is **submitted for review** before it goes public **(assumed)**; expect a wait
-between filling this in and it appearing.
+written. A project is **submitted for review** before it goes public (confirmed on 2026-10-31: the
+project was withheld at that step); expect a wait between filling this in and it appearing.
 
 ## Status: unlisted by Modrinth's moderators, and accepted
 
 **Modrinth withheld the project from public listing in late October 2026, under Content Rules
 6.2.2** ("Projects may not be published publicly if the contents are primarily or entirely a
 product of AI output"). The API reports the project's `status` as `withheld`. This was not
-appealed, and should not be: the rule fits. On 2026-10-31 `git blame` over `src/main/java`
-dated about 6% of the surviving lines to before this fork began on 2026-05-05; the rest were
+appealed, and should not be: the rule fits. On 2026-10-31, counting lines of `src/main/java` by `git blame` author date, about 5% of the
+surviving lines (4,495 of 97,754) predated this fork's first commits on 2026-05-04; the rest were
 written in this fork, with Claude Code. "A fifteen-year-old plugin brought forward" is true of the design
 and the lineage, not of the code as it stands.
 
@@ -28,10 +28,12 @@ What withheld means in practice, checked on 2026-10-31:
   keep working. The project just no longer appears in Modrinth's search.
 - **Keep uploading each release here, for the update check's sake.** It asks Modrinth first and
   treats any release Modrinth names as final, so a project left on an old version would tell
-  every server it is up to date. If Modrinth refuses uploads to a withheld project, or removes
+  every server on a Minecraft version that release covers that it is up to date. If Modrinth refuses uploads to a withheld project, or removes
   it, the update check has to stop asking Modrinth first; until then the uploads are the
   cheaper fix.
 - **Do not re-submit for review**, and do not trim the AI disclosure below to get past one.
+  The description's "On how this is built" block is deliberately left as it is for now; if it
+  changes, [`shared.md`](shared.md)'s copy changes with it.
 - SpigotMC, Hangar, CurseForge and GitHub releases are where people find the plugin now.
   SpigotMC and Hangar have no AI rule; see [`hangar.md`](hangar.md).
 
@@ -116,7 +118,7 @@ it the other way and withheld the project, and the measured code supports them; 
 [Status](#status-unlisted-by-modrinths-moderators-and-accepted). The disclosure was honest, and
 it stays as written.
 
-**Rule text provenance:** quoted from Modrinth's Content Rules as Justin read them on 2026-09-20.
+**Rule text provenance:** quoted from Modrinth's Content Rules (the 6.2.1 wording was read on 2026-09-20; 6.2.2 was re-read on 2026-10-31).
 Re-read section 6 before the next upload; it is the sort of rule that gets tightened.
 
 **Contains derivative content: on.** The form asks it to be enabled for a fork or a project

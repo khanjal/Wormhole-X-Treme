@@ -11,7 +11,7 @@ The copy that goes on the plugin sites, kept here so a release is an edit rather
 | [`curseforge.md`](curseforge.md) | [CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) — project fields; the description is Modrinth's. |
 | [`versions.md`](versions.md) | Every version's upload fields and short changelog, Markdown and BBCode, newest first. |
 
-All four are published:
+All four exist:
 [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
 [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) ·
 [CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme), which also
