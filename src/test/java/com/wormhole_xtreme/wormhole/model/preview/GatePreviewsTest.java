@@ -5032,4 +5032,23 @@ class GatePreviewsTest
 
         verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
+
+    /**
+     * A viewer off to one side, looking past the blocks round the ring, still has the layers.
+     *
+     * <p>The frame counts as cover, not just the opening: counting only the opening took the
+     * layers away from anyone not square in front of a big gate. From four blocks out and six
+     * across, the sight line to the far layer crosses the plane on the frame.
+     */
+    @Test
+    void aViewerOffToTheSideStillLooksPastTheFrameAndHasTheirLayers()
+    {
+        openThePreview();
+        final Player aside = viewerAside("Ana", 4, 6);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertTrue(wormholeSendsAlong(aside, -1) > 0, "the wormhole is a block behind the ring for them");
+    }
 }
