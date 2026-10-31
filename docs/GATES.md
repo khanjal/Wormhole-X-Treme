@@ -1236,7 +1236,12 @@ model/MaterialGroupRegistry.java   the palettes, keyed by frame material
 model/StargateDialManager.java     the sign UI and the two-sided dial handshake
 model/StargateLifecycle.java       activation, shutdown, timers, iris state
 model/StargateAnimator.java        chevron lighting and the woosh
-model/StargateBlockSetup.java      block placement, portal drawing, arrival splash
+model/StargateBlockSetup.java      block placement, portal drawing
+model/ArrivalSplash.java           the moment of water a traveller sees on arrival
+model/StrandedLiquid.java          real water and lava left in a closed gate's opening
+model/StargateRedstone.java        dial and sign wires, the output lever, the dial lever's state
+model/GateFittings.java            the name sign, the dial sign's material, the iris lever
+model/IrisClearance.java           moving whoever stands in the opening clear of a closing iris
 model/GateSounds.java              what a gate sounds like
 model/GateSerializer.java          GateData, save versions 3 to 9
 model/StargateYamlManager.java     one file per gate
@@ -1269,7 +1274,7 @@ Named for what breaks if they fail, not for the class they cover.
 - **A re-dial cannot push a gate past its maximum open time** (`GateMaxOpenTimeTest`,
   `ShutdownDelayTest`).
 - **The iris does not entomb anybody**, and its lever lands where the shape said
-  (`IrisDoesNotEntombTest`, `IrisLeverPlacementTest`).
+  (`IrisDoesNotEntombTest`, `IrisLeverPlacementTest`, `IrisLeverBlockTest`).
 - **The woosh draws and undraws every wave** (`WooshWaveTest`, `StargateAnimatorTest`), and **a
   portal is redrawn for a client that lost it** (`PortalVisualRefreshTest`).
 - **The arrival point is outside the portal** (`ArrivalIsOutsideThePortalTest`,

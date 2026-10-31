@@ -19,6 +19,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import com.wormhole_xtreme.wormhole.PetEscort;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.WindowClicks;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.utils.ActionBar;
@@ -108,7 +109,7 @@ public final class MirrorInteraction
             travel(player, mirror);
         }
         // A click the server refused shows the client the real block again, over the view.
-        Windows.resend(player, block, event.getBlockFace());
+        WindowClicks.resend(player, block, event.getBlockFace());
         return true;
     }
 
@@ -123,7 +124,7 @@ public final class MirrorInteraction
             return MirrorManager.at(BlockPlace.of(block));
         }
         // A window's opening is drawn over a wall, so what was clicked is the wall.
-        final QuantumMirror drawn = Windows.clicked(player, block);
+        final QuantumMirror drawn = WindowClicks.clicked(player, block);
         return (drawn == null) ? null : MirrorManager.byName(drawn.name());
     }
 

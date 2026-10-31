@@ -19,7 +19,7 @@ class ArrivalSplashLengthTest
     @Test
     void theSplashIsShownButShortEnoughNotToBeArguedWith()
     {
-        final long ticks = StargateBlockSetup.SPLASH_TICKS;
+        final long ticks = ArrivalSplash.SPLASH_TICKS;
         assertTrue(ticks > 0L, "a splash of " + ticks + " ticks is never seen");
         assertTrue(ticks < TOO_LONG_TO_GO_UNNOTICED,
             "at " + ticks + " ticks the client has time to predict swimming, and the server "

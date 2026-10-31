@@ -615,9 +615,9 @@ class StandInsTest
         when(viewer.canSee(seen)).thenReturn(true);
         view.veiled.put(veiled.getUniqueId(), veiled);
 
-        assertTrue(Windows.visibleTo(viewer, view, veiled), "hidden by our own veil, so shown");
-        assertFalse(Windows.visibleTo(viewer, view, hidden), "hidden by something else, so not");
-        assertTrue(Windows.visibleTo(viewer, view, seen), "not hidden at all");
+        assertTrue(WindowCreatures.visibleTo(viewer, view, veiled), "hidden by our own veil, so shown");
+        assertFalse(WindowCreatures.visibleTo(viewer, view, hidden), "hidden by something else, so not");
+        assertTrue(WindowCreatures.visibleTo(viewer, view, seen), "not hidden at all");
     }
 
     /** A failure is logged once, not on every redraw of every viewer. */
@@ -783,7 +783,7 @@ class StandInsTest
     void aPlayerWhoChangedSinceTheRoomWasReadIsNotOfferedAtTheNextRedraw()
     {
         final Map<String, WindowState> seeing = Map.of(window.name(), window);
-        assertNull(Windows.whyNot(viewer, view, window, seeing, wanted -> true, farPlayer("Alex")),
+        assertNull(WindowCreatures.whyNot(viewer, view, window, seeing, wanted -> true, farPlayer("Alex")),
             "as read, the player is offered");
         final List<Consumer<Player>> changes = List.of(
             player -> when(player.isInvisible()).thenReturn(true),
@@ -794,7 +794,7 @@ class StandInsTest
         {
             final Player player = farPlayer("Alex");
             changes.get(which).accept(player);
-            assertEquals(CreatureTally.Skip.PLAYER_UNSHOWN, Windows.whyNot(viewer, view, window, seeing, wanted -> true, player),
+            assertEquals(CreatureTally.Skip.PLAYER_UNSHOWN, WindowCreatures.whyNot(viewer, view, window, seeing, wanted -> true, player),
                 "change " + which + " still offered");
         }
     }
@@ -905,26 +905,26 @@ class StandInsTest
         final Map<String, WindowState> both = Map.of("museum", window, "gallery", other);
         final Predicate<FarCreatures.Wanted> keeps = wanted -> true;
 
-        assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, window, both, keeps, walker),
+        assertEquals(CreatureTally.Skip.NO_FLOOR, WindowCreatures.whyNot(viewer, view, window, both, keeps, walker),
             "new, on ground with no drawn floor: not offered");
         final Zombie flying = creature(Zombie.class, 100.5, 72.0, -18.5);
-        assertNull(Windows.whyNot(viewer, view, window, both, keeps, flying), "with no gravity it needs no floor and floats as it does");
+        assertNull(WindowCreatures.whyNot(viewer, view, window, both, keeps, flying), "with no gravity it needs no floor and floats as it does");
         nextCopy = copy(Zombie.class);
         StandIns.show(viewer, view, List.of(wanted(walker)), 0L);
-        assertNull(Windows.whyNot(viewer, view, window, both, keeps, walker), "shown already: kept without a drawn floor");
-        assertEquals(CreatureTally.Skip.OTHER_WINDOW, Windows.whyNot(viewer, view, other, both, keeps, walker),
+        assertNull(WindowCreatures.whyNot(viewer, view, window, both, keeps, walker), "shown already: kept without a drawn floor");
+        assertEquals(CreatureTally.Skip.OTHER_WINDOW, WindowCreatures.whyNot(viewer, view, other, both, keeps, walker),
             "not handed to the other window while its own still keeps it");
-        assertNull(Windows.whyNot(viewer, view, other, both, wanted -> false, walker),
+        assertNull(WindowCreatures.whyNot(viewer, view, other, both, wanted -> false, walker),
             "handed over at once when its own window would let it go, so it is in no gap between the two");
-        assertNull(Windows.whyNot(viewer, view, other, Map.of("gallery", other), keeps, walker),
+        assertNull(WindowCreatures.whyNot(viewer, view, other, Map.of("gallery", other), keeps, walker),
             "handed over once its own window is no longer seen");
 
         // Seventeen blocks in from the opening's middle: past the depth of 16, inside it with the slack.
         when(walker.getLocation()).thenReturn(new Location(far, 100.5, 70.5, -5.5));
-        assertNull(Windows.whyNot(viewer, view, window, both, keeps, walker), "a held one a block past the room stays");
+        assertNull(WindowCreatures.whyNot(viewer, view, window, both, keeps, walker), "a held one a block past the room stays");
         assertNotNull(StandIns.whereNow(here, view.standIns.get(walker.getUniqueId())), "and is followed there");
         StandIns.removeAll(view);
-        assertEquals(CreatureTally.Skip.OUT_OF_ROOM, Windows.whyNot(viewer, view, window, both, keeps, walker),
+        assertEquals(CreatureTally.Skip.OUT_OF_ROOM, WindowCreatures.whyNot(viewer, view, window, both, keeps, walker),
             "a new one there is not offered");
     }
 
@@ -942,16 +942,16 @@ class StandInsTest
         when(jumping.hasGravity()).thenReturn(true);
         when(jumping.isOnGround()).thenReturn(false);
 
-        assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping),
+        assertEquals(CreatureTally.Skip.NO_FLOOR, WindowCreatures.whyNot(viewer, view, floored, seeing, w -> true, jumping),
             "in the air over a floor not drawn for this viewer");
         final Spot drawn = floored.shape.hereOf(100, 69, -19);
         view.drawn.put(Cells.key(drawn.x(), drawn.y(), drawn.z()), mock(BlockData.class));
-        assertNull(Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping), "a block and a half over a drawn floor");
+        assertNull(WindowCreatures.whyNot(viewer, view, floored, seeing, w -> true, jumping), "a block and a half over a drawn floor");
         when(jumping.getLocation()).thenReturn(new Location(far, 100.5, 73.5, -18.5, 0.0f, 0.0f));
-        assertEquals(CreatureTally.Skip.NO_FLOOR, Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping),
+        assertEquals(CreatureTally.Skip.NO_FLOOR, WindowCreatures.whyNot(viewer, view, floored, seeing, w -> true, jumping),
             "three and a half over it is past the two blocks a jump or a short fall reaches");
         when(jumping.isInWater()).thenReturn(true);
-        assertNull(Windows.whyNot(viewer, view, floored, seeing, w -> true, jumping), "in water it needs no floor");
+        assertNull(WindowCreatures.whyNot(viewer, view, floored, seeing, w -> true, jumping), "in water it needs no floor");
     }
 
     /** A creature on a fence or a wall stands half a block above its block: the floor is found in the block below its feet's own. */

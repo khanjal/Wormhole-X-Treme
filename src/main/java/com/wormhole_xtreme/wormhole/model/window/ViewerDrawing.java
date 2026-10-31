@@ -48,7 +48,7 @@ final class ViewerDrawing
     boolean catchUpQueued;
     Windows.Redraw lastRedraw;
     /** Each clipped window's far part as last judged, by mirror name; see {@link Windows#NEAR_DISTANCE}. */
-    final Map<String, Windows.Far> far = new HashMap<>();
+    final Map<String, WindowCompose.Far> far = new HashMap<>();
     /** The least time before this viewer's next redraw on a move, longer after a slow one. */
     long rest = Windows.REDRAW_MILLIS;
     String stamp = "";

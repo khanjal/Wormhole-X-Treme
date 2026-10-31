@@ -42,11 +42,13 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.function.Predicate;
 
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -67,6 +69,7 @@ import org.bukkit.Axis;
 import org.bukkit.WorldBorder;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.FaceAttachable;
+import org.bukkit.block.data.Lightable;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Switch;
 import org.mockito.ArgumentCaptor;
@@ -86,6 +89,9 @@ import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
+import com.wormhole_xtreme.wormhole.logic.GateGrid;
+import com.wormhole_xtreme.wormhole.model.GateSounds;
+import com.wormhole_xtreme.wormhole.model.IrisLayering;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.IrisSweepDriver;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -98,6 +104,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.RecordingCreation;
+import com.wormhole_xtreme.wormhole.utils.Sounds;
 
 /**
  * What a gate build preview puts in the world, who sees it, and when it goes.
@@ -3501,7 +3508,7 @@ class GatePreviewsTest
             assertTrue(sweepingWhenDrawn.stream().noneMatch(sweeping -> sweeping),
                 "and it was no longer sweeping when it did (closing: " + closing + "): " + sweepingWhenDrawn);
             assertFalse(thePreview().sweeping(), "and it stays unregistered");
-            GatePreviews.cancelIrisSweep(thePreview());
+            PreviewIrisSweep.cancelIrisSweep(thePreview());
             // Only the last: the step that settled must not be the one cancelled in its place.
             verify(irisTasks.get(irisTasks.size() - 1), never()).cancel();
             irisDelays.clear();
@@ -3529,7 +3536,7 @@ class GatePreviewsTest
         assertTrue(thePreview().sweeping(), "and sweeping");
         final BukkitTask booked = irisTasks.get(irisTasks.size() - 1);
 
-        GatePreviews.cancelIrisSweep(thePreview());
+        PreviewIrisSweep.cancelIrisSweep(thePreview());
 
         verify(booked).cancel();
         assertTrue(irisPending.isEmpty(), "the booked step is dropped, not left to run: " + irisPending.keySet());
@@ -3965,5 +3972,1131 @@ class GatePreviewsTest
             out.add(keys);
         }
         return out;
+    }
+
+    // -----------------------------------------------------------------------
+    // How the frame is drawn and the guide styled, pinned before it moves (#734)
+    // -----------------------------------------------------------------------
+
+    /** With the guide off, whatever stands in the opening is not marked: the mark is part of the guide. */
+    @Test
+    void withTheGuideOffABlockInTheOpeningIsNotMarked()
+    {
+        final Cell inTheWay = GateBlueprint.openingOf(standard,
+            GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH)).get(0);
+        place(inTheWay, Material.COBBLESTONE);
+
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.tick();
+
+        assertEquals(STANDARD_BLOCKS, spawned.size(), "only the gate itself is drawn");
+        assertFalse(data.containsKey(Material.RED_STAINED_GLASS), "and no red glass was asked for");
+    }
+
+    /** Every display is lit to the full, or the preview goes dark in a shadow and in a cave. */
+    @Test
+    void everyDisplayIsDrawnAtFullBrightness()
+    {
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(STANDARD_BLOCKS, spawned.size());
+        for (final BlockDisplay display : spawned)
+        {
+            verify(display).setBrightness(argThat(b -> (b.getBlockLight() == 15) && (b.getSkyLight() == 15)));
+        }
+    }
+
+    /** The box over the button is a responsive six-tenths of a block, centred on the cell. */
+    @Test
+    void theButtonsBoxIsAResponsiveSixTenthsOfABlockCentredOnItsCell()
+    {
+        final Cell button = standardLookingNorth().stream().filter(c -> c.part() == Part.BUTTON).findFirst()
+            .orElseThrow();
+
+        GatePreviews.show(owner, standard, null);
+
+        final Interaction box = buttons.get(0);
+        verify(box).setInteractionWidth(0.6f);
+        verify(box).setInteractionHeight(0.6f);
+        verify(box).setResponsive(true);
+        final Location at = creation.places.get(creation.places.size() - 1);
+        assertEquals(button.x() + 0.5, at.getX(), 1e-9);
+        assertEquals(button.y() + 0.2, at.getY(), 1e-6, "a fifth of a block up, so a six-tenths box sits in the middle");
+        assertEquals(button.z() + 0.5, at.getZ(), 1e-9);
+    }
+
+    /** A small display is centred in its cell and a wrong one grown evenly about it, not pushed to a corner. */
+    @Test
+    void aSmallDisplayIsCentredInItsCellAndAWrongOneGrownEvenlyAboutIt()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay wrong = spawned.get(1);
+        final BlockDisplay left = spawned.get(2);
+        place(cells.get(1), Material.DIRT);
+
+        GatePreviews.guide(owner);
+
+        assertEquals(0.25f, translationOf(left), 1e-6f, "(1 - 0.5) / 2");
+        assertEquals(-0.01f, translationOf(wrong), 1e-6f, "(1 - 1.02) / 2");
+    }
+
+    private static float translationOf(final BlockDisplay display)
+    {
+        final ArgumentCaptor<Transformation> drawn = ArgumentCaptor.forClass(Transformation.class);
+        verify(display, Mockito.atLeastOnce()).setTransformation(drawn.capture());
+        return drawn.getValue().getTranslation().x();
+    }
+
+    /**
+     * A cell whose chunk is not loaded is not read, so the guide has nothing to say about it and
+     * its display stands whole, where reading it as air would shrink it to a block still to place.
+     */
+    @Test
+    void aChunkThatIsNotLoadedIsNotReadAndItsDisplaysAreDrawnWhole()
+    {
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay left = spawned.get(2);
+        GatePreviews.guide(owner);
+        assertEquals(0.5f, scaleOf(left), 1e-6f);
+
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+        GatePreviews.tick();
+
+        assertEquals(1.0f, scaleOf(left), 1e-6f);
+    }
+
+    /** A lit chevron of a gate with chevron blocks is that block switched on, not the light material. */
+    @Test
+    void aLitChevronBlockIsSwitchedOnRatherThanReplacedByTheLight()
+    {
+        final Lightable lamp = mock(Lightable.class);
+        data.put(Material.REDSTONE_LAMP, lamp);
+        final MaterialGroup atlantis = new MaterialGroup(
+            "Atlantis", Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
+            Material.REDSTONE_LAMP);
+        GatePreviews.show(owner, standard, atlantis);
+        final BlockDisplay chevron = ringDisplaysOfWave(1).get(0);
+
+        GatePreviews.activate(owner);
+        dialStep.run();
+
+        verify(lamp).setLit(true);
+        verify(chevron, times(2)).setBlock(lamp);
+        verify(chevron, never()).setBlock(data.get(Material.GLOWSTONE));
+    }
+
+    /** The dial sign is turned to face the builder as the button is, when the sign can face that way. */
+    @Test
+    void theDialSignIsTurnedToFaceTheBuilderToo() throws Exception
+    {
+        final Stargate3DShape signDial = new Stargate3DShape(Files.readAllLines(
+            Paths.get("src/main/resources/shapes/gate/StandardSignDial.shape")).toArray(new String[0]));
+        final Directional sign = mock(Directional.class);
+        when(sign.getFaces()).thenReturn(Set.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST));
+        GatePreviews.blockData = material -> (material == Material.OAK_WALL_SIGN) ? sign : mock(BlockData.class);
+
+        GatePreviews.show(owner, signDial, null);
+
+        verify(sign).setFacing(BlockFace.SOUTH);
+    }
+
+    /** A button that cannot face the builder's way is left as it is, rather than given a face it cannot hang on. */
+    @Test
+    void aButtonThatCannotFaceTheBuilderIsLeftAsItIs()
+    {
+        final Directional button = mock(Directional.class);
+        when(button.getFaces()).thenReturn(Set.of(BlockFace.UP));
+        GatePreviews.blockData = material -> (material == Material.STONE_BUTTON) ? button : mock(BlockData.class);
+
+        GatePreviews.show(owner, standard, null);
+
+        verify(button, never()).setFacing(any(BlockFace.class));
+    }
+
+    /** The last block a display was set to, or null if it never was. */
+    private static BlockData lastShown(final BlockDisplay display)
+    {
+        final List<BlockData> shown = mockingDetails(display).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
+        return shown.isEmpty() ? null : shown.get(shown.size() - 1);
+    }
+
+    /** Standard with some of its lines changed, as a shape. */
+    private static Stargate3DShape standardWith(final UnaryOperator<String> change) throws Exception
+    {
+        return new Stargate3DShape(Files.readAllLines(Paths.get("src/main/resources/shapes/gate/Standard.shape"))
+            .stream().map(change).toList().toArray(new String[0]));
+    }
+
+    /**
+     * A dial's sounds, in order: the activation, a chevron for each lock with its pitch climbing
+     * through the sequence, the lock sound once with the last, and the kawoosh once as the wormhole
+     * forms, as a real gate plays them.
+     */
+    @Test
+    void aDialPlaysTheChevronsClimbingThenTheLockThenTheKawoosh()
+    {
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        final List<Invocation> played = mockingDetails(owner).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("playSound") && (i.getArguments().length == 5)).toList();
+        final int chevrons = preview.lastWave();
+        final List<String> expected = new ArrayList<>();
+        expected.add(ConfigManager.getGateSoundActivate());
+        for (int n = 1; n <= chevrons; n++)
+        {
+            expected.add(ConfigManager.getGateSoundChevron());
+        }
+        expected.add(ConfigManager.getGateSoundLock());
+        expected.add(ConfigManager.getGateSoundKawoosh());
+        assertEquals(expected, played.stream().map(i -> i.<String>getArgument(1)).toList());
+
+        final float size = GateSounds.sizePitch(GateSounds.scaleOf(standard));
+        for (int n = 1; n <= chevrons; n++)
+        {
+            assertEquals(Sounds.clamp(GateSounds.chevronPitch(n, chevrons) * size), played.get(n).<Float>getArgument(4),
+                1.0e-6f, "chevron " + n + " at its place in the climb");
+        }
+        assertEquals(Sounds.clamp(GateSounds.LOCK_PITCH * size), played.get(chevrons + 1).<Float>getArgument(4),
+            1.0e-6f, "the lock");
+        assertEquals(Sounds.clamp(GateSounds.KAWOOSH_PITCH * size), played.get(chevrons + 2).<Float>getArgument(4),
+            1.0e-6f, "the kawoosh");
+    }
+
+    /**
+     * A finished dial books nothing and has no task to cancel, and its woosh stage stands past
+     * the last stage it played; each step has dropped the booking that ran it.
+     */
+    @Test
+    void aFinishedDialHasNothingBookedAndItsWooshStagePastTheEnd()
+    {
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        assertNull(preview.dialling(), "the last step booked no more, and the one that ran it was dropped");
+        assertEquals(6, preview.wooshStage(), "three steps out and three back, the stage one past the last");
+        assertTrue(preview.open());
+    }
+
+    /**
+     * With the ring turning, a chevron that has locked is followed a tick later by the next turn
+     * rather than the chevron's interval: the turn is itself the wait.
+     */
+    @Test
+    void aSpinningDialStartsTheNextTurnATickAfterALock()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        final int ticks = standard.getShapeLightTicks();
+        for (int step = 0; step <= ticks; step++)
+        {
+            dialStep.run();
+        }
+
+        assertEquals(1, preview.litWaves(), "the first chevron locked on this step");
+        assertEquals(1L, dialDelays.get(ticks + 1), "the next turn follows a tick later, not " + ticks);
+        assertNotEquals(1L, (long) ticks, "so the two readings differ");
+    }
+
+    /**
+     * A shape with no top chevron has no ring to turn, so a server set to turn rings dials it like
+     * any other: each step locks a chevron.
+     */
+    @Test
+    void aShapeWithNoTopChevronDialsWithoutTurningWhateverTheServerIsSetTo() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
+        final Stargate3DShape flat = standardWith(line -> line.replace("[S:L#7]", "[S]"));
+        GatePreviews.show(owner, flat, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        assertNull(preview.spin(), "nothing to turn");
+        GatePreviews.activate(owner);
+
+        dialStep.run();
+        assertEquals(1, preview.litWaves());
+        dialStep.run();
+        assertEquals(2, preview.litWaves());
+    }
+
+    /**
+     * A preview recoloured into a group that turns no ring part-way round a turn puts back what the
+     * turn had lit, and the next chevron locks at once.
+     */
+    @Test
+    void recolouringIntoAGroupThatTurnsNoneMidTurnPutsBackWhatTheTurnLit()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 3; step++)
+        {
+            dialStep.run();
+        }
+        final Set<Cell> lit = Set.copyOf(preview.spinCells());
+        assertFalse(lit.isEmpty(), "the light is travelling");
+        assertTrue(preview.spinTick() > 0);
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, false);
+
+        dialStep.run();
+
+        assertEquals(1, preview.litWaves(), "locked with no more turning");
+        assertTrue(preview.spinCells().isEmpty());
+        assertEquals(0, preview.spinTick(), "so a later turn would start from the start");
+        for (final Cell cell : lit)
+        {
+            assertNotEquals(data.get(Material.GLOWSTONE), lastShown(spawned.get(standardLookingNorth().indexOf(cell))),
+                "the cell the turn had lit is dark again");
+        }
+    }
+
+    /** As the light moves on it leaves the cell it was in dark. */
+    @Test
+    void theRingsLightLeavesTheCellItHasMovedOffDark()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
+        final List<Cell> cells = standardLookingNorth();
+        final DialSpin spin = DialSpin.of(cells, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+        final Cell start = spin.path(1).get(0);
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+
+        dialStep.run();
+        assertEquals(data.get(Material.GLOWSTONE), lastShown(spawned.get(cells.indexOf(start))), "it starts lit");
+        int moved = 0;
+        while (preview.spinCells().contains(start) && (moved++ < standard.getShapeLightTicks()))
+        {
+            dialStep.run();
+        }
+
+        assertFalse(preview.spinCells().contains(start), "the light has moved on");
+        assertNotEquals(data.get(Material.GLOWSTONE), lastShown(spawned.get(cells.indexOf(start))),
+            "and left its first cell dark");
+    }
+
+    /**
+     * Under TOP the top chevron rests lit after each lock but the last, so the one before the last
+     * is still resting lit once it has locked.
+     */
+    @Test
+    void theTopStaysLitAfterTheLockBeforeTheLast()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        final List<Cell> cells = standardLookingNorth();
+        final DialSpin spin = DialSpin.of(cells, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+        final List<Cell> path = spin.path(DialSpinPattern.TOP, 1);
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay top = spawned.get(cells.indexOf(path.get(path.size() - 1)));
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        final int beforeLast = preview.lastWave() - 1;
+        for (int step = 0; (step < 2000) && (preview.litWaves() < beforeLast); step++)
+        {
+            dialStep.run();
+        }
+        assertEquals(beforeLast, preview.litWaves());
+
+        assertEquals(data.get(Material.GLOWSTONE), lastShown(top), "resting lit, not dark until the next turn");
+    }
+
+    /** A shape whose ticks are zero is booked a tick at a time, never at zero. */
+    @Test
+    void aShapeWithZeroTicksIsBookedATickAtATime() throws Exception
+    {
+        final Stargate3DShape quick = standardWith(line -> line.replace("LIGHT_TICKS = 10;", "LIGHT_TICKS = 0;")
+            .replace("WOOSH_TICKS = 3;", "WOOSH_TICKS = 0;"));
+        GatePreviews.show(owner, quick, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        assertEquals(13, dialDelays.size());
+        final long hold = Stargate.LAST_CHEVRON_PAUSE_TICKS;
+        assertEquals(List.of(1L, 1L, 1L, 1L, 1L, 1L, 1L, hold, 1L, 1L, 1L, 1L, 1L), dialDelays,
+            "every booking a tick at least, the hold after the last chevron as ever");
+    }
+
+    /** Whether a block change is the ice a see-through iris's sweep stands the wormhole in. */
+    private boolean isIce(final BlockData sent)
+    {
+        return (sent == data.get(Material.BLUE_ICE)) || (sent == data.get(Material.PACKED_ICE));
+    }
+
+    /** Every block a viewer was sent since the invocations were last cleared, by position. */
+    private static Map<List<Integer>, List<BlockData>> sentSince(final Player viewer)
+    {
+        final Map<List<Integer>, List<BlockData>> sent = new HashMap<>();
+        mockingDetails(viewer).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("sendBlockChange"))
+            .filter(i -> i.getArguments().length == 2)
+            .forEach(i ->
+            {
+                final Location at = i.getArgument(0);
+                sent.computeIfAbsent(List.of(at.getBlockX(), at.getBlockY(), at.getBlockZ()), k -> new ArrayList<>())
+                    .add(i.getArgument(1));
+            });
+        return sent;
+    }
+
+    /** Standard with its opening cut down to some cells of its middle row, the rest frame. */
+    private static Stargate3DShape standardOpeningOf(final int cells) throws Exception
+    {
+        return standardWith(line ->
+        {
+            if (!line.contains("[P]"))
+            {
+                return line;
+            }
+            if (!line.startsWith("[S:L#5]"))
+            {
+                return line.replace("[P]", "[S]");
+            }
+            int kept = 0;
+            String out = line;
+            for (int at = out.indexOf("[P]"); at >= 0; at = out.indexOf("[P]", at + 3))
+            {
+                if (++kept > cells)
+                {
+                    out = out.substring(0, at) + "[S]" + out.substring(at + 3);
+                }
+            }
+            return out;
+        });
+    }
+
+    /**
+     * An iris over a one-cell opening is instant, and over two cells it sweeps.
+     *
+     * <p>A sweep is a ring at a time; one cell has no rings to speak of, and the line is drawn at two.
+     */
+    @Test
+    void anIrisOverAOneCellOpeningIsInstantAndOverATwoCellOneSweeps() throws Exception
+    {
+        GatePreviews.show(owner, standardOpeningOf(1), null);
+        assertEquals(1, thePreview().opening().size(), "the fixture has one cell to sweep");
+        GatePreviews.iris(owner);
+        assertTrue(irisPending.isEmpty(), "one cell: nothing booked, the iris is shut at once");
+        assertFalse(thePreview().sweeping());
+        GatePreviews.clearAll(owner);
+
+        GatePreviews.show(owner, standardOpeningOf(2), null);
+        assertEquals(2, thePreview().opening().size(), "the fixture has two cells to sweep");
+        GatePreviews.iris(owner);
+        assertEquals(1, irisPending.size(), "two cells: a sweep, with its next step booked");
+        assertTrue(thePreview().sweeping());
+    }
+
+    /**
+     * An instant iris draws every ring of itself at once and takes them all away at once.
+     *
+     * <p>The sweep starts from what the iris was; the instant path has to set the set itself, or the
+     * draw that follows draws what the iris was.
+     */
+    @Test
+    void anInstantIrisDrawsAndTakesAwayTheWholeIrisAtOnce()
+    {
+        MaterialGroupRegistry.load(Map.of("Snap",
+            Map.of("structure", "OBSIDIAN", "iris-animation", "instant")));
+        GatePreviews.show(owner, standard, null);
+
+        GatePreviews.iris(owner);
+
+        assertTrue(irisPending.isEmpty(), "no sweep is booked");
+        assertEquals(STANDARD_BLOCKS + STANDARD_OPENING, spawned.size(), "the whole iris is drawn");
+        assertEquals(STANDARD_OPENING, countStanding(), "and stands");
+
+        GatePreviews.iris(owner);
+
+        assertTrue(irisPending.isEmpty());
+        assertEquals(0, countStanding(), "opening it takes the whole iris away at once");
+    }
+
+    /**
+     * Toggling the iris sets every standing display to what it should show now, sweep or instant.
+     *
+     * <p>A display's block is set once on spawning and again only when something restyles; a toggle
+     * that skipped it would leave a display showing whatever it was last given.
+     */
+    @Test
+    void togglingTheIrisRestylesTheStandingDisplaysWhicheverWayItCrosses()
+    {
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay ring = spawned.get(0);
+
+        clearInvocations(ring);
+        GatePreviews.iris(owner);
+        assertFalse(irisPending.isEmpty(), "the first toggle sweeps");
+        verify(ring, atLeastOnce()).setBlock(any(BlockData.class));
+        finishIrisSweep();
+
+        MaterialGroupRegistry.load(Map.of("Snap",
+            Map.of("structure", "OBSIDIAN", "iris-animation", "instant")));
+        clearInvocations(ring);
+        GatePreviews.iris(owner);
+        assertTrue(irisPending.isEmpty(), "this one is instant");
+        verify(ring, atLeastOnce()).setBlock(any(BlockData.class));
+    }
+
+    /**
+     * A sweep called off leaves its own record of what each viewer holds, and the next sweep goes by it.
+     *
+     * <p>The ice a closing sweep stood behind the covered rings is only taken back by a sweep that
+     * knows where it is. Replacing the record with what the viewer was last settled on lost it, and
+     * the ice stayed on them for good.
+     */
+    @Test
+    void aSweepCalledOffMidWayIsTakenBackFromByTheNext()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce),
+            "ice stands behind the covered rings: the fixture is part way through");
+        clearInvocations(front);
+
+        GatePreviews.iris(owner);
+        final Set<List<Integer>> ringKeys = new HashSet<>();
+        openingCells().forEach(cell -> ringKeys.add(List.of(cell.x(), cell.y(), cell.z())));
+        final long ringCellsResent = sentSince(front).keySet().stream().filter(ringKeys::contains).count();
+        assertTrue(ringCellsResent < (ringKeys.size() / 2),
+            "the first step goes by what the closing sweep drew, so it restores few of the ring cells: "
+                + ringCellsResent + " of " + ringKeys.size());
+        finishIrisSweep();
+
+        final Map<List<Integer>, BlockData> behindTheRing = lastSentPerCellAlong(front, -1);
+        assertFalse(behindTheRing.isEmpty(), "the opening sweep sent the cells the closing one stood the wormhole in");
+        assertTrue(behindTheRing.values().stream().noneMatch(this::isIce),
+            "and took the ice the closing one left");
+    }
+
+    /** What a sweep drew for a viewer is forgotten once it has settled, so the next starts from the layers. */
+    @Test
+    void aSweepThatSettlesForgetsWhatItDrewForTheViewer()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertFalse(thePreview().sweepDrawn().isEmpty(), "part way through, it holds a record for the viewer");
+
+        finishIrisSweep();
+
+        assertFalse(thePreview().sweeping());
+        assertTrue(thePreview().sweepDrawn().isEmpty(), "and none once it has settled");
+    }
+
+    /**
+     * A viewer who walks round a preview and back mid-sweep has the wormhole behind the ring again.
+     *
+     * <p>The crossing is told apart from the last by the side it recorded. A move that did not record
+     * the side it moved to compared the walk back against the side before the walk, found nothing
+     * changed, and left the viewer with the wormhole where it was on the far side.
+     */
+    @Test
+    void aViewerWhoWalksRoundMidSweepAndBackHasTheWormholeBehindAgain()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+
+        walkTo(walker, -4);
+        assertTrue(lastSentPerCellAlong(walker, -1).values().stream().noneMatch(this::isIce),
+            "from behind the wormhole keeps the ring");
+        walkTo(walker, 4);
+
+        assertTrue(lastSentPerCellAlong(walker, -1).values().stream().anyMatch(this::isIce),
+            "and back in front the covered rings' wormhole is behind the gate again");
+    }
+
+    /** A sweep over a preview with no wormhole showing draws none for a viewer who walks round it. */
+    @Test
+    void aViewerWalkingRoundAClosedPreviewMidSweepIsSentNothing()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertFalse(irisPending.isEmpty(), "still sweeping");
+        assertTrue(thePreview().sweeping());
+        assertFalse(thePreview().open(), "with no wormhole showing");
+        assertTrue(GatePreviews.watching(owner, thePreview()).contains(walker), "and Fran watching it");
+        clearInvocations(walker);
+
+        walkTo(walker, -4);
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * A wormhole first sent by a sweep is taken back when the gate is shut down.
+     *
+     * <p>Taking back only reaches cells recorded as sent. A dial that finished while the iris was
+     * still sweeping sends its wormhole through the sweep, which has to record it as it does the
+     * plain draw's.
+     */
+    @Test
+    void aWormholeFirstSentMidSweepIsTakenBackWhenTheGateShutsDown()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        assertFalse(irisPending.isEmpty(), "the iris is part way across");
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        assertTrue(thePreview().open(), "the dial opened it with the sweep still going");
+        assertFalse(irisPending.isEmpty());
+        assertTrue(lastSentPerCellAlong(owner, 0).values().stream().allMatch(d -> d == portalData()),
+            "the wormhole was sent to the owner by the sweep");
+
+        GatePreviews.activate(owner);
+
+        assertFalse(thePreview().open());
+        assertTrue(lastSentPerCellAlong(owner, 0).values().stream().noneMatch(d -> d == portalData()),
+            "and the owner is shown what really stands there once it is shut");
+    }
+
+    /**
+     * Shutting a gate down mid-sweep hands the viewer back what the sweep stood off the ring, and
+     * the ring cells only once.
+     */
+    @Test
+    void shuttingDownMidSweepHandsBackTheIceAndForgetsWhatTheSweepDrew()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        final Player behind = viewerAlong("Bea", -4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce), "ice stands for Fran");
+        clearInvocations(behind);
+
+        GatePreviews.activate(owner);
+
+        assertFalse(thePreview().open(), "shut down");
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().noneMatch(this::isIce),
+            "Fran has the ice taken back");
+        assertTrue(thePreview().sweepDrawn().isEmpty(), "and the sweep's record is gone");
+        final Map<List<Integer>, List<BlockData>> sent = sentSince(behind);
+        final BlockFace facing = previewFacing();
+        for (final Cell cell : openingCells())
+        {
+            final List<Integer> key = List.of(cell.x(), cell.y(), cell.z());
+            assertEquals(1, sent.getOrDefault(key, List.of()).size(),
+                "Bea, whose wormhole never left the ring, has it restored once: " + key + " facing " + facing);
+        }
+    }
+
+    /**
+     * A palette change mid-sweep is sent again to the viewer in front, wormhole and all.
+     *
+     * <p>A step sends only what moved, so the redraw that follows a change has to put the whole
+     * picture right: here the covered rings' wormholes behind the gate, which a client that lost
+     * them would otherwise never be sent again.
+     */
+    @Test
+    void aChangeMidSweepSendsTheViewerInFrontTheSweepsWholePictureAgain()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce), "the fixture is part way");
+        clearInvocations(front);
+
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.RED_STAINED_GLASS);
+
+        assertTrue(lastSentPerCellAlong(front, -1).values().stream().anyMatch(this::isIce),
+            "the covered rings' wormhole is sent again, behind the gate");
+    }
+
+    /**
+     * A sweep that starts on an iris settled with nowhere beyond the ring for the wormhole starts
+     * cleanly: those cells hold nothing off the ring, and the record of them is not asked for a block.
+     */
+    @Test
+    void aSweepStartingOnAnIrisSettledWithNowhereBehindTheRingRunsToItsEnd()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final BlockFace facing = previewFacing();
+        for (final Cell cell : openingCells())
+        {
+            standing.put(List.of(cell.x() - facing.getModX(), cell.y() - facing.getModY(), cell.z() - facing.getModZ()),
+                Material.STONE);
+        }
+        final Player fran = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        assertFalse(thePreview().sweeping(), "settled shut");
+        assertTrue(thePreview().sides().get(fran.getUniqueId()).stream().anyMatch(layer -> layer.horizon() == null),
+            "and some cell has nowhere to stand its wormhole for Fran, or the test proves nothing");
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertFalse(thePreview().sweeping(), "and the opening sweep ran to its end");
+        assertTrue(thePreview().sweepDrawn().isEmpty());
+    }
+
+    /** Calling a sweep off twice drops its booking once: the first took it out of the register. */
+    @Test
+    void callingASweepOffTwiceCancelsItsBookingOnce()
+    {
+        watchTheSweep();
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.iris(owner);
+        stepIrisSweep(1);
+        final BukkitTask booked = irisTasks.get(irisTasks.size() - 1);
+
+        PreviewIrisSweep.cancelIrisSweep(thePreview());
+        PreviewIrisSweep.cancelIrisSweep(thePreview());
+
+        verify(booked, times(1)).cancel();
+    }
+
+    /** Puts the owner on the server's list of players, which is where the horizon tick looks. */
+    private void ownerIsOnTheServer()
+    {
+        final Server server = mock(Server.class);
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getPlayer(owner.getUniqueId())).thenReturn(owner);
+    }
+
+    /** Where the given number of blocks along the facing from the opening is, for a step to end at. */
+    private Location alongTheFacing(final int steps)
+    {
+        final Cell cell = openingCells().get(0);
+        final BlockFace facing = previewFacing();
+        return new Location(world, cell.x() + (steps * facing.getModX()) + 0.5,
+            cell.y() + (steps * facing.getModY()), cell.z() + (steps * facing.getModZ()) + 0.5);
+    }
+
+    /**
+     * The horizon tick moves a see-through iris's stand-in wormhole for the viewer in front.
+     *
+     * <p>Nothing else redraws it between the sweep and the next full draw, so a viewer in front
+     * of a glass iris was sent the ice once and then left to whatever the client made of it.
+     */
+    @Test
+    void theHorizonTickRedrawsTheStandInWormholeForAViewerInFront()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        ownerIsOnTheServer();
+        clearInvocations(front);
+
+        GatePreviews.tickHorizon();
+
+        assertTrue(isIce(lastSentAlong(front, -1)), "the ice is sent again, a block behind the ring");
+    }
+
+    /**
+     * ...and a viewer behind has the wormhole in the ring, which the iris does not hide for them.
+     */
+    @Test
+    void theHorizonTickSendsAViewerBehindNothing()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player behind = viewerAlong("Bea", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        ownerIsOnTheServer();
+        clearInvocations(behind);
+
+        GatePreviews.tickHorizon();
+
+        verify(behind, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /** An opaque iris hides the liquid without help, so there is nothing for the tick to move. */
+    @Test
+    void theHorizonTickLeavesAnOpaqueIrisAlone()
+    {
+        openThePreview();
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        ownerIsOnTheServer();
+        clearInvocations(front);
+
+        GatePreviews.tickHorizon();
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * A preview that has stopped being stacked is left alone, though a viewer still has a side.
+     *
+     * <p>An opening sweep keeps each viewer's recorded side until it settles, so the tick would
+     * find layers to redraw. The sweep is painting the wormhole itself by then.
+     */
+    @Test
+    void theHorizonTickLeavesAPreviewAloneWhileItsIrisIsSweepingOpen()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        GatePreviews.iris(owner);
+        assertTrue(thePreview().sweeping(), "the opening sweep is still running");
+        assertNotNull(thePreview().sides().get(front.getUniqueId()), "and Fran still has a side");
+        ownerIsOnTheServer();
+        clearInvocations(front);
+
+        GatePreviews.tickHorizon();
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /** An owner who is off the server has nothing to redraw for, and the tick does not trip on it. */
+    @Test
+    void theHorizonTickSkipsAnOwnerWhoIsOffline()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        final Server server = mock(Server.class);
+        when(plugin.getServer()).thenReturn(server);
+        clearInvocations(front);
+
+        GatePreviews.tickHorizon();
+
+        verify(front, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /** A preview faces a way, and only one standing upright has an in front and a behind. */
+    @Test
+    void onlyAnUprightPreviewHasAnInFrontAndABehind()
+    {
+        assertTrue(uprightFacing(BlockFace.NORTH));
+        assertFalse(uprightFacing(BlockFace.UP), "a flat one faces up");
+        assertFalse(uprightFacing(BlockFace.DOWN), "or down");
+        assertFalse(uprightFacing(null), "or nowhere");
+    }
+
+    private static boolean uprightFacing(final BlockFace facing)
+    {
+        final GatePreview preview = mock(GatePreview.class);
+        final GateGrid grid = mock(GateGrid.class);
+        when(preview.grid()).thenReturn(grid);
+        when(grid.facing()).thenReturn(facing);
+        return PreviewLayers.upright(preview);
+    }
+
+    /** The viewer in front is shown the ring's iris and not the one beyond it. */
+    @Test
+    void aViewerInFrontIsShownTheIrisInTheRingAndNotTheOneBeyondIt()
+    {
+        openThePreview();
+        final Player front = viewerAlong("Fran", 4);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(front);
+
+        GatePreviews.draw(owner, thePreview());
+
+        final Cell cell = openingCells().get(0);
+        verify(front, atLeastOnce()).showEntity(plugin, displayAt(cell, 0));
+        verify(front, atLeastOnce()).hideEntity(plugin, displayAt(cell, 1));
+    }
+
+    /** A stacked draw says nothing in the log while the log is not asking for it. */
+    @Test
+    void aStackedDrawSaysNothingInTheLogWhileTheLogIsNotAskingForIt()
+    {
+        openThePreview();
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        verify(plugin, never()).prettyLog(any(Level.class), contains("Preview layers:"));
+    }
+
+    /** Closing the wormhole under an iris that stays shut puts the viewer behind back on the ring's set. */
+    @Test
+    void closingTheWormholeUnderAShutIrisGivesAViewerBehindTheRingsIrisAgain()
+    {
+        openThePreview();
+        final Player behind = viewerAlong("Bea", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        assertNotNull(thePreview().sides().get(behind.getUniqueId()), "stacked, so Bea has a side");
+        clearInvocations(behind);
+
+        GatePreviews.activate(owner);
+
+        assertFalse(thePreview().open(), "the wormhole is closed");
+        assertNull(thePreview().sides().get(behind.getUniqueId()), "and nobody's side is kept");
+        final Cell cell = openingCells().get(0);
+        verify(behind, atLeastOnce()).showEntity(plugin, displayAt(cell, 0));
+        assertTrue(handBacksAlong(behind, 1) > 0, "and the cells either side of the ring go back");
+    }
+
+    /** ...and the one in front has the cell behind the ring handed back, where their wormhole was. */
+    @Test
+    void closingTheWormholeUnderAShutIrisHandsBackWhereTheViewerInFrontHadIt()
+    {
+        openThePreview();
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(front);
+
+        GatePreviews.activate(owner);
+
+        assertTrue(handBacksAlong(front, -1) > 0);
+    }
+
+    /** Clearing a preview with nothing loaded does not read the world to hand anything back. */
+    @Test
+    void clearingAStackedPreviewInAnUnloadedChunkReadsNothingBack()
+    {
+        openThePreview();
+        final Player behind = viewerAlong("Bea", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+        clearInvocations(behind);
+
+        GatePreviews.clearAll(owner);
+
+        verify(behind, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /** With the chunk gone, nothing is free to stand a layer in, so every wormhole keeps its ring. */
+    @Test
+    void aViewerWhoStepsWhileTheChunkIsUnloadedHasNowhereToStandALayer()
+    {
+        openThePreview();
+        final Player front = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+
+        GatePreviews.moved(front, alongTheFacing(5));
+
+        final List<Cell> opening = thePreview().opening();
+        final List<IrisLayering.Placement> layers = thePreview().sides().get(front.getUniqueId());
+        for (int i = 0; i < opening.size(); i++)
+        {
+            assertTrue((layers.get(i).horizon() == null) || layers.get(i).horizon().equals(PreviewLayers.at(opening.get(i))),
+                "cell " + i + " has no layer beyond the ring");
+        }
+    }
+
+    /** The far iris is taken down where something now stands in its cell. */
+    @Test
+    void aFarIrisThatCanNoLongerStandIsTakenDown()
+    {
+        openThePreview();
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        final GatePreview preview = thePreview();
+        assertNotNull(preview.beyondDisplays().get(0), "stacked, so the far iris stands");
+        final Cell cell = preview.opening().get(0);
+        final IrisLayering.At beyond = PreviewLayers.at(cell).moved(previewFacing(), 1);
+        standing.put(List.of(beyond.x(), beyond.y(), beyond.z()), Material.STONE);
+
+        GatePreviews.draw(owner, preview);
+
+        assertNull(preview.beyondDisplays().get(0), "the cell beyond is taken");
+    }
+
+    /** A step that ends where the viewer already is changes nothing for them. */
+    @Test
+    void aStepThatLeavesTheSameSideSendsTheViewerNothingMore()
+    {
+        openThePreview();
+        final Player walker = viewerAlong("Wes", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        GatePreviews.moved(walker, alongTheFacing(4));
+        clearInvocations(walker);
+
+        GatePreviews.moved(walker, alongTheFacing(4));
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(walker, never()).showEntity(eq(plugin), any(BlockDisplay.class));
+    }
+
+    /** Walking round to the front swaps which iris the viewer is shown. */
+    @Test
+    void walkingRoundToTheFrontSwapsWhichIrisTheViewerIsShown()
+    {
+        openThePreview();
+        final Player walker = viewerAlong("Wes", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        clearInvocations(walker);
+
+        GatePreviews.moved(walker, alongTheFacing(4));
+
+        final Cell cell = openingCells().get(0);
+        verify(walker, atLeastOnce()).showEntity(plugin, displayAt(cell, 0));
+        verify(walker, atLeastOnce()).hideEntity(plugin, displayAt(cell, 1));
+    }
+
+    /** A preview that is not stacked has no sides to restack, whatever way somebody walks. */
+    @Test
+    void walkingRoundAPreviewThatIsNotStackedSendsNothing()
+    {
+        openThePreview();
+        final Player walker = viewerAlong("Wes", -4);
+        clearInvocations(walker);
+
+        GatePreviews.moved(walker, alongTheFacing(4));
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(walker, never()).showEntity(eq(plugin), any(BlockDisplay.class));
+    }
+
+    /** A viewer in another world is not redrawn for a step the preview's world did not see. */
+    @Test
+    void aViewerInAnotherWorldIsNotRestackedByAStep()
+    {
+        openThePreview();
+        final Player walker = viewerAlong("Wes", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        final World elsewhere = mock(World.class);
+        when(walker.getWorld()).thenReturn(elsewhere);
+        clearInvocations(walker);
+
+        GatePreviews.moved(walker, alongTheFacing(4));
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(walker, never()).showEntity(eq(plugin), any(BlockDisplay.class));
+    }
+
+    /**
+     * ...nor is one mid-sweep.
+     *
+     * <p>A see-through iris, because an opaque one has nothing to redraw for a step and the guard
+     * would never be reached. The control walker in the preview's own world is sent the swept
+     * picture for the same step, so the silence is the world and not a quiet fixture.
+     */
+    @Test
+    void aViewerInAnotherWorldIsNotResweptByAStep()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player away = viewerAlong("Ava", 4);
+        final Player here = viewerAlong("Hal", 4);
+        GatePreviews.iris(owner);
+        for (int step = 0; (step < 2) && !irisPending.isEmpty(); step++)
+        {
+            final Integer id = irisPending.keySet().iterator().next();
+            irisPending.remove(id).run();
+        }
+        assertTrue(thePreview().sweeping(), "still sweeping");
+        final World elsewhere = mock(World.class);
+        when(away.getWorld()).thenReturn(elsewhere);
+        clearInvocations(away, here);
+
+        GatePreviews.moved(here, alongTheFacing(-4));
+        GatePreviews.moved(away, alongTheFacing(-4));
+
+        verify(here, atLeastOnce()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(away, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * A wormhole dialled open behind a shut iris is taken back from a viewer behind on shutdown.
+     *
+     * <p>The draw that opens it is stacked from the start, so the ring send that normally records
+     * the opening's cells as sent never runs, and the stacked draw's own record is the only one.
+     * Without it the shutdown skips every ring cell and leaves the viewer behind the gate with
+     * water in the ring.
+     */
+    @Test
+    void aWormholeDialledOpenBehindAShutIrisIsTakenBackFromAViewerBehindOnShutdown()
+    {
+        GatePreviews.show(owner, standard, null);
+        final Player behind = viewerAlong("Bea", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        assertTrue(thePreview().open(), "dialled open");
+        assertTrue(wormholeSendsAlong(behind, 0) > 0, "and the wormhole is in the ring for Bea");
+        clearInvocations(behind);
+
+        GatePreviews.activate(owner);
+
+        assertTrue(handBacksAlong(behind, 0) > 0, "the ring is handed back, not left holding water");
+    }
+
+    /** A player who has gone offline is not redrawn for. */
+    @Test
+    void aStepByAPlayerWhoIsOfflineRedrawsNothing()
+    {
+        openThePreview();
+        final Player walker = viewerAlong("Wes", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        when(walker.isOnline()).thenReturn(false);
+        clearInvocations(walker);
+
+        GatePreviews.moved(walker, alongTheFacing(4));
+
+        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * A viewer off to one side, looking past the blocks round the ring, still has the layers.
+     *
+     * <p>The frame counts as cover, not just the opening: counting only the opening took the
+     * layers away from anyone not square in front of a big gate. From four blocks out and six
+     * across, the sight line to the far layer crosses the plane on the frame.
+     */
+    @Test
+    void aViewerOffToTheSideStillLooksPastTheFrameAndHasTheirLayers()
+    {
+        openThePreview();
+        final Player aside = viewerAside("Ana", 4, 6);
+
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+
+        assertTrue(wormholeSendsAlong(aside, -1) > 0, "the wormhole is a block behind the ring for them");
     }
 }

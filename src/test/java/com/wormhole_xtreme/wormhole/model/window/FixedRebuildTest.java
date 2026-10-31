@@ -227,7 +227,7 @@ class FixedRebuildTest
         final long now = Windows.now();
         final Map<Long, BlockData> old = builtAt(window, now - FixedView.BACKSTOP_MILLIS);
 
-        assertSame(old, Windows.heldRoom(window, now, true), "the old room is drawn as its rebuild starts");
+        assertSame(old, WindowCompose.heldRoom(window, now, true), "the old room is drawn as its rebuild starts");
         assertTrue(FixedBuilds.building("gate:Abydos"), "and a rebuild is under way");
         int ticks = 0;
         while (FixedBuilds.building("gate:Abydos"))
@@ -238,12 +238,12 @@ class FixedRebuildTest
             assertTrue((stepsTaken - before) <= 5, "tick " + ticks + " took " + (stepsTaken - before) + " steps of a share of five");
             if (FixedBuilds.building("gate:Abydos"))
             {
-                assertSame(old, Windows.heldRoom(window, now, true), "still the old room on tick " + ticks);
+                assertSame(old, WindowCompose.heldRoom(window, now, true), "still the old room on tick " + ticks);
             }
         }
 
         assertTrue(ticks >= (STEPS / 5), "the forty steps spread over " + ticks + " ticks");
-        final Map<Long, BlockData> rebuilt = Windows.heldRoom(window, now, true);
+        final Map<Long, BlockData> rebuilt = WindowCompose.heldRoom(window, now, true);
         assertNotSame(old, rebuilt, "the new room swapped in once whole");
         assertEquals(STEPS, rebuilt.size(), "holding every block the walk kept");
         assertEquals(0, tick(), "and the ticker stopped once nothing is left to build");
@@ -327,7 +327,7 @@ class FixedRebuildTest
         FixedBuilds.nanosPerTick = 0L;
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
-        Windows.heldRoom(window, Windows.now(), true);
+        WindowCompose.heldRoom(window, Windows.now(), true);
         assertTrue(FixedBuilds.building("gate:Abydos"), "a build under way");
         FixedBuilds.nanosPerTick = 1_000_000_000L;
         final long before = stepsTaken;
@@ -348,7 +348,7 @@ class FixedRebuildTest
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
         final Map<Long, BlockData> old = builtAt(window, Windows.now() - FixedView.BACKSTOP_MILLIS);
-        Windows.heldRoom(window, Windows.now(), true);
+        WindowCompose.heldRoom(window, Windows.now(), true);
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState now = held().get("gate:Abydos");
         FixedBuilds.nanosPerTick = 1_000_000_000L;
@@ -393,7 +393,7 @@ class FixedRebuildTest
         FixedBuilds.nanosPerTick = 0L;
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
-        Windows.heldRoom(window, Windows.now(), true);
+        WindowCompose.heldRoom(window, Windows.now(), true);
         assertTrue(FixedBuilds.building("gate:Abydos"), "a build under way");
 
         // The next sweep offers only another window.
@@ -418,11 +418,11 @@ class FixedRebuildTest
         final Map<String, WindowState> held = held();
         final long now = Windows.now();
         final Map<Long, BlockData> old = builtAt(held.get("gate:Abydos"), now - FixedView.BACKSTOP_MILLIS);
-        Windows.heldRoom(held.get("gate:Abydos"), now, true);
-        Windows.heldRoom(held.get("gate:Chulak"), now, true);
+        WindowCompose.heldRoom(held.get("gate:Abydos"), now, true);
+        WindowCompose.heldRoom(held.get("gate:Chulak"), now, true);
 
         tick();
-        Windows.heldRoom(held.get("gate:Abydos"), now, true);
+        WindowCompose.heldRoom(held.get("gate:Abydos"), now, true);
         tick();
 
         assertSame(old, held.get("gate:Abydos").fixed, "the failed window keeps its old room");
@@ -482,7 +482,7 @@ class FixedRebuildTest
     /** Asks for a room's rebuild, notes a change in its view, and runs the build to the end. */
     private void rebuildWithAChangeDuring(final WindowState window, final long[] time, final long building)
     {
-        Windows.heldRoom(window, time[0], true);
+        WindowCompose.heldRoom(window, time[0], true);
         final Spot behind = SHAPE.behind(4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
         time[0] += building;
@@ -509,7 +509,7 @@ class FixedRebuildTest
         Windows.clock = () -> time[0];
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
-        Windows.heldRoom(window, time[0], true);
+        WindowCompose.heldRoom(window, time[0], true);
         tick();
         final Map<Long, BlockData> first = window.fixed;
         assertTrue(FixedView.fixedIsFresh(window, time[0] + FixedView.BACKSTOP_MILLIS - 1L),
@@ -537,7 +537,7 @@ class FixedRebuildTest
         Windows.clock = () -> time[0];
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
-        Windows.heldRoom(window, time[0], true);
+        WindowCompose.heldRoom(window, time[0], true);
         tick();
         final Spot behind = SHAPE.behind(4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
@@ -556,7 +556,7 @@ class FixedRebuildTest
         assertEquals(120_000L, FixedView.MOST_REBUILD_WAIT_MILLIS, "two minutes, so a real change waits no longer behind churn");
 
         time[0] += FixedView.rebuildWait(window);
-        Windows.heldRoom(window, time[0], true);
+        WindowCompose.heldRoom(window, time[0], true);
         tick();
         assertEquals(FixedView.REBUILD_GAP_MILLIS, FixedView.rebuildWait(window), "built with nothing changing meanwhile: back to the gap");
 
@@ -566,7 +566,7 @@ class FixedRebuildTest
             time[0] += 1000L;
             Windows.changed(world, behind.x(), behind.y(), behind.z());
             time[0] += FixedView.rebuildWait(window);
-            Windows.heldRoom(window, time[0], true);
+            WindowCompose.heldRoom(window, time[0], true);
             tick();
         }
         assertEquals(2 * FixedView.REBUILD_GAP_MILLIS, FixedView.rebuildWait(window), "a change soon after each went in doubles it too");
@@ -587,9 +587,9 @@ class FixedRebuildTest
         Windows.changed(world, behind.x(), behind.y(), behind.z());
         Windows.changed(world, behind.x(), behind.y() + 1, behind.z());
 
-        Windows.heldRoom(window, now, true);
+        WindowCompose.heldRoom(window, now, true);
         final FixedBuild running = FixedBuilds.buildFor("gate:Abydos");
-        Windows.heldRoom(window, now, true);
+        WindowCompose.heldRoom(window, now, true);
 
         assertEquals(1, FixedBuilds.count(), "one build");
         assertSame(running, FixedBuilds.buildFor("gate:Abydos"), "the same one, not begun again");
@@ -672,7 +672,7 @@ class FixedRebuildTest
         final long[] waits = new long[4];
         for (int i = 0; i < waits.length; i++)
         {
-            Windows.heldRoom(window, time[0], true);
+            WindowCompose.heldRoom(window, time[0], true);
             assertTrue(window.fixedPartial, "its build read a chunk that was not loaded");
             waits[i] = window.fixedPartialWait;
             assertTrue(FixedView.fixedIsFresh(window, (window.fixedAt + waits[i]) - 1L), "fresh until the wait is up");
@@ -685,7 +685,7 @@ class FixedRebuildTest
         assertEquals(FixedView.PARTIAL_BACKSTOP_MILLIS, waits[3], "then a minute at most");
 
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
-        Windows.heldRoom(window, time[0], true);
+        WindowCompose.heldRoom(window, time[0], true);
         assertFalse(window.fixedPartial, "every chunk loaded");
         assertTrue(FixedView.fixedIsFresh(window, (window.fixedAt + FixedView.BACKSTOP_MILLIS) - 1L), "back to the backstop");
     }
@@ -703,12 +703,12 @@ class FixedRebuildTest
         Windows.clock = () -> time[0];
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE));
         final WindowState window = held().get("gate:Abydos");
-        Windows.heldRoom(window, time[0], true);
+        WindowCompose.heldRoom(window, time[0], true);
         tick();
         final Spot behind = SHAPE.behind(4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
         time[0] += FixedView.REBUILD_GAP_MILLIS;
-        Windows.heldRoom(window, time[0], true);
+        WindowCompose.heldRoom(window, time[0], true);
         tick();
 
         assertTrue(FixedView.fixedIsFresh(window, (window.fixedAt + FixedView.BACKSTOP_MILLIS) - 1L),
@@ -753,7 +753,7 @@ class FixedRebuildTest
         final Capture capture = capture(SHAPE);
         Windows.offer(gate("gate:Abydos", SHAPE), capture);
         final WindowState window = held().get("gate:Abydos");
-        Windows.heldRoom(window, Windows.now(), true);
+        WindowCompose.heldRoom(window, Windows.now(), true);
         tick();
         final Map<Long, BlockData> room = window.fixed;
         assertEquals(STEPS, room.size(), "built and put in by the ticker");
@@ -763,7 +763,7 @@ class FixedRebuildTest
 
         assertSame(room, next.fixed, "the same room, carried by the next sweep");
         assertTrue(FixedView.fixedIsFresh(next, Windows.now()), "and drawn as it is");
-        Windows.heldRoom(next, Windows.now(), true);
+        WindowCompose.heldRoom(next, Windows.now(), true);
         assertEquals(0, FixedBuilds.count(), "no build asked for again");
     }
 
@@ -804,7 +804,7 @@ class FixedRebuildTest
         Windows.offer(gate("gate:Abydos", SHAPE), capture(SHAPE, steps, false));
         final WindowState window = held().get("gate:Abydos");
 
-        Windows.heldRoom(window, Windows.now(), true);
+        WindowCompose.heldRoom(window, Windows.now(), true);
 
         assertEquals(0, steps[0], "not a step walked");
         assertEquals(0, FixedBuilds.count(), "nothing queued");
@@ -861,7 +861,7 @@ class FixedRebuildTest
         final Capture capture = capture(SHAPE);
         Windows.offer(gate("gate:Abydos", SHAPE), capture);
         final WindowState window = held().get("gate:Abydos");
-        Windows.heldRoom(window, time[0], true);
+        WindowCompose.heldRoom(window, time[0], true);
         time[0] += 61_000L;
         tick();
         final Map<Long, BlockData> room = window.fixed;

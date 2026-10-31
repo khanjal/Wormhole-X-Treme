@@ -87,7 +87,7 @@ class IrisClearsRiddenMountTest
             horse, new Location(world, BX + 0.5, BY, BZ + 0.5), rider);
         when(world.getNearbyEntities(any(BoundingBox.class))).thenReturn(List.<Entity>of(horse, rider));
 
-        StargateBlockSetup.clearIrisPath(gate);
+        IrisClearance.clearIrisPath(gate);
 
         assertEquals(BZ + 3.5, stack.at().getZ(), 0.001, "the horse must be moved out of the opening");
         assertEquals(BZ + 3.5, rider.getLocation().getZ(), 0.001, "its rider goes with it");
@@ -111,7 +111,7 @@ class IrisClearsRiddenMountTest
         track.invoke(null, standIn);
         try
         {
-            StargateBlockSetup.clearIrisPath(gate);
+            IrisClearance.clearIrisPath(gate);
         }
         finally
         {

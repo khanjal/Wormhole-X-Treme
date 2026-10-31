@@ -766,7 +766,7 @@ public final class StandIns
         try
         {
             followTask = WormholeXTreme.getScheduler().scheduleSyncRepeatingTask(WormholeXTreme.getThisPlugin(),
-                Windows::followStandIns, FOLLOW_TICKS, FOLLOW_TICKS);
+                WindowCreatures::followStandIns, FOLLOW_TICKS, FOLLOW_TICKS);
         }
         catch (final RuntimeException noScheduler)
         {

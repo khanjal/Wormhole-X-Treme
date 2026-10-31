@@ -332,7 +332,7 @@ class PortalVisualRefreshTest
         when(here.getName()).thenReturn("here");
         final Stargate gate = openEightChevronGate(here, here);
         gate.setGatePortalOpen(false);
-        gate.setGateChevronsLocked(3);
+        gate.runtime().setGateChevronsLocked(3);
 
         assertEquals(Set.of(1, 2, 3), chevronsSentFor(here));
     }
@@ -347,7 +347,7 @@ class PortalVisualRefreshTest
         gate.setGateFacing(BlockFace.NORTH);
         gate.setGateIrisActive(true);
         gate.setGatePortalOpen(false);
-        gate.setGateChevronsLocked(2);
+        gate.runtime().setGateChevronsLocked(2);
 
         final Set<Integer> xs = chevronsSentFor(here);
         assertEquals(Set.of(1, 2), xs, "only the chevrons locked so far");

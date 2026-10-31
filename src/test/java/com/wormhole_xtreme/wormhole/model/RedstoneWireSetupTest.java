@@ -77,7 +77,7 @@ class RedstoneWireSetupTest
         final Block target = blockOf(Material.AIR);
         final Stargate gate = gateWithDialActivator(target);
 
-        StargateBlockSetup.setupRedstoneDialWire(gate, true);
+        StargateRedstone.setupRedstoneDialWire(gate, true);
 
         verify(target).setType(Material.REDSTONE_WIRE);
         assertEquals(1, gate.getGateStructureBlocks().size(),
@@ -97,7 +97,7 @@ class RedstoneWireSetupTest
         final Block target = blockOf(Material.DIAMOND_BLOCK);
         final Stargate gate = gateWithDialActivator(target);
 
-        StargateBlockSetup.setupRedstoneDialWire(gate, true);
+        StargateRedstone.setupRedstoneDialWire(gate, true);
 
         verify(target, never()).setType(Material.REDSTONE_WIRE);
         assertTrue(gate.getGateStructureBlocks().isEmpty(),
@@ -112,7 +112,7 @@ class RedstoneWireSetupTest
         final Stargate gate = gateWithDialActivator(target);
         gate.getGateStructureBlocks().add(target.getLocation());
 
-        StargateBlockSetup.setupRedstoneDialWire(gate, false);
+        StargateRedstone.setupRedstoneDialWire(gate, false);
 
         verify(target).setType(Material.AIR);
         assertTrue(gate.getGateStructureBlocks().isEmpty(),
@@ -131,7 +131,7 @@ class RedstoneWireSetupTest
         final Block target = blockOf(Material.DIAMOND_BLOCK);
         final Stargate gate = gateWithDialActivator(target);
 
-        StargateBlockSetup.setupRedstoneDialWire(gate, false);
+        StargateRedstone.setupRedstoneDialWire(gate, false);
 
         verify(target, never()).setType(Material.AIR);
     }
@@ -142,11 +142,11 @@ class RedstoneWireSetupTest
     {
         final Stargate gate = gateWithDialActivator(null);
 
-        StargateBlockSetup.setupRedstoneDialWire(gate, true);
+        StargateRedstone.setupRedstoneDialWire(gate, true);
         // And on the way out, where there is no try/catch to absorb a null dereference --
         // taking up a wire a shape never asked for must not throw on a live teardown.
         Assertions.assertDoesNotThrow(
-            () -> StargateBlockSetup.setupRedstoneDialWire(gate, false));
+            () -> StargateRedstone.setupRedstoneDialWire(gate, false));
 
         assertFalse(gate.getGateStructureBlocks().iterator().hasNext(),
             "nothing placed and nothing claimed");
@@ -162,7 +162,7 @@ class RedstoneWireSetupTest
         gate.setGateWorld(world);
         gate.setGateRedstoneSignActivationBlock(target);
 
-        StargateBlockSetup.setupRedstoneSignDialWire(gate, true);
+        StargateRedstone.setupRedstoneSignDialWire(gate, true);
 
         verify(target).setType(Material.REDSTONE_WIRE);
         assertEquals(1, gate.getGateStructureBlocks().size());
@@ -178,7 +178,7 @@ class RedstoneWireSetupTest
         gate.setGateWorld(world);
         gate.setGateRedstoneSignActivationBlock(target);
 
-        StargateBlockSetup.setupRedstoneSignDialWire(gate, true);
+        StargateRedstone.setupRedstoneSignDialWire(gate, true);
 
         verify(target, never()).setType(Material.REDSTONE_WIRE);
     }

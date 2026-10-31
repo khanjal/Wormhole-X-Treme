@@ -60,10 +60,10 @@ final class WindowFace
      *
      * <p>Ring by ring out from the opening, to the first ring with a block that is not solid;
      * a wall solid to the edge of what was read counts as that far. The one-block wall is the
-     * case that matters ({@link Windows#farCellFor}).
+     * case that matters ({@link WindowCompose#farCellFor}).
      *
      * @param solid
-     *            the solid blocks of its face, as {@link Windows#refreshSolid} read them
+     *            the solid blocks of its face, as {@link WindowWall#refreshSolid} read them
      * @param reach
      *            how far out the face was read
      * @return the border, in blocks, from 0 to {@code reach}

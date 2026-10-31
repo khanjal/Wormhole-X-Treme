@@ -244,7 +244,7 @@ class WindowsTest
         withServer(() ->
         {
             WindowSweep.tick();
-            said.addAll(Windows.describe(viewer));
+            said.addAll(WindowDebug.describe(viewer));
         });
 
         // Asked of the windows, not of the blocks drawn: two windows on one opening take turns per
@@ -273,7 +273,7 @@ class WindowsTest
         withServer(() ->
         {
             WindowSweep.tick();
-            Windows.resendFor("museum");
+            WindowClicks.resendFor("museum");
             WindowSweep.tick();
         });
 
@@ -307,7 +307,7 @@ class WindowsTest
                 final Block opening = world.getBlockAt(10, 64, 11);
                 final Block bannerBlock = world.getBlockAt(10, 64, 10);
                 when(opening.getRelative(BlockFace.NORTH)).thenReturn(bannerBlock);
-                Windows.resend(viewer, opening, BlockFace.NORTH);
+                WindowClicks.resend(viewer, opening, BlockFace.NORTH);
                 final ArgumentCaptor<Runnable> soon = ArgumentCaptor.forClass(Runnable.class);
                 verify(scheduler).runTaskAsynchronously(ArgumentMatchers.any(Plugin.class),
                     soon.capture());
@@ -352,7 +352,7 @@ class WindowsTest
             withServer(() ->
             {
                 WindowSweep.tick();
-                Windows.resend(viewer);
+                WindowClicks.resend(viewer);
                 final ArgumentCaptor<Runnable> later = ArgumentCaptor.forClass(Runnable.class);
                 verify(scheduler, Mockito.atLeastOnce()).scheduleSyncDelayedTask(
                     ArgumentMatchers.any(Plugin.class), later.capture(),
@@ -952,7 +952,7 @@ class WindowsTest
     /** Where a viewer's last redraw was drawn from, off the debug line. */
     private static String drawnFrom(final Player viewer)
     {
-        return Windows.describe(viewer).stream().map(WindowsTest::plain)
+        return WindowDebug.describe(viewer).stream().map(WindowsTest::plain)
             .filter(line -> line.startsWith("drawn from: ")).findFirst().orElseThrow()
             .substring("drawn from: ".length());
     }
@@ -1055,7 +1055,7 @@ class WindowsTest
             projected[2] = projectedByTheLastRedraw(viewer);
         });
 
-        assertEquals(1.5, Windows.farCellFor(2), "two blocks of wall: a cell of a block and a half");
+        assertEquals(1.5, WindowCompose.farCellFor(2), "two blocks of wall: a cell of a block and a half");
         assertTrue(projected[0] > 0, "a step inside the cell projects the near layers");
         assertTrue(projected[1] < (2 * projected[0]),
             "a whole-block move inside the cell projects the near layers alone: " + projected[0] + " then "
@@ -1139,11 +1139,11 @@ class WindowsTest
                 Windows.moved(viewer, new Location(world, 9.5 + step, 64.0, 7.5));
                 projected[step] = projectedByTheLastRedraw(viewer);
             }
-            said.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
+            said.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
         });
 
-        assertEquals(4.0, Windows.farCellFor(5), "five blocks of wall: a cell of four");
-        assertEquals(4.0, Windows.farCellFor(16), "a wall solid as far as it is read: still four");
+        assertEquals(4.0, WindowCompose.farCellFor(5), "five blocks of wall: a cell of four");
+        assertEquals(4.0, WindowCompose.farCellFor(16), "a wall solid as far as it is read: still four");
         assertTrue(projected[0] > 0, "a step inside the cell projects the near layers");
         for (int step = 1; step < 3; step++)
         {
@@ -1180,7 +1180,7 @@ class WindowsTest
             WindowSweep.tick();
             clock[0] += 1_000L;
             WindowSweep.tick();
-            said.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
+            said.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
         });
 
         assertTrue(said.stream().anyMatch(line -> line.startsWith(
@@ -1221,8 +1221,8 @@ class WindowsTest
             projected[1] = projectedByTheLastRedraw(viewer);
         });
 
-        assertEquals(0.5, Windows.farCellFor(1), "a one-block wall: half a block");
-        assertEquals(0.5, Windows.farCellFor(0), "no wall at all: no less than half a block");
+        assertEquals(0.5, WindowCompose.farCellFor(1), "a one-block wall: half a block");
+        assertEquals(0.5, WindowCompose.farCellFor(0), "no wall at all: no less than half a block");
         assertTrue(projected[0] > 0, "a step within the half block projects the near layers");
         assertTrue(projected[1] > (2 * projected[0]),
             "a step into the other half of the same block projects the far layers too: " + projected[0] + " then "
@@ -1240,10 +1240,10 @@ class WindowsTest
     {
         Windows.restFactor = 3L;
         final int wide = Windows.SMALL_OPEN + 1;
-        assertEquals(Windows.REDRAW_MILLIS, Windows.restAfter(0L, wide), "a quick redraw keeps the pace");
-        assertEquals(Windows.REDRAW_MILLIS, Windows.restAfter(30L, wide),
+        assertEquals(Windows.REDRAW_MILLIS, WindowPacing.restAfter(0L, wide), "a quick redraw keeps the pace");
+        assertEquals(Windows.REDRAW_MILLIS, WindowPacing.restAfter(30L, wide),
             "so does one under a third of it");
-        assertEquals(195L, Windows.restAfter(65L, wide), "sixty-five milliseconds rests nearly two hundred");
+        assertEquals(195L, WindowPacing.restAfter(65L, wide), "sixty-five milliseconds rests nearly two hundred");
     }
 
     /**
@@ -1263,15 +1263,15 @@ class WindowsTest
     void aSmallOpeningIsRedrawnTwiceAsOften()
     {
         Windows.restFactor = 3L;
-        assertEquals(Windows.SMALL_REDRAW_MILLIS, Windows.restAfter(0L, 1),
+        assertEquals(Windows.SMALL_REDRAW_MILLIS, WindowPacing.restAfter(0L, 1),
             "a one block opening is drawn twice as often");
-        assertEquals(Windows.SMALL_REDRAW_MILLIS, Windows.restAfter(0L, Windows.SMALL_OPEN),
+        assertEquals(Windows.SMALL_REDRAW_MILLIS, WindowPacing.restAfter(0L, Windows.SMALL_OPEN),
             "so is the largest opening that still counts as small");
-        assertEquals(Windows.REDRAW_MILLIS, Windows.restAfter(0L, Windows.SMALL_OPEN + 1),
+        assertEquals(Windows.REDRAW_MILLIS, WindowPacing.restAfter(0L, Windows.SMALL_OPEN + 1),
             "one block bigger keeps the ten a second every window had before");
-        assertEquals(Windows.REDRAW_MILLIS, Windows.restAfter(0L, 0),
+        assertEquals(Windows.REDRAW_MILLIS, WindowPacing.restAfter(0L, 0),
             "and so does a viewer whose opening size is not known");
-        assertEquals(195L, Windows.restAfter(65L, 1),
+        assertEquals(195L, WindowPacing.restAfter(65L, 1),
             "a small opening buys no cheaper cost cap: a slow redraw still rests three times as long");
     }
 
@@ -1285,18 +1285,18 @@ class WindowsTest
     @Test
     void aSmallOpeningCatchesUpAfterOneTick()
     {
-        assertEquals(1L, Windows.catchUpTicks(Windows.SMALL_REDRAW_MILLIS, 40L),
+        assertEquals(1L, WindowPacing.catchUpTicks(Windows.SMALL_REDRAW_MILLIS, 40L),
             "a small opening's catch-up waits one tick");
-        assertEquals(2L, Windows.catchUpTicks(Windows.REDRAW_MILLIS, 40L),
+        assertEquals(2L, WindowPacing.catchUpTicks(Windows.REDRAW_MILLIS, 40L),
             "a wider one keeps its two");
-        assertEquals(4L, Windows.catchUpTicks(195L, 10L),
+        assertEquals(4L, WindowPacing.catchUpTicks(195L, 10L),
             "and a slow redraw's catch-up still waits out its whole rest");
     }
 
     /** How many blocks the viewer's last redraw projected, off the debug line. */
     private static int projectedByTheLastRedraw(final Player viewer)
     {
-        final String line = Windows.describe(viewer).stream().map(WindowsTest::plain)
+        final String line = WindowDebug.describe(viewer).stream().map(WindowsTest::plain)
             .filter(said -> said.startsWith("last redraw: ")).findFirst().orElseThrow();
         return Integer.parseInt(line.replaceAll("last redraw: (\\d+) blocks projected.*", "$1"));
     }
@@ -1328,7 +1328,7 @@ class WindowsTest
             withServer(() ->
             {
                 WindowSweep.tick();
-                said.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
+                said.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
                 ticks[0] = runBooked(scheduler);
             });
 
@@ -1378,9 +1378,9 @@ class WindowsTest
                 ticks[0] = runBooked(scheduler);
                 pause();
                 Windows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
-                midway.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
+                midway.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
                 ticks[1] = runBooked(scheduler) - ticks[0];
-                after.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
+                after.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
             });
 
             assertTrue(midway.stream().anyMatch(line -> line.startsWith("still to send: ")),
@@ -1493,7 +1493,7 @@ class WindowsTest
 
         withServer(WindowSweep::tick);
 
-        final List<String> said = Windows.describe(viewer).stream().map(WindowsTest::plain).toList();
+        final List<String> said = WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList();
         assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: drawn whole cut to depth ")
             && line.contains(" of 16 to fit 100 blocks")), "the cut and the cap named: " + said);
     }
@@ -1515,7 +1515,7 @@ class WindowsTest
 
         withServer(WindowSweep::tick);
 
-        final List<String> said = Windows.describe(viewer).stream().map(WindowsTest::plain).toList();
+        final List<String> said = WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList();
         assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: drawn whole cut to depth ")
             && line.contains(" of 16 to fit 100 blocks")), "the cut and the cap named: " + said);
     }
@@ -1544,7 +1544,7 @@ class WindowsTest
             Windows.moved(viewer, new Location(world, 10.5, 64.0, 9.8));
         });
 
-        final List<String> said = Windows.describe(viewer).stream().map(WindowsTest::plain).toList();
+        final List<String> said = WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList();
         assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: whole to depth 16, clipped to each eye")),
             "how it is drawn: " + said);
         assertFalse(positions(changesTo(viewer, 2).get(1)).containsKey(new Spot(10, 65, 22)),
@@ -2189,10 +2189,10 @@ class WindowsTest
                 clearInvocations(scheduler);
                 pause();
                 Windows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
-                Windows.resend(viewer);
-                midway.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
+                WindowClicks.resend(viewer);
+                midway.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
                 runBooked(scheduler);
-                after.addAll(Windows.describe(viewer).stream().map(WindowsTest::plain).toList());
+                after.addAll(WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList());
             });
 
             assertTrue(midway.stream().anyMatch(line -> line.startsWith("still to send: ")),
@@ -2228,7 +2228,7 @@ class WindowsTest
             withServer(() ->
             {
                 WindowSweep.tick();
-                Windows.resend(viewer);
+                WindowClicks.resend(viewer);
                 drawn[0] = drawnCount(viewer);
                 runBooked(scheduler);
                 drawn[1] = drawnCount(viewer);
@@ -2249,7 +2249,7 @@ class WindowsTest
     /** How many blocks a viewer has been sent, read from {@code mirror debug}. */
     private static int drawnCount(final Player viewer)
     {
-        for (final String line : Windows.describe(viewer).stream().map(WindowsTest::plain).toList())
+        for (final String line : WindowDebug.describe(viewer).stream().map(WindowsTest::plain).toList())
         {
             if (line.startsWith("drawn: "))
             {
@@ -2269,8 +2269,8 @@ class WindowsTest
         withServer(WindowSweep::tick);
 
         assertSame(MirrorManager.byName("museum"),
-            Windows.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
-        assertNull(Windows.clicked(viewer, blockAt(40, 63, 12, true)),
+            WindowClicks.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
+        assertNull(WindowClicks.clicked(viewer, blockAt(40, 63, 12, true)),
             "a block nowhere near the view is nothing to do with the mirror");
     }
 
@@ -2293,16 +2293,16 @@ class WindowsTest
         for (int z = 12; (z < 40) && (drawn == null); z++)
         {
             final Block candidate = blockAt(10, 63, z, true);
-            if (Windows.drew(viewer, candidate))
+            if (WindowClicks.drew(viewer, candidate))
             {
                 drawn = candidate;
             }
         }
         assertNotNull(drawn, "the room behind the opening is drawn somewhere along its middle");
-        assertSame(MirrorManager.byName("museum"), Windows.clicked(viewer, drawn),
+        assertSame(MirrorManager.byName("museum"), WindowClicks.clicked(viewer, drawn),
             "a click on it is a click on the mirror");
-        assertFalse(Windows.drew(viewer, blockAt(40, 63, 12, true)), "and nothing else is");
-        assertFalse(Windows.drew(playerAt(10.5, 7.5), drawn), "and only for whoever is shown it");
+        assertFalse(WindowClicks.drew(viewer, blockAt(40, 63, 12, true)), "and nothing else is");
+        assertFalse(WindowClicks.drew(playerAt(10.5, 7.5), drawn), "and only for whoever is shown it");
     }
 
     /** Every right-click on the server comes through here, and almost nobody is looking in. */
@@ -2311,7 +2311,7 @@ class WindowsTest
     {
         final Block wall = mock(Block.class);
 
-        assertNull(Windows.clicked(playerAt(10.5, 7.5), wall));
+        assertNull(WindowClicks.clicked(playerAt(10.5, 7.5), wall));
 
         verifyNoInteractions(wall);
     }
@@ -2349,7 +2349,7 @@ class WindowsTest
         final Map<Spot, BlockData> drawn = positions(sent);
         assertNotSame(barrier, drawn.get(new Spot(10, 64, 11)), "the opening is the gate's to walk into");
         assertNotSame(barrier, drawn.get(new Spot(10, 63, 11)), "all of it");
-        assertNull(Windows.clicked(viewer, blockAt(10, 63, 11, true)), "and a click into it travels no mirror");
+        assertNull(WindowClicks.clicked(viewer, blockAt(10, 63, 11, true)), "and a click into it travels no mirror");
     }
 
     /** What the drawing told of each viewer after each redraw: their windows, or null for a drawing gone with them. */
@@ -2865,7 +2865,7 @@ class WindowsTest
         withServer(() ->
         {
             WindowSweep.tick();
-            said.addAll(Windows.describe(viewer));
+            said.addAll(WindowDebug.describe(viewer));
         });
 
         assertEquals(1, standInsMade, "not shown standing on air");
@@ -3060,7 +3060,7 @@ class WindowsTest
         assertTrue(StandIns.isStandIn(standIn));
         when(farZombie.getLocation()).thenThrow(new IllegalStateException("gone wrong"));
 
-        Windows.followStandIns();
+        WindowCreatures.followStandIns();
 
         verify(standIn).remove();
         assertFalse(StandIns.isStandIn(standIn));
@@ -3130,7 +3130,7 @@ class WindowsTest
             withServer(() ->
             {
                 WindowSweep.tick();
-                said.addAll(Windows.describe(viewer));
+                said.addAll(WindowDebug.describe(viewer));
             });
             assertEquals(List.of(), spawned, "a player hidden from the viewer, as vanish hides one, is not shown");
             assertTrue(said.stream().anyMatch(line -> line.contains("1 player(s) hidden from you")),
@@ -3141,7 +3141,7 @@ class WindowsTest
             withServer(() ->
             {
                 WindowSweep.tick();
-                said.addAll(Windows.describe(viewer));
+                said.addAll(WindowDebug.describe(viewer));
             });
             assertEquals(List.of(ArmorStand.class), spawned, "players on: the player, as a figure");
             assertTrue(StandIns.isStandIn(figure));

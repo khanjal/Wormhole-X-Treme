@@ -99,7 +99,7 @@ final class PreviewPlacer
             }
             if ((cell.part() != Part.DIAL_SIGN) && !alreadyRight(preview, cell, block))
             {
-                final BlockData data = GatePreviews.blockDataFor(preview, cell);
+                final BlockData data = PreviewFrame.blockDataFor(preview, cell);
                 if (data instanceof FaceAttachable attached)
                 {
                     attached.setAttachedFace(FaceAttachable.AttachedFace.WALL);

@@ -104,8 +104,8 @@ class CoreProtectHookTest
         final Block lever = world.getBlockAt(3, 70, 3);
         gate.setGateIrisLeverBlock(lever);
 
-        StargateBlockSetup.setupIrisLever(gate, true);
-        StargateBlockSetup.setupIrisLever(gate, false);
+        GateFittings.setupIrisLever(gate, true);
+        GateFittings.setupIrisLever(gate, false);
 
         assertEquals(List.of("placed #wormhole LEVER 70 over AIR", "removed #wormhole LEVER 70"), logged);
     }
@@ -121,8 +121,8 @@ class CoreProtectHookTest
         gate.setGateWorld(world);
         gate.setGateRedstoneDialActivationBlock(world.getBlockAt(5, 70, 5));
 
-        StargateBlockSetup.setupRedstoneDialWire(gate, true);
-        StargateBlockSetup.setupRedstoneDialWire(gate, true);
+        StargateRedstone.setupRedstoneDialWire(gate, true);
+        StargateRedstone.setupRedstoneDialWire(gate, true);
 
         assertEquals(List.of("placed #wormhole REDSTONE_WIRE 70 over AIR"), logged);
     }
@@ -141,7 +141,7 @@ class CoreProtectHookTest
         standing.put(List.of(3, 70, 3), Material.STONE);
         gate.setGateIrisLeverBlock(world.getBlockAt(3, 70, 3));
 
-        StargateBlockSetup.setupIrisLever(gate, true);
+        GateFittings.setupIrisLever(gate, true);
 
         assertEquals(List.of("placed #wormhole LEVER 70 over STONE"), logged);
     }
@@ -158,7 +158,7 @@ class CoreProtectHookTest
         gate.setGateFacing(BlockFace.NORTH);
         gate.setGateDialLeverBlock(world.getBlockAt(5, 66, 5));
 
-        StargateBlockSetup.toggleDialLeverState(gate, true);
+        StargateRedstone.toggleDialLeverState(gate, true);
 
         assertEquals(List.of("placed #wormhole LEVER 66 over AIR"), logged);
     }

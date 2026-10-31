@@ -29,7 +29,7 @@ final class WindowOcclusion
      *
      * @param spread
      *            how far the outline is widened on every side: half the cell, for a far block
-     *            judged for every eye in one ({@link Windows#clipWhole}), else nothing
+     *            judged for every eye in one ({@link WindowCompose#clipWhole}), else nothing
      * @return the block's outline on the opening's face, or {@link WindowShape#UNSEEN} if it is
      *         not seen through it
      */

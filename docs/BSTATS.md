@@ -45,23 +45,33 @@ bStats adds these for every plugin; the plugin sends nothing for them.
 | `gate_iris_animation` | Iris Animation | Simple Pie | `sweep`, `spiral`, `rows`, `columns`, `instant`, `other` |
 | `gate_shapes` | Gate Shapes | Advanced Pie | `Standard`, `StandardSignDial`, `Minimal`, `MinimalSignDial`, `Horizontal`, `HorizontalSignDial`, `Large`, `Grand`, `Massive`, `custom` |
 | `portal_material` | Portal Material - per gate | Advanced Pie | `water`, `lava`, `nether_portal`, `end_gateway`, `end_portal`, `other`, `unknown` |
+| `gate_material` | Gate Material - per gate | Advanced Pie | the game's block names for the frame, lower case (`obsidian`, `lapis_block`, `nether_bricks`, ...), and `unknown` |
 | `integrations` | Integrations | Advanced Pie | `Vault`, `LuckPerms`, `PlaceholderAPI`, `CoreProtect`, `WorldGuard`, `dynmap`, `BlueMap`, `squaremap`, `Pl3xMap`, `none` |
 
 - **A range** is one of `0`, `1-5`, `6-20`, `21-50`, `51-200`, `200+`.
 - **Simple Pie** charts send one value per server. **Advanced Pie** charts send a name and a
-  count: `gate_shapes` and `portal_material` count per gate, `integrations` counts each plugin
+  count: `gate_shapes`, `portal_material` and `gate_material` count per gate, `integrations` counts each plugin
   once, and sends `none` when there are none, since a chart with no entries is not sent. For the
-  same reason `gate_shapes` and `portal_material` only count servers with at least one gate, so
+  same reason `gate_shapes`, `portal_material` and `gate_material` only count servers with at least one gate, so
   their totals are lower than `servers`.
-- Every value is from a closed set. The plugin never sends a name a server chose: a shape that
-  does not ship with it, or a gate with no shape, is `custom`, a material outside the five is `other`, and an iris
-  animation that is not one of the five is `other`.
+- The plugin never sends a name a server chose: a shape that does not ship with it, or a gate with
+  no shape, is `custom`, a portal material outside the five is `other`, and an iris animation that
+  is not one of the five is `other`. Every value is from a closed set, but not every set is short:
+  `gate_material` is the frame block's own name, one of the game's (a few hundred in practice),
+  however a server's material groups are called.
+- `gate_material` has a larger `unknown` than `portal_material`. A gate's frame is found from the
+  world the first time anything asks, and until then a gate in an unloaded chunk cannot be told
+  without loading it. Two groups can share a portal material but never a frame block, so with two or
+  more groups the frame always depends on the group, and that is every gate nobody has used since
+  the server started. The value is the frame as the plugin knows it: its group's block, or the
+  shape's own where the frame matches no group.
 
 ## When the plugin changes
 
 The dashboard does not follow the code. Add or edit the chart there when you:
 
-- add a chart, in `MetricsSupport`: create it with the same ID and type;
+- add a chart, in `MetricsSupport`: create it with the same ID and type (`gate_material`, an
+  Advanced Pie, has to be created on the dashboard before its counts show);
 - change any of the below: the Metrics section of [guide/SERVER.md](guide/SERVER.md) repeats the
   same lists, so edit it too;
 - change `range()`: it sets the values of `gates`, `ring_pairs`, `beam_destinations` and `mirrors`
@@ -74,4 +84,5 @@ The dashboard does not follow the code. Add or edit the chart there when you:
 
 The dashboard's **Enable filters** option is described there as enforcing input rules. If it is
 on for a chart, enter the values above as spelled, capitals included, or a value left out may be
-rejected.
+rejected. Leave it off for `gate_material`: its values are every block the game has, so a filter
+would drop most of them.

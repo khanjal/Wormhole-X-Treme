@@ -32,7 +32,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * That is fine until the shape file gains a marker: #28 added {@code [RD]} and {@code [RA]} to
  * two shipped shapes, and every gate already standing kept the empty marker positions it was
  * detected with. No amount of wiring will fire such a gate, because
- * {@code StargateBlockSetup.setupRedstone} places blocks at positions that are already known
+ * {@code StargateRedstone.setupRedstone} places blocks at positions that are already known
  * and derives none, and {@code /wormhole regenerate} guards that call with
  * {@code isGateRedstonePowered()} -- which is false on exactly the gates that need fixing.
  *
