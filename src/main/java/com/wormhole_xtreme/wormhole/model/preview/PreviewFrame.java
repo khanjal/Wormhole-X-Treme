@@ -184,7 +184,7 @@ final class PreviewFrame
      */
     static BlockData dataFor(final GatePreview preview, final Cell cell)
     {
-        final boolean riding = GatePreviews.spins(preview) && (GatePreviews.pattern(preview) == DialSpinPattern.UNIVERSE)
+        final boolean riding = PreviewDial.spins(preview) && (PreviewDial.pattern(preview) == DialSpinPattern.UNIVERSE)
             && (preview.litWaves() < preview.lastWave());
         final boolean lit = (!riding && (cell.wave() > 0) && (cell.wave() <= preview.litWaves()))
             || preview.spinCells().contains(cell);

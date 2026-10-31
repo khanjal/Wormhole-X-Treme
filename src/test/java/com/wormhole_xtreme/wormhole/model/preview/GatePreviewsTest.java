@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.function.Predicate;
 
 import org.bukkit.Color;
@@ -87,6 +88,7 @@ import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
+import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.IrisSweepDriver;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -99,6 +101,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.RecordingCreation;
+import com.wormhole_xtreme.wormhole.utils.Sounds;
 
 /**
  * What a gate build preview puts in the world, who sees it, and when it goes.
@@ -4106,5 +4109,224 @@ class GatePreviewsTest
         GatePreviews.show(owner, standard, null);
 
         verify(button, never()).setFacing(any(BlockFace.class));
+    }
+
+    /** The last block a display was set to, or null if it never was. */
+    private static BlockData lastShown(final BlockDisplay display)
+    {
+        final List<BlockData> shown = mockingDetails(display).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("setBlock")).map(i -> i.<BlockData>getArgument(0)).toList();
+        return shown.isEmpty() ? null : shown.get(shown.size() - 1);
+    }
+
+    /** Standard with some of its lines changed, as a shape. */
+    private static Stargate3DShape standardWith(final UnaryOperator<String> change) throws Exception
+    {
+        return new Stargate3DShape(Files.readAllLines(Paths.get("src/main/resources/shapes/gate/Standard.shape"))
+            .stream().map(change).toList().toArray(new String[0]));
+    }
+
+    /**
+     * A dial's sounds, in order: the activation, a chevron for each lock with its pitch climbing
+     * through the sequence, the lock sound once with the last, and the kawoosh once as the wormhole
+     * forms, as a real gate plays them.
+     */
+    @Test
+    void aDialPlaysTheChevronsClimbingThenTheLockThenTheKawoosh()
+    {
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        final List<Invocation> played = mockingDetails(owner).getInvocations().stream()
+            .filter(i -> i.getMethod().getName().equals("playSound") && (i.getArguments().length == 5)).toList();
+        final int chevrons = preview.lastWave();
+        final List<String> expected = new ArrayList<>();
+        expected.add(ConfigManager.getGateSoundActivate());
+        for (int n = 1; n <= chevrons; n++)
+        {
+            expected.add(ConfigManager.getGateSoundChevron());
+        }
+        expected.add(ConfigManager.getGateSoundLock());
+        expected.add(ConfigManager.getGateSoundKawoosh());
+        assertEquals(expected, played.stream().map(i -> i.<String>getArgument(1)).toList());
+
+        final float size = GateSounds.sizePitch(GateSounds.scaleOf(standard));
+        for (int n = 1; n <= chevrons; n++)
+        {
+            assertEquals(Sounds.clamp(GateSounds.chevronPitch(n, chevrons) * size), played.get(n).<Float>getArgument(4),
+                1.0e-6f, "chevron " + n + " at its place in the climb");
+        }
+        assertEquals(Sounds.clamp(GateSounds.LOCK_PITCH * size), played.get(chevrons + 1).<Float>getArgument(4),
+            1.0e-6f, "the lock");
+        assertEquals(Sounds.clamp(GateSounds.KAWOOSH_PITCH * size), played.get(chevrons + 2).<Float>getArgument(4),
+            1.0e-6f, "the kawoosh");
+    }
+
+    /**
+     * A finished dial books nothing and has no task to cancel, and its woosh stage stands past
+     * the last stage it played; each step has dropped the booking that ran it.
+     */
+    @Test
+    void aFinishedDialHasNothingBookedAndItsWooshStagePastTheEnd()
+    {
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        assertNull(preview.dialling(), "the last step booked no more, and the one that ran it was dropped");
+        assertEquals(6, preview.wooshStage(), "three steps out and three back, the stage one past the last");
+        assertTrue(preview.open());
+    }
+
+    /**
+     * With the ring turning, a chevron that has locked is followed a tick later by the next turn
+     * rather than the chevron's interval: the turn is itself the wait.
+     */
+    @Test
+    void aSpinningDialStartsTheNextTurnATickAfterALock()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        final int ticks = standard.getShapeLightTicks();
+        for (int step = 0; step <= ticks; step++)
+        {
+            dialStep.run();
+        }
+
+        assertEquals(1, preview.litWaves(), "the first chevron locked on this step");
+        assertEquals(1L, dialDelays.get(ticks + 1), "the next turn follows a tick later, not " + ticks);
+        assertNotEquals(1L, (long) ticks, "so the two readings differ");
+    }
+
+    /**
+     * A shape with no top chevron has no ring to turn, so a server set to turn rings dials it like
+     * any other: each step locks a chevron.
+     */
+    @Test
+    void aShapeWithNoTopChevronDialsWithoutTurningWhateverTheServerIsSetTo() throws Exception
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
+        final Stargate3DShape flat = standardWith(line -> line.replace("[S:L#7]", "[S]"));
+        GatePreviews.show(owner, flat, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        assertNull(preview.spin(), "nothing to turn");
+        GatePreviews.activate(owner);
+
+        dialStep.run();
+        assertEquals(1, preview.litWaves());
+        dialStep.run();
+        assertEquals(2, preview.litWaves());
+    }
+
+    /**
+     * A preview recoloured into a group that turns no ring part-way round a turn puts back what the
+     * turn had lit, and the next chevron locks at once.
+     */
+    @Test
+    void recolouringIntoAGroupThatTurnsNoneMidTurnPutsBackWhatTheTurnLit()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 3; step++)
+        {
+            dialStep.run();
+        }
+        final Set<Cell> lit = Set.copyOf(preview.spinCells());
+        assertFalse(lit.isEmpty(), "the light is travelling");
+        assertTrue(preview.spinTick() > 0);
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, false);
+
+        dialStep.run();
+
+        assertEquals(1, preview.litWaves(), "locked with no more turning");
+        assertTrue(preview.spinCells().isEmpty());
+        assertEquals(0, preview.spinTick(), "so a later turn would start from the start");
+        for (final Cell cell : lit)
+        {
+            assertNotEquals(data.get(Material.GLOWSTONE), lastShown(spawned.get(standardLookingNorth().indexOf(cell))),
+                "the cell the turn had lit is dark again");
+        }
+    }
+
+    /** As the light moves on it leaves the cell it was in dark. */
+    @Test
+    void theRingsLightLeavesTheCellItHasMovedOffDark()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "PEGASUS");
+        final List<Cell> cells = standardLookingNorth();
+        final DialSpin spin = DialSpin.of(cells, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+        final Cell start = spin.path(1).get(0);
+        GatePreviews.show(owner, standard, null);
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+
+        dialStep.run();
+        assertEquals(data.get(Material.GLOWSTONE), lastShown(spawned.get(cells.indexOf(start))), "it starts lit");
+        int moved = 0;
+        while (preview.spinCells().contains(start) && (moved++ < standard.getShapeLightTicks()))
+        {
+            dialStep.run();
+        }
+
+        assertFalse(preview.spinCells().contains(start), "the light has moved on");
+        assertNotEquals(data.get(Material.GLOWSTONE), lastShown(spawned.get(cells.indexOf(start))),
+            "and left its first cell dark");
+    }
+
+    /**
+     * Under TOP the top chevron rests lit after each lock but the last, so the one before the last
+     * is still resting lit once it has locked.
+     */
+    @Test
+    void theTopStaysLitAfterTheLockBeforeTheLast()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_DIAL_SPIN, "TOP");
+        final List<Cell> cells = standardLookingNorth();
+        final DialSpin spin = DialSpin.of(cells, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
+        final List<Cell> path = spin.path(DialSpinPattern.TOP, 1);
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay top = spawned.get(cells.indexOf(path.get(path.size() - 1)));
+        final GatePreview preview = GatePreviews.of(owner.getUniqueId()).get(0);
+        GatePreviews.activate(owner);
+        final int beforeLast = preview.lastWave() - 1;
+        for (int step = 0; (step < 2000) && (preview.litWaves() < beforeLast); step++)
+        {
+            dialStep.run();
+        }
+        assertEquals(beforeLast, preview.litWaves());
+
+        assertEquals(data.get(Material.GLOWSTONE), lastShown(top), "resting lit, not dark until the next turn");
+    }
+
+    /** A shape whose ticks are zero is booked a tick at a time, never at zero. */
+    @Test
+    void aShapeWithZeroTicksIsBookedATickAtATime() throws Exception
+    {
+        final Stargate3DShape quick = standardWith(line -> line.replace("LIGHT_TICKS = 10;", "LIGHT_TICKS = 0;")
+            .replace("WOOSH_TICKS = 3;", "WOOSH_TICKS = 0;"));
+        GatePreviews.show(owner, quick, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+
+        assertEquals(13, dialDelays.size());
+        final long hold = Stargate.LAST_CHEVRON_PAUSE_TICKS;
+        assertEquals(List.of(1L, 1L, 1L, 1L, 1L, 1L, 1L, hold, 1L, 1L, 1L, 1L, 1L), dialDelays,
+            "every booking a tick at least, the hold after the last chevron as ever");
     }
 }

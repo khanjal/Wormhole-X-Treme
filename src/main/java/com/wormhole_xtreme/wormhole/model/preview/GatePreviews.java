@@ -34,7 +34,6 @@ import java.util.logging.Level;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
-import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Palette;
@@ -52,7 +51,6 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
-import com.wormhole_xtreme.wormhole.model.WooshSequence;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.Messages;
@@ -990,116 +988,6 @@ public final class GatePreviews
         gateAt = PreviewPlacer::gateAt;
     }
 
-    /**
-     * Plays the next step of a dial: the next chevron wave, then the kawoosh in the order
-     * {@link WooshSequence} gives a real gate, then the open wormhole.
-     *
-     * @param owner
-     *            whose preview
-     * @param preview
-     *            the preview dialling
-     */
-    static void step(final Player owner, final GatePreview preview)
-    {
-        preview.dialling(null);
-        if (preview.litWaves() < preview.lastWave())
-        {
-            if (!turnRing(owner, preview))
-            {
-                lockNextChevron(owner, preview);
-            }
-            return;
-        }
-        // The same sequence a real gate plays, iris and all; only the drawing is the preview's.
-        final int stage = preview.wooshStage();
-        final int next = WooshSequence.play(stage, preview.lastWoosh(), preview, new PreviewCanvas(owner, preview));
-        preview.wooshStage((next < 0) ? (stage + 1) : next);
-        if (next >= 0)
-        {
-            next(owner, preview, preview.shape().getShapeWooshTicks());
-        }
-    }
-
-    /** A preview's side of the woosh: fake blocks for whoever is watching, the sound at the preview. */
-    private record PreviewCanvas(Player owner, GatePreview preview) implements WooshSequence.Canvas
-    {
-        @Override
-        public void kawoosh()
-        {
-            sound(owner, preview, ConfigManager.getGateSoundKawoosh(), GateSounds.KAWOOSH_PITCH);
-        }
-
-        @Override
-        public void draw(final int index)
-        {
-            send(owner, preview, wooshStep(preview, index));
-        }
-
-        @Override
-        public void undraw(final int index)
-        {
-            takeBack(owner, preview, wooshStep(preview, index));
-        }
-
-        @Override
-        public void undrawAll()
-        {
-            takeBack(owner, preview, preview.woosh());
-        }
-
-        @Override
-        public void settle()
-        {
-            preview.open(true);
-            GatePreviews.draw(owner, preview);
-        }
-
-        @Override
-        public void settleBehindIris()
-        {
-            // Open all the same: the opening is drawn behind the iris, and its displays cover it.
-            settle();
-        }
-
-        /** The woosh's cells at one step, counted from 0 as {@link WooshSequence} does; the shape's W# from 1. */
-        private static List<Cell> wooshStep(final GatePreview preview, final int index)
-        {
-            return preview.woosh().stream().filter(cell -> cell.wave() == (index + 1)).toList();
-        }
-    }
-
-    /** Locks the next chevron, with its sound, and books what follows it. */
-    private static void lockNextChevron(final Player owner, final GatePreview preview)
-    {
-        preview.litWaves(preview.litWaves() + 1);
-        sound(owner, preview, ConfigManager.getGateSoundChevron(),
-            GateSounds.chevronPitch(preview.litWaves(), preview.lastWave()));
-        if (preview.litWaves() == preview.lastWave())
-        {
-            sound(owner, preview, ConfigManager.getGateSoundLock(), GateSounds.LOCK_PITCH);
-        }
-        restyle(preview);
-        // Held after the last chevron as a real gate holds it. With the ring turning, the turn
-        // itself is the wait before the next chevron.
-        final long between = spins(preview) ? 1L : preview.shape().getShapeLightTicks();
-        next(owner, preview, (preview.litWaves() < preview.lastWave()) ? between : Stargate.LAST_CHEVRON_PAUSE_TICKS);
-    }
-
-    /** Whether this preview's dial shows the ring turning. */
-    static boolean spins(final GatePreview preview)
-    {
-        return (preview.spin() != null) && (pattern(preview) != DialSpinPattern.NONE);
-    }
-
-    /**
-     * The ring pattern a preview dials with: that of the group its frame material names, else the
-     * server's, as the gate built from it would be detected.
-     */
-    static DialSpinPattern pattern(final GatePreview preview)
-    {
-        return ConfigManager.getGateDialSpinPattern(null, groupByFrame(preview));
-    }
-
     /** How a preview's iris crosses (#427): its group's animation, else the server's, as a gate's. */
     private static String irisAnimation(final GatePreview preview)
     {
@@ -1107,54 +995,9 @@ public final class GatePreviews
     }
 
     /** The group the gate built from a preview would be detected as, by its frame material. */
-    private static MaterialGroup groupByFrame(final GatePreview preview)
+    static MaterialGroup groupByFrame(final GatePreview preview)
     {
         return MaterialGroupRegistry.getGroupByStructureMaterial(preview.palette().structure());
-    }
-
-    /**
-     * Moves the ring's light one tick along its pattern (#357), for the glyph about to lock, over
-     * the chevron's own interval and any rest the pattern adds.
-     *
-     * @return true while the light is still travelling, false once it has arrived and the chevron may lock
-     */
-    private static boolean turnRing(final Player owner, final GatePreview preview)
-    {
-        if (!spins(preview))
-        {
-            // Recoloured into a group that turns none part way round: put back what the turn had lit.
-            final Set<Cell> left = preview.spinCells();
-            if (!left.isEmpty())
-            {
-                preview.spinCells(Set.of());
-                preview.spinTick(0);
-                restyle(preview, left);
-            }
-            return false;
-        }
-        final Set<Cell> was = preview.spinCells();
-        final DialSpinPattern pattern = pattern(preview);
-        final int glyph = preview.litWaves() + 1;
-        final int interval = Math.max(1, preview.shape().getShapeLightTicks());
-        final boolean arrived = preview.spinTick() >= preview.spin().frames(pattern, glyph, interval);
-        // On arriving, what rests on the ring stays lit through the lock; the next turn takes it back.
-        preview.spinCells(arrived ? preview.spin().rest(pattern, glyph, preview.lastWave())
-            : preview.spin().frame(pattern, glyph, preview.spinTick(), interval));
-        preview.spinTick(arrived ? 0 : (preview.spinTick() + 1));
-        final Set<Cell> changed = new HashSet<>(was);
-        changed.addAll(preview.spinCells());
-        restyle(preview, changed);
-        if (arrived)
-        {
-            return false;
-        }
-        next(owner, preview, 1L);
-        return true;
-    }
-
-    private static void next(final Player owner, final GatePreview preview, final long ticks)
-    {
-        preview.dialling(later.after(Math.max(1L, ticks), () -> step(owner, preview)));
     }
 
     private static BukkitTask schedule(final long ticks, final Runnable step)
@@ -1183,7 +1026,7 @@ public final class GatePreviews
             return Control.SHUT_DOWN;
         }
         sound(owner, preview, ConfigManager.getGateSoundActivate(), 1.0f);
-        next(owner, preview, preview.shape().getShapeLightTicks());
+        PreviewDial.next(owner, preview, preview.shape().getShapeLightTicks());
         return Control.DIALLING;
     }
 
@@ -1191,7 +1034,7 @@ public final class GatePreviews
      * Sends everyone watching the wormhole's material at some cells, as fake blocks: a block display
      * draws no liquid, and a real gate draws its wormhole the same way.
      */
-    private static void send(final Player owner, final GatePreview preview, final List<Cell> cells)
+    static void send(final Player owner, final GatePreview preview, final List<Cell> cells)
     {
         final List<Player> watching = watching(owner, preview);
         for (final Cell cell : cells)
@@ -1216,7 +1059,7 @@ public final class GatePreviews
      * Shows everyone watching what really stands at cells a fake block was sent to. An unloaded chunk
      * is left alone: the client gets it afresh when it loads.
      */
-    private static void takeBack(final Player owner, final GatePreview preview, final List<Cell> cells)
+    static void takeBack(final Player owner, final GatePreview preview, final List<Cell> cells)
     {
         final List<Player> watching = watching(owner, preview);
         final List<Cell> sent = cells.stream().filter(cell -> preview.sent().remove(GatePreview.key(cell))).toList();
@@ -1421,7 +1264,7 @@ public final class GatePreviews
         }
     }
 
-    private static void sound(final Player owner, final GatePreview preview, final String sound, final float pitch)
+    static void sound(final Player owner, final GatePreview preview, final String sound, final float pitch)
     {
         if (ConfigManager.isGateSoundsEnabled())
         {
@@ -1437,7 +1280,7 @@ public final class GatePreviews
      * Brings the entities in line with what the preview should show: spawns what is missing where
      * its chunk is loaded, and removes what should not be there.
      */
-    private static void draw(final Player owner, final GatePreview preview)
+    static void draw(final Player owner, final GatePreview preview)
     {
         final World world = preview.world();
         final boolean built = PreviewFrame.drawFrame(owner, preview);
@@ -2331,7 +2174,7 @@ public final class GatePreviews
     }
 
     /** Sets every standing display to what its cell should show now. */
-    private static void restyle(final GatePreview preview)
+    static void restyle(final GatePreview preview)
     {
         for (int i = 0; i < preview.cells().size(); i++)
         {
@@ -2360,7 +2203,7 @@ public final class GatePreviews
     }
 
     /** Restyles only the given cells: the ring's light moves every tick, and the rest stands still. */
-    private static void restyle(final GatePreview preview, final Set<Cell> cells)
+    static void restyle(final GatePreview preview, final Set<Cell> cells)
     {
         for (final Cell cell : cells)
         {
