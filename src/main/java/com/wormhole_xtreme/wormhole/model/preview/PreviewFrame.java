@@ -114,7 +114,7 @@ final class PreviewFrame
         shown.set(i, spawned);
         if (spawned != null)
         {
-            GatePreviews.watching(null, preview).forEach(viewer -> viewer.showEntity(WormholeXTreme.getThisPlugin(), spawned));
+            PreviewAudience.watching(null, preview).forEach(viewer -> viewer.showEntity(WormholeXTreme.getThisPlugin(), spawned));
         }
     }
 

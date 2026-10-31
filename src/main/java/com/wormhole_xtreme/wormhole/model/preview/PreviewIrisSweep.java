@@ -70,7 +70,7 @@ final class PreviewIrisSweep
         preview.sweeping(true);
         // What each viewer holds now. A sweep called off for this one leaves its own record,
         // which is the truer one.
-        for (final Player viewer : GatePreviews.watching(owner, preview))
+        for (final Player viewer : PreviewAudience.watching(owner, preview))
         {
             preview.sweepDrawn().computeIfAbsent(viewer.getUniqueId(),
                 id -> heldBeforeTheSweep(preview, preview.sides().get(id)));
@@ -234,7 +234,7 @@ final class PreviewIrisSweep
     {
         preview.opening().forEach(cell -> preview.sent().add(GatePreview.key(cell)));
         final boolean offTheRing = movesOffTheRing(preview);
-        for (final Player viewer : GatePreviews.watching(owner, preview))
+        for (final Player viewer : PreviewAudience.watching(owner, preview))
         {
             List<IrisLayering.Placement> layers = null;
             if (offTheRing)
@@ -284,7 +284,7 @@ final class PreviewIrisSweep
         final IrisLayering.At ring = PreviewLayers.at(cell);
         if (where.equals(ring))
         {
-            GatePreviews.sendTo(viewer, preview, List.of(cell));
+            PreviewAudience.sendTo(viewer, preview, List.of(cell));
             return;
         }
         viewer.sendBlockChange(new Location(preview.world(), where.x(), where.y(), where.z()),
@@ -304,7 +304,7 @@ final class PreviewIrisSweep
         {
             return;
         }
-        for (final Player viewer : GatePreviews.watching(owner, preview))
+        for (final Player viewer : PreviewAudience.watching(owner, preview))
         {
             preview.sweepDrawn().getOrDefault(viewer.getUniqueId(), Map.of())
                 .forEach((index, where) -> drawSweptAt(viewer, preview, preview.opening().get(index), where));
@@ -363,7 +363,7 @@ final class PreviewIrisSweep
     /** Hands every watcher back whatever a sweep stood off the ring for them, and forgets what it drew. */
     static void handBackSwept(final Player owner, final GatePreview preview)
     {
-        for (final Player viewer : GatePreviews.watching(owner, preview))
+        for (final Player viewer : PreviewAudience.watching(owner, preview))
         {
             final Map<Integer, IrisLayering.At> held =
                 preview.sweepDrawn().getOrDefault(viewer.getUniqueId(), Map.of());

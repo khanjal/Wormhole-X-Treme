@@ -255,7 +255,7 @@ final class PreviewLayers
      */
     private static void shimmerPreview(final Player owner, final GatePreview preview)
     {
-        for (final Player viewer : GatePreviews.watching(owner, preview))
+        for (final Player viewer : PreviewAudience.watching(owner, preview))
         {
             final List<IrisLayering.Placement> layers = preview.sides().get(viewer.getUniqueId());
             if (layers == null)
@@ -367,7 +367,7 @@ final class PreviewLayers
      */
     static void applySides(final Player owner, final GatePreview preview, final boolean stacked)
     {
-        for (final Player viewer : GatePreviews.watching(owner, preview))
+        for (final Player viewer : PreviewAudience.watching(owner, preview))
         {
             if (stacked)
             {

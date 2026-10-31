@@ -2572,11 +2572,11 @@ class GatePreviewsTest
         final Player alex = onlineHere("Alex");
         GatePreviews.show(owner, standard, null);
         GatePreviews.share(owner, alex);
-        assertEquals(List.of(owner, alex), GatePreviews.watching(owner, thePreview()), "watching while here");
+        assertEquals(List.of(owner, alex), PreviewAudience.watching(owner, thePreview()), "watching while here");
 
         others.remove(alex.getUniqueId());
 
-        assertEquals(List.of(owner), GatePreviews.watching(owner, thePreview()));
+        assertEquals(List.of(owner), PreviewAudience.watching(owner, thePreview()));
     }
 
     /** An owner who is in another world is not watching a preview that stands in this one. */
@@ -2584,12 +2584,12 @@ class GatePreviewsTest
     void anOwnerInAnotherWorldIsNotWatching()
     {
         GatePreviews.show(owner, standard, null);
-        assertEquals(List.of(owner), GatePreviews.watching(owner, thePreview()), "watching from the same world");
+        assertEquals(List.of(owner), PreviewAudience.watching(owner, thePreview()), "watching from the same world");
 
         final World elsewhere = mock(World.class);
         when(owner.getWorld()).thenReturn(elsewhere);
 
-        assertEquals(List.of(), GatePreviews.watching(owner, thePreview()));
+        assertEquals(List.of(), PreviewAudience.watching(owner, thePreview()));
     }
 
     /** Sharing with somebody who is offline shows them nothing, and is not an error. */
@@ -4714,7 +4714,7 @@ class GatePreviewsTest
         assertFalse(irisPending.isEmpty(), "still sweeping");
         assertTrue(thePreview().sweeping());
         assertFalse(thePreview().open(), "with no wormhole showing");
-        assertTrue(GatePreviews.watching(owner, thePreview()).contains(walker), "and Fran watching it");
+        assertTrue(PreviewAudience.watching(owner, thePreview()).contains(walker), "and Fran watching it");
         clearInvocations(walker);
 
         walkTo(walker, -4);
