@@ -17,7 +17,7 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 
 - **Post oldest first.** Each site treats the newest upload as current, and Spigot makes the last
   update posted the resource's download. Going oldest to newest in one sitting leaves each site on
-  1.12.0 with the history in order.
+  1.13.0 with the history in order.
 - **On Spigot, untick Notify followers for all but the newest**, or followers get one alert per
   back-filled version.
 - **Tick each version's own Minecraft range** on Modrinth, Hangar and CurseForge, from its section below, not
@@ -36,6 +36,56 @@ The jar for each is `WormholeXTreme-<version>.jar` on its
 - **Write the Markdown first, then convert it to BBCode** line for line, so the two say the same.
   The conversion is mechanical: `**bold**` to `[B]`, `` `code` `` to `[ICODE]`, a bullet list to
   `[LIST]` with `[*]` per item, a link to `[URL=…]`, and em-dashes to plain hyphens.
+
+## 1.13.0
+
+Released 2026-11-01.
+
+| Field | Value |
+|---|---|
+| Version (all four sites) | `1.13.0` |
+| Title (Spigot update title, Modrinth version title) | `1.13.0 - Per-shape build permission, gate limits, gate costs` |
+| Minecraft (Modrinth game versions, Hangar platform versions, CurseForge Bukkit versions) | 1.20 - 26.3 |
+
+Modrinth, Hangar and CurseForge changelog:
+
+````markdown
+**Upgrading from 1.12 - nothing to change.** Your `config.yml` is kept as it is, `gate-dial-spin` included, so gates dial with the ring light they had. One permission changes: a rank holding `wormhole.build.*` without `wormhole.build` built nothing before and now builds every shape (first bullet). The new `max-gates-per-player` is appended at `0`, no limit, the first time it loads. Captures move to `data/captures/` by themselves the first time they are needed. From 1.10 or earlier, read the 1.11.0 upgrade note below first: an unedited `config.yml` is replaced there, and gets the new `gate-dial-spin: none`. A first install needs none of this.
+
+- **Build permission per shape**: `wormhole.build.<shape>` lets a rank build one gate shape, its name in lower case with anything but a letter, digit or underscore made an underscore (`wormhole.build.standard`); `wormhole.build` still allows every shape. A rank given `wormhole.build.*` now builds every shape.
+- **A gate limit per player**: `max-gates-per-player` caps the gates one player may own, off at `0`; `wormhole.gates.max.<n>` gives a group its own limit, `wormhole.gates.unlimited` lifts it, and `/wormhole gate list` shows a limited player their count and limit.
+- **A use cost per gate or shape**: `/wormhole gate edit <gate> cost <amount>` gives one gate its own cost and `USE_COST=<amount>` in a shape file gives every gate of that shape one; `default` clears a gate's own, so it follows its shape and then `economy-use-cost`.
+- **A view level per gate**: `/wormhole gate edit <gate> view <horizon|behind|open|default>` wins over `gate-view`, and `/wormhole mirror debug <gate>` says how a gate's view is drawn and, if it is not, why.
+- **No ring light by default**: `gate-dial-spin` now defaults to `none`, as the original plugin dialled; `/wormhole config gate-dial-spin top` brings back the 1.12 default.
+- **Captures move to `data/captures/`**, `gates/` and `mirrors/`, so `data/gates/` holds gate files only. A script reading the old capture folders must look in the new ones.
+- **Gate views**: `gate-view: behind` leaves a gate with a lava or opaque horizon as it is, and a gate's view is retaken only from chunks that are loaded, so the retake no longer loads or generates chunks.
+- **bStats counts gate frame blocks**: a new `gate_material` pie sends the game's own block name, never a name a server chose; `metrics-enabled: false` stops it with the rest.
+- **Fixes**: `/wormhole complete` and `/wormhole gate build` without `net=` use the Public network instead of refusing a builder holding only `wormhole.build`, a sign gate dials the gate its sign shows after a restart or `/wormhole refresh`, and a window no longer leaves creatures hidden when the server refuses to hide one.
+- **Internals**: the window drawing, gates and build previews were reorganised into smaller classes; nothing a player or admin sees changes.
+
+[Full changelog](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#1130-2026-11-01)
+````
+
+Spigot update message:
+
+```
+[B]Upgrading from 1.12 - nothing to change.[/B] Your [ICODE]config.yml[/ICODE] is kept as it is, [ICODE]gate-dial-spin[/ICODE] included, so gates dial with the ring light they had. One permission changes: a rank holding [ICODE]wormhole.build.*[/ICODE] without [ICODE]wormhole.build[/ICODE] built nothing before and now builds every shape (first bullet). The new [ICODE]max-gates-per-player[/ICODE] is appended at [ICODE]0[/ICODE], no limit, the first time it loads. Captures move to [ICODE]data/captures/[/ICODE] by themselves the first time they are needed. From 1.10 or earlier, read the 1.11.0 upgrade note below first: an unedited [ICODE]config.yml[/ICODE] is replaced there, and gets the new [ICODE]gate-dial-spin: none[/ICODE]. A first install needs none of this.
+
+[LIST]
+[*][B]Build permission per shape[/B]: [ICODE]wormhole.build.<shape>[/ICODE] lets a rank build one gate shape, its name in lower case with anything but a letter, digit or underscore made an underscore ([ICODE]wormhole.build.standard[/ICODE]); [ICODE]wormhole.build[/ICODE] still allows every shape. A rank given [ICODE]wormhole.build.*[/ICODE] now builds every shape.
+[*][B]A gate limit per player[/B]: [ICODE]max-gates-per-player[/ICODE] caps the gates one player may own, off at [ICODE]0[/ICODE]; [ICODE]wormhole.gates.max.<n>[/ICODE] gives a group its own limit, [ICODE]wormhole.gates.unlimited[/ICODE] lifts it, and [ICODE]/wormhole gate list[/ICODE] shows a limited player their count and limit.
+[*][B]A use cost per gate or shape[/B]: [ICODE]/wormhole gate edit <gate> cost <amount>[/ICODE] gives one gate its own cost and [ICODE]USE_COST=<amount>[/ICODE] in a shape file gives every gate of that shape one; [ICODE]default[/ICODE] clears a gate's own, so it follows its shape and then [ICODE]economy-use-cost[/ICODE].
+[*][B]A view level per gate[/B]: [ICODE]/wormhole gate edit <gate> view <horizon|behind|open|default>[/ICODE] wins over [ICODE]gate-view[/ICODE], and [ICODE]/wormhole mirror debug <gate>[/ICODE] says how a gate's view is drawn and, if it is not, why.
+[*][B]No ring light by default[/B]: [ICODE]gate-dial-spin[/ICODE] now defaults to [ICODE]none[/ICODE], as the original plugin dialled; [ICODE]/wormhole config gate-dial-spin top[/ICODE] brings back the 1.12 default.
+[*][B]Captures move to [ICODE]data/captures/[/ICODE][/B], [ICODE]gates/[/ICODE] and [ICODE]mirrors/[/ICODE], so [ICODE]data/gates/[/ICODE] holds gate files only. A script reading the old capture folders must look in the new ones.
+[*][B]Gate views[/B]: [ICODE]gate-view: behind[/ICODE] leaves a gate with a lava or opaque horizon as it is, and a gate's view is retaken only from chunks that are loaded, so the retake no longer loads or generates chunks.
+[*][B]bStats counts gate frame blocks[/B]: a new [ICODE]gate_material[/ICODE] pie sends the game's own block name, never a name a server chose; [ICODE]metrics-enabled: false[/ICODE] stops it with the rest.
+[*][B]Fixes[/B]: [ICODE]/wormhole complete[/ICODE] and [ICODE]/wormhole gate build[/ICODE] without [ICODE]net=[/ICODE] use the Public network instead of refusing a builder holding only [ICODE]wormhole.build[/ICODE], a sign gate dials the gate its sign shows after a restart or [ICODE]/wormhole refresh[/ICODE], and a window no longer leaves creatures hidden when the server refuses to hide one.
+[*][B]Internals[/B]: the window drawing, gates and build previews were reorganised into smaller classes; nothing a player or admin sees changes.
+[/LIST]
+
+[URL=https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md#1130-2026-11-01]Full changelog[/URL]
+```
 
 ## 1.12.0
 

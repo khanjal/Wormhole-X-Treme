@@ -184,7 +184,7 @@ Each has its own section below.
 
 A frame of blocks, a button, and `/dial`. Chevrons light in the show's order, the last one locks
 in with its own sound, and then the kawoosh. Shapes ship from Minimal to Massive, plus a
-Horizontal one that lies flat; a choice of dial-spin patterns, per gate if you like; an eighth chevron for a cross-world
+Horizontal one that lies flat; a choice of dial-spin patterns, off by default, per gate if you like; an eighth chevron for a cross-world
 destination; an iris that sweeps shut, with remote codes; sign and redstone dialling. Shapes and material palettes
 are plain text files you can edit, and `/wormhole gate build` stands the shape full size in front
 of you as a guide before you place a block. An open gate can also show where it goes and ripple, as an
@@ -342,7 +342,7 @@ text.
 
 | Field | Value |
 |---|---|
-| Version | `1.12.0` |
+| Version | `1.13.0` |
 | Release channel | Release |
 | Platform | Paper |
 | Platform versions | that version's Minecraft range in [`versions.md`](versions.md), every release ticked individually. Snapshots off. |
@@ -356,7 +356,7 @@ Hangar's form has no version title; the version string is the title.
 Published 2026-09-19 at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.12.0` is the newest release.
+1. **Check which version the project carries.** `v1.13.0` is the newest release.
 2. **Render the avatar** from `docs/images/logo.svg`, once the open AI-image question at the top
    of this file is settled; if Hangar bans AI images, crop it from a capture instead. Size unverified; the 256×256 rendered for
    Spigot is a reasonable starting point.
