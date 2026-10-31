@@ -1,7 +1,5 @@
 package com.wormhole_xtreme.wormhole.model.preview;
 
-import com.wormhole_xtreme.wormhole.utils.Sounds;
-import com.wormhole_xtreme.wormhole.model.GateSounds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -44,6 +42,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.function.Predicate;
 
 import org.bukkit.Color;
@@ -89,6 +88,7 @@ import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
+import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.IrisSweepDriver;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
@@ -101,6 +101,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.RecordingCreation;
+import com.wormhole_xtreme.wormhole.utils.Sounds;
 
 /**
  * What a gate build preview puts in the world, who sees it, and when it goes.
@@ -4119,7 +4120,7 @@ class GatePreviewsTest
     }
 
     /** Standard with some of its lines changed, as a shape. */
-    private static Stargate3DShape standardWith(final java.util.function.UnaryOperator<String> change) throws Exception
+    private static Stargate3DShape standardWith(final UnaryOperator<String> change) throws Exception
     {
         return new Stargate3DShape(Files.readAllLines(Paths.get("src/main/resources/shapes/gate/Standard.shape"))
             .stream().map(change).toList().toArray(new String[0]));
