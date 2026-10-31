@@ -441,7 +441,7 @@ image on Modrinth's own CDN.
 
 | Field | Value |
 |---|---|
-| Version number | `1.12.0` |
+| Version number | `1.13.0` |
 | Version title | that version's title in [`versions.md`](versions.md) |
 | Release channel | Release |
 | Loaders | Bukkit, Spigot, Paper, Purpur |
