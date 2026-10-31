@@ -4827,6 +4827,9 @@ class GatePreviewsTest
 
         GatePreviews.iris(owner);
         finishIrisSweep();
+        clearInvocations(front);
+
+        GatePreviews.draw(owner, thePreview());
 
         final Cell cell = openingCells().get(0);
         verify(front, atLeastOnce()).showEntity(plugin, displayAt(cell, 0));
@@ -4837,7 +4840,6 @@ class GatePreviewsTest
     @Test
     void aStackedDrawSaysNothingInTheLogWhileTheLogIsNotAskingForIt()
     {
-        when(plugin.isLoggable(Level.FINE)).thenReturn(Boolean.FALSE);
         openThePreview();
 
         GatePreviews.iris(owner);
@@ -5001,20 +5003,64 @@ class GatePreviewsTest
         verify(walker, never()).showEntity(eq(plugin), any(BlockDisplay.class));
     }
 
-    /** ...nor is one mid-sweep. */
+    /**
+     * ...nor is one mid-sweep.
+     *
+     * <p>A see-through iris, because an opaque one has nothing to redraw for a step and the guard
+     * would never be reached. The control walker in the preview's own world is sent the swept
+     * picture for the same step, so the silence is the world and not a quiet fixture.
+     */
     @Test
     void aViewerInAnotherWorldIsNotResweptByAStep()
     {
         openThePreview();
-        final Player walker = viewerAlong("Wes", -4);
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player away = viewerAlong("Ava", 4);
+        final Player here = viewerAlong("Hal", 4);
         GatePreviews.iris(owner);
-        assertTrue(thePreview().sweeping());
-        when(walker.getWorld()).thenReturn(mock(World.class));
-        clearInvocations(walker);
+        for (int step = 0; (step < 2) && !irisPending.isEmpty(); step++)
+        {
+            final Integer id = irisPending.keySet().iterator().next();
+            irisPending.remove(id).run();
+        }
+        assertTrue(thePreview().sweeping(), "still sweeping");
+        when(away.getWorld()).thenReturn(mock(World.class));
+        clearInvocations(away, here);
 
-        GatePreviews.moved(walker, alongTheFacing(4));
+        GatePreviews.moved(here, alongTheFacing(-4));
+        GatePreviews.moved(away, alongTheFacing(-4));
 
-        verify(walker, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(here, atLeastOnce()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(away, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+    }
+
+    /**
+     * A wormhole dialled open behind a shut iris is taken back from a viewer behind on shutdown.
+     *
+     * <p>The draw that opens it is stacked from the start, so the ring send that normally records
+     * the opening's cells as sent never runs, and the stacked draw's own record is the only one.
+     * Without it the shutdown skips every ring cell and leaves the viewer behind the gate with
+     * water in the ring.
+     */
+    @Test
+    void aWormholeDialledOpenBehindAShutIrisIsTakenBackFromAViewerBehindOnShutdown()
+    {
+        GatePreviews.show(owner, standard, null);
+        final Player behind = viewerAlong("Bea", -4);
+        GatePreviews.iris(owner);
+        finishIrisSweep();
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        assertTrue(thePreview().open(), "dialled open");
+        assertTrue(wormholeSendsAlong(behind, 0) > 0, "and the wormhole is in the ring for Bea");
+        clearInvocations(behind);
+
+        GatePreviews.activate(owner);
+
+        assertTrue(handBacksAlong(behind, 0) > 0, "the ring is handed back, not left holding water");
     }
 
     /** A player who has gone offline is not redrawn for. */
