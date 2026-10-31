@@ -4439,6 +4439,7 @@ class GatePreviewsTest
 
         clearInvocations(ring);
         GatePreviews.iris(owner);
+        assertFalse(irisPending.isEmpty(), "the first toggle sweeps");
         verify(ring, atLeastOnce()).setBlock(any(BlockData.class));
         finishIrisSweep();
 
@@ -4478,8 +4479,10 @@ class GatePreviewsTest
                 + ringCellsResent + " of " + ringKeys.size());
         finishIrisSweep();
 
-        assertTrue(lastSentPerCellAlong(front, -1).values().stream().noneMatch(this::isIce),
-            "the opening sweep took the ice the closing one left");
+        final Map<List<Integer>, BlockData> behindTheRing = lastSentPerCellAlong(front, -1);
+        assertFalse(behindTheRing.isEmpty(), "the opening sweep sent the cells the closing one stood the wormhole in");
+        assertTrue(behindTheRing.values().stream().noneMatch(this::isIce),
+            "and took the ice the closing one left");
     }
 
     /** What a sweep drew for a viewer is forgotten once it has settled, so the next starts from the layers. */
@@ -4535,6 +4538,9 @@ class GatePreviewsTest
         GatePreviews.iris(owner);
         stepIrisSweep(2);
         assertFalse(irisPending.isEmpty(), "still sweeping");
+        assertTrue(thePreview().sweeping());
+        assertFalse(thePreview().open(), "with no wormhole showing");
+        assertTrue(GatePreviews.watching(owner, thePreview()).contains(walker), "and Fran watching it");
         clearInvocations(walker);
 
         walkTo(walker, -4);
@@ -4630,10 +4636,10 @@ class GatePreviewsTest
 
     /**
      * A sweep that starts on an iris settled with nowhere beyond the ring for the wormhole starts
-     * cleanly, holding the wormhole in the ring for that viewer.
+     * cleanly: those cells hold nothing off the ring, and the record of them is not asked for a block.
      */
     @Test
-    void aSweepStartingOnAnIrisWithNowhereBehindTheRingHoldsNothingOffIt()
+    void aSweepStartingOnAnIrisSettledWithNowhereBehindTheRingRunsToItsEnd()
     {
         openThePreview();
         GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
@@ -4643,10 +4649,12 @@ class GatePreviewsTest
             standing.put(List.of(cell.x() - facing.getModX(), cell.y() - facing.getModY(), cell.z() - facing.getModZ()),
                 Material.STONE);
         }
-        viewerAlong("Fran", 4);
+        final Player fran = viewerAlong("Fran", 4);
         GatePreviews.iris(owner);
         finishIrisSweep();
         assertFalse(thePreview().sweeping(), "settled shut");
+        assertTrue(thePreview().sides().get(fran.getUniqueId()).stream().anyMatch(layer -> layer.horizon() == null),
+            "and some cell has nowhere to stand its wormhole for Fran, or the test proves nothing");
 
         GatePreviews.iris(owner);
         finishIrisSweep();
@@ -4669,5 +4677,37 @@ class GatePreviewsTest
         PreviewIrisSweep.cancelIrisSweep(thePreview());
 
         verify(booked, times(1)).cancel();
+    }
+
+    /**
+     * A viewer who walks behind a preview mid-sweep is redrawn, whichever side the last sweep left on record.
+     *
+     * <p>The side a sweep records outlives it. A step that did not record where the viewer stood
+     * compared the next walk against the side from the sweep before, found it unchanged, and left
+     * the viewer with the stand-in wormhole on their near side until the following step.
+     */
+    @Test
+    void aSweepRecordsWhereTheViewerStandsNotWhereTheLastSweepLeftThem()
+    {
+        openThePreview();
+        GatePreviews.material(owner, GateBlueprint.Role.IRIS, Material.YELLOW_STAINED_GLASS);
+        final Player walker = viewerAlong("Fran", 4);
+        GatePreviews.iris(owner);
+        stepIrisSweep(2);
+        walkTo(walker, -4);
+        finishIrisSweep();
+        walkTo(walker, 4);
+        assertFalse(thePreview().sweeping(), "the first sweep is over, and Fran is in front again");
+
+        GatePreviews.iris(owner);
+        stepIrisSweep(1);
+        assertTrue(thePreview().sweeping(), "the second is under way");
+        assertTrue(lastSentPerCellAlong(walker, -1).values().stream().anyMatch(this::isIce),
+            "with the wormhole behind the ring for Fran in front");
+
+        walkTo(walker, -4);
+
+        assertTrue(lastSentPerCellAlong(walker, -1).values().stream().noneMatch(this::isIce),
+            "and none on the side she walked round to");
     }
 }
