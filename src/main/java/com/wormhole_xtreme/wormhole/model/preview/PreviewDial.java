@@ -66,19 +66,19 @@ final class PreviewDial
         @Override
         public void draw(final int index)
         {
-            GatePreviews.send(owner, preview, wooshStep(preview, index));
+            PreviewAudience.send(owner, preview, wooshStep(preview, index));
         }
 
         @Override
         public void undraw(final int index)
         {
-            GatePreviews.takeBack(owner, preview, wooshStep(preview, index));
+            PreviewAudience.takeBack(owner, preview, wooshStep(preview, index));
         }
 
         @Override
         public void undrawAll()
         {
-            GatePreviews.takeBack(owner, preview, preview.woosh());
+            PreviewAudience.takeBack(owner, preview, preview.woosh());
         }
 
         @Override
