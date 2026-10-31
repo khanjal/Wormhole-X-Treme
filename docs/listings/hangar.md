@@ -9,13 +9,16 @@ looking; check those against the page and correct them here.
 
 Hangar takes **Markdown**, like Modrinth, so the page below is close to `shared.md` as written.
 
-**Open: does this site ban AI-generated images?** Modrinth's Content Rules 6.2.1 forbids any
-image on a project page that was "created or derived from generative AI output", which rules the
-logo off that page entirely — see [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page).
-**Hangar's rules have not been checked for an equivalent.** The logo is used here as the avatar
-and in the description, so if there is such a rule, both have to change the same way Modrinth's
-did: crop the avatar from `docs/images/gates/gate-shapes-active.png` and drop the banner. Check
-before the next upload rather than assuming either way.
+**Checked 2026-10-31: Hangar has no AI rule.** Neither its
+[Resource Guidelines](https://hangar.papermc.io/guidelines) (last updated 2025-12-30) nor the
+[PaperMC Community Guidelines](https://papermc.io/community/guidelines) they defer to
+(2025-03-31) mention AI-generated content, images or code, so the logo stays as the avatar and in
+the description. Modrinth has both rules and withheld the project under the second — see
+[`modrinth.md`](modrinth.md#status-unlisted-by-modrinths-moderators-and-accepted). The rule that
+does bind here is **Forks of Existing Projects**: a fork must change the original significantly
+or continue an abandoned one, and must credit it. This one does both. Re-read both pages before
+each upload; the guidelines say staff may disallow things not listed, and Modrinth's rule was new
+when it caught this project.
 
 **The one real difference from the other sites:** Hangar is PaperMC's own platform and its
 platform tags are **Paper, Velocity and Waterfall** — there is no Spigot or Bukkit tag

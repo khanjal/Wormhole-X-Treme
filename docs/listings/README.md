@@ -11,12 +11,13 @@ The copy that goes on the plugin sites, kept here so a release is an edit rather
 | [`curseforge.md`](curseforge.md) | [CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) — project fields; the description is Modrinth's. |
 | [`versions.md`](versions.md) | Every version's upload fields and short changelog, Markdown and BBCode, newest first. |
 
-All four are published:
+All four exist:
 [SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/) ·
-[Modrinth](https://modrinth.com/plugin/wormhole-x-treme) ·
 [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) ·
 [CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme), which also
-appears on [BukkitDev](https://dev.bukkit.org/projects/wormhole-x-treme). Editing a file here does not change
+appears on [BukkitDev](https://dev.bukkit.org/projects/wormhole-x-treme) ·
+[Modrinth](https://modrinth.com/plugin/wormhole-x-treme), which its moderators have withheld from
+search (see [`modrinth.md`](modrinth.md#status-unlisted-by-modrinths-moderators-and-accepted)). Editing a file here does not change
 a live page; it records what the page should say, and somebody still has to paste it.
 
 Nothing here is generated. The site files are parallel texts, not renders of `shared.md`,
@@ -61,11 +62,14 @@ changes, you change it there and then carry it into whichever site files quote i
   Modrinth's icon is cropped from a gameplay capture and its description carries no banner; the
   live page predates the rule, so check it (step 2 in `modrinth.md`'s Keeping it current).
   **SpigotMC has no such rule** — its Terms & Rules were read and carry no AI clause — so the logo
-  stays there. **Hangar is unchecked** and still uses the logo; check before the next upload. **CurseForge is
-  unchecked too**, so it never got the logo: its icon is the same gameplay crop as Modrinth's.
+  stays there. **Hangar has no AI rule either** (checked 2026-10-31), so it keeps the logo. **CurseForge is
+  unchecked**, so it never got the logo: its icon is the same gameplay crop as Modrinth's.
   Reasoning in
   [`modrinth.md`](modrinth.md#rule-6-no-ai-generated-images-on-the-page). Clips and screenshots
   are real captures and are not affected.
+- **Modrinth withheld the project from search** under its rule 6.2.2 on projects primarily made by
+  AI, and that is accepted, not appealed. Releases still go up there, because the update check
+  asks Modrinth first. See [`modrinth.md`](modrinth.md#status-unlisted-by-modrinths-moderators-and-accepted).
 - **The README carries a badge table**, one row per site with a version and a downloads column.
   SpigotMC's badges come from Spiget, by resource id: `img.shields.io/spiget/version/138936` and
   `spiget/downloads/138936`. Modrinth's are `modrinth/v/wormhole-x-treme` and
