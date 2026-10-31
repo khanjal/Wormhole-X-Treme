@@ -91,7 +91,7 @@
 					     differs between runners. @{argLine} is late replacement: JaCoCo publishes its
 					     agent in that property, and writing -Xmx alone would replace it and silently
 					     drop coverage to zero. The whole suite, in the one fork, passes at 1g here and not at 768m,
-					     and CI adds the JaCoCo agent on top: 1g ran out on one leg of #742 and most of #743. -->
+					     and 1g ran out on most CI legs of #743 and one of #742. -->
 					<argLine>@{argLine} -Xmx2g</argLine>
 				</configuration>
 			</plugin>
