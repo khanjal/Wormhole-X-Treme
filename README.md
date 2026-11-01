@@ -11,7 +11,7 @@
 [![Reliability](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=reliability_rating)](https://sonarcloud.io/summary/overall/?id=khanjal_Wormhole-X-Treme)
 [![Security](https://sonarcloud.io/api/project_badges/measure?project=khanjal_Wormhole-X-Treme&metric=security_rating)](https://sonarcloud.io/summary/overall/?id=khanjal_Wormhole-X-Treme)
 
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.20%20--%2026.3-brightgreen)](#compatibility)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.20%20--%2026.3-orange)](#compatibility)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)](#building-from-source)
 [![License](https://img.shields.io/github/license/khanjal/Wormhole-X-Treme?color=blue)](LICENSE)
 [![bStats servers](https://img.shields.io/bstats/servers/34269?label=servers)](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269)
