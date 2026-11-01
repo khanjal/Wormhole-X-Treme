@@ -16,7 +16,6 @@
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)](#building-from-source)
 [![License](https://img.shields.io/github/license/khanjal/Wormhole-X-Treme?color=orange)](LICENSE)
 
-</div>
 
 | Where to get it | Version | Downloads |
 |---|---|---|
@@ -25,6 +24,8 @@
 | [Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) | [![Hangar version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fhangar.papermc.io%2Fapi%2Fv1%2Fprojects%2FWormhole-X-Treme%2Fversions%3Flimit%3D1&query=%24.result%5B0%5D.name&label=version&color=blue)](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) | [![Hangar downloads](https://img.shields.io/hangar/dt/Wormhole-X-Treme?label=downloads&color=8957e5)](https://hangar.papermc.io/khanjal/Wormhole-X-Treme) |
 | [Modrinth](https://modrinth.com/plugin/wormhole-x-treme) | [![Modrinth version](https://img.shields.io/modrinth/v/wormhole-x-treme?label=version&logo=modrinth&logoColor=white)](https://modrinth.com/plugin/wormhole-x-treme) | [![Modrinth downloads](https://img.shields.io/modrinth/dt/wormhole-x-treme?label=downloads&logo=modrinth&logoColor=white&color=8957e5)](https://modrinth.com/plugin/wormhole-x-treme) |
 | [CurseForge](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) · [BukkitDev](https://dev.bukkit.org/projects/wormhole-x-treme) | [![CurseForge version](https://img.shields.io/curseforge/v/1742170?label=version&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) | [![CurseForge downloads](https://img.shields.io/curseforge/dt/1742170?label=downloads&logo=curseforge&logoColor=white&color=8957e5)](https://www.curseforge.com/minecraft/bukkit-plugins/wormhole-x-treme) |
+
+</div>
 
 Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.3.
 
