@@ -78,7 +78,7 @@ sites and the repo may lead the description; a badge that advertises rather than
 | Field | Value |
 |---|---|
 | File | `WormholeXTreme-<version>.jar` from the release. The form takes `.jar` only. |
-| Display name | `Wormhole X-Treme <version>`. The default is the jar's filename. |
+| Display name | the bare version, `<version>` (for example `1.13.0`). The README's CurseForge version badge shows this name, so `Wormhole X-Treme <version>` makes it long and the default, the jar's filename, is longer still. |
 | Release options | publish automatically once approved |
 | Bukkit (game versions) | tick every 1.20.x, 1.21.x and 26.x the list offers, within that version's range in [`versions.md`](versions.md). Snapshots off. Do not trust what comes pre-ticked: Modrinth reads `api-version: "1.20"` and ticks 1.20.x alone, and CurseForge may do the same. |
 | Release type | Release |
