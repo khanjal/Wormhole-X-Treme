@@ -82,7 +82,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Changed**
 
-- **bStats counts far fewer gates as `unknown` in `gate_material`.** A gate's file now keeps the block its frame is built from (`FrameMaterial`), used only while the gate's chunk is not loaded, and a gate's material is worked out whenever its chunk loads. A gate file written before this has none until the gate is next saved, which every gate is on shutdown ([#239](https://github.com/khanjal/Wormhole-X-Treme/issues/239)).
+- **bStats counts far fewer gates as `unknown` in `gate_material`.** A gate's file now keeps the block its frame is built from (`FrameMaterial`), used only while the gate's chunk is not loaded, and a gate's material is worked out whenever its chunk loads. A gate file written before this has none until the gate's chunk loads or the gate is used, and keeps it from the next save, which every gate gets on shutdown ([#239](https://github.com/khanjal/Wormhole-X-Treme/issues/239)).
 
 ## 1.13.0 (2026-11-01)
 
