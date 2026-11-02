@@ -166,6 +166,7 @@ public class WormholeXTreme extends JavaPlugin
         StandInListener.register(pm, tp);
         // A view is built again when the world behind its wall changes (#609).
         pm.registerEvents(new ViewChangeListener(), tp);
+        pm.registerEvents(new GateChunkLoadListener(), tp);
         registerDismountListener(pm, tp);
     }
 

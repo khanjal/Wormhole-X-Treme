@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -342,6 +343,13 @@ public class Stargate implements GateIris
     private boolean gateMaterialGroupResolved = false;
 
     /**
+     * The structure material of the group the frame last matched, in the world or at detection, saved
+     * with the gate; it answers only while the chunk is unloaded and is never cached as the group, and
+     * a chosen group does not change it.
+     */
+    private Material gateFrameMaterialHint = null;
+
+    /**
      * Gets the material palette this gate is built from.
      *
      * <p>Resolution is lazy and cached. Gates loaded from storage do not persist their
@@ -360,10 +368,25 @@ public class Stargate implements GateIris
             gateMaterialGroupResolved = true;
             if (gateMaterialGroup == null)
             {
-                gateMaterialGroup = resolveMaterialGroupFromWorld();
+                storeGroupFromFrame(readFrameFromWorld());
             }
         }
         return gateMaterialGroup;
+    }
+
+    /**
+     * Takes the group the frame matches, resolved, and saves that group's structure material; a
+     * frame that could not be read leaves the saved one as it was.
+     */
+    private void storeGroupFromFrame(final Material frame)
+    {
+        final MaterialGroup group = MaterialGroupRegistry.getGroupByStructureMaterial(frame);
+        gateMaterialGroup = group;
+        gateMaterialGroupResolved = true;
+        if (frame != null)
+        {
+            gateFrameMaterialHint = (group != null) ? group.getStructureMaterial() : null;
+        }
     }
 
     /**
@@ -376,6 +399,45 @@ public class Stargate implements GateIris
     {
         gateMaterialGroup = group;
         gateMaterialGroupResolved = true;
+        gateFrameMaterialHint = (group != null) ? group.getStructureMaterial() : null;
+    }
+
+    /**
+     * @return the frame material to save with this gate, or null when none is known
+     */
+    public Material getGateFrameMaterialHint()
+    {
+        return gateFrameMaterialHint;
+    }
+
+    /**
+     * @param material
+     *            the frame material saved with this gate, or null
+     */
+    public void setGateFrameMaterialHint(final Material material)
+    {
+        gateFrameMaterialHint = material;
+    }
+
+    /**
+     * Resolves this gate's group when the chunk holding its first frame block loads, so bStats
+     * need not wait for somebody to use the gate.
+     *
+     * @param chunk
+     *            the chunk that just loaded
+     */
+    public void resolveGroupIfFrameIn(final Chunk chunk)
+    {
+        if (gateMaterialGroupResolved || (gateWorld == null) || gateStructureBlocks.isEmpty())
+        {
+            return;
+        }
+        final Location first = gateStructureBlocks.get(0);
+        if (((first.getBlockX() >> 4) == chunk.getX()) && ((first.getBlockZ() >> 4) == chunk.getZ())
+            && gateWorld.equals(chunk.getWorld()))
+        {
+            getGateMaterialGroup();
+        }
     }
 
     /** Whether the group was chosen with {@code gate edit group} (#441), so it is stored rather than read off the frame. */
@@ -488,11 +550,11 @@ public class Stargate implements GateIris
     }
 
     /**
-     * Reads the gate's first frame block and looks its material up in the registry.
+     * Reads the gate's first frame block from the world.
      *
-     * @return the matching group, or null if the block is unreadable or unrecognised
+     * @return its type, or null if there is no block to read or it is unreadable
      */
-    private MaterialGroup resolveMaterialGroupFromWorld()
+    private Material readFrameFromWorld()
     {
         try
         {
@@ -501,8 +563,7 @@ public class Stargate implements GateIris
                 return null;
             }
             final Location first = gateStructureBlocks.get(0);
-            final Material frame = gateWorld.getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()).getType();
-            return MaterialGroupRegistry.getGroupByStructureMaterial(frame);
+            return gateWorld.getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()).getType();
         }
         catch (final RuntimeException ignore)
         {
@@ -613,7 +674,7 @@ public class Stargate implements GateIris
      * The same, but with {@code load} false it does not read a block from a chunk that is not
      * loaded, which is what finding a gate's material group would otherwise do: it answers only
      * when every group gives the same material, which a frame matching no group gives too, and
-     * null otherwise.
+     * null otherwise. A frame material saved with the gate answers in its place, without being cached.
      */
     private Material resolveMaterial(final MaterialRole role, final boolean load)
     {
@@ -631,9 +692,16 @@ public class Stargate implements GateIris
         }
         if (!load && !gateMaterialGroupResolved && !frameChunkLoaded())
         {
-            return sameForEveryGroup(role);
+            return (gateFrameMaterialHint != null)
+                ? fromGroupOrShape(role, MaterialGroupRegistry.getGroupByStructureMaterial(gateFrameMaterialHint))
+                : sameForEveryGroup(role);
         }
-        final MaterialGroup group = getGateMaterialGroup();
+        return fromGroupOrShape(role, getGateMaterialGroup());
+    }
+
+    /** The group's material, or the shape's (then the built-in) for a gate with no group. */
+    private Material fromGroupOrShape(final MaterialRole role, final MaterialGroup group)
+    {
         if (group != null)
         {
             return role.fromGroup.apply(group);
@@ -676,8 +744,9 @@ public class Stargate implements GateIris
      * <p>A gate read from storage finds its material group from its frame block in the world, the
      * first time it is asked. That is fine when somebody is using the gate and not when a statistics
      * task asks about every gate at once, so for a gate whose group is not known yet and whose frame
-     * is in a chunk that is not loaded, this answers only when every group gives the same portal
-     * material, and null when only loading the chunk would tell.
+     * is in a chunk that is not loaded, this answers from the frame material saved with the gate, or
+     * failing that only when every group gives the same portal material, and null when only loading
+     * the chunk would tell.
      *
      * @return the portal material, or null if only loading a chunk would tell
      */
@@ -690,8 +759,8 @@ public class Stargate implements GateIris
      * The frame material, unless working it out would load a chunk (#239).
      *
      * <p>The same rule as {@link #getEffectivePortalMaterialIfLoaded()}, for the frame: bStats counts
-     * the gates' frames on the server thread, and a gate whose group is not known yet would otherwise
-     * load its chunk to find it.
+     * the gates' frames on the server thread, and a gate whose group is not known yet and that has no
+     * saved frame material would otherwise load its chunk to find it.
      *
      * @return the frame material, or null if only loading a chunk would tell
      */
