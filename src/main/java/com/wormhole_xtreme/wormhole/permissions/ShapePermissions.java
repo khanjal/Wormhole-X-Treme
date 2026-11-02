@@ -27,7 +27,8 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
  * every character that is not a letter, a digit or an underscore made an underscore.
  *
  * <p>The use node narrows instead: everyone holds it unless it is set false, and it is wanted on
- * top of {@code wormhole.use.sign} or {@code wormhole.use.dialer} to dial from a gate of that shape.
+ * top of {@code wormhole.use.sign} or {@code wormhole.use.dialer} wherever those are asked of a
+ * gate of that shape: dialling, its levers, its sign and, with wormhole-use-is-teleport, entering it.
  */
 public final class ShapePermissions
 {
@@ -64,7 +65,7 @@ public final class ShapePermissions
     }
 
     /**
-     * The node a player needs to dial from a gate of a shape.
+     * The node a player needs to use a gate of a shape.
      *
      * @param shapeName
      *            the shape's declared name
@@ -87,12 +88,12 @@ public final class ShapePermissions
     }
 
     /**
-     * Whether a player may dial from a gate of this shape: yes unless its use node is set false.
+     * Whether a player may use a gate of this shape: yes unless its use node is set false.
      *
      * @param player
-     *            who is dialling
+     *            who is using it
      * @param gate
-     *            the gate dialled from, or null where none is involved, as for a mirror
+     *            the gate used, or null where none is involved, as for a mirror
      * @return false only if the shape's node is set and not held
      */
     static boolean mayUse(final Player player, final Stargate gate)
@@ -164,7 +165,7 @@ public final class ShapePermissions
         for (final String name : shapeNames)
         {
             declareOne(manager, buildNode(name), "Allow building a " + name + " gate.", PermissionDefault.OP);
-            declareOne(manager, useNode(name), "Allow dialling from a " + name + " gate.", PermissionDefault.TRUE);
+            declareOne(manager, useNode(name), "Allow using a " + name + " gate.", PermissionDefault.TRUE);
         }
     }
 

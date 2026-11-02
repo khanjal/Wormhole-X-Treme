@@ -219,7 +219,7 @@ class ShapePermissionsTest
             playerWith("wormhole.build.standard", "wormhole.network.build.secret"), gateOf("Standard"), "secret"));
     }
 
-    /** As {@link #playerWith}, with one node set false by a permissions plugin, as an admin negates it. */
+    /** As {@link #playerWith}, with one node explicitly set by a permissions plugin: false unless it is also among the nodes held. */
     private static Player playerRefused(final String refused, final String... nodes)
     {
         final Player p = playerWith(nodes);
