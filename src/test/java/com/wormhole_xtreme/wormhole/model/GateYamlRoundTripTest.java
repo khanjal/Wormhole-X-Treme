@@ -1,8 +1,10 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -301,9 +303,12 @@ class GateYamlRoundTripTest
             StargateYamlManager.saveStargate(framed, gatesDir());
             StargateYamlManager.saveStargate(gate("bare"), gatesDir());
 
-            assertEquals(true, new String(Files.readAllBytes(new File(gatesDir(), "framed.yml").toPath()),
+            assertTrue(new String(Files.readAllBytes(new File(gatesDir(), "framed.yml").toPath()),
                 StandardCharsets.UTF_8).contains(StargateYamlManager.FRAME_MATERIAL_KEY + ": lapis_block"),
                 "the frame is written in lower case, the way the other material keys are");
+            assertFalse(new String(Files.readAllBytes(new File(gatesDir(), "bare.yml").toPath()),
+                StandardCharsets.UTF_8).contains(StargateYamlManager.FRAME_MATERIAL_KEY),
+                "nothing written for a gate whose frame is not known");
 
             StargateYamlManager.loadStargates(server, gatesDir());
 

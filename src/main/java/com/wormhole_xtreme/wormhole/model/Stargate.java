@@ -342,7 +342,10 @@ public class Stargate implements GateIris
     /** Whether lazy group resolution has already run, so a genuine miss is not retried. */
     private boolean gateMaterialGroupResolved = false;
 
-    /** The frame block type saved with the gate, used only while its chunk is unloaded and never cached as the group. */
+    /**
+     * The frame last read off the world or at detection, saved with the gate; it answers only while
+     * the chunk is unloaded and is never cached as the group, and a chosen group does not change it.
+     */
     private Material gateFrameMaterialHint = null;
 
     /**
@@ -364,10 +367,19 @@ public class Stargate implements GateIris
             gateMaterialGroupResolved = true;
             if (gateMaterialGroup == null)
             {
-                gateMaterialGroup = resolveMaterialGroupFromWorld();
+                storeGroupFromFrame(readFrameFromWorld());
             }
         }
         return gateMaterialGroup;
+    }
+
+    /** Takes the group the frame matches, resolved, and remembers that frame to save. */
+    private void storeGroupFromFrame(final Material frame)
+    {
+        final MaterialGroup group = MaterialGroupRegistry.getGroupByStructureMaterial(frame);
+        gateMaterialGroup = group;
+        gateMaterialGroupResolved = true;
+        gateFrameMaterialHint = (group != null) ? group.getStructureMaterial() : null;
     }
 
     /**
@@ -380,18 +392,14 @@ public class Stargate implements GateIris
     {
         gateMaterialGroup = group;
         gateMaterialGroupResolved = true;
+        gateFrameMaterialHint = (group != null) ? group.getStructureMaterial() : null;
     }
 
     /**
-     * @return the frame material to save with this gate: its group's once resolved (null for no
-     *         group, which drops a stale hint), otherwise the hint it was loaded with
+     * @return the frame material to save with this gate, or null when none is known
      */
     public Material getGateFrameMaterialHint()
     {
-        if (gateMaterialGroupResolved)
-        {
-            return (gateMaterialGroup != null) ? gateMaterialGroup.getStructureMaterial() : null;
-        }
         return gateFrameMaterialHint;
     }
 
@@ -421,7 +429,20 @@ public class Stargate implements GateIris
         if (((first.getBlockX() >> 4) == chunk.getX()) && ((first.getBlockZ() >> 4) == chunk.getZ())
             && gateWorld.equals(chunk.getWorld()))
         {
-            getGateMaterialGroup();
+            storeGroupFromFrame(readFrameFromChunk(chunk, first));
+        }
+    }
+
+    /** The frame block's type, read from the chunk itself: the world lookup can re-enter chunk loading mid-load on Paper. */
+    private static Material readFrameFromChunk(final Chunk chunk, final Location first)
+    {
+        try
+        {
+            return chunk.getBlock(first.getBlockX() & 15, first.getBlockY(), first.getBlockZ() & 15).getType();
+        }
+        catch (final RuntimeException ignore)
+        {
+            return null;
         }
     }
 
@@ -535,11 +556,11 @@ public class Stargate implements GateIris
     }
 
     /**
-     * Reads the gate's first frame block and looks its material up in the registry.
+     * Reads the gate's first frame block from the world.
      *
-     * @return the matching group, or null if the block is unreadable or unrecognised
+     * @return its type, or null if there is no block to read or it is unreadable
      */
-    private MaterialGroup resolveMaterialGroupFromWorld()
+    private Material readFrameFromWorld()
     {
         try
         {
@@ -548,8 +569,7 @@ public class Stargate implements GateIris
                 return null;
             }
             final Location first = gateStructureBlocks.get(0);
-            final Material frame = gateWorld.getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()).getType();
-            return MaterialGroupRegistry.getGroupByStructureMaterial(frame);
+            return gateWorld.getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()).getType();
         }
         catch (final RuntimeException ignore)
         {
