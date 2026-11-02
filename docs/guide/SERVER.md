@@ -663,7 +663,8 @@ What is sent, twice an hour:
   `end_gateway`, `end_portal`, or `other`), each counted by gate. A gate's material comes from its
   frame, which is read from the world; where every material group gives the same portal, and so
   does a frame that matches none, that is not needed. Nor is it when the gate's file says what its
-  frame is built from, which it does once the gate has been saved. Otherwise a gate whose chunk has
+  frame is built from, which it does once the gate has been used or its chunk has loaded, and it
+  has been saved since. Otherwise a gate whose chunk has
   not loaded since the server started is `unknown`: finding its material would load the chunk, and
   the counts are taken on the server thread;
 - which block the gates' frames are built from, as the plugin knows it from the gate's material group
