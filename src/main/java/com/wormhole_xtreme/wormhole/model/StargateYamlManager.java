@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Server;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -49,6 +50,8 @@ public class StargateYamlManager
     static final String USE_COST_KEY = "UseCost";
     /** The group chosen with {@code gate edit group} (#441); absent when it is read off the frame. */
     static final String MATERIAL_GROUP_KEY = "MaterialGroup";
+    /** The frame block type, so bStats can count a gate whose chunk is not loaded; the world still wins once it is. */
+    static final String FRAME_MATERIAL_KEY = "FrameMaterial";
     /** Anything that is not safe in a file name, replaced with an underscore. */
     private static final String UNSAFE_IN_FILENAME = "[^a-zA-Z0-9._-]";
 
@@ -174,6 +177,7 @@ public class StargateYamlManager
         s.setGateView(viewFrom(map.get(VIEW_KEY), name));
         s.setGateUseCost(useCostFrom(map.get(USE_COST_KEY), name));
         s.setGateDialSignTargetName((map.get(DIAL_SIGN_TARGET_KEY) == null) ? null : String.valueOf(map.get(DIAL_SIGN_TARGET_KEY)));
+        s.setGateFrameMaterialHint(frameMaterialFrom(map.get(FRAME_MATERIAL_KEY)));
         applyChosenGroup(s, map.get(MATERIAL_GROUP_KEY), name);
         return s;
     }
@@ -201,6 +205,12 @@ public class StargateYamlManager
             PluginLog.log(Level.WARNING, GATE_QUOTE + s.getGateName() + "\" was saved mid-dial and could not be put back to idle.", e);
         }
         return true;
+    }
+
+    /** A gate file's frame material, or null when it has none or names no material; it is only a hint. */
+    private static Material frameMaterialFrom(final Object raw)
+    {
+        return (raw == null) ? null : Material.matchMaterial(String.valueOf(raw));
     }
 
     /**
@@ -501,6 +511,11 @@ public class StargateYamlManager
         if (s.isGateMaterialGroupChosen() && (s.getGateMaterialGroup() != null))
         {
             map.put(MATERIAL_GROUP_KEY, s.getGateMaterialGroup().getName());
+        }
+        final Material frame = s.getGateFrameMaterialHint();
+        if (frame != null)
+        {
+            map.put(FRAME_MATERIAL_KEY, frame.name().toLowerCase(Locale.ROOT));
         }
         putOwnSettings(map, s);
         final byte[] data = GateSerializer.stargateToBinary(s);
