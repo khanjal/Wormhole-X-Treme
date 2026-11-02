@@ -12,6 +12,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Releases:**
 
+- [1.14.0 (unreleased)](#1140-unreleased)
 - [1.13.0 (2026-11-01)](#1130-2026-11-01)
 - [1.12.0 (2026-10-25)](#1120-2026-10-25)
 - [1.11.0 (2026-10-17)](#1110-2026-10-17)
@@ -74,6 +75,14 @@ somebody else's release notes, and the record of where this fork came from.
 - [0.32 (1/26/11)](#032-12611)
 - [0.31 (1/26/11)](#031-12611)
 - [0.3 (1/26/11)](#03-12611)
+
+## 1.14.0 (unreleased)
+
+### For server admins
+
+**Added**
+
+- **`wormhole.use.<shape>` set false keeps a rank from dialling from that gate shape**, by sign or dialler; everyone holds it by default, so nothing changes until a server negates one. It is wanted on top of `wormhole.use.sign` or `wormhole.use.dialer`, never instead, and is named as `wormhole.build.<shape>` is ([#631](https://github.com/khanjal/Wormhole-X-Treme/issues/631)).
 
 ## 1.13.0 (2026-11-01)
 

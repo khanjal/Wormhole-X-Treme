@@ -198,6 +198,7 @@ outranks a negated node.
 |---|---|---|
 | `wormhole.use.sign` | false | Using sign dialers |
 | `wormhole.use.dialer` | false | Dialling a gate |
+| `wormhole.use.<shape>` | true | Dialling from a gate of one [shape](GATES.md), by sign or dialler, named as `wormhole.build.<shape>` is (`wormhole.use.grand_gate`). Everyone holds it, so it only narrows: set it false on a rank to keep that rank off the shape, and true on another to let it back. It is wanted as well as `wormhole.use.sign` or `wormhole.use.dialer`, never instead. Only the gate dialled from is checked, so a refused shape can still be arrived through; its owner, operators and simple mode are not refused. A shape called `Sign`, `Dialer` or `Compass` has none |
 | `wormhole.use.compass` | false | `/wormhole compass` |
 | `wormhole.list` | false | `/wormhole gate list` |
 | `wormhole.go` | false | `/wormhole go` |

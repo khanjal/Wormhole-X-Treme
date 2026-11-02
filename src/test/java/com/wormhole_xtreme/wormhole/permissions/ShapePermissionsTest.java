@@ -219,6 +219,84 @@ class ShapePermissionsTest
             playerWith("wormhole.build.standard", "wormhole.network.build.secret"), gateOf("Standard"), "secret"));
     }
 
+    /** As {@link #playerWith}, with one node set false by a permissions plugin, as an admin negates it. */
+    private static Player playerRefused(final String refused, final String... nodes)
+    {
+        final Player p = playerWith(nodes);
+        when(p.isPermissionSet(refused)).thenReturn(true);
+        return p;
+    }
+
+    /** The use node is named as the build node is, and steers clear of the sign, dialer and compass nodes. */
+    @Test
+    void aShapesUseNodeIsItsNameMadeSafe()
+    {
+        assertEquals("wormhole.use.grand_gate", ShapePermissions.useNode("Grand Gate"));
+        assertEquals("wormhole.use.preview", ShapePermissions.useNode("Preview"), "preview is a build word only");
+        assertNull(ShapePermissions.useNode("Sign"), "wormhole.use.sign is the sign node");
+        assertNull(ShapePermissions.useNode("Dialer"), "wormhole.use.dialer is the dialler node");
+        assertNull(ShapePermissions.useNode("Compass"), "wormhole.use.compass is the compass node");
+    }
+
+    /** Nothing changes for a server that sets no use node: every shape is dialled from as before. */
+    @Test
+    void anUnsetUseNodeRefusesNobody()
+    {
+        assertTrue(WXPermissions.checkWXPermissions(playerWith("wormhole.use.dialer"), gateOf("Grand"), PermissionType.DIALER));
+        assertTrue(WXPermissions.checkWXPermissions(playerWith("wormhole.use.sign"), gateOf("Grand"), PermissionType.SIGN));
+    }
+
+    /** The point: a shape's use node set false keeps a player from dialling from that shape, by sign or dialler. */
+    @Test
+    void aUseNodeSetFalseRefusesThatShape()
+    {
+        final Player p = playerRefused("wormhole.use.grand", "wormhole.use.sign", "wormhole.use.dialer");
+
+        assertFalse(WXPermissions.checkWXPermissions(p, gateOf("Grand"), PermissionType.DIALER));
+        assertFalse(WXPermissions.checkWXPermissions(p, gateOf("Grand"), PermissionType.SIGN));
+        assertFalse(WXPermissions.checkWXPermissions(p, gateOf("Grand"), PermissionType.USE));
+        assertTrue(WXPermissions.checkWXPermissions(p, gateOf("Standard"), PermissionType.DIALER),
+            "refusing Grand says nothing about Standard");
+    }
+
+    /** A rank granted the node back, set and held, dials from the shape again. */
+    @Test
+    void aUseNodeSetTrueAdmits()
+    {
+        final Player p = playerRefused("wormhole.use.grand", "wormhole.use.dialer", "wormhole.use.grand");
+
+        assertTrue(WXPermissions.checkWXPermissions(p, gateOf("Grand"), PermissionType.DIALER));
+    }
+
+    /** The shape node narrows and never stands in for the sign or dialler node. */
+    @Test
+    void aUseNodeAloneDoesNotDial()
+    {
+        final Player p = playerRefused("wormhole.use.grand", "wormhole.use.grand");
+
+        assertFalse(WXPermissions.checkWXPermissions(p, gateOf("Grand"), PermissionType.DIALER));
+        assertFalse(WXPermissions.checkWXPermissions(p, gateOf("Grand"), PermissionType.SIGN));
+    }
+
+    /** The owner still uses their own gate, whatever shape it is, as they do without wormhole.use.dialer. */
+    @Test
+    void anOwnerIsNotRefusedTheirOwnGatesShape()
+    {
+        final Player p = playerRefused("wormhole.use.grand");
+        final Stargate gate = gateOf("Grand");
+        gate.setGateOwner(p.getUniqueId().toString());
+
+        assertTrue(WXPermissions.checkWXPermissions(p, gate, PermissionType.DIALER));
+    }
+
+    /** A use check with no gate, as a mirror's, has no shape to refuse. */
+    @Test
+    void aUseCheckWithNoGateHasNoShapeToRefuse()
+    {
+        assertTrue(WXPermissions.checkWXPermissions(playerRefused("wormhole.use.grand", "wormhole.use.dialer"),
+            PermissionType.USE));
+    }
+
     /** Declaring a node that the server refuses does not stop the shapes loading. */
     @Test
     void aRefusedDeclarationIsContained()
@@ -235,7 +313,7 @@ class ShapePermissionsTest
             ShapePermissions.declare(List.of("Standard", "Grand"));
         }
 
-        verify(manager, times(2)).addPermission(any(Permission.class));
+        verify(manager, times(4)).addPermission(any(Permission.class));
     }
 
     /** Declared to the server so a permissions plugin lists them, for operators by default, and not twice. */
@@ -258,6 +336,8 @@ class ShapePermissionsTest
             "wormhole.build.standard".equals(p.getName()) && (p.getDefault() == PermissionDefault.OP)));
         verify(manager, never()).addPermission(argThat((Permission p) -> "wormhole.build.grand".equals(p.getName())));
         verify(manager, never()).addPermission(argThat((Permission p) -> "wormhole.build.preview".equals(p.getName())));
+        verify(manager, times(1)).addPermission(argThat((Permission p) ->
+            "wormhole.use.standard".equals(p.getName()) && (p.getDefault() == PermissionDefault.TRUE)));
     }
 
     /** With no server (startup order, or a test) declaring does nothing rather than failing. */
