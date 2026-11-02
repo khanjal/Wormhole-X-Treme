@@ -343,8 +343,9 @@ public class Stargate implements GateIris
     private boolean gateMaterialGroupResolved = false;
 
     /**
-     * The frame last read off the world or at detection, saved with the gate; it answers only while
-     * the chunk is unloaded and is never cached as the group, and a chosen group does not change it.
+     * The structure material of the group the frame last matched, in the world or at detection, saved
+     * with the gate; it answers only while the chunk is unloaded and is never cached as the group, and
+     * a chosen group does not change it.
      */
     private Material gateFrameMaterialHint = null;
 
@@ -373,13 +374,19 @@ public class Stargate implements GateIris
         return gateMaterialGroup;
     }
 
-    /** Takes the group the frame matches, resolved, and remembers that frame to save. */
+    /**
+     * Takes the group the frame matches, resolved, and saves that group's structure material; a
+     * frame that could not be read leaves the saved one as it was.
+     */
     private void storeGroupFromFrame(final Material frame)
     {
         final MaterialGroup group = MaterialGroupRegistry.getGroupByStructureMaterial(frame);
         gateMaterialGroup = group;
         gateMaterialGroupResolved = true;
-        gateFrameMaterialHint = (group != null) ? group.getStructureMaterial() : null;
+        if (frame != null)
+        {
+            gateFrameMaterialHint = (group != null) ? group.getStructureMaterial() : null;
+        }
     }
 
     /**
@@ -429,20 +436,7 @@ public class Stargate implements GateIris
         if (((first.getBlockX() >> 4) == chunk.getX()) && ((first.getBlockZ() >> 4) == chunk.getZ())
             && gateWorld.equals(chunk.getWorld()))
         {
-            storeGroupFromFrame(readFrameFromChunk(chunk, first));
-        }
-    }
-
-    /** The frame block's type, read from the chunk itself: the world lookup can re-enter chunk loading mid-load on Paper. */
-    private static Material readFrameFromChunk(final Chunk chunk, final Location first)
-    {
-        try
-        {
-            return chunk.getBlock(first.getBlockX() & 15, first.getBlockY(), first.getBlockZ() & 15).getType();
-        }
-        catch (final RuntimeException ignore)
-        {
-            return null;
+            getGateMaterialGroup();
         }
     }
 

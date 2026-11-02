@@ -563,7 +563,7 @@ class StargateEffectiveMaterialTest
 
     /**
      * A group chosen with gate edit is not the frame: a lapis gate put on the Nether group still
-     * saves lapis, so bStats keeps counting what it is built of.
+     * saves lapis, which is what it falls back to once the choice is cleared.
      */
     @Test
     void aChosenGroupDoesNotChangeTheSavedFrameMaterial()
@@ -590,10 +590,13 @@ class StargateEffectiveMaterialTest
     {
         addGroup("Nether", "NETHERRACK", "LAVA");
         final World world = Mockito.mock(World.class);
+        final Block frame = Mockito.mock(Block.class);
+        Mockito.when(frame.getType()).thenReturn(Material.LAPIS_BLOCK);
+        Mockito.when(world.getBlockAt(33, 64, -17)).thenReturn(frame);
         Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
         final Stargate gate = gateInWorld(world);
         gate.setGateFrameMaterialHint(Material.NETHERRACK);
-        gate.resolveGroupIfFrameIn(chunk(world, 2, -2, Material.LAPIS_BLOCK));
+        gate.resolveGroupIfFrameIn(chunk(world, 2, -2));
 
         gate.chooseGateMaterialGroup(MaterialGroupRegistry.getGroup("Nether"));
         gate.chooseGateMaterialGroup(null);
@@ -603,39 +606,47 @@ class StargateEffectiveMaterialTest
     }
 
     /**
+     * A frame that could not be read keeps the frame material the file had: a gate whose world was
+     * not loaded at startup is resolved by the first bStats poll with nothing read, and a block the
+     * world cannot hand over reads as nothing too. Neither says the frame matches no group.
+     */
+    @Test
+    void aFrameThatCouldNotBeReadKeepsTheSavedFrameMaterial()
+    {
+        final Stargate noWorld = new Stargate();
+        noWorld.setGateShape(new StargateShape());
+        noWorld.setGateFrameMaterialHint(Material.LAPIS_BLOCK);
+        assertNull(noWorld.getGateMaterialGroup());
+        assertEquals(Material.LAPIS_BLOCK, noWorld.getGateFrameMaterialHint(), "no world to read, so the file's frame stands");
+
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.getBlockAt(33, 64, -17)).thenThrow(new IllegalStateException("world unloaded"));
+        final Stargate unreadable = gateInWorld(world);
+        unreadable.setGateFrameMaterialHint(Material.LAPIS_BLOCK);
+        assertNull(unreadable.getGateMaterialGroup(), "a block the world cannot hand over is tolerated");
+        assertEquals(Material.LAPIS_BLOCK, unreadable.getGateFrameMaterialHint(), "an unreadable block is not a frame that matches no group");
+    }
+
+    /**
      * A chunk loading resolves the group of a gate whose first frame block is in it, so bStats
-     * can count the gate without anybody using it. The block at 33,64,-17 is read from the chunk
-     * (2,-2) at 1,64,15, not from the world, whose lookup can re-enter chunk loading on Paper.
+     * can count the gate without anybody using it; the block at 33,64,-17 is in chunk 2,-2.
      */
     @Test
     void theChunkHoldingTheFrameResolvesTheGroupWhenItLoads()
     {
         final World world = Mockito.mock(World.class);
+        final Block frame = Mockito.mock(Block.class);
+        Mockito.when(frame.getType()).thenReturn(Material.LAPIS_BLOCK);
+        Mockito.when(world.getBlockAt(33, 64, -17)).thenReturn(frame);
         Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
         final Stargate gate = gateInWorld(world);
 
-        gate.resolveGroupIfFrameIn(chunk(world, 2, -2, Material.LAPIS_BLOCK));
+        gate.resolveGroupIfFrameIn(chunk(world, 2, -2));
 
         assertEquals(Material.LAPIS_BLOCK, gate.getEffectiveStructureMaterialIfLoaded(),
             "resolved while its chunk was loaded, it answers after the chunk unloads again");
         assertEquals("Atlantis", gate.getGateMaterialGroup().getName());
         assertEquals(Material.LAPIS_BLOCK, gate.getGateFrameMaterialHint());
-        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
-    }
-
-    /** A chunk that cannot hand over the block leaves the gate resolved with no group rather than failing the load. */
-    @Test
-    void aChunkThatCannotReadTheBlockIsTolerated()
-    {
-        final World world = Mockito.mock(World.class);
-        final Stargate gate = gateInWorld(world);
-        final Chunk chunk = chunk(world, 2, -2, Material.LAPIS_BLOCK);
-        Mockito.when(chunk.getBlock(1, 64, 15)).thenThrow(new IllegalStateException("chunk unloaded"));
-
-        gate.resolveGroupIfFrameIn(chunk);
-
-        assertNull(gate.getGateMaterialGroup());
-        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
     }
 
     /** Another chunk, by either coordinate or by world, leaves the group to be found later. */
@@ -645,32 +656,22 @@ class StargateEffectiveMaterialTest
         final World world = Mockito.mock(World.class);
         final World elsewhere = Mockito.mock(World.class);
         final Stargate gate = gateInWorld(world);
-        final Chunk east = chunk(world, 3, -2, Material.LAPIS_BLOCK);
-        final Chunk south = chunk(world, 2, -1, Material.LAPIS_BLOCK);
-        final Chunk other = chunk(elsewhere, 2, -2, Material.LAPIS_BLOCK);
 
-        gate.resolveGroupIfFrameIn(east);
-        gate.resolveGroupIfFrameIn(south);
-        gate.resolveGroupIfFrameIn(other);
+        gate.resolveGroupIfFrameIn(chunk(world, 3, -2));
+        gate.resolveGroupIfFrameIn(chunk(world, 2, -1));
+        gate.resolveGroupIfFrameIn(chunk(elsewhere, 2, -2));
 
-        Mockito.verify(east, Mockito.never()).getBlock(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
-        Mockito.verify(south, Mockito.never()).getBlock(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
-        Mockito.verify(other, Mockito.never()).getBlock(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
-        final Chunk home = chunk(world, 2, -2, Material.LAPIS_BLOCK);
-        gate.resolveGroupIfFrameIn(home);
-        Mockito.verify(home, Mockito.times(1)).getBlock(1, 64, 15);
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+        gate.resolveGroupIfFrameIn(chunk(world, 2, -2));
+        Mockito.verify(world, Mockito.times(1)).getBlockAt(33, 64, -17);
     }
 
-    /** A chunk at x,z in the world, whose block at 1,64,15 (the frame at 33,64,-17) is of the given type. */
-    private static Chunk chunk(final World world, final int x, final int z, final Material frameType)
+    private static Chunk chunk(final World world, final int x, final int z)
     {
-        final Block frame = Mockito.mock(Block.class);
-        Mockito.when(frame.getType()).thenReturn(frameType);
         final Chunk chunk = Mockito.mock(Chunk.class);
         Mockito.when(chunk.getWorld()).thenReturn(world);
         Mockito.when(chunk.getX()).thenReturn(x);
         Mockito.when(chunk.getZ()).thenReturn(z);
-        Mockito.when(chunk.getBlock(1, 64, 15)).thenReturn(frame);
         return chunk;
     }
 }
