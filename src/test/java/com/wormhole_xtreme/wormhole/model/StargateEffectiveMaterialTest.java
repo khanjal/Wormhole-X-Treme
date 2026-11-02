@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -471,5 +472,131 @@ class StargateEffectiveMaterialTest
 
         assertEquals(Material.LAPIS_BLOCK, gate.getEffectiveStructureMaterialIfLoaded());
         Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+    }
+
+    /**
+     * A gate loaded with its frame material saved answers from it while its chunk is unloaded,
+     * where it used to answer null and count as "unknown" in bStats -- about 85% of gates.
+     */
+    @Test
+    void theSavedFrameMaterialAnswersWhileTheChunkIsUnloaded()
+    {
+        addGroup("Nether", "NETHERRACK", "LAVA");
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+        gate.setGateFrameMaterialHint(Material.NETHERRACK);
+
+        assertEquals(Material.NETHERRACK, gate.getEffectiveStructureMaterialIfLoaded());
+        assertEquals(Material.LAVA, gate.getEffectivePortalMaterialIfLoaded());
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+    }
+
+    /**
+     * The saved frame material is never taken as the group: a gate rebuilt in lapis while the
+     * file still says netherrack becomes an Atlantis gate once its chunk loads, as it always has.
+     */
+    @Test
+    void theWorldStillWinsOverTheSavedFrameMaterialOnceTheChunkLoads()
+    {
+        addGroup("Nether", "NETHERRACK", "LAVA");
+        final World world = Mockito.mock(World.class);
+        final Block frame = Mockito.mock(Block.class);
+        Mockito.when(frame.getType()).thenReturn(Material.LAPIS_BLOCK);
+        Mockito.when(world.getBlockAt(33, 64, -17)).thenReturn(frame);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+        gate.setGateFrameMaterialHint(Material.NETHERRACK);
+        assertEquals(Material.LAVA, gate.getEffectivePortalMaterialIfLoaded());
+
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(true);
+        assertEquals(Material.WATER, gate.getEffectivePortalMaterialIfLoaded(),
+            "the frame in the world, lapis, decides once it can be read");
+        assertEquals("Atlantis", gate.getGateMaterialGroup().getName());
+        assertEquals(Material.LAPIS_BLOCK, gate.getGateFrameMaterialHint(),
+            "the next save writes what the world said, not the stale hint");
+    }
+
+    /** A saved frame material that matches no group answers as a gate with no group does: the shape's. */
+    @Test
+    void aSavedFrameMaterialMatchingNoGroupAnswersWithTheShape()
+    {
+        final World world = Mockito.mock(World.class);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+        gate.setGateFrameMaterialHint(Material.SANDSTONE);
+
+        assertEquals(Material.OBSIDIAN, gate.getEffectiveStructureMaterialIfLoaded(),
+            "the shape's own frame, the same as a resolved gate whose frame matches no group");
+    }
+
+    /** A resolved gate with no group saves no frame material, so a stale one it was loaded with is dropped. */
+    @Test
+    void aResolvedGateWithNoGroupDropsAStaleFrameMaterial()
+    {
+        final Stargate gate = gateInWorld(Mockito.mock(World.class));
+        gate.setGateFrameMaterialHint(Material.NETHERRACK);
+        assertEquals(Material.NETHERRACK, gate.getGateFrameMaterialHint(), "unresolved, the hint is kept to be saved again");
+
+        gate.setGateMaterialGroup(null);
+
+        assertNull(gate.getGateFrameMaterialHint());
+    }
+
+    /** The frame material a resolved gate saves is its group's, whatever it was loaded with. */
+    @Test
+    void aResolvedGateSavesItsGroupsFrameMaterial()
+    {
+        final Stargate gate = gateInWorld(Mockito.mock(World.class));
+        gate.setGateFrameMaterialHint(Material.NETHERRACK);
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+
+        assertEquals(Material.LAPIS_BLOCK, gate.getGateFrameMaterialHint());
+    }
+
+    /**
+     * A chunk loading resolves the group of a gate whose first frame block is in it, so bStats
+     * can count the gate without anybody using it; the block is at 33,-17, chunk 2,-2.
+     */
+    @Test
+    void theChunkHoldingTheFrameResolvesTheGroupWhenItLoads()
+    {
+        final World world = Mockito.mock(World.class);
+        final Block frame = Mockito.mock(Block.class);
+        Mockito.when(frame.getType()).thenReturn(Material.LAPIS_BLOCK);
+        Mockito.when(world.getBlockAt(33, 64, -17)).thenReturn(frame);
+        Mockito.when(world.isChunkLoaded(2, -2)).thenReturn(false);
+        final Stargate gate = gateInWorld(world);
+
+        gate.resolveGroupIfFrameIn(chunk(world, 2, -2));
+
+        assertEquals(Material.LAPIS_BLOCK, gate.getEffectiveStructureMaterialIfLoaded(),
+            "resolved while its chunk was loaded, it answers after the chunk unloads again");
+    }
+
+    /** Another chunk, by either coordinate or by world, leaves the group to be found later. */
+    @Test
+    void anotherChunkDoesNotResolveTheGroup()
+    {
+        final World world = Mockito.mock(World.class);
+        final World elsewhere = Mockito.mock(World.class);
+        final Stargate gate = gateInWorld(world);
+
+        gate.resolveGroupIfFrameIn(chunk(world, 3, -2));
+        gate.resolveGroupIfFrameIn(chunk(world, 2, -1));
+        gate.resolveGroupIfFrameIn(chunk(elsewhere, 2, -2));
+
+        Mockito.verify(world, Mockito.never()).getBlockAt(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt());
+        gate.resolveGroupIfFrameIn(chunk(world, 2, -2));
+        Mockito.verify(world, Mockito.times(1)).getBlockAt(33, 64, -17);
+    }
+
+    private static Chunk chunk(final World world, final int x, final int z)
+    {
+        final Chunk chunk = Mockito.mock(Chunk.class);
+        Mockito.when(chunk.getWorld()).thenReturn(world);
+        Mockito.when(chunk.getX()).thenReturn(x);
+        Mockito.when(chunk.getZ()).thenReturn(z);
+        return chunk;
     }
 }

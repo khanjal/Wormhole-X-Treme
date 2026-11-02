@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -283,6 +284,54 @@ class GateYamlRoundTripTest
         {
             MaterialGroupRegistry.load(null);
         }
+    }
+
+    /**
+     * A gate's frame material is saved and read back as a hint, so bStats can count its group
+     * while its chunk is unloaded instead of calling it unknown; a gate with none writes none.
+     */
+    @Test
+    void aGatesFrameMaterialRoundTripsAsAHintAndAGateWithoutOneWritesNone() throws Exception
+    {
+        MaterialGroupRegistry.load(Map.of("Atlantis", Map.of("structure", "LAPIS_BLOCK")));
+        try
+        {
+            final Stargate framed = gate("framed");
+            framed.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+            StargateYamlManager.saveStargate(framed, gatesDir());
+            StargateYamlManager.saveStargate(gate("bare"), gatesDir());
+
+            assertEquals(true, new String(Files.readAllBytes(new File(gatesDir(), "framed.yml").toPath()),
+                StandardCharsets.UTF_8).contains(StargateYamlManager.FRAME_MATERIAL_KEY + ": lapis_block"),
+                "the frame is written in lower case, the way the other material keys are");
+
+            StargateYamlManager.loadStargates(server, gatesDir());
+
+            assertEquals(Material.LAPIS_BLOCK, StargateManager.getStargate("framed").getGateFrameMaterialHint());
+            assertNotNull(StargateManager.getStargate("bare"), "the gate without a frame material still loads");
+            assertNull(StargateManager.getStargate("bare").getGateFrameMaterialHint());
+        }
+        finally
+        {
+            MaterialGroupRegistry.load(null);
+        }
+    }
+
+    /** A frame material that names no block is ignored, and the gate still loads; it was only ever a hint. */
+    @Test
+    void aFrameMaterialNamingNoBlockIsIgnored() throws Exception
+    {
+        StargateYamlManager.saveStargate(gate("odd"), gatesDir());
+        final File file = new File(gatesDir(), "odd.yml");
+        final String yaml = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8)
+            + StargateYamlManager.FRAME_MATERIAL_KEY + ": not_a_block\n";
+        Files.write(file.toPath(), yaml.getBytes(StandardCharsets.UTF_8));
+
+        StargateYamlManager.loadStargates(server, gatesDir());
+
+        final Stargate loaded = StargateManager.getStargate("odd");
+        assertNotNull(loaded, "an unknown frame material does not cost the gate");
+        assertNull(loaded.getGateFrameMaterialHint());
     }
 
     /** A gate's own iris animation (#427) survives a restart; one without keeps none, and writes none. */
