@@ -82,7 +82,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Added**
 
-- **`wormhole.use.<shape>` set false keeps a rank from dialling from that gate shape**, by sign or dialler; everyone holds it by default, so nothing changes until a server negates one. It is wanted on top of `wormhole.use.sign` or `wormhole.use.dialer`, never instead, and is named as `wormhole.build.<shape>` is ([#631](https://github.com/khanjal/Wormhole-X-Treme/issues/631)).
+- **`wormhole.use.<shape>` set false keeps a rank from dialling from that gate shape**, by sign or dialler, or working its iris; everyone holds it by default, so nothing changes until a server negates one. It is wanted on top of `wormhole.use.sign` or `wormhole.use.dialer`, never instead, and is named as `wormhole.build.<shape>` is ([#631](https://github.com/khanjal/Wormhole-X-Treme/issues/631)).
 
 ## 1.13.0 (2026-11-01)
 
