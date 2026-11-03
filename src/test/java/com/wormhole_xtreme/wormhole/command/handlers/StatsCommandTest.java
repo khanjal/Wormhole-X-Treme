@@ -88,6 +88,8 @@ class StatsCommandTest
     }
 
     /** Bob, known to the server but offline. */
+    // Stubs the deprecated lookup by name, which StatsCommand calls since Spigot has no other.
+    @SuppressWarnings("deprecation")
     private void bobHasPlayed()
     {
         final OfflinePlayer bob = mock(OfflinePlayer.class);
@@ -158,6 +160,7 @@ class StatsCommandTest
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void aNameTheServerHasNeverSeenIsSaidPlainly()
     {
         final OfflinePlayer nobody = mock(OfflinePlayer.class);

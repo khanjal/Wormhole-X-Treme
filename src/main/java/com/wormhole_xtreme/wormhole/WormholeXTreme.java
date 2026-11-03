@@ -552,6 +552,22 @@ public class WormholeXTreme extends JavaPlugin
     }
 
     /**
+     * Reads the player stats (#237). Its own catch, as the others have: counts that cannot be read
+     * must not stop anything else loading.
+     */
+    private void loadStats()
+    {
+        try
+        {
+            PlayerStats.load();
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to load player stats", e);
+        }
+    }
+
+    /**
      * Writes the player stats out if they changed, and keeps shutting down if it cannot.
      */
     private void saveStats()
@@ -773,15 +789,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Failed to load quantum mirrors", e);
         }
-        // Counts that cannot be read must not stop anything else loading.
-        try
-        {
-            PlayerStats.load();
-        }
-        catch (final Exception e)
-        {
-            prettyLog(Level.WARNING, "Failed to load player stats", e);
-        }
+        loadStats();
         // Deliberately no startup log line, which would announce the easter egg.
         try
         {
