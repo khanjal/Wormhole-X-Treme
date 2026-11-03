@@ -1,9 +1,16 @@
 package com.wormhole_xtreme.wormhole;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,9 +31,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
@@ -65,9 +70,9 @@ class LeverClickDispatchTest
 
         // Toggling a lever schedules the block update that follows it.
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
-        when(scheduler.scheduleSyncDelayedTask(ArgumentMatchers.any(),
-            ArgumentMatchers.any(Runnable.class),
-            ArgumentMatchers.anyLong())).thenReturn(1);
+        when(scheduler.scheduleSyncDelayedTask(any(),
+            any(Runnable.class),
+            anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
 
         GateSpatialIndex.clear();
@@ -144,7 +149,7 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate gate = gateWithLevers(dial, iris, dial);
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
 
         click(dial);
 
@@ -161,7 +166,7 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate gate = gateWithLevers(dial, iris, iris);
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
 
         click(iris);
 
@@ -181,7 +186,7 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate gate = gateWithLevers(dial, iris, iris);
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
 
         click(iris);
 
@@ -197,7 +202,7 @@ class LeverClickDispatchTest
         final Block iris = blockAt(5, 64, 7);
         final Block beside = blockAt(5, 64, 8);
         final Stargate gate = gateWithLevers(dial, iris, beside);
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
 
         click(beside);
 
@@ -217,7 +222,7 @@ class LeverClickDispatchTest
         final Block iris = blockAt(5, 64, 7);
         final Stargate gate = gateWithLevers(dial, iris, iris);
         gate.setGateIrisDeactivationCode("");
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
 
         final boolean handled = click(iris);
 
@@ -243,7 +248,7 @@ class LeverClickDispatchTest
         final Block iris = blockAt(5, 64, 6);
         final Block between = blockAt(5, 65, 5);
         final Stargate gate = gateWithLevers(dial, iris, between);
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
 
         click(between);
 
@@ -267,7 +272,7 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate gate = gateWithLevers(dial, iris, iris);
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(false);
+        when(player.hasPermission(anyString())).thenReturn(false);
 
         click(iris);
 
@@ -286,12 +291,11 @@ class LeverClickDispatchTest
     private Stargate dialledInto(final Stargate destination)
     {
         destination.setGateActive(true);
-        final Stargate source = Mockito.spy(new Stargate());
+        final Stargate source = spy(new Stargate());
         source.setGateName("dialler");
         source.setGateActive(true);
-        Mockito.doReturn(destination).when(source).getGateTarget();
-        Mockito.doNothing().when(source).shutdownStargate(ArgumentMatchers.anyBoolean(),
-            ArgumentMatchers.any(StargateShutdownEvent.Reason.class));
+        doReturn(destination).when(source).getGateTarget();
+        doNothing().when(source).shutdownStargate(anyBoolean(), any(StargateShutdownEvent.Reason.class));
         StargateManager.registerStargate(source);
         ConfigTestSupport.set(ConfigManager.ConfigKeys.DESTINATION_SHUTDOWN, true);
         return source;
@@ -310,7 +314,7 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate source = dialledInto(gateWithLevers(dial, iris, dial));
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
         try
         {
             click(dial);
@@ -333,7 +337,7 @@ class LeverClickDispatchTest
         final Stargate destination = gateWithLevers(dial, iris, dial);
         destination.setGateSignPowered(true);
         final Stargate source = dialledInto(destination);
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
         try
         {
             click(dial);
@@ -353,7 +357,7 @@ class LeverClickDispatchTest
         final Block dial = blockAt(5, 64, 5);
         final Block iris = blockAt(5, 64, 6);
         final Stargate source = dialledInto(gateWithLevers(dial, iris, dial));
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(false);
+        when(player.hasPermission(anyString())).thenReturn(false);
         try
         {
             click(dial);
@@ -364,8 +368,8 @@ class LeverClickDispatchTest
         }
 
         verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-        verify(source, never()).shutdownStargate(ArgumentMatchers.anyBoolean(),
-            ArgumentMatchers.any(StargateShutdownEvent.Reason.class));
+        verify(source, never()).shutdownStargate(anyBoolean(),
+            any(StargateShutdownEvent.Reason.class));
     }
 
     /** A click on a gate block that is neither lever does not toggle anything. */
@@ -376,7 +380,7 @@ class LeverClickDispatchTest
         final Block iris = blockAt(5, 64, 6);
         final Block elsewhere = blockAt(50, 64, 50);
         final Stargate gate = gateWithLevers(dial, iris, elsewhere);
-        when(player.hasPermission(ArgumentMatchers.anyString())).thenReturn(true);
+        when(player.hasPermission(anyString())).thenReturn(true);
 
         click(elsewhere);
 
