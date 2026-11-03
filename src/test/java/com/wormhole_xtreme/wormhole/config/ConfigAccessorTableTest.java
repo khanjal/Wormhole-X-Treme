@@ -497,6 +497,7 @@ class ConfigAccessorTableTest
         d.put(ConfigKeys.TIMEOUT_SHUTDOWN, 39);
         d.put(ConfigKeys.MAX_OPEN_SECONDS, 301);
         d.put(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME, false);
+        d.put(ConfigKeys.DESTINATION_SHUTDOWN, true);
         d.put(ConfigKeys.USE_COOLDOWN_ENABLED, true);
         d.put(ConfigKeys.USE_COOLDOWN_SECONDS, 121);
         d.put(ConfigKeys.WORMHOLE_USE_IS_TELEPORT, true);
@@ -614,6 +615,7 @@ class ConfigAccessorTableTest
             row("getTimeoutShutdown", ConfigKeys.TIMEOUT_SHUTDOWN, 38, 38, 39),
             row("getMaxOpenSeconds", ConfigKeys.MAX_OPEN_SECONDS, 300, 300, 301),
             row("isRedstoneExtendOpenTime", ConfigKeys.REDSTONE_EXTEND_OPEN_TIME, true, true, false),
+            row("isDestinationShutdown", ConfigKeys.DESTINATION_SHUTDOWN, false, false, true),
             row("isUseCooldownEnabled", ConfigKeys.USE_COOLDOWN_ENABLED, false, false, true),
             row("getUseCooldownSeconds", ConfigKeys.USE_COOLDOWN_SECONDS, 120, 120, 121),
             row("getWormholeUseIsTeleport", ConfigKeys.WORMHOLE_USE_IS_TELEPORT, false, false, true),
