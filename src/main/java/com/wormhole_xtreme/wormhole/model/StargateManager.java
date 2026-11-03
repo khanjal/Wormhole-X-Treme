@@ -482,6 +482,29 @@ public class StargateManager
     }
 
     /**
+     * The open gate that dialled this one, if any.
+     *
+     * <p>Only the dialling end of a wormhole holds a target, so the arriving end has to be found
+     * by asking the open gates which one points at it, as {@link #hasIncomingConnection} does.
+     *
+     * @param destination
+     *            the gate a wormhole arrives at
+     * @return the registered, open gate whose target is this very gate, or null if there is none
+     */
+    public static Stargate findIncomingSource(final Stargate destination)
+    {
+        if (destination == null)
+        {
+            return null;
+        }
+        return getOpenGates().stream()
+            .filter(s -> (s != null) && (s.getGateTarget() == destination) && s.isGateActive()
+                && isRegistered(s))
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
      * Find the closest stargate.
      * 
      * @param self

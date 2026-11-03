@@ -83,6 +83,7 @@ somebody else's release notes, and the record of where this fork came from.
 **Added**
 
 - **`wormhole.use.<shape>` set false keeps a rank from dialling from that gate shape**, by sign or dialler, or working its levers and sign; everyone holds it by default, so nothing changes until a server negates one. It is wanted on top of `wormhole.use.sign` or `wormhole.use.dialer`, never instead, and is named as `wormhole.build.<shape>` is ([#631](https://github.com/khanjal/Wormhole-X-Treme/issues/631)).
+- **The gate a wormhole arrives at can close it, with `destination-shutdown: true`.** Its dial lever then shuts both ends, for anyone allowed to work that lever, and players at the dialling gate are told the far end closed it, so an unwanted dial no longer runs its whole timeout. Off by default, so nothing changes until a server turns it on ([#637](https://github.com/khanjal/Wormhole-X-Treme/issues/637)).
 
 **Changed**
 

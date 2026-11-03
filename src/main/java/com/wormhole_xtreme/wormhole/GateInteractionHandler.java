@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -55,6 +56,9 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 public final class GateInteractionHandler
 {
+    /** How near the dialling gate a player has to be to hear that the far end closed it. */
+    private static final double FAR_END_NOTICE_RADIUS = 8;
+
     /** Static helpers only. */
     private GateInteractionHandler()
     {
@@ -506,6 +510,9 @@ public final class GateInteractionHandler
      * belongs to -- they log out, or the mapping is lost -- and without it the gate would stay
      * lit with no way for anyone to put it out.
      *
+     * <p>With {@code destination-shutdown} on, an open gate a wormhole arrives at is closed from
+     * its dialling end first.
+     *
      * @param stargate
      *            the gate that is open or lit
      * @param player
@@ -519,6 +526,12 @@ public final class GateInteractionHandler
             //Shutdown stargate
             stargate.shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
             player.sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
+            return true;
+        }
+
+        // Ahead of the removal below, which would drop the player's activation of some other gate.
+        if (stargate.isGateActive() && shutFromDestination(stargate, player))
+        {
             return true;
         }
 
@@ -539,6 +552,66 @@ public final class GateInteractionHandler
 
         player.sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
         return false;
+    }
+
+    /**
+     * Closes the wormhole arriving at this gate from its dialling end, when the server allows it.
+     *
+     * <p>Shutting the dialling gate closes both ends through the path its own lever takes.
+     *
+     * @param destination
+     *            the open gate the wormhole arrives at
+     * @param player
+     *            the player working its lever
+     * @return true if a wormhole was closed
+     */
+    static boolean shutFromDestination(final Stargate destination, final Player player)
+    {
+        if (!ConfigManager.isDestinationShutdown())
+        {
+            return false;
+        }
+        final Stargate source = StargateManager.findIncomingSource(destination);
+        if (source == null)
+        {
+            return false;
+        }
+        source.shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
+        player.sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
+        try
+        {
+            tellFarEnd(source, player);
+        }
+        catch (final RuntimeException e)
+        {
+            // Best effort: the wormhole is already closed, and a lost notice must not undo that.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Could not tell players at " + source.getGateName() + " the far end closed it", e);
+        }
+        return true;
+    }
+
+    /**
+     * Tells the players standing at the dialling gate that the far end closed the wormhole.
+     *
+     * @param source
+     *            the dialling gate
+     * @param closer
+     *            the player who closed it, already told, so never told twice
+     */
+    static void tellFarEnd(final Stargate source, final Player closer)
+    {
+        final World world = source.getGateWorld();
+        final Location at = source.getGatePlayerTeleportLocation();
+        if ((world == null) || (at == null))
+        {
+            return;
+        }
+        world.getPlayers().stream()
+            .filter(p -> (p != closer) && world.equals(p.getWorld())
+                && (p.getLocation().toVector().distanceSquared(at.toVector())
+                    <= (FAR_END_NOTICE_RADIUS * FAR_END_NOTICE_RADIUS)))
+            .forEach(p -> p.sendMessage(ConfigManager.MessageStrings.FAR_END_CLOSED.toString()));
     }
 
     /**
