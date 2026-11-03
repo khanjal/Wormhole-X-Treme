@@ -83,6 +83,9 @@ somebody else's release notes, and the record of where this fork came from.
 **Added**
 
 - **`wormhole.use.<shape>` set false keeps a rank from dialling from that gate shape**, by sign or dialler, or working its levers and sign; everyone holds it by default, so nothing changes until a server negates one. It is wanted on top of `wormhole.use.sign` or `wormhole.use.dialer`, never instead, and is named as `wormhole.build.<shape>` is ([#631](https://github.com/khanjal/Wormhole-X-Treme/issues/631)).
+- **Each player's lifetime trips through gates, gates built, ring trips and beams are counted**, by UUID so a name change keeps them, in `data/stats.yml`. A trip another plugin cancels is not counted, and nor is a beam refused for its price or cooldown. The file is written every five minutes when something was counted, and on shutdown, so a server killed outright loses at most those few minutes ([#237](https://github.com/khanjal/Wormhole-X-Treme/issues/237)).
+- **`%wormhole_stats_trips%`, `%wormhole_stats_gates_built%`, `%wormhole_stats_rings%` and `%wormhole_stats_beams%`** put those counts on any scoreboard, tab list or chat format that reads placeholders; a player with none reads `0` ([#237](https://github.com/khanjal/Wormhole-X-Treme/issues/237)).
+- **`/wormhole stats` shows your own counts, and `/wormhole stats <player>` anybody's**, online or not. Your own needs `wormhole.stats`, which everyone holds; anybody else's needs `wormhole.stats.others`, which operators hold. The console names a player ([#237](https://github.com/khanjal/Wormhole-X-Treme/issues/237)).
 
 **Changed**
 

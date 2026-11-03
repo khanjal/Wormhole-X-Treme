@@ -242,10 +242,12 @@ or delete it.
 | Node | Default | Allows |
 |---|---|---|
 | `wormhole.update.notify` | op | Being told on joining that a newer release is available (see `update-check` under [Metrics](#metrics)) |
+| `wormhole.stats` | true | `/wormhole stats`, your own counts |
+| `wormhole.stats.others` | op | `/wormhole stats <player>`, anybody's |
 
 Worth knowing:
 
-- `beam`, `ring`, `go`, `list` and `compass` answer to their own nodes, and a gate's owner may
+- `beam`, `ring`, `go`, `list`, `compass` and `stats` answer to their own nodes, and a gate's owner may
   run `gate edit <gate> idc` on it. Everything else under `/wormhole` needs `wormhole.config`.
 - Nobody may build inside a gate's opening except those who could take the gate apart: operators,
   its owner, and holders of `wormhole.config` or `wormhole.remove.all`. `wormhole.build` does not
@@ -279,6 +281,7 @@ a dashed word is always the option and a bare word is always a name.
 | `config …` | [Configuration](#configuration) |
 | `lang export [code]` | [Translating](TRANSLATING.md): writes a starter `lang/<code>.yml`, never over one there |
 | `compass` | Points your compass at the nearest gate; `compass reset` points it back at spawn |
+| `stats [player]` | Lifetime trips through gates, gates built, ring trips and beams: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
 
 `compass` works without a compass in hand — the heading is stored against you. It says so when
 nothing you carry will show it: a lodestone compass points at its lodestone, a recovery compass
@@ -333,7 +336,8 @@ plugins/WormholeXTreme/
     ├── captures/mirrors/*.view    (the far side of a mirror; retaken if lost)
     ├── rings/<world>.yml
     ├── beam.yml
-    └── mirror.yml
+    ├── mirror.yml
+    └── stats.yml
 ```
 
 Back up by copying `data/`; edit anything in it by hand if you need to. There is no database to
@@ -341,6 +345,10 @@ install or configure. Gates are one file each; rings are one file per world, and
 will not parse is logged and skipped while the rest of the world loads. `lang/` is never created by
 the plugin: make it to hold your own chat messages, one file per client language, read over the
 plugin's own. See [Translating](TRANSLATING.md).
+
+`stats.yml` holds each player's counts under their UUID, written every five minutes when something
+was counted and on shutdown. One that will not parse is logged, and counting starts again from
+nothing; the next save writes over it, so keep a copy if the numbers matter.
 
 The HSQLDB and SQLite backends of earlier versions are gone. Files an older build of this fork
 kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is
@@ -428,7 +436,7 @@ Beaming has its own cost settings; see [Beam settings](BEAMS.md#settings).
 
 Optional. Needs
 [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/), and gives any
-plugin that reads placeholders -- a scoreboard, a tab list, a chat format -- four values
+plugin that reads placeholders -- a scoreboard, a tab list, a chat format -- eight values
 from this one.
 
 | Setting | Default | What it does |
@@ -441,14 +449,20 @@ from this one.
 | `%wormhole_gates_open%` | How many have a wormhole open right now. |
 | `%wormhole_gates_owned%` | How many the player looking at it owns. |
 | `%wormhole_nearest_gate%` | The name of the gate nearest them. |
+| `%wormhole_stats_trips%` | How many trips they have taken through gates, ever. |
+| `%wormhole_stats_gates_built%` | How many gates they have built. |
+| `%wormhole_stats_rings%` | How many trips they have taken by rings. |
+| `%wormhole_stats_beams%` | How many times they have beamed. |
 
 - **No PlaceholderAPI means nothing happens.** The startup log says so once, and every
   other part of the plugin carries on.
 - **`gates_owned` counts gates recorded under either the player's UUID or their name**,
   so gates built before this plugin stored owners as UUIDs still count as theirs.
 - **`nearest_gate` is empty for a player who is not online**, because there is nowhere
-  to measure from. The two counts still answer.
-- **A placeholder that is not one of these four is left exactly as you typed it**, which
+  to measure from. The counts still answer.
+- **The four `stats_` counts read `0` for a player with none yet**, and are kept as
+  [`/wormhole stats`](#commands) shows them.
+- **A placeholder that is not one of these is left exactly as you typed it**, which
   is how you spot a typo rather than finding a blank line.
 - The expansion survives `/papi reload`.
 
