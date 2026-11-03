@@ -207,7 +207,7 @@ class PlayerStatsTest
 
     /** A file that read cleanly is written over with no copy left beside it. */
     @Test
-    void aGoodFileLeavesNoBadCopy() throws Exception
+    void aGoodFileLeavesNoBadCopy()
     {
         count(ALICE, Counter.TRIPS, 2);
         assertTrue(PlayerStats.saveIfChanged());
@@ -223,7 +223,7 @@ class PlayerStatsTest
      * the counts are still only in memory.
      */
     @Test
-    void aSaveThatThrowsIsTriedAgainNextTime() throws Exception
+    void aSaveThatThrowsIsTriedAgainNextTime()
     {
         count(ALICE, Counter.TRIPS, 3);
         try (MockedStatic<YamlStore> store = mockStatic(YamlStore.class))
@@ -244,7 +244,7 @@ class PlayerStatsTest
      * passes on up, but the counts are still owed to the next save.
      */
     @Test
-    void aSaveThatThrowsAnErrorIsTriedAgainNextTime() throws Exception
+    void aSaveThatThrowsAnErrorIsTriedAgainNextTime()
     {
         count(ALICE, Counter.BEAMS, 2);
         try (MockedStatic<YamlStore> store = mockStatic(YamlStore.class))
@@ -312,7 +312,7 @@ class PlayerStatsTest
     }
 
     @Test
-    void loadingLeavesNothingToSave() throws Exception
+    void loadingLeavesNothingToSave()
     {
         count(ALICE, Counter.TRIPS, 2);
         assertTrue(PlayerStats.saveIfChanged());

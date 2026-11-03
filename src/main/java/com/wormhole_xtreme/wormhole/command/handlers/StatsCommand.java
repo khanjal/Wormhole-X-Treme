@@ -109,13 +109,13 @@ public class StatsCommand implements SubCommand
 
     /**
      * Finds a player by name, whether or not they are online, as {@code /wormhole ring} does.
+     * The lookup by name is deprecated on every supported version with no Spigot replacement, as the
+     * ring command's own lookup explains.
      *
      * @param name
      *            the name typed
      * @return the player, or null if the server has never seen them
      */
-    // getOfflinePlayer(String) is deprecated on every supported version with no Spigot replacement;
-    // RingCommand.findPlayer says why.
     @SuppressWarnings("deprecation")
     private static OfflinePlayer findPlayer(final String name)
     {
