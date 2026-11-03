@@ -207,16 +207,18 @@ public class WXPermissions
             || ComplexPermission.NETWORK_BUILD.checkPermission(player, networkName);
     }
 
-    /** Whether the player holds the sign node for the network this gate is on. */
-    private static boolean maySign(final Player player, final String networkName)
+    /** Whether the player holds the sign node for the network this gate is on, and is not refused its shape. */
+    private static boolean maySign(final Player player, final Stargate stargate, final String networkName)
     {
-        return ComplexPermission.USE_SIGN.checkPermission(player) && mayUseNetwork(player, networkName);
+        return ComplexPermission.USE_SIGN.checkPermission(player) && mayUseNetwork(player, networkName)
+            && ShapePermissions.mayUse(player, stargate);
     }
 
-    /** Whether the player holds the dialler node for the network this gate is on. */
-    private static boolean mayDial(final Player player, final String networkName)
+    /** Whether the player holds the dialler node for the network this gate is on, and is not refused its shape. */
+    private static boolean mayDial(final Player player, final Stargate stargate, final String networkName)
     {
-        return ComplexPermission.USE_DIALER.checkPermission(player) && mayUseNetwork(player, networkName);
+        return ComplexPermission.USE_DIALER.checkPermission(player) && mayUseNetwork(player, networkName)
+            && ShapePermissions.mayUse(player, stargate);
     }
 
     /**
@@ -249,11 +251,11 @@ public class WXPermissions
                     || ComplexPermission.REMOVE_ALL.checkPermission(player)
                     || ComplexPermission.REMOVE_OWN.checkPermission(player, stargate);
             case SIGN:
-                return maySign(player, networkName);
+                return maySign(player, stargate, networkName);
             case DIALER:
-                return mayDial(player, networkName);
+                return mayDial(player, stargate, networkName);
             case USE:
-                return maySign(player, networkName) || mayDial(player, networkName);
+                return maySign(player, stargate, networkName) || mayDial(player, stargate, networkName);
             case BUILD:
                 return (ComplexPermission.BUILD.checkPermission(player) || ShapePermissions.mayBuild(player, stargate))
                     && mayBuildOnNetwork(player, networkName);
