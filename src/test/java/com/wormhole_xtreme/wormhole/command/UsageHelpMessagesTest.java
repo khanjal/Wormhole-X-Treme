@@ -81,7 +81,7 @@ class UsageHelpMessagesTest
     /** The list as the code built it before: a header, then each visible subcommand under its heading. */
     private static List<String> oldList(final String header, final List<String> headings)
     {
-        final String[] subcommands = { "gate", "ring", "beam", "mirror", "config", "compass" };
+        final String[] subcommands = { "gate", "ring", "beam", "mirror", "config", "compass", "stats" };
         final List<String> lines = new ArrayList<>();
         lines.add(info(header));
         for (int i = 0; i < subcommands.length; i++)
@@ -99,7 +99,7 @@ class UsageHelpMessagesTest
         assertTrue(new Wormhole().onCommand(console, null, "wormhole", new String[0]));
 
         assertEquals(oldList("Wormhole X-Treme commands:",
-            List.of("Gates:", "Rings:", "Beams:", "Mirrors:", "Settings:", "Other:")), sentTo(console));
+            List.of("Gates:", "Rings:", "Beams:", "Mirrors:", "Settings:", "Other:", "Other:")), sentTo(console));
     }
 
     @Test
@@ -109,7 +109,7 @@ class UsageHelpMessagesTest
         assertTrue(new Wormhole().onCommand(player, null, "wormhole", new String[0]));
 
         assertEquals(oldList("QR commands:",
-            List.of("QR gates:", "QR rings:", "QR beams:", "QR mirrors:", "QR settings:", "QR other:")), sentTo(player));
+            List.of("QR gates:", "QR rings:", "QR beams:", "QR mirrors:", "QR settings:", "QR other:", "QR other:")), sentTo(player));
     }
 
     @Test

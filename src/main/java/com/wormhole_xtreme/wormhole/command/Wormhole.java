@@ -26,7 +26,7 @@ public class Wormhole implements CommandExecutor
 {
 
     /** What {@code /wormhole} lists, by subcommand, in this order, each under its own heading. */
-    private static final String[] GROUPS = { "gate", "ring", "beam", "mirror", "config", "compass" };
+    private static final String[] GROUPS = { "gate", "ring", "beam", "mirror", "config", "compass", "stats" };
 
     /** @return the heading a subcommand is listed under, in the reader's language */
     private static String heading(final CommandSender sender, final String subcommand)

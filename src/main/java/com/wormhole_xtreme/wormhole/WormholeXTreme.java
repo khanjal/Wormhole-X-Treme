@@ -41,6 +41,8 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaListener;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStatsListener;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.window.FarChunkHolds;
@@ -99,6 +101,9 @@ public class WormholeXTreme extends JavaPlugin
 
     /** The This plugin. */
     private static WormholeXTreme thisPlugin = null;
+
+    /** Ticks between saves of the player stats: five minutes. */
+    private static final long STATS_SAVE_TICKS = 5L * 60L * 20L;
 
     /** Opens the one-line count each subsystem logs once it has read its files. */
     private static final String LOADED = "Loaded ";
@@ -163,6 +168,7 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(itemTracker, tp);
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
+        pm.registerEvents(new PlayerStatsListener(), tp);
         StandInListener.register(pm, tp);
         // A view is built again when the world behind its wall changes (#609).
         pm.registerEvents(new ViewChangeListener(), tp);
@@ -425,6 +431,7 @@ public class WormholeXTreme extends JavaPlugin
                 saveRings();
                 saveBeams();
                 saveMirrors();
+                saveStats();
                 disableEconomyQuietly();
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
             }
@@ -541,6 +548,21 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception | LinkageError e)
         {
             prettyLog(Level.WARNING, "Failed to save quantum mirrors", e);
+        }
+    }
+
+    /**
+     * Writes the player stats out if they changed, and keeps shutting down if it cannot.
+     */
+    private void saveStats()
+    {
+        try
+        {
+            PlayerStats.saveIfChanged();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            prettyLog(Level.WARNING, "Failed to save player stats", e);
         }
     }
 
@@ -751,6 +773,15 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, "Failed to load quantum mirrors", e);
         }
+        // Counts that cannot be read must not stop anything else loading.
+        try
+        {
+            PlayerStats.load();
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to load player stats", e);
+        }
         // Deliberately no startup log line, which would announce the easter egg.
         try
         {
@@ -783,6 +814,9 @@ public class WormholeXTreme extends JavaPlugin
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             GatePreviews::tick, 100L, 100L);
+        // Player stats are written every five minutes, and only when something was counted.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            PlayerStats::saveIfChanged, STATS_SAVE_TICKS, STATS_SAVE_TICKS);
         // Said after gates have loaded, so it can tell an empty server from a full one.
         LegacyDatabaseImporter.announceIfWorthwhile();
         prettyLog(Level.INFO, true, "Enable Completed.");

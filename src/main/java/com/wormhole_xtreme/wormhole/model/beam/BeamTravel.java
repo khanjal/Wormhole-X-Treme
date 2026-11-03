@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
@@ -108,19 +109,30 @@ public final class BeamTravel
         // BeamAnimation.start already refuses (and messages) a player who is mid-beam, so
         // there is nothing left to do with its result either way -- this call has handled
         // the attempt fully regardless of which way it went.
-        BeamAnimation.start(player, stored, destination.name(), () ->
-        {
-            if (useCost > 0)
-            {
-                EconomySupport.charge(player, useCost);
-                player.sendMessage(charged(player, useCost));
-            }
-            if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled())
-            {
-                BeamCooldown.start(player);
-            }
-        });
+        BeamAnimation.start(player, stored, destination.name(), () -> departed(player, useCost, bypassesLimits));
         return true;
+    }
+
+    /**
+     * What a beam settles once the traveller has actually been moved: the charge, the cooldown, and
+     * the count in their stats (#237). Package-private, since {@link BeamAnimation} cannot be loaded in a test.
+     *
+     * @param player the traveller, already at the destination
+     * @param useCost what the beam costs, zero for nothing
+     * @param bypassesLimits whether they hold {@link BeamPermissions#ADMIN}, which skips the cooldown
+     */
+    static void departed(final Player player, final double useCost, final boolean bypassesLimits)
+    {
+        if (useCost > 0)
+        {
+            EconomySupport.charge(player, useCost);
+            player.sendMessage(charged(player, useCost));
+        }
+        if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled())
+        {
+            BeamCooldown.start(player);
+        }
+        PlayerStats.count(player.getUniqueId(), PlayerStats.Counter.BEAMS);
     }
 
     /** @return why {@code player} must wait, {@code count} seconds of cooldown left, without its header */

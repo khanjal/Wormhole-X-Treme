@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.junit.jupiter.api.AfterEach;
@@ -15,6 +17,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counter;
 
 /**
  * What each {@code %wormhole_...%} placeholder answers.
@@ -48,6 +52,15 @@ class PlaceholderValuesTest
     {
         PluginTestSupport.forgetAllGates();
         PluginTestSupport.remove();
+        PlayerStats.clear();
+    }
+
+    private static void count(final Counter counter, final int times)
+    {
+        for (int i = 0; i < times; i++)
+        {
+            PlayerStats.count(UUID.fromString(ALICE_ID), counter);
+        }
     }
 
     private Stargate gate(final String name, final String owner, final int x)
@@ -167,5 +180,39 @@ class PlaceholderValuesTest
 
         assertEquals("1", PlaceholderValues.resolve("gates_total", null, null, null));
         assertEquals("0", PlaceholderValues.resolve("gates_owned", null, null, null));
+    }
+
+    /** Each stats placeholder answers its own count, for the asking player (#237). */
+    @Test
+    void eachStatsPlaceholderAnswersItsOwnCount()
+    {
+        count(Counter.TRIPS, 3);
+        count(Counter.GATES_BUILT, 2);
+        count(Counter.RINGS, 4);
+        count(Counter.BEAMS, 5);
+
+        assertEquals("3", PlaceholderValues.resolve("stats_trips", ALICE_ID, "alice", null));
+        assertEquals("2", PlaceholderValues.resolve("stats_gates_built", ALICE_ID, "alice", null));
+        assertEquals("4", PlaceholderValues.resolve("stats_rings", ALICE_ID, "alice", null));
+        assertEquals("5", PlaceholderValues.resolve("stats_beams", ALICE_ID, "alice", null));
+    }
+
+    @Test
+    void aPlayerWithNoStatsReadsZeroNotBlank()
+    {
+        // Somebody else's counts must not answer for a player who has none.
+        PlayerStats.count(UUID.fromString("99999999-8888-7777-6666-555555555555"), Counter.TRIPS);
+
+        assertEquals("0", PlaceholderValues.resolve("stats_trips", ALICE_ID, "alice", null),
+            "a scoreboard line reads 0 for a player who has not travelled yet");
+    }
+
+    @Test
+    void theStatsAreBlankWithNoPlayerToAskAbout()
+    {
+        count(Counter.TRIPS, 2);
+
+        assertEquals("", PlaceholderValues.resolve("stats_trips", null, null, null));
+        assertEquals("", PlaceholderValues.resolve("stats_trips", "not-a-uuid", "alice", null));
     }
 }
