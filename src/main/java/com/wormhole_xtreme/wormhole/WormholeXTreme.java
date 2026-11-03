@@ -561,7 +561,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             PlayerStats.load();
         }
-        catch (final Exception e)
+        catch (final Exception | LinkageError e)
         {
             prettyLog(Level.WARNING, "Failed to load player stats", e);
         }
