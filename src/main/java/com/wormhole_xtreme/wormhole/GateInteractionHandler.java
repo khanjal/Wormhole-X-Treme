@@ -510,6 +510,9 @@ public final class GateInteractionHandler
      * belongs to -- they log out, or the mapping is lost -- and without it the gate would stay
      * lit with no way for anyone to put it out.
      *
+     * <p>With {@code destination-shutdown} on, an open gate a wormhole arrives at is closed from
+     * its dialling end first.
+     *
      * @param stargate
      *            the gate that is open or lit
      * @param player
@@ -526,6 +529,12 @@ public final class GateInteractionHandler
             return true;
         }
 
+        // Ahead of the removal below, which would drop the player's activation of some other gate.
+        if (stargate.isGateActive() && shutFromDestination(stargate, player))
+        {
+            return true;
+        }
+
         final Stargate s2 = StargateManager.removeActivatedStargate(player);
         if ((s2 != null) && (stargate.getGateId() == s2.getGateId()))
         {
@@ -538,11 +547,6 @@ public final class GateInteractionHandler
         {
             // The gate is cleared whatever happens from here, so this arm is always a success.
             forceClearStaleActivation(stargate, player);
-            return true;
-        }
-
-        if (stargate.isGateActive() && shutFromDestination(stargate, player))
-        {
             return true;
         }
 

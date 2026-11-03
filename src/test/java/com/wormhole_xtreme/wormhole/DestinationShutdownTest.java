@@ -67,6 +67,7 @@ class DestinationShutdownTest
     void tearDown()
     {
         ConfigTestSupport.clear();
+        StargateManager.removeActivatedStargate(player);
         for (final Stargate s : StargateManager.getAllGates())
         {
             StargateManager.removeStargate(s);
@@ -209,6 +210,30 @@ class DestinationShutdownTest
         verify(atDestination, never()).sendMessage(anyString());
         verify(inOtherWorld, never()).sendMessage(anyString());
         verify(player, never()).sendMessage(notice);
+    }
+
+    /**
+     * Closing an arriving wormhole leaves the player's own activation of another gate alone.
+     *
+     * <p>Looking up the player's activation removes it. Run before this branch, it dropped the
+     * mapping to a gate the player had lit elsewhere, leaving that gate lit with nobody able to
+     * deactivate it as theirs until its timer ran out.
+     */
+    @Test
+    void closingAnArrivingWormholeKeepsThePlayersActivationOfAnotherGate()
+    {
+        final Stargate lit = new Stargate();
+        lit.setGateName("litElsewhere");
+        lit.setGateLightsActive(true);
+        StargateManager.registerStargate(lit);
+        StargateManager.addActivatedStargate(player, lit);
+        ConfigTestSupport.set(ConfigKeys.DESTINATION_SHUTDOWN, true);
+
+        assertTrue(GateInteractionHandler.closeOrDeactivate(destination, player));
+
+        verify(source).shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
+        assertSame(lit, StargateManager.removeActivatedStargate(player),
+            "the player's activation of the other gate must survive closing this one");
     }
 
     /** A notice that throws still leaves the wormhole closed and the lever reporting success. */
