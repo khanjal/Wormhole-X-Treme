@@ -198,6 +198,7 @@ outranks a negated node.
 |---|---|---|
 | `wormhole.use.sign` | false | Using sign dialers |
 | `wormhole.use.dialer` | false | Dialling a gate |
+| `wormhole.use.<shape>` | true | Using a gate of one [shape](GATES.md): dialling from it by sign or dialler, shutting it from its lever, stepping its sign and working its iris. Named as `wormhole.build.<shape>` is (`wormhole.use.grand_gate`), so two shapes whose names differ only in case or punctuation share one. Everyone holds it, so it only narrows: set it false on a rank to keep that rank off the shape, and true on another to let it back. It is wanted as well as `wormhole.use.sign` or `wormhole.use.dialer`, never instead. Only the gate dialled from is checked, so a refused shape can still be arrived through, and walked into once open unless [`wormhole-use-is-teleport`](../GATES.md#travelling) is on. Its owner, operators, a gate with no owner and simple mode are not refused. A shape called `Sign`, `Dialer` or `Compass` has none |
 | `wormhole.use.compass` | false | `/wormhole compass` |
 | `wormhole.list` | false | `/wormhole gate list` |
 | `wormhole.go` | false | `/wormhole go` |
@@ -662,14 +663,16 @@ What is sent, twice an hour:
   any other, and which portal material the gates show (`water`, `lava`, `nether_portal`,
   `end_gateway`, `end_portal`, or `other`), each counted by gate. A gate's material comes from its
   frame, which is read from the world; where every material group gives the same portal, and so
-  does a frame that matches none, that is not needed. Otherwise a gate nobody has used since the
-  server started, in a chunk that is not loaded, is `unknown`: finding its material would load the
-  chunk, and the counts are taken on the server thread;
+  does a frame that matches none, that is not needed. Nor is it when the gate's file says what its
+  frame is built from, which it does once the gate has been used or its chunk has loaded, and it
+  has been saved since. Otherwise a gate whose chunk has
+  not loaded since the server started is `unknown`: finding its material would load the chunk, and
+  the counts are taken on the server thread;
 - which block the gates' frames are built from, as the plugin knows it from the gate's material group
   or its shape (`obsidian`, `lapis_block` and so on, the game's own block names, whatever your
-  groups are called), counted by gate and read the same way: a
-  gate nobody has used since the server started, in a chunk that is not loaded, is `unknown` here
-  too, and with more than one material group that is more gates than for the portal;
+  groups are called), counted by gate and read the same way. Every group has its own frame block, so
+  a gate whose file does not say and whose chunk has not loaded is `unknown` here even where its
+  portal is known;
 - the `gate-dial-spin` pattern, `gate-view`, `gate-iris-animation`, and whether `gate-ripple` and
   `gate-sounds-enabled` are on;
 - which of Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap

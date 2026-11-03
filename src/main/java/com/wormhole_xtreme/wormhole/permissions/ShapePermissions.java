@@ -18,23 +18,34 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 
 /**
- * The permission node for building each gate shape, {@code wormhole.build.<shape>} (#631).
+ * The permission nodes for each gate shape, {@code wormhole.build.<shape>} and
+ * {@code wormhole.use.<shape>} (#631).
  *
  * <p>{@code wormhole.build} stays the wildcard: a player holding it builds every shape, as before.
  * A server that wants a rank to build only the small shape leaves {@code wormhole.build} off that
  * rank and gives it {@code wormhole.build.standard}. The node is the shape's name, lower case, with
  * every character that is not a letter, a digit or an underscore made an underscore.
+ *
+ * <p>The use node narrows instead: everyone holds it unless it is set false, and it is wanted on
+ * top of {@code wormhole.use.sign} or {@code wormhole.use.dialer} wherever those are asked of a
+ * gate of that shape: dialling, its levers, its sign and, with wormhole-use-is-teleport, entering it.
  */
 public final class ShapePermissions
 {
-    /** What a shape's node begins with. */
+    /** What a shape's build node begins with. */
     static final String BUILD_PREFIX = "wormhole.build.";
+
+    /** What a shape's use node begins with. */
+    static final String USE_PREFIX = "wormhole.use.";
 
     /**
      * Words after {@code wormhole.build.} that are nodes already: a shape called "Preview" would
      * otherwise be built by anybody who may preview. Such a shape has no node of its own.
      */
     private static final Set<String> TAKEN = Set.of("preview", "mindistance");
+
+    /** As {@link #TAKEN}, after {@code wormhole.use.}. */
+    private static final Set<String> TAKEN_USE = Set.of("sign", "dialer", "compass");
 
     /** Static helpers only. */
     private ShapePermissions()
@@ -50,12 +61,50 @@ public final class ShapePermissions
      */
     public static String buildNode(final String shapeName)
     {
+        return node(BUILD_PREFIX, TAKEN, shapeName);
+    }
+
+    /**
+     * The node a player needs to use a gate of a shape.
+     *
+     * @param shapeName
+     *            the shape's declared name
+     * @return its node, or null if the name leaves nothing to name one by, or the word is taken
+     */
+    public static String useNode(final String shapeName)
+    {
+        return node(USE_PREFIX, TAKEN_USE, shapeName);
+    }
+
+    /** A shape's name made safe after a prefix, or null as {@link #buildNode} says. */
+    private static String node(final String prefix, final Set<String> taken, final String shapeName)
+    {
         if (shapeName == null)
         {
             return null;
         }
         final String word = shapeName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "_");
-        return (word.replace("_", "").isEmpty() || TAKEN.contains(word)) ? null : (BUILD_PREFIX + word);
+        return (word.replace("_", "").isEmpty() || taken.contains(word)) ? null : (prefix + word);
+    }
+
+    /**
+     * Whether a player may use a gate of this shape: yes unless its use node is set false.
+     *
+     * @param player
+     *            who is using it
+     * @param gate
+     *            the gate used, or null where none is involved, as for a mirror
+     * @return false only if the shape's node is set and not held
+     */
+    static boolean mayUse(final Player player, final Stargate gate)
+    {
+        if ((gate == null) || (gate.getGateShape() == null))
+        {
+            return true;
+        }
+        final String node = useNode(gate.getGateShape().getShapeName());
+        // Not hasPermission alone: a node the server never declared defaults to op.
+        return (node == null) || !player.isPermissionSet(node) || player.hasPermission(node);
     }
 
     /**
@@ -98,8 +147,9 @@ public final class ShapePermissions
     }
 
     /**
-     * Declares the node of each shape to the server, so a permissions plugin can list and
-     * complete them. Operators have them by default, as they have {@code wormhole.build}.
+     * Declares the nodes of each shape to the server, so a permissions plugin can list and
+     * complete them. Operators have the build nodes by default, as they have {@code wormhole.build};
+     * everyone has the use nodes.
      *
      * @param shapeNames
      *            the shapes now loaded
@@ -114,20 +164,26 @@ public final class ShapePermissions
         }
         for (final String name : shapeNames)
         {
-            final String node = buildNode(name);
-            try
+            declareOne(manager, buildNode(name), "Allow building a " + name + " gate.", PermissionDefault.OP);
+            declareOne(manager, useNode(name), "Allow using a " + name + " gate.", PermissionDefault.TRUE);
+        }
+    }
+
+    /** Declares one node unless it is null or declared already. */
+    private static void declareOne(final PluginManager manager, final String node, final String description,
+        final PermissionDefault byDefault)
+    {
+        try
+        {
+            if ((node != null) && (manager.getPermission(node) == null))
             {
-                if ((node != null) && (manager.getPermission(node) == null))
-                {
-                    manager.addPermission(new Permission(node,
-                        "Allow building a " + name + " gate.", PermissionDefault.OP));
-                }
+                manager.addPermission(new Permission(node, description, byDefault));
             }
-            catch (final RuntimeException refused)
-            {
-                // A node that is not declared still works; it is only not listed. Loading shapes goes on.
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not declare " + node, refused);
-            }
+        }
+        catch (final RuntimeException refused)
+        {
+            // A node that is not declared still works; it is only not listed. Loading shapes goes on.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Could not declare " + node, refused);
         }
     }
 }
