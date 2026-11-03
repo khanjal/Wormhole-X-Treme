@@ -193,13 +193,22 @@ public final class PlayerStats
             return 0;
         }
         final Map<String, Object> root = read(file);
-        for (final Map.Entry<String, Object> entry : YamlMaps.asMap(root.get(PLAYERS)).entrySet())
+        final Object players = root.get(PLAYERS);
+        if ((players != null) && !(players instanceof Map))
+        {
+            PluginLog.log(Level.WARNING, "Player stats file has no map of players; starting from nothing");
+            unreadable = true;
+        }
+        for (final Map.Entry<String, Object> entry : YamlMaps.asMap(players).entrySet())
         {
             final UUID id = readId(entry.getKey());
-            if (id != null)
+            if (id == null)
             {
-                COUNTS.put(id, readCounts(YamlMaps.asMap(entry.getValue())));
+                // The rest still load, but the next save would drop this one for good.
+                unreadable = true;
+                continue;
             }
+            COUNTS.put(id, readCounts(YamlMaps.asMap(entry.getValue())));
         }
         return COUNTS.size();
     }
@@ -262,7 +271,7 @@ public final class PlayerStats
             return false;
         }
         changed = false;
-        boolean written;
+        boolean written = false;
         try
         {
             written = write();
@@ -270,12 +279,14 @@ public final class PlayerStats
         catch (final RuntimeException e)
         {
             PluginLog.log(Level.WARNING, "Failed to write player stats file", e);
-            written = false;
         }
-        if (!written)
+        finally
         {
-            // Tried again at the next save rather than given up on.
-            changed = true;
+            // Tried again at the next save rather than given up on, even past an Error.
+            if (!written)
+            {
+                changed = true;
+            }
         }
         return written;
     }

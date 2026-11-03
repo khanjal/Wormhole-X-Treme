@@ -26,10 +26,14 @@ import org.bukkit.entity.Cat;
 import org.bukkit.entity.Sittable;
 import org.bukkit.entity.Tameable;
 import org.bukkit.entity.Wolf;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -231,6 +235,40 @@ class JourneysOnMockServerTest
         assertTrue(p.getLocation().distance(gamma.getGatePlayerTeleportLocation()) < 2, "beamed to the gate");
         assertEquals(1, PlayerStats.of(p.getUniqueId()).beams(), "beamed there (#237)");
         assertEquals(0, PlayerStats.of(p.getUniqueId()).trips(), "without going through a gate");
+    }
+
+    /** A beam whose teleport another plugin cancels leaves the player where they were, and counts nothing (#237). */
+    @Test
+    void aBeamWhoseTeleportIsCancelledIsNotCounted()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("refusedbeams", 3);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Refused");
+        p.teleport(new Location(world, 10.5, 64, 10.5, 90f, 0f));
+        p.performCommand("wormhole beam admin set Shut");
+        final Location start = new Location(world, -20.5, 64, -20.5, 0f, 0f);
+        p.teleport(start);
+        final Listener refuse = new Listener()
+        {
+            @EventHandler
+            public void onTeleport(final PlayerTeleportEvent event)
+            {
+                event.setCancelled(true);
+            }
+        };
+        server.getPluginManager().registerEvents(refuse, WormholeXTreme.getThisPlugin());
+        try
+        {
+            p.performCommand("wormhole beam to Shut");
+            ticks(100);
+        }
+        finally
+        {
+            HandlerList.unregisterAll(refuse);
+        }
+
+        assertAt(start, p.getLocation());
+        assertEquals(0, PlayerStats.of(p.getUniqueId()).beams(), "the beam never moved them");
     }
 
     /** Two rings laid in slabs and paired, then walked into: the far end, and both chunks let go. */

@@ -372,9 +372,13 @@ public final class BeamAnimation
                 // The traveller is frozen at the origin until this tick, so it is still the place to look.
                 final List<Entity> pets =
                     PetEscort.gather(player);
-                player.teleport(destination);
+                final boolean arrived = player.teleport(destination);
                 teleported = true;
-                PlayerStats.countPlayer(player, PlayerStats.Counter.BEAMS);
+                // A teleport another plugin cancelled left them at the origin: no beam to count.
+                if (arrived)
+                {
+                    PlayerStats.countPlayer(player, PlayerStats.Counter.BEAMS);
+                }
                 // Bukkit dismounts a rider before teleporting them, so the traveller has
                 // arrived alone whatever they were sitting on. Sending it after them, and
                 // putting them back on it, is the whole of BeamMount's job -- and it goes

@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -12,6 +13,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
  * {@code /wormhole stats [player]}: a player's lifetime trips, gates built, ring trips and beams (#237).
@@ -131,6 +133,7 @@ public class StatsCommand implements SubCommand
         // A server that will not give the roster up is answered as an unknown name, as OwnerCommand does.
         catch (final RuntimeException refused)
         {
+            PluginLog.log(Level.FINE, "Could not look up player " + name + " for /wormhole stats", refused);
             return null;
         }
     }

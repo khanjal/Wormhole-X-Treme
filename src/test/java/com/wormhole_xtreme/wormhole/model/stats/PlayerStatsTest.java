@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.stats;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -154,6 +155,40 @@ class PlayerStatsTest
         assertEquals(2, PlayerStats.of(ALICE).trips(), "and the new counts are what stats.yml holds");
     }
 
+    /** A players section that is not a map would be written over with nothing; it is set aside first. */
+    @Test
+    void aPlayersSectionThatIsNotAMapIsKeptAsBad() throws Exception
+    {
+        final File file = DataLayout.statsFile();
+        assertTrue(file.getParentFile().mkdirs());
+        final String text = "players:\n- " + ALICE + "\n";
+        Files.writeString(file.toPath(), text, StandardCharsets.UTF_8);
+        PlayerStats.load();
+
+        count(BOB, Counter.TRIPS, 2);
+        assertTrue(PlayerStats.saveIfChanged());
+
+        assertEquals(text, Files.readString(new File(file.getPath() + ".bad").toPath(), StandardCharsets.UTF_8));
+    }
+
+    /** A player id that would not parse is dropped from the next save, so the file is set aside first. */
+    @Test
+    void aSkippedPlayerIdKeepsTheFileAsBad() throws Exception
+    {
+        final File file = DataLayout.statsFile();
+        assertTrue(file.getParentFile().mkdirs());
+        final String text = "players:\n  not-a-uuid:\n    trips: 7\n  " + ALICE + ":\n    trips: 3\n";
+        Files.writeString(file.toPath(), text, StandardCharsets.UTF_8);
+        PlayerStats.load();
+
+        count(ALICE, Counter.TRIPS, 2);
+        assertTrue(PlayerStats.saveIfChanged());
+
+        assertEquals(text, Files.readString(new File(file.getPath() + ".bad").toPath(), StandardCharsets.UTF_8));
+        PlayerStats.load();
+        assertEquals(5, PlayerStats.of(ALICE).trips(), "the readable player kept their counts");
+    }
+
     /** A file that reads but is not a map of players is set aside the same way. */
     @Test
     void aFileThatIsNotAMapIsKeptAsBadToo() throws Exception
@@ -202,6 +237,27 @@ class PlayerStatsTest
         PlayerStats.clear();
         PlayerStats.load();
         assertEquals(3, PlayerStats.of(ALICE).trips());
+    }
+
+    /**
+     * An Error out of the write -- a class the classloader can no longer read, after a jar swap --
+     * passes on up, but the counts are still owed to the next save.
+     */
+    @Test
+    void aSaveThatThrowsAnErrorIsTriedAgainNextTime() throws Exception
+    {
+        count(ALICE, Counter.BEAMS, 2);
+        try (MockedStatic<YamlStore> store = mockStatic(YamlStore.class))
+        {
+            store.when(() -> YamlStore.write(any(), any())).thenThrow(new NoClassDefFoundError("gone"));
+
+            assertThrows(NoClassDefFoundError.class, PlayerStats::saveIfChanged);
+        }
+
+        assertTrue(PlayerStats.saveIfChanged(), "still owed, so the next save writes it");
+        PlayerStats.clear();
+        PlayerStats.load();
+        assertEquals(2, PlayerStats.of(ALICE).beams());
     }
 
     @Test
