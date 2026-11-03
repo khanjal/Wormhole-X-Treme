@@ -191,6 +191,9 @@ public class ConfigManager
         /** Cost in currency units charged to build a gate. 0 = free. */
         ECONOMY_BUILD_COST,
         REDSTONE_EXTEND_OPEN_TIME,
+
+        /** Whether the lever of the gate a wormhole arrives at closes it (#637). */
+        DESTINATION_SHUTDOWN,
         SIGN_GLOWING_TEXT,
         SIGN_DIAL_MATCH_MATERIAL,
         SIGN_COLOR_GATE_NAME,
@@ -291,6 +294,9 @@ public class ConfigManager
 
         /** The gate shutdown. */
         GATE_SHUTDOWN(ChatText.info("Gate shut down.")),
+
+        /** Said near the dialling gate when the gate it reached closed the wormhole (#637). */
+        FAR_END_CLOSED(ChatText.info("The far end closed the wormhole.")),
 
         /** The gate activated. */
         GATE_ACTIVATED(ChatText.info("Gate successfully activated.")),
@@ -1022,6 +1028,17 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME);
         return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * Whether the dial lever of the gate a wormhole arrives at may shut it.
+     *
+     * @return false unless the setting turns it on
+     */
+    public static boolean isDestinationShutdown()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DESTINATION_SHUTDOWN);
+        return (s != null) && s.getBooleanValue();
     }
 
     /** See {@link SignSettings#isSignDialMatchMaterial()}. */
