@@ -485,7 +485,7 @@ public class StargateManager
      * The open gate that dialled this one, if any.
      *
      * <p>Only the dialling end of a wormhole holds a target, so the arriving end has to be found
-     * by asking every gate which one it points at.
+     * by asking the open gates which one points at it, as {@link #hasIncomingConnection} does.
      *
      * @param destination
      *            the gate a wormhole arrives at
@@ -497,8 +497,9 @@ public class StargateManager
         {
             return null;
         }
-        return getAllGatesUnsorted().stream()
-            .filter(s -> (s.getGateTarget() == destination) && s.isGateActive())
+        return getOpenGates().stream()
+            .filter(s -> (s != null) && (s.getGateTarget() == destination) && s.isGateActive()
+                && isRegistered(s))
             .findFirst()
             .orElse(null);
     }

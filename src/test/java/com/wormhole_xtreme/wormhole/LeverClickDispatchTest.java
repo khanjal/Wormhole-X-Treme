@@ -301,8 +301,8 @@ class LeverClickDispatchTest
      * A player who is neither op nor owner, but may work the dial lever, closes an arriving
      * wormhole with it (#637).
      *
-     * <p>Through the whole click, so the lever's own permission check is the one that admits
-     * them; the setting adds no node of its own.
+     * <p>Through the whole click, so a permitted player who is not op reaches the new branch by
+     * the real lever path, past the lever's own permission check.
      */
     @Test
     void aPermittedNonOwnerClosesAnArrivingWormholeWithTheDialLever()
