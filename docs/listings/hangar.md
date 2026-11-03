@@ -342,7 +342,7 @@ text.
 
 | Field | Value |
 |---|---|
-| Version | `1.13.0` |
+| Version | `1.13.0`, with no `v`: the README's badge adds it |
 | Release channel | Release |
 | Platform | Paper |
 | Platform versions | that version's Minecraft range in [`versions.md`](versions.md), every release ticked individually. Snapshots off. |
