@@ -158,6 +158,7 @@ its colours until it is next written. Nothing waits for a restart.
 | `timeout-activate` | 30 | Seconds a lit gate waits for a destination before giving up |
 | `timeout-shutdown` | 38 | Seconds an open wormhole stays open after it was last dialled; re-dialling restarts it. `0` keeps it open until something goes through |
 | `max-open-seconds` | 300 | Longest a wormhole may stay open at all, from when it first formed, however often it is re-dialled. `0` to disable |
+| `destination-shutdown` | false | The dial lever of the gate a wormhole arrives at shuts it, at both ends, for anyone allowed to work that lever. Players at the dialling gate are told the far end closed it. False leaves only the dialling gate able to close it |
 
 The cap is what stops anything that re-dials on a schedule, or a `timeout-shutdown` of `0`, from
 holding a gate open forever.
