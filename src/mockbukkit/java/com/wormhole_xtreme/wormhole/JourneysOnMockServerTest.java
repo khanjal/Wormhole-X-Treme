@@ -41,6 +41,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 import net.kyori.adventure.text.Component;
@@ -158,6 +159,7 @@ class JourneysOnMockServerTest
         final MockServerSupport.Player p = new MockServerSupport.Player(server, "Dialler");
         final Stargate alpha = buildGate(p, world, 0.5, "Alpha");
         final Stargate beta = buildGate(p, world, 40.5, "Beta");
+        assertEquals(2, PlayerStats.of(p.getUniqueId()).gatesBuilt(), "both gates count as built (#237)");
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
         p.messages();
         final Set<Integer> before = settledTasks();
@@ -174,12 +176,14 @@ class JourneysOnMockServerTest
         walk(p, inTheFrame);
         ticks(5);
         assertAt(inTheFrame, p.getLocation());
+        assertEquals(0, PlayerStats.of(p.getUniqueId()).trips(), "an empty frame took them nowhere");
         walk(p, new Location(world, 0.5, 64, 0.5, 0f, 0f));
 
         untilFormed(alpha);
         walk(p, inTheFrame);
         ticks(20);
         assertAt(beta.getGatePlayerTeleportLocation(), p.getLocation());
+        assertEquals(1, PlayerStats.of(p.getUniqueId()).trips(), "one trip, counted once");
 
         ticks(20 * 320);
         assertFalse(alpha.isGateActive(), "Alpha never timed out");
@@ -205,7 +209,28 @@ class JourneysOnMockServerTest
 
         assertAt(home, p.getLocation());
         assertEquals(90f, p.getLocation().getYaw(), 0.01f, "yaw");
+        assertEquals(1, PlayerStats.of(p.getUniqueId()).beams(), "the beam is counted once it lands (#237)");
         assertNothingNewRunning(before, "the beam landed");
+    }
+
+    /** {@code /wormhole go <gate>} beams the player to the gate, and counts as a beam, not a gate trip. */
+    @Test
+    void aPlayerBeamedToAGateByGoCountsABeam()
+    {
+        final MockServerSupport.World world = new MockServerSupport.World("goes", 3);
+        server.addWorld(world);
+        final MockServerSupport.Player p = new MockServerSupport.Player(server, "Goer");
+        final Stargate gamma = buildGate(p, world, 0.5, "Gamma", "net=goes");
+        p.teleport(new Location(world, 60.5, 64, 60.5, 0f, 0f));
+        p.messages();
+
+        p.performCommand("wormhole go Gamma");
+        ticks(100);
+
+        // Set down on safe ground beside the gate's arrival point, not on it.
+        assertTrue(p.getLocation().distance(gamma.getGatePlayerTeleportLocation()) < 2, "beamed to the gate");
+        assertEquals(1, PlayerStats.of(p.getUniqueId()).beams(), "beamed there (#237)");
+        assertEquals(0, PlayerStats.of(p.getUniqueId()).trips(), "without going through a gate");
     }
 
     /** Two rings laid in slabs and paired, then walked into: the far end, and both chunks let go. */
@@ -233,6 +258,7 @@ class JourneysOnMockServerTest
         ticks(200);
 
         assertAt(new Location(world, 30.5, 64, 0.5), p.getLocation());
+        assertEquals(1, PlayerStats.of(p.getUniqueId()).rings(), "one ring trip, counted once it landed (#237)");
         assertNothingNewRunning(before, "the rings came home");
         assertEquals(0, world.ticketedChunks(), "a ring kept its chunks loaded after the trip");
     }

@@ -42,6 +42,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.utils.ChatMatchers;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
@@ -88,6 +89,7 @@ class VehicleGateEntryTest
         PrivateStatics.set(WormholeXTreme.class, "thisPlugin", mock(WormholeXTreme.class));
         GateSpatialIndex.clear();
         clearRecentMarks();
+        PlayerStats.clear();
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -138,6 +140,7 @@ class VehicleGateEntryTest
         PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
         PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
         PluginTestSupport.forgetAllGates();
+        PlayerStats.clear();
     }
 
     /**
@@ -316,6 +319,52 @@ class VehicleGateEntryTest
         rollIn();
 
         verify(cart, never()).teleport(any(Location.class));
+    }
+
+    /** Two riders whose cart went through are each counted one trip, by this listener alone (#237). */
+    @Test
+    void everyRiderOfACartThatWentIsCountedOneTrip()
+    {
+        final Player helmsman = putARiderAboard();
+        final Player passenger = mock(Player.class);
+        when(passenger.teleport(any(Location.class))).thenReturn(true);
+        when(passenger.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(passenger.isValid()).thenReturn(true);
+        when(cart.getPassengers()).thenReturn(List.<Entity>of(helmsman, passenger));
+        try (MockedStatic<ConfigManager> cfg = mockStatic(ConfigManager.class);
+             MockedStatic<StargateRestrictions> rules = mockStatic(StargateRestrictions.class))
+        {
+            cfg.when(ConfigManager::getTimeoutShutdown).thenReturn(Integer.valueOf(30));
+
+            rollIn();
+
+            verify(cart, atLeastOnce()).teleport(any(Location.class));
+            assertEquals(1, PlayerStats.of(helmsman.getUniqueId()).trips(), "the one at the front");
+            assertEquals(1, PlayerStats.of(passenger.getUniqueId()).trips(), "and the one behind");
+        }
+    }
+
+    /**
+     * A second rider stopped by a listener keeps the whole cart here, so the first, already asked
+     * about and allowed, is not counted either (#237).
+     */
+    @Test
+    void aSecondRiderStoppedByAListenerCountsNobody()
+    {
+        final Player helmsman = mock(Player.class);
+        when(helmsman.getUniqueId()).thenReturn(UUID.randomUUID());
+        final Player passenger = mock(Player.class);
+        when(passenger.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.getPassengers()).thenReturn(List.<Entity>of(helmsman, passenger));
+        GateEvents.setDispatcherForTest(e -> {
+            final StargatePlayerTravelEvent travel = (StargatePlayerTravelEvent) e;
+            travel.setCancelled(travel.getPlayer() == passenger);
+        });
+
+        rollIn();
+
+        assertEquals(PlayerStats.Counts.NONE, PlayerStats.of(helmsman.getUniqueId()));
+        assertEquals(PlayerStats.Counts.NONE, PlayerStats.of(passenger.getUniqueId()));
     }
 
     /**
@@ -524,6 +573,8 @@ class VehicleGateEntryTest
             rollIn();
 
             assertTrue(stack.carries(rider), "the rider must still be in the cart");
+            assertEquals(PlayerStats.Counts.NONE, PlayerStats.of(rider.getUniqueId()),
+                "a cart that stayed here took nobody on a trip (#237)");
             assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
             rules.verify(() -> StargateRestrictions.addPlayerUseCooldown(rider), never());
             rules.verify(() -> StargateRestrictions.addPlayerRecentArrival(any(), any()), never());

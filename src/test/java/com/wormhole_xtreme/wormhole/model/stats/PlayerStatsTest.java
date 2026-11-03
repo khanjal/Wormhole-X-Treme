@@ -3,7 +3,9 @@ package com.wormhole_xtreme.wormhole.model.stats;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -11,16 +13,21 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
 
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counter;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counts;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
+import com.wormhole_xtreme.wormhole.utils.YamlStore;
 
 /**
  * {@code stats.yml}: what goes in comes back out, and a file that is missing or broken starts
@@ -122,6 +129,98 @@ class PlayerStatsTest
         // A throw here fails the test: a broken file must not stop the plugin enabling.
         assertEquals(0, PlayerStats.load(), "nothing readable, nothing loaded");
         assertEquals(Counts.NONE, PlayerStats.of(ALICE));
+    }
+
+    /**
+     * A file that would not read is copied to {@code stats.yml.bad} before the first save writes over
+     * it, so an admin's hand edit gone wrong is still there to repair.
+     */
+    @Test
+    void aBrokenFileIsKeptAsBadBeforeItIsWrittenOver() throws Exception
+    {
+        final File file = DataLayout.statsFile();
+        assertTrue(file.getParentFile().mkdirs());
+        final String broken = "players: [unclosed\n  : : {";
+        Files.writeString(file.toPath(), broken, StandardCharsets.UTF_8);
+        final File bad = new File(file.getPath() + ".bad");
+        Files.writeString(bad.toPath(), "an older copy", StandardCharsets.UTF_8);
+        PlayerStats.load();
+
+        count(ALICE, Counter.TRIPS, 2);
+        assertTrue(PlayerStats.saveIfChanged());
+
+        assertEquals(broken, Files.readString(bad.toPath(), StandardCharsets.UTF_8), "the broken file, over the older copy");
+        PlayerStats.load();
+        assertEquals(2, PlayerStats.of(ALICE).trips(), "and the new counts are what stats.yml holds");
+    }
+
+    /** A file that reads but is not a map of players is set aside the same way. */
+    @Test
+    void aFileThatIsNotAMapIsKeptAsBadToo() throws Exception
+    {
+        final File file = DataLayout.statsFile();
+        assertTrue(file.getParentFile().mkdirs());
+        Files.writeString(file.toPath(), "- just\n- a list\n", StandardCharsets.UTF_8);
+        PlayerStats.load();
+
+        count(ALICE, Counter.BEAMS, 3);
+        assertTrue(PlayerStats.saveIfChanged());
+
+        assertEquals("- just\n- a list\n",
+            Files.readString(new File(file.getPath() + ".bad").toPath(), StandardCharsets.UTF_8));
+    }
+
+    /** A file that read cleanly is written over with no copy left beside it. */
+    @Test
+    void aGoodFileLeavesNoBadCopy() throws Exception
+    {
+        count(ALICE, Counter.TRIPS, 2);
+        assertTrue(PlayerStats.saveIfChanged());
+        PlayerStats.load();
+        count(ALICE, Counter.TRIPS, 1);
+        assertTrue(PlayerStats.saveIfChanged());
+
+        assertFalse(new File(DataLayout.statsFile().getPath() + ".bad").exists());
+    }
+
+    /**
+     * A write that throws, of any kind, is tried again at the next save rather than given up on:
+     * the counts are still only in memory.
+     */
+    @Test
+    void aSaveThatThrowsIsTriedAgainNextTime() throws Exception
+    {
+        count(ALICE, Counter.TRIPS, 3);
+        try (MockedStatic<YamlStore> store = mockStatic(YamlStore.class))
+        {
+            store.when(() -> YamlStore.write(any(), any())).thenThrow(new IllegalStateException("disk said no"));
+
+            assertFalse(PlayerStats.saveIfChanged(), "nothing was written");
+        }
+
+        assertTrue(PlayerStats.saveIfChanged(), "still owed, so the next save writes it");
+        PlayerStats.clear();
+        PlayerStats.load();
+        assertEquals(3, PlayerStats.of(ALICE).trips());
+    }
+
+    @Test
+    void onlyARealPlayerIsCounted()
+    {
+        final Player alice = mock(Player.class);
+        when(alice.getUniqueId()).thenReturn(ALICE);
+        final Player npc = mock(Player.class);
+        when(npc.getUniqueId()).thenReturn(BOB);
+        when(npc.hasMetadata(EntityUtils.NPC)).thenReturn(true);
+
+        PlayerStats.countPlayer(alice, Counter.RINGS);
+        PlayerStats.countPlayer(alice, Counter.RINGS);
+        PlayerStats.countPlayer(npc, Counter.RINGS);
+        PlayerStats.countPlayer(mock(Entity.class), Counter.RINGS);
+        PlayerStats.countPlayer(null, Counter.RINGS);
+
+        assertEquals(2, PlayerStats.of(ALICE).rings());
+        assertEquals(Counts.NONE, PlayerStats.of(BOB), "an NPC plugin's fake player is never counted");
     }
 
     @Test

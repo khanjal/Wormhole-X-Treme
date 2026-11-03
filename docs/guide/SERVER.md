@@ -348,7 +348,9 @@ plugin's own. See [Translating](TRANSLATING.md).
 
 `stats.yml` holds each player's counts under their UUID, written every five minutes when something
 was counted and on shutdown. One that will not parse is logged, and counting starts again from
-nothing; the next save writes over it, so keep a copy if the numbers matter.
+nothing. Before the next save writes over it, the unreadable file is copied to `stats.yml.bad`
+(over any older one) and the log says so: mend that copy and put it back as `stats.yml`, with the
+server stopped, to recover the counts.
 
 The HSQLDB and SQLite backends of earlier versions are gone. Files an older build of this fork
 kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is

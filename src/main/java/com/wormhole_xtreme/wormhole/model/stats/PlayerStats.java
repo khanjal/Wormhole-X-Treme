@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole.model.stats;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,9 +12,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 import com.wormhole_xtreme.wormhole.utils.YamlStore;
@@ -113,6 +118,9 @@ public final class PlayerStats
     /** Whether memory holds a count the file does not. */
     private static volatile boolean changed = false;
 
+    /** Whether the file there now could not be read, and so is set aside before it is written over. */
+    private static volatile boolean unreadable = false;
+
     private PlayerStats()
     {
     }
@@ -136,6 +144,22 @@ public final class PlayerStats
     }
 
     /**
+     * Counts one thing an entity did, if it is a player and not an NPC plugin's fake one.
+     *
+     * @param entity
+     *            who did it; anything but a player, null included, counts nothing
+     * @param counter
+     *            what they did
+     */
+    public static void countPlayer(final Entity entity, final Counter counter)
+    {
+        if ((entity instanceof Player player) && !EntityUtils.isNpc(player))
+        {
+            count(player.getUniqueId(), counter);
+        }
+    }
+
+    /**
      * @param playerId
      *            whose counts
      * @return their counts, all zero for a player with no record or a null id
@@ -153,7 +177,8 @@ public final class PlayerStats
      * Reads {@code stats.yml}, replacing whatever was counted in memory.
      *
      * <p>A missing file is a first run. One that will not parse is logged and read as empty, the way
-     * the beam file is: a count is not worth a server that will not start.
+     * the beam file is: a count is not worth a server that will not start. It is copied to
+     * {@code stats.yml.bad} before the first save writes over it.
      *
      * @return how many players were loaded
      */
@@ -161,6 +186,7 @@ public final class PlayerStats
     {
         COUNTS.clear();
         changed = false;
+        unreadable = false;
         final File file = DataLayout.statsFile();
         if (!file.exists())
         {
@@ -178,18 +204,24 @@ public final class PlayerStats
         return COUNTS.size();
     }
 
-    /** @return the file's top-level map, empty if it will not parse */
+    /** @return the file's top-level map, empty if it will not parse or is not a map */
     private static Map<String, Object> read(final File file)
     {
         try (FileInputStream in = new FileInputStream(file))
         {
-            return YamlMaps.asMap(new Yaml().load(in));
+            final Object parsed = new Yaml().load(in);
+            if ((parsed == null) || (parsed instanceof Map))
+            {
+                return YamlMaps.asMap(parsed);
+            }
+            PluginLog.log(Level.WARNING, "Player stats file is not a map of players; starting from nothing");
         }
         catch (final IOException | RuntimeException e)
         {
             PluginLog.log(Level.WARNING, "Failed to read player stats file: " + e.getMessage());
-            return Collections.emptyMap();
         }
+        unreadable = true;
+        return Collections.emptyMap();
     }
 
     /** @return the id, or null with a warning for one that will not parse */
@@ -230,13 +262,22 @@ public final class PlayerStats
             return false;
         }
         changed = false;
-        if (!write())
+        boolean written;
+        try
+        {
+            written = write();
+        }
+        catch (final RuntimeException e)
+        {
+            PluginLog.log(Level.WARNING, "Failed to write player stats file", e);
+            written = false;
+        }
+        if (!written)
         {
             // Tried again at the next save rather than given up on.
             changed = true;
-            return false;
         }
-        return true;
+        return written;
     }
 
     /** @return whether the file was written */
@@ -262,6 +303,10 @@ public final class PlayerStats
             PluginLog.log(Level.WARNING, "Could not create stats data directory " + parent.getAbsolutePath());
             return false;
         }
+        if (unreadable && !setAside(target))
+        {
+            return false;
+        }
         try
         {
             YamlStore.write(target, root);
@@ -274,10 +319,43 @@ public final class PlayerStats
         }
     }
 
+    /**
+     * Copies a file that could not be read to {@code stats.yml.bad}, over any older copy, so the save
+     * about to replace it does not lose whatever an admin can still recover from it.
+     *
+     * @param target
+     *            the stats file
+     * @return true if it is safe to write over the file
+     */
+    private static boolean setAside(final File target)
+    {
+        if (!target.exists())
+        {
+            unreadable = false;
+            return true;
+        }
+        final File bad = new File(target.getPath() + ".bad");
+        try
+        {
+            Files.copy(target.toPath(), bad.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        catch (final IOException e)
+        {
+            PluginLog.log(Level.WARNING, "Could not copy the unreadable player stats file aside, so it is"
+                + " left as it is and the counts are not saved: " + e.getMessage());
+            return false;
+        }
+        unreadable = false;
+        PluginLog.log(Level.WARNING, "Kept the unreadable player stats file as " + bad.getName()
+            + " before writing a new one.");
+        return true;
+    }
+
     /** Forgets every count, without touching the file. For tests. */
     public static void clear()
     {
         COUNTS.clear();
         changed = false;
+        unreadable = false;
     }
 }

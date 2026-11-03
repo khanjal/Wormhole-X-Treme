@@ -25,6 +25,7 @@ import com.wormhole_xtreme.wormhole.Paper1204Riding;
 import com.wormhole_xtreme.wormhole.PetTestSupport;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.utils.ActionBarLines;
 
 /**
@@ -47,6 +48,7 @@ class RingRiddenDeliveryTest
         scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
         PluginTestSupport.scheduler(scheduler);
+        PlayerStats.clear();
     }
 
     @AfterEach
@@ -54,6 +56,7 @@ class RingRiddenDeliveryTest
     {
         PluginTestSupport.scheduler(null);
         PluginTestSupport.remove();
+        PlayerStats.clear();
     }
 
     private static Ring farRing()
@@ -110,6 +113,33 @@ class RingRiddenDeliveryTest
         assertTrue(stack.carries(rider), "the rider must be back in the saddle at the far ring");
         // The refused case below relies on the arrival line being seen here.
         assertTrue(ActionBarLines.attempts(rider) > 0, "the rider is told they arrived");
+        assertEquals(1, PlayerStats.of(rider.getUniqueId()).rings(), "and counted one ring trip (#237)");
+        assertEquals(PlayerStats.Counts.NONE, PlayerStats.of(horse.getUniqueId()), "the horse is not a player");
+    }
+
+    /** A player on foot carried by the rings is counted one ring trip, once they have been moved (#237). */
+    @Test
+    void aPlayerOnFootIsCountedOnceMoved()
+    {
+        final Player walker = rider();
+        PetTestSupport.standsWhereTeleported(walker, new Location(world, 0.5, 64, 0.5));
+
+        new BukkitRingWorld(world, null).deliver(new BukkitRingPassenger(walker), farRing());
+
+        assertEquals(1, PlayerStats.of(walker.getUniqueId()).rings());
+    }
+
+    /** One the server would not move stayed here, and was not on a trip (#237). */
+    @Test
+    void aPlayerTheServerWouldNotMoveIsNotCounted()
+    {
+        final Player walker = rider();
+        PetTestSupport.standsWhereTeleported(walker, new Location(world, 0.5, 64, 0.5));
+        when(walker.teleport(any(Location.class))).thenReturn(false);
+
+        new BukkitRingWorld(world, null).deliver(new BukkitRingPassenger(walker), farRing());
+
+        assertEquals(PlayerStats.Counts.NONE, PlayerStats.of(walker.getUniqueId()));
     }
 
     /**
@@ -136,5 +166,6 @@ class RingRiddenDeliveryTest
         assertTrue(stack.carries(rider), "the rider must still be on the horse");
         assertEquals(seat, rider.getLocation(), "the rider sent ahead is brought back to where they sat");
         assertEquals(0, ActionBarLines.attempts(rider), "nobody is told they arrived");
+        assertEquals(PlayerStats.Counts.NONE, PlayerStats.of(rider.getUniqueId()), "nor counted a ring trip (#237)");
     }
 }

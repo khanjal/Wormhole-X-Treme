@@ -24,12 +24,11 @@ import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 
 /**
- * A beam is counted in the traveller's stats once they have been moved, and a refused one is not (#237).
+ * A beam turned away for its price or its cooldown is not counted in the traveller's stats (#237).
  *
- * <p>Beams raise no event, so the count sits in {@link BeamTravel#departed}, which runs on the tick
- * of the real teleport. Counting where the beam is asked for instead would count every beam turned
- * away for its price or its cooldown. The departure itself runs inside {@link BeamAnimation}, which a
- * test cannot load, so it is called here directly.
+ * <p>Beams raise no event, so the count sits in {@link BeamAnimation} on the tick of the real
+ * teleport, which a test cannot load; JourneysOnMockServerTest counts the beams that land. Counting
+ * where the beam is asked for instead would count every beam turned away here.
  */
 class BeamTravelStatsTest
 {
@@ -71,16 +70,6 @@ class BeamTravelStatsTest
         BeamManager.clear();
         PlayerStats.clear();
         ConfigTestSupport.clear();
-    }
-
-    @Test
-    void aBeamThatDepartedCountsForTheTraveller()
-    {
-        BeamTravel.departed(player, 0.0, true);
-        BeamTravel.departed(player, 0.0, true);
-
-        assertEquals(2, PlayerStats.of(travellerId).beams());
-        assertEquals(0, PlayerStats.of(travellerId).trips(), "a beam is not a gate trip");
     }
 
     @Test

@@ -1,33 +1,43 @@
 package com.wormhole_xtreme.wormhole.model.stats;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
+import org.bukkit.Server;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.PluginManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
-import com.wormhole_xtreme.wormhole.events.RingTravelEvent;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.events.StargateCreatedEvent;
-import com.wormhole_xtreme.wormhole.events.StargatePlayerTravelEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counts;
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 
 /**
- * Gate trips, gates built and ring trips are counted from the events, for the player in the event,
- * and only for what actually happened (#237).
+ * Gates built are counted from {@link StargateCreatedEvent}, for its builder (#237).
  *
- * <p>The travel events fire before anybody moves, and another plugin -- a region, a combat tag, a
- * jail -- may cancel them. A trip that was refused and counted anyway is a number a scoreboard shows
- * that nobody earned.
+ * <p>The event fires once the gate exists, so there is nothing left to refuse it. What can go wrong
+ * is the wiring: a handler the plugin never registers counts nothing, and does so silently.
  */
 class PlayerStatsListenerTest
 {
-    private static final UUID TRAVELLER = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
+    private static final UUID BUILDER = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
 
     private final PlayerStatsListener listener = new PlayerStatsListener();
 
@@ -39,38 +49,13 @@ class PlayerStatsListenerTest
         PlayerStats.clear();
         player = mock(Player.class);
         // Unstubbed, a mock Player has no UUID, and every count keys on it.
-        when(player.getUniqueId()).thenReturn(TRAVELLER);
+        when(player.getUniqueId()).thenReturn(BUILDER);
     }
 
     @AfterEach
     void tearDown()
     {
         PlayerStats.clear();
-    }
-
-    private StargatePlayerTravelEvent gateTrip()
-    {
-        return new StargatePlayerTravelEvent(mock(Stargate.class), player, mock(Stargate.class), null);
-    }
-
-    @Test
-    void aGateTripCountsAsATripForTheTraveller()
-    {
-        listener.onGateTrip(gateTrip());
-        listener.onGateTrip(gateTrip());
-
-        assertEquals(new Counts(2, 0, 0, 0), PlayerStats.of(TRAVELLER));
-    }
-
-    @Test
-    void aCancelledGateTripCountsNothing()
-    {
-        final StargatePlayerTravelEvent refused = gateTrip();
-        refused.setCancelled(true);
-
-        listener.onGateTrip(refused);
-
-        assertEquals(Counts.NONE, PlayerStats.of(TRAVELLER), "a refused trip was never taken");
     }
 
     @Test
@@ -80,7 +65,7 @@ class PlayerStatsListenerTest
         listener.onGateBuilt(new StargateCreatedEvent(mock(Stargate.class), player));
         listener.onGateBuilt(new StargateCreatedEvent(mock(Stargate.class), player));
 
-        assertEquals(new Counts(0, 3, 0, 0), PlayerStats.of(TRAVELLER));
+        assertEquals(new Counts(0, 3, 0, 0), PlayerStats.of(BUILDER));
     }
 
     @Test
@@ -88,26 +73,53 @@ class PlayerStatsListenerTest
     {
         listener.onGateBuilt(new StargateCreatedEvent(mock(Stargate.class), null));
 
-        assertEquals(Counts.NONE, PlayerStats.of(TRAVELLER));
+        assertEquals(Counts.NONE, PlayerStats.of(BUILDER));
     }
 
+    /** An NPC plugin's fake player is never counted, so it never tops a scoreboard. */
     @Test
-    void aRingTripCountsAsARingTripForTheTraveller()
+    void aGateBuiltByAnNpcCountsForNobody()
     {
-        listener.onRingTrip(new RingTravelEvent(null, player, null, null));
-        listener.onRingTrip(new RingTravelEvent(null, player, null, null));
+        when(player.hasMetadata(EntityUtils.NPC)).thenReturn(true);
 
-        assertEquals(new Counts(0, 0, 2, 0), PlayerStats.of(TRAVELLER));
+        listener.onGateBuilt(new StargateCreatedEvent(mock(Stargate.class), player));
+
+        assertEquals(Counts.NONE, PlayerStats.of(BUILDER));
     }
 
+    /** At MONITOR, after every other plugin has heard of the gate. */
     @Test
-    void aCancelledRingTripCountsNothing()
+    void theHandlerListensLast() throws Exception
     {
-        final RingTravelEvent refused = new RingTravelEvent(null, player, null, null);
-        refused.setCancelled(true);
+        final EventHandler handler = PlayerStatsListener.class
+            .getMethod("onGateBuilt", StargateCreatedEvent.class).getAnnotation(EventHandler.class);
 
-        listener.onRingTrip(refused);
+        assertNotNull(handler, "without @EventHandler Bukkit never calls it");
+        assertEquals(EventPriority.MONITOR, handler.priority());
+    }
 
-        assertEquals(Counts.NONE, PlayerStats.of(TRAVELLER), "a player taken out of the trip stayed where they were");
+    /** The plugin registers the listener with the others, or no gate built is ever counted. */
+    @Test
+    void thePluginRegistersTheListener() throws Exception
+    {
+        final WormholeXTreme plugin = PluginTestSupport.install();
+        try
+        {
+            final Server server = mock(Server.class);
+            final PluginManager manager = mock(PluginManager.class);
+            when(plugin.getServer()).thenReturn(server);
+            when(server.getPluginManager()).thenReturn(manager);
+
+            WormholeXTreme.registerEvents();
+
+            final ArgumentCaptor<Listener> registered = ArgumentCaptor.forClass(Listener.class);
+            verify(manager, atLeastOnce()).registerEvents(registered.capture(), eq(plugin));
+            assertTrue(registered.getAllValues().stream().anyMatch(PlayerStatsListener.class::isInstance),
+                "a PlayerStatsListener among " + registered.getAllValues().size() + " registered");
+        }
+        finally
+        {
+            PluginTestSupport.remove();
+        }
     }
 }

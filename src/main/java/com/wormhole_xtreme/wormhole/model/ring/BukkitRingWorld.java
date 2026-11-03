@@ -23,6 +23,7 @@ import com.wormhole_xtreme.wormhole.events.RingTravelEvent;
 import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 
 /**
  * Everything the ring subsystem does to a real world, in one place.
@@ -342,12 +343,14 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         {
             RingMessages.arrived(traveller, destination.getName());
         }
+        PlayerStats.countPlayer(entity, PlayerStats.Counter.RINGS);
         for (final Entity child : children)
         {
             if (child instanceof Player rider)
             {
                 RingMessages.arrived(rider, destination.getName());
             }
+            PlayerStats.countPlayer(child, PlayerStats.Counter.RINGS);
         }
     }
 

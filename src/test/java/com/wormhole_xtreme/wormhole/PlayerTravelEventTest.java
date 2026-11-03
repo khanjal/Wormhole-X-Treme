@@ -31,6 +31,7 @@ import org.mockito.ArgumentMatchers;
 
 import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.events.StargatePlayerTravelEvent;
@@ -115,6 +116,7 @@ class PlayerTravelEventTest
         when(player.teleport(any(Location.class))).thenReturn(true);
 
         GateEvents.setDispatcherForTest(raised::add);
+        PlayerStats.clear();
     }
 
     @AfterEach
@@ -124,6 +126,12 @@ class PlayerTravelEventTest
         StargateManager.removeStargate(origin);
         origin.setGateActive(false);
         GateSpatialIndex.clear();
+        PlayerStats.clear();
+    }
+
+    private int tripsCounted()
+    {
+        return PlayerStats.of(player.getUniqueId()).trips();
     }
 
     /** Walking in from the block outside the portal. */
@@ -219,6 +227,31 @@ class PlayerTravelEventTest
         walkIn();
 
         verify(player).teleport(any(Location.class));
+    }
+
+    /** A trip that moved the player counts one in their stats, and only one (#237). */
+    @Test
+    void aTripThatMovedThePlayerIsCountedOnce()
+    {
+        walkIn();
+
+        assertEquals(1, tripsCounted());
+    }
+
+    /** A trip a listener cancelled is not counted: the travel event fires before anybody moves (#237). */
+    @Test
+    void aCancelledTripIsNotCounted()
+    {
+        GateEvents.setDispatcherForTest(e -> {
+            if (e instanceof StargatePlayerTravelEvent travel)
+            {
+                travel.setCancelled(true);
+            }
+        });
+
+        walkIn();
+
+        assertEquals(0, tripsCounted());
     }
 
     @Test
@@ -468,6 +501,7 @@ class PlayerTravelEventTest
 
             economy.verify(() -> EconomySupport.canAfford(any(), anyDouble()));
             economy.verify(() -> EconomySupport.charge(any(), anyDouble()), never());
+            assertEquals(0, tripsCounted(), "the cart's listener counts its riders, once (#237)");
         }
     }
 
@@ -496,6 +530,7 @@ class PlayerTravelEventTest
             economy.verify(() -> EconomySupport.charge(any(), anyDouble()), never());
             assertFalse(StargateRestrictions.isPlayerUseCooldown(player),
                 "no cooldown for a trip that did not happen");
+            assertEquals(0, tripsCounted(), "and no trip in their stats (#237)");
         }
         finally
         {
