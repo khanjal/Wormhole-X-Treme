@@ -733,13 +733,19 @@ class WormholeXTremeVehicleListener implements Listener
             GateFare.charge(driver, GateFare.affordable(driver, st));
         }
         applyTravelRestrictions(st, pendingRestrictions);
+        countRiders(passengers);
+        greetRiders(passengers, arrivedAt);
+        HorizonRipple.crossed(st, arrivedAt);
+        return true;
+    }
+
+    /** Counts one gate trip for each player aboard a vehicle that went (#237). */
+    private static void countRiders(final List<Entity> passengers)
+    {
         for (final Entity passenger : passengers)
         {
             PlayerStats.countPlayer(passenger, PlayerStats.Counter.TRIPS);
         }
-        greetRiders(passengers, arrivedAt);
-        HorizonRipple.crossed(st, arrivedAt);
-        return true;
     }
 
     /** Tells each player aboard which gate they came out of; anything else aboard is passed over. */
