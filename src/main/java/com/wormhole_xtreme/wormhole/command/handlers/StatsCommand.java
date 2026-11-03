@@ -117,13 +117,21 @@ public class StatsCommand implements SubCommand
     @SuppressWarnings("deprecation")
     private static OfflinePlayer findPlayer(final String name)
     {
-        final Player online = Bukkit.getPlayerExact(name);
-        if (online != null)
+        try
         {
-            return online;
+            final Player online = Bukkit.getPlayerExact(name);
+            if (online != null)
+            {
+                return online;
+            }
+            final OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
+            // getOfflinePlayer invents a profile for a name nobody has used, so only one who has played is real.
+            return offline.hasPlayedBefore() ? offline : null;
         }
-        final OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
-        // getOfflinePlayer invents a profile for a name nobody has used, so only one who has played is real.
-        return offline.hasPlayedBefore() ? offline : null;
+        // A server that will not give the roster up is answered as an unknown name, as OwnerCommand does.
+        catch (final RuntimeException refused)
+        {
+            return null;
+        }
     }
 }
