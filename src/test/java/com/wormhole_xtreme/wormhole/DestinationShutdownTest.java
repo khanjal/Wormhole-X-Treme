@@ -73,6 +73,14 @@ class DestinationShutdownTest
             StargateManager.removeStargate(s);
         }
         PluginTestSupport.forgetAllGates();
+        try
+        {
+            PluginTestSupport.remove();
+        }
+        catch (final ReflectiveOperationException e)
+        {
+            throw new IllegalStateException(e);
+        }
     }
 
     /** A player mock with the identity plugin code keys on. */

@@ -586,7 +586,7 @@ public final class GateInteractionHandler
         {
             // Best effort: the wormhole is already closed, and a lost notice must not undo that.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Could not tell players at " + source.getGateName() + " the far end closed it: " + e);
+                "Could not tell players at " + source.getGateName() + " the far end closed it", e);
         }
         return true;
     }
