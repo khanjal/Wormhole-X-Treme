@@ -17,9 +17,6 @@ import com.wormhole_xtreme.wormhole.utils.EntityUtils;
  */
 final class FarPlayers
 {
-    /** The metadata key Citizens and its kind set on a player that is an NPC. */
-    static final String NPC = EntityUtils.NPC;
-
     /** The kinds of window a viewer is shown themselves through: none in this step. */
     private static final Set<Class<? extends WindowSource>> SHOWN_TO_THEMSELVES = Set.of();
 
