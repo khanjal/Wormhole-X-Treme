@@ -1,11 +1,14 @@
 package com.wormhole_xtreme.wormhole.plugin;
 
 import java.util.Locale;
+import java.util.UUID;
 
 import org.bukkit.Location;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counter;
 
 /**
  * What each placeholder resolves to, as plain values.
@@ -59,6 +62,14 @@ public final class PlaceholderValues
                 return Integer.toString(gatesOwnedBy(ownerId, ownerName));
             case "nearest_gate":
                 return nearestGateName(location);
+            case "stats_trips":
+                return stat(ownerId, Counter.TRIPS);
+            case "stats_gates_built":
+                return stat(ownerId, Counter.GATES_BUILT);
+            case "stats_rings":
+                return stat(ownerId, Counter.RINGS);
+            case "stats_beams":
+                return stat(ownerId, Counter.BEAMS);
             default:
                 // Null, not empty: PlaceholderAPI leaves a placeholder it is not given a
                 // value for exactly as it found it, which is how an operator sees they have
@@ -121,6 +132,31 @@ public final class PlaceholderValues
             }
         }
         return owned;
+    }
+
+    /**
+     * One of a player's lifetime counts (#237).
+     *
+     * @param playerId
+     *            the player's UUID as a string, or null
+     * @param counter
+     *            which count
+     * @return the count, {@code 0} for a player with no record, or {@link #UNAVAILABLE} with no player
+     */
+    public static String stat(final String playerId, final Counter counter)
+    {
+        if (playerId == null)
+        {
+            return UNAVAILABLE;
+        }
+        try
+        {
+            return Integer.toString(PlayerStats.of(UUID.fromString(playerId)).get(counter));
+        }
+        catch (final IllegalArgumentException notAnId)
+        {
+            return UNAVAILABLE;
+        }
     }
 
     /**

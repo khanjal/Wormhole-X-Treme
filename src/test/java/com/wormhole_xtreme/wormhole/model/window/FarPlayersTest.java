@@ -41,6 +41,7 @@ import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 
 /**
  * Which players in a far room a viewer is shown (#296, step 2).
@@ -96,7 +97,7 @@ class FarPlayersTest
     void anNpcAnOfflineDeadInvisibleSpectatingRidingHiddenOrStandInPlayerIsNotCopied()
     {
         final List<Consumer<Player>> hides = List.of(
-            player -> when(player.hasMetadata(FarPlayers.NPC)).thenReturn(true),
+            player -> when(player.hasMetadata(EntityUtils.NPC)).thenReturn(true),
             player -> when(player.isOnline()).thenReturn(false),
             player -> when(player.isDead()).thenReturn(true),
             player -> when(player.isValid()).thenReturn(false),

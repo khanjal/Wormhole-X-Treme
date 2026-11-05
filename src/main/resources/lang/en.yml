@@ -58,6 +58,14 @@ freya.coming: "She will be along soon."
 freya.absent: "She did not come. Try again somewhere else."
 freya.arrives: "{0} pads over and sits down beside you."
 
+stats.header: "Wormhole travels of {0}:"
+stats.trips: "Trips through gates: {0}"
+stats.gates-built: "Gates built: {0}"
+stats.rings: "Trips by rings: {0}"
+stats.beams: "Beams taken: {0}"
+stats.unknown-player: "No player called {0} has played here."
+stats.console-names-player: "The console has no stats of its own. Name a player: {0}"
+
 update.joined: "Wormhole X-Treme {0} is available (running {1}): {2}"
 
 # usage.lead is the same label as usage.label without the command, for the usage lines that continue
