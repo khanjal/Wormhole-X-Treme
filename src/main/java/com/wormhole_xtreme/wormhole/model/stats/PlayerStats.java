@@ -197,7 +197,9 @@ public final class PlayerStats
     }
 
     /**
-     * Drops a gate's count, so a new gate of the same name starts at nothing.
+     * Drops a gate's count, so a new gate of the same name starts at nothing, and saves at once
+     * because the gate's own file is deleted at once and a crash before the next save would hand
+     * the old trips to a new gate of that name.
      *
      * @param gateName
      *            the gate's name, in any case
@@ -207,6 +209,7 @@ public final class PlayerStats
         if ((gateName != null) && (GATE_TRIPS.remove(gateKey(gateName)) != null))
         {
             changed = true;
+            saveIfChanged();
         }
     }
 

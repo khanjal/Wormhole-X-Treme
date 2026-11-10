@@ -438,13 +438,28 @@ class PlayerStatsTest
 
         assertEquals(0, PlayerStats.gateTrips("Atlantis"));
         assertEquals(1, PlayerStats.gateTrips("Abydos"), "only that gate");
-        assertTrue(PlayerStats.saveIfChanged(), "the drop is owed to the file");
+        assertFalse(PlayerStats.saveIfChanged(), "the drop was already written, not left owed");
         PlayerStats.clear();
         PlayerStats.load();
         assertEquals(0, PlayerStats.gateTrips("Atlantis"));
         PlayerStats.forgetGate("never-counted");
         PlayerStats.forgetGate(null);
         assertFalse(PlayerStats.saveIfChanged(), "forgetting a gate with no count changes nothing");
+    }
+
+    /** The file itself loses the count at once, so a crash before the next save cannot hand it to a new gate (#638). */
+    @Test
+    void aForgottenGatesCountIsGoneFromTheFileWrittenAtOnce() throws Exception
+    {
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Abydos"));
+        PlayerStats.saveIfChanged();
+
+        PlayerStats.forgetGate("Atlantis");
+
+        final String text = Files.readString(DataLayout.statsFile().toPath(), StandardCharsets.UTF_8);
+        assertFalse(text.contains("atlantis"), "gone from the file, not just memory: " + text);
+        assertTrue(text.contains("abydos"), "the other gate stays: " + text);
     }
 
     @Test
