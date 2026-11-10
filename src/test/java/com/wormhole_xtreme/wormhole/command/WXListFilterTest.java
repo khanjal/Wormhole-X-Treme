@@ -261,6 +261,7 @@ class WXListFilterTest
         assertTrue(shown(console).contains("alpha"));
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     void ownerNamingAPlayerTheServerHasNeverSeenSaysSo()
     {
