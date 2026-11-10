@@ -333,8 +333,8 @@ class WXListFilterTest
             gate(name, null);
         }
         trips("alpha", 3);
-        trips("Bravo", 5);
-        trips("charlie", 3);
+        trips("Bravo", 3);
+        trips("charlie", 5);
         trips("delta", 1);
         final CommandSender console = mock(CommandSender.class);
 
@@ -343,7 +343,7 @@ class WXListFilterTest
         final String text = shown(console);
         assertTrue(text.contains("Busiest gates, by trips ::"), text);
         final List<String> lines = ranked(text);
-        assertEquals(List.of("1. Bravo: 5", "2. alpha: 3", "3. charlie: 3", "4. delta: 1"), lines);
+        assertEquals(List.of("1. charlie: 5", "2. alpha: 3", "3. Bravo: 3", "4. delta: 1"), lines);
     }
 
     @Test
