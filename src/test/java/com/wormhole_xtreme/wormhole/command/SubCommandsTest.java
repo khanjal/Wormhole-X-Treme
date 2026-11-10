@@ -34,19 +34,19 @@ class SubCommandsTest
     }
 
     @Test
-    void whatIsAdvertisedIsTheSevenNamesAndNothingElse()
+    void whatIsAdvertisedIsTheEightNamesAndNothingElse()
     {
         // The commands were restructured under nouns that behave alike -- four ways to travel
-        // now (gate, ring, beam, mirror), the settings and lang files, and the one thing that is neither.
+        // now (gate, ring, beam, mirror), the settings and lang files, and two things that are neither: compass and stats.
         // Twenty-two names at the top level was how a plugin ends up with a help message
         // nobody reads, and the guard against drifting back is that this list is exact: a new
         // noun has to be added here deliberately rather than appearing unnoticed.
         final List<String> expected =
-            Arrays.asList("gate", "ring", "beam", "mirror", "compass", "config", "lang");
+            Arrays.asList("gate", "ring", "beam", "mirror", "compass", "stats", "config", "lang");
         final List<String> offered = SubCommands.namesMatching("");
         assertEquals(expected,
             offered.stream().sorted(Comparator.comparing(expected::indexOf)).toList(),
-            "the advertised list should be exactly the seven nouns");
+            "the advertised list should be exactly the eight nouns");
     }
 
     @Test
@@ -157,7 +157,7 @@ class SubCommandsTest
         // unreachable for anyone but an operator; adding one that does not in fact check
         // anything hands it to every player on the server.
         final Set<String> expected = new HashSet<>(
-            Arrays.asList("beam", "ring", "go", "list", "compass", "idc", "freya"));
+            Arrays.asList("beam", "ring", "go", "list", "compass", "stats", "idc", "freya"));
         for (final SubCommands.Entry e : SubCommands.all())
         {
             assertEquals(expected.contains(e.getName()), e.checksOwnPermissions(),

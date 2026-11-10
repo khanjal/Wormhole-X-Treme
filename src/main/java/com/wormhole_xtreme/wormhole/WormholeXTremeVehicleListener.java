@@ -26,6 +26,7 @@ import org.bukkit.util.Vector;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 import com.wormhole_xtreme.wormhole.events.StargateMinecartTeleportEvent;
@@ -732,9 +733,19 @@ class WormholeXTremeVehicleListener implements Listener
             GateFare.charge(driver, GateFare.affordable(driver, st));
         }
         applyTravelRestrictions(st, pendingRestrictions);
+        countRiders(passengers);
         greetRiders(passengers, arrivedAt);
         HorizonRipple.crossed(st, arrivedAt);
         return true;
+    }
+
+    /** Counts one gate trip for each player aboard a vehicle that went (#237). */
+    private static void countRiders(final List<Entity> passengers)
+    {
+        for (final Entity passenger : passengers)
+        {
+            PlayerStats.countPlayer(passenger, PlayerStats.Counter.TRIPS);
+        }
     }
 
     /** Tells each player aboard which gate they came out of; anything else aboard is passed over. */

@@ -6,6 +6,8 @@ import org.bukkit.GameMode;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.utils.EntityUtils;
+
 /**
  * Which players standing in a window's far room a viewer is shown (#296, step 2), with
  * {@code mirror-show-players} on.
@@ -15,9 +17,6 @@ import org.bukkit.entity.Player;
  */
 final class FarPlayers
 {
-    /** The metadata key Citizens and its kind set on a player that is an NPC. */
-    static final String NPC = "NPC";
-
     /** The kinds of window a viewer is shown themselves through: none in this step. */
     private static final Set<Class<? extends WindowSource>> SHOWN_TO_THEMSELVES = Set.of();
 
@@ -48,7 +47,7 @@ final class FarPlayers
      */
     static boolean copied(final Entity entity)
     {
-        return (entity instanceof Player player) && player.isOnline() && !player.hasMetadata(NPC) && player.isValid()
+        return (entity instanceof Player player) && player.isOnline() && !EntityUtils.isNpc(player) && player.isValid()
             && !player.isDead() && !player.isInvisible() && (player.getGameMode() != GameMode.SPECTATOR)
             && !player.isInsideVehicle() && player.isVisibleByDefault() && !StandIns.isStandIn(player);
     }

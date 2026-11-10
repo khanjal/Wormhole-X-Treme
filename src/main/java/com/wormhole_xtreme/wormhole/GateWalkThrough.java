@@ -26,6 +26,7 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -778,6 +779,7 @@ final class GateWalkThrough
         GateFare.charge(player, fare);
         PetEscort.follow(pets, player);
         markTripTaken(player, stargate);
+        PlayerStats.countPlayer(player, PlayerStats.Counter.TRIPS);
         HorizonRipple.crossed(stargate, stargate.getGateTarget());
         GateWelcome.greet(player, stargate.getGateTarget());
         scheduleArrivalSettle(player, target, vehiclePathUsed);

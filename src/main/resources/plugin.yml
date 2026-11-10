@@ -93,6 +93,12 @@ permissions:
   wormhole.go:
     description: Allow teleporting to gates via command.
     default: false
+  wormhole.stats:
+    description: Allow seeing your own lifetime trips, gates built, ring trips and beams with /wormhole stats.
+    default: true
+  wormhole.stats.others:
+    description: Allow seeing another player's stats with /wormhole stats <player>.
+    default: op
   wormhole.freya:
     description: Allow using hidden cosmetic commands.
     default: true

@@ -16,6 +16,19 @@ public final class EntityUtils
 {
     private EntityUtils() {}
 
+    /** The metadata key Citizens and its kind set on a player that is an NPC. */
+    public static final String NPC = "NPC";
+
+    /**
+     * @param entity
+     *            anything
+     * @return true for an NPC plugin's fake player
+     */
+    public static boolean isNpc(final Entity entity)
+    {
+        return entity.hasMetadata(NPC);
+    }
+
     /**
      * Collects a pre-order list of parent-to-child passenger pairs for an entity tree.
      *

@@ -32,6 +32,7 @@ import java.util.logging.Level;
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
  * │   ├── beam.yml               every destination and place, in one file
  * │   ├── mirror.yml             every quantum mirror, in one file
+ * │   ├── stats.yml              every player's lifetime counts: trips, gates built, rings, beams
  * │   └── freya.yml              who keeps a companion; absent when nobody does
  * └── WormholeXTremeDB/
  *     └── WormholeXTreme.sqlite  another fork's database, read by the importer
@@ -199,6 +200,12 @@ public final class DataLayout
     public static File beamFile()
     {
         return new File(data(), "beam.yml");
+    }
+
+    /** @return the single file holding every player's lifetime counts (#237) */
+    public static File statsFile()
+    {
+        return new File(data(), "stats.yml");
     }
 
     /**
