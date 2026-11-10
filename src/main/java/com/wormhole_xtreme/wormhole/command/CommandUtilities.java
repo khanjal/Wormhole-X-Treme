@@ -1,10 +1,14 @@
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -13,8 +17,11 @@ import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
  * WormholeXTreme Commands and command specific methods.
@@ -273,6 +280,60 @@ public class CommandUtilities
     public static boolean isBoolean(final String booleanString)
     {
         return booleanString.equalsIgnoreCase("true") || booleanString.equalsIgnoreCase("false");
+    }
+
+    /**
+     * Finds a player by name, whether or not they are online, as {@code /wormhole ring} does.
+     * The lookup by name is deprecated on every supported version with no Spigot replacement, as the
+     * ring command's own lookup explains.
+     *
+     * @param name
+     *            the name typed
+     * @return the player, or null if the server has never seen them
+     */
+    @SuppressWarnings("deprecation")
+    public static OfflinePlayer findPlayer(final String name)
+    {
+        try
+        {
+            final Player online = Bukkit.getPlayerExact(name);
+            if (online != null)
+            {
+                return online;
+            }
+            final OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
+            // getOfflinePlayer invents a profile for a name nobody has used, so only one who has played is real.
+            return offline.hasPlayedBefore() ? offline : null;
+        }
+        // A server that will not give the roster up is answered as an unknown name, as OwnerCommand does.
+        catch (final RuntimeException refused)
+        {
+            PluginLog.log(Level.FINE, "Could not look up player " + name, refused);
+            return null;
+        }
+    }
+
+    /**
+     * The gates a sender may be offered by name when completing {@code /dial} and
+     * {@code /wormhole go}: all of them for the console or a player the list check passes, only their
+     * own for one holding {@code wormhole.list.mine}, none otherwise (#638).
+     *
+     * @param sender
+     *            who is completing; null is treated as the console
+     * @return the gates, unsorted
+     */
+    public static Collection<Stargate> gatesToComplete(final CommandSender sender)
+    {
+        if (!(sender instanceof Player player)
+            || WXPermissions.checkWXPermissions(player, PermissionType.LIST))
+        {
+            return StargateManager.getAllGatesUnsorted();
+        }
+        if (!player.hasPermission(WXList.MINE))
+        {
+            return Collections.emptyList();
+        }
+        return StargateManager.getAllGatesUnsorted().stream().filter(g -> g.isOwner(player)).toList();
     }
 
     /**

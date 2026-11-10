@@ -1,19 +1,17 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.UUID;
-import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
-import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
  * {@code /wormhole stats [player]}: a player's lifetime trips, gates built, ring trips and beams (#237).
@@ -73,7 +71,7 @@ public class StatsCommand implements SubCommand
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
-        final OfflinePlayer subject = findPlayer(name);
+        final OfflinePlayer subject = CommandUtilities.findPlayer(name);
         if (subject == null)
         {
             sender.sendMessage(ChatText.error(Messages.get(sender, "stats.unknown-player", ChatText.name(name))));
@@ -105,36 +103,5 @@ public class StatsCommand implements SubCommand
     private static String count(final int value)
     {
         return ChatText.value(String.valueOf(value));
-    }
-
-    /**
-     * Finds a player by name, whether or not they are online, as {@code /wormhole ring} does.
-     * The lookup by name is deprecated on every supported version with no Spigot replacement, as the
-     * ring command's own lookup explains.
-     *
-     * @param name
-     *            the name typed
-     * @return the player, or null if the server has never seen them
-     */
-    @SuppressWarnings("deprecation")
-    private static OfflinePlayer findPlayer(final String name)
-    {
-        try
-        {
-            final Player online = Bukkit.getPlayerExact(name);
-            if (online != null)
-            {
-                return online;
-            }
-            final OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
-            // getOfflinePlayer invents a profile for a name nobody has used, so only one who has played is real.
-            return offline.hasPlayedBefore() ? offline : null;
-        }
-        // A server that will not give the roster up is answered as an unknown name, as OwnerCommand does.
-        catch (final RuntimeException refused)
-        {
-            PluginLog.log(Level.FINE, "Could not look up player " + name + " for /wormhole stats", refused);
-            return null;
-        }
     }
 }

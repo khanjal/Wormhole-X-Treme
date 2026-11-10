@@ -238,6 +238,16 @@ class PlayerTravelEventTest
         assertEquals(1, tripsCounted());
     }
 
+    /** One trip counts for the gate entered and the gate arrived at, once each (#638). */
+    @Test
+    void aTripThatMovedThePlayerCountsForBothGates()
+    {
+        walkIn();
+
+        assertEquals(1, PlayerStats.gateTrips("near-end"), "the gate entered");
+        assertEquals(1, PlayerStats.gateTrips("far-end"), "the gate arrived at");
+    }
+
     /** A trip a listener cancelled is not counted: the travel event fires before anybody moves (#237). */
     @Test
     void aCancelledTripIsNotCounted()
@@ -252,6 +262,8 @@ class PlayerTravelEventTest
         walkIn();
 
         assertEquals(0, tripsCounted());
+        assertEquals(0, PlayerStats.gateTrips("near-end"), "nor is the gate it was cancelled at (#638)");
+        assertEquals(0, PlayerStats.gateTrips("far-end"));
     }
 
     @Test
