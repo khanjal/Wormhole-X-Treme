@@ -1682,7 +1682,7 @@ public final class SubCommands
     {
         if (args.length == 3)
         {
-            return "owner".equalsIgnoreCase(args[1]) ? playerNames(args[2]) : none();
+            return OWNER.equalsIgnoreCase(args[1]) ? playerNames(args[2]) : none();
         }
         if (args.length != 2)
         {
@@ -1691,13 +1691,13 @@ public final class SubCommands
         final List<String> out = networkNames(args[1]);
         final boolean mayList = !(sender instanceof Player player)
             || WXPermissions.checkWXPermissions(player, PermissionType.LIST);
-        if (mayList || ((sender != null) && sender.hasPermission(WXList.MINE)))
+        if (mayList || sender.hasPermission(WXList.MINE))
         {
             out.addAll(prefixed(args[1], "mine"));
         }
-        if (mayList || ((sender != null) && sender.hasPermission(WXList.OWNER)))
+        if (mayList || sender.hasPermission(WXList.OWNER))
         {
-            out.addAll(prefixed(args[1], "owner"));
+            out.addAll(prefixed(args[1], OWNER));
         }
         if (mayList)
         {

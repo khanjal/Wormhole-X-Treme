@@ -398,7 +398,7 @@ class PlayerStatsTest
 
     /** A gate called with a number or a word YAML reads as something else still loads under its name. */
     @Test
-    void gatesWithNamesYamlReadsAsOtherTypesRoundTrip() throws Exception
+    void gatesWithNamesYamlReadsAsOtherTypesRoundTrip()
     {
         PlayerStats.countGateTrip(realPlayer(ALICE), gate("123"));
         PlayerStats.countGateTrip(realPlayer(ALICE), gate("true"));
@@ -428,7 +428,7 @@ class PlayerStatsTest
 
     /** Forgetting a gate drops its count, so a new gate of the name starts at none, and is owed to the file. */
     @Test
-    void forgettingAGateDropsItsCountAndIsSaved() throws Exception
+    void forgettingAGateDropsItsCountAndIsSaved()
     {
         PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
         PlayerStats.countGateTrip(realPlayer(ALICE), gate("Abydos"));
@@ -473,7 +473,7 @@ class PlayerStatsTest
     }
 
     @Test
-    void loadReplacesGateTripsHeldInMemory() throws Exception
+    void loadReplacesGateTripsHeldInMemory()
     {
         PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
 

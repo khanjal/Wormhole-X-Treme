@@ -13,6 +13,8 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -126,8 +128,8 @@ class WXListFilterTest
     /** The numbered lines of a top list, without the plugin's line header. */
     private static List<String> ranked(final String text)
     {
-        return text.lines().map(l -> l.replaceFirst("^.*?(\\d+\\. \\S+: \\d+)$", "$1"))
-            .filter(l -> l.matches("\\d+\\. \\S+: \\d+")).toList();
+        final Pattern entry = Pattern.compile("\\d+\\. \\S+: \\d+$");
+        return text.lines().map(entry::matcher).filter(Matcher::find).map(Matcher::group).toList();
     }
 
     private static void assertRefused(final String text)
