@@ -323,4 +323,233 @@ class LegacyDatabaseExporterTest
         assertNull(out.getFile());
         assertFalse(DataLayout.exports().exists(), "no folder should be made for an export that cannot run");
     }
+
+    private Stargate unregisteredGate(final String name)
+    {
+        return GateSerializer.parseVersionedData(LegacySaveVersionTest.version3Gate(world), world, name, null);
+    }
+
+    private static String[] exportedRow(final LegacyDatabaseExporter.Result out, final String name, final String... columns)
+        throws Exception
+    {
+        try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + out.getFile().getAbsolutePath());
+            PreparedStatement query = db.prepareStatement("SELECT * FROM Stargates WHERE Name = ?"))
+        {
+            query.setString(1, name);
+            try (ResultSet rows = query.executeQuery())
+            {
+                assertTrue(rows.next(), name + " should have been exported");
+                final String[] values = new String[columns.length];
+                for (int i = 0; i < columns.length; i++)
+                {
+                    values[i] = rows.getString(columns[i]);
+                }
+                return values;
+            }
+        }
+    }
+
+    /** A write that fails part way leaves neither a half-made database nor its folder behind. */
+    @Test
+    void aFailedWriteLeavesNoFolderBehind() throws Exception
+    {
+        importedGate("Abydos");
+        try (MockedStatic<GateSerializer> serializer = mockStatic(GateSerializer.class))
+        {
+            serializer.when(() -> GateSerializer.stargateToLegacyBinary(org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new IllegalStateException("boom"));
+
+            final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
+
+            assertEquals(LegacyDatabaseExporter.Problem.WRITE_FAILED, out.getProblem());
+        }
+        final String[] left = DataLayout.exports().list();
+        assertNotNull(left, "the exports folder itself is made");
+        assertEquals(0, left.length, "nothing the failed export made may stay: " + java.util.Arrays.toString(left));
+    }
+
+    /** The same for a failure the database itself raises: two gates of one name break its unique key. */
+    @Test
+    void aDatabaseErrorLeavesNoFolderBehindEither()
+    {
+        final Stargate one = unregisteredGate("Twin");
+        final Stargate two = unregisteredGate("Twin");
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(java.util.List.of(one, two));
+
+            final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
+
+            assertEquals(LegacyDatabaseExporter.Problem.WRITE_FAILED, out.getProblem());
+        }
+        assertEquals(0, DataLayout.exports().list().length);
+    }
+
+    /** An export is a picture, not a live connection: an open gate is written idle with no target. */
+    @Test
+    void anOpenGateIsExportedIdleWithNoTarget() throws Exception
+    {
+        final Stargate open = importedGate("Abydos");
+        final Stargate far = unregisteredGate("Chulak");
+        open.setGateTarget(far);
+        open.setGateActive(true);
+        assertTrue(open.isGateActive());
+
+        final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
+
+        byte[] blob;
+        try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + out.getFile().getAbsolutePath());
+            Statement query = db.createStatement();
+            ResultSet rows = query.executeQuery("SELECT GateData FROM Stargates WHERE Name = 'Abydos'"))
+        {
+            assertTrue(rows.next());
+            blob = rows.getBytes(1);
+        }
+        final Stargate written = GateSerializer.parseVersionedData(blob, world, "Abydos", null);
+        assertFalse(written.isGateActive(), "the file must not claim a connection that is not there");
+        assertEquals(-1, written.getGateTempTargetId());
+        assertTrue(open.isGateActive(), "the live gate is left as it was");
+        assertEquals(far, open.getGateTarget());
+    }
+
+    /** What the Owner column holds: a name, never an account id, and a count when none can be found. */
+    @Test
+    void theOwnerColumnHoldsAName() throws Exception
+    {
+        final Stargate stored = unregisteredGate("A");
+        stored.setGateOwner("Daniel");
+        stored.setGateOwnerName("Daniel");
+        assertEquals("Daniel", LegacyDatabaseExporter.ownerName(stored));
+
+        final Stargate legacy = unregisteredGate("B");
+        legacy.setGateOwner("Tealc");
+        assertEquals("Tealc", LegacyDatabaseExporter.ownerName(legacy), "an old name-owner is written as it is");
+
+        final UUID id = UUID.randomUUID();
+        final org.bukkit.OfflinePlayer player = mock(org.bukkit.OfflinePlayer.class);
+        when(player.getName()).thenReturn("Samantha");
+        final Stargate byId = unregisteredGate("C");
+        byId.setGateOwner(id.toString());
+        final Stargate unknown = unregisteredGate("D");
+        unknown.setGateOwner(UUID.randomUUID().toString());
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getOfflinePlayer(id)).thenReturn(player);
+            assertEquals("Samantha", LegacyDatabaseExporter.ownerName(byId), "looked up by id, not by name");
+            assertNull(LegacyDatabaseExporter.ownerName(unknown), "not the id, which is not a name");
+        }
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            bukkit.when(() -> Bukkit.getOfflinePlayer(id)).thenReturn(player);
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(java.util.List.of(byId, unknown));
+
+            final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
+
+            assertEquals("Samantha", exportedRow(out, "C", "Owner")[0]);
+            assertNull(exportedRow(out, "D", "Owner")[0]);
+            assertEquals(1, out.getDropped().get(LegacyDatabaseExporter.Dropped.OWNER_UNKNOWN),
+                "only the owner nobody could name");
+        }
+    }
+
+    /** Gates with no id yet get distinct ones, by name, so an export is the same every time. */
+    @Test
+    void gatesWithoutAnIdGetDistinctIdsInNameOrder() throws Exception
+    {
+        final Stargate zed = unregisteredGate("Zed");
+        final Stargate alpha = unregisteredGate("alpha");
+        assertEquals(-1, zed.getGateId());
+        assertEquals(-1, alpha.getGateId());
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
+        {
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(java.util.List.of(zed, alpha));
+
+            final LegacyDatabaseExporter.Result first = LegacyDatabaseExporter.export();
+            final LegacyDatabaseExporter.Result second = LegacyDatabaseExporter.export();
+
+            for (final LegacyDatabaseExporter.Result out : java.util.List.of(first, second))
+            {
+                assertEquals("1", exportedRow(out, "alpha", "Id")[0], "first by name, whatever case");
+                assertEquals("2", exportedRow(out, "Zed", "Id")[0]);
+            }
+        }
+    }
+
+    /**
+     * A gate from a real 2016 database exports to the very bytes it was read from.
+     *
+     * <p>Every row of the fixture is imported, exported and compared with its original blob.
+     */
+    @Test
+    void aRealDatabasesGatesExportToTheirOwnBytes() throws Exception
+    {
+        final File fixture = new File("scripts/fixtures/legacy-2016/WormholeXTremeDB/WormholeXTreme.sqlite");
+        assertTrue(fixture.isFile(), "the fixture is read from the repository root");
+        assertTrue(DataLayout.legacyData().mkdirs() || DataLayout.legacyData().isDirectory());
+        Files.copy(fixture.toPath(), legacyDatabase().toPath(), StandardCopyOption.REPLACE_EXISTING);
+        final java.util.Map<String, byte[]> original = new java.util.HashMap<>();
+        try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + fixture.getAbsolutePath());
+            Statement query = db.createStatement();
+            ResultSet rows = query.executeQuery("SELECT Name, GateData FROM Stargates WHERE WorldName = 'world'"))
+        {
+            while (rows.next())
+            {
+                original.put(rows.getString(1), rows.getBytes(2));
+            }
+        }
+        when(world.getName()).thenReturn("world");
+        final LegacyDatabaseImporter.Result in;
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
+            in = LegacyDatabaseImporter.importGates();
+        }
+        assertNull(in.getProblem());
+        assertEquals(original.size(), in.getImported(), "skipped: " + in.getSkipped());
+
+        final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
+
+        // Isisium is a shape of that server's own, which the older plugins do not name, so it is left out and said.
+        assertEquals(java.util.List.of("Isisium: its shape \"Isisium\" is not one the older plugins know"), out.getSkipped());
+        assertEquals(original.size() - 1, out.getExported());
+        // Two things legitimately differ. Bytes 37 to 100 hold the two arrival points, which the importer
+        // moves when an old gate left one inside its own portal (the count it reports). Bytes 118 to 125 hold
+        // a sign-dial gate's last-chosen target by the old database's gate id, which an import does not
+        // resolve to a gate and an export has no gate to name, so it is written as none.
+        final int arrivalStart = 1 + (3 * 12);
+        final int arrivalEnd = arrivalStart + (2 * 32);
+        final int signTargetStart = arrivalEnd + 1 + 12 + 4;
+        final int signTargetEnd = signTargetStart + 8;
+        int identical = 0;
+        int moved = 0;
+        final java.util.List<String> differ = new ArrayList<>();
+        try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + out.getFile().getAbsolutePath());
+            Statement query = db.createStatement();
+            ResultSet rows = query.executeQuery("SELECT Name, GateData FROM Stargates"))
+        {
+            while (rows.next())
+            {
+                final byte[] was = original.get(rows.getString(1));
+                final byte[] now = rows.getBytes(2);
+                if (java.util.Arrays.equals(was, now))
+                {
+                    identical++;
+                    continue;
+                }
+                moved++;
+                assertEquals(was.length, now.length, rows.getString(1) + " changed length");
+                for (int at = 0; at < was.length; at++)
+                {
+                    if ((was[at] != now[at]) && ((at < arrivalStart) || (at >= arrivalEnd)) && ((at < signTargetStart) || (at >= signTargetEnd)))
+                    {
+                        differ.add(rows.getString(1) + " byte " + at);
+                    }
+                }
+            }
+        }
+        assertEquals(java.util.List.of(), differ, "bytes changed outside the arrival points and the sign target");
+        assertTrue(identical + moved == out.getExported() && moved > 0, identical + " identical, " + moved + " moved");
+    }
 }

@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -17,10 +19,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
  * Writes this server's gates out in the format {@link LegacyDatabaseImporter} reads.
@@ -55,7 +60,7 @@ public final class LegacyDatabaseExporter
     public enum Dropped
     {
         USE_COST, DIAL_SPIN, IRIS_ANIMATION, VIEW, MATERIAL_GROUP, FRAME_MATERIAL, DIAL_SIGN_TARGET,
-        OWNER_UUID
+        OWNER_UUID, OWNER_UNKNOWN
     }
 
     /** Why an export could not run at all. */
@@ -140,11 +145,42 @@ public final class LegacyDatabaseExporter
             writeGates(db, gates, result);
             db.commit();
         }
-        catch (final SQLException e)
+        catch (final SQLException | RuntimeException e)
         {
+            // Not a half-made export left for somebody to mistake for a whole one.
+            PluginLog.log(Level.WARNING, "Could not write " + file, e);
+            discard(folder);
             return new Result(null, Problem.WRITE_FAILED, file.toString(), e.getMessage());
         }
         return result;
+    }
+
+    /** Removes the folder this export made, and what it put in it. */
+    private static void discard(final File folder)
+    {
+        final File[] files = folder.listFiles();
+        if (files != null)
+        {
+            for (final File made : files)
+            {
+                try
+                {
+                    Files.deleteIfExists(made.toPath());
+                }
+                catch (final IOException stuck)
+                {
+                    PluginLog.log(Level.WARNING, "Could not remove " + made, stuck);
+                }
+            }
+        }
+        try
+        {
+            Files.deleteIfExists(folder.toPath());
+        }
+        catch (final IOException stuck)
+        {
+            PluginLog.log(Level.WARNING, "Could not remove " + folder, stuck);
+        }
     }
 
     /** A folder named for the moment, and never one that is already there. */
@@ -222,7 +258,7 @@ public final class LegacyDatabaseExporter
                 bind(insert, id, gate, data, shape);
                 insert.executeUpdate();
                 result.exported++;
-                countDropped(gate, result.dropped);
+                countDropped(gate, ownerName(gate), result.dropped);
             }
         }
     }
@@ -239,8 +275,35 @@ public final class LegacyDatabaseExporter
         insert.setString(5, String.valueOf(world.getUID().getMostSignificantBits()));
         insert.setString(6, world.getName());
         insert.setString(7, String.valueOf(world.getEnvironment()));
-        insert.setString(8, gate.getGateOwnerName());
+        insert.setString(8, ownerName(gate));
         insert.setString(9, shape);
+    }
+
+    /**
+     * The name the older format keeps for the owner: the stored one, else a legacy name-owner as it
+     * is, else the name of the account an id belongs to. Null when none can be found.
+     */
+    static String ownerName(final Stargate gate)
+    {
+        final String stored = gate.getStoredGateOwnerName();
+        if (stored != null)
+        {
+            return stored;
+        }
+        final String owner = gate.getGateOwner();
+        if ((owner == null) || !isUuid(owner))
+        {
+            return owner;
+        }
+        try
+        {
+            return Bukkit.getOfflinePlayer(UUID.fromString(owner)).getName();
+        }
+        catch (final RuntimeException refused)
+        {
+            // A server that will not look an account up leaves the owner unnamed, and counted.
+            return null;
+        }
     }
 
     /** Why this gate cannot be written, or null if it can. */
@@ -274,7 +337,7 @@ public final class LegacyDatabaseExporter
         return null;
     }
 
-    private static void countDropped(final Stargate gate, final Map<Dropped, Integer> dropped)
+    private static void countDropped(final Stargate gate, final String name, final Map<Dropped, Integer> dropped)
     {
         count(dropped, Dropped.USE_COST, gate.getGateUseCost() != null);
         count(dropped, Dropped.DIAL_SPIN, gate.getGateDialSpin() != null);
@@ -284,6 +347,7 @@ public final class LegacyDatabaseExporter
         count(dropped, Dropped.FRAME_MATERIAL, gate.getGateFrameMaterialHint() != null);
         count(dropped, Dropped.DIAL_SIGN_TARGET, gate.getGateDialSignTargetName() != null);
         count(dropped, Dropped.OWNER_UUID, isUuid(gate.getGateOwner()));
+        count(dropped, Dropped.OWNER_UNKNOWN, isUuid(gate.getGateOwner()) && (name == null));
     }
 
     private static void count(final Map<Dropped, Integer> dropped, final Dropped kind, final boolean has)

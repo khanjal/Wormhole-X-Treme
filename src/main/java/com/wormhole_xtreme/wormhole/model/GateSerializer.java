@@ -781,7 +781,7 @@ public final class GateSerializer
         final ByteBuffer dataArr = ByteBuffer.allocate(size);
 
         writeAnchors(dataArr, s, version);
-        writeSignAndTarget(dataArr, s, utfFaceBytes, utfIdcBytes);
+        writeSignAndTarget(dataArr, s, utfFaceBytes, utfIdcBytes, !byName);
         writeRedstoneAndCustom(dataArr, s, byName);
         writeBlockLists(dataArr, s);
         if (dataArr.remaining() > 0)
@@ -850,8 +850,15 @@ public final class GateSerializer
         }
     }
 
-    /** The dial sign, the gate this one is dialled to, its facing, its IDC and its flags. */
-    private static void writeSignAndTarget(final ByteBuffer dataArr, final Stargate s, final byte[] utfFaceBytes, final byte[] utfIdcBytes)
+    /**
+     * The dial sign, the gate this one is dialled to, its facing, its IDC and its flags.
+     *
+     * @param snapshot
+     *            true for an export, which is a picture of the gates and not a live connection: the
+     *            gate is written idle with no target, however it is dialled now
+     */
+    private static void writeSignAndTarget(final ByteBuffer dataArr, final Stargate s, final byte[] utfFaceBytes,
+        final byte[] utfIdcBytes, final boolean snapshot)
     {
         if (s.isGateSignPowered())
         {
@@ -868,7 +875,7 @@ public final class GateSerializer
             dataArr.putLong(-1);
         }
 
-        if (s.isGateActive() && (s.getGateTarget() != null))
+        if (!snapshot && s.isGateActive() && (s.getGateTarget() != null))
         {
             dataArr.put((byte) 1);
             dataArr.putLong(s.getGateTarget().getGateId());

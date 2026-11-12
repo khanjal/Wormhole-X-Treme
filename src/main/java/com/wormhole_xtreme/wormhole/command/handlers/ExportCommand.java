@@ -110,6 +110,7 @@ public class ExportCommand implements SubCommand
             case MATERIAL_GROUP -> Messages.get(sender, "export.dropped.kind.material-group");
             case FRAME_MATERIAL -> Messages.get(sender, "export.dropped.kind.frame-material");
             case DIAL_SIGN_TARGET -> Messages.get(sender, "export.dropped.kind.dial-sign-target");
+            case OWNER_UNKNOWN -> Messages.get(sender, "export.dropped.kind.owner-unknown");
             case OWNER_UUID -> Messages.get(sender, "export.dropped.kind.owner-uuid");
         };
     }
