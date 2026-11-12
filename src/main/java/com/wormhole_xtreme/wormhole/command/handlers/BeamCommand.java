@@ -12,7 +12,6 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamAnimation;
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
@@ -175,7 +174,7 @@ public class BeamCommand implements SubCommand
         // the list, and the node is meant to cover the whole player-facing beam surface.
         if (!BeamPermissions.has(player, BeamPermissions.USE))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
             return;
         }
         final List<String> names = new ArrayList<>();
@@ -248,7 +247,7 @@ public class BeamCommand implements SubCommand
         final Player player = (Player) sender;
         if (!BeamPermissions.has(player, BeamPermissions.ADMIN))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
             return;
         }
         if (args.length < 4)
@@ -374,7 +373,7 @@ public class BeamCommand implements SubCommand
         final Player player = (Player) sender;
         if (!BeamPermissions.has(player, BeamPermissions.ADMIN_TELEPORT))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
             return;
         }
         if (args.length < 4)
@@ -408,7 +407,7 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamPermissions.has(sender, BeamPermissions.ADMIN_TELEPORT))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
             return;
         }
         if (args.length < 5)
@@ -690,7 +689,7 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamPermissions.has(player, BeamPermissions.PLACE))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
             return;
         }
         if (args.length < 4)

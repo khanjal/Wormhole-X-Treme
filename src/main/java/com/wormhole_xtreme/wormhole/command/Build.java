@@ -314,7 +314,7 @@ public class Build implements CommandExecutor
         if (!mayPreview || (PLACE.equals(option) && !PreviewPermissions.mayPlace(player))
             || (SHARE.equals(option) && !PreviewPermissions.mayShare(player)))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
             return;
         }
         final GatePreviews.Control done = switch (option)

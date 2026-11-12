@@ -7,7 +7,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -60,7 +59,7 @@ public class WXIDC implements CommandExecutor
         // Before the iris is described: any player can reach this command, not only its owner.
         if (!mayChangeCode(sender, s))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
             return;
         }
         if (s.isGateSignPowered() || (s.getGateIrisLeverBlock() == null))

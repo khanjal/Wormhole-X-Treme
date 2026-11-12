@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Unit tests for the `/wormhole complete` command parsing and robustness.
@@ -318,7 +319,7 @@ class CompleteCommandTest
             StargateManager.removeIncompleteStargate(player);
             StargateShapeRegistry.getStargateShapes().remove("Standard");
         }
-        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
     }
 
     /**

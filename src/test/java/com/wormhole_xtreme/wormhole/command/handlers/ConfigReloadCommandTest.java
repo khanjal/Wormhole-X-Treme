@@ -28,6 +28,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What {@code /wormhole config -reload} says, and who may run it (#634).
@@ -154,7 +155,7 @@ class ConfigReloadCommandTest
 
             new ConfigCommand().execute(player, new String[] { "config", "-reload" });
 
-            verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
             assertTrue(ConfigManager.isGateSoundsEnabled(), "the file's false was not taken");
         }
     }

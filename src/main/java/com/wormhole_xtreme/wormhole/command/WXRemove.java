@@ -8,7 +8,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -72,7 +71,7 @@ public class WXRemove implements CommandExecutor
         if (CommandUtilities.playerCheck(sender)
             && !WXPermissions.checkWXPermissions((Player) sender, s, PermissionType.REMOVE))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
             return true;
         }
 

@@ -54,6 +54,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.events.StargatePlayerTravelEvent;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What a rolling minecart entering a gate is allowed to do.
@@ -980,7 +981,7 @@ class VehicleGateEntryTest
         }
 
         verify(rider).sendMessage(ArgumentMatchers.contains("Cross-world travel is disabled"));
-        verify(rider, never()).sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
+        verify(rider, never()).sendMessage(ChatText.error("The far gate's iris is closed."));
     }
 
     /** The rule is about crossing worlds: a cart in one world goes on as ever with it on. */

@@ -15,7 +15,6 @@ import com.wormhole_xtreme.wormhole.command.Refresh;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.logic.GateRefresh;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
@@ -139,7 +138,7 @@ public class RegenerateCommand implements SubCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
+            sender.sendMessage(ChatText.error(Messages.get(sender, "common.gate-not-specified")));
             return false;
         }
         if (flagAt(args, 1, FILL) > 0)

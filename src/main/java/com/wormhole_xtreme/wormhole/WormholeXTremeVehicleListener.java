@@ -27,7 +27,9 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 import com.wormhole_xtreme.wormhole.events.StargateMinecartTeleportEvent;
 import com.wormhole_xtreme.wormhole.model.HorizonRipple;
@@ -810,7 +812,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             if (psg instanceof Player rider)
             {
-                rider.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+                rider.sendMessage(ChatText.error(Messages.get(rider, "common.cross-world-disabled")));
             }
         }
         putBackOutOfPortal(st, veh);
@@ -955,13 +957,13 @@ class WormholeXTremeVehicleListener implements Listener
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart Player in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
         if (!mayWorkTheGate(st, p))
         {
-            p.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            p.sendMessage(ChatText.error(Messages.get(p, "common.permission-no")));
             return false;
         }
         if (st.getGateTarget().isGateIrisActive())
         {
             // The one thing the empty-cart path above cannot do: there is nobody to tell.
-            p.sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
+            p.sendMessage(ChatText.error(Messages.get(p, "common.remote-iris-closed")));
             bounceOffClosedIris(st, veh);
             return false;
         }

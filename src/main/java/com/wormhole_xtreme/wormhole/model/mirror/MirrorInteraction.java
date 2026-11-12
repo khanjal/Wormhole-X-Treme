@@ -17,7 +17,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 import com.wormhole_xtreme.wormhole.PetEscort;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.WindowClicks;
 import com.wormhole_xtreme.wormhole.model.window.Windows;
@@ -133,7 +132,7 @@ public final class MirrorInteraction
     {
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
             return;
         }
         final String before = MirrorNetwork.chosen(mirror).name();
@@ -177,7 +176,7 @@ public final class MirrorInteraction
         }
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
             return;
         }
         if (mirror.destination() == null)

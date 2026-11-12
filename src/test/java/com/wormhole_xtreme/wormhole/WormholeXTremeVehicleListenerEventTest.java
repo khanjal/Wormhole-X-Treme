@@ -29,11 +29,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Tests for vehicle teleport dispatch/behavior (occupied vs unoccupied).
@@ -273,7 +273,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
         new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart, fromLoc, toLoc));
 
-        verify(rider).sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
+        verify(rider).sendMessage(ChatText.error("The far gate's iris is closed."));
         final ArgumentCaptor<Location> sent =
             ArgumentCaptor.forClass(Location.class);
         verify(cart, atLeastOnce()).teleport(sent.capture());

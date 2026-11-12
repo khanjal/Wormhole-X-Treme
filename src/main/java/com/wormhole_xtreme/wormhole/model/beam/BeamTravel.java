@@ -64,7 +64,7 @@ public final class BeamTravel
 
         if (!BeamPermissions.has(player, BeamPermissions.USE))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
             return true;
         }
         final Location stored = destination.toLocation();
@@ -90,7 +90,7 @@ public final class BeamTravel
         final double useCost = bypassesLimits ? 0.0 : resolveCost(destination);
         if ((useCost > 0) && !EconomySupport.canAfford(player, useCost))
         {
-            // Not ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS -- same reason: its
+            // Not common.insufficient-funds -- same reason: its
             // wording says "this gate."
             player.sendMessage(ChatText.error(Messages.get(player, "beam.travel.cannot-afford", cost(useCost))));
             return true;

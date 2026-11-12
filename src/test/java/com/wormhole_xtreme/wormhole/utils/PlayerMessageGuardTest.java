@@ -1,6 +1,5 @@
 package com.wormhole_xtreme.wormhole.utils;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -20,8 +19,6 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
-
 /**
  * Every line the plugin sends a player is built by {@link ChatText} (#438): the issue's own
  * "done" check, over all of {@code src/main/java}.
@@ -33,8 +30,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * source file and refuses a line that starts as anything else.
  *
  * <p>A line passes if it opens with {@code ChatText.info}, {@code error} or {@code status}; is a
- * whole {@code MessageStrings} message; is a call to a <em>line helper</em> or a <em>line
- * constant</em>; is a single lower-case variable, which the reader of that file can see was built
+ * call to a <em>line helper</em> or a <em>line constant</em>; is a single lower-case variable, which the reader of that file can see was built
  * from ChatText; or is one of the transport sends in {@link #TRANSPORT}. A line helper is any
  * {@code String} method whose body opens {@code return ChatText.info(} (or {@code error},
  * {@code status}), and a line constant any {@code static final String} initialised the same way:
@@ -54,14 +50,13 @@ class PlayerMessageGuardTest
     /**
      * Where a line to send begins: a sendMessage, a ChatLine, the action bar, a title or a
      * broadcast; and the wrappers that send their argument as it stands -- the ring and beam
-     * replies ({@code saved}, {@code status}, {@code statusAll}), a gate refusal said once
-     * ({@code refuseWithReminder}) and Build's action list.
+     * replies ({@code saved}, {@code status}, {@code statusAll}) and Build's action list.
      */
     private static final Pattern SENDS = Pattern.compile(
         "(?:\\.sendMessage\\(|\\bChatLine\\.of\\(|\\bActionBar\\.send\\(\\w++,\\s*+|\\.sendTitle\\(\\s*+"
             + "|\\.sendActionBar\\(|\\.broadcastMessage\\("
             + "|(?<![.\\w])(?:saved\\(\\w++, \\w++, |status\\(\\w++, |statusAll\\(\\w++, "
-            + "|refuseWithReminder\\(\\w++,\\s*+\\w++,\\s*+|actionList\\(\\w++,\\s*+))\\s*+");
+            + "|actionList\\(\\w++,\\s*+))\\s*+");
 
     /** A String method whose body opens by returning a ChatText line, with its name. */
     private static final Pattern LINE_HELPER = Pattern.compile(
@@ -133,24 +128,6 @@ class PlayerMessageGuardTest
             + ", so the pattern no longer matches how it sends");
         assertTrue(offences.isEmpty(), "a line sent without ChatText -- build it with ChatText.info or "
             + "ChatText.error: " + offences);
-    }
-
-    /**
-     * A MessageStrings constant is sent as the whole line, so each one opens with a header and
-     * says something after it: none is a header alone, or half a line for a caller to finish.
-     */
-    @Test
-    void everyMessageStringIsAWholeLine()
-    {
-        for (final ConfigManager.MessageStrings message : ConfigManager.MessageStrings.values())
-        {
-            final String line = message.toString();
-            assertTrue(line.startsWith(ChatText.ERROR_HEADER) || line.startsWith(ChatText.HEADER),
-                message.name() + " is sent as a whole line, so it opens with a header: " + line);
-            assertFalse(ChatMatchers.body(line).isBlank(), message.name() + " says something after its header: " + line);
-            assertTrue(line.endsWith(".") || line.endsWith("!"),
-                message.name() + " is a finished sentence, not the start of one a caller appends to: " + line);
-        }
     }
 
     /** Every main source file, by its path under {@link #ROOT}. */

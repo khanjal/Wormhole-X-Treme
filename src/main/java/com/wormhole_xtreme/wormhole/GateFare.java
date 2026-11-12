@@ -41,7 +41,7 @@ final class GateFare
         }
         if (!EconomySupport.canAfford(player, useCost))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.insufficient-funds")));
             return -1.0;
         }
         return useCost;
