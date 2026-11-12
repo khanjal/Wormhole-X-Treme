@@ -21,6 +21,7 @@ import java.util.logging.Level;
  * &lt;plugin folder&gt;/
  * ├── config.yml
  * ├── lang/*.yml                 optional, the owner's: messages over the jar's, per client language
+ * ├── exports/&lt;timestamp&gt;/       what {@code /wormhole export} wrote: a database for another fork, one folder a run
  * ├── shapes/
  * │   ├── gate/*.shape           the shapes gates are built from
  * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with
@@ -72,6 +73,12 @@ public final class DataLayout
     public static File configFile()
     {
         return new File(pluginFolder(), "config.yml");
+    }
+
+    /** @return the folder {@code /wormhole export} makes one new folder in per run; never {@code WormholeXTremeDB} */
+    public static File exports()
+    {
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "exports");
     }
 
     /** @return the directory gate shapes are read from */

@@ -99,6 +99,9 @@ permissions:
   wormhole.stats.others:
     description: Allow seeing another player's stats with /wormhole stats <player>.
     default: op
+  wormhole.export:
+    description: Allow writing the gates out as a database for the older Wormhole X-Treme plugins with /wormhole export.
+    default: op
   wormhole.freya:
     description: Allow using hidden cosmetic commands.
     default: true

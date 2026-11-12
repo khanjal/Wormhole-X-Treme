@@ -28,6 +28,12 @@ public final class GateSerializer
 
     private static final byte STARGATE_SAVE_VERSION = 9;
 
+    /**
+     * The newest version the older plugins write and read, which is what an export uses. Version 9
+     * is this fork's own: it was added to stop storing material ordinals.
+     */
+    private static final byte LEGACY_SAVE_VERSION = 8;
+
     private GateSerializer() {}
 
     /**
@@ -89,8 +95,15 @@ public final class GateSerializer
      * @param material
      *            the material, may be null
      */
-    private static void writeCustomMaterial(final ByteBuffer dataArr, final Material material)
+    private static void writeCustomMaterial(final ByteBuffer dataArr, final Material material,
+        final boolean byName)
     {
+        if (!byName)
+        {
+            // Version 8: the ordinal, with -1 for none, which readCustomMaterial turns back into null.
+            dataArr.putInt(material == null ? -1 : material.ordinal());
+            return;
+        }
         if (material == null)
         {
             dataArr.putInt(0);
@@ -108,9 +121,9 @@ public final class GateSerializer
      *            the material, may be null
      * @return the encoded size in bytes, including the length prefix
      */
-    private static int customMaterialSize(final Material material)
+    private static int customMaterialSize(final Material material, final boolean byName)
     {
-        return 4 + (material == null ? 0 : material.name().getBytes(StandardCharsets.UTF_8).length);
+        return byName ? 4 + (material == null ? 0 : material.name().getBytes(StandardCharsets.UTF_8).length) : 4;
     }
 
     public static Stargate parseVersionedData(final byte[] gateData, final World w, final String name, final StargateNetwork network)
@@ -725,6 +738,31 @@ public final class GateSerializer
     @SuppressWarnings("java:S1168")
     public static byte[] stargateToBinary(final Stargate s)
     {
+        return encode(s, STARGATE_SAVE_VERSION);
+    }
+
+    /**
+     * The gate as the older plugins store it: save version 8, custom materials by ordinal.
+     *
+     * <p>Ordinals are only meaningful on the Bukkit version that wrote them, so the result is
+     * right for a server of the same Minecraft version and may name other blocks on another.
+     *
+     * @param s
+     *            the gate
+     * @return the bytes, or null if the gate could not be encoded
+     */
+    // S1168: null means "could not encode", as for stargateToBinary.
+    @SuppressWarnings("java:S1168")
+    public static byte[] stargateToLegacyBinary(final Stargate s)
+    {
+        return encode(s, LEGACY_SAVE_VERSION);
+    }
+
+    // S1168 as above: null is the caller's signal that the gate was not encoded.
+    @SuppressWarnings("java:S1168")
+    private static byte[] encode(final Stargate s, final byte version)
+    {
+        final boolean byName = version >= 9;
         byte[] utfFaceBytes;
         byte[] utfIdcBytes;
         try
@@ -738,13 +776,13 @@ public final class GateSerializer
             return null;
         }
 
-        final int size = computeSize(s, utfFaceBytes, utfIdcBytes);
+        final int size = computeSize(s, utfFaceBytes, utfIdcBytes, byName);
 
         final ByteBuffer dataArr = ByteBuffer.allocate(size);
 
-        writeAnchors(dataArr, s);
+        writeAnchors(dataArr, s, version);
         writeSignAndTarget(dataArr, s, utfFaceBytes, utfIdcBytes);
-        writeRedstoneAndCustom(dataArr, s);
+        writeRedstoneAndCustom(dataArr, s, byName);
         writeBlockLists(dataArr, s);
         if (dataArr.remaining() > 0)
         {
@@ -788,9 +826,9 @@ public final class GateSerializer
      * <p>A gate without an iris lever or a name holder still writes a block-sized run of
      * zeroes, because the reader counts its way through rather than looking for markers.
      */
-    private static void writeAnchors(final ByteBuffer dataArr, final Stargate s)
+    private static void writeAnchors(final ByteBuffer dataArr, final Stargate s, final byte version)
     {
-        dataArr.put(STARGATE_SAVE_VERSION);
+        dataArr.put(version);
         dataArr.put(DataUtils.blockToBytes(s.getGateDialLeverBlock()));
         dataArr.put(s.getGateIrisLeverBlock() != null ? DataUtils.blockToBytes(s.getGateIrisLeverBlock()) : emptyBlock());
         dataArr.put(s.getGateNameBlockHolder() != null ? DataUtils.blockToBytes(s.getGateNameBlockHolder()) : emptyBlock());
@@ -853,7 +891,8 @@ public final class GateSerializer
     }
 
     /** The three redstone activation blocks, and the gate's own material overrides. */
-    private static void writeRedstoneAndCustom(final ByteBuffer dataArr, final Stargate s)
+    private static void writeRedstoneAndCustom(final ByteBuffer dataArr, final Stargate s,
+        final boolean byName)
     {
         if (s.getGateRedstoneDialActivationBlock() != null)
         {
@@ -890,10 +929,10 @@ public final class GateSerializer
         dataArr.put(s.isGateRedstonePowered() ? (byte) 1 : (byte) 0);
         dataArr.put(s.isGateCustom() ? (byte) 1 : (byte) 0);
 
-        writeCustomMaterial(dataArr, s.getGateCustomStructureMaterial());
-        writeCustomMaterial(dataArr, s.getGateCustomPortalMaterial());
-        writeCustomMaterial(dataArr, s.getGateCustomLightMaterial());
-        writeCustomMaterial(dataArr, s.getGateCustomIrisMaterial());
+        writeCustomMaterial(dataArr, s.getGateCustomStructureMaterial(), byName);
+        writeCustomMaterial(dataArr, s.getGateCustomPortalMaterial(), byName);
+        writeCustomMaterial(dataArr, s.getGateCustomLightMaterial(), byName);
+        writeCustomMaterial(dataArr, s.getGateCustomIrisMaterial(), byName);
         dataArr.putInt(s.getGateCustomWooshTicks());
         dataArr.putInt(s.getGateCustomLightTicks());
         dataArr.putInt(s.getGateCustomWooshDepth());
@@ -952,7 +991,7 @@ public final class GateSerializer
      * checking nothing is left over.
      */
     private static int computeSize(final Stargate s, final byte[] utfFaceBytes,
-        final byte[] utfIdcBytes)
+        final byte[] utfIdcBytes, final boolean byName)
     {
         final int numBlocks = 7;
         final int numLocations = 2;
@@ -965,10 +1004,10 @@ public final class GateSerializer
         final int numLongs = 2;
 
         int size = numBytesWithVersion + (numInts * 4) + (numLongs * 8) + (numBlocks * blockSize) + (numLocations * locationSize);
-        size += customMaterialSize(s.getGateCustomStructureMaterial())
-            + customMaterialSize(s.getGateCustomPortalMaterial())
-            + customMaterialSize(s.getGateCustomLightMaterial())
-            + customMaterialSize(s.getGateCustomIrisMaterial());
+        size += customMaterialSize(s.getGateCustomStructureMaterial(), byName)
+            + customMaterialSize(s.getGateCustomPortalMaterial(), byName)
+            + customMaterialSize(s.getGateCustomLightMaterial(), byName)
+            + customMaterialSize(s.getGateCustomIrisMaterial(), byName);
         size += (s.getGateStructureBlocks().size() * blockSize) + (s.getGatePortalBlocks().size() * blockSize);
         int numIntsOther = 2;
         for (int i = 0; i < s.getGateLightBlocks().size(); i++)
