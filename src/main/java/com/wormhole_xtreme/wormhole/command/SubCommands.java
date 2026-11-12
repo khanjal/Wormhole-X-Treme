@@ -440,7 +440,7 @@ public final class SubCommands
         hide("list", BUILD, COMPLETE, REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
-            "cooldown", "restrict", FREYA);
+            "cooldown", "restrict", "export", FREYA);
 
         // idc admits the gate's owner as well as wormhole.config, and checks both itself.
         selfPermissioned("beam", "ring", "go", "list", "compass", "stats", "idc", "export", FREYA);
