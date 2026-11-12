@@ -245,6 +245,7 @@ or delete it.
 | `wormhole.update.notify` | op | Being told on joining that a newer release is available (see `update-check` under [Metrics](#metrics)) |
 | `wormhole.stats` | true | `/wormhole stats`, your own counts |
 | `wormhole.stats.others` | op | `/wormhole stats <player>`, anybody's |
+| `wormhole.export` | op | `/wormhole export sqlite`; the console may always run it |
 
 Worth knowing:
 
@@ -282,6 +283,7 @@ a dashed word is always the option and a bare word is always a name.
 | `config …` | [Configuration](#configuration) |
 | `lang export [code]` | [Translating](TRANSLATING.md): writes a starter `lang/<code>.yml`, never over one there |
 | `compass` | Points your compass at the nearest gate; `compass reset` points it back at spawn |
+| `export sqlite` | Writes your gates to a database the older plugins read, in a folder of its own; see [coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme). Needs `wormhole.export` |
 | `stats [player]` | Lifetime trips through gates, gates built, ring trips and beams: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
 
 `compass` works without a compass in hand — the heading is stored against you. It says so when
@@ -414,6 +416,25 @@ written to the old database, so a failed import costs nothing and running it twi
 nothing. If old gates are found on startup and you have none, the log says so once.
 
 `WormholeXTremeDB/` keeps its name because that is how the import finds the database.
+
+**`/wormhole export sqlite`** is the way back out, for going back to the original plugin or running
+Dakto's WormholeXTreme on a second server. It needs `wormhole.export` and writes a new
+`WormholeXTreme.sqlite` into `exports/<date>-<time>/` under the plugin folder, never into
+`WormholeXTremeDB` and never to your gate files; copy it into the other plugin's `WormholeXTremeDB`
+yourself. Both plugins keep gates in that one table, so the file is written once, as gate version 8,
+the newest they both read. It has not been tried against a real Dakto 1.1.8 data folder.
+
+What does not carry over, and is listed after each export rather than dropped silently:
+
+- Transport rings, mirrors and windows, which the older plugins do not have.
+- A gate on a shape they do not name (they know `Standard`, `Large`, `Small`, `Super`, `Minimal`,
+  `Horizontal` and the `SignDial` form of each, `Pegasus` and `Destiny`). It is skipped.
+- Per-gate settings with no field in the format: own use cost, dial spin, iris animation, view level,
+  chosen material group, frame material, dial sign target, and the owner's account id (they keep the
+  name only). Each is counted.
+- Custom materials are stored as numbers in version 8, so they only match on the same Minecraft version.
+
+Importing the export again with `gate import` gives back the gates that came in that way.
 
 Your server needs a SQLite driver for this. It is not shipped — thirteen megabytes for a one-time
 import — but any server that *wrote* one of these databases already has one.

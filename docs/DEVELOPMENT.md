@@ -1277,7 +1277,8 @@ symbol, and one was fixable in a line.
   `OAK_WALL_SIGN`.
 - Storage is YAML only: one file per gate (`StargateYamlManager`), one per world for ring pairs
   (`RingYamlManager`), one each for beams and mirrors. A legacy SQLite database is read by
-  `LegacyDatabaseImporter` from `/wormhole gate import`.
+  `LegacyDatabaseImporter` from `/wormhole gate import`, and written by `LegacyDatabaseExporter` from
+  `/wormhole export sqlite`.
 
 ## Chat messages
 
