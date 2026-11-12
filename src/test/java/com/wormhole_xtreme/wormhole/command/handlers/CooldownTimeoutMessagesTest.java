@@ -159,6 +159,10 @@ class CooldownTimeoutMessagesTest
         verify(player).sendMessage(ChatText.info(ChatText.command(SHUTDOWN) + " set to: " + value(2) + SECONDS));
         verify(player).sendMessage(ChatText.info("Current " + ChatText.command(SHUTDOWN) + " is: " + value(2)
             + SECONDS));
+        ConfigManager.setUseCooldownSeconds(2);
+        new CooldownCommand().execute(player, new String[] { COOLDOWN });
+        verify(player).sendMessage(ChatText.info("Cooldowns enabled: " + value(true) + ", currently " + value(2)
+            + SECONDS));
         verify(qq).sendMessage(ChatText.info("QQ cooldowns " + value(true) + " at " + value(1) + " sec."));
         verify(qq).sendMessage(ChatText.info("QQ " + ChatText.command(SHUTDOWN) + " set " + value(1) + " sec."));
         verify(qq).sendMessage(ChatText.info("QQ current " + ChatText.command(SHUTDOWN) + " " + value(1) + " sec."));

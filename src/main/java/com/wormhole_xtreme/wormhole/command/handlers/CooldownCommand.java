@@ -93,17 +93,9 @@ public class CooldownCommand implements SubCommand
         }
 
         ConfigManager.setUseCooldownSeconds(seconds);
-        final int now = ConfigManager.getUseCooldownSeconds();
-        final String said;
-        if (now == 1)
-        {
-            said = Messages.get(sender, "config.cooldown.set.one", ChatText.value(String.valueOf(now)));
-        }
-        else
-        {
-            said = Messages.get(sender, "config.cooldown.set.other", ChatText.value(String.valueOf(now)));
-        }
-        sender.sendMessage(ChatText.info(said));
+        // At least MIN_SECONDS, so never one second: no singular to choose.
+        sender.sendMessage(ChatText.info(Messages.get(sender, "config.cooldown.set",
+            ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())))));
         return true;
     }
 

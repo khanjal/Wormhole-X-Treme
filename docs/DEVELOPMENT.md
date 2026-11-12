@@ -1283,7 +1283,7 @@ symbol, and one was fixable in a line.
 
 Translatable chat text lives in `src/main/resources/lang/en.yml`, one flat `key: "template"` line
 each, read by `Messages.get(recipient, key, args...)` ([#26](https://github.com/khanjal/Wormhole-X-Treme/issues/26)).
-Only some messages have moved so far; the rest are still built inline, and move file by file.
+Nearly every message has moved; debug output, setting descriptions and sign text are still built inline.
 Another language ships as `src/main/resources/lang/<code>.yml` beside it, named for the client
 language (`de`, `de_de`). A player reads their client's locale, read on every call through
 `PlayerLocales` (Paper's `locale()` by reflection, Bukkit's `getLocale()` elsewhere) and sanitised to
@@ -1307,10 +1307,17 @@ client codes seen are remembered up to a bound. Sign text is not localised.
   keeps its trailing space inside the template, a tail with words is a key of its own, and a tail
   that is only punctuation such as `.` stays in code. The link between them is the command words a
   player types (`hint(...)`, a constant such as `CLEAR`), passed as it is and never translated, and
-  the colour wrappers stay at the call site. `ChatLine` itself holds no text to translate; the
-  "Click to run" hover it adds is still English.
+  the colour wrappers stay at the call site. `ChatLine` holds no wording of its own except the "Click to run" and
+  "Click to fill in" hover, which `run` and `suggest` read by key (`chat.click-run`, `chat.click-fill`) for the
+  recipient they are given.
+- **A message that counts something has a `.one` and a `.other` key**, chosen at the call site with an
+  `if`/`else` and a local, never a ternary around `Messages.get` (Sonar S9358): `quota.one` says "1 ring pair",
+  `quota.other` "2 ring pairs".
+- **A line said from several places is a `common.*` key** with the header (`ChatText.error` or `info`) at the call
+  site, as every other line; `ConfigManager.MessageStrings` no longer exists.
 - **Never reword while extracting.** The English output must be byte for byte what it was, so a
-  test asserting the old text keeps passing unchanged. Rewording is its own change.
+  test asserting the old text keeps passing unchanged. Rewording is its own change (#689 was one, for the
+  plurals).
 - **Name the recipient as a plain variable and the key as a string literal.**
   `MessageKeysGuardTest` reads every `Messages.get` in `src/main` and fails on a key `en.yml` lacks, a
   key `en.yml` holds that nothing uses, and a call of any other shape.
