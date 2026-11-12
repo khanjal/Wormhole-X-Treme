@@ -53,6 +53,8 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.LangExport;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
@@ -241,8 +243,8 @@ public final class SubCommands
     static
     {
         // --- Gate lifecycle -------------------------------------------------
-        register("list", aliases(), "/wormhole list [network]", new WXList(), true, (sender, args) ->
-            args.length == 2 ? networkNames(args[1]) : none());
+        register("list", aliases(), "/wormhole list [network|mine|owner <player>|top]", new WXList(), true,
+            SubCommands::completeList);
         register(BUILD, aliases(), "/wormhole build <shape> [group]", new Build(), true,
             (sender, args) -> completeGateBuild(asGateVerb(args)));
         register(COMPLETE, aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
@@ -270,7 +272,7 @@ public final class SubCommands
         // destinations are nobody's secret, and a player's own places are their own to see.
         register("go", aliases(), "/wormhole go <gate|destination>", new Go(), true, (sender, args) ->
             args.length == 2
-                ? combine(gateNames(args[1]), travelBeamNames(sender, args[1])) : none());
+                ? combine(gateNames(sender, args[1]), travelBeamNames(sender, args[1])) : none());
         register("compass", aliases(), "/wormhole compass [reset]", new Compass(), true,
             (sender, args) -> args.length == 2 ? prefixed(args[1], "reset") : none());
         register("force", aliases(), "/wormhole force <gate|-all>", new Force(), true, GATE_NAMES);
@@ -1650,9 +1652,20 @@ public final class SubCommands
 
     private static List<String> gateNames(final String typed)
     {
+        return gateNames(StargateManager.getAllGatesUnsorted(), typed);
+    }
+
+    /** The gate names a sender may be offered, as {@link CommandUtilities#gatesToComplete} narrows them. */
+    private static List<String> gateNames(final CommandSender sender, final String typed)
+    {
+        return gateNames(CommandUtilities.gatesToComplete(sender), typed);
+    }
+
+    private static List<String> gateNames(final Collection<Stargate> gates, final String typed)
+    {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<>();
-        for (final Stargate g : StargateManager.getAllGatesUnsorted())
+        for (final Stargate g : gates)
         {
             final String name = g.getGateName();
             if (name != null && name.toLowerCase(Locale.ROOT).startsWith(p))
@@ -1661,6 +1674,35 @@ public final class SubCommands
             }
         }
         out.sort(String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    /** Completes {@code list}: networks and the keywords the sender may use, then an online player after owner. */
+    private static List<String> completeList(final CommandSender sender, final String[] args)
+    {
+        if (args.length == 3)
+        {
+            return OWNER.equalsIgnoreCase(args[1]) ? playerNames(args[2]) : none();
+        }
+        if (args.length != 2)
+        {
+            return none();
+        }
+        final List<String> out = networkNames(args[1]);
+        final boolean mayList = !(sender instanceof Player player)
+            || WXPermissions.checkWXPermissions(player, PermissionType.LIST);
+        if (mayList || sender.hasPermission(WXList.MINE))
+        {
+            out.addAll(prefixed(args[1], "mine"));
+        }
+        if (mayList || sender.hasPermission(WXList.OWNER))
+        {
+            out.addAll(prefixed(args[1], OWNER));
+        }
+        if (mayList)
+        {
+            out.addAll(prefixed(args[1], "top"));
+        }
         return out;
     }
 

@@ -684,7 +684,7 @@ the setting does not touch them.
 
 | Command | What it does |
 |---|---|
-| `gate list [network]` | Gates you can see |
+| `gate list [network\|mine\|owner <player>\|top]` | Gates you can see; `mine` and `owner` narrow them to one owner, `top` shows the busiest by trips |
 | `gate go <gate>` | Teleport to it |
 | `gate dial <from> <to> [idc]` | Open a wormhole from one named gate to another, under the rules `/dial` keeps; needs `wormhole.config`, and a player also needs the right to dial from that gate. A gate already open, or being dialled, is refused. |
 | `gate force <gate>` | Dial past the usual refusals |

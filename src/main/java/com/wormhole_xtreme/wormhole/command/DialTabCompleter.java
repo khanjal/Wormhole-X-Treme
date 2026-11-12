@@ -9,7 +9,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
  * Tab completer for the `/dial` command to suggest gate names.
@@ -27,7 +26,7 @@ public class DialTabCompleter implements TabCompleter
         if (args.length == 1)
         {
             final String prefix = args[0].toLowerCase(Locale.ROOT);
-            for (final Stargate g : StargateManager.getAllGates())
+            for (final Stargate g : CommandUtilities.gatesToComplete(sender))
             {
                 final String name = g.getGateName();
                 if ((prefix.isEmpty()) || name.toLowerCase(Locale.ROOT).startsWith(prefix))
