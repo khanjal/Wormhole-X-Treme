@@ -162,7 +162,7 @@ class LegacyDatabaseExporterTest
         final byte[] before = GateSerializer.stargateToBinary(first);
 
         final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
-        assertNull(out.getProblemKey(), "the export should run; it said: " + out.getProblemKey());
+        assertNull(out.getProblem(), "the export should run; it said: " + out.getProblem());
         assertEquals(1, out.getExported(), "skipped: " + out.getSkipped());
 
         // The exported file is what the other server would be given: put it where the importer looks.
@@ -319,7 +319,7 @@ class LegacyDatabaseExporterTest
 
         final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export(false);
 
-        assertEquals("export.no-driver", out.getProblemKey());
+        assertEquals(LegacyDatabaseExporter.Problem.NO_DRIVER, out.getProblem());
         assertNull(out.getFile());
         assertFalse(DataLayout.exports().exists(), "no folder should be made for an export that cannot run");
     }

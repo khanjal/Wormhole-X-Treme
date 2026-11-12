@@ -43,9 +43,9 @@ public class ExportCommand implements SubCommand
             return true;
         }
         final LegacyDatabaseExporter.Result result = LegacyDatabaseExporter.export();
-        if (result.getProblemKey() != null)
+        if (result.getProblem() != null)
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, result.getProblemKey(), result.getProblemArgs())));
+            sender.sendMessage(ChatText.error(problem(sender, result)));
             return true;
         }
         report(sender, result);
@@ -84,6 +84,18 @@ public class ExportCommand implements SubCommand
         }
         sender.sendMessage(ChatText.info(Messages.get(sender, "export.not-carried")));
         sender.sendMessage(ChatText.info(Messages.get(sender, "export.ordinals")));
+    }
+
+    /** Each key is written out whole, as below. */
+    private static String problem(final CommandSender sender, final LegacyDatabaseExporter.Result result)
+    {
+        final Object[] args = result.getProblemArgs();
+        return switch (result.getProblem())
+        {
+            case NO_DRIVER -> Messages.get(sender, "export.no-driver");
+            case NO_FOLDER -> Messages.get(sender, "export.no-folder", args);
+            case WRITE_FAILED -> Messages.get(sender, "export.write-failed", args);
+        };
     }
 
     /** Each key is written out whole, so a missing one is found by searching for it. */

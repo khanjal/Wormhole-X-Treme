@@ -58,17 +58,23 @@ public final class LegacyDatabaseExporter
         OWNER_UUID
     }
 
+    /** Why an export could not run at all. */
+    public enum Problem
+    {
+        NO_DRIVER, NO_FOLDER, WRITE_FAILED
+    }
+
     /** What one export came to. */
     public static final class Result
     {
         private final File file;
-        private final String problem;
+        private final Problem problem;
         private final Object[] problemArgs;
         private int exported;
         private final List<String> skipped = new ArrayList<>();
         private final Map<Dropped, Integer> dropped = new EnumMap<>(Dropped.class);
 
-        Result(final File file, final String problem, final Object... problemArgs)
+        Result(final File file, final Problem problem, final Object... problemArgs)
         {
             this.file = file;
             this.problem = problem;
@@ -78,10 +84,10 @@ public final class LegacyDatabaseExporter
         /** @return the database written, or null if the export did not run */
         public File getFile() { return file; }
 
-        /** @return the lang key of what stopped the export entirely, or null if it ran */
-        public String getProblemKey() { return problem; }
+        /** @return what stopped the export entirely, or null if it ran */
+        public Problem getProblem() { return problem; }
 
-        /** @return the arguments that key's message takes */
+        /** @return the arguments that problem's message takes */
         public Object[] getProblemArgs() { return problemArgs.clone(); }
 
         /** @return how many gates were written */
@@ -114,12 +120,12 @@ public final class LegacyDatabaseExporter
     {
         if (!driverAvailable)
         {
-            return new Result(null, "export.no-driver");
+            return new Result(null, Problem.NO_DRIVER);
         }
         final File folder = newFolder();
         if (folder == null)
         {
-            return new Result(null, "export.no-folder", DataLayout.exports().toString());
+            return new Result(null, Problem.NO_FOLDER, DataLayout.exports().toString());
         }
         final File file = new File(folder, DB_NAME);
         final Result result = new Result(file, null);
@@ -136,7 +142,7 @@ public final class LegacyDatabaseExporter
         }
         catch (final SQLException e)
         {
-            return new Result(null, "export.write-failed", file.toString(), e.getMessage());
+            return new Result(null, Problem.WRITE_FAILED, file.toString(), e.getMessage());
         }
         return result;
     }
