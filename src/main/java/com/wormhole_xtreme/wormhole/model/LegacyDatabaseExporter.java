@@ -63,21 +63,26 @@ public final class LegacyDatabaseExporter
     {
         private final File file;
         private final String problem;
+        private final Object[] problemArgs;
         private int exported;
         private final List<String> skipped = new ArrayList<>();
         private final Map<Dropped, Integer> dropped = new EnumMap<>(Dropped.class);
 
-        Result(final File file, final String problem)
+        Result(final File file, final String problem, final Object... problemArgs)
         {
             this.file = file;
             this.problem = problem;
+            this.problemArgs = problemArgs;
         }
 
         /** @return the database written, or null if the export did not run */
         public File getFile() { return file; }
 
-        /** @return what stopped the export entirely, or null if it ran */
-        public String getProblem() { return problem; }
+        /** @return the lang key of what stopped the export entirely, or null if it ran */
+        public String getProblemKey() { return problem; }
+
+        /** @return the arguments that key's message takes */
+        public Object[] getProblemArgs() { return problemArgs.clone(); }
 
         /** @return how many gates were written */
         public int getExported() { return exported; }
@@ -109,13 +114,12 @@ public final class LegacyDatabaseExporter
     {
         if (!driverAvailable)
         {
-            return new Result(null, "This server has no SQLite driver, so no database can be "
-                + "written. Run the export on a server that has one.");
+            return new Result(null, "export.no-driver");
         }
         final File folder = newFolder();
         if (folder == null)
         {
-            return new Result(null, "Could not create a folder under " + DataLayout.exports() + ".");
+            return new Result(null, "export.no-folder", DataLayout.exports().toString());
         }
         final File file = new File(folder, DB_NAME);
         final Result result = new Result(file, null);
@@ -132,7 +136,7 @@ public final class LegacyDatabaseExporter
         }
         catch (final SQLException e)
         {
-            return new Result(null, "Could not write " + file + ": " + e.getMessage());
+            return new Result(null, "export.write-failed", file.toString(), e.getMessage());
         }
         return result;
     }

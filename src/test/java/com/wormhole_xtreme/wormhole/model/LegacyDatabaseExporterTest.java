@@ -162,7 +162,7 @@ class LegacyDatabaseExporterTest
         final byte[] before = GateSerializer.stargateToBinary(first);
 
         final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
-        assertNull(out.getProblem(), "the export should run; it said: " + out.getProblem());
+        assertNull(out.getProblemKey(), "the export should run; it said: " + out.getProblemKey());
         assertEquals(1, out.getExported(), "skipped: " + out.getSkipped());
 
         // The exported file is what the other server would be given: put it where the importer looks.
@@ -319,8 +319,7 @@ class LegacyDatabaseExporterTest
 
         final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export(false);
 
-        assertNotNull(out.getProblem());
-        assertTrue(out.getProblem().startsWith("This server has no SQLite driver"), out.getProblem());
+        assertEquals("export.no-driver", out.getProblemKey());
         assertNull(out.getFile());
         assertFalse(DataLayout.exports().exists(), "no folder should be made for an export that cannot run");
     }

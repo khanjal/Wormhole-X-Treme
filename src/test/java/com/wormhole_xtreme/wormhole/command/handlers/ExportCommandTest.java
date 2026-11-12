@@ -34,6 +34,7 @@ import com.wormhole_xtreme.wormhole.model.GateSerializer;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * {@code /wormhole export sqlite}: admin only, one format, and a report of what did not carry over
@@ -103,6 +104,18 @@ class ExportCommandTest
 
         verify(console).sendMessage(errorBody("No export format called dakto. Try: /wormhole export sqlite."));
         assertFalse(DataLayout.exports().exists());
+    }
+
+    /** The reasons an export cannot run are lang keys, so a translation reaches them. */
+    @Test
+    void theProblemMessagesComeFromTheLanguageFile()
+    {
+        final CommandSender console = console();
+
+        assertEquals("This server has no SQLite driver, so no database can be written. Run the export on a server that has one.",
+            Messages.get(console, "export.no-driver"));
+        assertEquals("Could not create a folder under /x.", Messages.get(console, "export.no-folder", "/x"));
+        assertEquals("Could not write /x/db: disk full", Messages.get(console, "export.write-failed", "/x/db", "disk full"));
     }
 
     @Test

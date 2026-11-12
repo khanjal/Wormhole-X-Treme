@@ -43,9 +43,9 @@ public class ExportCommand implements SubCommand
             return true;
         }
         final LegacyDatabaseExporter.Result result = LegacyDatabaseExporter.export();
-        if (result.getProblem() != null)
+        if (result.getProblemKey() != null)
         {
-            sender.sendMessage(ChatText.error(result.getProblem()));
+            sender.sendMessage(ChatText.error(Messages.get(sender, result.getProblemKey(), result.getProblemArgs())));
             return true;
         }
         report(sender, result);
