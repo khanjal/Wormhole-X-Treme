@@ -417,7 +417,7 @@ class LegacyDatabaseExporterTest
     void theOwnerColumnHoldsAName() throws Exception
     {
         final Stargate stored = unregisteredGate("A");
-        stored.setGateOwner("Daniel");
+        stored.setGateOwner(UUID.randomUUID().toString());
         stored.setGateOwnerName("Daniel");
         assertEquals("Daniel", LegacyDatabaseExporter.ownerName(stored));
 
