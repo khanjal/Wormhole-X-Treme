@@ -124,7 +124,8 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     }
 
     /** The buttons, each a link with its command, its hover and what it fills in, as they were. */
-    private static ChatLine oldButtons(final ChatLine line, final String finish, final String helpPrefix)
+    private static ChatLine oldButtons(final ChatLine line, final String finish, final String helpPrefix,
+        final String labelPrefix)
     {
         final String[][] labels = {{"clear", "Clear"}, {"activate", "Activate"}, {"iris", "Iris"},
             {"material", "Material"}, {"needs", "Needs"}, {"guide", "Guide"}, {"layer", "Layer"},
@@ -139,15 +140,16 @@ class BuildLinksMessagesTest extends BuildPreviewCase
             {
                 line.text(" ");
             }
-            line.link(command("[" + labels[i][1] + "]"), command(action), typed,
+            line.link(command("[" + labelPrefix + labels[i][1] + "]"), command(action), typed,
                 command(typed.trim() + (needsMore ? " ..." : "")) + "\n" + help + (needsMore ? finish : ""), needsMore);
         }
         return line;
     }
 
-    private static ChatLine oldActionList(final String before, final String finish, final String helpPrefix)
+    private static ChatLine oldActionList(final String before, final String finish, final String helpPrefix,
+        final String labelPrefix)
     {
-        return oldButtons(ChatLine.of(before).text(hint("<action>") + ": "), finish, helpPrefix);
+        return oldButtons(ChatLine.of(before).text(hint("<action>") + ": "), finish, helpPrefix, labelPrefix);
     }
 
     /** The preview options moved, the unknown action and the usage, each ending in the buttons. */
@@ -155,11 +157,11 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     void theActionListsKeepEveryButtonInEnglish()
     {
         final String finish = " Click to finish it in chat.";
-        assertEquals(sentAs(oldActionList(error("Preview options moved to "), finish, null)),
+        assertEquals(sentAs(oldActionList(error("Preview options moved to "), finish, null, "")),
             run("en", p -> { }, "gate", "build", "-guide"));
-        assertEquals(sentAs(oldButtons(ChatLine.of(error("No preview action " + name("bogus") + ". Try ")), finish, null)),
+        assertEquals(sentAs(oldButtons(ChatLine.of(error("No preview action " + name("bogus") + ". Try ")), finish, null, "")),
             run("en", p -> { }, "gate", "preview", "bogus"));
-        assertEquals(sentAs(oldActionList(info("Usage: "), finish, null)), run("en", p -> { }, "gate", "preview"));
+        assertEquals(sentAs(oldActionList(info("Usage: "), finish, null, "")), run("en", p -> { }, "gate", "preview"));
     }
 
     /** The same lists for a qq builder: the lead and what each button says in qq, the commands as typed. */
@@ -167,11 +169,11 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     void theActionListsKeepEveryButtonInTheReadersLanguage()
     {
         final String finish = " QQ finish.";
-        assertEquals(sentAs(oldActionList(error("QQ moved "), finish, "QQ help ")),
+        assertEquals(sentAs(oldActionList(error("QQ moved "), finish, "QQ help ", "QQ ")),
             run("qq", p -> { }, "gate", "build", "-guide"));
-        assertEquals(sentAs(oldButtons(ChatLine.of(error("QQ no action " + name("bogus") + " ")), finish, "QQ help ")),
+        assertEquals(sentAs(oldButtons(ChatLine.of(error("QQ no action " + name("bogus") + " ")), finish, "QQ help ", "QQ ")),
             run("qq", p -> { }, "gate", "preview", "bogus"));
-        assertEquals(sentAs(oldActionList(info("Usage: "), finish, "QQ help ")), run("qq", p -> { }, "gate", "preview"));
+        assertEquals(sentAs(oldActionList(info("Usage: "), finish, "QQ help ", "QQ ")), run("qq", p -> { }, "gate", "preview"));
     }
 
     private static void shown(final MockedStatic<GatePreviews> previews)
@@ -183,9 +185,9 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     @Test
     void theLineAfterAShownPreviewIsTheActionListInBothLanguages()
     {
-        assertEquals(sentAs(oldActionList(info("Look at it and use "), " Click to finish it in chat.", null)),
+        assertEquals(sentAs(oldActionList(info("Look at it and use "), " Click to finish it in chat.", null, "")),
             run("en", BuildLinksMessagesTest::shown, "gate", "build", "Standard"));
-        assertEquals(sentAs(oldActionList(info("QQ look "), " QQ finish.", "QQ help ")),
+        assertEquals(sentAs(oldActionList(info("QQ look "), " QQ finish.", "QQ help ", "QQ ")),
             run("qq", BuildLinksMessagesTest::shown, "gate", "build", "Standard"));
     }
 
@@ -200,16 +202,16 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     void theRefusalsThatNameACommandLinkItInEnglish()
     {
         assertEquals(sentAs(ChatLine.of(error("Too many preview blocks on the server. Clear one with "))
-            .run(hint("clear"), PREVIEW + "clear").text(".")),
+            .run(null, hint("clear"), PREVIEW + "clear").text(".")),
             run("en", BuildLinksMessagesTest::tooMany, "gate", "build", "Standard"));
         assertEquals(sentAs(ChatLine.of(error("Look at a preview to clear it, or use "))
-            .run(hint("clear -all"), PREVIEW + "clear -all").text(".")),
+            .run(null, hint("clear -all"), PREVIEW + "clear -all").text(".")),
             run("en", p -> { }, "gate", "preview", "clear"));
         assertEquals(sentAs(ChatLine.of(error("Placed, but no gate was found in it. "))
-            .run(hint("guide"), PREVIEW + "guide").text(" shows what is wrong.")),
+            .run(null, hint("guide"), PREVIEW + "guide").text(" shows what is wrong.")),
             run("en", p -> placeAnswers(p, GatePreviews.Outcome.NOT_FOUND), "gate", "preview", "place"));
         assertEquals(sentAs(ChatLine.of(error("Nothing placed. In the way: " + bad("stone, dirt") + ". "))
-            .run(hint("guide"), PREVIEW + "guide").text(" marks them.")),
+            .run(null, hint("guide"), PREVIEW + "guide").text(" marks them.")),
             run("en", p -> placeAnswers(p, GatePreviews.Outcome.IN_THE_WAY, "stone", "dirt"), "gate", "preview", "place"));
     }
 
@@ -217,14 +219,14 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     @Test
     void theRefusalsThatNameACommandLinkItInTheReadersLanguage()
     {
-        assertEquals(sentAs(ChatLine.of(error("QQ too many ")).run(hint("clear"), PREVIEW + "clear").text(".")),
+        assertEquals(sentAs(ChatLine.of(error("QQ too many ")).run(null, hint("clear"), PREVIEW + "clear").text(".")),
             run("qq", BuildLinksMessagesTest::tooMany, "gate", "build", "Standard"));
-        assertEquals(sentAs(ChatLine.of(error("QQ look to clear ")).run(hint("clear -all"), PREVIEW + "clear -all").text(".")),
+        assertEquals(sentAs(ChatLine.of(error("QQ look to clear ")).run(null, hint("clear -all"), PREVIEW + "clear -all").text(".")),
             run("qq", p -> { }, "gate", "preview", "clear"));
-        assertEquals(sentAs(ChatLine.of(error("QQ not found ")).run(hint("guide"), PREVIEW + "guide").text(" QQ wrong.")),
+        assertEquals(sentAs(ChatLine.of(error("QQ not found ")).run(null, hint("guide"), PREVIEW + "guide").text(" QQ wrong.")),
             run("qq", p -> placeAnswers(p, GatePreviews.Outcome.NOT_FOUND), "gate", "preview", "place"));
         assertEquals(sentAs(ChatLine.of(error("QQ in the way " + bad("stone | dirt") + " "))
-            .run(hint("guide"), PREVIEW + "guide").text(" QQ marks.")),
+            .run(null, hint("guide"), PREVIEW + "guide").text(" QQ marks.")),
             run("qq", p -> placeAnswers(p, GatePreviews.Outcome.IN_THE_WAY, "stone", "dirt"), "gate", "preview", "place"));
     }
 
@@ -244,11 +246,11 @@ class BuildLinksMessagesTest extends BuildPreviewCase
             .collect(Collectors.joining(", "));
         final String qqRoles = String.join(" | ", Arrays.stream(GateBlueprint.Role.values())
             .map(GateBlueprint.Role::option).map(ChatText::command).toList());
-        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(hint("material <group>"), PREVIEW + "material ")
-            .text(" or ").suggest(hint("material -<role> <block>"), PREVIEW + "material -").text(". Roles: " + roles + ".")),
+        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(null, hint("material <group>"), PREVIEW + "material ")
+            .text(" or ").suggest(null, hint("material -<role> <block>"), PREVIEW + "material -").text(". Roles: " + roles + ".")),
             run("en", p -> { }, "gate", "preview", "material", "sparkly"));
-        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(hint("material <group>"), PREVIEW + "material ")
-            .text(" QQor ").suggest(hint("material -<role> <block>"), PREVIEW + "material -")
+        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(null, hint("material <group>"), PREVIEW + "material ")
+            .text(" QQor ").suggest(null, hint("material -<role> <block>"), PREVIEW + "material -")
             .text(" QQroles " + qqRoles + ".")),
             run("qq", p -> { }, "gate", "preview", "material", "sparkly"));
     }
@@ -260,14 +262,14 @@ class BuildLinksMessagesTest extends BuildPreviewCase
         final String roles = Arrays.stream(GateBlueprint.Role.values())
             .map(GateBlueprint.Role::option).map(ChatText::command)
             .collect(Collectors.joining(", "));
-        assertEquals(sentAs(oldActionList(info("QR use "), " Click to finish it in chat.", null)),
+        assertEquals(sentAs(oldActionList(info("QR use "), " Click to finish it in chat.", null, "")),
             run("qr", p -> { }, "gate", "preview"));
-        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(hint("material <group>"), PREVIEW + "material ")
-            .text(" or ").suggest(hint("material -<role> <block>"), PREVIEW + "material -").text(". Roles: " + roles + ".")),
+        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(null, hint("material <group>"), PREVIEW + "material ")
+            .text(" or ").suggest(null, hint("material -<role> <block>"), PREVIEW + "material -").text(". Roles: " + roles + ".")),
             run("qr", p -> { }, "gate", "preview", "material", "sparkly"));
-        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
+        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(null, hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
             run("en", p -> { }, "gate", "preview", "layer", "bogus"));
-        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
+        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(null, hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
             run("qr", p -> { }, "gate", "preview", "layer", "bogus"));
     }
 }

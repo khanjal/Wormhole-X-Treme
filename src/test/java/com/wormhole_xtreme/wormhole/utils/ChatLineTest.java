@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -76,8 +77,8 @@ class ChatLineTest
 
     private static ChatLine line()
     {
-        return ChatLine.of("§3:: §7Use ").run(ChatText.command(CLEAR), CLEAR).text(" or ")
-            .suggest(ChatText.command(MATERIAL + "<group>"), MATERIAL).text(".");
+        return ChatLine.of("§3:: §7Use ").run(null, ChatText.command(CLEAR), CLEAR).text(" or ")
+            .suggest(null, ChatText.command(MATERIAL + "<group>"), MATERIAL).text(".");
     }
 
     @Test
@@ -213,13 +214,13 @@ class ChatLineTest
         PluginTestSupport.install(plugin);
         final Class<?> isolated = new NoChatApi().loadClass(ChatLine.class.getName());
         final Method of = isolated.getMethod("of", String.class);
-        final Method run = isolated.getMethod("run", String.class, String.class);
+        final Method run = isolated.getMethod("run", CommandSender.class, String.class, String.class);
         final Method send = isolated.getMethod("send", Player.class);
         final Player player = mock(Player.class);
 
         for (int i = 0; i < 2; i++)
         {
-            final Object chat = run.invoke(of.invoke(null, "Use "), ChatText.command(CLEAR), CLEAR);
+            final Object chat = run.invoke(of.invoke(null, "Use "), null, ChatText.command(CLEAR), CLEAR);
             assertDoesNotThrow(() -> invoke(send, chat, player));
         }
 
