@@ -207,7 +207,7 @@ class CustomCommandTest
         chosen.setGateCustomIrisMaterial(Material.GLASS);
 
         assertTrue(run("custom", "-clean"));
-        verify(sender).sendMessage(plainContains("1 gate(s) carry"));
+        verify(sender).sendMessage(plainContains("1 gate carries"));
         verify(sender).sendMessage(contains("alpha"));
         verify(sender, never()).sendMessage(contains("beta"));
         assertNothingSaved();

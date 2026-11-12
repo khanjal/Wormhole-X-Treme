@@ -81,7 +81,8 @@ class GateCommandMessagesTest
     private static String oldMoved(final int moved)
     {
         return ChatText.info(ChatText.value(String.valueOf(moved))
-            + " of those had an arrival point inside the portal, and were moved clear of it.");
+            + " of those had an arrival point inside the portal, and "
+            + (moved == 1 ? "was" : "were") + " moved clear of it.");
     }
 
     @Test

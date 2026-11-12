@@ -415,8 +415,8 @@ class RingEditMessagesTest
     }
 
     /**
-     * Each way a hand-over is refused, against the old expression. The recipient's limit reads the same
-     * at one pair as at two, as it did, "1 ring pairs" and all.
+     * Each way a hand-over is refused, against the old expression. The recipient's limit says "1 ring pair"
+     * at one and "2 ring pairs" at two; it once said "1 ring pairs".
      */
     @Test
     void theOwnerRefusalsReadAsTheyDidBefore()
@@ -426,7 +426,7 @@ class RingEditMessagesTest
 
         verify(player).sendMessage(ChatText.error("No player called " + ChatText.name("Ghost") + " has been on this server."));
         verify(player).sendMessage(ChatText.error(GRACE + " already has " + ChatText.value("1")
-            + " ring pairs, which is the limit."));
+            + " ring pair, which is the limit."));
         verify(player).sendMessage(ChatText.error(GRACE + " already has " + ChatText.value("2")
             + " ring pairs, which is the limit."));
         verify(player).sendMessage(ChatText.error(GRACE + " already owns that pair."));

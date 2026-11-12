@@ -161,10 +161,12 @@ class CustomCommandMessagesTest
 
         for (final int count : new int[] { 1, 2 })
         {
+            final boolean one = count == 1;
             verify(player).sendMessage(ChatText.info(ChatText.value(String.valueOf(count))
-                + " gate(s) carry material overrides matching the built-in defaults:"));
+                + (one ? " gate carries" : " gates carry") + " material overrides matching the built-in defaults:"));
             verify(player).sendMessage(ChatText.info("Cleared material overrides on "
-                + ChatText.value(String.valueOf(count)) + " gate(s); they now follow their material group."));
+                + ChatText.value(String.valueOf(count)) + (one ? " gate; it now follows its" : " gates; they now follow their")
+                + " material group."));
         }
         verify(player).sendMessage(ChatText.info(ChatText.name(ABYDOS)));
         verify(player).sendMessage(ChatText.info(both));

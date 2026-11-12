@@ -76,8 +76,19 @@ public class TimeoutsCommand implements SubCommand
     {
         if (args.length != 2)
         {
-            sender.sendMessage(ChatText.info(Messages.get(sender, "config.timeouts.current", ChatText.command(label),
-                ChatText.value(String.valueOf(read.getAsInt())))));
+            final int now = read.getAsInt();
+            final String current;
+            if (now == 1)
+            {
+                current = Messages.get(sender, "config.timeouts.current.one", ChatText.command(label),
+                    ChatText.value(String.valueOf(now)));
+            }
+            else
+            {
+                current = Messages.get(sender, "config.timeouts.current.other", ChatText.command(label),
+                    ChatText.value(String.valueOf(now)));
+            }
+            sender.sendMessage(ChatText.info(current));
             sender.sendMessage(ChatText.info(range(sender, floor)));
             return;
         }
@@ -99,8 +110,19 @@ public class TimeoutsCommand implements SubCommand
         }
 
         write.accept(timeout);
-        sender.sendMessage(ChatText.info(Messages.get(sender, "config.timeouts.set", ChatText.command(label),
-            ChatText.value(String.valueOf(read.getAsInt())))));
+        final int now = read.getAsInt();
+        final String said;
+        if (now == 1)
+        {
+            said = Messages.get(sender, "config.timeouts.set.one", ChatText.command(label),
+                ChatText.value(String.valueOf(now)));
+        }
+        else
+        {
+            said = Messages.get(sender, "config.timeouts.set.other", ChatText.command(label),
+                ChatText.value(String.valueOf(now)));
+        }
+        sender.sendMessage(ChatText.info(said));
     }
 
     /**
