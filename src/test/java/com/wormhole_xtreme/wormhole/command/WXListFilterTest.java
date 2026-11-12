@@ -58,12 +58,13 @@ class WXListFilterTest
     }
 
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         bukkit.close();
         clearGates();
         PluginTestSupport.forgetAllGates();
         PlayerStats.clear();
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()
@@ -137,6 +138,7 @@ class WXListFilterTest
         assertTrue(text.contains("ermission"), text);
     }
 
+    // Stubs the deprecated lookup by name, which CommandUtilities.findPlayer calls since Spigot has no other.
     @SuppressWarnings("deprecation")
     private void bobHasPlayedOffline()
     {
@@ -263,6 +265,7 @@ class WXListFilterTest
         assertTrue(shown(console).contains("alpha"));
     }
 
+    // Stubs the deprecated lookup by name, which CommandUtilities.findPlayer calls since Spigot has no other.
     @SuppressWarnings("deprecation")
     @Test
     void ownerNamingAPlayerTheServerHasNeverSeenSaysSo()

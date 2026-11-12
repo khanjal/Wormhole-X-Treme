@@ -291,6 +291,7 @@ public class CommandUtilities
      *            the name typed
      * @return the player, or null if the server has never seen them
      */
+    // The lookup by name is deprecated on every supported version with no Spigot replacement.
     @SuppressWarnings("deprecation")
     public static OfflinePlayer findPlayer(final String name)
     {
