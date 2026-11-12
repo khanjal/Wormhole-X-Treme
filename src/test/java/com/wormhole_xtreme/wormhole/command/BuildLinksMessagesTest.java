@@ -219,14 +219,14 @@ class BuildLinksMessagesTest extends BuildPreviewCase
     @Test
     void theRefusalsThatNameACommandLinkItInTheReadersLanguage()
     {
-        assertEquals(sentAs(ChatLine.of(error("QQ too many ")).run(null, hint("clear"), PREVIEW + "clear").text(".")),
+        assertEquals(sentAs(ChatLine.of(error("QQ too many ")).run(reading("qq"), hint("clear"), PREVIEW + "clear").text(".")),
             run("qq", BuildLinksMessagesTest::tooMany, "gate", "build", "Standard"));
-        assertEquals(sentAs(ChatLine.of(error("QQ look to clear ")).run(null, hint("clear -all"), PREVIEW + "clear -all").text(".")),
+        assertEquals(sentAs(ChatLine.of(error("QQ look to clear ")).run(reading("qq"), hint("clear -all"), PREVIEW + "clear -all").text(".")),
             run("qq", p -> { }, "gate", "preview", "clear"));
-        assertEquals(sentAs(ChatLine.of(error("QQ not found ")).run(null, hint("guide"), PREVIEW + "guide").text(" QQ wrong.")),
+        assertEquals(sentAs(ChatLine.of(error("QQ not found ")).run(reading("qq"), hint("guide"), PREVIEW + "guide").text(" QQ wrong.")),
             run("qq", p -> placeAnswers(p, GatePreviews.Outcome.NOT_FOUND), "gate", "preview", "place"));
         assertEquals(sentAs(ChatLine.of(error("QQ in the way " + bad("stone | dirt") + " "))
-            .run(null, hint("guide"), PREVIEW + "guide").text(" QQ marks.")),
+            .run(reading("qq"), hint("guide"), PREVIEW + "guide").text(" QQ marks.")),
             run("qq", p -> placeAnswers(p, GatePreviews.Outcome.IN_THE_WAY, "stone", "dirt"), "gate", "preview", "place"));
     }
 
@@ -249,8 +249,8 @@ class BuildLinksMessagesTest extends BuildPreviewCase
         assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(null, hint("material <group>"), PREVIEW + "material ")
             .text(" or ").suggest(null, hint("material -<role> <block>"), PREVIEW + "material -").text(". Roles: " + roles + ".")),
             run("en", p -> { }, "gate", "preview", "material", "sparkly"));
-        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(null, hint("material <group>"), PREVIEW + "material ")
-            .text(" QQor ").suggest(null, hint("material -<role> <block>"), PREVIEW + "material -")
+        assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(reading("qq"), hint("material <group>"), PREVIEW + "material ")
+            .text(" QQor ").suggest(reading("qq"), hint("material -<role> <block>"), PREVIEW + "material -")
             .text(" QQroles " + qqRoles + ".")),
             run("qq", p -> { }, "gate", "preview", "material", "sparkly"));
     }

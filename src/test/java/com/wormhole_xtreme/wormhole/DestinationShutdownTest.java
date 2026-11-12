@@ -203,10 +203,13 @@ class DestinationShutdownTest
         source.setGatePlayerTeleportLocation(new Location(world, 0, 64, 0));
 
         final Player near = playerAt(world, 5, 64, 3);
+        // A second reader whose client speaks qq: each is told in their own language, not the closer's.
+        final Player nearQq = playerAt(world, 4, 64, 3);
+        when(nearQq.getLocale()).thenReturn("qq");
         final Player atDestination = playerAt(world, 100, 64, 100);
         final Player inOtherWorld = playerAt(otherWorld, 0, 64, 0);
         // Listed in the gate's world too, as a stale list might, so only the world check keeps them out.
-        when(world.getPlayers()).thenReturn(List.of(near, atDestination, inOtherWorld, player));
+        when(world.getPlayers()).thenReturn(List.of(near, nearQq, atDestination, inOtherWorld, player));
         when(player.getWorld()).thenReturn(world);
         when(player.getLocation()).thenReturn(new Location(world, 1, 64, 1));
         ConfigTestSupport.set(ConfigKeys.DESTINATION_SHUTDOWN, true);
@@ -215,6 +218,9 @@ class DestinationShutdownTest
 
         final String notice = ChatText.info("The far end closed the wormhole.");
         verify(near).sendMessage(notice);
+        verify(nearQq).sendMessage(ChatText.info("QQ far end closed."));
+        verify(nearQq, never()).sendMessage(notice);
+        verify(player).sendMessage(ChatText.info("Gate shut down."));
         verify(atDestination, never()).sendMessage(anyString());
         verify(inOtherWorld, never()).sendMessage(anyString());
         verify(player, never()).sendMessage(notice);
