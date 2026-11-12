@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.utils.BlockKey;
 
 /**
@@ -1402,6 +1403,8 @@ public class StargateManager
         if (announce)
         {
             GateEvents.fireRemoved(s, remover);
+            // Only a real removal: a refresh hands the same gate back, and its trips stay with it (#638).
+            PlayerStats.forgetGate(s.getGateName());
             // A removal, not a refresh handing the gate back: what it shows goes with it (#516).
             try
             {

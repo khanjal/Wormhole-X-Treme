@@ -780,6 +780,8 @@ final class GateWalkThrough
         PetEscort.follow(pets, player);
         markTripTaken(player, stargate);
         PlayerStats.countPlayer(player, PlayerStats.Counter.TRIPS);
+        PlayerStats.countGateTrip(player, stargate);
+        PlayerStats.countGateTrip(player, stargate.getGateTarget());
         HorizonRipple.crossed(stargate, stargate.getGateTarget());
         GateWelcome.greet(player, stargate.getGateTarget());
         scheduleArrivalSettle(player, target, vehiclePathUsed);

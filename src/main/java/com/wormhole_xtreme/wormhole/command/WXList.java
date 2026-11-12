@@ -1,10 +1,13 @@
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -14,6 +17,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateQuota;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -21,11 +25,23 @@ import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
  * The Class WXList.
- * 
+ *
+ * <p>{@code /wormhole list [network|mine|owner <player>|top]}. The three keywords take precedence
+ * over a network of the same name (#638).
+ *
  * @author alron
  */
 public class WXList implements CommandExecutor
 {
+
+    /** Lists the sender's own gates, to a player without {@code wormhole.list} too. */
+    public static final String MINE = "wormhole.list.mine";
+
+    /** Lists another player's gates, to a player without {@code wormhole.list} too. */
+    public static final String OWNER = "wormhole.list.owner";
+
+    /** How many gates {@code list top} shows. */
+    private static final int TOP_LIMIT = 10;
 
     /** Past this many visible characters a message is truncated by the client rather than wrapped. */
     private static final int LINE_BUDGET = 75;
@@ -41,24 +57,41 @@ public class WXList implements CommandExecutor
             @Override
             public Boolean call() throws Exception
             {
-                listGates(sender, args);
-                return true;
+                return listGates(sender, args);
             }
         });
     }
 
-    /** Prints the gate list, or refuses a player who may not see it. */
-    private static void listGates(final CommandSender sender, final String[] args)
+    /**
+     * Prints the gate list, or refuses a player who may not see it.
+     *
+     * @return false to have the usage line shown, for {@code owner} with no name
+     */
+    private static boolean listGates(final CommandSender sender, final String[] args)
     {
-        if (CommandUtilities.playerCheck(sender)
-            && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST))
+        final String first = (args.length > 0) ? args[0].trim() : null;
+        if ("mine".equalsIgnoreCase(first))
+        {
+            listMine(sender);
+            return true;
+        }
+        if ("owner".equalsIgnoreCase(first))
+        {
+            return listOwner(sender, args);
+        }
+        if (!mayList(sender))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return;
+            return true;
+        }
+        if ("top".equalsIgnoreCase(first))
+        {
+            listTop(sender);
+            return true;
         }
 
         // Optional network filter: /wx list [network]
-        final String filterNet = (args.length > 0) ? args[0].trim() : null;
+        final String filterNet = first;
         final ArrayList<Stargate> gates = gatesOn(filterNet);
 
         final String header;
@@ -76,6 +109,20 @@ public class WXList implements CommandExecutor
             sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.none")));
         }
         sendGateNames(sender, gates);
+        sendStanding(sender);
+        return true;
+    }
+
+    /** Whether the sender may see the whole list: the console, or a player holding the list check. */
+    private static boolean mayList(final CommandSender sender)
+    {
+        return !CommandUtilities.playerCheck(sender)
+            || WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST);
+    }
+
+    /** The gate limit line a limited player is shown after a list; nothing for anyone else. */
+    private static void sendStanding(final CommandSender sender)
+    {
         if (sender instanceof Player player)
         {
             final String standing = GateQuota.standing(player);
@@ -83,6 +130,91 @@ public class WXList implements CommandExecutor
             {
                 sender.sendMessage(ChatText.info(standing));
             }
+        }
+    }
+
+    /** {@code list mine}: the gates the sender owns, on the list check or {@link #MINE}. */
+    private static void listMine(final CommandSender sender)
+    {
+        if (!(sender instanceof Player player))
+        {
+            sender.sendMessage(ChatText.error(Messages.get(sender, "gate.list.player-only")));
+            return;
+        }
+        if (!mayList(sender) && !player.hasPermission(MINE))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.mine", ChatText.heading("::"))));
+        sendOwned(sender, player.getUniqueId(), player.getName());
+        sendStanding(sender);
+    }
+
+    /**
+     * {@code list owner <player>}: another player's gates, online or not, to the console or a
+     * player on the list check or {@link #OWNER}.
+     *
+     * @return false when no player was named
+     */
+    private static boolean listOwner(final CommandSender sender, final String[] args)
+    {
+        if (!mayList(sender) && !sender.hasPermission(OWNER))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return true;
+        }
+        if ((args.length < 2) || args[1].isBlank())
+        {
+            return false;
+        }
+        final String typed = args[1].trim();
+        final OfflinePlayer owner = CommandUtilities.findPlayer(typed);
+        if (owner == null)
+        {
+            sender.sendMessage(ChatText.error(Messages.get(sender, "stats.unknown-player", ChatText.name(typed))));
+            return true;
+        }
+        final String name = (owner.getName() == null) ? typed : owner.getName();
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.owner", ChatText.name(name),
+            ChatText.heading(" ::"))));
+        sendOwned(sender, owner.getUniqueId(), name);
+        return true;
+    }
+
+    /** Sends the gates owned by that player, or the none-found line. */
+    private static void sendOwned(final CommandSender sender, final UUID id, final String name)
+    {
+        final List<Stargate> gates = StargateManager.getAllGates().stream()
+            .filter(g -> g.isOwnedBy(id, name))
+            .collect(Collectors.toCollection(ArrayList::new));
+        if (gates.isEmpty())
+        {
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.none")));
+        }
+        sendGateNames(sender, gates);
+    }
+
+    /** {@code list top}: the gates with the most trips, each with its count. */
+    private static void listTop(final CommandSender sender)
+    {
+        final List<Stargate> busiest = StargateManager.getAllGates().stream()
+            .filter(g -> PlayerStats.gateTrips(g.getGateName()) > 0)
+            .sorted(Comparator.<Stargate>comparingInt(g -> PlayerStats.gateTrips(g.getGateName())).reversed()
+                .thenComparing(Stargate::getGateName, String.CASE_INSENSITIVE_ORDER))
+            .limit(TOP_LIMIT)
+            .toList();
+        sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.top", ChatText.heading("::"))));
+        if (busiest.isEmpty())
+        {
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.top-none")));
+            return;
+        }
+        for (int i = 0; i < busiest.size(); i++)
+        {
+            final Stargate g = busiest.get(i);
+            sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.top-entry", String.valueOf(i + 1),
+                ChatText.name(g.getGateName()), ChatText.value(String.valueOf(PlayerStats.gateTrips(g.getGateName()))))));
         }
     }
 

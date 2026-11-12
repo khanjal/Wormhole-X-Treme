@@ -90,6 +90,12 @@ permissions:
   wormhole.list:
     description: Allow listing gates via command.
     default: false
+  wormhole.list.mine:
+    description: Allow listing your own gates.
+    default: true
+  wormhole.list.owner:
+    description: Allow listing another player's gates.
+    default: op
   wormhole.go:
     description: Allow teleporting to gates via command.
     default: false

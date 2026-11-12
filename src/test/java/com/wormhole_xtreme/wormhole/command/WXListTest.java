@@ -106,7 +106,8 @@ class WXListTest
         gate("alpha", "Milkyway");
         gate("beta", "Pegasus");
 
-        assertEquals(List.of("Milkyway"), completeList("mi"), "a network the typing does not start is left out");
+        assertEquals(List.of("Milkyway", "mine"), completeList("mi"),
+            "a network the typing does not start is left out, and the keyword is offered to the console (#638)");
         assertEquals(List.of("Public", "Pegasus"), completeList("p"), "and Public, which no gate names, comes first");
     }
 

@@ -201,7 +201,9 @@ outranks a negated node.
 | `wormhole.use.dialer` | false | Dialling a gate |
 | `wormhole.use.<shape>` | true | Using a gate of one [shape](GATES.md): dialling from it by sign or dialler, shutting it from its lever, stepping its sign and working its iris. Named as `wormhole.build.<shape>` is (`wormhole.use.grand_gate`), so two shapes whose names differ only in case or punctuation share one. Everyone holds it, so it only narrows: set it false on a rank to keep that rank off the shape, and true on another to let it back. It is wanted as well as `wormhole.use.sign` or `wormhole.use.dialer`, never instead. Only the gate dialled from is checked, so a refused shape can still be arrived through, and walked into once open unless [`wormhole-use-is-teleport`](../GATES.md#travelling) is on. Its owner, operators, a gate with no owner and simple mode are not refused. A shape called `Sign`, `Dialer` or `Compass` has none |
 | `wormhole.use.compass` | false | `/wormhole compass` |
-| `wormhole.list` | false | `/wormhole gate list` |
+| `wormhole.list` | false | `/wormhole gate list`, whole, by network or by `top` |
+| `wormhole.list.mine` | true | `/wormhole list mine`, your own gates, and completing only your own gate names for `/dial` and `/wormhole go` |
+| `wormhole.list.owner` | op | `/wormhole list owner <player>`, anybody's gates |
 | `wormhole.go` | false | `/wormhole go` |
 | `wormhole.build` | op | Building gates, of every shape |
 | `wormhole.build.<shape>` | op | Building gates of one [shape](GATES.md): its name in lower case, anything but a letter, digit or underscore made an underscore (`Grand Gate` is `wormhole.build.grand_gate`). Give it instead of `wormhole.build` to let a rank build only that shape; a shape called `Preview` or `MinDistance` has none, since those words are nodes above and below. Declared when the shapes load, so a permissions plugin lists them. Two shapes whose names differ only in case or punctuation share a node. `wormhole.build` still builds everything, so it cannot be held and one shape denied: leave it off the rank and grant the shapes. A `wormhole.build.*` grant now includes every shape's node, and so builds every shape |
@@ -284,6 +286,7 @@ a dashed word is always the option and a bare word is always a name.
 | `lang export [code]` | [Translating](TRANSLATING.md): writes a starter `lang/<code>.yml`, never over one there |
 | `compass` | Points your compass at the nearest gate; `compass reset` points it back at spawn |
 | `export sqlite` | Writes your gates to a database the older plugins read, in a folder of its own; see [coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme). Needs `wormhole.export` |
+| `list [network\|mine\|owner <player>\|top]` | The gates on the network, or on none with `Public`; `mine` your own with `wormhole.list.mine`; `owner <player>` that player's, online or not, with `wormhole.list.owner`; `top` the ten with the most trips, each with its count. `mine`, `owner` and `top` win over a network of the same name. Holding `wormhole.list` allows all of them, and completing `/dial` and `/wormhole go` offers every gate to a player with it, only their own to one with just `wormhole.list.mine`, and none to the rest |
 | `stats [player]` | Lifetime trips through gates, gates built, ring trips and beams: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
 
 `compass` works without a compass in hand — the heading is stored against you. It says so when

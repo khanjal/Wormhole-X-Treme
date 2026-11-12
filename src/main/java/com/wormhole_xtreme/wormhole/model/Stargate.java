@@ -1374,7 +1374,20 @@ public class Stargate implements GateIris
      */
     public boolean isOwner(final Player player)
     {
-        if ((player == null) || (gateOwner == null))
+        return (player != null) && isOwnedBy(player.getUniqueId(), player.getName());
+    }
+
+    /**
+     * Whether the player with this id and name owns the gate: by UUID where the owner is stored
+     * as one, by name, ignoring case, for a legacy gate that stored the name (#638).
+     *
+     * @param id the player's UUID
+     * @param name the player's name
+     * @return true if that player owns this gate
+     */
+    public boolean isOwnedBy(final UUID id, final String name)
+    {
+        if (gateOwner == null)
         {
             return false;
         }
@@ -1382,12 +1395,12 @@ public class Stargate implements GateIris
         try
         {
             UUID.fromString(gateOwner);
-            return player.getUniqueId().toString().equals(gateOwner);
+            return (id != null) && id.toString().equals(gateOwner);
         }
         catch (final IllegalArgumentException e)
         {
             // Legacy: stored as player name
-            return player.getName().equalsIgnoreCase(gateOwner);
+            return (name != null) && name.equalsIgnoreCase(gateOwner);
         }
     }
 
