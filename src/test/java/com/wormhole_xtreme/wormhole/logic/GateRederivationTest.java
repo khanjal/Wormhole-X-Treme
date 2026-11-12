@@ -220,7 +220,7 @@ class GateRederivationTest
         assertTrue(gate.isGateRedstonePowered(),
             "regenerate guards its setupRedstone call with this flag, so a gate that has just"
                 + " gained a dial input has to come back with it set or nothing gets placed");
-        assertTrue(outcome.changes().contains("redstone dial input"),
+        assertTrue(outcome.changes().contains(GateRederivation.Change.DIAL_INPUT),
             "the admin who ran the command should be told what moved; changes were: "
                 + outcome.changes());
     }
@@ -312,7 +312,7 @@ class GateRederivationTest
 
         final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
 
-        assertTrue(outcome.changes().contains("iris lever"),
+        assertTrue(outcome.changes().contains(GateRederivation.Change.IRIS_LEVER),
             "changes were: " + outcome.changes());
         assertNotNull(gate.getGateIrisLeverBlock());
     }
@@ -333,7 +333,7 @@ class GateRederivationTest
 
         final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
 
-        assertTrue(outcome.changes().contains("name sign"),
+        assertTrue(outcome.changes().contains(GateRederivation.Change.NAME_SIGN),
             "changes were: " + outcome.changes());
         assertNotNull(gate.getGateNameBlockHolder());
     }
@@ -372,7 +372,7 @@ class GateRederivationTest
 
         final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
 
-        assertFalse(outcome.changes().contains("iris lever"),
+        assertFalse(outcome.changes().contains(GateRederivation.Change.IRIS_LEVER),
             "same coordinates and same world name is the same block, whatever World object"
                 + " is holding it; changes were: " + outcome.changes());
     }
@@ -619,7 +619,7 @@ class GateRederivationTest
 
             assertEquals(GateRederivation.Result.REDERIVED, outcome.result());
             assertEquals("Massive", gate.getGateShapeName());
-            assertTrue(outcome.changes().contains("shape (was Standard)"), "changes were: " + outcome.changes());
+            assertTrue(outcome.changes().contains(GateRederivation.Change.SHAPE), "changes were: " + outcome.changes());
         });
         Collections.swap(gate.getGateLightBlocks(), 1, 2);
         assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate),
@@ -708,7 +708,7 @@ class GateRederivationTest
 
         assertTrue(fit.accepted(), "found " + fit.present() + " of " + fit.expected());
         assertEquals(fit.expected(), fit.present());
-        assertEquals(-2, fit.layout().along(), fit.layout().describe());
+        assertEquals(-2, fit.layout().along(), fit.layout().describe(null));
         Collections.swap(gate.getGateLightBlocks(), 1, 2);
         assertEquals(GateRederivation.LightResult.REBUILT, GateRederivation.rebuildLightOrder(gate));
         assertEquals(order, order(gate), "the light order is laid from the frame too");
@@ -723,7 +723,7 @@ class GateRederivationTest
 
         final GateRederivation.Layout layout = GateRederivation.layoutFor(gate, shape("Standard"));
 
-        assertTrue(layout.reversed(), layout.describe());
+        assertTrue(layout.reversed(), layout.describe(null));
         final GateRederivation.ShapeFit fit = GateRederivation.adoptShape(gate, shape("Standard"));
         assertEquals(fit.expected(), fit.present());
     }
@@ -766,7 +766,7 @@ class GateRederivationTest
         assertEquals(frame, signCell.getType());
         final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
         assertEquals(GateRederivation.Result.REDERIVED, outcome.result());
-        assertTrue(outcome.changes().contains("name sign"), "changes were: " + outcome.changes());
+        assertTrue(outcome.changes().contains(GateRederivation.Change.NAME_SIGN), "changes were: " + outcome.changes());
         assertSame(front, gate.getGateNameBlockHolder());
     }
 

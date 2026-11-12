@@ -15,6 +15,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
@@ -22,6 +23,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -84,16 +86,43 @@ public final class GateRederivation
         REDERIVED
     }
 
+    /** A marker re-derivation added or moved; the regenerate command words each for its reader. */
+    public enum Change
+    {
+        /** The gate was recorded under a shape its frame is not, so it took the one it is. */
+        SHAPE,
+        /** The redstone dial input. */
+        DIAL_INPUT,
+        /** The redstone sign cycler. */
+        SIGN_CYCLER,
+        /** The redstone gate-activated output. */
+        ACTIVATED_OUTPUT,
+        /** The iris lever. */
+        IRIS_LEVER,
+        /** The name sign. */
+        NAME_SIGN,
+        /** The dial sign. */
+        DIAL_SIGN
+    }
+
     /**
      * What re-derivation came to, and what it moved.
      *
      * @param result
      *            how far it got
      * @param changes
-     *            one line per marker that was added or moved, empty when nothing changed
+     *            each marker that was added or moved, empty when nothing changed
+     * @param formerShape
+     *            the shape the gate was recorded under, when {@link Change#SHAPE} is among the changes
      */
-    public record Outcome(Result result, List<String> changes)
+    public record Outcome(Result result, List<Change> changes, String formerShape)
     {
+        /** An outcome that took no other shape. */
+        public Outcome(final Result result, final List<Change> changes)
+        {
+            this(result, changes, null);
+        }
+
         /** @return true if anything actually moved */
         public boolean changedAnything()
         {
@@ -190,27 +219,43 @@ public final class GateRederivation
             return reversed || (along != 0) || (up != 0) || (across != 0);
         }
 
-        /** @return the offset in words, empty when it has not moved */
-        public String describe()
+        /**
+         * @param recipient
+         *            who will read it; null reads the server's language
+         * @return the offset in words, empty when it has not moved
+         */
+        public String describe(final CommandSender recipient)
         {
             final List<String> parts = new ArrayList<>();
             if (reversed)
             {
-                parts.add("facing the other way");
+                parts.add(Messages.get(recipient, "gate.regen.layout.reversed"));
             }
-            if (along != 0)
+            if (along > 0)
             {
-                parts.add(Math.abs(along) + " toward " + ((along > 0) ? "the DHD" : "the back"));
+                parts.add(Messages.get(recipient, "gate.regen.layout.toward-dhd", along));
             }
-            if (up != 0)
+            else if (along < 0)
             {
-                parts.add(Math.abs(up) + ((up > 0) ? " up" : " down"));
+                parts.add(Messages.get(recipient, "gate.regen.layout.toward-back", -along));
             }
-            if (across != 0)
+            if (up > 0)
             {
-                parts.add(Math.abs(across) + ((across > 0) ? " right" : " left"));
+                parts.add(Messages.get(recipient, "gate.regen.layout.up", up));
             }
-            return String.join(", ", parts);
+            else if (up < 0)
+            {
+                parts.add(Messages.get(recipient, "gate.regen.layout.down", -up));
+            }
+            if (across > 0)
+            {
+                parts.add(Messages.get(recipient, "gate.regen.layout.right", across));
+            }
+            else if (across < 0)
+            {
+                parts.add(Messages.get(recipient, "gate.regen.layout.left", -across));
+            }
+            return String.join(Messages.get(recipient, "gate.regen.list-separator"), parts);
         }
     }
 
@@ -591,7 +636,8 @@ public final class GateRederivation
         // Detection reads the world, so this needs the gate's chunk. That is acceptable
         // because regenerate is an admin naming one gate; it is why there is no -all form.
         Stargate fresh = StargateHelper.checkStargate(button, facing, shape);
-        final List<String> changes = new ArrayList<>();
+        final List<Change> changes = new ArrayList<>();
+        String former = null;
         if (fresh == null)
         {
             // Recorded under a shape it does not match, as every gate the legacy importer brings
@@ -601,11 +647,12 @@ public final class GateRederivation
             {
                 return new Outcome(Result.NOT_DETECTED, List.of());
             }
-            changes.add("shape (was " + shape.getShapeName() + ")");
+            changes.add(Change.SHAPE);
+            former = shape.getShapeName();
             gate.setGateShape(fresh.getGateShape());
         }
         changes.addAll(copyMarkers(gate, fresh));
-        return new Outcome(Result.REDERIVED, changes);
+        return new Outcome(Result.REDERIVED, changes, former);
     }
 
     /**
@@ -816,24 +863,24 @@ public final class GateRederivation
      *            what detection found against the current shape
      * @return one line per marker that moved
      */
-    private static List<String> copyMarkers(final Stargate gate, final Stargate fresh)
+    private static List<Change> copyMarkers(final Stargate gate, final Stargate fresh)
     {
-        final List<String> changes = new ArrayList<>();
+        final List<Change> changes = new ArrayList<>();
 
         if (moved(gate.getGateRedstoneDialActivationBlock(), fresh.getGateRedstoneDialActivationBlock()))
         {
             gate.setGateRedstoneDialActivationBlock(fresh.getGateRedstoneDialActivationBlock());
-            changes.add("redstone dial input");
+            changes.add(Change.DIAL_INPUT);
         }
         if (moved(gate.getGateRedstoneSignActivationBlock(), fresh.getGateRedstoneSignActivationBlock()))
         {
             gate.setGateRedstoneSignActivationBlock(fresh.getGateRedstoneSignActivationBlock());
-            changes.add("redstone sign cycler");
+            changes.add(Change.SIGN_CYCLER);
         }
         if (moved(gate.getGateRedstoneGateActivatedBlock(), fresh.getGateRedstoneGateActivatedBlock()))
         {
             gate.setGateRedstoneGateActivatedBlock(fresh.getGateRedstoneGateActivatedBlock());
-            changes.add("redstone gate-activated output");
+            changes.add(Change.ACTIVATED_OUTPUT);
         }
         // Set from the presence of a dial input, the same way detection sets it. A gate that
         // has just gained one is redstone powered now whether or not it was when it was built.
@@ -844,12 +891,12 @@ public final class GateRederivation
         if (moved(gate.getGateIrisLeverBlock(), fresh.getGateIrisLeverBlock()))
         {
             gate.setGateIrisLeverBlock(fresh.getGateIrisLeverBlock());
-            changes.add("iris lever");
+            changes.add(Change.IRIS_LEVER);
         }
         if (moved(gate.getGateNameBlockHolder(), fresh.getGateNameBlockHolder()))
         {
             gate.setGateNameBlockHolder(fresh.getGateNameBlockHolder());
-            changes.add("name sign");
+            changes.add(Change.NAME_SIGN);
         }
         copyDialSign(gate, fresh, changes);
         return changes;
@@ -871,7 +918,7 @@ public final class GateRederivation
      * @param changes
      *            collects a line if the sign moved or arrived
      */
-    private static void copyDialSign(final Stargate gate, final Stargate fresh, final List<String> changes)
+    private static void copyDialSign(final Stargate gate, final Stargate fresh, final List<Change> changes)
     {
         if (fresh.getGateDialSignBlock() == null)
         {
@@ -884,7 +931,7 @@ public final class GateRederivation
         gate.setGateDialSignBlock(fresh.getGateDialSignBlock());
         gate.setGateDialSign(fresh.getGateDialSign());
         gate.setGateSignPowered(true);
-        changes.add("dial sign");
+        changes.add(Change.DIAL_SIGN);
     }
 
     /**

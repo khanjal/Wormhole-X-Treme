@@ -373,7 +373,7 @@ public class RegenerateCommand implements SubCommand
         if ((fit.layout() != null) && fit.layout().moved())
         {
             sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.shape.laid",
-                ChatText.value(fit.layout().describe()))));
+                ChatText.value(fit.layout().describe(sender)))));
         }
         reportGaps(sender, fit.gaps());
         return fit;
@@ -599,7 +599,27 @@ public class RegenerateCommand implements SubCommand
         StargateDBManager.saveStargate(s);
         sender.sendMessage(ChatText.info(Messages.get(sender, "gate.regen.rederive.moved",
             ChatText.name(s.getGateShapeName()), ChatText.name(s.getGateName()),
-            ChatText.value(String.join(Messages.get(sender, "gate.regen.list-separator"), outcome.changes())))));
+            ChatText.value(String.join(Messages.get(sender, "gate.regen.list-separator"), changeNames(sender, outcome))))));
+    }
+
+    /** @return what each marker re-derivation moved is called, in the reader's language */
+    private static List<String> changeNames(final CommandSender sender, final GateRederivation.Outcome outcome)
+    {
+        final List<String> names = new ArrayList<>();
+        for (final GateRederivation.Change change : outcome.changes())
+        {
+            switch (change)
+            {
+                case SHAPE -> names.add(Messages.get(sender, "gate.regen.change.shape", outcome.formerShape()));
+                case DIAL_INPUT -> names.add(Messages.get(sender, "gate.regen.change.dial-input"));
+                case SIGN_CYCLER -> names.add(Messages.get(sender, "gate.regen.change.sign-cycler"));
+                case ACTIVATED_OUTPUT -> names.add(Messages.get(sender, "gate.regen.change.activated-output"));
+                case IRIS_LEVER -> names.add(Messages.get(sender, "gate.regen.change.iris-lever"));
+                case NAME_SIGN -> names.add(Messages.get(sender, "gate.regen.change.name-sign"));
+                case DIAL_SIGN -> names.add(Messages.get(sender, "gate.regen.change.dial-sign"));
+            }
+        }
+        return names;
     }
 
     /**
