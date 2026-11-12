@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,6 +17,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.yaml.snakeyaml.Yaml;
 
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
@@ -34,8 +36,11 @@ import com.wormhole_xtreme.wormhole.utils.YamlStore;
  */
 public final class PlayerStats
 {
-    /** The file's one section, every player under their UUID. */
+    /** The section holding every player under their UUID. */
     private static final String PLAYERS = "players";
+
+    /** The section holding each gate's trip count under its name (#638). */
+    private static final String GATES = "gates";
 
     /** What is counted, by its key in {@code stats.yml}. */
     public enum Counter
@@ -115,6 +120,9 @@ public final class PlayerStats
 
     private static final Map<UUID, Counts> COUNTS = new ConcurrentHashMap<>();
 
+    /** Trips through each gate, entered or arrived at, by lower-cased gate name as the gate list is keyed. */
+    private static final Map<String, Integer> GATE_TRIPS = new ConcurrentHashMap<>();
+
     /** Whether memory holds a count the file does not. */
     private static volatile boolean changed = false;
 
@@ -160,6 +168,57 @@ public final class PlayerStats
     }
 
     /**
+     * Counts one trip for a gate, if the entity is a player and not an NPC plugin's fake one.
+     *
+     * @param entity
+     *            who travelled; anything but a player, null included, counts nothing
+     * @param gate
+     *            the gate they entered or arrived at; null counts nothing
+     */
+    public static void countGateTrip(final Entity entity, final Stargate gate)
+    {
+        if ((gate == null) || (gate.getGateName() == null)
+            || !(entity instanceof Player player) || EntityUtils.isNpc(player))
+        {
+            return;
+        }
+        GATE_TRIPS.merge(gateKey(gate.getGateName()), 1, Integer::sum);
+        changed = true;
+    }
+
+    /**
+     * @param gateName
+     *            the gate's name, in any case
+     * @return the trips counted through it, zero for a gate with none
+     */
+    public static int gateTrips(final String gateName)
+    {
+        return (gateName == null) ? 0 : GATE_TRIPS.getOrDefault(gateKey(gateName), 0);
+    }
+
+    /**
+     * Drops a gate's count, so a new gate of the same name starts at nothing, and saves at once
+     * because the gate's own file is deleted at once and a crash before the next save would hand
+     * the old trips to a new gate of that name.
+     *
+     * @param gateName
+     *            the gate's name, in any case
+     */
+    public static void forgetGate(final String gateName)
+    {
+        if ((gateName != null) && (GATE_TRIPS.remove(gateKey(gateName)) != null))
+        {
+            changed = true;
+            saveIfChanged();
+        }
+    }
+
+    private static String gateKey(final String gateName)
+    {
+        return gateName.toLowerCase(Locale.ROOT);
+    }
+
+    /**
      * @param playerId
      *            whose counts
      * @return their counts, all zero for a player with no record or a null id
@@ -185,6 +244,7 @@ public final class PlayerStats
     public static int load()
     {
         COUNTS.clear();
+        GATE_TRIPS.clear();
         changed = false;
         unreadable = false;
         final File file = DataLayout.statsFile();
@@ -210,7 +270,31 @@ public final class PlayerStats
             }
             COUNTS.put(id, readCounts(YamlMaps.asMap(entry.getValue())));
         }
+        loadGates(root.get(GATES));
         return COUNTS.size();
+    }
+
+    /** Reads the gate section; a file with only players has none, which is nothing counted. */
+    private static void loadGates(final Object gates)
+    {
+        if ((gates != null) && !(gates instanceof Map))
+        {
+            PluginLog.log(Level.WARNING, "Player stats file has no map of gates; their trips start from nothing");
+            unreadable = true;
+        }
+        if (!(gates instanceof Map<?, ?> byName))
+        {
+            return;
+        }
+        // Keys are read as anything: a gate called 123 is a number to the parser.
+        for (final Map.Entry<?, ?> entry : byName.entrySet())
+        {
+            final int trips = number(entry.getValue());
+            if (trips > 0)
+            {
+                GATE_TRIPS.merge(gateKey(String.valueOf(entry.getKey())), trips, Integer::sum);
+            }
+        }
     }
 
     /** @return the file's top-level map, empty if it will not parse or is not a map */
@@ -306,6 +390,7 @@ public final class PlayerStats
         }
         final Map<String, Object> root = new LinkedHashMap<>();
         root.put(PLAYERS, players);
+        root.put(GATES, new LinkedHashMap<String, Object>(GATE_TRIPS));
 
         final File target = DataLayout.statsFile();
         final File parent = target.getParentFile();
@@ -366,6 +451,7 @@ public final class PlayerStats
     public static void clear()
     {
         COUNTS.clear();
+        GATE_TRIPS.clear();
         changed = false;
         unreadable = false;
     }

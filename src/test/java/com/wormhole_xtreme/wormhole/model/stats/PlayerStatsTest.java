@@ -24,6 +24,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counter;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counts;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
@@ -321,5 +322,163 @@ class PlayerStatsTest
         PlayerStats.load();
 
         assertFalse(PlayerStats.saveIfChanged(), "what was just read is what the file holds");
+    }
+
+    private static Stargate gate(final String name)
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateName(name);
+        return gate;
+    }
+
+    private static Player realPlayer(final UUID id)
+    {
+        final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(id);
+        return player;
+    }
+
+    /** A trip counts for the gate by its name in any case, as the gate list is keyed, and for real players only (#638). */
+    @Test
+    void aGateTripCountsByLowerCasedNameForARealPlayerOnly()
+    {
+        final Player npc = realPlayer(BOB);
+        when(npc.hasMetadata(EntityUtils.NPC)).thenReturn(true);
+
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("ATLANTIS"));
+        PlayerStats.countGateTrip(npc, gate("Atlantis"));
+        PlayerStats.countGateTrip(mock(Entity.class), gate("Atlantis"));
+        PlayerStats.countGateTrip(null, gate("Atlantis"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), null);
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate(null));
+
+        assertEquals(2, PlayerStats.gateTrips("atlantis"));
+        assertEquals(2, PlayerStats.gateTrips("ATLANTIS"));
+        assertEquals(0, PlayerStats.gateTrips("Elsewhere"));
+        assertEquals(0, PlayerStats.gateTrips(null));
+        assertEquals(Counts.NONE, PlayerStats.of(ALICE), "a gate trip alone changes no player's counts");
+    }
+
+    @Test
+    void gateTripsSurviveASaveAndLoadAndAreOwedUntilSaved() throws Exception
+    {
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Abydos"));
+        assertTrue(PlayerStats.saveIfChanged(), "a gate trip alone makes the file owed");
+
+        final String text = Files.readString(DataLayout.statsFile().toPath(), StandardCharsets.UTF_8);
+        assertTrue(text.contains("gates:"), "under its own section beside players: " + text);
+        PlayerStats.clear();
+        assertEquals(0, PlayerStats.gateTrips("Atlantis"), "precondition: memory is empty");
+        PlayerStats.load();
+
+        assertEquals(2, PlayerStats.gateTrips("Atlantis"));
+        assertEquals(1, PlayerStats.gateTrips("abydos"));
+        assertFalse(PlayerStats.saveIfChanged(), "what was just read is what the file holds");
+    }
+
+    /** A file from before gates were counted, with only players, still loads and starts the gates at none. */
+    @Test
+    void aFileWithOnlyPlayersLoadsAndLeavesTheGatesAtNothing() throws Exception
+    {
+        final File file = DataLayout.statsFile();
+        assertTrue(file.getParentFile().mkdirs());
+        Files.writeString(file.toPath(), "players:\n  " + ALICE + ":\n    trips: 3\n", StandardCharsets.UTF_8);
+
+        assertEquals(1, PlayerStats.load());
+
+        assertEquals(3, PlayerStats.of(ALICE).trips());
+        assertEquals(0, PlayerStats.gateTrips("Atlantis"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+        assertTrue(PlayerStats.saveIfChanged());
+        assertFalse(new File(file.getPath() + ".bad").exists(), "a file with no gates section is not a broken one");
+    }
+
+    /** A gate called with a number or a word YAML reads as something else still loads under its name. */
+    @Test
+    void gatesWithNamesYamlReadsAsOtherTypesRoundTrip()
+    {
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("123"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("true"));
+        assertTrue(PlayerStats.saveIfChanged());
+        PlayerStats.clear();
+
+        PlayerStats.load();
+
+        assertEquals(1, PlayerStats.gateTrips("123"));
+        assertEquals(1, PlayerStats.gateTrips("true"));
+    }
+
+    @Test
+    void aGateSectionThatIsNotAMapIsKeptAsBad() throws Exception
+    {
+        final File file = DataLayout.statsFile();
+        assertTrue(file.getParentFile().mkdirs());
+        final String text = "players: {}\ngates:\n- atlantis\n";
+        Files.writeString(file.toPath(), text, StandardCharsets.UTF_8);
+        PlayerStats.load();
+
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Abydos"));
+        assertTrue(PlayerStats.saveIfChanged());
+
+        assertEquals(text, Files.readString(new File(file.getPath() + ".bad").toPath(), StandardCharsets.UTF_8));
+    }
+
+    /** Forgetting a gate drops its count, so a new gate of the name starts at none, and is owed to the file. */
+    @Test
+    void forgettingAGateDropsItsCountAndIsSaved()
+    {
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Abydos"));
+        PlayerStats.saveIfChanged();
+
+        PlayerStats.forgetGate("ATLANTIS");
+
+        assertEquals(0, PlayerStats.gateTrips("Atlantis"));
+        assertEquals(1, PlayerStats.gateTrips("Abydos"), "only that gate");
+        assertFalse(PlayerStats.saveIfChanged(), "the drop was already written, not left owed");
+        PlayerStats.clear();
+        PlayerStats.load();
+        assertEquals(0, PlayerStats.gateTrips("Atlantis"));
+        PlayerStats.forgetGate("never-counted");
+        PlayerStats.forgetGate(null);
+        assertFalse(PlayerStats.saveIfChanged(), "forgetting a gate with no count changes nothing");
+    }
+
+    /** The file itself loses the count at once, so a crash before the next save cannot hand it to a new gate (#638). */
+    @Test
+    void aForgottenGatesCountIsGoneFromTheFileWrittenAtOnce() throws Exception
+    {
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Abydos"));
+        PlayerStats.saveIfChanged();
+
+        PlayerStats.forgetGate("Atlantis");
+
+        final String text = Files.readString(DataLayout.statsFile().toPath(), StandardCharsets.UTF_8);
+        assertFalse(text.contains("atlantis"), "gone from the file, not just memory: " + text);
+        assertTrue(text.contains("abydos"), "the other gate stays: " + text);
+    }
+
+    @Test
+    void clearForgetsGateTripsAsWell()
+    {
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+
+        PlayerStats.clear();
+
+        assertEquals(0, PlayerStats.gateTrips("Atlantis"));
+    }
+
+    @Test
+    void loadReplacesGateTripsHeldInMemory()
+    {
+        PlayerStats.countGateTrip(realPlayer(ALICE), gate("Atlantis"));
+
+        PlayerStats.load();
+
+        assertEquals(0, PlayerStats.gateTrips("Atlantis"), "no file, so nothing counted");
     }
 }

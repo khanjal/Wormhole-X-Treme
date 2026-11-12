@@ -100,7 +100,6 @@ class PlayerMessageGuardTest
             collect(LINE_CONSTANT, file, constants);
         }
         final String common = "ChatText\\.(?:info|error|status)\\("
-            + "|(?:ConfigManager\\.)?MessageStrings\\.\\w++\\.toString\\(\\)\\s*+\\)"
             + alternatives(helpers, "\\(") + alternatives(constants, "\\s*+\\)")
             + "|[a-z]\\w*+\\s*+\\)";
         final List<String> offences = new ArrayList<>();

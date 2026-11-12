@@ -342,6 +342,8 @@ class VehicleGateEntryTest
             verify(cart, atLeastOnce()).teleport(any(Location.class));
             assertEquals(1, PlayerStats.of(helmsman.getUniqueId()).trips(), "the one at the front");
             assertEquals(1, PlayerStats.of(passenger.getUniqueId()).trips(), "and the one behind");
+            assertEquals(2, PlayerStats.gateTrips("src"), "each rider is a trip through the gate rolled into (#638)");
+            assertEquals(2, PlayerStats.gateTrips("dst"), "and through the gate arrived at");
         }
     }
 
@@ -366,6 +368,8 @@ class VehicleGateEntryTest
 
         assertEquals(PlayerStats.Counts.NONE, PlayerStats.of(helmsman.getUniqueId()));
         assertEquals(PlayerStats.Counts.NONE, PlayerStats.of(passenger.getUniqueId()));
+        assertEquals(0, PlayerStats.gateTrips("src"), "a cart that stayed took nobody through either gate (#638)");
+        assertEquals(0, PlayerStats.gateTrips("dst"));
     }
 
     /**
