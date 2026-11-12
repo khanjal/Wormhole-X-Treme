@@ -264,12 +264,12 @@ class BuildLinksMessagesTest extends BuildPreviewCase
             .collect(Collectors.joining(", "));
         assertEquals(sentAs(oldActionList(info("QR use "), " Click to finish it in chat.", null, "")),
             run("qr", p -> { }, "gate", "preview"));
-        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(null, hint("material <group>"), PREVIEW + "material ")
-            .text(" or ").suggest(null, hint("material -<role> <block>"), PREVIEW + "material -").text(". Roles: " + roles + ".")),
+        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(reading("qr"), hint("material <group>"), PREVIEW + "material ")
+            .text(" or ").suggest(reading("qr"), hint("material -<role> <block>"), PREVIEW + "material -").text(". Roles: " + roles + ".")),
             run("qr", p -> { }, "gate", "preview", "material", "sparkly"));
         assertEquals(sentAs(ChatLine.of(info("Usage: ")).suggest(null, hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
             run("en", p -> { }, "gate", "preview", "layer", "bogus"));
-        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(null, hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
+        assertEquals(sentAs(ChatLine.of(info("QR use ")).suggest(reading("qr"), hint("layer [number|-next|-all]"), PREVIEW + "layer ")),
             run("qr", p -> { }, "gate", "preview", "layer", "bogus"));
     }
 }
