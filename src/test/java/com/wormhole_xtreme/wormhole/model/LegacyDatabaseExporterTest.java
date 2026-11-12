@@ -105,21 +105,28 @@ class LegacyDatabaseExporterTest
     /** One gate in a database where the importer looks, imported as a gate of this server. */
     private Stargate importedGate(final String name) throws Exception
     {
+        return importedGate(name, "Standard");
+    }
+
+    private Stargate importedGate(final String name, final String shape) throws Exception
+    {
         final File dir = DataLayout.legacyData();
         assertTrue(dir.mkdirs() || dir.isDirectory());
         try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + legacyDatabase().getAbsolutePath());
             Statement ddl = db.createStatement())
         {
             ddl.executeUpdate("CREATE TABLE Stargates (Id INTEGER PRIMARY KEY, Name VARCHAR(32),"
-                + " GateData BLOB, Network VARCHAR(32), WorldName VARCHAR(32), Owner VARCHAR(32))");
+                + " GateData BLOB, Network VARCHAR(32), WorldName VARCHAR(32), Owner VARCHAR(32),"
+                + " GateShape VARCHAR(32))");
             try (PreparedStatement row = db.prepareStatement("INSERT INTO Stargates"
-                + " (Name, GateData, Network, WorldName, Owner) VALUES (?, ?, ?, ?, ?)"))
+                + " (Name, GateData, Network, WorldName, Owner, GateShape) VALUES (?, ?, ?, ?, ?, ?)"))
             {
                 row.setString(1, name);
                 row.setBytes(2, LegacySaveVersionTest.version3Gate(world));
                 row.setString(3, "Milkyway");
                 row.setString(4, "gw");
                 row.setString(5, "Daniel");
+                row.setString(6, shape);
                 row.executeUpdate();
             }
         }
@@ -148,7 +155,7 @@ class LegacyDatabaseExporterTest
     @Test
     void importExportImportGivesTheSameGate() throws Exception
     {
-        final Stargate first = importedGate("Abydos");
+        final Stargate first = importedGate("Abydos", "Large");
         first.setGateCustom(true);
         first.setGateCustomStructureMaterial(Material.OBSIDIAN);
         first.setGateCustomWooshTicks(7);
@@ -171,7 +178,7 @@ class LegacyDatabaseExporterTest
             "the gate should come back byte for byte as it left");
         assertEquals("Daniel", second.getGateOwnerName());
         assertEquals("Milkyway", second.getGateNetwork().getNetworkName());
-        assertEquals("Standard", second.getGateShapeName());
+        assertEquals("Large", second.getGateShapeName(), "not the Standard a gate defaults to");
         assertEquals(Material.OBSIDIAN, second.getGateCustomStructureMaterial());
         assertEquals(7, second.getGateCustomWooshTicks());
     }
@@ -263,6 +270,18 @@ class LegacyDatabaseExporterTest
             assertEquals("Abydos", rows.getString(1));
             assertFalse(rows.next(), "the skipped gate must not be in the database");
         }
+    }
+
+    /** An imported row's shape is kept, even one no shape file answers to, so the export can name it. */
+    @Test
+    void anImportedGateKeepsAnUnknownShapeNameAndTheExportSkipsIt() throws Exception
+    {
+        final Stargate gate = importedGate("Chulak", "Atlantis");
+
+        assertEquals("Atlantis", gate.getGateShapeName());
+        final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
+        assertEquals(0, out.getExported());
+        assertEquals("Chulak: its shape \"Atlantis\" is not one the older plugins know", out.getSkipped().get(0));
     }
 
     /** The older plugins match a shape by name without regard to case, so another case is written as theirs. */
