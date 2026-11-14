@@ -1191,7 +1191,7 @@ placement is left out and the run is the plain campus.
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. A hundred and fourteen at present; the one naming both `unchecked` and
+quiet one that is inconvenient. A hundred and sixteen at present; the one naming both `unchecked` and
 `rawtypes`, and the one naming both `java:S1168` and `java:S9391`, count in each row. MockBukkit gets its own column because `src/mockbukkit/java`
 compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
@@ -1202,7 +1202,7 @@ compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees t
 | `java:S9391` | 12 | – | – | Loops on a per-tick, per-frame or per-move path, or whose body is also the test and the side effect, that a stream would only slow or obscure; each says which. |
 | `java:S2589` | 7 | – | – | Null checks Sonar thinks cannot fire, kept for mocks that stub nothing, or for a seam documented to return null. |
 | `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
-| `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
+| `java:S1168` | 5 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
 | `unchecked` | 3 | 6 | 2 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors; and a raw `BanList` inherited from MockBukkit's `ServerMock`. |
 | `deprecation` | 21 | 12 | 1 | `getOfflinePlayer(String)` (looked up once, in `CommandUtilities.findPlayer`) and `getDescription()`, whose replacements are Paper's alone, and a test stub of the first; the Bukkit `PlayerProfile` a stand-in's skin is copied through and the bed-enter result, whose replacements are Paper's alone too; the Spigot-only fallbacks for the action bar, clickable chat, entity names, display names, sign text and a player's client language, which Paper deprecates for Adventure, and the tests that stub and verify the sign text and display name fallbacks; the pre-1.20.4 `EntityDismountEvent`, the only one older servers fire. The `paper-api` profile lists no deprecations in the tests, which call the Spigot forms in too many places to suppress. |
 | `java:S2583` | 2 | – | – | Null checks that never fire on a server; a mock player with no UUID, or a mock creature with no type, would throw without them. |
