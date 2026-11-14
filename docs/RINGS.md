@@ -432,8 +432,9 @@ nobody can stand on a rising ring or be shoved by one.
 `/wormhole ring preview` (#332) is the same drawing with the stops put in: a player sees one
 built ring light, rise, flash and fall one step at a time, instead of waiting out a countdown
 they cannot pause and a cooldown they cannot skip. It exists so that what an `edit` did can be
-looked at, and the first step, showing a built ring's pad and stack to its owner, is all that is
-built so far.
+looked at. A built ring can be stepped through or played whole with `cycle`, an `edit` shows on a
+standing preview, and values can be tried on it before `-save`. Previewing a pattern that has not
+been built yet (`preview odd|even`) is still to come.
 
 **The frames are the real ones.** `RingPreview` steps through `RingAnimator.deployFrame`,
 `settledStack`, `ringAtRest`, `litRing` and `retractFrame` directly, at the server's own
