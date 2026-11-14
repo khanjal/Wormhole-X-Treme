@@ -5,7 +5,6 @@ import java.util.Map;
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseExporter;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
@@ -29,7 +28,7 @@ public class ExportCommand implements SubCommand
     {
         if (!sender.hasPermission(PERMISSION))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            sender.sendMessage(ChatText.noPermission(sender));
             return true;
         }
         if (args.length != 2)

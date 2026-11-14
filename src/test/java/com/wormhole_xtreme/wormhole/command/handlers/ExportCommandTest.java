@@ -29,10 +29,10 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateSerializer;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 
@@ -79,7 +79,7 @@ class ExportCommandTest
 
         assertTrue(command.execute(player, new String[] { "export", "sqlite" }));
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player).sendMessage(ChatText.noPermission(player));
         assertFalse(DataLayout.exports().exists(), "a refused export must not make a folder");
     }
 
