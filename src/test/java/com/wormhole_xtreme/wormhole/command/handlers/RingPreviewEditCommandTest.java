@@ -110,6 +110,9 @@ class RingPreviewEditCommandTest
         config.when(ConfigManager::getRingDeployTicks).thenReturn(Integer.valueOf(3));
         config.when(ConfigManager::getRingFlashTicks).thenReturn(Integer.valueOf(2));
         config.when(ConfigManager::getRingMaxCeilingDrop).thenReturn(Integer.valueOf(16));
+        config.when(ConfigManager::getRingDefaultLight).thenReturn(Material.GLOWSTONE);
+        config.when(ConfigManager::getRingDefaultFlash).thenReturn(Material.GOLD_BLOCK);
+        config.when(ConfigManager::getRingDefaultStyle).thenReturn(RingStyle.CONCURRENT);
         config.when(ConfigManager::getRingSoundRing).thenReturn("");
         config.when(ConfigManager::getRingSoundOpen).thenReturn("");
         config.when(ConfigManager::getRingSoundFlash).thenReturn("");
