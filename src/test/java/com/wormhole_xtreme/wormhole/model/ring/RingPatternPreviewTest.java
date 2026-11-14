@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -18,6 +19,7 @@ import static org.mockito.Mockito.when;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +70,7 @@ class RingPatternPreviewTest
 
     private final HeldScheduler held = new HeldScheduler();
     private final Map<Material, BlockData> data = new EnumMap<>(Material.class);
+    private final Map<BlockData, String> described = new IdentityHashMap<>();
     private final Map<String, Slab> laid = new HashMap<>();
     private final Map<String, Material> laidAs = new HashMap<>();
     private MockedStatic<Bukkit> bukkit;
@@ -105,9 +108,24 @@ class RingPatternPreviewTest
 
         real = mock(BlockData.class);
         bukkit = mockStatic(Bukkit.class);
+        // A slab is made afresh each time and remembers the half it was set to, so what a client
+        // shows at a square says which half of which slab it is.
         bukkit.when(() -> Bukkit.createBlockData(any(Material.class))).thenAnswer(call ->
-            data.computeIfAbsent(call.getArgument(0, Material.class), made ->
-                made.name().endsWith("_SLAB") ? mock(Slab.class) : mock(BlockData.class)));
+        {
+            final Material made = call.getArgument(0, Material.class);
+            if (!made.name().endsWith("_SLAB"))
+            {
+                return dataFor(made);
+            }
+            final Slab slab = mock(Slab.class);
+            described.put(slab, made.name() + "/?");
+            doAnswer(set ->
+            {
+                described.put(slab, made.name() + "/" + set.getArgument(0, Slab.Type.class));
+                return null;
+            }).when(slab).setType(any(Slab.Type.class));
+            return slab;
+        });
         config = mockStatic(ConfigManager.class);
         config.when(ConfigManager::getRingDeployTicks).thenReturn(Integer.valueOf(3));
         config.when(ConfigManager::getRingFlashTicks).thenReturn(Integer.valueOf(2));
@@ -170,8 +188,13 @@ class RingPatternPreviewTest
 
     private BlockData dataFor(final Material material)
     {
-        return data.computeIfAbsent(material, made ->
-            made.name().endsWith("_SLAB") ? mock(Slab.class) : mock(BlockData.class));
+        return data.computeIfAbsent(material, made -> mock(BlockData.class));
+    }
+
+    /** A slab on screen as {@code MATERIAL/HALF}, or null for anything else. */
+    private String describe(final BlockData shown)
+    {
+        return described.get(shown);
     }
 
     /** Lays a slab of a material in the half a floor ring takes, at an offset from the player. */
@@ -267,7 +290,7 @@ class RingPatternPreviewTest
         }
         for (final String at : squares(ODD, Y))
         {
-            assertSame(dataFor(Material.SMOOTH_STONE_SLAB), screen.get(at), "the fallback slab");
+            assertEquals("SMOOTH_STONE_SLAB/BOTTOM", describe(screen.get(at)), "the fallback slab, in a floor ring's half");
         }
     }
 
@@ -462,12 +485,59 @@ class RingPatternPreviewTest
         settle(RingPreview.State.DEPLOYED);
 
         assertFalse(shownIn(Y + 1).isEmpty(), "rings stand above the layer the slabs are laid in");
-        assertSame(dataFor(Material.SMOOTH_STONE_SLAB), onScreen(viewer).get(shownIn(Y + 1).iterator().next()));
+        assertTrue(describe(onScreen(viewer).get(shownIn(Y + 1).iterator().next())).startsWith("SMOOTH_STONE_SLAB/"));
         RingPreviews.light(viewer);
         settle(RingPreview.State.DEPLOYED);
         final ArgumentCaptor<BlockData> sent = ArgumentCaptor.forClass(BlockData.class);
         verify(viewer, atLeastOnce()).sendBlockChange(any(Location.class), sent.capture());
         assertTrue(sent.getAllValues().contains(dataFor(Material.SHROOMLIGHT)), "the flash was drawn");
+    }
+
+    /** The guide stands under a settled stack, where the rings do not cover it. */
+    @Test
+    void theGuideStillMarksTheSquaresWhileTheStackStands()
+    {
+        RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+        final RingPreview preview = RingPreviews.of(viewer);
+        RingPreviews.deploy(viewer, preview.getPair(), preview.getRing());
+        settle(RingPreview.State.DEPLOYED);
+
+        final Map<String, BlockData> screen = onScreen(viewer);
+        for (final String at : squares(ODD, Y))
+        {
+            assertTrue(screen.get(at) != real, "something still marks " + at);
+        }
+    }
+
+    /** Asked again with the stack standing, the preview shows the same as before. */
+    @Test
+    void runAgainWithTheStackStandingLeavesTheStackDrawn()
+    {
+        RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+        final RingPreview preview = RingPreviews.of(viewer);
+        RingPreviews.deploy(viewer, preview.getPair(), preview.getRing());
+        settle(RingPreview.State.DEPLOYED);
+        final Map<String, String> before = new HashMap<>();
+        onScreen(viewer).forEach((at, shown) -> before.put(at, describe(shown)));
+
+        RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+
+        final Map<String, String> after = new HashMap<>();
+        onScreen(viewer).forEach((at, shown) -> after.put(at, describe(shown)));
+        assertEquals(before, after);
+    }
+
+    /** The guide's marks are bottom-half slabs, the half a floor ring is laid in. */
+    @Test
+    void theGuideIsDrawnInTheBottomHalf()
+    {
+        RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+
+        final Map<String, BlockData> screen = onScreen(viewer);
+        for (final String at : squares(ODD, Y))
+        {
+            assertEquals("SMOOTH_STONE_SLAB/BOTTOM", describe(screen.get(at)));
+        }
     }
 
     /** Drawn for the viewer alone. */
