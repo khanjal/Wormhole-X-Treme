@@ -40,26 +40,20 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
 - Import types; do not write `org.bukkit.World` or `java.util.UUID` inline. A package-qualified name in code is only for a clash between two types with the same simple name; `Map.Entry` and `ConfigManager.ConfigKeys` are fine.
 
 ### Java Idioms Used In This Codebase
-- **Anonymous `Runnable` classes for scheduled tasks** — not lambdas. Every one of the 22 scheduler
-  callbacks in the tree is an anonymous class, and the reason is concrete rather than stylistic:
-  these tasks reschedule themselves and mutate retry state, which needs the `taskHolder` and
-  array-holder idiom below and reads badly as a lambda.
+- **Lambdas and method references for callbacks, scheduled tasks included.** No scheduler callback
+  in `src/main` is an anonymous class: they are all lambdas or method references, as are the
+  tab-completion functions in `SubCommands`, the `computeIfAbsent` suppliers and the accessor
+  pairs behind `MaterialCommand.Kind`. Sonar (S1604) flags a new anonymous class where a lambda
+  would do. Do not ask for a lambda to be turned into an anonymous class, and do not flag a new
+  lambda in review.
   ```java
   // CORRECT, for a scheduled task
-  new Runnable() {
-      @Override
-      public void run() { ... }
-  }
+  scheduler.scheduleSyncDelayedTask(plugin, () -> step(), ticks);
   ```
-- **Lambdas and method references elsewhere are fine, and are used.** Tab-completion functions in
-  `SubCommands`, `computeIfAbsent` suppliers in `RingIndex` and `BeamManager`, the `FilenameFilter`
-  in `StargateYamlManager`, and the `Function`/`BiConsumer` accessor pairs that parameterise
-  `MaterialCommand.Kind` are all lambdas or method references. Do not rewrite them into anonymous
-  classes, and do not flag new ones in review.
-- **Array holders for mutable effectively-final state** in anonymous classes:
+- **State a lambda has to change** (a retry count, the task's own id so it can cancel or
+  reschedule itself) goes in a field, or in a one-element array the lambda captures:
   ```java
   final int[] attempts = { 0 };
-  final Runnable[] taskHolder = new Runnable[1];
   ```
 - **Catch `RuntimeException`, not `Throwable`.** Bukkit/Paper can throw unchecked exceptions from
   anywhere, so guarding an API call is right; catching `Throwable` to do it is not. It swallows
@@ -119,8 +113,7 @@ All scheduled tasks run on the main server thread (sync). Do not use async tasks
 - New features should have accompanying unit tests where feasible.
 
 ### What NOT To Do
-- Do not turn a scheduled task into a lambda — see the `Runnable` note above. Lambdas and method
-  references are fine everywhere else.
+- Do not turn a lambda into an anonymous class, a scheduled task's included — see the note above.
 - Do not add `@SuppressWarnings` without a specific reason, written as a comment directly above
   it (or in the class Javadoc for a class-level one). Update the table in
   `docs/DEVELOPMENT.md` when you add or remove one.

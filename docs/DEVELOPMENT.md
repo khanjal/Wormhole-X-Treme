@@ -1287,9 +1287,10 @@ symbol, and one was fixable in a line.
 - Import a type rather than writing its package inline (`World`, not `org.bukkit.World`). A
   package-qualified name in code is only for a clash with another type of the same simple name;
   `Map.Entry` and `ConfigManager.ConfigKeys` are fine.
-- Anonymous `Runnable` classes for scheduled tasks, not lambdas: they reschedule themselves and
-  mutate retry state through the array-holder idiom. Lambdas and method references are used
-  freely everywhere else.
+- Scheduled tasks are lambdas or method references, like any other callback: no scheduler
+  callback in `src/main` is an anonymous class any more, and Sonar (S1604) flags a new one. A
+  task that has to reschedule itself or count its retries keeps that state in a field, or in a
+  one-element array the lambda captures.
 - Catch `RuntimeException`, not `Throwable`, except where cross-version compatibility needs a
   `NoSuchMethodError` caught on purpose, and say so in a comment.
 - Log through `WormholeXTreme.getThisPlugin().prettyLog(Level, String)`. The three-argument
