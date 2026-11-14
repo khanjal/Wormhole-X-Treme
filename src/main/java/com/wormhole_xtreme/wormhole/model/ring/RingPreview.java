@@ -113,6 +113,21 @@ public final class RingPreview
     /** Why a stack could not be raised, after {@link Result#NO_FLOOR}. */
     private RingBlockage blockage;
 
+    /** A slab tried before saving, or null to draw the stored one. */
+    private Material trialRing;
+
+    /** A pad light tried before saving, or null. */
+    private Material trialLight;
+
+    /** A transport light tried before saving, or null. */
+    private Material trialFlash;
+
+    /** A style tried before saving, or null. */
+    private RingStyle trialStyle;
+
+    /** The light the pad is drawn in now. */
+    private Material shownLight;
+
     /** True once cleared, after which nothing more is drawn. */
     private boolean cleared = false;
 
@@ -135,7 +150,7 @@ public final class RingPreview
         this.pair = pair;
         this.ring = ring;
         this.world = world;
-        this.stack = ring.copyForDrawing();
+        this.stack = drawingCopy();
         this.style = stack.getStyle();
     }
 
@@ -191,11 +206,164 @@ public final class RingPreview
         {
             draw(drawnLights, block, RingAnimator.OPENED_MATERIAL, false, false);
         }
+        drawLights();
+        RingSounds.openedTo(viewer, ring);
+    }
+
+    /** Draws the pad's light blocks in the light now in force, over the opened parts. */
+    private void drawLights()
+    {
+        shownLight = trialLight != null ? trialLight : ring.getLightMaterial();
         for (final int[] block : RingAnimator.lightBlocks(ring))
         {
-            draw(drawnLights, block, ring.getLightMaterial(), false, false);
+            draw(drawnLights, block, shownLight, false, false);
         }
-        RingSounds.openedTo(viewer, ring);
+    }
+
+    /**
+     * A copy of the end to draw from: the stored values, with any trial values over them.
+     *
+     * @return a ring the drawing may measure and change without touching the stored one
+     */
+    private Ring drawingCopy()
+    {
+        final Ring copy = ring.copyForDrawing();
+        if (trialRing != null)
+        {
+            copy.setRingMaterial(trialRing);
+        }
+        if (trialLight != null)
+        {
+            copy.setLightMaterial(trialLight);
+        }
+        if (trialFlash != null)
+        {
+            copy.setFlashMaterial(trialFlash);
+        }
+        if (trialStyle != null)
+        {
+            copy.setStyle(trialStyle);
+        }
+        return copy;
+    }
+
+    /**
+     * Draws what the end is now: a new slab swaps into a standing stack, a new light shows on
+     * the pad, and a new flash waits for the next {@link #light()}.
+     *
+     * <p>Called when the end is edited and when a trial value changes. Nothing is sent unless
+     * something that is drawn has changed, so an edit to the other end of the pair, or to a
+     * field that is not drawn, redraws nothing. The style is not applied here: a stack stands
+     * in the style it was raised in, and the next {@link #deploy()} reads the new one. A step
+     * that is moving carries on, and its later frames use the new values.
+     */
+    public void refresh()
+    {
+        if (cleared)
+        {
+            return;
+        }
+        final Ring now = drawingCopy();
+        if (now.getLightMaterial() != shownLight)
+        {
+            drawLights();
+        }
+        stack.setFlashMaterial(now.getFlashMaterial());
+        if (now.getRingMaterial() != stack.getRingMaterial())
+        {
+            stack.setRingMaterial(now.getRingMaterial());
+            if (state == State.DEPLOYED)
+            {
+                drawFrame(RingAnimator.settledStack(stack, style));
+            }
+        }
+    }
+
+    /**
+     * Tries a slab for the stack, without storing it.
+     *
+     * @param material
+     *            a slab, as {@code ring edit ring} accepts
+     */
+    public void tryRingMaterial(final Material material)
+    {
+        trialRing = material;
+        refresh();
+    }
+
+    /**
+     * Tries a light for the pad, without storing it.
+     *
+     * @param material
+     *            a block, as {@code ring edit light} accepts
+     */
+    public void tryLightMaterial(final Material material)
+    {
+        trialLight = material;
+        refresh();
+    }
+
+    /**
+     * Tries a transport light, without storing it.
+     *
+     * @param material
+     *            a block, as {@code ring edit flash} accepts
+     */
+    public void tryFlashMaterial(final Material material)
+    {
+        trialFlash = material;
+        refresh();
+    }
+
+    /**
+     * Tries a style for the next deploy, without storing it.
+     *
+     * @param chosen
+     *            the style
+     */
+    public void tryStyle(final RingStyle chosen)
+    {
+        trialStyle = chosen;
+    }
+
+    /** @return the slab being tried, or null */
+    public Material getTrialRing()
+    {
+        return trialRing;
+    }
+
+    /** @return the pad light being tried, or null */
+    public Material getTrialLight()
+    {
+        return trialLight;
+    }
+
+    /** @return the transport light being tried, or null */
+    public Material getTrialFlash()
+    {
+        return trialFlash;
+    }
+
+    /** @return the style being tried, or null */
+    public RingStyle getTrialStyle()
+    {
+        return trialStyle;
+    }
+
+    /** @return whether any value is being tried */
+    public boolean hasTrial()
+    {
+        return (trialRing != null) || (trialLight != null) || (trialFlash != null) || (trialStyle != null);
+    }
+
+    /** Drops every trial value, so the drawing shows what is stored again. */
+    public void discardTrial()
+    {
+        trialRing = null;
+        trialLight = null;
+        trialFlash = null;
+        trialStyle = null;
+        refresh();
     }
 
     /**
@@ -219,7 +387,7 @@ public final class RingPreview
             return Result.ALREADY_STANDING;
         }
         // Measured on a copy: the drop a survey records belongs to this drawing, not to the ring.
-        final Ring measured = ring.copyForDrawing();
+        final Ring measured = drawingCopy();
         final RingBlockage found = world.survey(measured);
         if ((found == RingBlockage.CEILING_TOO_HIGH) || (found == RingBlockage.CEILING_TOO_LOW))
         {

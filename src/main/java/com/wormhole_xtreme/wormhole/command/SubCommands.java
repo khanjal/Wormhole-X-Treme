@@ -1166,8 +1166,11 @@ public final class SubCommands
             .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    /** The steps {@code /wormhole ring preview} understands after the pad is lit. */
-    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", CLEAR };
+    /** The steps {@code /wormhole ring preview} understands, and the fields it tries a value on. */
+    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", "ring", "flash", "style", "-save", CLEAR };
+
+    /** The fields {@code /wormhole ring preview} takes a value for. */
+    private static final String[] PREVIEW_TRIALS = { "ring", LIGHT, "flash", "style" };
 
     /** The fields {@code /wormhole ring edit} understands. */
     private static final String[] RING_FIELDS = { "ring", LIGHT, "flash", "built", "name", "access", "style", "reset" };
@@ -1202,10 +1205,17 @@ public final class SubCommands
         if (PREVIEW.equalsIgnoreCase(args[1]))
         {
             // The steps, straight after the verb or after an id, which is not offered for the
-            // reason edit's are not. Nothing follows a step.
+            // reason edit's are not. A field to try is followed by its value, and nothing else
+            // is followed by anything.
+            final String typed = args[args.length - 1];
+            if ((args.length > 3) && Arrays.asList(PREVIEW_TRIALS).contains(args[args.length - 2].toLowerCase(Locale.ROOT))
+                && ((args.length == 4) || (args.length == 5)))
+            {
+                return ringFieldValues(args[args.length - 2], typed);
+            }
             final boolean stepGoesHere = (args.length == 3)
                 || ((args.length == 4) && !Arrays.asList(PREVIEW_STEPS).contains(args[2].toLowerCase(Locale.ROOT)));
-            return stepGoesHere ? prefixed(args[args.length - 1], PREVIEW_STEPS) : none();
+            return stepGoesHere ? prefixed(typed, PREVIEW_STEPS) : none();
         }
         if (!"edit".equalsIgnoreCase(args[1]))
         {

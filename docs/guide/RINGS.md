@@ -188,6 +188,29 @@ settings.
 
 Only the pair's owner, or someone with `wormhole.ring.admin`, may preview a built ring.
 
+### Trying a change before you save it
+
+While a preview stands, a `/wormhole ring edit` of `ring`, `light`, `flash` or `style` on that end
+shows on it at once, for everyone previewing that end: a new slab swaps into the stack, a new light
+shows on the pad, a new flash is used the next time you run `light`, and a new style is used the
+next time you `deploy`.
+
+To try a value without storing it, put it on your own drawing instead:
+
+| Command | What it does |
+|---|---|
+| `ring preview ring <slab>` | Draws the stack in that slab, for you alone |
+| `ring preview light <block>` | Lights the pad in that block |
+| `ring preview flash <block>` | Runs the transport light in that block |
+| `ring preview style <style>` | Raises the next stack in that style (`fast` or `slow`) |
+| `ring preview -save` | Stores everything you have tried, the way `ring edit` would |
+| `ring preview -clear` | Takes the drawing back, trial values with it |
+
+Values are checked as `ring edit` checks them, with the same messages. `deploy`, `light` and
+`collapse` use what you are trying, and the ring is stored as it was until you `-save`. Saving
+needs the same permission as `ring edit`, checked when you save. If a real cycle starts on the pair,
+your preview and what you were trying are taken back.
+
 ## Sounds
 
 General rules — naming, volume, `none` — are in [Sounds](SERVER.md#sounds).

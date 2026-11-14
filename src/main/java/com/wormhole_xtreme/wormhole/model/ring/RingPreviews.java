@@ -186,6 +186,30 @@ public final class RingPreviews
     }
 
     /**
+     * Redraws every preview of a pair after one of its ends was edited (#332).
+     *
+     * <p>Every viewer is redrawn, not only the editor. A preview of the end that did not change
+     * draws nothing, as {@link RingPreview#refresh()} sends only what differs.
+     *
+     * @param pair
+     *            the pair that was edited
+     */
+    public static void refresh(final RingPair pair)
+    {
+        if (SHOWN.isEmpty())
+        {
+            return;
+        }
+        for (final RingPreview preview : new ArrayList<>(SHOWN.values()))
+        {
+            if (preview.getPair() == pair)
+            {
+                preview.refresh();
+            }
+        }
+    }
+
+    /**
      * Takes every preview back, for plugin disable.
      */
     public static void clearAll()
@@ -290,10 +314,13 @@ public final class RingPreviews
     /**
      * Starts a viewer's timeout again, from now.
      *
+     * <p>Public because {@code ring preview -save}, which touches no drawing, is a preview
+     * command too.
+     *
      * @param viewer
      *            the viewer
      */
-    private static void touch(final Player viewer)
+    public static void touch(final Player viewer)
     {
         final UUID id = viewer.getUniqueId();
         cancelTimeout(id);
