@@ -50,10 +50,13 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
   // CORRECT, for a scheduled task
   scheduler.scheduleSyncDelayedTask(plugin, () -> step(), ticks);
   ```
-- **State a lambda has to change** (a retry count, the task's own id so it can cancel or
-  reschedule itself) goes in a field, or in a one-element array the lambda captures:
+- **State a lambda has to change** (a retry count, or the task itself so it can schedule its own
+  next run) goes in a field, or in a one-element array the lambda captures, as the rider
+  re-attach in `WormholeXTremeVehicleListener` does:
   ```java
   final int[] attempts = { 0 };
+  final Runnable[] taskHolder = new Runnable[1];
+  taskHolder[0] = () -> { ... scheduler.runTaskLater(plugin, taskHolder[0], 1L); };
   ```
 - **Catch `RuntimeException`, not `Throwable`.** Bukkit/Paper can throw unchecked exceptions from
   anywhere, so guarding an API call is right; catching `Throwable` to do it is not. It swallows
@@ -86,7 +89,7 @@ WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlug
 // Immediate next-tick task
 Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), runnable, 1L);
 ```
-All scheduled tasks run on the main server thread (sync). Do not use async tasks for anything that touches Bukkit entities or worlds.
+Anything that touches Bukkit entities, blocks or worlds runs on the main server thread. The few async tasks (`runTaskAsynchronously`) do only work that touches none of that: reading and writing window captures in `Captures` and `WindowClicks`, drawing map-marker layers in `MapMarkers`, and the update check in `UpdateCheck`. Do not add an async task that reaches the world.
 
 ### Entity / Vehicle API (Paper 1.20+)
 - `entity.teleport(location)` — ejects passengers first; use this intentionally.

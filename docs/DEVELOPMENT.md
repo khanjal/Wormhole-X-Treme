@@ -1290,7 +1290,8 @@ symbol, and one was fixable in a line.
 - Scheduled tasks are lambdas or method references, like any other callback: no scheduler
   callback in `src/main` is an anonymous class any more, and Sonar (S1604) flags a new one. A
   task that has to reschedule itself or count its retries keeps that state in a field, or in a
-  one-element array the lambda captures.
+  one-element array the lambda captures (`WormholeXTremeVehicleListener`'s rider re-attach holds
+  itself in a `Runnable[] taskHolder` so it can schedule its own next try).
 - Catch `RuntimeException`, not `Throwable`, except where cross-version compatibility needs a
   `NoSuchMethodError` caught on purpose, and say so in a comment.
 - Log through `WormholeXTreme.getThisPlugin().prettyLog(Level, String)`. The three-argument
