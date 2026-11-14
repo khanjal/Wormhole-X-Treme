@@ -94,6 +94,32 @@ files with PMD before pushing; `generate-test-sources` is what adds the folder:
 mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT
 ```
 
+## Building the docs site
+
+The docs are published with MkDocs Material from `docs/`, configured in `mkdocs.yml`. To build
+them locally, in a virtual environment of your own:
+
+```bash
+pip install -r docs/requirements.txt
+mkdocs build --strict
+```
+
+`--strict` fails on a broken link or anchor, as CI does. `mkdocs serve` previews the site with
+live reload. Write links between pages as relative `.md` links, which work on GitHub and on the
+site; a link to a file outside `docs/`, or to one the site leaves out (`docs/listings/`,
+`docs/SONAR_BACKLOG.md`), must be an absolute GitHub URL.
+
+`.github/workflows/docs.yml` builds the site on pull requests that touch the docs, and on a push
+to `main` that does. It deploys only once Pages is on: Settings → Pages → Source "GitHub Actions",
+then a repository variable `PAGES_ENABLED` set to `true` (Settings → Secrets and variables →
+Actions → Variables). Without the variable a merge only builds, so a repository with Pages off
+gets no failing deploy. Going live is:
+
+1. Settings → Pages → Source "GitHub Actions".
+2. Set the repository variable `PAGES_ENABLED` to `true`.
+3. Merge a docs change to `main`, or re-run the Docs workflow, and check the site.
+4. Add the site link to the README and shrink its index (#696).
+
 ## A player on a real server
 
 MockBukkit's player is simulated, and the boot tests in `ci.yml` run a real server with no player
@@ -1191,7 +1217,7 @@ placement is left out and the run is the plain campus.
 
 Every `@SuppressWarnings` carries its reason in a comment directly above it, or in the class
 Javadoc for a class-level one. Add one only when the warning is wrong about this code, not to
-quiet one that is inconvenient. A hundred and fourteen at present; the one naming both `unchecked` and
+quiet one that is inconvenient. A hundred and sixteen at present; the two naming both `unchecked` and
 `rawtypes`, and the one naming both `java:S1168` and `java:S9391`, count in each row. MockBukkit gets its own column because `src/mockbukkit/java`
 compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees those three:
 
@@ -1201,14 +1227,14 @@ compiles only under the `mockbukkit` profile, so a plain `mvn test` never sees t
 | `java:S4144` | 7 | – | – | Events need an instance `getHandlers` and a static `getHandlerList` with the same body. |
 | `java:S9391` | 12 | – | – | Loops on a per-tick, per-frame or per-move path, or whose body is also the test and the side effect, that a stream would only slow or obscure; each says which. |
 | `java:S2589` | 7 | – | – | Null checks Sonar thinks cannot fire, kept for mocks that stub nothing, or for a seam documented to return null. |
-| `java:S3077` | 4 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
-| `java:S1168` | 3 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
+| `java:S3077` | 12 | – | – | `volatile` on a function reference or an immutable snapshot swapped in whole. |
+| `java:S1168` | 5 | – | – | Null means something an empty result cannot; each says what its caller does with it. |
 | `unchecked` | 3 | 6 | 2 | Casts with nothing to check against: SnakeYAML's `Object`, reflection, generic captors; and a raw `BanList` inherited from MockBukkit's `ServerMock`. |
 | `deprecation` | 21 | 12 | 1 | `getOfflinePlayer(String)` (looked up once, in `CommandUtilities.findPlayer`) and `getDescription()`, whose replacements are Paper's alone, and a test stub of the first; the Bukkit `PlayerProfile` a stand-in's skin is copied through and the bed-enter result, whose replacements are Paper's alone too; the Spigot-only fallbacks for the action bar, clickable chat, entity names, display names, sign text and a player's client language, which Paper deprecates for Adventure, and the tests that stub and verify the sign text and display name fallbacks; the pre-1.20.4 `EntityDismountEvent`, the only one older servers fire. The `paper-api` profile lists no deprecations in the tests, which call the Spigot forms in too many places to suppress. |
 | `java:S2583` | 2 | – | – | Null checks that never fire on a server; a mock player with no UUID, or a mock creature with no type, would throw without them. |
 | `java:S6905` | 1 | – | – | `SELECT *` from a legacy database whose columns vary by version. |
 | `java:S9395` | 1 | – | – | `Math.sqrt(long)` in `RingCommand.apart`: S9395 wants the cast, S1905 calls it redundant and S2153 flags the alternative. |
-| `rawtypes` | – | 1 | – | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
+| `rawtypes` | – | 2 | – | Alongside `unchecked`, for an `ArgumentCaptor` of a generic collection. |
 | `java:S1612` | 1 | 1 | – | In a test, a method reference would cast its receiver early, outside `assertThrows`; in `MapMarkers`, a constructor reference would link each optional map plugin's provider when the class initialises. |
 
 When the table and the code disagree, recount; the second line totals each column:
@@ -1277,7 +1303,8 @@ symbol, and one was fixable in a line.
   `OAK_WALL_SIGN`.
 - Storage is YAML only: one file per gate (`StargateYamlManager`), one per world for ring pairs
   (`RingYamlManager`), one each for beams and mirrors. A legacy SQLite database is read by
-  `LegacyDatabaseImporter` from `/wormhole gate import`.
+  `LegacyDatabaseImporter` from `/wormhole gate import`, and written by `LegacyDatabaseExporter` from
+  `/wormhole export sqlite`.
 
 ## Chat messages
 
@@ -1343,7 +1370,7 @@ client codes seen are remembered up to a bound. Sign text is not localised.
 - **The galleries are generated.** The gate, ring, beam and mirror drawings in `docs/images/` and
   the tables between the `<!-- ...:start -->` markers in the design documents come from
   `scripts/render_*_sheets.py`, and a test fails until they are re-run after the source changes.
-- **Plugin-site listing copy lives in [`docs/listings/`](listings/).** Its facts are in
+- **Plugin-site listing copy lives in [`docs/listings/`](https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/listings).** Its facts are in
   `listings/shared.md` and each site's fields and markup in its own file. It prints no count a
   release can change — not settings, test classes, CI legs, shapes or mirror looks — because such
   a figure goes stale where nobody is looking. Only the version, the supported range and the Java

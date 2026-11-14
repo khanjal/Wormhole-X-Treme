@@ -247,6 +247,7 @@ or delete it.
 | `wormhole.update.notify` | op | Being told on joining that a newer release is available (see `update-check` under [Metrics](#metrics)) |
 | `wormhole.stats` | true | `/wormhole stats`, your own counts |
 | `wormhole.stats.others` | op | `/wormhole stats <player>`, anybody's |
+| `wormhole.export` | op | `/wormhole export sqlite`; the console may always run it |
 
 Worth knowing:
 
@@ -284,6 +285,7 @@ a dashed word is always the option and a bare word is always a name.
 | `config …` | [Configuration](#configuration) |
 | `lang export [code]` | [Translating](TRANSLATING.md): writes a starter `lang/<code>.yml`, never over one there |
 | `compass` | Points your compass at the nearest gate; `compass reset` points it back at spawn |
+| `export sqlite` | Writes your gates to a database the older plugins read, in a folder of its own; see [coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme). Needs `wormhole.export` |
 | `list [network\|mine\|owner <player>\|top]` | The gates on the network, or on none with `Public`; `mine` your own with `wormhole.list.mine`; `owner <player>` that player's, online or not, with `wormhole.list.owner`; `top` the ten with the most trips, each with its count. `mine`, `owner` and `top` win over a network of the same name. Holding `wormhole.list` allows all of them, and completing `/dial` and `/wormhole go` offers every gate to a player with it, only their own to one with just `wormhole.list.mine`, and none to the rest |
 | `stats [player]` | Lifetime trips through gates, gates built, ring trips and beams: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
 
@@ -402,7 +404,7 @@ fits its shape keeps the old order and is named in the log. A gate built before 
 
 Then check the log once. The migrations above stay silent when they have nothing to do, so
 anything they do say is a file to move by hand, a shape or gate named for the reasons above, or
-the note below about gates from another fork. The [CHANGELOG](../../CHANGELOG.md) opens each
+the note below about gates from another fork. The [CHANGELOG](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md) opens each
 release with what upgrading to it asks of you.
 
 ## Coming from another Wormhole X-Treme
@@ -417,6 +419,25 @@ written to the old database, so a failed import costs nothing and running it twi
 nothing. If old gates are found on startup and you have none, the log says so once.
 
 `WormholeXTremeDB/` keeps its name because that is how the import finds the database.
+
+**`/wormhole export sqlite`** is the way back out, for going back to the original plugin or running
+Dakto's WormholeXTreme on a second server. It needs `wormhole.export` and writes a new
+`WormholeXTreme.sqlite` into `exports/<date>-<time>/` under the plugin folder, never into
+`WormholeXTremeDB` and never to your gate files; copy it into the other plugin's `WormholeXTremeDB`
+yourself. Both plugins keep gates in that one table, so the file is written once, as gate version 8,
+the newest they both read. It has not been tried against a real Dakto 1.1.8 data folder.
+
+What does not carry over, and is listed after each export rather than dropped silently:
+
+- Transport rings, mirrors and windows, which the older plugins do not have.
+- A gate on a shape they do not name (they know `Standard`, `Large`, `Small`, `Super`, `Minimal`,
+  `Horizontal` and the `SignDial` form of each, `Pegasus` and `Destiny`). It is skipped.
+- Per-gate settings with no field in the format: own use cost, dial spin, iris animation, view level,
+  chosen material group, frame material, dial sign target, and the owner's account id (they keep the
+  name only). Each is counted.
+- Custom materials are stored as numbers in version 8, so they only match on the same Minecraft version.
+
+Importing the export again with `gate import` gives back the gates that came in that way.
 
 Your server needs a SQLite driver for this. It is not shipped — thirteen megabytes for a one-time
 import — but any server that *wrote* one of these databases already has one.
@@ -540,11 +561,11 @@ viewer can switch on and off.
 
 | Icon | Marks |
 |---|---|
-| ![gate, idle](../../src/main/resources/dynmap/gate-idle.png) | A gate with no wormhole |
-| ![gate, open](../../src/main/resources/dynmap/gate.png) | A gate whose wormhole has formed |
-| ![transport ring](../../src/main/resources/dynmap/rings.png) | Each end of a ring pair |
-| ![beam destination](../../src/main/resources/dynmap/beam.png) | A public beam destination |
-| ![quantum mirror](../../src/main/resources/dynmap/mirror.png) | A quantum mirror, at its banner |
+| ![gate, idle](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/gate-idle.png) | A gate with no wormhole |
+| ![gate, open](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/gate.png) | A gate whose wormhole has formed |
+| ![transport ring](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/rings.png) | Each end of a ring pair |
+| ![beam destination](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/beam.png) | A public beam destination |
+| ![quantum mirror](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/mirror.png) | A quantum mirror, at its banner |
 
 On 1.21.11 use Dynmap 3.8; its Spigot/Paper build is on [dynmap.us](https://dynmap.us) and
 CurseForge, while Modrinth's newest Paper build, 3.7-beta-8, stops at 1.21.4. Dynmap has no build

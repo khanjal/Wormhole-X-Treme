@@ -1,0 +1,81 @@
+site_name: Wormhole X-Treme
+site_description: Stargate-style travel for Bukkit, Spigot and Paper servers
+site_url: https://khanjal.github.io/Wormhole-X-Treme/
+repo_url: https://github.com/khanjal/Wormhole-X-Treme
+repo_name: khanjal/Wormhole-X-Treme
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+use_directory_urls: false
+site_dir: site
+
+# Copy-paste listing text and the Sonar notes are not site pages.
+exclude_docs: |
+  listings/
+  SONAR_BACKLOG.md
+  requirements.txt
+
+theme:
+  name: material
+  logo: images/logo.svg
+  favicon: images/logo.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  # GitHub-style heading ids, so #anchors that work in the file view work on the site too.
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+
+nav:
+  - Home: index.md
+  - Guide:
+      - guide/README.md
+      - Server: guide/SERVER.md
+      - Gates: guide/GATES.md
+      - Rings: guide/RINGS.md
+      - Beaming: guide/BEAMS.md
+      - Mirrors: guide/MIRRORS.md
+      - Translating: guide/TRANSLATING.md
+  - Internals:
+      - Gates: GATES.md
+      - Rings: RINGS.md
+      - Mirrors: MIRRORS.md
+      - Beams: BEAMS.md
+      - Captures: CAPTURES.md
+      - Freya: FREYA.md
+      - bStats: BSTATS.md
+      - Logo: LOGO.md
+      - API: API.md
+      - Development: DEVELOPMENT.md
+  - Changelog: https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md
+
+validation:
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
