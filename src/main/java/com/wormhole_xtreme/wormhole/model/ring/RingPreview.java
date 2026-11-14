@@ -223,18 +223,15 @@ public final class RingPreview
         guideSquares = judged.getToPlace();
         guideTotal = judged.getTotal();
         guideInPlace = judged.getInPlace();
+        drawGuide();
         if (state == State.DEPLOYED)
         {
             // The guide sits under a standing stack, so the stack is drawn again over it.
             drawFrame(RingAnimator.settledStack(stack, style));
         }
-        else
-        {
-            drawGuide();
-        }
     }
 
-    /** Draws the guide's marks, which a frame of the stack takes back when it passes over them. */
+    /** Draws the guide's marks. The stack stands over them, and the end of a collapse draws them again. */
     private void drawGuide()
     {
         final Material slab = drawingCopy().getRingMaterial();
@@ -722,7 +719,6 @@ public final class RingPreview
     private void drawFrame(final List<RingAnimator.Placement> placements)
     {
         clearSet(drawnRings);
-        drawGuide();
         drawOver(placements, stack.getRingMaterial());
     }
 

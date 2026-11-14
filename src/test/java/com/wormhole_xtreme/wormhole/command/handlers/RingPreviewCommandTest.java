@@ -417,7 +417,7 @@ class RingPreviewCommandTest
         preview("deploy", "twice");
 
         verify(player, times(2))
-            .sendMessage(plainContains("/wormhole ring preview [id] [deploy|light|collapse|cycle|ring <slab>"));
+            .sendMessage(plainContains("/wormhole ring preview [id] [odd|even|deploy|light|collapse|cycle|ring <slab>"));
         assertNull(RingPreviews.of(player));
     }
 
