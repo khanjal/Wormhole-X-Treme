@@ -623,12 +623,18 @@ class RingPatternPreviewTest
         final RingPair other = new RingPair("pattern", WORLD_NAME, far, far);
         RingManager.addPair(other, 4);
         RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+        // Something a refresh of this preview would redraw, so a refresh that reached it shows.
+        RingPreviews.of(viewer).getRing().setLightMaterial(Material.GLOWSTONE);
 
         RingPreviews.clearFor(other);
         RingPreviews.refresh(other);
 
         assertNotNull(RingPreviews.of(viewer));
         assertEquals(squares(ODD, Y), shownIn(Y));
+        for (final String at : squares(ODD, Y - 2))
+        {
+            assertSame(dataFor(Material.SEA_LANTERN), onScreen(viewer).get(at), "not redrawn by another pair's refresh");
+        }
     }
 
     /** Replacing it with a preview of a built ring clears the pattern first. */
