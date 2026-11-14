@@ -89,7 +89,7 @@ WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlug
 // Immediate next-tick task
 Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), runnable, 1L);
 ```
-Anything that touches Bukkit entities, blocks or worlds runs on the main server thread. The few async tasks (`runTaskAsynchronously`) do only work that touches none of that: reading and writing window captures in `Captures` and `WindowClicks`, drawing map-marker layers in `MapMarkers`, and the update check in `UpdateCheck`. Do not add an async task that reaches the world.
+Anything that touches Bukkit entities, blocks or worlds runs on the main server thread. The few async tasks (`runTaskAsynchronously`) do only work that touches none of that: reading and writing window captures in `Captures`, re-sending a clicked window's blocks to one player after a short wait in `WindowClicks` (packets only, nothing in the world), drawing the map pictures in `MapMarkers`, and the update check in `UpdateCheck`. Do not add an async task that reaches the world.
 
 ### Entity / Vehicle API (Paper 1.20+)
 - `entity.teleport(location)` — ejects passengers first; use this intentionally.
