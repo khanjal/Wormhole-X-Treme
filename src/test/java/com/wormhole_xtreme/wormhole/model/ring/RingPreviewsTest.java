@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -15,6 +16,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +28,15 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.plugin.PluginManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +45,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.HeldScheduler;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
@@ -397,6 +406,64 @@ class RingPreviewsTest
         assertTrue(held.delays().contains(RingPreviews.TIMEOUT_TICKS), "and a new one started");
         assertEquals(1, held.delays().stream().filter(d -> d == RingPreviews.TIMEOUT_TICKS).count(),
             "exactly one timeout is waiting");
+    }
+
+    /** Raising the stack of another end takes the first end's preview back, as lighting it does. */
+    @Test
+    void deployingAnotherEndReplacesThePreviewOfTheFirst()
+    {
+        RingPreviews.show(viewer, pair, endA);
+
+        assertEquals(RingPreview.Result.DONE, RingPreviews.deploy(viewer, pair, endB));
+
+        assertSame(endB, RingPreviews.of(viewer).getRing(), "the stack is raised at the end asked for");
+        assertEquals(RingPreview.State.DEPLOYING, RingPreviews.of(viewer).getState());
+        final int[] padA = RingAnimator.lightBlocks(endA).get(0);
+        assertSame(real, onScreen(viewer).get(padA[0] + "," + padA[1] + "," + padA[2]),
+            "end A's pad was handed back");
+    }
+
+    /** The plugin registers the listener that clears a preview on quit and on a change of world. */
+    @Test
+    void thePluginRegistersTheListener() throws Exception
+    {
+        final PluginManager manager = mock(PluginManager.class);
+        final Server server = mock(Server.class);
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getPluginManager()).thenReturn(manager);
+        // Swapped for this one: the plugin the setup installed knows no server. Removed first so
+        // that the teardown's remove() puts back what was there before the setup, not the setup's.
+        PluginTestSupport.remove();
+        PluginTestSupport.install(plugin);
+
+        WormholeXTreme.registerEvents();
+
+        final ArgumentCaptor<Listener> registered = ArgumentCaptor.forClass(Listener.class);
+        verify(manager, atLeastOnce()).registerEvents(registered.capture(), eq(plugin));
+        assertTrue(registered.getAllValues().stream().anyMatch(RingPreviewListener.class::isInstance),
+            "a RingPreviewListener among " + registered.getAllValues().size() + " registered");
+    }
+
+    /**
+     * Shutting down takes the previews back.
+     *
+     * <p>A scan of the source, since {@code onDisable} needs a whole server: the call has to be
+     * between the two markers {@code ShutdownCatchesErrorsTest} uses for the shutdown path, and
+     * the path has to be a real one or this would pass against an empty string.
+     */
+    @Test
+    void onDisableClearsTheRingPreviews() throws IOException
+    {
+        final String text = Files.readString(
+            Paths.get("src/main/java/com/wormhole_xtreme/wormhole/WormholeXTreme.java"), StandardCharsets.UTF_8);
+        final int from = text.indexOf("public void onDisable()");
+        final int to = text.indexOf("public void onEnable()");
+        assertTrue((from > 0) && (to > from), "onDisable and onEnable are where the scan expects them");
+        final String path = text.substring(from, to);
+        assertTrue(path.length() > 500, "a real shutdown path, not an empty region");
+
+        assertTrue(path.contains("RingPreviews.clearAll();"), "onDisable takes the ring previews back");
     }
 
     /** Disabling the plugin takes back every viewer's preview. */
