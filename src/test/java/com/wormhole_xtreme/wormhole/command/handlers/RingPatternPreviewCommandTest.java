@@ -227,6 +227,20 @@ class RingPatternPreviewCommandTest
         assertNull(RingPreviews.of(player));
     }
 
+    /** A pair id before the pattern is not a pattern preview: the pattern is drawn where you stand. */
+    @Test
+    void aPairIdBeforeThePatternIsUsageNotAPattern()
+    {
+        final Ring built = new Ring(300, 64, 300, RingPattern.ODD, RingOrientation.FLOOR, Material.STONE_SLAB,
+            Material.GLOWSTONE);
+        RingManager.addPair(new RingPair("aaaa0001", WORLD, built, built), 4);
+
+        assertTrue(preview("aaaa0001", "odd"));
+
+        verify(player).sendMessage(plainContains("/wormhole ring preview"));
+        assertNull(RingPreviews.of(player));
+    }
+
     /** Deploy, light and collapse work on the pattern with no ring underfoot to find. */
     @Test
     void deployLightAndCollapseWorkOnThePattern()

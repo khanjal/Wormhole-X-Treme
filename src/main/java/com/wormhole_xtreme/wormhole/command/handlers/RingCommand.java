@@ -790,9 +790,8 @@ public class RingCommand implements SubCommand
         final RingPair named = (args.length > 2) ? RingManager.getPair(args[2]) : null;
         final int stepAt = (named != null) ? 3 : 2;
         final String step = (args.length > stepAt) ? args[stepAt].toLowerCase(Locale.ROOT) : "";
-        if ((named == null) && (args.length == 3) && (ODD.equals(step) || EVEN.equals(step)))
+        if (previewedAsPattern(player, named, args.length, step))
         {
-            previewPattern(player, ODD.equals(step) ? RingPattern.ODD : RingPattern.EVEN);
             return;
         }
         // "light" alone runs the light; "light <block>" tries a block. The other fields only try.
@@ -825,6 +824,30 @@ public class RingCommand implements SubCommand
             return;
         }
         previewRing(player, named, step);
+    }
+
+    /**
+     * Draws a pattern if the command was {@code preview odd} or {@code even} and nothing more.
+     *
+     * @param player
+     *            who asked
+     * @param named
+     *            the pair named by id, or null
+     * @param words
+     *            how many words the command had
+     * @param step
+     *            the step word, lower case
+     * @return true if it was a pattern and has been dealt with
+     */
+    private static boolean previewedAsPattern(final Player player, final RingPair named, final int words,
+        final String step)
+    {
+        if ((named != null) || (words != 3) || !(ODD.equals(step) || EVEN.equals(step)))
+        {
+            return false;
+        }
+        previewPattern(player, ODD.equals(step) ? RingPattern.ODD : RingPattern.EVEN);
+        return true;
     }
 
     /**
