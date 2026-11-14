@@ -50,7 +50,7 @@ class RingUsageMessagesTest
     private static final String RING = "ring";
     private static final String QR = "qr";
     private static final String PREVIEW_FORM = "/wormhole ring preview [id] "
-        + "[deploy|light|collapse|ring <slab>|light <block>|flash <block>|style <style>|-save|-clear]";
+        + "[deploy|light|collapse|cycle|ring <slab>|light <block>|flash <block>|style <style>|-save|-clear]";
     private static final String EDIT_FORM = "/wormhole ring edit [id] <ring|light|flash|built|name|access|style|reset> [value]";
     private static final String BUILD_FORM = "/wormhole ring build <world> <x1> <y1> <z1> <x2> <y2> <z2>";
     private static final String FIRE_FORM = "/wormhole ring fire <id>|<world> <x> <y> <z>";

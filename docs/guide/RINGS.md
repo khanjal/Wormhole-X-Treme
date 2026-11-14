@@ -173,11 +173,21 @@ to see where a ring is. The other steps go on from there, whenever you run them:
 | `deploy` | Raises the stack in that end's style (`fast` or `slow`) and leaves it standing; a ceiling ring's stack drops to the floor, as it does for real |
 | `light` | Runs the transport light through the standing stack, towards the pad, in that end's `flash` material; run it again as often as you like |
 | `collapse` | Brings the rings home, nearest first, and leaves the pad lit |
+| `cycle` | Plays the whole thing end to end on this end, with the real pauses (`ring-settle-ticks`, `ring-hold-ticks`, `ring-lights-linger-ticks`), and ends with the pad lit and the stack gone |
 | `-clear` | Takes everything back at once |
 
 `light` and `collapse` act on the stack you have up, wherever you have walked to since. A step that
 makes no sense says so: `light` with no stack up, `deploy` with one already standing, anything
 while the rings are still moving.
+
+`cycle` is a trip with nobody carried: the pad lights if it is not already, the stack rises at
+`ring-deploy-ticks`, settles, the transport light runs through it once (as it does for a trip with
+passengers, though nobody goes), the stack holds, comes home, and the pad stays lit for the
+lights-linger pause. It uses the settings the real cycle uses, and any values you are trying. It
+is refused while a stack stands: `collapse` first. Any other step, `-clear`, or anything that takes a
+preview back (a real cycle starting, quitting, changing world, the pair removed, the timeout) stops
+it where it is and takes the drawing back. An edit during a cycle redraws as it does at any other
+time. The sounds play to you alone, at the points the real cycle plays them.
 
 Nothing is placed and nobody is carried. Nobody else sees any of it, the pair stays ready for
 anyone else to walk in and fire it, and no cooldown starts. A preview is refused on a pair that is

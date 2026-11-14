@@ -61,13 +61,14 @@ public class RingCommand implements SubCommand
     private static final String DEPLOY = "deploy";
     private static final String LIGHT = "light";
     private static final String COLLAPSE = "collapse";
+    private static final String CYCLE = "cycle";
     private static final String CLEAR = "-clear";
     private static final String SAVE = "-save";
     private static final String RING_FIELD = "ring";
     private static final String FLASH = "flash";
     private static final String STYLE = "style";
     private static final String PREVIEW_USAGE = "/wormhole ring preview [id] "
-        + "[deploy|light|collapse|ring <slab>|light <block>|flash <block>|style <style>|-save|-clear]";
+        + "[deploy|light|collapse|cycle|ring <slab>|light <block>|flash <block>|style <style>|-save|-clear]";
     /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
     static final int MAX_LINK_HEIGHT = 384;
     private static final String CANCEL = "/wormhole ring cancel";
@@ -789,7 +790,7 @@ public class RingCommand implements SubCommand
         // "light" alone runs the light; "light <block>" tries a block. The other fields only try.
         final boolean trial = (args.length > (stepAt + 1))
             && List.of(RING_FIELD, LIGHT, FLASH, STYLE).contains(step);
-        final boolean known = List.of("", DEPLOY, LIGHT, COLLAPSE, SAVE, CLEAR).contains(step);
+        final boolean known = List.of("", DEPLOY, LIGHT, COLLAPSE, CYCLE, SAVE, CLEAR).contains(step);
         if (!trial && (!known || (args.length > (stepAt + 1))))
         {
             player.sendMessage(ChatText.info(ChatText.usage(player, PREVIEW_USAGE)));
@@ -876,8 +877,12 @@ public class RingCommand implements SubCommand
             return;
         }
         final Ring ring = (named != null) ? nearerEnd(player, named) : endUnderfoot(player);
-        final RingPreview.Result result = DEPLOY.equals(step) ? RingPreviews.deploy(player, pair, ring)
-            : RingPreviews.show(player, pair, ring);
+        final RingPreview.Result result = switch (step)
+        {
+            case DEPLOY -> RingPreviews.deploy(player, pair, ring);
+            case CYCLE -> RingPreviews.cycle(player, pair, ring);
+            default -> RingPreviews.show(player, pair, ring);
+        };
         if (step.isEmpty() && (result == RingPreview.Result.DONE))
         {
             player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.lit", ChatText.name(pair.getId()),
@@ -1102,6 +1107,7 @@ public class RingCommand implements SubCommand
             final String line = switch (step)
             {
                 case DEPLOY -> Messages.get(player, "ring.cmd.preview.deploying");
+                case CYCLE -> Messages.get(player, "ring.cmd.preview.cycling", ChatText.command(CLEAR));
                 case LIGHT -> Messages.get(player, "ring.cmd.preview.lighting");
                 default -> Messages.get(player, "ring.cmd.preview.collapsing");
             };
@@ -1113,8 +1119,15 @@ public class RingCommand implements SubCommand
             player.sendMessage(ChatText.error(explain(player, RingPreviews.of(player).getBlockage())));
             return;
         }
+        if (result == RingPreview.Result.CYCLE_STOPPED)
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.cycle-stopped",
+                ChatText.command(DEPLOY))));
+            return;
+        }
         final String line = switch (result)
         {
+            case CYCLE_STANDING -> Messages.get(player, "ring.cmd.preview.cycle-standing", ChatText.command(COLLAPSE));
             case ALREADY_SHOWING -> Messages.get(player, "ring.cmd.preview.already");
             case ALREADY_STANDING -> Messages.get(player, "ring.cmd.preview.standing", ChatText.command(LIGHT),
                 ChatText.command(COLLAPSE), ChatText.command(CLEAR));

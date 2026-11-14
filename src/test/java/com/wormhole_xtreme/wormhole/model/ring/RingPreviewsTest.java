@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -95,6 +97,10 @@ class RingPreviewsTest
         config = mockStatic(ConfigManager.class);
         config.when(ConfigManager::getRingDeployTicks).thenReturn(Integer.valueOf(3));
         config.when(ConfigManager::getRingFlashTicks).thenReturn(Integer.valueOf(2));
+        config.when(ConfigManager::getRingSettleTicks).thenReturn(Integer.valueOf(7));
+        config.when(ConfigManager::getRingHoldTicks).thenReturn(Integer.valueOf(11));
+        config.when(ConfigManager::getRingLightsLingerTicks).thenReturn(Integer.valueOf(13));
+        config.when(ConfigManager::getRingSoundClose).thenReturn("");
         config.when(ConfigManager::getRingMaxCeilingDrop).thenReturn(Integer.valueOf(16));
         config.when(ConfigManager::getRingSoundRing).thenReturn("");
         config.when(ConfigManager::getRingSoundOpen).thenReturn("");
@@ -529,6 +535,171 @@ class RingPreviewsTest
         bukkit.when(() -> Bukkit.createBlockData(any(Material.class))).thenReturn(drawn);
         assertEquals(RingPreview.Result.DONE, RingPreviews.show(viewer, pair, endA), "and a new preview starts");
         assertNotNull(RingPreviews.of(viewer));
+    }
+
+    /** How many block changes the viewer has been sent, which is what drawing is. */
+    private int blocksSent()
+    {
+        return (int) mockingDetails(viewer).getInvocations().stream()
+            .filter(call -> "sendBlockChange".equals(call.getMethod().getName())).count();
+    }
+
+    /** Starts a cycle on end A and lets it run three steps, so it is part way through the rise. */
+    private void cycleMidway()
+    {
+        assertEquals(RingPreview.Result.DONE, RingPreviews.cycle(viewer, pair, endA));
+        for (int i = 0; i < 3; i++)
+        {
+            held.runNextOtherThan(RingPreviews.TIMEOUT_TICKS);
+        }
+        assertTrue(RingPreviews.of(viewer).isCycling());
+    }
+
+    /** What the cycle was part way through comes down, and nothing is drawn or waiting after. */
+    private void assertTheCycleStoppedCleanly()
+    {
+        assertNull(RingPreviews.of(viewer), "the preview is gone");
+        assertNothingOfTheDrawingRemains(viewer);
+        assertEquals(0, held.pending(), "neither the animation nor the timeout is left queued");
+        final int sent = blocksSent();
+        for (int index = 0; index < 5; index++)
+        {
+            held.runEvenIfCancelled(index);
+        }
+        assertEquals(sent, blocksSent(), "no frame is drawn after it stopped");
+        assertEquals(RingPhase.IDLE, pair.getPhase());
+    }
+
+    /** A cycle runs to the lit pad for the viewer alone, with the pair idle and no cooldown throughout. */
+    @Test
+    void aCycleIsDrawnForTheViewerAloneAndEndsOnTheLitPad()
+    {
+        assertEquals(RingPreview.Result.DONE, RingPreviews.cycle(viewer, pair, endA));
+        assertEquals(RingPhase.IDLE, pair.getPhase());
+
+        for (int guard = 0; RingPreviews.of(viewer).isCycling() && (guard < 1000); guard++)
+        {
+            held.runNextOtherThan(RingPreviews.TIMEOUT_TICKS);
+        }
+
+        assertFalse(RingPreviews.of(viewer).isCycling());
+        assertEquals(RingPreview.State.LIT, RingPreviews.of(viewer).getState());
+        assertFalse(onScreen(viewer).isEmpty());
+        verify(bystander, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        assertEquals(RingPhase.IDLE, pair.getPhase(), "the pair stayed willing to fire");
+        assertEquals(0L, pair.getCooldownUntil(), "and no cooldown was started");
+    }
+
+    /** A cycle is refused on a pair running for real and with a stack up, and draws nothing. */
+    @Test
+    void aCycleIsRefusedMidCycleAndWithAStackStanding()
+    {
+        pair.setPhase(RingPhase.DEPLOY);
+        assertEquals(RingPreview.Result.MID_CYCLE, RingPreviews.cycle(viewer, pair, endA));
+        assertNull(RingPreviews.of(viewer));
+        pair.setPhase(RingPhase.IDLE);
+
+        RingPreviews.deploy(viewer, pair, endA);
+        settle(RingPreview.State.DEPLOYED);
+        final int sent = blocksSent();
+
+        assertEquals(RingPreview.Result.CYCLE_STANDING, RingPreviews.cycle(viewer, pair, endA));
+
+        assertEquals(sent, blocksSent(), "nothing was drawn");
+        assertEquals(RingPreview.State.DEPLOYED, RingPreviews.of(viewer).getState(), "and the stack still stands");
+    }
+
+    /** Any other step asked while a cycle runs stops it, taking the drawing back. */
+    @Test
+    void anyOtherStepDuringACycleStopsItAndTakesTheDrawingBack()
+    {
+        final List<Supplier<RingPreview.Result>> steps = List.of(
+            () -> RingPreviews.show(viewer, pair, endA),
+            () -> RingPreviews.deploy(viewer, pair, endA),
+            () -> RingPreviews.light(viewer),
+            () -> RingPreviews.collapse(viewer));
+        for (final Supplier<RingPreview.Result> step : steps)
+        {
+            RingPreviews.clearAll();
+            cycleMidway();
+
+            assertEquals(RingPreview.Result.CYCLE_STOPPED, step.get());
+
+            assertNull(RingPreviews.of(viewer), "the preview is gone");
+            assertNothingOfTheDrawingRemains(viewer);
+            final int sent = blocksSent();
+            held.runAll();
+            assertEquals(sent, blocksSent(), "no frame is drawn after it stopped");
+        }
+    }
+
+    /** -clear mid-cycle is the same clean-up as at any other time. */
+    @Test
+    void clearingDuringACycleStopsItCleanly()
+    {
+        cycleMidway();
+
+        assertTrue(RingPreviews.clear(viewer));
+
+        assertTheCycleStoppedCleanly();
+    }
+
+    /** Quitting mid-cycle. */
+    @Test
+    void quittingDuringACycleStopsItCleanly()
+    {
+        cycleMidway();
+        final PlayerQuitEvent quit = mock(PlayerQuitEvent.class);
+        when(quit.getPlayer()).thenReturn(viewer);
+
+        new RingPreviewListener().onQuit(quit);
+
+        assertTheCycleStoppedCleanly();
+    }
+
+    /** Changing world mid-cycle. */
+    @Test
+    void changingWorldDuringACycleStopsItCleanly()
+    {
+        cycleMidway();
+        final PlayerChangedWorldEvent moved = mock(PlayerChangedWorldEvent.class);
+        when(moved.getPlayer()).thenReturn(viewer);
+
+        new RingPreviewListener().onChangedWorld(moved);
+
+        assertTheCycleStoppedCleanly();
+    }
+
+    /** The ring being removed, or a real cycle starting on the pair, mid-cycle. */
+    @Test
+    void aRealCycleStartingOrTheRingBeingRemovedStopsACycleCleanly()
+    {
+        cycleMidway();
+        RingPreviews.clearFor(pair);
+        assertTheCycleStoppedCleanly();
+
+        RingPreviews.clearAll();
+        cycleMidway();
+        RingManager.removePair(pair, 4);
+        assertNull(RingPreviews.of(viewer));
+        assertNothingOfTheDrawingRemains(viewer);
+        assertEquals(0, held.pending());
+    }
+
+    /** The timeout running out mid-cycle (a cycle can outlast it on a slow setting). */
+    @Test
+    void theTimeoutDuringACycleStopsItCleanly()
+    {
+        cycleMidway();
+        assertEquals(RingPreviews.TIMEOUT_TICKS, held.delays().get(0), "the timeout is the oldest task waiting");
+
+        held.runNext();
+
+        assertNull(RingPreviews.of(viewer));
+        assertNothingOfTheDrawingRemains(viewer);
+        final int sent = blocksSent();
+        held.runAll();
+        assertEquals(sent, blocksSent(), "no frame is drawn after the timeout");
     }
 
     /** Disabling the plugin takes back every viewer's preview. */
