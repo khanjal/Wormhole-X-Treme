@@ -790,7 +790,7 @@ public class RingCommand implements SubCommand
         final RingPair named = (args.length > 2) ? RingManager.getPair(args[2]) : null;
         final int stepAt = (named != null) ? 3 : 2;
         final String step = (args.length > stepAt) ? args[stepAt].toLowerCase(Locale.ROOT) : "";
-        if (previewedAsPattern(player, named, args.length, step))
+        if (previewedAsPattern(player, args.length, step))
         {
             return;
         }
@@ -831,18 +831,15 @@ public class RingCommand implements SubCommand
      *
      * @param player
      *            who asked
-     * @param named
-     *            the pair named by id, or null
      * @param words
      *            how many words the command had
      * @param step
      *            the step word, lower case
      * @return true if it was a pattern and has been dealt with
      */
-    private static boolean previewedAsPattern(final Player player, final RingPair named, final int words,
-        final String step)
+    private static boolean previewedAsPattern(final Player player, final int words, final String step)
     {
-        if ((named != null) || (words != 3) || !(ODD.equals(step) || EVEN.equals(step)))
+        if ((words != 3) || !(ODD.equals(step) || EVEN.equals(step)))
         {
             return false;
         }
