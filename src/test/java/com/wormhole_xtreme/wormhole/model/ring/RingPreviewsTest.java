@@ -463,7 +463,10 @@ class RingPreviewsTest
         final String path = text.substring(from, to);
         assertTrue(path.length() > 500, "a real shutdown path, not an empty region");
 
-        assertTrue(path.contains("RingPreviews.clearAll();"), "onDisable takes the ring previews back");
+        final int disable = path.indexOf("clearRingPreviews();");
+        assertTrue(disable > 0, "onDisable calls the step that takes the ring previews back");
+        assertTrue(disable < path.indexOf("private void saveRings()"), "and before the saves it must not cost");
+        assertTrue(path.contains("RingPreviews.clearAll();"), "which clears them all");
     }
 
     /** Disabling the plugin takes back every viewer's preview. */

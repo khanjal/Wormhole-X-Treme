@@ -798,16 +798,46 @@ public class RingCommand implements SubCommand
         }
         if ("light".equals(step) || "collapse".equals(step))
         {
-            // Both act on the stack already standing, wherever the player has walked to since.
-            final RingPreview standing = RingPreviews.of(player);
-            if ((standing != null) && !RingPermissions.mayManage(player, standing.getPair()))
-            {
-                player.sendMessage(ChatText.noPermission(player));
-                return;
-            }
-            tellPreview(player, "light".equals(step) ? RingPreviews.light(player) : RingPreviews.collapse(player), step);
+            previewStanding(player, step);
             return;
         }
+        previewRing(player, named, step);
+    }
+
+    /**
+     * Runs the light through, or brings home, the stack a player already has up.
+     *
+     * <p>Wherever the player has walked to since, and checked against the pair the stack is of
+     * rather than the one underfoot: it may have changed hands since it was raised.
+     *
+     * @param player
+     *            who asked
+     * @param step
+     *            {@code light} or {@code collapse}
+     */
+    private static void previewStanding(final Player player, final String step)
+    {
+        final RingPreview standing = RingPreviews.of(player);
+        if ((standing != null) && !RingPermissions.mayManage(player, standing.getPair()))
+        {
+            player.sendMessage(ChatText.noPermission(player));
+            return;
+        }
+        tellPreview(player, "light".equals(step) ? RingPreviews.light(player) : RingPreviews.collapse(player), step);
+    }
+
+    /**
+     * Lights the pad of a ring, or raises its stack.
+     *
+     * @param player
+     *            who asked
+     * @param named
+     *            the pair named by id, or null to use the ring underfoot
+     * @param step
+     *            empty to light the pad, or {@code deploy}
+     */
+    private static void previewRing(final Player player, final RingPair named, final String step)
+    {
         final RingPair pair = (named != null) ? named : standingIn(player);
         if (pair == null)
         {

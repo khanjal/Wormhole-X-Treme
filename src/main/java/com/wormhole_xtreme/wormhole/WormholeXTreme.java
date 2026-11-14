@@ -332,15 +332,7 @@ public class WormholeXTreme extends JavaPlugin
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
             }
-            // A ring preview is a stack only its viewer can see, and nothing else will take it back.
-            try
-            {
-                RingPreviews.clearAll();
-            }
-            catch (final Exception | LinkageError e)
-            {
-                prettyLog(Level.WARNING, "Failed to clear the ring previews", e);
-            }
+            clearRingPreviews();
             // restoreAll removes the views' stand-ins first, but they are real entities: try again if it threw.
             try
             {
@@ -591,6 +583,25 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception | LinkageError e)
         {
             prettyLog(Level.WARNING, "Failed to save player stats", e);
+        }
+    }
+
+    /**
+     * Takes back every ring preview, which is a stack only its viewer can see and nothing else
+     * will take down.
+     *
+     * <p>Its own method, and past Exception like the other shutdown steps: a failure here must
+     * not stop the saves below it.
+     */
+    private void clearRingPreviews()
+    {
+        try
+        {
+            RingPreviews.clearAll();
+        }
+        catch (final Exception | LinkageError e)
+        {
+            prettyLog(Level.WARNING, "Failed to clear the ring previews", e);
         }
     }
 
