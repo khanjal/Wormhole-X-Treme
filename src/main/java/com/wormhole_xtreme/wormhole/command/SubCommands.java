@@ -1176,6 +1176,31 @@ public final class SubCommands
     private static final String[] RING_FIELDS = { "ring", LIGHT, "flash", "built", "name", "access", "style", "reset" };
 
     /**
+     * Completions after {@code /wormhole ring preview}.
+     *
+     * <p>The steps, straight after the verb or after an id, which is not offered for the reason
+     * edit's are not. A field to try is followed by its value, and nothing else is followed by
+     * anything.
+     *
+     * @param args
+     *            the full argument array, {@code ring} at index 0
+     * @return the candidates
+     */
+    private static List<String> completePreview(final String[] args)
+    {
+        final String typed = args[args.length - 1];
+        final boolean valueGoesHere = (args.length > 3) && (args.length < 6)
+            && Arrays.asList(PREVIEW_TRIALS).contains(args[args.length - 2].toLowerCase(Locale.ROOT));
+        if (valueGoesHere)
+        {
+            return ringFieldValues(args[args.length - 2], typed);
+        }
+        final boolean stepGoesHere = (args.length == 3)
+            || ((args.length == 4) && !Arrays.asList(PREVIEW_STEPS).contains(args[2].toLowerCase(Locale.ROOT)));
+        return stepGoesHere ? prefixed(typed, PREVIEW_STEPS) : none();
+    }
+
+    /**
      * Completions for {@code /wormhole ring}.
      *
      * <p>{@code edit} comes in two forms — with a pair id and without — so the field can be
@@ -1204,18 +1229,7 @@ public final class SubCommands
         }
         if (PREVIEW.equalsIgnoreCase(args[1]))
         {
-            // The steps, straight after the verb or after an id, which is not offered for the
-            // reason edit's are not. A field to try is followed by its value, and nothing else
-            // is followed by anything.
-            final String typed = args[args.length - 1];
-            if ((args.length > 3) && Arrays.asList(PREVIEW_TRIALS).contains(args[args.length - 2].toLowerCase(Locale.ROOT))
-                && ((args.length == 4) || (args.length == 5)))
-            {
-                return ringFieldValues(args[args.length - 2], typed);
-            }
-            final boolean stepGoesHere = (args.length == 3)
-                || ((args.length == 4) && !Arrays.asList(PREVIEW_STEPS).contains(args[2].toLowerCase(Locale.ROOT)));
-            return stepGoesHere ? prefixed(typed, PREVIEW_STEPS) : none();
+            return completePreview(args);
         }
         if (!"edit".equalsIgnoreCase(args[1]))
         {

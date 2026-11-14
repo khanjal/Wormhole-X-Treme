@@ -806,14 +806,7 @@ public class RingCommand implements SubCommand
         }
         if (CLEAR.equals(step))
         {
-            if (RingPreviews.clear(player))
-            {
-                player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.cleared")));
-            }
-            else
-            {
-                player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.nothing")));
-            }
+            previewClear(player);
             return;
         }
         if (LIGHT.equals(step) || COLLAPSE.equals(step))
@@ -822,6 +815,24 @@ public class RingCommand implements SubCommand
             return;
         }
         previewRing(player, named, step);
+    }
+
+    /**
+     * Takes the player's preview back, trial values with it.
+     *
+     * @param player
+     *            who asked
+     */
+    private static void previewClear(final Player player)
+    {
+        if (RingPreviews.clear(player))
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.cleared")));
+        }
+        else
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.nothing")));
+        }
     }
 
     /**
