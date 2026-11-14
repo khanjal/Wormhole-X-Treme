@@ -6,10 +6,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitScheduler;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
  * Who has a ring preview standing, and the reasons it must come down (#332).
@@ -77,6 +79,52 @@ public final class RingPreviews
             return RingPreview.Result.ALREADY_SHOWING;
         }
         begin(viewer, pair, ring);
+        return RingPreview.Result.DONE;
+    }
+
+    /**
+     * Draws a ring pattern around where a player stands, for them alone, with a layout guide.
+     *
+     * <p>The ring is the one a real build there would make: the pattern's centre on the player's
+     * block, laid in the floor at their feet, in the server's default light, flash and style and
+     * the fallback slab. It was never stored and belongs to no pair, so nothing a real cycle does
+     * reaches it. Run again where the player stands it keeps the preview, with any values being
+     * tried, and judges the slabs laid since; anywhere else it replaces it.
+     *
+     * @param viewer
+     *            who is shown it
+     * @param pattern
+     *            which footprint
+     * @param probe
+     *            how to read the slabs already laid
+     * @return what happened
+     */
+    public static RingPreview.Result showPattern(final Player viewer, final RingPattern pattern,
+        final RingTemplate.BlockProbe probe)
+    {
+        if (stopCycle(viewer))
+        {
+            return RingPreview.Result.CYCLE_STOPPED;
+        }
+        final Location at = viewer.getLocation();
+        final RingPreview existing = SHOWN.get(viewer.getUniqueId());
+        touch(viewer);
+        if ((existing != null) && existing.isPattern() && (existing.getRing().getPattern() == pattern)
+            && (existing.getRing().getAnchorX() == at.getBlockX())
+            && (existing.getRing().getAnchorY() == at.getBlockY())
+            && (existing.getRing().getAnchorZ() == at.getBlockZ()))
+        {
+            existing.layout(probe);
+            return RingPreview.Result.DONE;
+        }
+        final Ring ring = new Ring(at.getBlockX(), at.getBlockY(), at.getBlockZ(), pattern,
+            RingOrientation.FLOOR, RingYamlManager.FALLBACK_MATERIAL, ConfigManager.getRingDefaultLight());
+        ring.setFlashMaterial(ConfigManager.getRingDefaultFlash());
+        ring.setStyle(ConfigManager.getRingDefaultStyle());
+        // Never registered, so no real cycle and no edit can find it: it only gives the drawing
+        // the pair it expects to ask the world about.
+        final RingPair unbuilt = new RingPair("pattern", viewer.getWorld().getName(), ring, ring);
+        begin(viewer, unbuilt, ring).layout(probe);
         return RingPreview.Result.DONE;
     }
 

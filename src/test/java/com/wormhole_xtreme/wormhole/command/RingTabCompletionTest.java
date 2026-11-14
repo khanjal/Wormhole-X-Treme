@@ -46,8 +46,10 @@ class RingTabCompletionTest
     {
         assertTrue(complete("ring", "pre").contains("preview"));
 
-        assertEquals(List.of("deploy", "light", "collapse", "cycle", "ring", "flash", "style", "-save", "-clear"),
+        assertEquals(List.of("odd", "even", "deploy", "light", "collapse", "cycle", "ring", "flash", "style", "-save", "-clear"),
             complete("ring", "preview", ""));
+        assertEquals(List.of("odd"), complete("ring", "preview", "o"));
+        assertEquals(List.of("even"), complete("ring", "preview", "e"));
         assertEquals(List.of("collapse", "cycle"), complete("ring", "preview", "c"));
         assertEquals(List.of("deploy"), complete("ring", "preview", "d"));
         assertEquals(List.of("-save", "-clear"), complete("ring", "preview", "-"));
