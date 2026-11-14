@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -537,5 +538,176 @@ class RingPreviewEditCommandTest
         assertTrue(shows(owner, Material.STONE_SLAB));
         assertFalse(shows(owner, Material.BRICK_SLAB));
         assertEquals(Material.STONE_SLAB, endA.getRingMaterial());
+    }
+
+    private RingPair otherPair()
+    {
+        final RingPair other = new RingPair("bbbb0002", WORLD, ring(400, 400), ring(600, 600));
+        other.setOwner(OWNER);
+        other.setOwnerName("Justin");
+        RingManager.addPair(other, 4);
+        return other;
+    }
+
+    private void walkTo(final Player who, final int x, final int z)
+    {
+        when(who.getLocation()).thenReturn(new Location(world, x, 65, z));
+    }
+
+    /** An edit does not take a field back from the viewer who is trying a value on it. */
+    @Test
+    void anEditDoesNotOverrideATrialOnThatField()
+    {
+        run(owner, PREVIEW, "ring", BRICK_SLAB);
+        run(owner, PREVIEW, "deploy");
+        run(second, PREVIEW, "deploy");
+        settle();
+
+        run(second, "edit", "ring", "smooth_stone_slab");
+
+        assertTrue(shows(second, Material.SMOOTH_STONE_SLAB), "the edit shows on a viewer with no trial");
+        assertTrue(shows(owner, Material.BRICK_SLAB), "the trial stays");
+        assertFalse(shows(owner, Material.SMOOTH_STONE_SLAB));
+    }
+
+    /** A slab edited while the rings rise: every later frame is in the new slab, and no old one is left. */
+    @Test
+    void anEditWhileDeployingFinishesInTheNewSlab()
+    {
+        run(owner, PREVIEW, "deploy");
+        held.runNextOtherThan(TIMEOUT);
+        clearInvocations(owner);
+
+        run(owner, "edit", "ring", BRICK_SLAB);
+        settle();
+
+        assertTrue(everSent(owner, Material.BRICK_SLAB));
+        assertFalse(everSent(owner, Material.STONE_SLAB), "no frame after the edit is in the old slab");
+        assertFalse(shows(owner, Material.STONE_SLAB));
+    }
+
+    /** The same while the light runs through the stack. */
+    @Test
+    void anEditWhileLightingFinishesInTheNewSlab()
+    {
+        run(owner, PREVIEW, "deploy");
+        settle();
+        run(owner, PREVIEW, LIGHT);
+        held.runNextOtherThan(TIMEOUT);
+        clearInvocations(owner);
+
+        run(owner, "edit", "ring", BRICK_SLAB);
+        settle();
+
+        assertTrue(everSent(owner, Material.BRICK_SLAB));
+        assertFalse(everSent(owner, Material.STONE_SLAB));
+        assertFalse(shows(owner, Material.STONE_SLAB));
+    }
+
+    /** The same while the rings come home, and the next deploy is in the new slab too. */
+    @Test
+    void anEditWhileCollapsingFinishesInTheNewSlab()
+    {
+        run(owner, PREVIEW, "deploy");
+        settle();
+        run(owner, PREVIEW, "collapse");
+        held.runNextOtherThan(TIMEOUT);
+        clearInvocations(owner);
+
+        run(owner, "edit", "ring", BRICK_SLAB);
+        settle();
+
+        assertFalse(everSent(owner, Material.STONE_SLAB), "the frames after the edit are not in the old slab");
+        assertFalse(shows(owner, Material.STONE_SLAB));
+        run(owner, PREVIEW, "deploy");
+        settle();
+        assertTrue(shows(owner, Material.BRICK_SLAB));
+        assertFalse(shows(owner, Material.STONE_SLAB));
+    }
+
+    /** The form that names a pair: it lights that pair's nearer end and tries the value on it. */
+    @Test
+    void aTrialCanNameThePairById()
+    {
+        run(owner, PREVIEW, "aaaa0001", "ring", BRICK_SLAB);
+
+        assertEquals(endA, RingPreviews.of(owner).getRing());
+        assertEquals(Material.BRICK_SLAB, RingPreviews.of(owner).getTrialRing());
+    }
+
+    /** -save with an id that is not the standing preview's pair writes nothing. */
+    @Test
+    void saveNamingAnotherPairIsRefused()
+    {
+        otherPair();
+        run(owner, PREVIEW, "ring", BRICK_SLAB);
+
+        run(owner, PREVIEW, "bbbb0002", "-save");
+
+        verify(owner).sendMessage(plainContains("You are previewing aaaa0001"));
+        assertEquals(Material.STONE_SLAB, endA.getRingMaterial());
+        assertTrue(RingPreviews.of(owner).hasTrial());
+        yaml.verify(() -> RingYamlManager.saveWorld(anyString()), never());
+    }
+
+    /** -save naming the standing preview's own pair is the same as plain -save. */
+    @Test
+    void saveNamingThePreviewsOwnPairSaves()
+    {
+        run(owner, PREVIEW, "ring", BRICK_SLAB);
+
+        run(owner, PREVIEW, "aaaa0001", "-save");
+
+        assertEquals(Material.BRICK_SLAB, endA.getRingMaterial());
+    }
+
+    /** A trial goes to the standing preview from wherever the player has walked to. */
+    @Test
+    void aTrialReachesTheStandingPreviewAfterSteppingOffThePad()
+    {
+        run(owner, PREVIEW);
+        final RingPreview standing = RingPreviews.of(owner);
+        walkTo(owner, 900, 900);
+
+        run(owner, PREVIEW, "ring", BRICK_SLAB);
+
+        assertSame(standing, RingPreviews.of(owner));
+        assertEquals(Material.BRICK_SLAB, standing.getTrialRing());
+    }
+
+    /** Being nearer another end, or standing in another ring, neither replaces the preview nor drops trials. */
+    @Test
+    void aTrialNeverReplacesThePreviewOrDropsTrialsNearAnotherEnd()
+    {
+        otherPair();
+        run(owner, PREVIEW, "ring", BRICK_SLAB);
+        final RingPreview standing = RingPreviews.of(owner);
+
+        walkTo(owner, 200, 200);
+        run(owner, PREVIEW, "flash", IRON_BLOCK);
+        walkTo(owner, 400, 400);
+        run(owner, PREVIEW, LIGHT, SEA_LANTERN);
+
+        assertSame(standing, RingPreviews.of(owner));
+        assertEquals(endA, standing.getRing());
+        assertEquals(Material.BRICK_SLAB, standing.getTrialRing(), "the earlier trial is kept");
+        assertEquals(Material.IRON_BLOCK, standing.getTrialFlash());
+        assertEquals(Material.SEA_LANTERN, standing.getTrialLight());
+    }
+
+    /** A trial naming another pair from the standing preview is refused and changes nothing. */
+    @Test
+    void aTrialNamingAnotherPairIsRefused()
+    {
+        otherPair();
+        run(owner, PREVIEW, "ring", BRICK_SLAB);
+        final RingPreview standing = RingPreviews.of(owner);
+
+        run(owner, PREVIEW, "bbbb0002", "flash", IRON_BLOCK);
+
+        verify(owner).sendMessage(plainContains("You are previewing aaaa0001"));
+        assertSame(standing, RingPreviews.of(owner));
+        assertNull(standing.getTrialFlash());
+        assertEquals(Material.BRICK_SLAB, standing.getTrialRing());
     }
 }

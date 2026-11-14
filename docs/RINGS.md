@@ -485,7 +485,7 @@ and the others). The stored `Ring` is never written: every drawing is a `copyFor
 trial values on it. The value is read by the same `slabNamed`, `lightNamed` and `styleNamed` that
 `edit` uses, so the refusals and their messages are the same, and a refused value lights nothing.
 `-save` runs each trial value through `applyEdit` on the previewed end, so persistence and the
-redraw of other viewers are `edit`'s own, then drops the trial; the preview stands on. A trial lives
+redraw of other viewers are `edit`'s own, then drops the trial; the preview stands on. A preview is of one end, so `-save` writes only that end where `edit <id>` writes both. A trial value goes to the preview the player has standing, wherever they have walked to, and an id that names another pair is refused. A trial lives
 and dies with the preview, so a real cycle starting on the pair discards it with the drawing.
 
 **Only the pair's owner or `wormhole.ring.admin` may preview a built ring**, the check `ring edit`

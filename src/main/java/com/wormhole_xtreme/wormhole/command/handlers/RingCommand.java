@@ -801,7 +801,7 @@ public class RingCommand implements SubCommand
         }
         if (SAVE.equals(step))
         {
-            previewSave(player);
+            previewSave(player, named);
             return;
         }
         if (CLEAR.equals(step))
@@ -929,56 +929,100 @@ public class RingCommand implements SubCommand
     private static void previewTrial(final Player player, final RingPair named, final String field,
         final String value)
     {
-        final RingPair pair = previewablePair(player, named);
+        final RingPreview standing = RingPreviews.of(player);
+        if (otherPair(player, standing, named))
+        {
+            return;
+        }
+        // A standing preview takes the value wherever the player has walked to since, as light,
+        // collapse and -save do; only with none standing is an end looked for and a preview begun.
+        final RingPair pair = (standing != null) ? standing.getPair() : previewablePair(player, named);
         if (pair == null)
         {
             return;
         }
-        final Material material;
-        RingStyle chosen = null;
-        if (RING_FIELD.equals(field))
+        if ((standing != null) && !RingPermissions.mayManage(player, pair))
         {
-            material = slabNamed(player, value);
+            player.sendMessage(ChatText.noPermission(player));
+            return;
         }
-        else if (STYLE.equals(field))
-        {
-            material = null;
-            chosen = styleNamed(player, value);
-        }
-        else
-        {
-            material = lightNamed(player, value);
-        }
-        final String shown;
-        if (material != null)
-        {
-            shown = ChatText.material(String.valueOf(material));
-        }
-        else if (chosen != null)
-        {
-            shown = ChatText.value(String.valueOf(chosen));
-        }
-        else
+        final Trial trial = trialNamed(player, field, value);
+        if (trial == null)
         {
             return;
         }
-        final Ring ring = (named != null) ? nearerEnd(player, named) : endUnderfoot(player);
-        final RingPreview.Result result = RingPreviews.show(player, pair, ring);
-        if ((result != RingPreview.Result.DONE) && (result != RingPreview.Result.ALREADY_SHOWING))
+        RingPreview preview = standing;
+        if (preview == null)
         {
-            tellPreview(player, result, field);
-            return;
+            final Ring ring = (named != null) ? nearerEnd(player, named) : endUnderfoot(player);
+            final RingPreview.Result result = RingPreviews.show(player, pair, ring);
+            if ((result != RingPreview.Result.DONE) && (result != RingPreview.Result.ALREADY_SHOWING))
+            {
+                tellPreview(player, result, field);
+                return;
+            }
+            preview = RingPreviews.of(player);
         }
-        final RingPreview preview = RingPreviews.of(player);
+        else
+        {
+            RingPreviews.touch(player);
+        }
         switch (field)
         {
-            case RING_FIELD -> preview.tryRingMaterial(material);
-            case LIGHT -> preview.tryLightMaterial(material);
-            case FLASH -> preview.tryFlashMaterial(material);
-            default -> preview.tryStyle(chosen);
+            case RING_FIELD -> preview.tryRingMaterial(trial.material());
+            case LIGHT -> preview.tryLightMaterial(trial.material());
+            case FLASH -> preview.tryFlashMaterial(trial.material());
+            default -> preview.tryStyle(trial.style());
         }
-        player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.trial", field, shown,
+        player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.trial", field, trial.shown(),
             ChatText.command(SAVE), ChatText.command(CLEAR))));
+    }
+
+    /** A value being tried: a material or a style, and how to show it back. */
+    private record Trial(Material material, RingStyle style, String shown) { }
+
+    /**
+     * Reads a value to try as {@code ring edit} reads it.
+     *
+     * @param player
+     *            who is told if it is refused
+     * @param field
+     *            {@code ring}, {@code light}, {@code flash} or {@code style}
+     * @param value
+     *            what they typed
+     * @return the value, or null after the refusal
+     */
+    private static Trial trialNamed(final Player player, final String field, final String value)
+    {
+        if (STYLE.equals(field))
+        {
+            final RingStyle chosen = styleNamed(player, value);
+            return (chosen == null) ? null : new Trial(null, chosen, ChatText.value(String.valueOf(chosen)));
+        }
+        final Material material = RING_FIELD.equals(field) ? slabNamed(player, value) : lightNamed(player, value);
+        return (material == null) ? null : new Trial(material, null, ChatText.material(String.valueOf(material)));
+    }
+
+    /**
+     * Refuses an id that names a different pair from the preview the player has standing.
+     *
+     * @param player
+     *            who asked
+     * @param standing
+     *            their preview, or null
+     * @param named
+     *            the pair they named, or null
+     * @return true after refusing
+     */
+    private static boolean otherPair(final Player player, final RingPreview standing, final RingPair named)
+    {
+        if ((standing == null) || (named == null) || (named == standing.getPair()))
+        {
+            return false;
+        }
+        player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.preview.other-pair",
+            ChatText.name(standing.getPair().getId()), ChatText.command(CLEAR))));
+        return true;
     }
 
     /**
@@ -988,15 +1032,23 @@ public class RingCommand implements SubCommand
      * redrawn on every viewer of the end exactly as an edit is. The permission is checked now,
      * against the pair the preview is of, as {@code light} and {@code collapse} do.
      *
+     * <p>A preview is of one end, so only that end is written, where {@code edit <id>} writes both.
+     *
      * @param player
      *            who asked
+     * @param named
+     *            the pair named by id, which must be the one the preview is of, or null
      */
-    private static void previewSave(final Player player)
+    private static void previewSave(final Player player, final RingPair named)
     {
         final RingPreview standing = RingPreviews.of(player);
         if (standing == null)
         {
             player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.nothing")));
+            return;
+        }
+        if (otherPair(player, standing, named))
+        {
             return;
         }
         final RingPair pair = standing.getPair();

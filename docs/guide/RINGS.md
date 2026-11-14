@@ -206,7 +206,7 @@ To try a value without storing it, put it on your own drawing instead:
 | `ring preview -save` | Stores everything you have tried, the way `ring edit` would |
 | `ring preview -clear` | Takes the drawing back, trial values with it |
 
-Values are checked as `ring edit` checks them, with the same messages. `deploy`, `light` and
+Values are checked as `ring edit` checks them, with the same messages. A preview is of one end, so `-save` stores only that end, where `ring edit <id>` changes both. While a preview stands, what you try goes to it wherever you have walked, and an id naming another pair is refused: `-clear` first. `deploy`, `light` and
 `collapse` use what you are trying, and the ring is stored as it was until you `-save`. Saving
 needs the same permission as `ring edit`, checked when you save. If a real cycle starts on the pair,
 your preview and what you were trying are taken back.

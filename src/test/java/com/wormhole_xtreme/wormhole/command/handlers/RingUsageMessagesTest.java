@@ -126,7 +126,7 @@ class RingUsageMessagesTest
             oldHelp("/wormhole ring list", "your pairs"),
             oldHelp("/wormhole ring remove [id]", "remove both ends"),
             oldHelp(EDIT_FORM, "change one setting"),
-            oldHelp(PREVIEW_FORM, "see a ring's pad and stack, for you alone, one step at a time, and try changes before you save them"),
+            oldHelp(PREVIEW_FORM, "see a ring's pad and stack, for you alone, one step at a time, and try changes on that end before you save them"),
             oldHelp("/wormhole ring allow|deny <player> [id]", "who may use a private pair"),
             oldHelp("/wormhole ring owner <player> [id]", "hand a pair to somebody else"),
             oldHelp(BUILD_FORM, "pair two laid circles by coordinates (admin)"),
