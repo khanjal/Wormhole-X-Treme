@@ -378,6 +378,23 @@ class RingPreviewCommandTest
         assertNull(RingPreviews.of(player));
     }
 
+    /** A step from off the pad still stops a cycle, rather than asking the player to stand in a ring. */
+    @Test
+    void aStepFromOffThePadStillStopsARunningCycle()
+    {
+        registeredPair(OWNER);
+        preview("cycle");
+        held.runNextOtherThan(TIMEOUT);
+        standAt(500, 65, 500);
+
+        preview("deploy");
+
+        verify(player).sendMessage(plainContains("The cycle stopped and the preview is taken back"));
+        verify(player, never()).sendMessage(plainContains("Stand in a ring"));
+        assertNull(RingPreviews.of(player));
+        assertEquals(0, held.pending());
+    }
+
     /** {@code cycle} is a step of the pair's owner or an admin, like the others. */
     @Test
     void cycleIsRefusedToSomebodyWhoMayNotPreviewThePair()

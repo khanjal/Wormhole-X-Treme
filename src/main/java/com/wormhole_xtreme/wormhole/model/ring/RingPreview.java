@@ -93,6 +93,9 @@ public final class RingPreview
     /** What to tell the registry when a step fails and the preview has cleared itself. */
     private Runnable whenFailed = () -> { };
 
+    /** What to tell the registry as a cycle moves on, so a long one is not timed out. */
+    private Runnable whenActive = () -> { };
+
     /** How it is drawn. */
     private final RingCycle.Surroundings world;
 
@@ -170,6 +173,17 @@ public final class RingPreview
     void setOnFailure(final Runnable whenFailed)
     {
         this.whenFailed = whenFailed;
+    }
+
+    /**
+     * Sets what happens as a cycle moves on, so the registry can start the timeout again.
+     *
+     * @param whenActive
+     *            told at each phase of a cycle and when it ends
+     */
+    void setOnProgress(final Runnable whenActive)
+    {
+        this.whenActive = whenActive;
     }
 
     /** @return who is shown this preview */
@@ -431,6 +445,7 @@ public final class RingPreview
     private void endCycle()
     {
         cycling = false;
+        whenActive.run();
     }
 
     /** @return whether a {@link #cycle()} is running, which any other step stops */
@@ -710,6 +725,10 @@ public final class RingPreview
             }
             try
             {
+                if (cycling)
+                {
+                    whenActive.run();
+                }
                 step.run();
             }
             catch (final RuntimeException e)

@@ -702,6 +702,46 @@ class RingPreviewsTest
         assertEquals(sent, blocksSent(), "no frame is drawn after the timeout");
     }
 
+    /**
+     * A cycle can outlast the timeout on a slow setting, so each phase starts the timeout again:
+     * the timeout was cancelled and booked anew once per step, and one is waiting at the end.
+     */
+    @Test
+    void aCycleStartsTheTimeoutAgainAtEveryPhaseSoItIsNotCutShort()
+    {
+        assertEquals(RingPreview.Result.DONE, RingPreviews.cycle(viewer, pair, endA));
+        int steps = 0;
+        while (RingPreviews.of(viewer).isCycling() && (steps < 1000))
+        {
+            held.runNextOtherThan(RingPreviews.TIMEOUT_TICKS);
+            steps++;
+        }
+
+        assertTrue(steps > 10, "a cycle of many steps");
+        assertNotNull(RingPreviews.of(viewer), "the preview is still there at the end of the cycle");
+        assertTrue(held.cancelled() >= steps, "the timeout was started again at each step");
+        assertEquals(List.of(RingPreviews.TIMEOUT_TICKS), held.delays(), "and only the timeout is waiting");
+    }
+
+    /** After a normal end the lit pad lives its full timeout from the end, not from the start. */
+    @Test
+    void afterACycleTheTimeoutCountsFromItsEnd()
+    {
+        RingPreviews.cycle(viewer, pair, endA);
+        while (held.delays().stream().filter(d -> d != RingPreviews.TIMEOUT_TICKS).findFirst().orElse(-1L) != 13L)
+        {
+            held.runNextOtherThan(RingPreviews.TIMEOUT_TICKS);
+        }
+        // The linger, 13 ticks here, is the last step.
+        final int before = held.cancelled();
+
+        held.runNextOtherThan(RingPreviews.TIMEOUT_TICKS);
+
+        assertFalse(RingPreviews.of(viewer).isCycling());
+        assertEquals(before + 2, held.cancelled(), "started again as the last step ran, and once more as it ended");
+        assertEquals(List.of(RingPreviews.TIMEOUT_TICKS), held.delays());
+    }
+
     /** Disabling the plugin takes back every viewer's preview. */
     @Test
     void disablingThePluginClearsEveryPreview()

@@ -310,7 +310,7 @@ public final class RingPreviews
      *            who asked for the other step
      * @return true if a cycle was running and has been stopped
      */
-    private static boolean stopCycle(final Player viewer)
+    public static boolean stopCycle(final Player viewer)
     {
         final RingPreview preview = SHOWN.get(viewer.getUniqueId());
         if ((preview == null) || !preview.isCycling())
@@ -355,6 +355,13 @@ public final class RingPreviews
             new PreviewSurroundings(viewer, viewer.getWorld(), pair));
         SHOWN.put(viewer.getUniqueId(), preview);
         preview.setOnFailure(() -> forget(viewer.getUniqueId(), preview));
+        preview.setOnProgress(() ->
+        {
+            if (SHOWN.get(viewer.getUniqueId()) == preview)
+            {
+                touch(viewer);
+            }
+        });
         touch(viewer);
         preview.show();
         return preview;

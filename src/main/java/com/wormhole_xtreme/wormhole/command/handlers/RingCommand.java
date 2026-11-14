@@ -871,6 +871,12 @@ public class RingCommand implements SubCommand
      */
     private static void previewRing(final Player player, final RingPair named, final String step)
     {
+        // Before the ring underfoot is looked for, so a step from off the pad still stops a cycle.
+        if (!CYCLE.equals(step) && RingPreviews.stopCycle(player))
+        {
+            tellPreview(player, RingPreview.Result.CYCLE_STOPPED, step);
+            return;
+        }
         final RingPair pair = previewablePair(player, named);
         if (pair == null)
         {
