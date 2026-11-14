@@ -364,6 +364,9 @@ public final class LegacyDatabaseImporter
         {
             StargateManager.addGateToNetwork(gate, networkName);
         }
+        // Older schemas have no GateShape, and an empty one means Standard, which is the default.
+        // A name no loaded shape answers to is kept, as a gate file's is, so it exports under it.
+        StargateYamlManager.applyShape(gate, column(rows, "GateShape"), gate.getGateName());
         // The same fix StargateYamlManager.loadStargates() applies to every gate it reads: an
         // exit point old enough to predate this check can sit inside the portal itself, which
         // is exactly the shape of gate these databases hold. Without this, an imported gate

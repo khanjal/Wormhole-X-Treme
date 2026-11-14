@@ -349,7 +349,7 @@ public class StargateYamlManager
      * @param gateName
      *            the gate's name, for the log line
      */
-    private static void applyShape(final Stargate s, final String shapeName, final String gateName)
+    static void applyShape(final Stargate s, final String shapeName, final String gateName)
     {
         if ((shapeName == null) || shapeName.isEmpty())
         {
