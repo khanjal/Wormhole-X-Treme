@@ -87,6 +87,8 @@ public final class SubCommands
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
     private static final String PREVIEW = "preview";
+    private static final String FLASH = "flash";
+    private static final String STYLE = "style";
     private static final String FREYA = "freya";
     private static final String CLEAR = "-clear";
 
@@ -1166,11 +1168,39 @@ public final class SubCommands
             .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    /** The steps {@code /wormhole ring preview} understands after the pad is lit. */
-    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", CLEAR };
+    /** The steps {@code /wormhole ring preview} understands, and the fields it tries a value on. */
+    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", "ring", FLASH, STYLE, "-save", CLEAR };
+
+    /** The fields {@code /wormhole ring preview} takes a value for. */
+    private static final String[] PREVIEW_TRIALS = { "ring", LIGHT, FLASH, STYLE };
 
     /** The fields {@code /wormhole ring edit} understands. */
-    private static final String[] RING_FIELDS = { "ring", LIGHT, "flash", "built", "name", "access", "style", "reset" };
+    private static final String[] RING_FIELDS = { "ring", LIGHT, FLASH, "built", "name", "access", STYLE, "reset" };
+
+    /**
+     * Completions after {@code /wormhole ring preview}.
+     *
+     * <p>The steps, straight after the verb or after an id, which is not offered for the reason
+     * edit's are not. A field to try is followed by its value, and nothing else is followed by
+     * anything.
+     *
+     * @param args
+     *            the full argument array, {@code ring} at index 0
+     * @return the candidates
+     */
+    private static List<String> completePreview(final String[] args)
+    {
+        final String typed = args[args.length - 1];
+        final boolean valueGoesHere = (args.length > 3) && (args.length < 6)
+            && Arrays.asList(PREVIEW_TRIALS).contains(args[args.length - 2].toLowerCase(Locale.ROOT));
+        if (valueGoesHere)
+        {
+            return ringFieldValues(args[args.length - 2], typed);
+        }
+        final boolean stepGoesHere = (args.length == 3)
+            || ((args.length == 4) && !Arrays.asList(PREVIEW_STEPS).contains(args[2].toLowerCase(Locale.ROOT)));
+        return stepGoesHere ? prefixed(typed, PREVIEW_STEPS) : none();
+    }
 
     /**
      * Completions for {@code /wormhole ring}.
@@ -1201,11 +1231,7 @@ public final class SubCommands
         }
         if (PREVIEW.equalsIgnoreCase(args[1]))
         {
-            // The steps, straight after the verb or after an id, which is not offered for the
-            // reason edit's are not. Nothing follows a step.
-            final boolean stepGoesHere = (args.length == 3)
-                || ((args.length == 4) && !Arrays.asList(PREVIEW_STEPS).contains(args[2].toLowerCase(Locale.ROOT)));
-            return stepGoesHere ? prefixed(args[args.length - 1], PREVIEW_STEPS) : none();
+            return completePreview(args);
         }
         if (!"edit".equalsIgnoreCase(args[1]))
         {
@@ -1542,7 +1568,7 @@ public final class SubCommands
         {
             return prefixed(typed, "public", "private");
         }
-        if ("style".equalsIgnoreCase(field))
+        if (STYLE.equalsIgnoreCase(field))
         {
             return prefixed(typed, "fast", "slow", "concurrent", "sequential");
         }
@@ -1554,7 +1580,7 @@ public final class SubCommands
             // kind of slab, just recorded rather than currently worn.
             return materialNames(typed, true);
         }
-        if (LIGHT.equalsIgnoreCase(field) || "flash".equalsIgnoreCase(field))
+        if (LIGHT.equalsIgnoreCase(field) || FLASH.equalsIgnoreCase(field))
         {
             // Solid blocks that read as glowing. Offering all several hundred blocks was a
             // list nobody could use, and most of them look wrong set into a floor.

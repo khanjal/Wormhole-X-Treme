@@ -36,6 +36,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
@@ -61,7 +62,12 @@ public class RingCommand implements SubCommand
     private static final String LIGHT = "light";
     private static final String COLLAPSE = "collapse";
     private static final String CLEAR = "-clear";
-    private static final String PREVIEW_USAGE = "/wormhole ring preview [id] [deploy|light|collapse|-clear]";
+    private static final String SAVE = "-save";
+    private static final String RING_FIELD = "ring";
+    private static final String FLASH = "flash";
+    private static final String STYLE = "style";
+    private static final String PREVIEW_USAGE = "/wormhole ring preview [id] "
+        + "[deploy|light|collapse|ring <slab>|light <block>|flash <block>|style <style>|-save|-clear]";
     /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
     static final int MAX_LINK_HEIGHT = 384;
     private static final String CANCEL = "/wormhole ring cancel";
@@ -780,22 +786,28 @@ public class RingCommand implements SubCommand
         final RingPair named = (args.length > 2) ? RingManager.getPair(args[2]) : null;
         final int stepAt = (named != null) ? 3 : 2;
         final String step = (args.length > stepAt) ? args[stepAt].toLowerCase(Locale.ROOT) : "";
-        final boolean known = List.of("", DEPLOY, LIGHT, COLLAPSE, CLEAR).contains(step);
-        if (!known || (args.length > (stepAt + 1)))
+        // "light" alone runs the light; "light <block>" tries a block. The other fields only try.
+        final boolean trial = (args.length > (stepAt + 1))
+            && List.of(RING_FIELD, LIGHT, FLASH, STYLE).contains(step);
+        final boolean known = List.of("", DEPLOY, LIGHT, COLLAPSE, SAVE, CLEAR).contains(step);
+        if (!trial && (!known || (args.length > (stepAt + 1))))
         {
             player.sendMessage(ChatText.info(ChatText.usage(player, PREVIEW_USAGE)));
             return;
         }
+        if (trial)
+        {
+            previewTrial(player, named, step, join(args, stepAt + 1));
+            return;
+        }
+        if (SAVE.equals(step))
+        {
+            previewSave(player, named);
+            return;
+        }
         if (CLEAR.equals(step))
         {
-            if (RingPreviews.clear(player))
-            {
-                player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.cleared")));
-            }
-            else
-            {
-                player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.nothing")));
-            }
+            previewClear(player);
             return;
         }
         if (LIGHT.equals(step) || COLLAPSE.equals(step))
@@ -804,6 +816,24 @@ public class RingCommand implements SubCommand
             return;
         }
         previewRing(player, named, step);
+    }
+
+    /**
+     * Takes the player's preview back, trial values with it.
+     *
+     * @param player
+     *            who asked
+     */
+    private static void previewClear(final Player player)
+    {
+        if (RingPreviews.clear(player))
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.cleared")));
+        }
+        else
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.nothing")));
+        }
     }
 
     /**
@@ -840,15 +870,9 @@ public class RingCommand implements SubCommand
      */
     private static void previewRing(final Player player, final RingPair named, final String step)
     {
-        final RingPair pair = (named != null) ? named : standingIn(player);
+        final RingPair pair = previewablePair(player, named);
         if (pair == null)
         {
-            player.sendMessage(standInOne(player));
-            return;
-        }
-        if (!RingPermissions.mayManage(player, pair))
-        {
-            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         final Ring ring = (named != null) ? nearerEnd(player, named) : endUnderfoot(player);
@@ -861,6 +885,204 @@ public class RingCommand implements SubCommand
             return;
         }
         tellPreview(player, result, step);
+    }
+
+    /**
+     * The pair a preview command acts on, if the player may preview it.
+     *
+     * @param player
+     *            who asked
+     * @param named
+     *            the pair named by id, or null to use the ring underfoot
+     * @return the pair, or null after telling the player why not
+     */
+    private static RingPair previewablePair(final Player player, final RingPair named)
+    {
+        final RingPair pair = (named != null) ? named : standingIn(player);
+        if (pair == null)
+        {
+            player.sendMessage(standInOne(player));
+            return null;
+        }
+        if (!RingPermissions.mayManage(player, pair))
+        {
+            player.sendMessage(ChatText.noPermission(player));
+            return null;
+        }
+        return pair;
+    }
+
+    /**
+     * Tries a value on the player's own drawing of a ring, without storing it (#332).
+     *
+     * <p>The value is checked as {@code ring edit} checks it, before anything is drawn, so a
+     * refused value does not light a pad. With no preview standing the pad is lit first.
+     *
+     * @param player
+     *            who asked
+     * @param named
+     *            the pair named by id, or null to use the ring underfoot
+     * @param field
+     *            {@code ring}, {@code light}, {@code flash} or {@code style}
+     * @param value
+     *            what to try
+     */
+    private static void previewTrial(final Player player, final RingPair named, final String field,
+        final String value)
+    {
+        final RingPreview standing = RingPreviews.of(player);
+        if (otherPair(player, standing, named))
+        {
+            return;
+        }
+        // A standing preview takes the value wherever the player has walked to since, as light,
+        // collapse and -save do; only with none standing is an end looked for and a preview begun.
+        final RingPair pair = (standing != null) ? standing.getPair() : previewablePair(player, named);
+        if (pair == null)
+        {
+            return;
+        }
+        if ((standing != null) && !RingPermissions.mayManage(player, pair))
+        {
+            player.sendMessage(ChatText.noPermission(player));
+            return;
+        }
+        final Trial trial = trialNamed(player, field, value);
+        if (trial == null)
+        {
+            return;
+        }
+        RingPreview preview = standing;
+        if (preview == null)
+        {
+            final Ring ring = (named != null) ? nearerEnd(player, named) : endUnderfoot(player);
+            final RingPreview.Result result = RingPreviews.show(player, pair, ring);
+            if ((result != RingPreview.Result.DONE) && (result != RingPreview.Result.ALREADY_SHOWING))
+            {
+                tellPreview(player, result, field);
+                return;
+            }
+            preview = RingPreviews.of(player);
+        }
+        else
+        {
+            RingPreviews.touch(player);
+        }
+        switch (field)
+        {
+            case RING_FIELD -> preview.tryRingMaterial(trial.material());
+            case LIGHT -> preview.tryLightMaterial(trial.material());
+            case FLASH -> preview.tryFlashMaterial(trial.material());
+            default -> preview.tryStyle(trial.style());
+        }
+        player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.trial", field, trial.shown(),
+            ChatText.command(SAVE), ChatText.command(CLEAR))));
+    }
+
+    /** A value being tried: a material or a style, and how to show it back. */
+    private record Trial(Material material, RingStyle style, String shown) { }
+
+    /**
+     * Reads a value to try as {@code ring edit} reads it.
+     *
+     * @param player
+     *            who is told if it is refused
+     * @param field
+     *            {@code ring}, {@code light}, {@code flash} or {@code style}
+     * @param value
+     *            what they typed
+     * @return the value, or null after the refusal
+     */
+    private static Trial trialNamed(final Player player, final String field, final String value)
+    {
+        if (STYLE.equals(field))
+        {
+            final RingStyle chosen = styleNamed(player, value);
+            return (chosen == null) ? null : new Trial(null, chosen, ChatText.value(String.valueOf(chosen)));
+        }
+        final Material material = RING_FIELD.equals(field) ? slabNamed(player, value) : lightNamed(player, value);
+        return (material == null) ? null : new Trial(material, null, ChatText.material(String.valueOf(material)));
+    }
+
+    /**
+     * Refuses an id that names a different pair from the preview the player has standing.
+     *
+     * @param player
+     *            who asked
+     * @param standing
+     *            their preview, or null
+     * @param named
+     *            the pair they named, or null
+     * @return true after refusing
+     */
+    private static boolean otherPair(final Player player, final RingPreview standing, final RingPair named)
+    {
+        if ((standing == null) || (named == null) || (named == standing.getPair()))
+        {
+            return false;
+        }
+        player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.preview.other-pair",
+            ChatText.name(standing.getPair().getId()), ChatText.command(CLEAR))));
+        return true;
+    }
+
+    /**
+     * Stores what the player's preview is showing, through the same path {@code ring edit} uses.
+     *
+     * <p>Each value tried goes through {@link #applyEdit}, so it is checked again, saved, and
+     * redrawn on every viewer of the end exactly as an edit is. The permission is checked now,
+     * against the pair the preview is of, as {@code light} and {@code collapse} do.
+     *
+     * <p>A preview is of one end, so only that end is written, where {@code edit <id>} writes both.
+     *
+     * @param player
+     *            who asked
+     * @param named
+     *            the pair named by id, which must be the one the preview is of, or null
+     */
+    private static void previewSave(final Player player, final RingPair named)
+    {
+        final RingPreview standing = RingPreviews.of(player);
+        if (standing == null)
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.nothing")));
+            return;
+        }
+        if (otherPair(player, standing, named))
+        {
+            return;
+        }
+        final RingPair pair = standing.getPair();
+        if (!RingPermissions.mayManage(player, pair))
+        {
+            player.sendMessage(ChatText.noPermission(player));
+            return;
+        }
+        RingPreviews.touch(player);
+        if (!standing.hasTrial())
+        {
+            player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.no-trial",
+                ChatText.command("preview ring <slab>"))));
+            return;
+        }
+        final Ring end = standing.getRing();
+        if (standing.getTrialRing() != null)
+        {
+            applyEdit(player, pair, end, RING_FIELD, standing.getTrialRing().name());
+        }
+        if (standing.getTrialLight() != null)
+        {
+            applyEdit(player, pair, end, LIGHT, standing.getTrialLight().name());
+        }
+        if (standing.getTrialFlash() != null)
+        {
+            applyEdit(player, pair, end, FLASH, standing.getTrialFlash().name());
+        }
+        if (standing.getTrialStyle() != null)
+        {
+            applyEdit(player, pair, end, STYLE, standing.getTrialStyle().name());
+        }
+        standing.discardTrial();
     }
 
     /**
@@ -946,7 +1168,7 @@ public class RingCommand implements SubCommand
     private static void applyEdit(final Player player, final RingPair pair, final Ring only,
                                      final String field, final String value)
     {
-        if ("ring".equals(field))
+        if (RING_FIELD.equals(field))
         {
             setRingMaterial(player, pair, only, value);
             return;
@@ -956,7 +1178,7 @@ public class RingCommand implements SubCommand
             setLightMaterial(player, pair, only, value, false);
             return;
         }
-        if ("flash".equals(field))
+        if (FLASH.equals(field))
         {
             setLightMaterial(player, pair, only, value, true);
             return;
@@ -981,14 +1203,14 @@ public class RingCommand implements SubCommand
             reset(player, pair, only);
             return;
         }
-        if ("style".equals(field))
+        if (STYLE.equals(field))
         {
             setStyle(player, pair, only, value);
             return;
         }
-        player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.fields", ChatText.command("ring"),
-            ChatText.command(LIGHT), ChatText.command("flash"), ChatText.command("built"), ChatText.command("name"),
-            ChatText.command("access"), ChatText.command("style"), ChatText.command(RESET))));
+        player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.fields", ChatText.command(RING_FIELD),
+            ChatText.command(LIGHT), ChatText.command(FLASH), ChatText.command("built"), ChatText.command("name"),
+            ChatText.command("access"), ChatText.command(STYLE), ChatText.command(RESET))));
     }
 
     /**
@@ -1068,11 +1290,9 @@ public class RingCommand implements SubCommand
     private static void setStyle(final Player player, final RingPair pair, final Ring only,
                                     final String value)
     {
-        final RingStyle chosen = RingStyle.parse(value);
+        final RingStyle chosen = styleNamed(player, value);
         if (chosen == null)
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.style.unknown", ChatText.command("fast"),
-                ChatText.command("slow"), ChatText.command("concurrent"), ChatText.command("sequential"))));
             return;
         }
         if (only != null)
@@ -1086,6 +1306,70 @@ public class RingCommand implements SubCommand
         }
         saved(player, pair, ChatText.info(Messages.get(player, "ring.cmd.edit.style.set",
             ChatText.value(String.valueOf(chosen)))));
+    }
+
+    /**
+     * Reads a style the way {@code ring edit style} does, which {@code ring preview style} reuses.
+     *
+     * @param player
+     *            who is told if it is not one
+     * @param value
+     *            what they typed
+     * @return the style, or null after the refusal
+     */
+    private static RingStyle styleNamed(final Player player, final String value)
+    {
+        final RingStyle chosen = RingStyle.parse(value);
+        if (chosen == null)
+        {
+            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.style.unknown", ChatText.command("fast"),
+                ChatText.command("slow"), ChatText.command("concurrent"), ChatText.command("sequential"))));
+        }
+        return chosen;
+    }
+
+    /**
+     * Reads a ring slab the way {@code ring edit ring} does, which {@code ring preview ring} reuses.
+     *
+     * @param player
+     *            who is told if it is not one
+     * @param value
+     *            what they typed
+     * @return the slab, or null after the refusal
+     */
+    private static Material slabNamed(final Player player, final String value)
+    {
+        final Material material = Material.matchMaterial(value);
+        if (!Ring.isUsableAsRing(material))
+        {
+            // Refused rather than accepted quietly: the rise is built out of slab halves,
+            // and a full block would cost the animation its half-block movement, which is
+            // the whole visual effect.
+            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.ring.not-slab")));
+            return null;
+        }
+        return material;
+    }
+
+    /**
+     * Reads a light block the way {@code ring edit light} does, which {@code ring preview light}
+     * and {@code flash} reuse.
+     *
+     * @param player
+     *            who is told if it is not one
+     * @param value
+     *            what they typed
+     * @return the block, or null after the refusal
+     */
+    private static Material lightNamed(final Player player, final String value)
+    {
+        final Material material = Material.matchMaterial(value);
+        if (!MaterialUtils.isBlockOrUnknown(material))
+        {
+            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.light.not-block", ChatText.bad(value))));
+            return null;
+        }
+        return material;
     }
 
     /**
@@ -1136,6 +1420,7 @@ public class RingCommand implements SubCommand
         player.sendMessage(ChatText.info(line));
         player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.edit.reset.untouched")));
         RingYamlManager.saveWorld(pair.getWorldName());
+        RingPreviews.refresh(pair);
     }
 
     /**
@@ -1149,13 +1434,9 @@ public class RingCommand implements SubCommand
     private static void setRingMaterial(final Player player, final RingPair pair,
         final Ring only, final String value)
     {
-        final Material material = Material.matchMaterial(value);
-        if (!Ring.isUsableAsRing(material))
+        final Material material = slabNamed(player, value);
+        if (material == null)
         {
-            // Refused rather than accepted quietly: the rise is built out of slab halves,
-            // and a full block would cost the animation its half-block movement, which is
-            // the whole visual effect.
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.ring.not-slab")));
             return;
         }
         if (only != null)
@@ -1224,10 +1505,9 @@ public class RingCommand implements SubCommand
     private static void setLightMaterial(final Player player, final RingPair pair,
         final Ring only, final String value, final boolean flash)
     {
-        final Material material = Material.matchMaterial(value);
-        if ((material == null) || !material.isBlock())
+        final Material material = lightNamed(player, value);
+        if (material == null)
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.light.not-block", ChatText.bad(value))));
             return;
         }
         for (final Ring ring : (only != null)
@@ -1482,6 +1762,7 @@ public class RingCommand implements SubCommand
     private static void saved(final Player player, final RingPair pair, final String message)
     {
         RingYamlManager.saveWorld(pair.getWorldName());
+        RingPreviews.refresh(pair);
         player.sendMessage(message);
     }
 

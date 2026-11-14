@@ -46,13 +46,16 @@ class RingTabCompletionTest
     {
         assertTrue(complete("ring", "pre").contains("preview"));
 
-        assertEquals(List.of("deploy", "light", "collapse", "-clear"), complete("ring", "preview", ""));
+        assertEquals(List.of("deploy", "light", "collapse", "ring", "flash", "style", "-save", "-clear"),
+            complete("ring", "preview", ""));
         assertEquals(List.of("deploy"), complete("ring", "preview", "d"));
-        assertEquals(List.of("-clear"), complete("ring", "preview", "-"));
+        assertEquals(List.of("-save", "-clear"), complete("ring", "preview", "-"));
+        assertEquals(List.of("-clear"), complete("ring", "preview", "-c"));
         assertEquals(List.of("collapse"), complete("ring", "preview", "aaaa0001", "co"),
             "the step after an id");
         assertTrue(complete("ring", "preview", "deploy", "").isEmpty(), "nothing follows a step");
-        assertTrue(complete("ring", "preview", "aaaa0001", "light", "").isEmpty());
+        assertTrue(complete("ring", "preview", "aaaa0001", "collapse", "").isEmpty());
+        assertTrue(complete("ring", "preview", "-save", "").isEmpty());
     }
 
     /** build and fire are offered to the console, and not to a player who may not run them. */

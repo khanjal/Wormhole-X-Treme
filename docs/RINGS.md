@@ -471,6 +471,23 @@ preview per player: lighting another end takes the first back.
 `RingSounds.openedTo`, `flashedTo` and `ringMovedTo`, so hearing `ring-sound-ring` climb is how a
 `slow` stack is told from a `fast` one.
 
+**An edit redraws, and a trial is an override held by the preview.** `RingCommand.saved` (every
+`edit`, and `reset`) calls `RingPreviews.refresh(pair)`, which calls `RingPreview.refresh()` on
+every viewer of the pair. That rebuilds the preview's copy of the end, the stored values with any
+trial values over them, and sends only what changed: a new slab swaps into a standing stack, a new
+light is drawn on the pad, a new flash is read by the next `light`, and a moving step's later
+frames use the new values. A viewer of the other end, or of a field that is not drawn, is sent
+nothing. The style is not applied to a stack that stands, which keeps the style it was raised in;
+the next `deploy` reads it.
+
+`ring preview ring|light|flash|style <value>` sets a trial value on the preview (`tryRingMaterial`
+and the others). The stored `Ring` is never written: every drawing is a `copyForDrawing` with the
+trial values on it. The value is read by the same `slabNamed`, `lightNamed` and `styleNamed` that
+`edit` uses, so the refusals and their messages are the same, and a refused value lights nothing.
+`-save` runs each trial value through `applyEdit` on the previewed end, so persistence and the
+redraw of other viewers are `edit`'s own, then drops the trial; the preview stands on. A preview is of one end, so `-save` writes only that end where `edit <id>` writes both. A trial value goes to the preview the player has standing, wherever they have walked to, and an id that names another pair is refused. A trial lives
+and dies with the preview, so a real cycle starting on the pair discards it with the drawing.
+
 **Only the pair's owner or `wormhole.ring.admin` may preview a built ring**, the check `ring edit`
 makes, since a drawing of a private link is still a look at where it is. There is no new node.
 Naming a pair by id previews whichever end is nearer the player.
