@@ -49,6 +49,7 @@ class RingUsageMessagesTest
     private static final String PAIR_ID = "aaaa0001";
     private static final String RING = "ring";
     private static final String QR = "qr";
+    private static final String PREVIEW_FORM = "/wormhole ring preview [id] [deploy|light|collapse|-clear]";
     private static final String EDIT_FORM = "/wormhole ring edit [id] <ring|light|flash|built|name|access|style|reset> [value]";
     private static final String BUILD_FORM = "/wormhole ring build <world> <x1> <y1> <z1> <x2> <y2> <z2>";
     private static final String FIRE_FORM = "/wormhole ring fire <id>|<world> <x> <y> <z>";
@@ -124,6 +125,7 @@ class RingUsageMessagesTest
             oldHelp("/wormhole ring list", "your pairs"),
             oldHelp("/wormhole ring remove [id]", "remove both ends"),
             oldHelp(EDIT_FORM, "change one setting"),
+            oldHelp(PREVIEW_FORM, "see a ring's pad and stack, for you alone, one step at a time"),
             oldHelp("/wormhole ring allow|deny <player> [id]", "who may use a private pair"),
             oldHelp("/wormhole ring owner <player> [id]", "hand a pair to somebody else"),
             oldHelp(BUILD_FORM, "pair two laid circles by coordinates (admin)"),
@@ -138,6 +140,7 @@ class RingUsageMessagesTest
             qrHelp("/wormhole ring list", "list"),
             qrHelp("/wormhole ring remove [id]", "remove"),
             qrHelp(EDIT_FORM, "edit"),
+            qrHelp(PREVIEW_FORM, "preview"),
             qrHelp("/wormhole ring allow|deny <player> [id]", "allow"),
             qrHelp("/wormhole ring owner <player> [id]", "owner"),
             qrHelp(BUILD_FORM, "build"),

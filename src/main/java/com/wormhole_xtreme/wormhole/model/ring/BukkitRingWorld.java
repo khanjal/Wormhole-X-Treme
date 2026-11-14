@@ -139,6 +139,23 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     public void showSlab(final int x, final int y, final int z, final Material material,
         final boolean top)
     {
+        send(x, y, z, slabData(material, top));
+    }
+
+    /**
+     * What a ring slab looks like, filling one half of its block.
+     *
+     * <p>Shared with the one-viewer drawing a preview makes, so the two cannot disagree about
+     * how a slab is drawn.
+     *
+     * @param material
+     *            the slab material
+     * @param top
+     *            true to fill the upper half
+     * @return the block data to send
+     */
+    static BlockData slabData(final Material material, final boolean top)
+    {
         final BlockData data = MaterialUtils.drawnAs(material);
         if (data instanceof Slab slab)
         {
@@ -147,7 +164,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         // A ring material is validated as a slab wherever one is set, so the cast above
         // should always hold. Showing it as a plain block if it somehow does not still
         // animates — just in whole blocks — which beats throwing mid-cycle.
-        send(x, y, z, data);
+        return data;
     }
 
     /* (non-Javadoc)

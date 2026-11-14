@@ -15,6 +15,7 @@ going straight down — a mine to the hall above it — is what they are for.
 - [Using rings](#using-rings)
 - [Ring settings](#ring-settings)
 - [Editing a pair](#editing-a-pair)
+- [Previewing a ring](#previewing-a-ring)
 - [Sounds](#sounds)
 
 ## Building a ring pair
@@ -158,6 +159,34 @@ blocks.
 Who may build, use and manage rings is set by the four `wormhole.ring.*` nodes in the
 [server guide](SERVER.md#permissions). Being on an allow list lets somebody travel, not recolour,
 rename, give away or delete the pair.
+
+## Previewing a ring
+
+`/wormhole ring preview [id] [step]` shows you a built ring, for you alone, without firing it.
+Stand in the ring you want, or name a pair by its id to see whichever end is nearer. The ring is
+invisible until it fires, so with no step it simply lights the pad, which is also the quickest way
+to see where a ring is. The other steps go on from there, whenever you run them:
+
+| Step | What it does |
+|---|---|
+| *(none)* | Lights the pad, as the countdown does |
+| `deploy` | Raises the stack in that end's style (`fast` or `slow`) and leaves it standing; a ceiling ring's stack drops to the floor, as it does for real |
+| `light` | Runs the transport light through the standing stack, towards the pad, in that end's `flash` material; run it again as often as you like |
+| `collapse` | Brings the rings home, nearest first, and leaves the pad lit |
+| `-clear` | Takes everything back at once |
+
+`light` and `collapse` act on the stack you have up, wherever you have walked to since. A step that
+makes no sense says so: `light` with no stack up, `deploy` with one already standing, anything
+while the rings are still moving.
+
+Nothing is placed and nobody is carried. Nobody else sees any of it, the pair stays ready for
+anyone else to walk in and fire it, and no cooldown starts. A preview is refused on a pair that is
+mid-cycle, and a real cycle starting on the pair takes it back first. It also comes down when you
+quit or change world, when the pair is removed, when the plugin is disabled, and after five minutes
+with no preview command. The ring sounds play to you alone, under the usual `ring-sound-*`
+settings.
+
+Only the pair's owner, or someone with `wormhole.ring.admin`, may preview a built ring.
 
 ## Sounds
 

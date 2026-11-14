@@ -102,6 +102,8 @@ public final class RingManager
         }
         pairs.remove(pair.getId());
         RingIndex.remove(pair, reach);
+        // Nobody should be left looking at a stack for a ring that is gone.
+        RingPreviews.clearFor(pair);
     }
 
     /**

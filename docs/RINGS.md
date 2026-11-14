@@ -24,6 +24,7 @@ same world only. The README has the four ways to travel side by side.
 - [Names, removal and reset](#names-removal-and-reset) · [Sound](#sound) · [Access](#access)
 - [Ceiling rings drop to the floor](#ceiling-rings-drop-to-the-floor)
 - [Rings are drawn, not built](#rings-are-drawn-not-built)
+- [Previews](#previews)
 - [Animation](#animation) · [What that looks like](#what-that-looks-like)
 - [The transport flash](#the-transport-flash)
 - [A ring that is no longer fit to arrive in](#a-ring-that-is-no-longer-fit-to-arrive-in)
@@ -426,6 +427,54 @@ It costs what a gate's portal costs: the drawing only exists for those it was se
 anything handing a client a fresh copy of the chunk erases it. Rings are also not solid, so
 nobody can stand on a rising ring or be shoved by one.
 
+## Previews
+
+`/wormhole ring preview` (#332) is the same drawing with the stops put in: a player sees one
+built ring light, rise, flash and fall one step at a time, instead of waiting out a countdown
+they cannot pause and a cooldown they cannot skip. It exists so that what an `edit` did can be
+looked at, and the first step, showing a built ring's pad and stack to its owner, is all that is
+built so far.
+
+**The frames are the real ones.** `RingPreview` steps through `RingAnimator.deployFrame`,
+`settledStack`, `ringAtRest`, `litRing` and `retractFrame` directly, at the server's own
+`ring-deploy-ticks` and `ring-flash-ticks`, so a preview cannot drift from a trip. It does not
+reuse `RingCycle`, which runs a *pair* start to finish and has no state to rest in; what it
+reuses is the `Surroundings` seam, with `PreviewSurroundings` behind it.
+
+**`PreviewSurroundings` sends to one player and can reach nothing else.** `BukkitRingWorld` sends
+to everyone near the pair. This sends to one viewer, and only while they are online and still in
+the ring's world, since a block sent to somebody who has changed world would be drawn over terrain
+it was never about. It finds no passengers, refuses travel and delivers nobody, so a preview can
+move no one, swap nothing, start no cooldown and fire no event. The one real read is the survey of
+a ceiling ring, because the stack has to know where its floor is; a ring with no floor in reach
+is refused as a real cycle refuses it, and any other blockage is ignored, since a drawing can pass
+through a staircase.
+
+**The states are `LIT` and `DEPLOYED`, and a step is refused rather than interrupted.** `deploy`
+leaves the stack standing, `light` runs the light through it and returns to standing, `collapse`
+brings it home and returns to lit. Each moving phase has one scheduler task pending at a time;
+a step asked for mid-phase answers `BUSY`, and one that makes no sense for the state (`light` with
+no stack, `deploy` with one up) says so. `clear` cancels the pending task before it takes the
+drawing back, and a step already queued when it ran does nothing, so a stack is never redrawn
+after it was taken away. A stack remembers the style it was raised in, so a style changed while it
+stands takes effect on the next `deploy`.
+
+**A preview and a real cycle never share a pair.** One is refused on a pair that is mid-cycle,
+and `RingTransit.start` clears every preview of its pair before it lights the pad, as
+`RingOutline` leaves a running cycle's blocks alone. A stack left standing would be a wall that only
+its viewer could see, so `RingPreviews` takes one back on quit and on a change of world
+(`RingPreviewListener`), when the pair is removed (`RingManager.removePair`), when a cycle starts,
+on plugin disable, and after a fixed five minutes that any preview command starts again. One
+preview per player: lighting another end takes the first back.
+
+**The ring sounds play to the viewer alone**, under the usual `ring-sound-*` settings, through
+`RingSounds.openedTo`, `flashedTo` and `ringMovedTo`, so hearing `ring-sound-ring` climb is how a
+`slow` stack is told from a `fast` one.
+
+**Only the pair's owner or `wormhole.ring.admin` may preview a built ring**, the check `ring edit`
+makes, since a drawing of a private link is still a look at where it is. There is no new node.
+Naming a pair by id previews whichever end is nearer the player.
+
 ## Animation
 
 ![A ring pair firing: the stack rises, the light runs through it, the rings come home](images/rings/ring-cycle.webp)
@@ -687,6 +736,10 @@ model/ring/RingPermissions.java    the four nodes
 model/ring/RingMessages.java       what a ring tells the people standing in it
 model/ring/RingSounds.java         what a ring sounds like
 model/ring/RingOutline.java        showing a refused player where the ring is
+model/ring/RingPreview.java        one end drawn for one player, paused between steps
+model/ring/RingPreviews.java       who has a preview up, and every reason it comes down
+model/ring/PreviewSurroundings.java  the one-viewer drawing a preview sends through
+model/ring/RingPreviewListener.java  quit and change of world
 events/RingTravelEvent.java        cancellable, once per travelling player
 model/ring/RingTransit.java        driving a cycle on the server clock
 model/ring/RingYamlManager.java    load and save world files

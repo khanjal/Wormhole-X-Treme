@@ -90,6 +90,7 @@ somebody else's release notes, and the record of where this fork came from.
 - **`%wormhole_stats_trips%`, `%wormhole_stats_gates_built%`, `%wormhole_stats_rings%` and `%wormhole_stats_beams%`** put those counts on any scoreboard, tab list or chat format that reads placeholders; a player with none reads `0` ([#237](https://github.com/khanjal/Wormhole-X-Treme/issues/237)).
 - **`/wormhole stats` shows your own counts, and `/wormhole stats <player>` anybody's**, online or not. Your own needs `wormhole.stats`, which everyone holds; anybody else's needs `wormhole.stats.others`, which operators hold. The console names a player ([#237](https://github.com/khanjal/Wormhole-X-Treme/issues/237)).
 - **The gate a wormhole arrives at can close it, with `destination-shutdown: true`.** Its dial lever then shuts both ends, for anyone allowed to work that lever, and players at the dialling gate are told the far end closed it, so an unwanted dial no longer runs its whole timeout. Off by default, so nothing changes until a server turns it on ([#637](https://github.com/khanjal/Wormhole-X-Treme/issues/637)).
+- **`/wormhole ring preview` shows a built ring to you alone, one step at a time**: it lights the pad, `deploy` raises the stack and leaves it standing, `light` runs the transport light through it, `collapse` brings the rings home and `-clear` takes it all back. Nobody is carried and no cooldown starts, and the pair's owner or `wormhole.ring.admin` may use it ([#332](https://github.com/khanjal/Wormhole-X-Treme/issues/332)).
 
 **Changed**
 

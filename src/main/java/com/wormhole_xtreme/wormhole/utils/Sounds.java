@@ -80,13 +80,33 @@ public final class Sounds
     public static void playTo(final Player player, final String sound, final float volume,
         final float pitch)
     {
-        if ((player == null) || (sound == null) || sound.isEmpty())
+        playTo(player, (player == null) ? null : player.getLocation(), sound, volume, pitch);
+    }
+
+    /**
+     * Plays a sound for one player, coming from a place of its own choosing, heard by them alone.
+     *
+     * @param player
+     *            who hears it
+     * @param where
+     *            where it seems to come from
+     * @param sound
+     *            the sound name; empty plays nothing
+     * @param volume
+     *            1.0 is normal; higher carries further rather than louder
+     * @param pitch
+     *            the pitch, clamped to what will play
+     */
+    public static void playTo(final Player player, final Location where, final String sound,
+        final float volume, final float pitch)
+    {
+        if ((player == null) || (where == null) || (sound == null) || sound.isEmpty())
         {
             return;
         }
         try
         {
-            player.playSound(player.getLocation(), sound, SoundCategory.BLOCKS, volume,
+            player.playSound(where, sound, SoundCategory.BLOCKS, volume,
                 clamp(pitch));
         }
         catch (final RuntimeException ignored)

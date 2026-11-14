@@ -285,6 +285,24 @@ public class Ring
         return (kept != null) ? kept : current.name();
     }
 
+    /**
+     * A copy of this end to draw and measure, so that doing either leaves this one untouched.
+     *
+     * <p>Measuring a ceiling ring records its drop on the ring, which is right for a real cycle
+     * and wrong for a preview: the stored ring must not learn anything from a drawing.
+     *
+     * @return a ring with the same place, materials, style and drop
+     */
+    Ring copyForDrawing()
+    {
+        final Ring copy = new Ring(anchorX, anchorY, anchorZ, pattern, orientation, ringMaterial, lightMaterial);
+        copy.builtMaterial = builtMaterial;
+        copy.flashMaterial = flashMaterial;
+        copy.style = style;
+        copy.drop = drop;
+        return copy;
+    }
+
     /** @return how this end's stack comes out */
     public RingStyle getStyle()
     {

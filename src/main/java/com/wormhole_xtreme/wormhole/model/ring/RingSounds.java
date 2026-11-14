@@ -92,6 +92,62 @@ public final class RingSounds
     }
 
     /**
+     * Plays the opening for one viewer, the sound a preview makes when it lights the pad.
+     *
+     * @param viewer
+     *            who hears it, and nobody else does
+     * @param ring
+     *            the end being previewed
+     */
+    public static void openedTo(final Player viewer, final Ring ring)
+    {
+        playTo(viewer, ring, ConfigManager.getRingSoundOpen(), 1.0f);
+    }
+
+    /**
+     * Plays the transport flash for one viewer.
+     *
+     * @param viewer
+     *            who hears it, and nobody else does
+     * @param ring
+     *            the end being previewed
+     */
+    public static void flashedTo(final Player viewer, final Ring ring)
+    {
+        playTo(viewer, ring, ConfigManager.getRingSoundFlash(), 1.4f);
+    }
+
+    /**
+     * {@link #ringMoved} for one end and one viewer: a ring for any of its rings that starts
+     * moving on this frame, heard by the viewer alone.
+     *
+     * @param viewer
+     *            who hears it, and nobody else does
+     * @param ring
+     *            the end being previewed
+     * @param frame
+     *            the frame just drawn
+     * @param retracting
+     *            true if the rings are going home
+     */
+    public static void ringMovedTo(final Player viewer, final Ring ring, final int frame,
+        final boolean retracting)
+    {
+        final String sound = ConfigManager.getRingSoundRing();
+        if (sound.isEmpty())
+        {
+            return;
+        }
+        for (int index = 0; index < RingAnimator.RING_COUNT; index++)
+        {
+            if (startFrame(ring, index, retracting) == frame)
+            {
+                playTo(viewer, ring, sound, pitchFor(index));
+            }
+        }
+    }
+
+    /**
      * Plays a ring for any ring that starts moving on this frame.
      *
      * <p>Once per ring rather than once per frame, and pitched by where that ring sits in the
@@ -240,6 +296,31 @@ public final class RingSounds
     {
         return new Location(null, ring.getAnchorX() + 0.5D, ring.stackBase(),
             ring.getAnchorZ() + 0.5D);
+    }
+
+    /**
+     * Plays one sound to one viewer, from the middle of a ring, under the same settings as
+     * {@link #play}.
+     *
+     * @param viewer
+     *            who hears it
+     * @param ring
+     *            where it seems to come from
+     * @param sound
+     *            the sound name; empty plays nothing
+     * @param pitch
+     *            the pitch
+     */
+    private static void playTo(final Player viewer, final Ring ring, final String sound,
+        final float pitch)
+    {
+        if (!ConfigManager.isRingSoundsEnabled())
+        {
+            return;
+        }
+        final Location at = centre(ring);
+        at.setWorld(viewer.getWorld());
+        Sounds.playTo(viewer, at, sound, ConfigManager.getRingSoundVolume(), pitch);
     }
 
     /**
