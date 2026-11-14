@@ -41,7 +41,9 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
 
 ### Java Idioms Used In This Codebase
 - **Lambdas and method references for callbacks, scheduled tasks included.** No scheduler callback
-  in `src/main` is an anonymous class: they are all lambdas or method references, as are the
+  in `src/main` is an anonymous class. Most are lambdas or method references; a task with real
+  state of its own is a named `Runnable` class (`StargateUpdateRunnable`, `BeamAnimation.Sequence`,
+  `PassengerReattach.Reattacher`). Lambdas are also used for the
   tab-completion functions in `SubCommands`, the `computeIfAbsent` suppliers and the accessor
   pairs behind `MaterialCommand.Kind`. Sonar (S1604) flags a new anonymous class where a lambda
   would do. Do not ask for a lambda to be turned into an anonymous class, and do not flag a new
@@ -56,7 +58,7 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
   ```java
   final int[] attempts = { 0 };
   final Runnable[] taskHolder = new Runnable[1];
-  taskHolder[0] = () -> { ... scheduler.runTaskLater(plugin, taskHolder[0], 1L); };
+  taskHolder[0] = () -> { ... scheduler.scheduleSyncDelayedTask(plugin, taskHolder[0], 1L); };
   ```
 - **Catch `RuntimeException`, not `Throwable`.** Bukkit/Paper can throw unchecked exceptions from
   anywhere, so guarding an API call is right; catching `Throwable` to do it is not. It swallows
@@ -89,7 +91,7 @@ WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlug
 // Immediate next-tick task
 Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), runnable, 1L);
 ```
-Anything that touches Bukkit entities, blocks or worlds runs on the main server thread. The few async tasks (`runTaskAsynchronously`) do only work that touches none of that: reading and writing window captures in `Captures`, re-sending a clicked window's blocks to one player after a short wait in `WindowClicks` (packets only, nothing in the world), drawing the map pictures in `MapMarkers`, and the update check in `UpdateCheck`. Do not add an async task that reaches the world.
+Anything that touches Bukkit entities, blocks or worlds runs on the main server thread. The few async tasks (`runTaskAsynchronously`) do only work that touches none of that: reading and writing window captures, and sifting what is visible from a captured snapshot, in `Captures`, re-sending a clicked window's blocks to one player after a short wait in `WindowClicks` (packets only, nothing in the world), drawing the map pictures in `MapMarkers`, and the update check in `UpdateCheck`. Do not add an async task that reaches the world.
 
 ### Entity / Vehicle API (Paper 1.20+)
 - `entity.teleport(location)` — ejects passengers first; use this intentionally.

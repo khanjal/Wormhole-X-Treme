@@ -1287,8 +1287,10 @@ symbol, and one was fixable in a line.
 - Import a type rather than writing its package inline (`World`, not `org.bukkit.World`). A
   package-qualified name in code is only for a clash with another type of the same simple name;
   `Map.Entry` and `ConfigManager.ConfigKeys` are fine.
-- Scheduled tasks are lambdas or method references, like any other callback: no scheduler
-  callback in `src/main` is an anonymous class any more, and Sonar (S1604) flags a new one. A
+- Scheduled tasks are lambdas or method references, like any other callback, or a named
+  `Runnable` class where the task carries real state (`StargateUpdateRunnable`,
+  `BeamAnimation.Sequence`): no scheduler callback in `src/main` is an anonymous class any more,
+  and Sonar (S1604) flags a new one. A
   task that has to reschedule itself or count its retries keeps that state in a field, or in a
   one-element array the lambda captures (`WormholeXTremeVehicleListener`'s rider re-attach holds
   itself in a `Runnable[] taskHolder` so it can schedule its own next try).
