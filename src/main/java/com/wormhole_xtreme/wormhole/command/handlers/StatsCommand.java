@@ -48,7 +48,7 @@ public class StatsCommand implements SubCommand
         }
         if (!self.hasPermission(PERMISSION))
         {
-            self.sendMessage(ChatText.error(Messages.get(self, "common.permission-no")));
+            self.sendMessage(ChatText.noPermission(self));
             return true;
         }
         show(self, self.getName(), self.getUniqueId());
@@ -67,7 +67,7 @@ public class StatsCommand implements SubCommand
     {
         if (!sender.hasPermission(OTHERS))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         final OfflinePlayer subject = CommandUtilities.findPlayer(name);

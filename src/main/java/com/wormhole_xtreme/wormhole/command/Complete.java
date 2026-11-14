@@ -125,7 +125,7 @@ public class Complete implements CommandExecutor, TabCompleter
 
         if (!WXPermissions.checkWXPermissions(player, network, PermissionType.BUILD))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (StargateManager.getStargate(name) != null)
@@ -215,7 +215,7 @@ public class Complete implements CommandExecutor, TabCompleter
         final Stargate held = StargateManager.getIncompleteStargate(player);
         if ((held != null) && !WXPermissions.checkBuildOf(player, held, network))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         completeAndCharge(player, name, idc, network,

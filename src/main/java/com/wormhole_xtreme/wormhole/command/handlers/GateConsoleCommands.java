@@ -103,7 +103,7 @@ public final class GateConsoleCommands
         if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, optionsOf(rest)[1], PermissionType.BUILD))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         final Stargate3DShape shape = (Stargate3DShape) StargateShapeRegistry.getStargateShape(rest[0]);
@@ -237,7 +237,7 @@ public final class GateConsoleCommands
         if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         if ((CommandHandlerUtils.issuer(sender) instanceof Player player) && RegionFlags.refusesUse(player, start))

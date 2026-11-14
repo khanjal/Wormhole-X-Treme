@@ -144,7 +144,7 @@ public final class GateInteractionHandler
         }
         else
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
         }
     }
 
@@ -216,7 +216,7 @@ public final class GateInteractionHandler
         if (!WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
         {
             withdrawOffer(player, newGate);
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (RegionFlags.refusesBuild(player, newGate))
@@ -419,7 +419,7 @@ public final class GateInteractionHandler
         // The name came first, with only a network to check it against; the shape is known now.
         if (!WXPermissions.checkBuildOf(player, found, pending[2]))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (RegionFlags.refusesBuild(player, found))
@@ -694,7 +694,7 @@ public final class GateInteractionHandler
         {
             final String msg = "Permission denied for sign usage: player='" + player.getName() + "' gate='" + stargate.getGateName() + "' owner='" + stargate.getGateOwner() + "'";
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, msg);
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return false;
         }
 
@@ -783,7 +783,7 @@ public final class GateInteractionHandler
                 }
                 else
                 {
-                    player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+                    player.sendMessage(ChatText.noPermission(player));
                 }
                 // Always cancel the interact event for a registered gate sign block
                 // so the sign editor never opens regardless of tryClickTeleportSign outcome.
@@ -1030,7 +1030,7 @@ public final class GateInteractionHandler
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Permission denied on nearby/gate-detection: player='" + player.getName()
                 + "' nearbyBlock='" + candidate.getLocation().toString() + "'");
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
         }
     }
 }

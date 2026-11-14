@@ -614,7 +614,7 @@ final class GateWalkThrough
             && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
                 || (!stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return true;
         }
         if (ConfigManager.isUseCooldownEnabled() && StargateRestrictions.isPlayerUseCooldown(player))

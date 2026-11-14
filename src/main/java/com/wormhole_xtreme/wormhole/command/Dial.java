@@ -47,7 +47,7 @@ public class Dial implements CommandExecutor
         }
         if ( !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         dialFrom(player, start, args);

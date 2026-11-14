@@ -174,7 +174,7 @@ public class BeamCommand implements SubCommand
         // the list, and the node is meant to cover the whole player-facing beam surface.
         if (!BeamPermissions.has(player, BeamPermissions.USE))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         final List<String> names = new ArrayList<>();
@@ -247,7 +247,7 @@ public class BeamCommand implements SubCommand
         final Player player = (Player) sender;
         if (!BeamPermissions.has(player, BeamPermissions.ADMIN))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (args.length < 4)
@@ -373,7 +373,7 @@ public class BeamCommand implements SubCommand
         final Player player = (Player) sender;
         if (!BeamPermissions.has(player, BeamPermissions.ADMIN_TELEPORT))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (args.length < 4)
@@ -407,7 +407,7 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamPermissions.has(sender, BeamPermissions.ADMIN_TELEPORT))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         if (args.length < 5)
@@ -689,7 +689,7 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamPermissions.has(player, BeamPermissions.PLACE))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (args.length < 4)

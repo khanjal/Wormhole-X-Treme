@@ -99,7 +99,7 @@ class PlayerMessageGuardTest
             collect(LINE_HELPER, file, helpers);
             collect(LINE_CONSTANT, file, constants);
         }
-        final String common = "ChatText\\.(?:info|error|status)\\("
+        final String common = "ChatText\\.(?:info|error|status|noPermission)\\("
             + alternatives(helpers, "\\(") + alternatives(constants, "\\s*+\\)")
             + "|[a-z]\\w*+\\s*+\\)";
         final List<String> offences = new ArrayList<>();

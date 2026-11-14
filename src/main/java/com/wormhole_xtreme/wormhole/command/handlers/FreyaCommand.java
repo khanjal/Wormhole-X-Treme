@@ -42,7 +42,7 @@ public class FreyaCommand implements SubCommand
         // No isOp shortcut, unlike other commands: it would stop a negated node applying to ops.
         if (!player.hasPermission(PERMISSION))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return true;
         }
 

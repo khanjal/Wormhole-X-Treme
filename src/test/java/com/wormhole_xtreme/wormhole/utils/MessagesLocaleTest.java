@@ -183,10 +183,10 @@ class MessagesLocaleTest
     void aRealAmericanClientOnPaperStillReadsEnglish() throws ReflectiveOperationException
     {
         PlayerLocales.lookupWith(new PlayerLocales.Lookup(MessagesLocaleTest.class.getMethod("american")));
-        final String english = "Compass back to normal: it points at world spawn again.";
+        final String backToNormal = "Compass back to normal: it points at world spawn again.";
 
-        assertEquals(english, Messages.get(player("en_us"), "compass.reset"));
-        assertEquals(english, Messages.get(player(null), "compass.reset"), "no raw locale to doubt Paper's");
+        assertEquals(backToNormal, Messages.get(player("en_us"), "compass.reset"));
+        assertEquals(backToNormal, Messages.get(player(null), "compass.reset"), "no raw locale to doubt Paper's");
     }
 
     /** Where Paper's method is missing or fails, Bukkit's getLocale is read instead. */

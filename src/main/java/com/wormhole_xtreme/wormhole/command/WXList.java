@@ -80,7 +80,7 @@ public class WXList implements CommandExecutor
         }
         if (!mayList(sender))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return true;
         }
         if ("top".equalsIgnoreCase(first))
@@ -142,7 +142,7 @@ public class WXList implements CommandExecutor
         }
         if (!mayList(sender) && !player.hasPermission(MINE))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         sender.sendMessage(ChatText.info(Messages.get(sender, "gate.list.mine", ChatText.heading("::"))));
@@ -160,7 +160,7 @@ public class WXList implements CommandExecutor
     {
         if (!mayList(sender) && !sender.hasPermission(OWNER))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return true;
         }
         if ((args.length < 2) || args[1].isBlank())

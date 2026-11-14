@@ -10,7 +10,6 @@ import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
-import com.wormhole_xtreme.wormhole.utils.Messages;
 
 import java.util.logging.Level;
 
@@ -78,7 +77,7 @@ public final class CommandHandlerUtils
     {
         if (!hasConfigPermission(sender))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return true;
         }
         return false;

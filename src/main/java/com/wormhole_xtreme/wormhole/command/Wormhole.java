@@ -134,7 +134,7 @@ public class Wormhole implements CommandExecutor
                     }
                     return true;
                 }
-                sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+                sender.sendMessage(ChatText.noPermission(sender));
                 return true;
             }
 

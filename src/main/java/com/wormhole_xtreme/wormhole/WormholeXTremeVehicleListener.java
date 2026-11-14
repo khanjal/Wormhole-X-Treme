@@ -959,7 +959,7 @@ class WormholeXTremeVehicleListener implements Listener
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart Player in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
         if (!mayWorkTheGate(st, p))
         {
-            p.sendMessage(ChatText.error(Messages.get(p, "common.permission-no")));
+            p.sendMessage(ChatText.noPermission(p));
             return false;
         }
         if (st.getGateTarget().isGateIrisActive())

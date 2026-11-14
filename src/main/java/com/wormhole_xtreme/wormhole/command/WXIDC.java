@@ -59,7 +59,7 @@ public class WXIDC implements CommandExecutor
         // Before the iris is described: any player can reach this command, not only its owner.
         if (!mayChangeCode(sender, s))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         if (s.isGateSignPowered() || (s.getGateIrisLeverBlock() == null))

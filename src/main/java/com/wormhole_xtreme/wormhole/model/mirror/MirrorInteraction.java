@@ -132,7 +132,7 @@ public final class MirrorInteraction
     {
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         final String before = MirrorNetwork.chosen(mirror).name();
@@ -176,7 +176,7 @@ public final class MirrorInteraction
         }
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (mirror.destination() == null)

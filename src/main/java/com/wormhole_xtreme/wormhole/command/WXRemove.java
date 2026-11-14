@@ -71,7 +71,7 @@ public class WXRemove implements CommandExecutor
         if (CommandUtilities.playerCheck(sender)
             && !WXPermissions.checkWXPermissions((Player) sender, s, PermissionType.REMOVE))
         {
-            sender.sendMessage(ChatText.error(Messages.get(sender, "common.permission-no")));
+            sender.sendMessage(ChatText.noPermission(sender));
             return true;
         }
 

@@ -64,7 +64,7 @@ public final class BeamTravel
 
         if (!BeamPermissions.has(player, BeamPermissions.USE))
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
             return true;
         }
         final Location stored = destination.toLocation();

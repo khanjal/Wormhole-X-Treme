@@ -116,7 +116,7 @@ public class Compass implements CommandExecutor
      */
     private static boolean refuse(final Player player)
     {
-        player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+        player.sendMessage(ChatText.noPermission(player));
         return true;
     }
 
@@ -143,7 +143,7 @@ public class Compass implements CommandExecutor
         }
         else
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "common.permission-no")));
+            player.sendMessage(ChatText.noPermission(player));
         }
         return true;
     }
