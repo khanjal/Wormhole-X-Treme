@@ -433,8 +433,8 @@ nobody can stand on a rising ring or be shoved by one.
 built ring light, rise, flash and fall one step at a time, instead of waiting out a countdown
 they cannot pause and a cooldown they cannot skip. It exists so that what an `edit` did can be
 looked at. A built ring can be stepped through or played whole with `cycle`, an `edit` shows on a
-standing preview, and values can be tried on it before `-save`. Previewing a pattern that has not
-been built yet (`preview odd|even`) is still to come.
+standing preview, and values can be tried on it before `-save`. `preview odd|even` previews a
+pattern that has not been built yet, with a layout guide to its slabs.
 
 **The frames are the real ones.** `RingPreview` steps through `RingAnimator.deployFrame`,
 `settledStack`, `ringAtRest`, `litRing` and `retractFrame` directly, at the server's own
@@ -503,6 +503,26 @@ and dies with the preview, so a real cycle starting on the pair discards it with
 **Only the pair's owner or `wormhole.ring.admin` may preview a built ring**, the check `ring edit`
 makes, since a drawing of a private link is still a look at where it is. There is no new node.
 Naming a pair by id previews whichever end is nearer the player.
+
+**A pattern preview is a ring that was never built.** `RingPreviews.showPattern` makes the ring a
+real build at the player's feet would make: the pattern's centre on their block (the low corner of
+the 2x2 centre for even), a floor ring in the layer they stand in, in the server's
+`ring-default-light`, `-flash` and `-style` and `RingYamlManager.FALLBACK_MATERIAL` for the slab,
+as there is no default slab setting. It sits in a throwaway `RingPair` that is never registered,
+which is what lets the drawing and every step be the built ring's own, and means nothing keyed by
+pair can find it: a ring being removed, an edit, or a real cycle starting leaves it alone. Quit,
+change of world, the timeout, `-clear` and plugin disable take it back, and replacing it with
+another preview clears it first. `wormhole.ring.build` is the permission, checked for every step
+(`RingCommand.maySteer`). `-save` is refused (`isPattern`), as there is nothing stored to write to.
+
+**The layout guide.** `RingLayout.judge` compares the pattern's slab squares with the world through
+the same `BlockProbe` the template reads rings with, counting a square as in place when it holds the
+slab being previewed (a trial slab changes it) in the half a floor ring is laid in. The squares not
+in place are drawn as that slab, so what shows is the finished circle, and the count is what tells
+a laid slab from a drawn one. A frame of the stack redraws the guide under itself, so the squares
+are still marked once the rings are home. Run `preview odd|even` again on the same square and
+`RingPreview.layout` judges the world afresh and keeps the preview and any trial values; from
+anywhere else it starts a new one.
 
 ## Animation
 
@@ -767,6 +787,7 @@ model/ring/RingSounds.java         what a ring sounds like
 model/ring/RingOutline.java        showing a refused player where the ring is
 model/ring/RingPreview.java        one end drawn for one player, paused between steps
 model/ring/RingPreviews.java       who has a preview up, and every reason it comes down
+model/ring/RingLayout.java         which of a pattern's slab squares already hold the right slab
 model/ring/PreviewSurroundings.java  the one-viewer drawing a preview sends through
 model/ring/RingPreviewListener.java  quit and change of world
 events/RingTravelEvent.java        cancellable, once per travelling player

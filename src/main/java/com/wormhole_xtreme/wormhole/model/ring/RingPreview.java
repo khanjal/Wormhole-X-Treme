@@ -141,6 +141,24 @@ public final class RingPreview
     /** True while {@link #cycle()} is carrying the preview from phase to phase on its own. */
     private boolean cycling = false;
 
+    /** True for a pattern that was never built, which has no pair to save into. */
+    private boolean pattern = false;
+
+    /** How a pattern preview reads the world for its layout guide, or null. */
+    private RingTemplate.BlockProbe layoutProbe;
+
+    /** The slab squares still to fill, drawn as the layout guide. */
+    private final Set<Long> drawnGuide = new LinkedHashSet<>();
+
+    /** The guide's squares still to fill, or empty. */
+    private List<int[]> guideSquares = List.of();
+
+    /** How many slab squares the guide counted. */
+    private int guideTotal = 0;
+
+    /** How many of them held the right slab. */
+    private int guideInPlace = 0;
+
     /**
      * Instantiates a preview of one end.
      *
@@ -184,6 +202,78 @@ public final class RingPreview
     void setOnProgress(final Runnable whenActive)
     {
         this.whenActive = whenActive;
+    }
+
+    /**
+     * Makes this the preview of a pattern that has not been built, and draws its layout guide.
+     *
+     * <p>The squares where slabs go are shown in the slab the ring would be laid in, except those
+     * that already hold it. Called again, it judges the world afresh, which is how a player who
+     * has laid some slabs sees what is left.
+     *
+     * @param probe
+     *            how to read the world
+     */
+    void layout(final RingTemplate.BlockProbe probe)
+    {
+        pattern = true;
+        layoutProbe = probe;
+        clearSet(drawnGuide);
+        // The last count stands when the pattern is not all loaded: reading it would load chunks.
+        if (patternLoaded())
+        {
+            final RingLayout judged = RingLayout.judge(ring, drawingCopy().getRingMaterial(), probe);
+            guideSquares = judged.getToPlace();
+            guideTotal = judged.getTotal();
+            guideInPlace = judged.getInPlace();
+        }
+        drawGuide();
+        if (state == State.DEPLOYED)
+        {
+            // The guide sits under a standing stack, so the stack is drawn again over it.
+            drawFrame(RingAnimator.settledStack(stack, style));
+        }
+    }
+
+    /** @return whether every chunk the pattern's slab squares are in is loaded, so reading them loads nothing */
+    private boolean patternLoaded()
+    {
+        for (final int[] square : ring.perimeterBlocks())
+        {
+            if (!viewer.getWorld().isChunkLoaded(square[0] >> 4, square[2] >> 4))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Draws the guide's marks. The stack stands over them, and the end of a collapse draws them again. */
+    private void drawGuide()
+    {
+        final Material slab = drawingCopy().getRingMaterial();
+        for (final int[] square : guideSquares)
+        {
+            draw(drawnGuide, square, slab, true, ring.getOrientation() != RingOrientation.FLOOR);
+        }
+    }
+
+    /** @return whether this previews a pattern that was never built, so there is nothing to save into */
+    public boolean isPattern()
+    {
+        return pattern;
+    }
+
+    /** @return how many slab squares the pattern has, or 0 for a built ring */
+    public int getGuideTotal()
+    {
+        return guideTotal;
+    }
+
+    /** @return how many of the pattern's slab squares already hold the right slab */
+    public int getGuideInPlace()
+    {
+        return guideInPlace;
     }
 
     /** @return who is shown this preview */
@@ -293,7 +383,11 @@ public final class RingPreview
         if (now.getRingMaterial() != stack.getRingMaterial())
         {
             stack.setRingMaterial(now.getRingMaterial());
-            if (state == State.DEPLOYED)
+            if (layoutProbe != null)
+            {
+                layout(layoutProbe);
+            }
+            else if (state == State.DEPLOYED)
             {
                 drawFrame(RingAnimator.settledStack(stack, style));
             }
@@ -549,6 +643,7 @@ public final class RingPreview
         cancelPending();
         clearSet(drawnRings);
         clearSet(drawnLights);
+        clearSet(drawnGuide);
     }
 
     /** @return whether a step is moving, which no other step may interrupt */
@@ -614,6 +709,7 @@ public final class RingPreview
             if (frame >= RingAnimator.deployFrames(stack, style))
             {
                 clearSet(drawnRings);
+                drawGuide();
                 state = State.LIT;
                 if (cycling)
                 {

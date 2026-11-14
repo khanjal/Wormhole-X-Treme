@@ -221,6 +221,23 @@ Values are checked as `ring edit` checks them, with the same messages. A preview
 needs the same permission as `ring edit`, checked when you save. If a real cycle starts on the pair,
 your preview and what you were trying are taken back.
 
+### Previewing a ring you have not built yet
+
+`/wormhole ring preview odd` or `even` draws the seven-across or six-across pattern where you stand,
+for you alone, before a single slab is laid. It is drawn as a floor ring in the layer you are
+standing in, in the server's default light, flash and style (`ring-default-light`, `-flash`,
+`-style`) and a smooth stone slab. Nothing is placed and nothing is stored.
+
+It is also a layout guide. The squares where the slabs go are marked, and the message tells you how
+many already hold the right slab, for example `3 of 16 slabs in place` (12 for even). Lay some, then
+run the same command where you stand to count them again.
+
+`deploy`, `light`, `collapse`, `cycle` and `-clear` work on it as on a built ring, and so do
+`ring preview ring|light|flash|style <value>`. `-save` is refused, as there is no ring to save into:
+lay the slabs and run `/wormhole ring create`. Anyone with `wormhole.ring.build` may preview a
+pattern. It is taken back when you quit, change world, leave it for five minutes, run `-clear`, or
+preview something else.
+
 ## Sounds
 
 General rules — naming, volume, `none` — are in [Sounds](SERVER.md#sounds).

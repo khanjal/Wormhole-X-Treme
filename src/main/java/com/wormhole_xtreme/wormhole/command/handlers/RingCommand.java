@@ -28,6 +28,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
 import com.wormhole_xtreme.wormhole.model.ring.RingOrientation;
+import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
 import com.wormhole_xtreme.wormhole.model.ring.RingPreview;
 import com.wormhole_xtreme.wormhole.model.ring.RingPreviews;
@@ -67,8 +68,10 @@ public class RingCommand implements SubCommand
     private static final String RING_FIELD = "ring";
     private static final String FLASH = "flash";
     private static final String STYLE = "style";
+    private static final String ODD = "odd";
+    private static final String EVEN = "even";
     private static final String PREVIEW_USAGE = "/wormhole ring preview [id] "
-        + "[deploy|light|collapse|cycle|ring <slab>|light <block>|flash <block>|style <style>|-save|-clear]";
+        + "[odd|even|deploy|light|collapse|cycle|ring <slab>|light <block>|flash <block>|style <style>|-save|-clear]";
     /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
     static final int MAX_LINK_HEIGHT = 384;
     private static final String CANCEL = "/wormhole ring cancel";
@@ -787,6 +790,10 @@ public class RingCommand implements SubCommand
         final RingPair named = (args.length > 2) ? RingManager.getPair(args[2]) : null;
         final int stepAt = (named != null) ? 3 : 2;
         final String step = (args.length > stepAt) ? args[stepAt].toLowerCase(Locale.ROOT) : "";
+        if (previewedAsPattern(player, args.length, step))
+        {
+            return;
+        }
         // "light" alone runs the light; "light <block>" tries a block. The other fields only try.
         final boolean trial = (args.length > (stepAt + 1))
             && List.of(RING_FIELD, LIGHT, FLASH, STYLE).contains(step);
@@ -817,6 +824,75 @@ public class RingCommand implements SubCommand
             return;
         }
         previewRing(player, named, step);
+    }
+
+    /**
+     * Draws a pattern if the command was {@code preview odd} or {@code even} and nothing more.
+     *
+     * @param player
+     *            who asked
+     * @param words
+     *            how many words the command had
+     * @param step
+     *            the step word, lower case
+     * @return true if it was a pattern and has been dealt with
+     */
+    private static boolean previewedAsPattern(final Player player, final int words, final String step)
+    {
+        if ((words != 3) || !(ODD.equals(step) || EVEN.equals(step)))
+        {
+            return false;
+        }
+        previewPattern(player, ODD.equals(step) ? RingPattern.ODD : RingPattern.EVEN);
+        return true;
+    }
+
+    /**
+     * Draws a ring pattern where the player stands, for them alone, with a guide to the slabs.
+     *
+     * <p>Anyone who may build a ring may, as there is no pair yet to own it. The slabs already
+     * laid are counted, so the player sees how much of the circle is left.
+     *
+     * @param player
+     *            who asked
+     * @param pattern
+     *            the footprint to draw
+     */
+    private static void previewPattern(final Player player, final RingPattern pattern)
+    {
+        if (!RingPermissions.has(player, RingPermissions.BUILD))
+        {
+            player.sendMessage(ChatText.noPermission(player));
+            return;
+        }
+        final RingPreview.Result result = RingPreviews.showPattern(player, pattern,
+            new BukkitBlockProbe(player.getWorld()));
+        if (result != RingPreview.Result.DONE)
+        {
+            tellPreview(player, result, "");
+            return;
+        }
+        final RingPreview shown = RingPreviews.of(player);
+        player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.pattern",
+            ChatText.value(pattern.name().toLowerCase(Locale.ROOT)), shown.getGuideInPlace(),
+            shown.getGuideTotal(), ChatText.command(DEPLOY), ChatText.command(CLEAR))));
+    }
+
+    /**
+     * Whether a player may steer a preview they have standing: whoever could edit the pair for a
+     * built ring, and whoever could build a ring for a pattern, which has no pair.
+     *
+     * @param player
+     *            who asked
+     * @param standing
+     *            their preview
+     * @return true if they may
+     */
+    private static boolean maySteer(final Player player, final RingPreview standing)
+    {
+        return standing.isPattern()
+            ? RingPermissions.has(player, RingPermissions.BUILD)
+            : RingPermissions.mayManage(player, standing.getPair());
     }
 
     /**
@@ -851,7 +927,7 @@ public class RingCommand implements SubCommand
     private static void previewStanding(final Player player, final String step)
     {
         final RingPreview standing = RingPreviews.of(player);
-        if ((standing != null) && !RingPermissions.mayManage(player, standing.getPair()))
+        if ((standing != null) && !maySteer(player, standing))
         {
             player.sendMessage(ChatText.noPermission(player));
             return;
@@ -877,6 +953,13 @@ public class RingCommand implements SubCommand
             tellPreview(player, RingPreview.Result.CYCLE_STOPPED, step);
             return;
         }
+        final RingPreview standing = RingPreviews.of(player);
+        if ((named == null) && (standing != null) && standing.isPattern()
+            && (DEPLOY.equals(step) || CYCLE.equals(step)))
+        {
+            previewOnPattern(player, standing, step);
+            return;
+        }
         final RingPair pair = previewablePair(player, named);
         if (pair == null)
         {
@@ -895,6 +978,29 @@ public class RingCommand implements SubCommand
                 ChatText.command(DEPLOY), ChatText.command(CLEAR))));
             return;
         }
+        tellPreview(player, result, step);
+    }
+
+    /**
+     * Raises, or plays a whole cycle on, the pattern a player has standing, wherever they are.
+     *
+     * @param player
+     *            who asked
+     * @param standing
+     *            their pattern preview
+     * @param step
+     *            {@code deploy} or {@code cycle}
+     */
+    private static void previewOnPattern(final Player player, final RingPreview standing, final String step)
+    {
+        if (!maySteer(player, standing))
+        {
+            player.sendMessage(ChatText.noPermission(player));
+            return;
+        }
+        final RingPreview.Result result = DEPLOY.equals(step)
+            ? RingPreviews.deploy(player, standing.getPair(), standing.getRing())
+            : RingPreviews.cycle(player, standing.getPair(), standing.getRing());
         tellPreview(player, result, step);
     }
 
@@ -953,7 +1059,7 @@ public class RingCommand implements SubCommand
         {
             return;
         }
-        if ((standing != null) && !RingPermissions.mayManage(player, pair))
+        if ((standing != null) && !maySteer(player, standing))
         {
             player.sendMessage(ChatText.noPermission(player));
             return;
@@ -1057,6 +1163,12 @@ public class RingCommand implements SubCommand
         if (standing == null)
         {
             player.sendMessage(ChatText.info(Messages.get(player, "ring.cmd.preview.nothing")));
+            return;
+        }
+        if (standing.isPattern())
+        {
+            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.preview.pattern-save",
+                ChatText.command("create"), ChatText.command(CLEAR))));
             return;
         }
         if (otherPair(player, standing, named))
