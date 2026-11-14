@@ -394,6 +394,21 @@ class RingPatternPreviewTest
         assertSame(real, onScreen(viewer).get(key(X, Y, Z - 2)), "the first spot is taken back");
     }
 
+    /** One square along z, or one up, is another place: the preview moves with the player. */
+    @Test
+    void runAgainOneSquareAlongZOrOneUpMovesIt()
+    {
+        RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+
+        when(viewer.getLocation()).thenReturn(new Location(world, X + 0.5, Y, Z + 1.5));
+        RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+        assertEquals(Z + 1, RingPreviews.of(viewer).getRing().getAnchorZ());
+
+        when(viewer.getLocation()).thenReturn(new Location(world, X + 0.5, Y + 1, Z + 1.5));
+        RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+        assertEquals(Y + 1, RingPreviews.of(viewer).getRing().getAnchorY());
+    }
+
     /** A trial slab judges the squares against that slab, and the guide follows it. */
     @Test
     void aTrialSlabIsWhatTheGuideJudgesAgainst()
