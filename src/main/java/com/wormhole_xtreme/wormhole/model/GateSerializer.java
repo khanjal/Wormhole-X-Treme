@@ -123,7 +123,12 @@ public final class GateSerializer
      */
     private static int customMaterialSize(final Material material, final boolean byName)
     {
-        return byName ? 4 + (material == null ? 0 : material.name().getBytes(StandardCharsets.UTF_8).length) : 4;
+        if (!byName)
+        {
+            return 4;
+        }
+        final int nameLength = (material == null) ? 0 : material.name().getBytes(StandardCharsets.UTF_8).length;
+        return 4 + nameLength;
     }
 
     public static Stargate parseVersionedData(final byte[] gateData, final World w, final String name, final StargateNetwork network)

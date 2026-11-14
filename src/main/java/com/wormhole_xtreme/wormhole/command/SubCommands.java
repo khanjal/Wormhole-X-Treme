@@ -75,6 +75,7 @@ public final class SubCommands
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String BUILD = "build";
+    private static final String EXPORT = "export";
 
     /** The verb that makes a thing: a gate's alias for complete, a ring end, a mirror. */
     private static final String CREATE = "create";
@@ -283,7 +284,7 @@ public final class SubCommands
                 ? playerNames(args[1]) : none());
 
         // Checks wormhole.export itself, so the console and an op without wormhole.config may run it.
-        register("export", aliases(), "/wormhole export sqlite", new ExportCommand(), false, (sender, args) ->
+        register(EXPORT, aliases(), "/wormhole export sqlite", new ExportCommand(), false, (sender, args) ->
             args.length == 2 ? prefixed(args[1], "sqlite") : none());
 
         // --- Per-gate settings ----------------------------------------------
@@ -442,10 +443,10 @@ public final class SubCommands
         hide("list", BUILD, COMPLETE, REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
-            "cooldown", "restrict", "export", FREYA);
+            "cooldown", "restrict", EXPORT, FREYA);
 
         // idc admits the gate's owner as well as wormhole.config, and checks both itself.
-        selfPermissioned("beam", "ring", "go", "list", "compass", "stats", "idc", "export", FREYA);
+        selfPermissioned("beam", "ring", "go", "list", "compass", "stats", "idc", EXPORT, FREYA);
         // gate stays admin-only, except build and preview for whoever may preview -- Build checks
         // the node itself -- and edit <gate> idc, for the same reason idc is self-permissioned.
         BY_NAME.get("gate").admitsWithoutConfig = (sender, args) -> Build.admitsWithoutConfig(sender, args)

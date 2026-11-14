@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -186,7 +187,7 @@ public final class LegacyDatabaseExporter
     /** A folder named for the moment, and never one that is already there. */
     private static File newFolder()
     {
-        final String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        final String stamp = LocalDateTime.now(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         File folder = new File(DataLayout.exports(), stamp);
         for (int attempt = 2; folder.exists(); attempt++)
         {
@@ -212,55 +213,89 @@ public final class LegacyDatabaseExporter
                 + " Owner VARCHAR(255), GateShape VARCHAR(255) DEFAULT '',"
                 + " Message VARCHAR(1024) DEFAULT '', VisitCount INTEGER DEFAULT 0)");
             // One row per schema step, as a database that grew up through them holds.
+        }
+        try (PreparedStatement versions = db.prepareStatement("INSERT INTO VersionInfo (Version) VALUES (?)"))
+        {
             for (int version = 1; version <= SCHEMA_VERSION; version++)
             {
-                ddl.executeUpdate("INSERT INTO VersionInfo (Version) VALUES (" + version + ")");
+                versions.setInt(1, version);
+                versions.addBatch();
             }
+            versions.executeBatch();
+        }
+    }
+
+    /** Hands out the ids: a gate's own where it has a usable one, else the lowest free, in the order asked. */
+    private static final class Ids
+    {
+        private final Set<Long> taken = new HashSet<>();
+        private final Set<Long> assigned = new HashSet<>();
+        private long next = 1;
+
+        Ids(final List<Stargate> gates)
+        {
+            gates.forEach(gate -> taken.add(gate.getGateId()));
+        }
+
+        long assign(final long own)
+        {
+            if ((own > 0) && assigned.add(own))
+            {
+                return own;
+            }
+            while (taken.contains(next) || assigned.contains(next))
+            {
+                next++;
+            }
+            assigned.add(next);
+            return next;
         }
     }
 
     private static void writeGates(final Connection db, final List<Stargate> gates, final Result result)
         throws SQLException
     {
-        final Set<Long> usedIds = new HashSet<>();
-        gates.forEach(gate -> usedIds.add(gate.getGateId()));
-        long nextId = 1;
-        final Set<Long> assigned = new HashSet<>();
+        final Ids ids = new Ids(gates);
         try (PreparedStatement insert = db.prepareStatement("INSERT INTO Stargates (Id, Name, GateData,"
             + " Network, World, WorldName, WorldEnvironment, Owner, GateShape, VisitCount)"
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)"))
         {
             for (final Stargate gate : gates)
             {
-                final String shape = canonicalShape(gate.getGateShapeName());
-                final String refusal = whyNotExportable(gate, shape);
-                if (refusal != null)
+                if (addRow(insert, gate, ids, result))
                 {
-                    result.skipped.add(gate.getGateName() + ": " + refusal);
-                    continue;
+                    result.exported++;
+                    countDropped(gate, ownerName(gate), result.dropped);
                 }
-                final byte[] data = GateSerializer.stargateToLegacyBinary(gate);
-                if (data == null)
-                {
-                    result.skipped.add(gate.getGateName() + ": its gate data could not be encoded");
-                    continue;
-                }
-                long id = gate.getGateId();
-                if ((id <= 0) || !assigned.add(id))
-                {
-                    while (usedIds.contains(nextId) || assigned.contains(nextId))
-                    {
-                        nextId++;
-                    }
-                    id = nextId;
-                    assigned.add(id);
-                }
-                bind(insert, id, gate, data, shape);
-                insert.executeUpdate();
-                result.exported++;
-                countDropped(gate, ownerName(gate), result.dropped);
             }
+            insert.executeBatch();
         }
+    }
+
+    /**
+     * Queues one gate's row, or says why it cannot be.
+     *
+     * @return true if the gate was queued
+     */
+    private static boolean addRow(final PreparedStatement insert, final Stargate gate, final Ids ids,
+        final Result result) throws SQLException
+    {
+        final String shape = canonicalShape(gate.getGateShapeName());
+        final String refusal = whyNotExportable(gate, shape);
+        if (refusal != null)
+        {
+            result.skipped.add(gate.getGateName() + ": " + refusal);
+            return false;
+        }
+        final byte[] data = GateSerializer.stargateToLegacyBinary(gate);
+        if (data == null)
+        {
+            result.skipped.add(gate.getGateName() + ": its gate data could not be encoded");
+            return false;
+        }
+        bind(insert, ids.assign(gate.getGateId()), gate, data, shape);
+        insert.addBatch();
+        return true;
     }
 
     private static void bind(final PreparedStatement insert, final long id, final Stargate gate,
