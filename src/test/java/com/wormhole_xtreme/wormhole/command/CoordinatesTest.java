@@ -96,6 +96,24 @@ class CoordinatesTest
             Coordinates.whyNotReadable(commandBlockAt(here, 0, 0, 0), named, "~", "~", "~"));
     }
 
+    /** A player reads why a tilde is refused in their own language, naming both worlds. */
+    @Test
+    void aTildeRefusalReadsInThePlayersLanguage()
+    {
+        final World here = mock(World.class);
+        when(here.getName()).thenReturn("world_nether");
+        final World named = mock(World.class);
+        when(named.getName()).thenReturn("world");
+        final Player player = mock(Player.class);
+        when(player.getLocation()).thenReturn(new Location(here, 0, 0, 0));
+        when(player.getLocale()).thenReturn("qq");
+
+        assertEquals("QQ tilde in world_nether not world", Coordinates.whyNotReadable(player, named, "~", "~", "~"));
+
+        when(player.getLocation()).thenReturn(new Location(null, 0, 0, 0));
+        assertEquals("QQ tilde in no world not world", Coordinates.whyNotReadable(player, named, "~", "~", "~"));
+    }
+
     /** A place with no world cannot be said to be in the one named, so ~ from it is refused. */
     @Test
     void aTildeFromAPlaceWithNoWorldIsRefused()

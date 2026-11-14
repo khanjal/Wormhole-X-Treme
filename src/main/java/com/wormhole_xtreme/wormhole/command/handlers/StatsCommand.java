@@ -8,7 +8,6 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
@@ -49,7 +48,7 @@ public class StatsCommand implements SubCommand
         }
         if (!self.hasPermission(PERMISSION))
         {
-            self.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            self.sendMessage(ChatText.noPermission(self));
             return true;
         }
         show(self, self.getName(), self.getUniqueId());
@@ -68,7 +67,7 @@ public class StatsCommand implements SubCommand
     {
         if (!sender.hasPermission(OTHERS))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         final OfflinePlayer subject = CommandUtilities.findPlayer(name);

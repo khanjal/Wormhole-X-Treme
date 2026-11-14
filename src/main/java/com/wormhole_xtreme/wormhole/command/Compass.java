@@ -11,7 +11,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -117,7 +116,7 @@ public class Compass implements CommandExecutor
      */
     private static boolean refuse(final Player player)
     {
-        player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        player.sendMessage(ChatText.noPermission(player));
         return true;
     }
 
@@ -144,7 +143,7 @@ public class Compass implements CommandExecutor
         }
         else
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
         }
         return true;
     }

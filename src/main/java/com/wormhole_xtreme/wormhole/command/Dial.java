@@ -9,7 +9,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
@@ -43,12 +42,12 @@ public class Dial implements CommandExecutor
         final Stargate start = StargateManager.removeActivatedStargate(player);
         if (start == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.GATE_NOT_ACTIVE.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.gate-not-active")));
             return;
         }
         if ( !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         dialFrom(player, start, args);
@@ -71,7 +70,7 @@ public class Dial implements CommandExecutor
         if (start.getGateName().equals(args[0]))
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.TARGET_IS_SELF.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.target-self")));
             return;
         }
         final Stargate target = StargateManager.getStargate(args[0]);
@@ -93,7 +92,7 @@ public class Dial implements CommandExecutor
         if (StargateRestrictions.isCrossWorldRefused(start.getGateWorld(), target.getGateWorld()))
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.cross-world-disabled")));
             return;
         }
         if (start.isGateIrisActive())
@@ -110,7 +109,7 @@ public class Dial implements CommandExecutor
 
         if (start.dialStargate(target, false))
         {
-            player.sendMessage(ConfigManager.MessageStrings.GATE_CONNECTED.toString());
+            player.sendMessage(ChatText.info(Messages.get(player, "common.gate-connected")));
             return;
         }
         recoverFailedDial(player, start, target);
@@ -146,7 +145,7 @@ public class Dial implements CommandExecutor
         {
             CommandUtilities.closeGate(start, false);
             CommandUtilities.restoreIrisDefault(target);
-            player.sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.target-active")));
             return;
         }
 
@@ -155,13 +154,13 @@ public class Dial implements CommandExecutor
         if (start.dialStargate(target, true))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Dial recovery succeeded for target " + target.getGateName());
-            player.sendMessage(ConfigManager.MessageStrings.GATE_CONNECTED.toString());
+            player.sendMessage(ChatText.info(Messages.get(player, "common.gate-connected")));
             return;
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Dial recovery failed for target " + target.getGateName());
         CommandUtilities.closeGate(start, false);
         CommandUtilities.restoreIrisDefault(target);
-        player.sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+        player.sendMessage(ChatText.error(Messages.get(player, "common.target-active")));
     }
 
     /**

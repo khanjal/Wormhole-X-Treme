@@ -15,11 +15,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The fare is the gate entered's cost: its own, else its shape's, else {@code economy-use-cost} (#632).
@@ -107,8 +107,7 @@ class GateFareTest
             economy.when(() -> EconomySupport.canAfford(player, 3.0)).thenReturn(true);
 
             assertEquals(-1.0, GateFare.affordable(player, dear));
-            verify(player).sendMessage(ConfigManager.MessageStrings
-                .ECONOMY_INSUFFICIENT_FUNDS.toString());
+            verify(player).sendMessage(ChatText.error("Insufficient funds to use this gate."));
         }
     }
 

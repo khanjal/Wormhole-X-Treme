@@ -223,27 +223,9 @@ final class GateWalkThrough
      */
     private static boolean refuseGateEntry(final Player player, final Stargate stargate)
     {
-        return refuseWithReminder(player, stargate,
-            ConfigManager.MessageStrings.PLAYER_RECENT_ARRIVAL.toString());
-    }
-
-    /**
-     * Refuses a step into a gate, saying why no more often than it is worth saying.
-     *
-     * @param player
-     *            the player to hold back
-     * @param stargate
-     *            the gate they may not enter
-     * @param message
-     *            what to tell them
-     * @return true, so the caller cancels the move event
-     */
-    private static boolean refuseWithReminder(final Player player, final Stargate stargate,
-        final String message)
-    {
         if (remindOfRefusal(player, stargate))
         {
-            player.sendMessage(message);
+            player.sendMessage(ChatText.error(Messages.get(player, "common.recent-arrival")));
         }
         return true;
     }
@@ -632,7 +614,7 @@ final class GateWalkThrough
             && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
                 || (!stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return true;
         }
         if (ConfigManager.isUseCooldownEnabled() && StargateRestrictions.isPlayerUseCooldown(player))
@@ -663,7 +645,7 @@ final class GateWalkThrough
     private static boolean bounceOffRemoteIris(final PlayerMoveEvent event, final Player player,
                                                final Stargate stargate)
     {
-        player.sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
+        player.sendMessage(ChatText.error(Messages.get(player, "common.remote-iris-closed")));
         player.setNoDamageTicks(5);
         event.setFrom(stargate.getGatePlayerTeleportLocation());
         event.setTo(stargate.getGatePlayerTeleportLocation());
@@ -702,7 +684,10 @@ final class GateWalkThrough
     private static boolean refuseCrossWorld(final PlayerMoveEvent event, final Player player,
                                             final Stargate stargate)
     {
-        refuseWithReminder(player, stargate, ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+        if (remindOfRefusal(player, stargate))
+        {
+            player.sendMessage(ChatText.error(Messages.get(player, "common.cross-world-disabled")));
+        }
         final Location from = event.getFrom();
         return !stargate.isGatePortalBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ());
     }

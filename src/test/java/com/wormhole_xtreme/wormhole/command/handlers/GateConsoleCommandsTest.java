@@ -195,7 +195,7 @@ class GateConsoleCommandsTest
 
             GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
 
-            verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
             dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
@@ -287,7 +287,7 @@ class GateConsoleCommandsTest
 
             GateConsoleCommands.build(player, line("Standard", "A", "world", "0", "-60", "0", "south", "net=Private"));
 
-            verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
             previews.verify(() -> GatePreviews.placeAt(any(), any(), any(), any()), never());
         }
     }
@@ -568,7 +568,7 @@ class GateConsoleCommandsTest
             GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
 
             verify(player, times(2)).sendMessage(
-                ConfigManager.MessageStrings.PERMISSION_NO.toString());
+                ChatText.error("You lack the permissions to do this."));
             gates.verify(() -> StargateManager.getStargate(any()), never());
         }
     }
@@ -636,7 +636,7 @@ class GateConsoleCommandsTest
 
             GateConsoleCommands.dial(asThemselves, line("Abydos", "Chulak"));
 
-            verify(asThemselves).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            verify(asThemselves).sendMessage(ChatText.error("You lack the permissions to do this."));
             dial.verify(() -> Dial.dialFrom(any(), any(), any()), never());
         }
     }
@@ -663,7 +663,7 @@ class GateConsoleCommandsTest
 
             perms.when(() -> WXPermissions.checkWXPermissions(player, start, WXPermissions.PermissionType.DIALER)).thenReturn(false);
             GateConsoleCommands.dial(player, line("Abydos", "Chulak"));
-            verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
             verify(player, never()).sendMessage(RegionFlags.USE_REFUSED);
 
             perms.when(() -> WXPermissions.checkWXPermissions(player, start, WXPermissions.PermissionType.DIALER)).thenReturn(true);

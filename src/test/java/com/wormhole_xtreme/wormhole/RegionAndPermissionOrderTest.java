@@ -26,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
@@ -35,6 +34,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Which wins when a permission node and a WorldGuard region disagree (#240).
@@ -98,7 +98,7 @@ class RegionAndPermissionOrderTest
             GateInteractionHandler.offerNewGate(player, button(), gate);
         }
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
         verify(player, never()).sendMessage(RegionFlags.BUILD_REFUSED);
         assertNull(StargateManager.getIncompleteStargate(player));
     }
@@ -117,7 +117,7 @@ class RegionAndPermissionOrderTest
         }
 
         verify(player).sendMessage(RegionFlags.BUILD_REFUSED);
-        verify(player, never()).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player, never()).sendMessage(ChatText.error("You lack the permissions to do this."));
         assertNull(StargateManager.getIncompleteStargate(player), "a refused gate must not wait to be completed");
     }
 

@@ -16,12 +16,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * The lever of the gate a wormhole arrives at, with {@code destination-shutdown} on (#637).
@@ -115,8 +115,8 @@ class DestinationShutdownTest
 
         // MANUAL, because a lever was pulled; the dialling gate's shutdown closes this end as FAR_END.
         verify(source).shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
-        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
-        verify(player, never()).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.info("Gate shut down."));
+        verify(player, never()).sendMessage(ChatText.error("Gate remotely activated."));
     }
 
     /**
@@ -130,7 +130,7 @@ class DestinationShutdownTest
 
         assertFalse(GateInteractionHandler.closeOrDeactivate(destination, player));
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Gate remotely activated."));
         verify(source, never()).shutdownStargate(anyBoolean(), any(StargateShutdownEvent.Reason.class));
     }
 
@@ -148,7 +148,7 @@ class DestinationShutdownTest
         assertFalse(GateInteractionHandler.closeOrDeactivate(destination, player));
 
         verify(source, never()).shutdownStargate(anyBoolean(), any(StargateShutdownEvent.Reason.class));
-        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Gate remotely activated."));
     }
 
     /** An open gate nothing has dialled into is reported as before, setting or no setting. */
@@ -163,7 +163,7 @@ class DestinationShutdownTest
 
         assertFalse(GateInteractionHandler.closeOrDeactivate(lonely, player));
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Gate remotely activated."));
         verify(source, never()).shutdownStargate(anyBoolean(), any(StargateShutdownEvent.Reason.class));
     }
 
@@ -203,18 +203,24 @@ class DestinationShutdownTest
         source.setGatePlayerTeleportLocation(new Location(world, 0, 64, 0));
 
         final Player near = playerAt(world, 5, 64, 3);
+        // A second reader whose client speaks qq: each is told in their own language, not the closer's.
+        final Player nearQq = playerAt(world, 4, 64, 3);
+        when(nearQq.getLocale()).thenReturn("qq");
         final Player atDestination = playerAt(world, 100, 64, 100);
         final Player inOtherWorld = playerAt(otherWorld, 0, 64, 0);
         // Listed in the gate's world too, as a stale list might, so only the world check keeps them out.
-        when(world.getPlayers()).thenReturn(List.of(near, atDestination, inOtherWorld, player));
+        when(world.getPlayers()).thenReturn(List.of(near, nearQq, atDestination, inOtherWorld, player));
         when(player.getWorld()).thenReturn(world);
         when(player.getLocation()).thenReturn(new Location(world, 1, 64, 1));
         ConfigTestSupport.set(ConfigKeys.DESTINATION_SHUTDOWN, true);
 
         assertTrue(GateInteractionHandler.closeOrDeactivate(destination, player));
 
-        final String notice = ConfigManager.MessageStrings.FAR_END_CLOSED.toString();
+        final String notice = ChatText.info("The far end closed the wormhole.");
         verify(near).sendMessage(notice);
+        verify(nearQq).sendMessage(ChatText.info("QQ far end closed."));
+        verify(nearQq, never()).sendMessage(notice);
+        verify(player).sendMessage(ChatText.info("Gate shut down."));
         verify(atDestination, never()).sendMessage(anyString());
         verify(inOtherWorld, never()).sendMessage(anyString());
         verify(player, never()).sendMessage(notice);
@@ -257,7 +263,7 @@ class DestinationShutdownTest
         assertTrue(GateInteractionHandler.closeOrDeactivate(destination, player));
 
         verify(source).shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
-        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
+        verify(player).sendMessage(ChatText.info("Gate shut down."));
     }
 
     /** A player standing at the given spot. */

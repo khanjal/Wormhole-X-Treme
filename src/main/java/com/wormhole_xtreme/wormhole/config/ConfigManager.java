@@ -28,7 +28,6 @@ import com.wormhole_xtreme.wormhole.plugin.MetricsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.PlaceholderSupport;
 import com.wormhole_xtreme.wormhole.plugin.map.MapMarkers;
-import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 
 
@@ -260,87 +259,6 @@ public class ConfigManager
         MIRROR_ENTITY_LOAD_RADIUS,
 
         MIRROR_APPROACH_MESSAGE
-    }
-
-    /**
-     * Whole lines said in more than one place, each built by {@link ChatText} with its header.
-     *
-     * <p>A line naming what the player typed is built where it is sent, so the name can be
-     * coloured (#438), so each one here is sent as it stands, with nothing appended.
-     */
-    public enum MessageStrings
-    {
-
-        /** The permission no. */
-        PERMISSION_NO(ChatText.error("You lack the permissions to do this.")),
-
-        /** The target is self. */
-        TARGET_IS_SELF(ChatText.error("A gate cannot dial itself.")),
-
-        /** The target invalid. */
-        TARGET_INVALID(ChatText.error("Invalid gate target.")),
-
-        /** The target is active. */
-        TARGET_IS_ACTIVE(ChatText.error("Target gate is currently active.")),
-
-        /** The far gate is in another world, and same-world-only is on. */
-        CROSS_WORLD_DISABLED(ChatText.error("Cross-world travel is disabled on this server.")),
-
-        /** The gate not active. */
-        GATE_NOT_ACTIVE(ChatText.error("No gate activated to dial. Press a DHD first.")),
-
-        /** The gate remove active. */
-        GATE_REMOVE_ACTIVE(ChatText.error("Gate remotely activated.")),
-
-        /** The gate shutdown. */
-        GATE_SHUTDOWN(ChatText.info("Gate shut down.")),
-
-        /** Said near the dialling gate when the gate it reached closed the wormhole (#637). */
-        FAR_END_CLOSED(ChatText.info("The far end closed the wormhole.")),
-
-        /** The gate activated. */
-        GATE_ACTIVATED(ChatText.info("Gate successfully activated.")),
-
-        /** The gate deactivated. */
-        GATE_DEACTIVATED(ChatText.info("Gate successfully deactivated.")),
-
-        /** The gate dialed. */
-        GATE_CONNECTED(ChatText.info("Stargates connected.")),
-
-        /** The construct success. */
-        CONSTRUCT_SUCCESS(ChatText.info("Gate successfully constructed.")),
-
-        /** The gate not specified. */
-        GATE_NOT_SPECIFIED(ChatText.error("No gate name specified.")),
-
-        /** Player recently arrived at gate. */
-        PLAYER_RECENT_ARRIVAL(ChatText.error("You can't enter an incoming wormhole.")),
-
-        /** Said to a traveller, walking or riding, turned back by the far gate's shut iris. */
-        REMOTE_IRIS_CLOSED(ChatText.error("The far gate's iris is closed.")),
-
-        /** Insufficient funds message. */
-        ECONOMY_INSUFFICIENT_FUNDS(ChatText.error("Insufficient funds to use this gate."));
-
-        /** The m. */
-        private final String m;
-
-        /**
-         * Instantiates a new string types.
-         */
-        private MessageStrings(final String message)
-        {
-            m = message;
-        }
-
-        /* (non-Javadoc)
-         * @see java.lang.Enum#toString()
-         */
-        @Override
-        public String toString()
-        {
-            return m;
-        }
     }
 
     /** The Constant configurations. */

@@ -7,7 +7,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 import com.wormhole_xtreme.wormhole.utils.ChatColour;
@@ -43,7 +42,7 @@ public class FreyaCommand implements SubCommand
         // No isOp shortcut, unlike other commands: it would stop a negated node applying to ops.
         if (!player.hasPermission(PERMISSION))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return true;
         }
 

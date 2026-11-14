@@ -6,7 +6,6 @@ import java.util.List;
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateIntegrity;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -36,7 +35,7 @@ public class ValidateCommand implements SubCommand
         }
         if (args.length < 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
+            sender.sendMessage(ChatText.error(Messages.get(sender, "common.gate-not-specified")));
             return false;
         }
         if ("-all".equalsIgnoreCase(args[1]))

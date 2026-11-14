@@ -152,7 +152,8 @@ class RingCommandMessagesTest
         for (final int maxDrop : new int[] { 1, 10 })
         {
             config.when(ConfigManager::getRingMaxCeilingDrop).thenReturn(Integer.valueOf(maxDrop));
-            assertEquals("That ring is more than " + ChatText.value(String.valueOf(maxDrop)) + " blocks above its floor. "
+            assertEquals("That ring is more than " + ChatText.value(String.valueOf(maxDrop))
+                + (maxDrop == 1 ? " block" : " blocks") + " above its floor. "
                 + "Lower the ring, raise the floor, or raise "
                 + ChatText.usageBody("/wormhole config ring-max-ceiling-drop <blocks>") + ".",
                 RingCommand.explain(null, RingBlockage.CEILING_TOO_HIGH), "a drop of " + maxDrop);
@@ -195,9 +196,10 @@ class RingCommandMessagesTest
         for (final int quota : new int[] { 1, 2 })
         {
             final String limit = ChatText.value(String.valueOf(quota));
-            final String old = "You already have " + limit + " ring pairs, which is the limit.";
-            assertEquals(old, Messages.get(null, "ring.cmd.create.quota.one", limit));
-            assertEquals(old, Messages.get(null, "ring.cmd.create.quota.other", limit));
+            assertEquals("You already have " + limit + " ring pair, which is the limit.",
+                Messages.get(null, "ring.cmd.create.quota.one", limit));
+            assertEquals("You already have " + limit + " ring pairs, which is the limit.",
+                Messages.get(null, "ring.cmd.create.quota.other", limit));
         }
         assertEquals("First ring noted, in " + ChatText.material("STONE_SLAB") + ". Lay the other end and run "
             + ChatText.command("/wormhole ring create") + " in it.", Messages.get(null, "ring.cmd.create.first-noted",
@@ -242,9 +244,10 @@ class RingCommandMessagesTest
         for (final int returned : new int[] { 1, 2 })
         {
             final String slabs = ChatText.value(String.valueOf(returned));
-            final String old = "Removed both ends of " + id + (" and put " + slabs + " slabs back.");
-            assertEquals(old, Messages.get(null, "ring.cmd.remove.returned.one", id, slabs));
-            assertEquals(old, Messages.get(null, "ring.cmd.remove.returned.other", id, slabs));
+            assertEquals("Removed both ends of " + id + " and put " + slabs + " slab back.",
+                Messages.get(null, "ring.cmd.remove.returned.one", id, slabs));
+            assertEquals("Removed both ends of " + id + " and put " + slabs + " slabs back.",
+                Messages.get(null, "ring.cmd.remove.returned.other", id, slabs));
         }
         assertEquals("Removed both ends of " + id + ".", Messages.get(null, "ring.cmd.remove.removed", id));
         assertEquals("Its world is not loaded, so the slabs were left where they are.", Messages.get(null, "ring.cmd.remove.not-loaded"));

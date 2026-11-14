@@ -5,6 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.List;
+
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -128,6 +130,43 @@ class CooldownTimeoutMessagesTest
         verify(player).sendMessage(ChatText.info("QQ cooldown set " + value(60) + "."));
         verify(player, times(2)).sendMessage(ChatText.info("QQ cooldowns " + value(true) + " at "
             + value(savedCooldown) + "."));
+    }
+
+    /** One second is "1 second", not "1 seconds", in the cooldown and timeout lines; two stay "seconds". */
+    @Test
+    void oneSecondIsSingularAndTwoArePlural()
+    {
+        final Player player = reading("en");
+        final Player qq = reading("qq");
+        ConfigManager.setUseCooldownEnabled(true);
+        ConfigManager.setUseCooldownSeconds(1);
+        final TimeoutsCommand timeouts = new TimeoutsCommand();
+
+        for (final Player reader : List.of(player, qq))
+        {
+            new CooldownCommand().execute(reader, new String[] { COOLDOWN });
+            timeouts.execute(reader, new String[] { SHUTDOWN, "1" });
+            timeouts.execute(reader, new String[] { SHUTDOWN });
+            timeouts.execute(reader, new String[] { SHUTDOWN, "2" });
+            timeouts.execute(reader, new String[] { SHUTDOWN });
+        }
+
+        verify(player).sendMessage(ChatText.info("Cooldowns enabled: " + value(true) + ", currently " + value(1)
+            + " second."));
+        verify(player).sendMessage(ChatText.info(ChatText.command(SHUTDOWN) + " set to: " + value(1) + " second."));
+        verify(player).sendMessage(ChatText.info("Current " + ChatText.command(SHUTDOWN) + " is: " + value(1)
+            + " second."));
+        verify(player).sendMessage(ChatText.info(ChatText.command(SHUTDOWN) + " set to: " + value(2) + SECONDS));
+        verify(player).sendMessage(ChatText.info("Current " + ChatText.command(SHUTDOWN) + " is: " + value(2)
+            + SECONDS));
+        ConfigManager.setUseCooldownSeconds(2);
+        new CooldownCommand().execute(player, new String[] { COOLDOWN });
+        verify(player).sendMessage(ChatText.info("Cooldowns enabled: " + value(true) + ", currently " + value(2)
+            + SECONDS));
+        verify(qq).sendMessage(ChatText.info("QQ cooldowns " + value(true) + " at " + value(1) + " sec."));
+        verify(qq).sendMessage(ChatText.info("QQ " + ChatText.command(SHUTDOWN) + " set " + value(1) + " sec."));
+        verify(qq).sendMessage(ChatText.info("QQ current " + ChatText.command(SHUTDOWN) + " " + value(1) + " sec."));
+        verify(qq).sendMessage(ChatText.info("QQ " + ChatText.command(SHUTDOWN) + " set " + value(2) + "."));
     }
 
     /** The timeout lines as before, each range after the question and after each refusal. */

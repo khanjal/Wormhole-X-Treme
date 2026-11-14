@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.handlers.GateCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -135,7 +134,7 @@ public class Wormhole implements CommandExecutor
                     }
                     return true;
                 }
-                sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+                sender.sendMessage(ChatText.noPermission(sender));
                 return true;
             }
 

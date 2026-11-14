@@ -6,7 +6,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -37,7 +36,7 @@ public class OwnerCommand implements SubCommand
 
         if (args.length < 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
+            sender.sendMessage(ChatText.error(Messages.get(sender, "common.gate-not-specified")));
             return false;
         }
 

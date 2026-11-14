@@ -31,7 +31,7 @@ public final class PlayerLocales
     /**
      * @param player
      *            whose client
-     * @return its locale as the server reports it, such as {@code de_DE}, or null if it reports none
+     * @return its locale as the server reports it, such as {@code de_DE}, or null if it reports none, or empty if the client sent none
      */
     public static String of(final Player player)
     {
@@ -42,6 +42,12 @@ public final class PlayerLocales
             {
                 if (found.get().invoke(player) instanceof Locale locale)
                 {
+                    // Paper turns a locale it cannot read, the empty one among them, into en_US; what the
+                    // client sent says whether this is that or a real en_US.
+                    if (Locale.US.equals(locale) && "".equals(bukkitLocale(player)))
+                    {
+                        return "";
+                    }
                     return locale.getCountry().isEmpty() ? locale.getLanguage()
                         : locale.getLanguage() + "_" + locale.getCountry();
                 }

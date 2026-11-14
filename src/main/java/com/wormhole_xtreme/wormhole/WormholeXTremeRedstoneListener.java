@@ -24,8 +24,10 @@ import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.Messages;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -435,7 +437,7 @@ class WormholeXTremeRedstoneListener implements Listener
         final Player activator = StargateManager.removeActivatorForStargate(stargate);
         if (activator != null)
         {
-            activator.sendMessage(ConfigManager.MessageStrings.GATE_DEACTIVATED.toString());
+            activator.sendMessage(ChatText.info(Messages.get(activator, "common.gate-deactivated")));
         }
     }
 
