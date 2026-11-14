@@ -64,7 +64,11 @@ public final class RingPreview
         /** A ceiling ring has no floor to drop its stack to. */
         NO_FLOOR,
         /** The pair is running a real cycle. */
-        MID_CYCLE
+        MID_CYCLE,
+        /** The end is in a world other than the viewer's. */
+        WRONG_WORLD,
+        /** The end's chunk is not loaded, so drawing it would load it. */
+        NOT_LOADED
     }
 
     /** Marks that no task is waiting. */
@@ -76,8 +80,14 @@ public final class RingPreview
     /** The pair the end belongs to, which a real cycle on it must clear this for. */
     private final RingPair pair;
 
-    /** The end being drawn. */
+    /** The end being drawn, as stored. Read, and never written. */
     private final Ring ring;
+
+    /** What the stack is drawn and measured from: a copy taken at each deploy. */
+    private Ring stack;
+
+    /** What to tell the registry when a step fails and the preview has cleared itself. */
+    private Runnable whenFailed = () -> { };
 
     /** How it is drawn. */
     private final RingCycle.Surroundings world;
@@ -125,7 +135,19 @@ public final class RingPreview
         this.pair = pair;
         this.ring = ring;
         this.world = world;
-        this.style = ring.getStyle();
+        this.stack = ring.copyForDrawing();
+        this.style = stack.getStyle();
+    }
+
+    /**
+     * Sets what happens after a step fails and the preview has taken itself back.
+     *
+     * @param whenFailed
+     *            told once, so the registry can forget this preview
+     */
+    void setOnFailure(final Runnable whenFailed)
+    {
+        this.whenFailed = whenFailed;
     }
 
     /** @return who is shown this preview */
@@ -196,18 +218,21 @@ public final class RingPreview
         {
             return Result.ALREADY_STANDING;
         }
-        final RingBlockage found = world.survey(ring);
+        // Measured on a copy: the drop a survey records belongs to this drawing, not to the ring.
+        final Ring measured = ring.copyForDrawing();
+        final RingBlockage found = world.survey(measured);
         if ((found == RingBlockage.CEILING_TOO_HIGH) || (found == RingBlockage.CEILING_TOO_LOW))
         {
             blockage = found;
             return Result.NO_FLOOR;
         }
         blockage = null;
-        style = ring.getStyle();
+        stack = measured;
+        style = stack.getStyle();
         state = State.DEPLOYING;
         frame = 0;
-        drawFrame(RingAnimator.deployFrame(ring, style, 0));
-        RingSounds.ringMovedTo(viewer, ring, 0, false);
+        drawFrame(RingAnimator.deployFrame(stack, style, 0));
+        RingSounds.ringMovedTo(viewer, stack, 0, false);
         continueDeploy();
         return Result.DONE;
     }
@@ -250,8 +275,8 @@ public final class RingPreview
         }
         state = State.COLLAPSING;
         frame = 0;
-        drawFrame(RingAnimator.retractFrame(ring, style, 0));
-        RingSounds.ringMovedTo(viewer, ring, 0, true);
+        drawFrame(RingAnimator.retractFrame(stack, style, 0));
+        RingSounds.ringMovedTo(viewer, stack, 0, true);
         continueCollapse();
         return Result.DONE;
     }
@@ -280,7 +305,7 @@ public final class RingPreview
     /** Draws the next deploy frame after a pause, or stands the stack if it is all up. */
     private void continueDeploy()
     {
-        if (frame >= (RingAnimator.deployFrames(ring, style) - 1))
+        if (frame >= (RingAnimator.deployFrames(stack, style) - 1))
         {
             state = State.DEPLOYED;
             return;
@@ -288,8 +313,8 @@ public final class RingPreview
         later(ConfigManager.getRingDeployTicks(), () ->
         {
             frame++;
-            drawFrame(RingAnimator.deployFrame(ring, style, frame));
-            RingSounds.ringMovedTo(viewer, ring, frame, false);
+            drawFrame(RingAnimator.deployFrame(stack, style, frame));
+            RingSounds.ringMovedTo(viewer, stack, frame, false);
             continueDeploy();
         });
     }
@@ -305,14 +330,14 @@ public final class RingPreview
      */
     private void sweep(final int step)
     {
-        drawFrame(RingAnimator.settledStack(ring, style));
+        drawFrame(RingAnimator.settledStack(stack, style));
         if (step >= RingAnimator.flashFrames())
         {
             state = State.DEPLOYED;
             return;
         }
-        drawOver(RingAnimator.ringAtRest(ring, RingAnimator.litRing(step, false)),
-            ring.getFlashMaterial());
+        drawOver(RingAnimator.ringAtRest(stack, RingAnimator.litRing(step, false)),
+            stack.getFlashMaterial());
         later(ConfigManager.getRingFlashTicks(), () -> sweep(step + 1));
     }
 
@@ -322,14 +347,14 @@ public final class RingPreview
         later(ConfigManager.getRingDeployTicks(), () ->
         {
             frame++;
-            if (frame >= RingAnimator.deployFrames(ring, style))
+            if (frame >= RingAnimator.deployFrames(stack, style))
             {
                 clearSet(drawnRings);
                 state = State.LIT;
                 return;
             }
-            drawFrame(RingAnimator.retractFrame(ring, style, frame));
-            RingSounds.ringMovedTo(viewer, ring, frame, true);
+            drawFrame(RingAnimator.retractFrame(stack, style, frame));
+            RingSounds.ringMovedTo(viewer, stack, frame, true);
             continueCollapse();
         });
     }
@@ -346,7 +371,7 @@ public final class RingPreview
     private void drawFrame(final List<RingAnimator.Placement> placements)
     {
         clearSet(drawnRings);
-        drawOver(placements, ring.getRingMaterial());
+        drawOver(placements, stack.getRingMaterial());
     }
 
     /**
@@ -440,6 +465,7 @@ public final class RingPreview
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                     "A ring preview failed and was cleared", e);
                 clear();
+                whenFailed.run();
             }
         }, ticks);
     }

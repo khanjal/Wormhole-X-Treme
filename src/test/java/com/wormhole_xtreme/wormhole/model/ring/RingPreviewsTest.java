@@ -469,6 +469,67 @@ class RingPreviewsTest
         assertTrue(path.contains("RingPreviews.clearAll();"), "which clears them all");
     }
 
+    /**
+     * A pair named from another world is refused, and nothing is drawn, measured or written.
+     *
+     * <p>A drawing is sent by position, so from the nether it would land on unrelated terrain,
+     * and the deploy's survey would read the wrong world and record a wrong drop on the ring.
+     */
+    @Test
+    void anEndInAnotherWorldIsRefusedAndNothingIsDrawnOrMeasured()
+    {
+        final World nether = mock(World.class);
+        when(nether.getName()).thenReturn("nether");
+        when(viewer.getWorld()).thenReturn(nether);
+        final Ring hanging = new Ring(AX, AY, AZ, RingPattern.ODD, RingOrientation.CEILING, Material.STONE_SLAB,
+            Material.GLOWSTONE);
+        final RingPair high = new RingPair("cccc0003", WORLD_NAME, hanging, ring(300, AY, 300));
+
+        assertEquals(RingPreview.Result.WRONG_WORLD, RingPreviews.show(viewer, high, hanging));
+        assertEquals(RingPreview.Result.WRONG_WORLD, RingPreviews.deploy(viewer, high, hanging));
+
+        assertNull(RingPreviews.of(viewer));
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        verify(nether, never()).getBlockAt(anyInt(), anyInt(), anyInt());
+        verify(world, never()).getBlockAt(anyInt(), anyInt(), anyInt());
+        assertEquals(Ring.MIN_CEILING_DROP, hanging.getDrop(), "nothing was written to the stored ring");
+        assertEquals(0, held.pending());
+    }
+
+    /** An end whose chunk is not loaded is refused without loading it. */
+    @Test
+    void anEndInAnUnloadedChunkIsRefusedWithoutLoadingIt()
+    {
+        when(world.isChunkLoaded(AX >> 4, AZ >> 4)).thenReturn(Boolean.FALSE);
+
+        assertEquals(RingPreview.Result.NOT_LOADED, RingPreviews.show(viewer, pair, endA));
+        assertEquals(RingPreview.Result.NOT_LOADED, RingPreviews.deploy(viewer, pair, endA));
+
+        assertNull(RingPreviews.of(viewer));
+        verify(world, never()).getBlockAt(anyInt(), anyInt(), anyInt());
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+        assertEquals(RingPreview.Result.DONE, RingPreviews.show(viewer, pair, endB), "the far end is loaded");
+    }
+
+    /**
+     * A step that throws takes the preview back and out of the registry, so the player can start
+     * another; it also leaves no timeout behind.
+     */
+    @Test
+    void aStepThatThrowsLeavesNoRegistryEntryAndPreviewWorksAgain()
+    {
+        RingPreviews.deploy(viewer, pair, endA);
+        bukkit.when(() -> Bukkit.createBlockData(any(Material.class))).thenThrow(new IllegalStateException("boom"));
+
+        held.runNextOtherThan(RingPreviews.TIMEOUT_TICKS);
+
+        assertNull(RingPreviews.of(viewer), "the failed preview is not left registered");
+        assertEquals(0, held.pending(), "neither a step nor the timeout is left queued");
+        bukkit.when(() -> Bukkit.createBlockData(any(Material.class))).thenReturn(drawn);
+        assertEquals(RingPreview.Result.DONE, RingPreviews.show(viewer, pair, endA), "and a new preview starts");
+        assertNotNull(RingPreviews.of(viewer));
+    }
+
     /** Disabling the plugin takes back every viewer's preview. */
     @Test
     void disablingThePluginClearsEveryPreview()

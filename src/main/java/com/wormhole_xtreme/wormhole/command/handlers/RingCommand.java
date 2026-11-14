@@ -896,6 +896,8 @@ public class RingCommand implements SubCommand
                 ChatText.command("collapse"), ChatText.command(CLEAR));
             case NO_STACK -> Messages.get(player, "ring.cmd.preview.no-stack", ChatText.command(DEPLOY));
             case BUSY -> Messages.get(player, "ring.cmd.preview.busy", ChatText.command(CLEAR));
+            case WRONG_WORLD -> Messages.get(player, "ring.cmd.preview.wrong-world");
+            case NOT_LOADED -> Messages.get(player, "ring.cmd.preview.not-loaded");
             default -> Messages.get(player, "ring.cmd.preview.mid-cycle");
         };
         player.sendMessage(ChatText.error(line));

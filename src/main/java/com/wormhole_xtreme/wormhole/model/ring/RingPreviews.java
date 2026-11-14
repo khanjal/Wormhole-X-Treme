@@ -61,9 +61,10 @@ public final class RingPreviews
      */
     public static RingPreview.Result show(final Player viewer, final RingPair pair, final Ring ring)
     {
-        if (pair.isMidCycle())
+        final RingPreview.Result refused = refusal(viewer, pair, ring);
+        if (refused != null)
         {
-            return RingPreview.Result.MID_CYCLE;
+            return refused;
         }
         final RingPreview existing = SHOWN.get(viewer.getUniqueId());
         touch(viewer);
@@ -89,9 +90,10 @@ public final class RingPreviews
     public static RingPreview.Result deploy(final Player viewer, final RingPair pair,
         final Ring ring)
     {
-        if (pair.isMidCycle())
+        final RingPreview.Result refused = refusal(viewer, pair, ring);
+        if (refused != null)
         {
-            return RingPreview.Result.MID_CYCLE;
+            return refused;
         }
         RingPreview preview = SHOWN.get(viewer.getUniqueId());
         touch(viewer);
@@ -196,6 +198,54 @@ public final class RingPreviews
     }
 
     /**
+     * Why an end cannot be drawn for this player, if it cannot.
+     *
+     * <p>A drawing is sent by position to whatever world the viewer is in, and a deploy measures
+     * the world through {@code getBlockAt}, so an end in another world would be drawn over
+     * unrelated terrain, and one in an unloaded chunk would be loaded just to be measured.
+     *
+     * @param viewer
+     *            who would see it
+     * @param pair
+     *            the pair the end belongs to
+     * @param ring
+     *            the end
+     * @return the refusal, or null if it can be drawn
+     */
+    private static RingPreview.Result refusal(final Player viewer, final RingPair pair, final Ring ring)
+    {
+        if (pair.isMidCycle())
+        {
+            return RingPreview.Result.MID_CYCLE;
+        }
+        if (!pair.getWorldName().equals(viewer.getWorld().getName()))
+        {
+            return RingPreview.Result.WRONG_WORLD;
+        }
+        if (!viewer.getWorld().isChunkLoaded(ring.getAnchorX() >> 4, ring.getAnchorZ() >> 4))
+        {
+            return RingPreview.Result.NOT_LOADED;
+        }
+        return null;
+    }
+
+    /**
+     * Forgets a preview that took itself back after a failed step.
+     *
+     * @param id
+     *            the viewer
+     * @param preview
+     *            the preview that failed
+     */
+    private static void forget(final UUID id, final RingPreview preview)
+    {
+        if (SHOWN.remove(id, preview))
+        {
+            cancelTimeout(id);
+        }
+    }
+
+    /**
      * Makes a preview of an end, replacing any the player already has, and lights its pad.
      *
      * @param viewer
@@ -212,6 +262,7 @@ public final class RingPreviews
         final RingPreview preview = new RingPreview(viewer, pair, ring,
             new PreviewSurroundings(viewer, viewer.getWorld(), pair));
         SHOWN.put(viewer.getUniqueId(), preview);
+        preview.setOnFailure(() -> forget(viewer.getUniqueId(), preview));
         touch(viewer);
         preview.show();
         return preview;

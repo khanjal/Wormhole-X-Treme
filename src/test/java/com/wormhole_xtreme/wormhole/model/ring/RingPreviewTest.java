@@ -78,7 +78,7 @@ class RingPreviewTest
         RingBlockage found;
         int surveys;
         boolean failOnSlab;
-        Runnable onSurvey = () -> { };
+        java.util.function.Consumer<Ring> onSurvey = measured -> { };
 
         @Override
         public void showBlock(final int x, final int y, final int z, final Material material)
@@ -119,7 +119,7 @@ class RingPreviewTest
         public RingBlockage survey(final Ring measured)
         {
             surveys++;
-            onSurvey.run();
+            onSurvey.accept(measured);
             return found;
         }
 
@@ -484,7 +484,7 @@ class RingPreviewTest
     {
         final Ring ceiling = ringAt(AX, 70, AZ, RingOrientation.CEILING, RingStyle.CONCURRENT);
         final int floor = Ring.MIN_CEILING_DROP + 2;
-        drawing.onSurvey = () -> ceiling.setDrop(floor);
+        drawing.onSurvey = measured -> measured.setDrop(floor);
         final RingPreview hanging = new RingPreview(viewer, pair, ceiling, drawing);
         hanging.show();
 
@@ -492,16 +492,46 @@ class RingPreviewTest
         held.runAll();
 
         assertEquals(1, drawing.surveys, "measured once, before anything rose");
-        final int base = ceiling.stackBase();
-        assertEquals(70 - floor, base);
+        final int base = 70 - floor;
         final Set<Integer> heights = new HashSet<>();
-        for (final RingAnimator.Placement placement : RingAnimator.settledStack(ceiling, RingStyle.CONCURRENT))
+        drawing.shown.forEach((key, what) ->
         {
-            heights.add(placement.getY());
-        }
+            if (what.startsWith("slab:"))
+            {
+                heights.add(RingIndex.unpackY(key.longValue()));
+            }
+        });
+        assertFalse(heights.isEmpty(), "the stack is standing");
+        assertEquals(Ring.MIN_CEILING_DROP, ceiling.getDrop(),
+            "the drop the survey found stays on the drawing: the stored ring is not written");
         assertTrue(heights.stream().allMatch(y -> (y >= base) && (y < 70)),
             "every ring stands between the floor and the plane, not above the ceiling pad: " + heights);
         assertEquals(RingPreview.State.DEPLOYED, hanging.getState());
+    }
+
+    /**
+     * The coming-home sounds follow the style the stack was raised in, as the frames do.
+     *
+     * <p>They were read from the stored ring, so a style changed while the stack stood played
+     * them on frames the retract never reaches.
+     */
+    @Test
+    void theComingHomeSoundsFollowTheStyleTheStackWasRaisedIn()
+    {
+        final Ring fast = ringAt(AX, AY, AZ, RingOrientation.FLOOR, RingStyle.CONCURRENT);
+        final RingPreview quick = new RingPreview(viewer, pair, fast, drawing);
+        quick.show();
+        quick.deploy();
+        held.runAll();
+        fast.setStyle(RingStyle.SEQUENTIAL);
+        assertNotEquals(RingAnimator.deployFrames(fast, RingStyle.CONCURRENT),
+            RingAnimator.deployFrames(fast, RingStyle.SEQUENTIAL), "the styles must differ for this to mean anything");
+
+        quick.collapse();
+        held.runAll();
+
+        final List<Float> all = ringPitches();
+        assertEquals(RingAnimator.RING_COUNT * 2, all.size(), "every ring sounds on the way home");
     }
 
     /** A ceiling ring with no floor in reach is refused as a real cycle refuses it. */

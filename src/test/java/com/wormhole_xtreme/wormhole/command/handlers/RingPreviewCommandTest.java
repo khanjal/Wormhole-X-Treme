@@ -369,6 +369,25 @@ class RingPreviewCommandTest
         assertEquals(RingPreview.State.LIT, RingPreviews.of(player).getState(), "nothing rose");
     }
 
+    /** A pair in another world, or in a chunk that is not loaded, is refused with the reason. */
+    @Test
+    void aPairInAnotherWorldOrAnUnloadedChunkIsRefusedWithTheReason()
+    {
+        registeredPair(OWNER);
+        final World nether = mock(World.class);
+        when(nether.getName()).thenReturn("nether");
+        when(player.getWorld()).thenReturn(nether);
+
+        preview("aaaa0001", "deploy");
+        verify(player).sendMessage(plainContains("That ring is in another world"));
+
+        when(player.getWorld()).thenReturn(world);
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(Boolean.FALSE);
+        preview("aaaa0001", "deploy");
+        verify(player).sendMessage(plainContains("its chunk is not loaded"));
+        assertNull(RingPreviews.of(player));
+    }
+
     /** The help lists the new verb. */
     @Test
     void theHelpListsPreview()
