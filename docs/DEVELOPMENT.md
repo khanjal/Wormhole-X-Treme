@@ -113,7 +113,12 @@ site; a link to a file outside `docs/`, or to one the site leaves out (`docs/lis
 to `main` that does. It deploys only once Pages is on: Settings → Pages → Source "GitHub Actions",
 then a repository variable `PAGES_ENABLED` set to `true` (Settings → Secrets and variables →
 Actions → Variables). Without the variable a merge only builds, so a repository with Pages off
-gets no failing deploy.
+gets no failing deploy. Going live is:
+
+1. Settings → Pages → Source "GitHub Actions".
+2. Set the repository variable `PAGES_ENABLED` to `true`.
+3. Merge a docs change to `main`, or re-run the Docs workflow, and check the site.
+4. Add the site link to the README and shrink its index (#696).
 
 ## A player on a real server
 

@@ -27,7 +27,7 @@
 
 </div>
 
-Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.3. The docs are also a searchable site at [khanjal.github.io/Wormhole-X-Treme](https://khanjal.github.io/Wormhole-X-Treme/).
+Stargate-style travel for Bukkit, Spigot and Paper servers, on Minecraft 1.20 through 26.3.
 
 Four ways to get somewhere, each a different trade between what you build and what you get:
 
