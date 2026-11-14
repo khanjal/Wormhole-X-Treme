@@ -46,7 +46,7 @@ come from the plugin until you add them.
    `plugins/WormholeXTreme/lang/de.yml` with every translatable message in English, from the jar you
    run. A code is lower-case letters and `_`, at most 16, as the client names it; capitals are read as
    lower case and a `-` as `_`, as for `server-language`, so `pt-BR` writes `pt_br.yml`.
-2. Or copy [`src/main/resources/lang/en.yml`](../../src/main/resources/lang/en.yml) into that folder
+2. Or copy [`src/main/resources/lang/en.yml`](https://github.com/khanjal/Wormhole-X-Treme/blob/main/src/main/resources/lang/en.yml) into that folder
    yourself, renamed, from the [release tag](https://github.com/khanjal/Wormhole-X-Treme/tags) you
    run, such as `v1.12.0`: the file on `main` can hold messages your jar does not have yet. A file
    named with a digit, a `-` or a leading or trailing `_` is not read.

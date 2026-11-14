@@ -180,19 +180,19 @@ animation rather than embedding it to run forever.
 
 | Capture | File | Appears in |
 |---|---|---|
-| A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [README](../README.md), [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation) |
+| A gate dialling: chevrons, then the kawoosh | `gates/gate-dial.webp` | [README](https://github.com/khanjal/Wormhole-X-Treme/blob/main/README.md), [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation) |
 | Each ring pattern dialling a Standard gate | `gates/dial-<pattern>.webp` | [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation). Made by the facility, below. |
 | A dial to another world: the eighth chevron | `gates/dial-other-world.webp` | [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation). Made by the facility, below. |
 | Each iris animation closing and opening | `gates/iris-<style>.webp` | [guide/GATES.md](guide/GATES.md#how-it-arrives), [GATES.md](GATES.md#the-iris). Made by the facility, below. |
 | The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
 | `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
 | The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [guide/GATES.md](guide/GATES.md#material-groups), [GATES.md](GATES.md#palettes-are-separate-from-shapes) |
-| A ring pair's whole cycle | `rings/ring-cycle.webp` | [README](../README.md), [guide/RINGS.md](guide/RINGS.md#using-rings), [RINGS.md](RINGS.md#animation) |
-| A traveller leaving in a column of light | `beams/beam-up.webp` | [README](../README.md), [guide/BEAMS.md](guide/BEAMS.md), [BEAMS.md](BEAMS.md#the-sequence) |
-| A round trip through a mirror | `mirrors/mirror-effects.webp` | [README](../README.md), [guide/MIRRORS.md](guide/MIRRORS.md#setting-one-up) |
-| One mirror showing two rooms | `mirrors/mirror-look.webp` | [README](../README.md), [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
+| A ring pair's whole cycle | `rings/ring-cycle.webp` | [README](https://github.com/khanjal/Wormhole-X-Treme/blob/main/README.md), [guide/RINGS.md](guide/RINGS.md#using-rings), [RINGS.md](RINGS.md#animation) |
+| A traveller leaving in a column of light | `beams/beam-up.webp` | [README](https://github.com/khanjal/Wormhole-X-Treme/blob/main/README.md), [guide/BEAMS.md](guide/BEAMS.md), [BEAMS.md](BEAMS.md#the-sequence) |
+| A round trip through a mirror | `mirrors/mirror-effects.webp` | [README](https://github.com/khanjal/Wormhole-X-Treme/blob/main/README.md), [guide/MIRRORS.md](guide/MIRRORS.md#setting-one-up) |
+| One mirror showing two rooms | `mirrors/mirror-look.webp` | [README](https://github.com/khanjal/Wormhole-X-Treme/blob/main/README.md), [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
 | A mirror's view shifting as you move past it | `mirrors/mirror-archway.webp` | [guide/MIRRORS.md](guide/MIRRORS.md#what-you-see-in-one) |
-| The Dynmap layers: gates, a ring pair, a beam destination, mirrors | `maps/dynmap-layers.png` | [guide/SERVER.md](guide/SERVER.md#dynmap), [listings/shared.md](listings/shared.md). It shows the placeholder icons, so redo it when #187's icons land. |
+| The Dynmap layers: gates, a ring pair, a beam destination, mirrors | `maps/dynmap-layers.png` | [guide/SERVER.md](guide/SERVER.md#dynmap), [listings/shared.md](https://github.com/khanjal/Wormhole-X-Treme/blob/main/docs/listings/shared.md). It shows the placeholder icons, so redo it when #187's icons land. |
 
 **Two shots are deliberately not here.** The *beam arriving* cannot be filmed by the traveller
 -- you vanish six steps into a twelve-tick envelope, long before there is time to reach the far

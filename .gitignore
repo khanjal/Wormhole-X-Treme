@@ -49,3 +49,6 @@ PR-*-review.md
 
 # The research facility's own dependencies, installed by npm in scripts/facility.
 /scripts/facility/node_modules/
+
+# MkDocs build output
+/site/
