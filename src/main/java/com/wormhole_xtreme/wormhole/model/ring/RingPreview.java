@@ -219,16 +219,33 @@ public final class RingPreview
         pattern = true;
         layoutProbe = probe;
         clearSet(drawnGuide);
-        final RingLayout judged = RingLayout.judge(ring, drawingCopy().getRingMaterial(), probe);
-        guideSquares = judged.getToPlace();
-        guideTotal = judged.getTotal();
-        guideInPlace = judged.getInPlace();
+        // The last count stands when the pattern is not all loaded: reading it would load chunks.
+        if (patternLoaded())
+        {
+            final RingLayout judged = RingLayout.judge(ring, drawingCopy().getRingMaterial(), probe);
+            guideSquares = judged.getToPlace();
+            guideTotal = judged.getTotal();
+            guideInPlace = judged.getInPlace();
+        }
         drawGuide();
         if (state == State.DEPLOYED)
         {
             // The guide sits under a standing stack, so the stack is drawn again over it.
             drawFrame(RingAnimator.settledStack(stack, style));
         }
+    }
+
+    /** @return whether every chunk the pattern's slab squares are in is loaded, so reading them loads nothing */
+    private boolean patternLoaded()
+    {
+        for (final int[] square : ring.perimeterBlocks())
+        {
+            if (!viewer.getWorld().isChunkLoaded(square[0] >> 4, square[2] >> 4))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Draws the guide's marks. The stack stands over them, and the end of a collapse draws them again. */

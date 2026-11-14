@@ -70,6 +70,7 @@ class RingPatternPreviewTest
 
     private final HeldScheduler held = new HeldScheduler();
     private final Map<Material, BlockData> data = new EnumMap<>(Material.class);
+    private int asked = 0;
     private final Map<BlockData, String> described = new IdentityHashMap<>();
     private final Map<String, Slab> laid = new HashMap<>();
     private final Map<String, Material> laidAs = new HashMap<>();
@@ -86,12 +87,14 @@ class RingPatternPreviewTest
         @Override
         public Material materialAt(final int x, final int y, final int z)
         {
+            asked++;
             return laidAs.getOrDefault(key(x, y, z), Material.AIR);
         }
 
         @Override
         public RingTemplate.SlabHalf halfAt(final int x, final int y, final int z)
         {
+            asked++;
             return laid.containsKey(key(x, y, z)) ? half.get(key(x, y, z)) : null;
         }
     };
@@ -432,6 +435,23 @@ class RingPatternPreviewTest
         assertEquals(Y + 1, RingPreviews.of(viewer).getRing().getAnchorY());
     }
 
+    /** From out of range a trial value must not load the pattern's chunks to recount: the last count stands. */
+    @Test
+    void aTrialWithThePatternUnloadedAsksTheWorldForNoBlocksAndKeepsTheCount()
+    {
+        lay(ODD[0], Material.SMOOTH_STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
+        RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
+        assertEquals(1, RingPreviews.of(viewer).getGuideInPlace());
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(Boolean.FALSE);
+        final int askedBefore = asked;
+
+        RingPreviews.of(viewer).tryRingMaterial(Material.QUARTZ_SLAB);
+
+        assertEquals(askedBefore, asked, "no block was read from an unloaded chunk");
+        assertEquals(1, RingPreviews.of(viewer).getGuideInPlace(), "the last count stands");
+        assertEquals(Material.QUARTZ_SLAB, RingPreviews.of(viewer).getTrialRing(), "the trial is kept");
+    }
+
     /** A trial slab judges the squares against that slab, and the guide follows it. */
     @Test
     void aTrialSlabIsWhatTheGuideJudgesAgainst()
@@ -599,7 +619,8 @@ class RingPatternPreviewTest
     {
         final Ring far = new Ring(500, Y, 500, RingPattern.ODD, RingOrientation.FLOOR, Material.STONE_SLAB,
             Material.GLOWSTONE);
-        final RingPair other = new RingPair("aaaa0001", WORLD_NAME, far, far);
+        // Named as the pattern's own throwaway pair is, so only identity tells them apart.
+        final RingPair other = new RingPair("pattern", WORLD_NAME, far, far);
         RingManager.addPair(other, 4);
         RingPreviews.showPattern(viewer, RingPattern.ODD, probe);
 
