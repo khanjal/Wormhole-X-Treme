@@ -245,12 +245,27 @@ class RingPreviewCycleTest
             anyFloat(), anyFloat());
     }
 
+    /** Runs this many waiting steps, one at a time, noting how long each waited. */
+    private void runSteps(final int count, final List<Long> seen)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            seen.add(runOne());
+        }
+    }
+
+    /** The stack as the cycle leaves it standing between the rise and the light. */
+    private Map<Long, String> settledStack()
+    {
+        return padWith(RingAnimator.settledStack(ring, RingStyle.SEQUENTIAL), Material.STONE_SLAB);
+    }
+
     /**
-     * The whole cycle in order, each pause the real setting: the rise at the deploy pace, the
-     * settle, the one sweep of light at the flash pace, the hold, the fall, and the linger.
+     * The first phase: the first ring leaves as the command runs, the rest rise at the deploy
+     * pace, and the stack settles for the real settle pause with no other step able to cut in.
      */
     @Test
-    void theCycleRunsEveryPhaseInOrderWithTheRealPauses()
+    void theCycleRaisesTheStackAndSettlesBeforeTheLight()
     {
         preview.show();
         final int frames = RingAnimator.deployFrames(ring, RingStyle.SEQUENTIAL);
@@ -260,13 +275,8 @@ class RingPreviewCycleTest
 
         assertEquals(padWith(RingAnimator.deployFrame(ring, RingStyle.SEQUENTIAL, 0), Material.STONE_SLAB),
             drawing.shown, "the first ring leaves as the command runs");
-        final List<Long> seen = new ArrayList<>();
-        for (int i = 1; i < frames; i++)
-        {
-            seen.add(runOne());
-        }
-        final Map<Long, String> settled = padWith(RingAnimator.settledStack(ring, RingStyle.SEQUENTIAL),
-            Material.STONE_SLAB);
+        runSteps(frames - 1, new ArrayList<>());
+        final Map<Long, String> settled = settledStack();
         assertEquals(settled, drawing.shown, "the stack is up and still");
         assertTrue(preview.isCycling(), "and the cycle has not finished with it");
 
@@ -274,33 +284,68 @@ class RingPreviewCycleTest
         assertEquals(RingPreview.Result.BUSY, preview.light(), "no other step can cut into the settle");
         assertEquals(RingPreview.Result.BUSY, preview.collapse());
         assertEquals(settled, drawing.shown);
-        seen.add(runOne());
+    }
 
-        final Map<Long, String> lit = new HashMap<>(settled);
+    /**
+     * The middle phase: the one sweep of transport light, as for a trip with passengers, at the
+     * flash pace, then the stack holds for the real hold pause.
+     */
+    @Test
+    void theCycleSweepsTheLightOnceThenHoldsTheStack()
+    {
+        preview.show();
+        preview.cycle();
+        final List<Long> seen = new ArrayList<>();
+        runSteps(RingAnimator.deployFrames(ring, RingStyle.SEQUENTIAL) - 1, seen);
+        runSteps(1, seen);
+
+        final Map<Long, String> lit = new HashMap<>(settledStack());
         add(lit, RingAnimator.ringAtRest(ring, RingAnimator.litRing(0, false)), FLASH);
         assertEquals(lit, drawing.shown, "the transport light is on the first ring, as for a trip with passengers");
         assertEquals(RingPreview.State.LIGHTING, preview.getState());
-        for (int i = 0; i < RingAnimator.flashFrames(); i++)
-        {
-            seen.add(runOne());
-        }
-        assertEquals(settled, drawing.shown, "the light has gone and the stack stands");
+        runSteps(RingAnimator.flashFrames(), seen);
+        assertEquals(settledStack(), drawing.shown, "the light has gone and the stack stands");
 
         assertEquals(List.of((long) HOLD_TICKS), held.delays(), "the stack holds before it comes home");
-        seen.add(runOne());
+    }
+
+    /**
+     * The last phase: the rings come home at the deploy pace, the pad stays lit through the
+     * linger with nothing able to start in it, and the cycle then ends.
+     */
+    @Test
+    void theCycleBringsTheRingsHomeAndLetsTheLightsLinger()
+    {
+        preview.show();
+        preview.cycle();
+        final List<Long> seen = new ArrayList<>();
+        final int frames = RingAnimator.deployFrames(ring, RingStyle.SEQUENTIAL);
+        runSteps(frames - 1, seen);
+        runSteps(1 + RingAnimator.flashFrames(), seen);
+        runSteps(1, seen);
+
         assertEquals(padWith(RingAnimator.retractFrame(ring, RingStyle.SEQUENTIAL, 0), Material.STONE_SLAB),
             drawing.shown, "the rings start home");
-        for (int i = 0; i < frames; i++)
-        {
-            seen.add(runOne());
-        }
+        runSteps(frames, seen);
 
         assertEquals(pad(), drawing.shown, "no ring left and the pad is still lit");
         assertEquals(RingPreview.State.LIT, preview.getState());
         assertTrue(preview.isCycling(), "the lights linger first");
         assertEquals(RingPreview.Result.BUSY, preview.deploy(), "and nothing starts in that pause");
         assertEquals(List.of((long) LINGER_TICKS), held.delays());
-        seen.add(runOne());
+        runSteps(1, seen);
+        assertFalse(preview.isCycling());
+    }
+
+    /** Every pause of the whole cycle is the setting the real cycle waits on, in its place. */
+    @Test
+    void theWholeCycleWaitsTheRealPausesInOrderAndEndsOnTheLitPad()
+    {
+        preview.show();
+        final int frames = RingAnimator.deployFrames(ring, RingStyle.SEQUENTIAL);
+        preview.cycle();
+
+        final List<Long> seen = runToTheEnd();
 
         assertEquals(pauses(frames), seen, "every pause is the setting the real cycle waits on, in its place");
         assertEquals(pad(), drawing.shown);
