@@ -273,6 +273,22 @@ class RingPreviewEditCommandTest
         assertTrue(shows(third, Material.BRICK_SLAB));
     }
 
+    /** Putting a ring back to normal is an edit too, so a standing stack goes back to the slab it was laid in. */
+    @Test
+    void resetRedrawsAStandingStack()
+    {
+        endA.setBuiltMaterial(Material.STONE_SLAB);
+        endA.setRingMaterial(Material.BRICK_SLAB);
+        run(owner, PREVIEW, "deploy");
+        settle();
+        assertTrue(shows(owner, Material.BRICK_SLAB));
+
+        run(owner, "edit", "reset");
+
+        assertTrue(shows(owner, Material.STONE_SLAB));
+        assertFalse(shows(owner, Material.BRICK_SLAB));
+    }
+
     /** A new pad light shows on the pad straight away. */
     @Test
     void editingTheLightShowsOnThePad()
