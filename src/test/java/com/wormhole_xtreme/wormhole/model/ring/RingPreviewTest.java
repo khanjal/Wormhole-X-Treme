@@ -532,6 +532,21 @@ class RingPreviewTest
 
         final List<Float> all = ringPitches();
         assertEquals(RingAnimator.RING_COUNT * 2, all.size(), "every ring sounds on the way home");
+        // What the retract plays, frame by frame, for the style the stack came up in.
+        final Ring raised = ringAt(AX, AY, AZ, RingOrientation.FLOOR, RingStyle.CONCURRENT);
+        final List<Float> expected = new ArrayList<>();
+        for (int frame = 0; frame < RingAnimator.deployFrames(raised, RingStyle.CONCURRENT); frame++)
+        {
+            for (int index = 0; index < RingAnimator.RING_COUNT; index++)
+            {
+                if (RingSounds.startFrame(raised, index, true) == frame)
+                {
+                    expected.add(RingSounds.pitchFor(index));
+                }
+            }
+        }
+        assertEquals(expected, all.subList(RingAnimator.RING_COUNT, all.size()),
+            "the same notes on the same frames as the style it was raised in");
     }
 
     /** A ceiling ring with no floor in reach is refused as a real cycle refuses it. */
