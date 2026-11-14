@@ -145,7 +145,8 @@ class PreviewSurroundingsTest
     @Test
     void nothingIsSentToSomebodyWhoHasChangedWorldOrGone()
     {
-        when(viewer.getWorld()).thenReturn(mock(World.class));
+        final World elsewhere = mock(World.class);
+        when(viewer.getWorld()).thenReturn(elsewhere);
         drawing.showBlock(1, 2, 3, Material.GLOWSTONE);
         drawing.reveal(1, 2, 3);
         verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));

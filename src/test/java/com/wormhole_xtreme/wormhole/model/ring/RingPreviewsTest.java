@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.ring;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -289,7 +290,7 @@ class RingPreviewsTest
         assertEquals(RingPreview.Result.DONE, RingPreviews.show(viewer, pair, endB));
 
         assertSame(endB, RingPreviews.of(viewer).getRing());
-        assertTrue(first != RingPreviews.of(viewer));
+        assertNotSame(first, RingPreviews.of(viewer));
         // End A's pad is back to real, end B's is lit.
         final Map<String, BlockData> screen = onScreen(viewer);
         for (final int[] block : RingAnimator.lightBlocks(endA))

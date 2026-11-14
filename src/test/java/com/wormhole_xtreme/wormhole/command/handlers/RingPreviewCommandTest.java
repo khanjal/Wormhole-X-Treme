@@ -75,7 +75,8 @@ class RingPreviewCommandTest
         RingPreviews.clearAll();
 
         bukkit = mockStatic(Bukkit.class);
-        bukkit.when(() -> Bukkit.createBlockData(any(Material.class))).thenReturn(mock(BlockData.class));
+        final BlockData drawn = mock(BlockData.class);
+        bukkit.when(() -> Bukkit.createBlockData(any(Material.class))).thenReturn(drawn);
         config = mockStatic(ConfigManager.class);
         config.when(ConfigManager::getRingDeployTicks).thenReturn(Integer.valueOf(3));
         config.when(ConfigManager::getRingFlashTicks).thenReturn(Integer.valueOf(2));
@@ -95,7 +96,8 @@ class RingPreviewCommandTest
             // Stone below the pads, open air from them up: a floor ring has its floor, and a
             // ceiling ring has none within reach.
             when(block.isPassable()).thenReturn(Boolean.valueOf(call.getArgument(1, Integer.class) >= 64));
-            when(block.getBlockData()).thenReturn(mock(BlockData.class));
+            final BlockData real = mock(BlockData.class);
+            when(block.getBlockData()).thenReturn(real);
             return block;
         });
 

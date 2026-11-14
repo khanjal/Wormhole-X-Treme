@@ -86,6 +86,7 @@ public final class SubCommands
     private static final String OWNER = "owner";
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
+    private static final String PREVIEW = "preview";
     private static final String FREYA = "freya";
     private static final String CLEAR = "-clear";
 
@@ -477,7 +478,7 @@ public final class SubCommands
         {
             return completeGateBuild(args);
         }
-        if ("preview".equals(verb))
+        if (PREVIEW.equals(verb))
         {
             return completeGatePreview(args);
         }
@@ -1166,7 +1167,7 @@ public final class SubCommands
     }
 
     /** The steps {@code /wormhole ring preview} understands after the pad is lit. */
-    private static final String[] PREVIEW_STEPS = { "deploy", "light", "collapse", "-clear" };
+    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", CLEAR };
 
     /** The fields {@code /wormhole ring edit} understands. */
     private static final String[] RING_FIELDS = { "ring", LIGHT, "flash", "built", "name", "access", "style", "reset" };
@@ -1191,14 +1192,14 @@ public final class SubCommands
         if (args.length == 2)
         {
             // build and fire are offered only to whoever may run them.
-            final String[] verbs = { CREATE, "cancel", "list", REMOVE, "edit", "preview", "allow", "deny", OWNER };
+            final String[] verbs = { CREATE, "cancel", "list", REMOVE, "edit", PREVIEW, "allow", "deny", OWNER };
             return prefixed(args[1], admin ? both(verbs, new String[] { BUILD, "fire" }) : verbs);
         }
         if (BUILD.equalsIgnoreCase(args[1]) && admin && (args.length == 3))
         {
             return worldNames(args[2]);
         }
-        if ("preview".equalsIgnoreCase(args[1]))
+        if (PREVIEW.equalsIgnoreCase(args[1]))
         {
             // The steps, straight after the verb or after an id, which is not offered for the
             // reason edit's are not. Nothing follows a step.

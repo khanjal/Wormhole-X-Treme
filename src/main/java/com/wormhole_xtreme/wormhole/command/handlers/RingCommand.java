@@ -58,6 +58,8 @@ public class RingCommand implements SubCommand
     private static final String ALLOW = "allow";
     private static final String RESET = "reset";
     private static final String DEPLOY = "deploy";
+    private static final String LIGHT = "light";
+    private static final String COLLAPSE = "collapse";
     private static final String CLEAR = "-clear";
     private static final String PREVIEW_USAGE = "/wormhole ring preview [id] [deploy|light|collapse|-clear]";
     /** Furthest apart a pair's ends may be in height: a whole world, bedrock to build limit. */
@@ -731,7 +733,7 @@ public class RingCommand implements SubCommand
         final RingPair pair = (named != null) ? named : standingIn(player);
         if (pair == null)
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.stand-in-one")));
+            player.sendMessage(standInOne(player));
             return;
         }
         // "edit" with no field at all still has to reach the usage line, not index past the end.
@@ -778,7 +780,7 @@ public class RingCommand implements SubCommand
         final RingPair named = (args.length > 2) ? RingManager.getPair(args[2]) : null;
         final int stepAt = (named != null) ? 3 : 2;
         final String step = (args.length > stepAt) ? args[stepAt].toLowerCase(Locale.ROOT) : "";
-        final boolean known = List.of("", DEPLOY, "light", "collapse", CLEAR).contains(step);
+        final boolean known = List.of("", DEPLOY, LIGHT, COLLAPSE, CLEAR).contains(step);
         if (!known || (args.length > (stepAt + 1)))
         {
             player.sendMessage(ChatText.info(ChatText.usage(player, PREVIEW_USAGE)));
@@ -796,7 +798,7 @@ public class RingCommand implements SubCommand
             }
             return;
         }
-        if ("light".equals(step) || "collapse".equals(step))
+        if (LIGHT.equals(step) || COLLAPSE.equals(step))
         {
             previewStanding(player, step);
             return;
@@ -823,7 +825,7 @@ public class RingCommand implements SubCommand
             player.sendMessage(ChatText.noPermission(player));
             return;
         }
-        tellPreview(player, "light".equals(step) ? RingPreviews.light(player) : RingPreviews.collapse(player), step);
+        tellPreview(player, LIGHT.equals(step) ? RingPreviews.light(player) : RingPreviews.collapse(player), step);
     }
 
     /**
@@ -841,7 +843,7 @@ public class RingCommand implements SubCommand
         final RingPair pair = (named != null) ? named : standingIn(player);
         if (pair == null)
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.stand-in-one")));
+            player.sendMessage(standInOne(player));
             return;
         }
         if (!RingPermissions.mayManage(player, pair))
@@ -878,7 +880,7 @@ public class RingCommand implements SubCommand
             final String line = switch (step)
             {
                 case DEPLOY -> Messages.get(player, "ring.cmd.preview.deploying");
-                case "light" -> Messages.get(player, "ring.cmd.preview.lighting");
+                case LIGHT -> Messages.get(player, "ring.cmd.preview.lighting");
                 default -> Messages.get(player, "ring.cmd.preview.collapsing");
             };
             player.sendMessage(ChatText.info(line));
@@ -892,8 +894,8 @@ public class RingCommand implements SubCommand
         final String line = switch (result)
         {
             case ALREADY_SHOWING -> Messages.get(player, "ring.cmd.preview.already");
-            case ALREADY_STANDING -> Messages.get(player, "ring.cmd.preview.standing", ChatText.command("light"),
-                ChatText.command("collapse"), ChatText.command(CLEAR));
+            case ALREADY_STANDING -> Messages.get(player, "ring.cmd.preview.standing", ChatText.command(LIGHT),
+                ChatText.command(COLLAPSE), ChatText.command(CLEAR));
             case NO_STACK -> Messages.get(player, "ring.cmd.preview.no-stack", ChatText.command(DEPLOY));
             case BUSY -> Messages.get(player, "ring.cmd.preview.busy", ChatText.command(CLEAR));
             case WRONG_WORLD -> Messages.get(player, "ring.cmd.preview.wrong-world");
@@ -949,7 +951,7 @@ public class RingCommand implements SubCommand
             setRingMaterial(player, pair, only, value);
             return;
         }
-        if ("light".equals(field))
+        if (LIGHT.equals(field))
         {
             setLightMaterial(player, pair, only, value, false);
             return;
@@ -985,7 +987,7 @@ public class RingCommand implements SubCommand
             return;
         }
         player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.fields", ChatText.command("ring"),
-            ChatText.command("light"), ChatText.command("flash"), ChatText.command("built"), ChatText.command("name"),
+            ChatText.command(LIGHT), ChatText.command("flash"), ChatText.command("built"), ChatText.command("name"),
             ChatText.command("access"), ChatText.command("style"), ChatText.command(RESET))));
     }
 
@@ -1390,6 +1392,12 @@ public class RingCommand implements SubCommand
         return ChatText.error(Messages.get(player, "ring.cmd.never-seen", ChatText.name(name)));
     }
 
+    /** @return the error, for {@code player} to read, for no ring underfoot and no pair named */
+    private static String standInOne(final Player player)
+    {
+        return ChatText.error(Messages.get(player, "ring.cmd.stand-in-one"));
+    }
+
     /** @return the error, for {@code player} to read, for a pair that is not theirs to manage */
     private static String notYourPair(final Player player)
     {
@@ -1419,7 +1427,7 @@ public class RingCommand implements SubCommand
         final RingPair here = standingIn(player);
         if (here == null)
         {
-            player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.stand-in-one")));
+            player.sendMessage(standInOne(player));
         }
         return here;
     }
