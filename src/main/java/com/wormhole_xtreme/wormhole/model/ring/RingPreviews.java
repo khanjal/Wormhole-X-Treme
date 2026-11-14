@@ -61,6 +61,10 @@ public final class RingPreviews
      */
     public static RingPreview.Result show(final Player viewer, final RingPair pair, final Ring ring)
     {
+        if (stopCycle(viewer))
+        {
+            return RingPreview.Result.CYCLE_STOPPED;
+        }
         final RingPreview.Result refused = refusal(viewer, pair, ring);
         if (refused != null)
         {
@@ -90,6 +94,10 @@ public final class RingPreviews
     public static RingPreview.Result deploy(final Player viewer, final RingPair pair,
         final Ring ring)
     {
+        if (stopCycle(viewer))
+        {
+            return RingPreview.Result.CYCLE_STOPPED;
+        }
         final RingPreview.Result refused = refusal(viewer, pair, ring);
         if (refused != null)
         {
@@ -105,6 +113,37 @@ public final class RingPreviews
     }
 
     /**
+     * Plays a whole cycle on an end for one player, lighting the pad first if it is not.
+     *
+     * <p>Refused while a stack stands, as the real cycle starts from the lit pad. Asked again
+     * while it runs it is busy, where any other step stops it.
+     *
+     * @param viewer
+     *            who is shown it
+     * @param pair
+     *            the pair the end belongs to
+     * @param ring
+     *            the end
+     * @return what happened
+     */
+    public static RingPreview.Result cycle(final Player viewer, final RingPair pair,
+        final Ring ring)
+    {
+        final RingPreview.Result refused = refusal(viewer, pair, ring);
+        if (refused != null)
+        {
+            return refused;
+        }
+        RingPreview preview = SHOWN.get(viewer.getUniqueId());
+        touch(viewer);
+        if ((preview == null) || (preview.getRing() != ring))
+        {
+            preview = begin(viewer, pair, ring);
+        }
+        return preview.cycle();
+    }
+
+    /**
      * Runs the light through the stack a player has standing.
      *
      * @param viewer
@@ -113,6 +152,10 @@ public final class RingPreviews
      */
     public static RingPreview.Result light(final Player viewer)
     {
+        if (stopCycle(viewer))
+        {
+            return RingPreview.Result.CYCLE_STOPPED;
+        }
         final RingPreview preview = SHOWN.get(viewer.getUniqueId());
         if (preview == null)
         {
@@ -135,6 +178,10 @@ public final class RingPreviews
      */
     public static RingPreview.Result collapse(final Player viewer)
     {
+        if (stopCycle(viewer))
+        {
+            return RingPreview.Result.CYCLE_STOPPED;
+        }
         final RingPreview preview = SHOWN.get(viewer.getUniqueId());
         if (preview == null)
         {
@@ -254,6 +301,27 @@ public final class RingPreviews
     }
 
     /**
+     * Stops a running cycle, because another step was asked for, by taking the preview back.
+     *
+     * <p>The same clean-up as {@code -clear}: the pending step is cancelled before the drawing
+     * goes, so no frame is drawn after it.
+     *
+     * @param viewer
+     *            who asked for the other step
+     * @return true if a cycle was running and has been stopped
+     */
+    public static boolean stopCycle(final Player viewer)
+    {
+        final RingPreview preview = SHOWN.get(viewer.getUniqueId());
+        if ((preview == null) || !preview.isCycling())
+        {
+            return false;
+        }
+        drop(viewer.getUniqueId());
+        return true;
+    }
+
+    /**
      * Forgets a preview that took itself back after a failed step.
      *
      * @param id
@@ -287,6 +355,13 @@ public final class RingPreviews
             new PreviewSurroundings(viewer, viewer.getWorld(), pair));
         SHOWN.put(viewer.getUniqueId(), preview);
         preview.setOnFailure(() -> forget(viewer.getUniqueId(), preview));
+        preview.setOnProgress(() ->
+        {
+            if (SHOWN.get(viewer.getUniqueId()) == preview)
+            {
+                touch(viewer);
+            }
+        });
         touch(viewer);
         preview.show();
         return preview;

@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -84,6 +85,7 @@ class RingPreviewCommandTest
         config.when(ConfigManager::getRingSoundRing).thenReturn("");
         config.when(ConfigManager::getRingSoundOpen).thenReturn("");
         config.when(ConfigManager::getRingSoundFlash).thenReturn("");
+        config.when(ConfigManager::getRingSoundClose).thenReturn("");
 
         world = mock(World.class);
         when(world.getName()).thenReturn(WORLD);
@@ -328,6 +330,83 @@ class RingPreviewCommandTest
         assertSame(pair.getEndA(), RingPreviews.of(player).getRing(), "and nearer the first");
     }
 
+    /** {@code cycle} lights the pad if it must, says it is playing the whole thing, and ends on the lit pad. */
+    @Test
+    void cycleLightsThePadPlaysTheWholeCycleAndEndsLit()
+    {
+        final RingPair pair = registeredPair(OWNER);
+
+        assertTrue(preview("cycle"));
+
+        verify(player).sendMessage(plainContains("A whole cycle plays, for you alone"));
+        assertTrue(RingPreviews.of(player).isCycling());
+        for (int guard = 0; RingPreviews.of(player).isCycling() && (guard < 200); guard++)
+        {
+            held.runNextOtherThan(TIMEOUT);
+        }
+        assertEquals(RingPreview.State.LIT, RingPreviews.of(player).getState());
+        assertEquals(RingPhase.IDLE, pair.getPhase());
+        assertEquals(0L, pair.getCooldownUntil());
+    }
+
+    /** With a stack standing, {@code cycle} says what to do and draws nothing. */
+    @Test
+    void cycleWithAStackStandingSaysToCollapseFirst()
+    {
+        registeredPair(OWNER);
+        preview("deploy");
+        standTheStack();
+
+        preview("cycle");
+
+        verify(player).sendMessage(plainContains("A stack is standing, and a cycle starts from the lit pad. Run collapse first."));
+        assertFalse(RingPreviews.of(player).isCycling());
+        assertEquals(RingPreview.State.DEPLOYED, RingPreviews.of(player).getState());
+    }
+
+    /** Another step during a cycle stops it and says so. */
+    @Test
+    void anotherStepDuringACycleStopsItAndSaysSo()
+    {
+        registeredPair(OWNER);
+        preview("cycle");
+        held.runNextOtherThan(TIMEOUT);
+
+        preview("light");
+
+        verify(player).sendMessage(plainContains("The cycle stopped and the preview is taken back"));
+        assertNull(RingPreviews.of(player));
+    }
+
+    /** A step from off the pad still stops a cycle, rather than asking the player to stand in a ring. */
+    @Test
+    void aStepFromOffThePadStillStopsARunningCycle()
+    {
+        registeredPair(OWNER);
+        preview("cycle");
+        held.runNextOtherThan(TIMEOUT);
+        standAt(500, 65, 500);
+
+        preview("deploy");
+
+        verify(player).sendMessage(plainContains("The cycle stopped and the preview is taken back"));
+        verify(player, never()).sendMessage(plainContains("Stand in a ring"));
+        assertNull(RingPreviews.of(player));
+        assertEquals(0, held.pending());
+    }
+
+    /** {@code cycle} is a step of the pair's owner or an admin, like the others. */
+    @Test
+    void cycleIsRefusedToSomebodyWhoMayNotPreviewThePair()
+    {
+        registeredPair("11111111-1111-1111-1111-111111111111");
+
+        preview("cycle");
+
+        assertNull(RingPreviews.of(player));
+        verify(player, never()).sendMessage(plainContains("A whole cycle plays"));
+    }
+
     /** A step that is not one, or too many words, is a usage line and draws nothing. */
     @Test
     void anUnknownStepOrExtraWordsGetTheUsageLine()
@@ -338,7 +417,7 @@ class RingPreviewCommandTest
         preview("deploy", "twice");
 
         verify(player, times(2))
-            .sendMessage(plainContains("/wormhole ring preview [id] [deploy|light|collapse|ring <slab>"));
+            .sendMessage(plainContains("/wormhole ring preview [id] [deploy|light|collapse|cycle|ring <slab>"));
         assertNull(RingPreviews.of(player));
     }
 

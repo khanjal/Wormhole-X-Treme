@@ -432,8 +432,9 @@ nobody can stand on a rising ring or be shoved by one.
 `/wormhole ring preview` (#332) is the same drawing with the stops put in: a player sees one
 built ring light, rise, flash and fall one step at a time, instead of waiting out a countdown
 they cannot pause and a cooldown they cannot skip. It exists so that what an `edit` did can be
-looked at, and the first step, showing a built ring's pad and stack to its owner, is all that is
-built so far.
+looked at. A built ring can be stepped through or played whole with `cycle`, an `edit` shows on a
+standing preview, and values can be tried on it before `-save`. Previewing a pattern that has not
+been built yet (`preview odd|even`) is still to come.
 
 **The frames are the real ones.** `RingPreview` steps through `RingAnimator.deployFrame`,
 `settledStack`, `ringAtRest`, `litRing` and `retractFrame` directly, at the server's own
@@ -454,7 +455,18 @@ through a staircase.
 leaves the stack standing, `light` runs the light through it and returns to standing, `collapse`
 brings it home and returns to lit. Each moving phase has one scheduler task pending at a time;
 a step asked for mid-phase answers `BUSY`, and one that makes no sense for the state (`light` with
-no stack, `deploy` with one up) says so. `clear` cancels the pending task before it takes the
+no stack, `deploy` with one up) says so.
+
+**`cycle` is those steps run on their own, with the real pauses.** `RingPreview.cycle` raises the
+stack, and a `cycling` flag makes each phase book the next instead of stopping: the settle
+(`ring-settle-ticks`) after the rise, one light sweep (a trip with passengers shows one; the
+second sweep, after the swap, is not drawn, as nobody lands), the hold (`ring-hold-ticks`), the
+collapse, and the lights-linger pause (`ring-lights-linger-ticks`) with the closing sound before it
+ends at `LIT`. The flag counts as moving, so `cycle` while one runs is `BUSY`, and `cycle` with a
+stack standing is `CYCLE_STANDING`. Any other step asked of a cycling preview goes through
+`RingPreviews.stopCycle`, which is `-clear`'s own `drop`: the pending task is cancelled before the
+drawing is taken back, and the answer is `CYCLE_STOPPED`. Trial values apply to a cycle as to any
+step, and an edit redraws it by `refresh`. `clear` cancels the pending task before it takes the
 drawing back, and a step already queued when it ran does nothing, so a stack is never redrawn
 after it was taken away. A stack remembers the style it was raised in, so a style changed while it
 stands takes effect on the next `deploy`.

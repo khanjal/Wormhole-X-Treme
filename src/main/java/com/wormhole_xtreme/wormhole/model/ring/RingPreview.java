@@ -68,7 +68,11 @@ public final class RingPreview
         /** The end is in a world other than the viewer's. */
         WRONG_WORLD,
         /** The end's chunk is not loaded, so drawing it would load it. */
-        NOT_LOADED
+        NOT_LOADED,
+        /** A stack is standing, so a whole cycle cannot start until it is collapsed. */
+        CYCLE_STANDING,
+        /** A cycle was running and the step asked for stopped it, taking the drawing back. */
+        CYCLE_STOPPED
     }
 
     /** Marks that no task is waiting. */
@@ -88,6 +92,9 @@ public final class RingPreview
 
     /** What to tell the registry when a step fails and the preview has cleared itself. */
     private Runnable whenFailed = () -> { };
+
+    /** What to tell the registry as a cycle moves on, so a long one is not timed out. */
+    private Runnable whenActive = () -> { };
 
     /** How it is drawn. */
     private final RingCycle.Surroundings world;
@@ -131,6 +138,9 @@ public final class RingPreview
     /** True once cleared, after which nothing more is drawn. */
     private boolean cleared = false;
 
+    /** True while {@link #cycle()} is carrying the preview from phase to phase on its own. */
+    private boolean cycling = false;
+
     /**
      * Instantiates a preview of one end.
      *
@@ -163,6 +173,17 @@ public final class RingPreview
     void setOnFailure(final Runnable whenFailed)
     {
         this.whenFailed = whenFailed;
+    }
+
+    /**
+     * Sets what happens as a cycle moves on, so the registry can start the timeout again.
+     *
+     * @param whenActive
+     *            told at each phase of a cycle and when it ends
+     */
+    void setOnProgress(final Runnable whenActive)
+    {
+        this.whenActive = whenActive;
     }
 
     /** @return who is shown this preview */
@@ -386,6 +407,60 @@ public final class RingPreview
         {
             return Result.ALREADY_STANDING;
         }
+        return raise();
+    }
+
+    /**
+     * Plays the whole cycle on this end, with the pauses the real one has, for the viewer alone.
+     *
+     * <p>The pad is lit, the stack rises, settles, the transport light runs through it once, as
+     * it does for a trip with passengers, the stack stands for the hold, comes home, and the pad
+     * stays lit for the lights-linger pause before the preview is back at {@link State#LIT}. The
+     * pauses are the settings the real cycle reads, at the moment each is taken. Nobody is
+     * carried and nothing is stored. Refused while a stack stands, as a cycle starts from the lit
+     * pad.
+     *
+     * @return what happened
+     */
+    public Result cycle()
+    {
+        if (isMoving())
+        {
+            return Result.BUSY;
+        }
+        if (state == State.DEPLOYED)
+        {
+            return Result.CYCLE_STANDING;
+        }
+        cycling = true;
+        final Result raised = raise();
+        if (raised != Result.DONE)
+        {
+            cycling = false;
+        }
+        return raised;
+    }
+
+    /** Ends a cycle after its last pause, leaving the pad lit. */
+    private void endCycle()
+    {
+        cycling = false;
+        whenActive.run();
+    }
+
+    /** @return whether a {@link #cycle()} is running, which any other step stops */
+    public boolean isCycling()
+    {
+        return cycling;
+    }
+
+    /**
+     * Measures the floor and draws the first frame of the rise.
+     *
+     * @return what happened
+     */
+    private Result raise()
+    {
         // Measured on a copy: the drop a survey records belongs to this drawing, not to the ring.
         final Ring measured = drawingCopy();
         final RingBlockage found = world.survey(measured);
@@ -420,10 +495,16 @@ public final class RingPreview
         {
             return Result.NO_STACK;
         }
+        startLight();
+        return Result.DONE;
+    }
+
+    /** Begins the light's sweep through the standing stack, with its sound. */
+    private void startLight()
+    {
         state = State.LIGHTING;
         RingSounds.flashedTo(viewer, ring);
         sweep(0);
-        return Result.DONE;
     }
 
     /**
@@ -441,12 +522,18 @@ public final class RingPreview
         {
             return Result.NO_STACK;
         }
+        startCollapse();
+        return Result.DONE;
+    }
+
+    /** Draws the first frame of the rings coming home, with its sound. */
+    private void startCollapse()
+    {
         state = State.COLLAPSING;
         frame = 0;
         drawFrame(RingAnimator.retractFrame(stack, style, 0));
         RingSounds.ringMovedTo(viewer, stack, 0, true);
         continueCollapse();
-        return Result.DONE;
     }
 
     /**
@@ -458,6 +545,7 @@ public final class RingPreview
     public void clear()
     {
         cleared = true;
+        cycling = false;
         cancelPending();
         clearSet(drawnRings);
         clearSet(drawnLights);
@@ -466,7 +554,7 @@ public final class RingPreview
     /** @return whether a step is moving, which no other step may interrupt */
     private boolean isMoving()
     {
-        return (state == State.DEPLOYING) || (state == State.LIGHTING)
+        return cycling || (state == State.DEPLOYING) || (state == State.LIGHTING)
             || (state == State.COLLAPSING);
     }
 
@@ -476,6 +564,10 @@ public final class RingPreview
         if (frame >= (RingAnimator.deployFrames(stack, style) - 1))
         {
             state = State.DEPLOYED;
+            if (cycling)
+            {
+                later(ConfigManager.getRingSettleTicks(), this::startLight);
+            }
             return;
         }
         later(ConfigManager.getRingDeployTicks(), () ->
@@ -502,6 +594,10 @@ public final class RingPreview
         if (step >= RingAnimator.flashFrames())
         {
             state = State.DEPLOYED;
+            if (cycling)
+            {
+                later(ConfigManager.getRingHoldTicks(), this::startCollapse);
+            }
             return;
         }
         drawOver(RingAnimator.ringAtRest(stack, RingAnimator.litRing(step, false)),
@@ -519,6 +615,11 @@ public final class RingPreview
             {
                 clearSet(drawnRings);
                 state = State.LIT;
+                if (cycling)
+                {
+                    RingSounds.closedTo(viewer, stack);
+                    later(ConfigManager.getRingLightsLingerTicks(), this::endCycle);
+                }
                 return;
             }
             drawFrame(RingAnimator.retractFrame(stack, style, frame));
@@ -624,6 +725,10 @@ public final class RingPreview
             }
             try
             {
+                if (cycling)
+                {
+                    whenActive.run();
+                }
                 step.run();
             }
             catch (final RuntimeException e)

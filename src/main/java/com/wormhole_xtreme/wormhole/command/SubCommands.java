@@ -1169,7 +1169,7 @@ public final class SubCommands
     }
 
     /** The steps {@code /wormhole ring preview} understands, and the fields it tries a value on. */
-    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", "ring", FLASH, STYLE, "-save", CLEAR };
+    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", "cycle", "ring", FLASH, STYLE, "-save", CLEAR };
 
     /** The fields {@code /wormhole ring preview} takes a value for. */
     private static final String[] PREVIEW_TRIALS = { "ring", LIGHT, FLASH, STYLE };

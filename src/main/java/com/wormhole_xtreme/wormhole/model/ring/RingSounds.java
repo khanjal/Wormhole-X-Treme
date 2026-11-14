@@ -105,6 +105,19 @@ public final class RingSounds
     }
 
     /**
+     * Plays the closing for one viewer, as a preview cycle's rings reach home.
+     *
+     * @param viewer
+     *            who hears it, and nobody else does
+     * @param ring
+     *            the end being previewed
+     */
+    public static void closedTo(final Player viewer, final Ring ring)
+    {
+        playTo(viewer, ring, ConfigManager.getRingSoundClose(), 1.0f);
+    }
+
+    /**
      * Plays the transport flash for one viewer.
      *
      * @param viewer
