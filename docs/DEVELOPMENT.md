@@ -109,6 +109,12 @@ live reload. Write links between pages as relative `.md` links, which work on Gi
 site; a link to a file outside `docs/`, or to one the site leaves out (`docs/listings/`,
 `docs/SONAR_BACKLOG.md`), must be an absolute GitHub URL.
 
+`.github/workflows/docs.yml` builds the site on pull requests that touch the docs, and on a push
+to `main` that does. It deploys only once Pages is on: Settings → Pages → Source "GitHub Actions",
+then a repository variable `PAGES_ENABLED` set to `true` (Settings → Secrets and variables →
+Actions → Variables). Without the variable a merge only builds, so a repository with Pages off
+gets no failing deploy.
+
 ## A player on a real server
 
 MockBukkit's player is simulated, and the boot tests in `ci.yml` run a real server with no player
