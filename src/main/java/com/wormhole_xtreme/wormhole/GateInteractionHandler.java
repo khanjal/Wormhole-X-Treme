@@ -144,7 +144,7 @@ public final class GateInteractionHandler
         }
         else
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
         }
     }
 
@@ -216,7 +216,7 @@ public final class GateInteractionHandler
         if (!WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
         {
             withdrawOffer(player, newGate);
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (RegionFlags.refusesBuild(player, newGate))
@@ -419,7 +419,7 @@ public final class GateInteractionHandler
         // The name came first, with only a network to check it against; the shape is known now.
         if (!WXPermissions.checkBuildOf(player, found, pending[2]))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (RegionFlags.refusesBuild(player, found))
@@ -525,7 +525,7 @@ public final class GateInteractionHandler
         {
             //Shutdown stargate
             stargate.shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
-            player.sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
+            player.sendMessage(ChatText.info(Messages.get(player, "common.gate-shutdown")));
             return true;
         }
 
@@ -539,7 +539,7 @@ public final class GateInteractionHandler
         if ((s2 != null) && (stargate.getGateId() == s2.getGateId()))
         {
             clearActivation(stargate);
-            player.sendMessage(ConfigManager.MessageStrings.GATE_DEACTIVATED.toString());
+            player.sendMessage(ChatText.info(Messages.get(player, "common.gate-deactivated")));
             return true;
         }
 
@@ -550,7 +550,7 @@ public final class GateInteractionHandler
             return true;
         }
 
-        player.sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+        player.sendMessage(ChatText.error(Messages.get(player, "common.gate-remote-active")));
         return false;
     }
 
@@ -577,7 +577,7 @@ public final class GateInteractionHandler
             return false;
         }
         source.shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
-        player.sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
+        player.sendMessage(ChatText.info(Messages.get(player, "common.gate-shutdown")));
         try
         {
             tellFarEnd(source, player);
@@ -611,7 +611,7 @@ public final class GateInteractionHandler
             .filter(p -> (p != closer) && world.equals(p.getWorld())
                 && (p.getLocation().toVector().distanceSquared(at.toVector())
                     <= (FAR_END_NOTICE_RADIUS * FAR_END_NOTICE_RADIUS)))
-            .forEach(p -> p.sendMessage(ConfigManager.MessageStrings.FAR_END_CLOSED.toString()));
+            .forEach(p -> p.sendMessage(ChatText.info(Messages.get(p, "common.far-end-closed"))));
     }
 
     /**
@@ -694,7 +694,7 @@ public final class GateInteractionHandler
         {
             final String msg = "Permission denied for sign usage: player='" + player.getName() + "' gate='" + stargate.getGateName() + "' owner='" + stargate.getGateOwner() + "'";
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, msg);
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return false;
         }
 
@@ -711,12 +711,12 @@ public final class GateInteractionHandler
         final Stargate target = stargate.getGateDialSignTarget();
         if (target == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.target-invalid")));
             return false;
         }
         if (StargateRestrictions.isCrossWorldRefused(stargate.getGateWorld(), target.getGateWorld()))
         {
-            player.sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.cross-world-disabled")));
             return false;
         }
 
@@ -725,7 +725,7 @@ public final class GateInteractionHandler
             player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.connected")));
             return true;
         }
-        player.sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+        player.sendMessage(ChatText.error(Messages.get(player, "common.gate-remote-active")));
         return false;
     }
 
@@ -741,7 +741,7 @@ public final class GateInteractionHandler
     static boolean activateForDialling(final Stargate stargate, final Player player)
     {
         //Activate Stargate
-        player.sendMessage(ConfigManager.MessageStrings.GATE_ACTIVATED.toString());
+        player.sendMessage(ChatText.info(Messages.get(player, "common.gate-activated")));
         player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.chevrons-locked")));
         player.sendMessage(ChatText.info(Messages.get(player, "gate.activate.type-to-dial",
             ChatText.usageBody("/dial <gate> [idc]"))));
@@ -783,7 +783,7 @@ public final class GateInteractionHandler
                 }
                 else
                 {
-                    player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+                    player.sendMessage(ChatText.noPermission(player));
                 }
                 // Always cancel the interact event for a registered gate sign block
                 // so the sign editor never opens regardless of tryClickTeleportSign outcome.
@@ -1030,7 +1030,7 @@ public final class GateInteractionHandler
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Permission denied on nearby/gate-detection: player='" + player.getName()
                 + "' nearbyBlock='" + candidate.getLocation().toString() + "'");
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
         }
     }
 }

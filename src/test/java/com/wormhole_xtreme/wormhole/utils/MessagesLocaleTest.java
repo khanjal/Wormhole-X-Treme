@@ -160,6 +160,35 @@ class MessagesLocaleTest
         verify(player, never()).getLocale();
     }
 
+    /** A Paper {@code locale()} stand-in for the en_US that Paper answers when it cannot read the client's. */
+    public static Locale american()
+    {
+        return Locale.US;
+    }
+
+    /**
+     * Paper answers en_US for a client that sent an empty locale, which would put that player on the
+     * English file ahead of the server's language; the client's own empty string says it was none.
+     */
+    @Test
+    void anEmptyClientLocaleOnPaperReadsTheServersLanguage() throws ReflectiveOperationException
+    {
+        PlayerLocales.lookupWith(new PlayerLocales.Lookup(MessagesLocaleTest.class.getMethod("american")));
+
+        assertEquals("RR reset.", Messages.get(player(""), "compass.reset"), "an empty locale reads rr");
+    }
+
+    /** A client that really is en_US still reads English on Paper, and one Paper cannot ask is left as Paper says. */
+    @Test
+    void aRealAmericanClientOnPaperStillReadsEnglish() throws ReflectiveOperationException
+    {
+        PlayerLocales.lookupWith(new PlayerLocales.Lookup(MessagesLocaleTest.class.getMethod("american")));
+        final String backToNormal = "Compass back to normal: it points at world spawn again.";
+
+        assertEquals(backToNormal, Messages.get(player("en_us"), "compass.reset"));
+        assertEquals(backToNormal, Messages.get(player(null), "compass.reset"), "no raw locale to doubt Paper's");
+    }
+
     /** Where Paper's method is missing or fails, Bukkit's getLocale is read instead. */
     @Test
     void getLocaleIsReadWherePapersIsMissingOrFails() throws ReflectiveOperationException

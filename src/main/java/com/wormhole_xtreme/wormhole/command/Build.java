@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -122,20 +121,6 @@ public class Build implements CommandExecutor
     private static final List<String> ACCEPTED =
         Stream.concat(ACTIONS.stream(), Stream.of(MATERIALS)).toList();
 
-    /** What each of {@link #ACTIONS} is called on its button, inside its brackets; the button is the command, so it is not translated. */
-    private static final Map<String, String> LABELS = Map.ofEntries(
-        Map.entry(CLEAR, "Clear"),
-        Map.entry(ACTIVATE, "Activate"),
-        Map.entry(IRIS, "Iris"),
-        Map.entry(MATERIAL, "Material"),
-        Map.entry(NEEDS, "Needs"),
-        Map.entry(GUIDE, "Guide"),
-        Map.entry(LAYER, "Layer"),
-        Map.entry(CHEVRONS, "Chevrons"),
-        Map.entry(DHD, "DHD"),
-        Map.entry(SHARE, "Share"),
-        Map.entry(PLACE, "Place"));
-
     /** The one action that does nothing without more typed after it, so its button fills it in. */
     private static final List<String> NEEDS_MORE = List.of(MATERIAL);
 
@@ -240,7 +225,7 @@ public class Build implements CommandExecutor
             player.sendMessage(ChatText.error(Messages.get(player, "gate.preview.off")));
             return;
         }
-        linkHint(ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.over-limit"))), CLEAR).text(".")
+        linkHint(player, ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.over-limit"))), CLEAR).text(".")
             .send(player);
     }
 
@@ -314,7 +299,7 @@ public class Build implements CommandExecutor
         if (!mayPreview || (PLACE.equals(option) && !PreviewPermissions.mayPlace(player))
             || (SHARE.equals(option) && !PreviewPermissions.mayShare(player)))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         final GatePreviews.Control done = switch (option)
@@ -354,9 +339,9 @@ public class Build implements CommandExecutor
         final Role role = (args.length == 3) ? Role.named(args[1]) : null;
         if (role == null)
         {
-            ChatLine.of(ChatText.info(ChatText.usageLead(player))).suggest(hint(MATERIAL + " <group>"), PREVIEW_COMMAND + MATERIAL + " ")
+            ChatLine.of(ChatText.info(ChatText.usageLead(player))).suggest(player, hint(MATERIAL + " <group>"), PREVIEW_COMMAND + MATERIAL + " ")
                 .text(Messages.get(player, "gate.preview.material.or"))
-                .suggest(hint(MATERIAL + " -<role> <block>"), PREVIEW_COMMAND + MATERIAL + " -")
+                .suggest(player, hint(MATERIAL + " -<role> <block>"), PREVIEW_COMMAND + MATERIAL + " -")
                 .text(Messages.get(player, "gate.preview.material.roles", roles)).send(player);
             return null;
         }
@@ -448,10 +433,10 @@ public class Build implements CommandExecutor
             case OVER_QUOTA -> player.sendMessage(ChatText.error(Messages.get(player, "gate.preview.place.over-quota",
                 placed.inTheWay().get(0))));
             case SHAPE_OFF -> player.sendMessage(ChatText.error(Messages.get(player, "gate.preview.place.shape-off")));
-            case IN_THE_WAY -> linkHint(ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.place.in-the-way",
+            case IN_THE_WAY -> linkHint(player, ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.place.in-the-way",
                 bad(String.join(separator(player), placed.inTheWay()))))), GUIDE)
                 .text(Messages.get(player, "gate.preview.place.in-the-way-tail")).send(player);
-            case NOT_FOUND -> linkHint(ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.place.not-found"))),
+            case NOT_FOUND -> linkHint(player, ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.place.not-found"))),
                 GUIDE).text(Messages.get(player, "gate.preview.place.not-found-tail")).send(player);
             case PLACED -> {
                 player.sendMessage(ChatText.info(good(Messages.get(player, "gate.preview.place.placed",
@@ -474,7 +459,7 @@ public class Build implements CommandExecutor
         final int asked = layerAsked(args);
         if (asked < GatePreviews.NEXT_LAYER)
         {
-            ChatLine.of(ChatText.info(ChatText.usageLead(player))).suggest(hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"),
+            ChatLine.of(ChatText.info(ChatText.usageLead(player))).suggest(player, hint(LAYER + " [number|" + NEXT + "|" + ALL + "]"),
                 PREVIEW_COMMAND + LAYER + " ").send(player);
             return null;
         }
@@ -603,10 +588,30 @@ public class Build implements CommandExecutor
             {
                 line.text(" ");
             }
-            line.link(command("[" + LABELS.getOrDefault(action, action) + "]"), command(action), typed,
+            line.link(command("[" + label(player, action) + "]"), command(action), typed,
                 command(typed.trim() + (needsMore ? " ..." : "")) + "\n" + help(player, action) + finish, needsMore);
         }
         return line;
+    }
+
+    /** What an action's button is called, inside its brackets; the action's own name for one with no label. */
+    private static String label(final Player player, final String action)
+    {
+        return switch (action)
+        {
+            case CLEAR -> Messages.get(player, "gate.preview.button.clear");
+            case ACTIVATE -> Messages.get(player, "gate.preview.button.activate");
+            case IRIS -> Messages.get(player, "gate.preview.button.iris");
+            case MATERIAL -> Messages.get(player, "gate.preview.button.material");
+            case NEEDS -> Messages.get(player, "gate.preview.button.needs");
+            case GUIDE -> Messages.get(player, "gate.preview.button.guide");
+            case LAYER -> Messages.get(player, "gate.preview.button.layer");
+            case CHEVRONS -> Messages.get(player, "gate.preview.button.chevrons");
+            case DHD -> Messages.get(player, "gate.preview.button.dhd");
+            case SHARE -> Messages.get(player, "gate.preview.button.share");
+            case PLACE -> Messages.get(player, "gate.preview.button.place");
+            default -> action;
+        };
     }
 
     /** What pointing at an action's button says it does; nothing for an action with no button. */
@@ -668,15 +673,17 @@ public class Build implements CommandExecutor
     /**
      * Adds a preview command a refusal points at, which a click runs.
      *
+     * @param player
+     *            who reads the hover
      * @param line
      *            the refusal so far
      * @param words
      *            the action and anything after it
      * @return the line
      */
-    private static ChatLine linkHint(final ChatLine line, final String words)
+    private static ChatLine linkHint(final Player player, final ChatLine line, final String words)
     {
-        return line.run(hint(words), PREVIEW_COMMAND + words);
+        return line.run(player, hint(words), PREVIEW_COMMAND + words);
     }
 
     private static void tell(final Player player, final GatePreviews.Control done)
@@ -730,7 +737,7 @@ public class Build implements CommandExecutor
                 ChatText.value(String.valueOf(GatePreviews.countOf(player.getUniqueId()))))));
             return;
         }
-        linkHint(ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.clear-hint"))), CLEAR + " " + ALL).text(".")
+        linkHint(player, ChatLine.of(ChatText.error(Messages.get(player, "gate.preview.clear-hint"))), CLEAR + " " + ALL).text(".")
             .send(player);
     }
 

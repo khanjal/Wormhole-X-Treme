@@ -1,3 +1,5 @@
-# A server language, for MessagesLocaleTest only; rr is no real language code.
+# A server language, for MessagesLocaleTest and ChatLineLanguageTest only; rr is no real language code.
 compass.reset: "RR reset."
 compass.set: "RR set {0}."
+chat.click-run: "RR run {0}"
+chat.click-fill: "RR fill {0}"

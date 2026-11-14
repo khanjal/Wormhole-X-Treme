@@ -40,6 +40,7 @@ import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Which lever a click was aimed at, when a gate has two of them next to each other.
@@ -325,7 +326,7 @@ class LeverClickDispatchTest
         }
 
         verify(source).shutdownStargate(true, StargateShutdownEvent.Reason.MANUAL);
-        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
+        verify(player).sendMessage(ChatText.info("Gate shut down."));
     }
 
     /** A sign-powered gate's dial lever closes an arriving wormhole the same way. */
@@ -367,7 +368,7 @@ class LeverClickDispatchTest
             ConfigTestSupport.clear();
         }
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
         verify(source, never()).shutdownStargate(anyBoolean(),
             any(StargateShutdownEvent.Reason.class));
     }

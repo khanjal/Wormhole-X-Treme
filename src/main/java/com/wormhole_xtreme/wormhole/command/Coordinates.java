@@ -7,6 +7,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.ProxiedCommandSender;
 import org.bukkit.entity.Entity;
 
+import com.wormhole_xtreme.wormhole.utils.Messages;
+
 /**
  * Block coordinates as typed into a command: a whole number, or {@code ~} with an optional whole number
  * after it, counted from the command block or player that typed it, as vanilla commands read them.
@@ -112,14 +114,16 @@ public final class Coordinates
         final Location from = origin(sender);
         if (from == null)
         {
-            return "~ counts from a command block or player; from here, give whole numbers.";
+            return Messages.get(sender, "coordinates.from-nowhere");
         }
         // A place with no world cannot be said to be in this one, so it is refused rather than guessed at.
         if ((from.getWorld() == null) || !from.getWorld().equals(world))
         {
-            return "~ counts from where the command was run, in "
-                + ((from.getWorld() == null) ? "no loaded world" : from.getWorld().getName()) + ", not "
-                + world.getName() + ".";
+            if (from.getWorld() == null)
+            {
+                return Messages.get(sender, "coordinates.no-loaded-world", world.getName());
+            }
+            return Messages.get(sender, "coordinates.other-world", from.getWorld().getName(), world.getName());
         }
         return null;
     }

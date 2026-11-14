@@ -26,6 +26,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.events.StargateShutdownEvent;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * What pressing a gate's DHD button actually does.
@@ -268,7 +269,7 @@ class GateActivationSwitchTest
 
         assertFalse(GateInteractionHandler.closeOrDeactivate(gate, player));
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Gate remotely activated."));
         verify(gate, never()).shutdownStargate(anyBoolean());
     }
 
@@ -323,7 +324,7 @@ class GateActivationSwitchTest
 
         assertFalse(GateInteractionHandler.dialFromSign(gate, player));
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Gate remotely activated."));
     }
 
     /**
@@ -357,7 +358,7 @@ class GateActivationSwitchTest
             ConfigTestSupport.clear();
         }
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.CROSS_WORLD_DISABLED.toString());
+        verify(player).sendMessage(ChatText.error("Cross-world travel is disabled on this server."));
         verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
     }
 }

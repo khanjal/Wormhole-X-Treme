@@ -301,7 +301,7 @@ class GateTollAndRefusalOrderTest
 
         walkIn();
 
-        verify(walker, atLeastOnce()).sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
+        verify(walker, atLeastOnce()).sendMessage(ChatText.error("The far gate's iris is closed."));
         verify(walker).teleport(home);
         verify(walker).setNoDamageTicks(5);
     }
@@ -334,7 +334,7 @@ class GateTollAndRefusalOrderTest
         walkIn();
 
         verify(walker, atLeastOnce()).sendMessage(contains(
-            ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString()));
+            ChatText.error("Insufficient funds to use this gate.")));
         nobodyIsCharged();
     }
 
@@ -508,7 +508,7 @@ class GateTollAndRefusalOrderTest
         walkIn();
 
         verify(walker).sendMessage(contains("Cross-world travel is disabled"));
-        verify(walker, never()).sendMessage(ConfigManager.MessageStrings.REMOTE_IRIS_CLOSED.toString());
+        verify(walker, never()).sendMessage(ChatText.error("The far gate's iris is closed."));
         verify(walker, never()).teleport(any(Location.class));
     }
 

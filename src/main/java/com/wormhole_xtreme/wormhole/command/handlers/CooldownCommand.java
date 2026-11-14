@@ -93,6 +93,7 @@ public class CooldownCommand implements SubCommand
         }
 
         ConfigManager.setUseCooldownSeconds(seconds);
+        // At least MIN_SECONDS, so never one second: no singular to choose.
         sender.sendMessage(ChatText.info(Messages.get(sender, "config.cooldown.set",
             ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())))));
         return true;
@@ -130,9 +131,18 @@ public class CooldownCommand implements SubCommand
             ChatText.value(String.valueOf(MAX_SECONDS)))));
         sender.sendMessage(ChatText.info(Messages.get(sender, "usage.cooldown.toggle",
             ChatText.usage(sender, "/wormhole cooldown true|false"))));
-        sender.sendMessage(ChatText.info(Messages.get(sender, "config.cooldown.current",
-            ChatText.value(String.valueOf(ConfigManager.isUseCooldownEnabled())),
-            ChatText.value(String.valueOf(ConfigManager.getUseCooldownSeconds())))));
+        final int now = ConfigManager.getUseCooldownSeconds();
+        final String enabled = ChatText.value(String.valueOf(ConfigManager.isUseCooldownEnabled()));
+        final String current;
+        if (now == 1)
+        {
+            current = Messages.get(sender, "config.cooldown.current.one", enabled, ChatText.value(String.valueOf(now)));
+        }
+        else
+        {
+            current = Messages.get(sender, "config.cooldown.current.other", enabled, ChatText.value(String.valueOf(now)));
+        }
+        sender.sendMessage(ChatText.info(current));
     }
 
 }

@@ -32,7 +32,6 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.wormhole_xtreme.wormhole.command.Complete;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.integration.RegionFlagsTestSupport;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
@@ -41,6 +40,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * Finishing a gate by clicking its DHD, once {@code /wormhole complete} is waiting.
@@ -307,7 +307,7 @@ class PendingCompletionDetectionTest
 
         clickFinding(detectedGateOf("Grand"));
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
         assertNull(StargateManager.getStargate("Detected"), "a refused gate must not be registered");
         assertNull(StargateManager.getIncompleteStargate(player));
     }
@@ -322,7 +322,7 @@ class PendingCompletionDetectionTest
 
         clickFinding(detectedGateOf("Grand"));
 
-        verify(player, never()).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player, never()).sendMessage(ChatText.error("You lack the permissions to do this."));
     }
 
     /**
@@ -339,10 +339,10 @@ class PendingCompletionDetectionTest
 
         Complete.addPendingCompletion(player, "Detected", "1234", "");
         clickFinding(detectedGateOf("Grand"));
-        verify(player, never()).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player, never()).sendMessage(ChatText.error("You lack the permissions to do this."));
 
         Complete.addPendingCompletion(player, "Detected", "", "secret");
         clickFinding(detectedGateOf("Grand"));
-        verify(player).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(player).sendMessage(ChatText.error("You lack the permissions to do this."));
     }
 }

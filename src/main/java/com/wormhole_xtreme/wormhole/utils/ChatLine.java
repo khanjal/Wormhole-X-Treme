@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -90,29 +91,33 @@ public final class ChatLine
     /**
      * A command that runs when clicked, shown as it is typed.
      *
+     * @param recipient
+     *            who will read the hover; null reads the server's language
      * @param shown
      *            the command, coloured, as the line names it
      * @param command
      *            what a click runs, from its slash
      * @return this line
      */
-    public ChatLine run(final String shown, final String command)
+    public ChatLine run(final CommandSender recipient, final String shown, final String command)
     {
-        return link(shown, shown, command, "Click to run " + ChatText.command(command), false);
+        return link(shown, shown, command, Messages.get(recipient, "chat.click-run", ChatText.command(command)), false);
     }
 
     /**
      * A command still to be finished, which a click types into the chat box.
      *
+     * @param recipient
+     *            who will read the hover; null reads the server's language
      * @param shown
      *            the command, coloured, as the line names it
      * @param command
      *            what a click fills in, from its slash
      * @return this line
      */
-    public ChatLine suggest(final String shown, final String command)
+    public ChatLine suggest(final CommandSender recipient, final String shown, final String command)
     {
-        return link(shown, shown, command, "Click to fill in " + ChatText.command(command.trim()), true);
+        return link(shown, shown, command, Messages.get(recipient, "chat.click-fill", ChatText.command(command.trim())), true);
     }
 
     /**

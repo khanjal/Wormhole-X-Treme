@@ -125,7 +125,7 @@ public class Complete implements CommandExecutor, TabCompleter
 
         if (!WXPermissions.checkWXPermissions(player, network, PermissionType.BUILD))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         if (StargateManager.getStargate(name) != null)
@@ -215,7 +215,7 @@ public class Complete implements CommandExecutor, TabCompleter
         final Stargate held = StargateManager.getIncompleteStargate(player);
         if ((held != null) && !WXPermissions.checkBuildOf(player, held, network))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ChatText.noPermission(player));
             return;
         }
         completeAndCharge(player, name, idc, network,
@@ -300,7 +300,7 @@ public class Complete implements CommandExecutor, TabCompleter
             : 0.0;
         if ((buildCost > 0) && !EconomySupport.canAfford(player, buildCost))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
+            player.sendMessage(ChatText.error(Messages.get(player, "common.insufficient-funds")));
             return false;
         }
         if (!StargateManager.completeStargate(player, name, idc, network))
@@ -312,7 +312,7 @@ public class Complete implements CommandExecutor, TabCompleter
             }
             return false;
         }
-        player.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_SUCCESS.toString());
+        player.sendMessage(ChatText.info(Messages.get(player, "common.construct-success")));
         if (buildCost > 0)
         {
             EconomySupport.charge(player, buildCost);

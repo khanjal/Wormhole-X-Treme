@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -166,7 +167,8 @@ class RegenerateMessagesTest
         }
     }
 
-    private static GateRederivation.Outcome outcome(final GateRederivation.Result result, final String... changes)
+    private static GateRederivation.Outcome outcome(final GateRederivation.Result result,
+        final GateRederivation.Change... changes)
     {
         return new GateRederivation.Outcome(result, List.of(changes));
     }
@@ -423,7 +425,7 @@ class RegenerateMessagesTest
         regen(player, null, r -> r.when(() -> GateRederivation.rederive(any()))
             .thenReturn(outcome(GateRederivation.Result.NOT_DETECTED)), "regen", "alpha");
         regen(player, null, r -> r.when(() -> GateRederivation.rederive(any()))
-            .thenReturn(outcome(GateRederivation.Result.REDERIVED, "redstone dial input", "iris lever")),
+            .thenReturn(outcome(GateRederivation.Result.REDERIVED, GateRederivation.Change.DIAL_INPUT, GateRederivation.Change.IRIS_LEVER)),
             "regen", "alpha");
 
         verify(player).sendMessage(ChatText.info("Cannot re-read the shape of " + name("alpha") + ": " + name("Standard")
@@ -450,14 +452,51 @@ class RegenerateMessagesTest
         regen(player, null, r -> r.when(() -> GateRederivation.rederive(any()))
             .thenReturn(outcome(GateRederivation.Result.NOT_DETECTED)), "regen", "alpha");
         regen(player, null, r -> r.when(() -> GateRederivation.rederive(any()))
-            .thenReturn(outcome(GateRederivation.Result.REDERIVED, "redstone dial input", "iris lever")),
+            .thenReturn(outcome(GateRederivation.Result.REDERIVED, GateRederivation.Change.DIAL_INPUT, GateRederivation.Change.IRIS_LEVER)),
             "regen", "alpha");
 
         verify(player).sendMessage(ChatText.info("QQ no shape " + name("alpha") + " " + name("Standard")));
         verify(player).sendMessage(ChatText.info("QQ no anchor " + name("alpha")));
         verify(player).sendMessage(ChatText.info("QQ no longer " + name("alpha") + " " + name("Standard")));
         verify(player).sendMessage(ChatText.info("QQ moved " + name("Standard") + " " + name("alpha") + " "
-            + value("redstone dial input / iris lever")));
+            + value("QQ dial input / QQ iris lever")));
+    }
+
+    /** Every marker re-derivation can move is named in the reader's language, the old shape in its own words. */
+    @Test
+    void everyMarkerAGateMovedIsNamedInThePlayersLanguage()
+    {
+        final GateRederivation.Change[] all = GateRederivation.Change.values();
+        final Player english = adminReading("en");
+        final Player qq = adminReading("qq");
+        for (final Player player : List.of(english, qq))
+        {
+            regen(player, null, r -> r.when(() -> GateRederivation.rederive(any()))
+                .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED, List.of(all), "Standard")),
+                "regen", "alpha");
+        }
+
+        verify(english).sendMessage(ChatText.info("Re-read " + name("Standard") + " for " + name("alpha")
+            + " and moved: " + value("shape (was Standard), redstone dial input, redstone sign cycler, "
+                + "redstone gate-activated output, iris lever, name sign, dial sign") + "."));
+        verify(qq).sendMessage(ChatText.info("QQ moved " + name("Standard") + " " + name("alpha") + " "
+            + value("QQ shape was Standard / QQ dial input / QQ sign cycler / QQ activated output / "
+                + "QQ iris lever / QQ name sign / QQ dial sign")));
+    }
+
+    /** A layout is told in each direction it can move, singular or plural alike, and in the reader's language. */
+    @Test
+    void aLayoutIsDescribedInEveryDirectionInTheReadersLanguage()
+    {
+        final Player qq = adminReading("qq");
+        final GateRederivation.Layout forward = new GateRederivation.Layout(null, 1, 2, 3, true);
+        final GateRederivation.Layout back = new GateRederivation.Layout(null, -1, -2, -3, false);
+
+        assertEquals("facing the other way, 1 toward the DHD, 2 up, 3 right", forward.describe(null));
+        assertEquals("1 toward the back, 2 down, 3 left", back.describe(null));
+        assertEquals("QQ reversed / QQ 1 toward dhd / QQ 2 up / QQ 3 right", forward.describe(qq));
+        assertEquals("QQ 1 toward back / QQ 2 down / QQ 3 left", back.describe(qq));
+        assertEquals("", new GateRederivation.Layout(null, 0, 0, 0, false).describe(null));
     }
 
     /** Each way the light order ends, against the old expression. */
@@ -582,7 +621,7 @@ class RegenerateMessagesTest
 
         verify(player).sendMessage(ChatText.info("QQ adopted " + name("alpha") + " " + name("Massive") + " "
             + name("Standard") + " 99/100"));
-        verify(player).sendMessage(ChatText.info("QQ laid " + value("2 toward the DHD")));
+        verify(player).sendMessage(ChatText.info("QQ laid " + value("QQ 2 toward dhd")));
         verify(player).sendMessage(ChatText.info("QQ gaps: QQ " + value("0 64 0") + " [" + ChatText.material("AIR")
             + "]!"));
         verify(player).sendMessage(ChatText.info("QQ add " + command("-fill")));

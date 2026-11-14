@@ -237,7 +237,7 @@ class DialCommandTest
         dial("there", "secret");
 
         verify(player).sendMessage(contains("IDC accepted"));
-        verify(player).sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Target gate is currently active."));
         assertTrue(there.isGateIrisActive(), "the far iris was left open against its shut default");
     }
 
@@ -263,7 +263,7 @@ class DialCommandTest
 
         dial("there", "secret");
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Target gate is currently active."));
         assertTrue(there.isGateIrisActive(), "the far iris was left open against its shut default");
     }
 
@@ -286,7 +286,7 @@ class DialCommandTest
 
         dial("there");
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Target gate is currently active."));
         assertFalse(there.isGateIrisActive(), "a journey through the far gate was shut on");
     }
 
@@ -319,7 +319,7 @@ class DialCommandTest
 
         dial("there");
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
+        verify(player).sendMessage(ChatText.error("Target gate is currently active."));
         assertSame(other, StargateManager.removeActivatorForStargate(there),
             "the activator mapping should survive: forcing past a live connection would drop it");
     }

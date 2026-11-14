@@ -19,7 +19,6 @@ import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.command.Complete;
 import com.wormhole_xtreme.wormhole.command.Coordinates;
 import com.wormhole_xtreme.wormhole.command.Dial;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateGrid;
@@ -104,7 +103,7 @@ public final class GateConsoleCommands
         if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, optionsOf(rest)[1], PermissionType.BUILD))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         final Stargate3DShape shape = (Stargate3DShape) StargateShapeRegistry.getStargateShape(rest[0]);
@@ -238,7 +237,7 @@ public final class GateConsoleCommands
         if ((CommandHandlerUtils.issuer(sender) instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            sender.sendMessage(ChatText.noPermission(sender));
             return;
         }
         if ((CommandHandlerUtils.issuer(sender) instanceof Player player) && RegionFlags.refusesUse(player, start))

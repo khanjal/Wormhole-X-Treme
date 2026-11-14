@@ -25,9 +25,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.command.SubCommands;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counter;
+import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
  * {@code /wormhole stats [player]}: your own counts with {@code wormhole.stats}, anybody's with
@@ -120,7 +120,7 @@ class StatsCommandTest
 
         assertTrue(command.execute(alice, new String[] { "stats" }));
 
-        verify(alice).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(alice).sendMessage(ChatText.error("You lack the permissions to do this."));
         verify(alice, never()).sendMessage(infoBody("Trips through gates: 3"));
     }
 
@@ -145,7 +145,7 @@ class StatsCommandTest
 
         assertTrue(command.execute(alice, new String[] { "stats", "bob" }));
 
-        verify(alice).sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+        verify(alice).sendMessage(ChatText.error("You lack the permissions to do this."));
         verify(alice, never()).sendMessage(infoBody("Wormhole travels of Bob:"));
     }
 

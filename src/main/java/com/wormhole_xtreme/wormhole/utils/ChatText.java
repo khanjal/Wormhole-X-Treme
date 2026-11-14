@@ -59,6 +59,18 @@ public final class ChatText
         return ERROR_HEADER + body;
     }
 
+    /**
+     * The refusal sent to somebody who may not do what they tried, in their language.
+     *
+     * @param recipient
+     *            who will read it; null reads the server's language
+     * @return the refusal, opening with {@link #ERROR_HEADER}
+     */
+    public static String noPermission(final CommandSender recipient)
+    {
+        return error(Messages.get(recipient, "common.permission-no"));
+    }
+
     /** @return a line opening with {@code :: } whose body sets its own colour from the first word */
     public static String status(final String body)
     {

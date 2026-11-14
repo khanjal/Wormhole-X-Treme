@@ -351,7 +351,7 @@ class RegenerateExecuteTest
             rederive.when(() -> GateRederivation.rebuildLightOrder(gate)).thenReturn(GateRederivation.LightResult.UNCHANGED);
             rederive.when(() -> GateRederivation.rederive(gate))
                 .thenReturn(new GateRederivation.Outcome(GateRederivation.Result.REDERIVED,
-                    List.of("redstone dial input", "iris lever")));
+                    List.of(GateRederivation.Change.DIAL_INPUT, GateRederivation.Change.IRIS_LEVER)));
 
             assertTrue(run("regenerate", "alpha"));
 
