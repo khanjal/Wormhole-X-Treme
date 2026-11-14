@@ -55,6 +55,8 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
+import com.wormhole_xtreme.wormhole.model.ring.RingPreviewListener;
+import com.wormhole_xtreme.wormhole.model.ring.RingPreviews;
 import com.wormhole_xtreme.wormhole.model.ring.RingTransit;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
@@ -169,6 +171,7 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
         pm.registerEvents(new PlayerStatsListener(), tp);
+        pm.registerEvents(new RingPreviewListener(), tp);
         StandInListener.register(pm, tp);
         // A view is built again when the world behind its wall changes (#609).
         pm.registerEvents(new ViewChangeListener(), tp);
@@ -328,6 +331,15 @@ public class WormholeXTreme extends JavaPlugin
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
+            // A ring preview is a stack only its viewer can see, and nothing else will take it back.
+            try
+            {
+                RingPreviews.clearAll();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.WARNING, "Failed to clear the ring previews", e);
             }
             // restoreAll removes the views' stand-ins first, but they are real entities: try again if it threw.
             try

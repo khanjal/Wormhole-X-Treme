@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.ring;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
@@ -9,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -152,6 +154,7 @@ class RingTransitStartTest
         // In a finally: a pinned clock leaking into the next class is the harder failure to read.
         try
         {
+            RingPreviews.clearAll();
             bukkit.close();
             config.close();
             RingTransit.clear();
@@ -291,6 +294,29 @@ class RingTransitStartTest
         assertTrue(walkIn(pair, walker));
 
         assertFalse(walkIn(pair, walker), "the cycle already running is left alone");
+    }
+
+    /**
+     * A real cycle that starts on a pair somebody is previewing takes the preview back first.
+     *
+     * <p>Both draw the same blocks, and a preview left over them would be put back by its own
+     * clean-up in the middle of the cycle. The real block is what the previewer is sent: the
+     * mocked world answers {@code null} for its block data, which is how a send of the real
+     * thing is told from a send of the drawing.
+     */
+    @Test
+    void aCycleThatStartsOnAPreviewedPairTakesThePreviewBackFirst()
+    {
+        final RingPair pair = pair();
+        when(walker.getWorld()).thenReturn(world);
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(Boolean.TRUE);
+        assertEquals(RingPreview.Result.DONE, RingPreviews.show(walker, pair, pair.getEndA()));
+        verify(walker, never()).sendBlockChange(any(Location.class), isNull(BlockData.class));
+
+        assertTrue(walkIn(pair, walker), "the real cycle starts as normal");
+
+        assertNull(RingPreviews.of(walker), "the preview did not survive it");
+        verify(walker, atLeastOnce()).sendBlockChange(any(Location.class), isNull(BlockData.class));
     }
 
     /** A pair that is mid-cycle by its own reckoning is not fired either. */

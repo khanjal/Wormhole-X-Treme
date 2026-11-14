@@ -124,6 +124,9 @@ public final class RingTransit
             return false;
         }
         surveyed.remove(pair.getId());
+        // The cycle draws these blocks itself now, and a preview left over them would be put
+        // back by its own clean-up in the middle of it.
+        RingPreviews.clearFor(pair);
         cycle.beginCountdown();
         RingSounds.opened(world, pair);
         countDown(cycle, world, armedBy, ConfigManager.getRingCountdownTicks());

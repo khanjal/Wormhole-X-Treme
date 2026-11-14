@@ -1159,6 +1159,9 @@ public final class SubCommands
             .collect(Collectors.toCollection(ArrayList::new));
     }
 
+    /** The steps {@code /wormhole ring preview} understands after the pad is lit. */
+    private static final String[] PREVIEW_STEPS = { "deploy", "light", "collapse", "-clear" };
+
     /** The fields {@code /wormhole ring edit} understands. */
     private static final String[] RING_FIELDS = { "ring", LIGHT, "flash", "built", "name", "access", "style", "reset" };
 
@@ -1182,12 +1185,20 @@ public final class SubCommands
         if (args.length == 2)
         {
             // build and fire are offered only to whoever may run them.
-            final String[] verbs = { CREATE, "cancel", "list", REMOVE, "edit", "allow", "deny", OWNER };
+            final String[] verbs = { CREATE, "cancel", "list", REMOVE, "edit", "preview", "allow", "deny", OWNER };
             return prefixed(args[1], admin ? both(verbs, new String[] { BUILD, "fire" }) : verbs);
         }
         if (BUILD.equalsIgnoreCase(args[1]) && admin && (args.length == 3))
         {
             return worldNames(args[2]);
+        }
+        if ("preview".equalsIgnoreCase(args[1]))
+        {
+            // The steps, straight after the verb or after an id, which is not offered for the
+            // reason edit's are not. Nothing follows a step.
+            final boolean stepGoesHere = (args.length == 3)
+                || ((args.length == 4) && !Arrays.asList(PREVIEW_STEPS).contains(args[2].toLowerCase(Locale.ROOT)));
+            return stepGoesHere ? prefixed(args[args.length - 1], PREVIEW_STEPS) : none();
         }
         if (!"edit".equalsIgnoreCase(args[1]))
         {

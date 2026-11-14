@@ -37,6 +37,24 @@ class RingTabCompletionTest
         assertFalse(complete("ring", "e").contains("create"));
     }
 
+    /**
+     * {@code preview} is offered as a verb, and its steps follow it, straight after the verb or
+     * after an id; once a step is typed nothing more is offered.
+     */
+    @Test
+    void previewAndItsStepsAreOffered()
+    {
+        assertTrue(complete("ring", "pre").contains("preview"));
+
+        assertEquals(List.of("deploy", "light", "collapse", "-clear"), complete("ring", "preview", ""));
+        assertEquals(List.of("deploy"), complete("ring", "preview", "d"));
+        assertEquals(List.of("-clear"), complete("ring", "preview", "-"));
+        assertEquals(List.of("collapse"), complete("ring", "preview", "aaaa0001", "co"),
+            "the step after an id");
+        assertTrue(complete("ring", "preview", "deploy", "").isEmpty(), "nothing follows a step");
+        assertTrue(complete("ring", "preview", "aaaa0001", "light", "").isEmpty());
+    }
+
     /** build and fire are offered to the console, and not to a player who may not run them. */
     @Test
     void buildAndFireAreOfferedOnlyToWhoeverMayRunThem()
