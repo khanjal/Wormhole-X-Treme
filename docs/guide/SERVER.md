@@ -404,7 +404,7 @@ fits its shape keeps the old order and is named in the log. A gate built before 
 
 Then check the log once. The migrations above stay silent when they have nothing to do, so
 anything they do say is a file to move by hand, a shape or gate named for the reasons above, or
-the note below about gates from another fork. The [CHANGELOG](../../CHANGELOG.md) opens each
+the note below about gates from another fork. The [CHANGELOG](https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md) opens each
 release with what upgrading to it asks of you.
 
 ## Coming from another Wormhole X-Treme
@@ -561,11 +561,11 @@ viewer can switch on and off.
 
 | Icon | Marks |
 |---|---|
-| ![gate, idle](../../src/main/resources/dynmap/gate-idle.png) | A gate with no wormhole |
-| ![gate, open](../../src/main/resources/dynmap/gate.png) | A gate whose wormhole has formed |
-| ![transport ring](../../src/main/resources/dynmap/rings.png) | Each end of a ring pair |
-| ![beam destination](../../src/main/resources/dynmap/beam.png) | A public beam destination |
-| ![quantum mirror](../../src/main/resources/dynmap/mirror.png) | A quantum mirror, at its banner |
+| ![gate, idle](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/gate-idle.png) | A gate with no wormhole |
+| ![gate, open](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/gate.png) | A gate whose wormhole has formed |
+| ![transport ring](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/rings.png) | Each end of a ring pair |
+| ![beam destination](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/beam.png) | A public beam destination |
+| ![quantum mirror](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/mirror.png) | A quantum mirror, at its banner |
 
 On 1.21.11 use Dynmap 3.8; its Spigot/Paper build is on [dynmap.us](https://dynmap.us) and
 CurseForge, while Modrinth's newest Paper build, 3.7-beta-8, stops at 1.21.4. Dynmap has no build

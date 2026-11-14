@@ -3,7 +3,7 @@
 The mark at the top of the README is a **reference, not a finished identity**. Its SVG was
 hand-authored -- written as markup, shape by shape, rather than image-generated -- but written with
 Claude Code rather than by a designer, so that a real graphic artist has something concrete to
-react to rather than a paragraph of description. [TRADEMARK.md](../TRADEMARK.md) explains why that
+react to rather than a paragraph of description. [TRADEMARK.md](https://github.com/khanjal/Wormhole-X-Treme/blob/main/TRADEMARK.md) explains why that
 provenance matters to the licence. This file exists so the *meaning* survives a redraw -- an artist
 should feel free to throw away every curve in it, as long as what comes back still does the
 same job.
@@ -122,7 +122,7 @@ These come from where the mark actually gets used, so they hold regardless of ho
 The code is GPL-3.0. **The logo is not.**
 
 The mark, and the name "Wormhole X-Treme", are carved out and covered by
-[TRADEMARK.md](../TRADEMARK.md). Short version: use the logo unmodified to refer to this project
+[TRADEMARK.md](https://github.com/khanjal/Wormhole-X-Treme/blob/main/TRADEMARK.md). Short version: use the logo unmodified to refer to this project
 and you need not ask; modifying it, or using it to present a different build as this project,
 needs permission.
 

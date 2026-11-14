@@ -4,7 +4,7 @@ What the plugin sends is described for server owners under *Metrics* in
 [the server guide](guide/SERVER.md). This page is for the maintainer: the charts as they are set
 up on the [bStats dashboard](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269), and
 what has to change there when the plugin changes. The code is
-[`MetricsSupport`](../src/main/java/com/wormhole_xtreme/wormhole/plugin/MetricsSupport.java).
+[`MetricsSupport`](https://github.com/khanjal/Wormhole-X-Treme/blob/main/src/main/java/com/wormhole_xtreme/wormhole/plugin/MetricsSupport.java).
 
 bStats matches a chart by its **ID**, so the ID must be spelled exactly as the plugin sends it.
 A chart that is not defined on the dashboard is dropped, without an error. The title is only a

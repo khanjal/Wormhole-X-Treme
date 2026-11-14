@@ -94,6 +94,32 @@ files with PMD before pushing; `generate-test-sources` is what adds the folder:
 mvn generate-test-sources pmd:pmd -Dformat=csv -DincludeTests=true -Pmodern-api,mockbukkit -Dpaper.api.version=1.21.11-R0.1-SNAPSHOT
 ```
 
+## Building the docs site
+
+The docs are published with MkDocs Material from `docs/`, configured in `mkdocs.yml`. To build
+them locally, in a virtual environment of your own:
+
+```bash
+pip install -r docs/requirements.txt
+mkdocs build --strict
+```
+
+`--strict` fails on a broken link or anchor, as CI does. `mkdocs serve` previews the site with
+live reload. Write links between pages as relative `.md` links, which work on GitHub and on the
+site; a link to a file outside `docs/`, or to one the site leaves out (`docs/listings/`,
+`docs/SONAR_BACKLOG.md`), must be an absolute GitHub URL.
+
+`.github/workflows/docs.yml` builds the site on pull requests that touch the docs, and on a push
+to `main` that does. It deploys only once Pages is on: Settings → Pages → Source "GitHub Actions",
+then a repository variable `PAGES_ENABLED` set to `true` (Settings → Secrets and variables →
+Actions → Variables). Without the variable a merge only builds, so a repository with Pages off
+gets no failing deploy. Going live is:
+
+1. Settings → Pages → Source "GitHub Actions".
+2. Set the repository variable `PAGES_ENABLED` to `true`.
+3. Merge a docs change to `main`, or re-run the Docs workflow, and check the site.
+4. Add the site link to the README and shrink its index (#696).
+
 ## A player on a real server
 
 MockBukkit's player is simulated, and the boot tests in `ci.yml` run a real server with no player
@@ -1344,7 +1370,7 @@ client codes seen are remembered up to a bound. Sign text is not localised.
 - **The galleries are generated.** The gate, ring, beam and mirror drawings in `docs/images/` and
   the tables between the `<!-- ...:start -->` markers in the design documents come from
   `scripts/render_*_sheets.py`, and a test fails until they are re-run after the source changes.
-- **Plugin-site listing copy lives in [`docs/listings/`](listings/).** Its facts are in
+- **Plugin-site listing copy lives in [`docs/listings/`](https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/listings).** Its facts are in
   `listings/shared.md` and each site's fields and markup in its own file. It prints no count a
   release can change — not settings, test classes, CI legs, shapes or mirror looks — because such
   a figure goes stale where nobody is looking. Only the version, the supported range and the Java

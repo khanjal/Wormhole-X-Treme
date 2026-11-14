@@ -1,0 +1,67 @@
+name: Docs
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+
+# Pages takes one deployment at a time; a newer push waits its turn rather than cutting a
+# deployment short, and a pull request's build is its own group.
+concurrency:
+  group: docs-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || 'pages' }}
+  cancel-in-progress: false
+
+# Read-only unless a job says otherwise.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - name: Install MkDocs
+        run: pip install -r docs/requirements.txt
+
+      - name: Build the site
+        run: mkdocs build --strict
+
+      - name: Upload the site
+        if: github.event_name == 'push' && vars.PAGES_ENABLED == 'true'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to Pages
+    # Off until the owner turns Pages on and sets the PAGES_ENABLED repository variable to true;
+    # a deploy with Pages off fails, which would put a red mark on every merge to main.
+    if: github.event_name == 'push' && vars.PAGES_ENABLED == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
