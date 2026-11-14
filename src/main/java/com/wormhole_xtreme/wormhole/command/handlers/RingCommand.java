@@ -36,6 +36,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 import com.wormhole_xtreme.wormhole.plugin.CoreProtectLog;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
@@ -1363,7 +1364,7 @@ public class RingCommand implements SubCommand
     private static Material lightNamed(final Player player, final String value)
     {
         final Material material = Material.matchMaterial(value);
-        if ((material == null) || !material.isBlock())
+        if (!MaterialUtils.isBlockOrUnknown(material))
         {
             player.sendMessage(ChatText.error(Messages.get(player, "ring.cmd.edit.light.not-block", ChatText.bad(value))));
             return null;

@@ -87,6 +87,8 @@ public final class SubCommands
     private static final String REDSTONE = "redstone";
     private static final String LIGHT = "light";
     private static final String PREVIEW = "preview";
+    private static final String FLASH = "flash";
+    private static final String STYLE = "style";
     private static final String FREYA = "freya";
     private static final String CLEAR = "-clear";
 
@@ -1167,13 +1169,13 @@ public final class SubCommands
     }
 
     /** The steps {@code /wormhole ring preview} understands, and the fields it tries a value on. */
-    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", "ring", "flash", "style", "-save", CLEAR };
+    private static final String[] PREVIEW_STEPS = { "deploy", LIGHT, "collapse", "ring", FLASH, STYLE, "-save", CLEAR };
 
     /** The fields {@code /wormhole ring preview} takes a value for. */
-    private static final String[] PREVIEW_TRIALS = { "ring", LIGHT, "flash", "style" };
+    private static final String[] PREVIEW_TRIALS = { "ring", LIGHT, FLASH, STYLE };
 
     /** The fields {@code /wormhole ring edit} understands. */
-    private static final String[] RING_FIELDS = { "ring", LIGHT, "flash", "built", "name", "access", "style", "reset" };
+    private static final String[] RING_FIELDS = { "ring", LIGHT, FLASH, "built", "name", "access", STYLE, "reset" };
 
     /**
      * Completions after {@code /wormhole ring preview}.
@@ -1566,7 +1568,7 @@ public final class SubCommands
         {
             return prefixed(typed, "public", "private");
         }
-        if ("style".equalsIgnoreCase(field))
+        if (STYLE.equalsIgnoreCase(field))
         {
             return prefixed(typed, "fast", "slow", "concurrent", "sequential");
         }
@@ -1578,7 +1580,7 @@ public final class SubCommands
             // kind of slab, just recorded rather than currently worn.
             return materialNames(typed, true);
         }
-        if (LIGHT.equalsIgnoreCase(field) || "flash".equalsIgnoreCase(field))
+        if (LIGHT.equalsIgnoreCase(field) || FLASH.equalsIgnoreCase(field))
         {
             // Solid blocks that read as glowing. Offering all several hundred blocks was a
             // list nobody could use, and most of them look wrong set into a floor.

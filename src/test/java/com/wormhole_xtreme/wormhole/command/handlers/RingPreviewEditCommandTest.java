@@ -19,6 +19,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -95,7 +96,7 @@ class RingPreviewEditCommandTest
 
         real = mock(BlockData.class);
         bukkit = mockStatic(Bukkit.class);
-        final Map<Material, BlockData> made = new HashMap<>();
+        final Map<Material, BlockData> made = new EnumMap<>(Material.class);
         bukkit.when(() -> Bukkit.createBlockData(any(Material.class))).thenAnswer(call ->
         {
             final Material material = call.getArgument(0, Material.class);
