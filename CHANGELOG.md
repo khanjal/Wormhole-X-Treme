@@ -99,7 +99,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 ### Internals
 
-- **The docs are published as a searchable site with MkDocs Material**, at khanjal.github.io/Wormhole-X-Treme, built from `docs/` with `mkdocs build --strict` so a broken link or anchor fails the build, and deployed from `main` once Pages is switched on for the repository. The guide comes first and the design notes follow; the listing copy and `SONAR_BACKLOG.md` stay out of it. Links from a page to a file outside `docs/` are now absolute GitHub URLs, and the README links to the site. See [building the docs site](docs/DEVELOPMENT.md#building-the-docs-site) ([#696](https://github.com/khanjal/Wormhole-X-Treme/issues/696)).
+- **The docs are published as a searchable site with MkDocs Material**, at khanjal.github.io/Wormhole-X-Treme, built from `docs/` with `mkdocs build --strict` so a broken link or anchor fails the build, and deployed from `main` once Pages is switched on for the repository. The guide comes first and the design notes follow; the listing copy and `SONAR_BACKLOG.md` stay out of it. Links from a page to a file outside `docs/` are now absolute GitHub URLs. The README gains its link to the site once the site is live. See [building the docs site](docs/DEVELOPMENT.md#building-the-docs-site) ([#696](https://github.com/khanjal/Wormhole-X-Treme/issues/696)).
 
 ## 1.13.0 (2026-11-01)
 
