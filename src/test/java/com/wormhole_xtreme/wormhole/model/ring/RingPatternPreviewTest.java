@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.ring;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -408,7 +409,7 @@ class RingPatternPreviewTest
         RingPreviews.showPattern(viewer, RingPattern.EVEN, probe);
 
         final RingPreview second = RingPreviews.of(viewer);
-        assertTrue(second != first);
+        assertNotSame(first, second);
         assertEquals(RingPattern.EVEN, second.getRing().getPattern());
         assertSame(real, onScreen(viewer).get(key(X - 3, Y, Z)), "the odd pattern's far square is gone");
         assertEquals(squares(EVEN, Y), shownIn(Y));
@@ -525,7 +526,7 @@ class RingPatternPreviewTest
         final Map<String, BlockData> screen = onScreen(viewer);
         for (final String at : squares(ODD, Y))
         {
-            assertTrue(screen.get(at) != real, "something still marks " + at);
+            assertNotSame(real, screen.get(at), "something still marks " + at);
         }
     }
 

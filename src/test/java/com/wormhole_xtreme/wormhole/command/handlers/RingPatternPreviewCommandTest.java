@@ -113,8 +113,9 @@ class RingPatternPreviewCommandTest
             }
             else
             {
+                final BlockData plain = mock(BlockData.class);
                 when(block.getType()).thenReturn(Material.AIR);
-                when(block.getBlockData()).thenReturn(mock(BlockData.class));
+                when(block.getBlockData()).thenReturn(plain);
             }
             return block;
         });
