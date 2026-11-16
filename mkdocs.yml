@@ -44,6 +44,7 @@ theme:
 markdown_extensions:
   - admonition
   - attr_list
+  - md_in_html
   - tables
   # GitHub-style heading ids, so #anchors that work in the file view work on the site too.
   - toc:
@@ -57,6 +58,7 @@ extra_css:
 
 nav:
   - Home: index.md
+  - Getting started: start.md
   - Guide:
       - guide/README.md
       - Server: guide/SERVER.md
