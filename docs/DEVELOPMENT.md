@@ -121,7 +121,7 @@ to `main` that does. It deploys only once Pages is on: Settings → Pages → So
 then a repository variable `PAGES_ENABLED` set to `true` (Settings → Secrets and variables →
 Actions → Variables). Without the variable a merge only builds, so a repository with Pages off
 gets no failing deploy. This repository has both set, so the site is live at
-khanjal.github.io/Wormhole-X-Treme. To publish a fork's site:
+[khanjal.github.io/Wormhole-X-Treme](https://khanjal.github.io/Wormhole-X-Treme/). To publish a fork's site:
 
 1. Settings → Pages → Source "GitHub Actions".
 2. Set the repository variable `PAGES_ENABLED` to `true`.
