@@ -146,6 +146,17 @@ test("the spiral is the plugin's, step for step, on every golden shape", () => {
   }
 });
 
+test("across a wide arm the outer cell is covered first, as IrisSweepTest pins it", () => {
+  // A disc of radius 12 has a three-block arm; straight up, 12 and 11 out sit at one place along it.
+  const disc = [];
+  for (let col = -12; col <= 12; col++) {
+    for (let y = -12; y <= 12; y++) if (col * col + y * y <= 144) disc.push({ col, y, layer: 1 });
+  }
+  const arm = closingArm(disc);
+  const at = (col, y) => arm.findIndex((i) => disc[i].col === col && disc[i].y === y);
+  assert.equal(at(0, 11), at(0, 12) + 1);
+});
+
 test("the closing arm starts on the rim and ends in the middle", () => {
   const cells = irisCells(load("Standard"));
   const arm = closingArm(cells);
