@@ -225,7 +225,7 @@ class Designer {
     this.orderBoxes = {};
     for (const [which, key, label] of [["light", "L", "Chevron light order"], ["woosh", "W", "Woosh order"]]) {
       const check = el("input", { type: "checkbox", id: `wxt-o-${which}` });
-      const number = el("input", { type: "number", min: "0", max: "1000000", step: "1", class: "wxt-number", id: `wxt-n-${which}`, "aria-label": `${label} number` });
+      const number = el("input", { type: "number", min: "0", max: String(LIMITS.order), step: "1", class: "wxt-number", id: `wxt-n-${which}`, "aria-label": `${label} number` });
       check.addEventListener("change", () => this.editCell((c) => E.setOrder(c, which,
         check.checked ? (which === "light" ? E.nextLightOrder(this.shape) : E.currentWooshOrder(this.shape)) : null)));
       number.addEventListener("change", () => this.editCell((c) => E.setOrder(c, which, number.value === "" ? null : Number(number.value))));
@@ -611,7 +611,7 @@ class Designer {
     const errors = issues.filter((i) => i.level === "error").length;
     const warnings = issues.length - errors;
     const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-    const text = issues.length ? `${plural(errors, "error")} and ${plural(warnings, "warning")}.` : `No problems found; reload should accept this.${Object.keys(this.shape.materials).length ? " Material names are not checked here, but validate checks them." : ""}`;
+    const text = issues.length ? `${plural(errors, "error")} and ${plural(warnings, "warning")}.` : `No problems found; reload should accept this.${Object.keys(this.shape.materials).length ? " Material names are only checked for safe characters here, not for existing in your server's Minecraft version; validate checks that." : ""}`;
     const note = errors
       ? "This shape has errors. You can still download it, but the plugin may refuse it or build a broken gate."
       : "";
