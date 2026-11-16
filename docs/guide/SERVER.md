@@ -57,11 +57,12 @@ LuckPerms and Vault are both optional. See [Permissions](#permissions) and [Econ
 Versions between those points are expected to work and are not separately built; the matrix
 covers the boundaries where the API actually moved.
 
-**Playing it on a server.** Before each release the plugin is played on a real Paper server at
-1.20.4, 1.21.11 and 26.1.2, with a bot that builds gates, rings, beams and mirrors and uses them.
-CI also boots the built jar on a real server at every Paper version in the table, on Purpur and
-Spigot 26.3 and on CraftBukkit 26.2, and again beside LuckPerms, Vault, PlaceholderAPI, CoreProtect
-and EssentialsX. The versions in between are expected to work but are not played one by one, and
+**Playing it on a server.** A bot plays the plugin on a real Paper server at 1.20.4, 1.21.11 and
+26.1.2, building gates, rings, beams and mirrors and using them. That is a local check run before
+releases, not part of CI, and nothing enforces it. CI boots the built jar on a real server at every
+Paper version in the table, and on Spigot 26.3, Purpur 26.3 and CraftBukkit 26.2 only. It boots it
+again beside LuckPerms, Vault, PlaceholderAPI, CoreProtect and EssentialsX on Paper 1.20.4, 1.21.11,
+26.2 and 26.3. The versions in between are expected to work but are not played one by one, and
 what a player's own client draws (the iris, the wormhole, previews) is checked by hand.
 
 | Server | Support |
