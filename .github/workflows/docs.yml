@@ -10,6 +10,10 @@ on:
       - "scripts/copy-docs-shapes.sh"
       - "src/main/java/com/wormhole_xtreme/wormhole/model/Stargate3DShape.java"
       - "src/main/java/com/wormhole_xtreme/wormhole/model/StargateShapeLayer.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/model/IrisSweep.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/model/IrisSweepDriver.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/logic/DialSpin.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/logic/DialSpinPattern.java"
   push:
     branches:
       - main
@@ -21,6 +25,10 @@ on:
       - "scripts/copy-docs-shapes.sh"
       - "src/main/java/com/wormhole_xtreme/wormhole/model/Stargate3DShape.java"
       - "src/main/java/com/wormhole_xtreme/wormhole/model/StargateShapeLayer.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/model/IrisSweep.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/model/IrisSweepDriver.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/logic/DialSpin.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/logic/DialSpinPattern.java"
 
 # Pages takes one deployment at a time; a newer push waits its turn rather than cutting a
 # deployment short, and a pull request's build is its own group.

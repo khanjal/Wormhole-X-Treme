@@ -76,3 +76,59 @@
   border: 1px solid var(--md-default-fg-color--light);
   border-radius: 0.15em;
 }
+
+/* Playback controls and the text tables of the iris and dialling pages. */
+.wxt-player {
+  margin-bottom: 0.75rem;
+}
+
+.wxt-scrub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: center;
+}
+
+.wxt-scrub input[type="range"] {
+  flex: 1 1 14rem;
+  min-width: 0;
+  accent-color: var(--md-accent-fg-color);
+}
+
+.wxt-readout {
+  font-size: 0.8rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.wxt-bar input:focus-visible,
+.wxt-bar select:focus-visible,
+.wxt-scrub input:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: 2px;
+}
+
+.wxt-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.wxt-steps {
+  border-collapse: collapse;
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wxt-steps td {
+  min-width: 1.6em;
+  padding: 0.15em 0.3em;
+  text-align: center;
+  border: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.wxt-steps td.wxt-gap {
+  background: var(--md-code-bg-color);
+}
+
+.wxt-times {
+  font-size: 0.8rem;
+}
