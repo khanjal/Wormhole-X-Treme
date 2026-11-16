@@ -33,7 +33,7 @@ Drop `WormholeXTreme-<version>.jar` from the
 and start the server. Nothing else is needed: the plugin has no runtime dependencies, and
 SnakeYAML comes from the server itself.
 
-Vault and a permission plugin such as LuckPerms are optional, but without a Vault permission provider the plugin ignores permission nodes. See [Permissions](#permissions) and [Economy](#economy).
+Vault and a permission plugin such as LuckPerms are optional, but without a Vault permission provider the gate permissions fall back to simple mode. See [Permissions](#permissions) and [Economy](#economy).
 
 ## Compatibility
 
@@ -188,8 +188,10 @@ per tick as three, as long as the same number are open. The ones that scale with
 - **Ambient hum** — every 70 ticks, one sound per open gate.
   `gate-sounds-enabled: false` removes it.
 
-There are also light timers for mirror views, the iris, build previews, the stats save and web
-maps. The plugin has no threads of its own beyond the update check, bStats and web-map drawing.
+There are also light timers for mirror views, the iris, the horizon ripple, thrown-item tracking,
+build previews, the stats save and web maps. The plugin has no threads of its own beyond the update
+check, bStats, web-map drawing and reading, sifting and writing mirror captures, plus the work
+behind a window click.
 
 Everything else is event-driven and answered by a hash lookup on the block position — including
 `BlockPhysicsEvent`, which fires for every water flow and redstone update. A world with no gates
@@ -198,8 +200,13 @@ stops at the first lookup.
 ## Permissions
 
 Permissions go through Bukkit's `player.hasPermission()`, but the plugin only consults nodes when
-Vault is installed with a permission provider such as LuckPerms. Without one it runs in simple
-mode ([below](#permission-backend-and-fallback)) and ignores the nodes.
+Vault is installed with a permission provider such as LuckPerms. Without one, the gate permissions
+(use, build, remove, list, go and the like) fall back to simple mode
+([below](#permission-backend-and-fallback)) and their nodes are ignored. Nodes the plugin checks
+directly with Bukkit keep working: `wormhole.build.preview*`, `wormhole.list.mine`,
+`wormhole.list.owner`, `wormhole.stats*`, `wormhole.export`, `wormhole.freya`, `wormhole.ring.*`,
+`wormhole.beam.*`, `wormhole.gates.*`, `wormhole.build.mindistance.bypass` and
+`wormhole.update.notify`.
 
 **An operator may do anything with a gate**, with or without a permissions plugin, and that
 outranks a negated node.
@@ -265,7 +272,7 @@ Worth knowing:
 - `beam`, `ring`, `go`, `list`, `compass`, `stats`, `export`, `idc` and `freya` answer to their
   own nodes, `gate build` and `gate preview` need `wormhole.build.preview`, and a gate's owner may
   run `gate edit <gate> idc` on it. Everything else under `/wormhole` needs `wormhole.config`,
-  including every other `gate` subcommand, the `remove` commands and the hidden flat commands.
+  including every other `gate` subcommand, the `remove` commands and the other hidden flat commands.
   `/dial` is a separate command that needs `wormhole.use.dialer`.
 - `wormhole.freya` (default true) belongs to the hidden `/wormhole freya` command.
 - Nobody may build inside a gate's opening except those who could take the gate apart: operators,
@@ -276,8 +283,8 @@ Worth knowing:
 
 ### Permission backend and fallback
 
-- `permissions-support-disable` (default `false`) — keep gates in simple mode, ignoring their
-  permission nodes, even when a Vault permission provider is installed.
+- `permissions-support-disable` (default `false`) — keep the gate permissions in simple mode,
+  ignoring their nodes, even when a Vault permission provider is installed.
 - With no provider found, the plugin runs in simple mode: basic use actions keep working and
   advanced ones stay with operators and gate owners. Whether a provider is there is looked at
   startup, and again whenever `permissions-support-disable` is changed in-game.

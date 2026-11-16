@@ -58,8 +58,8 @@ Building a gate takes `wormhole.config` for the `gate` commands and `wormhole.bu
 `wormhole.remove.all` decides who may break another player's gate, and an owner may always break
 their own. Operators have all of these.
 `wormhole.build.preview` lets other players call up the ghost with `gate build`, for their eyes
-only. With a permissions plugin, players need `wormhole.use.dialer` to dial and
-`wormhole.use.sign` to use dial signs; without one, anyone can dial. A server can limit how many
+only. With Vault and a permissions plugin, players need `wormhole.use.dialer` to dial and
+`wormhole.use.sign` to use dial signs; without a Vault permission provider, anyone can dial. A server can limit how many
 gates a player owns and how close two gates may stand.
 
 ## Go deeper
