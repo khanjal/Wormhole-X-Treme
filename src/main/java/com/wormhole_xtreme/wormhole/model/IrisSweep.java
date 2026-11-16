@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
 
 /**
  * The order an iris closes and opens in: rings, measured out from the middle of the opening.
@@ -28,6 +29,9 @@ import org.bukkit.Location;
  */
 public final class IrisSweep
 {
+    /** About the most turns the spiral makes; more and a big gate's arm is a blur. */
+    private static final int ARM_TURNS = 5;
+
     /**
      * How an iris crosses its opening.
      *
@@ -39,7 +43,7 @@ public final class IrisSweep
     {
         /** Rings, out from the middle. */
         SWEEP,
-        /** A wedge turning round the middle and working outwards. */
+        /** One arm, winding in clockwise from the rim. */
         SPIRAL,
         /** Rows, in from the top and bottom at once. */
         ROWS,
@@ -119,7 +123,21 @@ public final class IrisSweep
     public static List<List<Location>> closingOrder(final List<Location> cells, final Style style,
         final int maxSteps)
     {
-        final List<List<Location>> steps = openingOrder(cells, style, maxSteps);
+        return closingOrder(cells, style, maxSteps, null);
+    }
+
+    /**
+     * The same, for a gate facing a known way.
+     *
+     * @param facing
+     *            the way the gate's activation switch faces, which is the side the spiral turns
+     *            clockwise for; null for a gate with none
+     * @return the steps, the first drawn first; empty if there are no cells
+     */
+    public static List<List<Location>> closingOrder(final List<Location> cells, final Style style,
+        final int maxSteps, final BlockFace facing)
+    {
+        final List<List<Location>> steps = openingOrder(cells, style, maxSteps, facing);
         Collections.reverse(steps);
         return steps;
     }
@@ -150,9 +168,16 @@ public final class IrisSweep
      */
     public static List<List<Location>> openingOrder(final List<Location> cells, final Style style)
     {
+        return ordered(cells, style, null);
+    }
+
+    /** The steps before any merging. */
+    private static List<List<Location>> ordered(final List<Location> cells, final Style style,
+        final BlockFace facing)
+    {
         if (style == Style.SPIRAL)
         {
-            return spiral(cells);
+            return spiral(cells, facing);
         }
         return rings(cells, style);
     }
@@ -182,7 +207,21 @@ public final class IrisSweep
     public static List<List<Location>> openingOrder(final List<Location> cells, final Style style,
         final int maxSteps)
     {
-        return atMost(openingOrder(cells, style), maxSteps);
+        return openingOrder(cells, style, maxSteps, null);
+    }
+
+    /**
+     * The same, for a gate facing a known way.
+     *
+     * @param facing
+     *            the way the gate's activation switch faces, which is the side the spiral turns
+     *            clockwise for; null for a gate with none
+     * @return the steps, the first drawn first; empty if there are no cells
+     */
+    public static List<List<Location>> openingOrder(final List<Location> cells, final Style style,
+        final int maxSteps, final BlockFace facing)
+    {
+        return atMost(ordered(cells, style, facing), maxSteps);
     }
 
     /**
@@ -332,55 +371,203 @@ public final class IrisSweep
     }
 
     /**
-     * The cells as a wedge turning round the centre and working outwards.
-     *
-     * <p>Sorted by angle plus radius, so the wedge does not merely rotate: by the time it comes
-     * back round it is a ring further out, which is what makes it read as a spiral rather than
-     * a clock hand.
+     * The cells as one spiral arm, cut into steps.
      *
      * <p>Cut into as many steps as {@link Style#SWEEP} would make on the same opening, so every
      * style takes the same number of steps to cross. A style that took
      * twice as long as another at the same pace would be a second pace control nobody asked
      * for.
      *
+     * @param facing
+     *            the way the activation switch faces, or null to guess from the opening
      * @return the steps, innermost first
      */
-    private static List<List<Location>> spiral(final List<Location> cells)
+    private static List<List<Location>> spiral(final List<Location> cells, final BlockFace facing)
     {
         if ((cells == null) || cells.isEmpty())
         {
             return new ArrayList<>();
         }
-        final double[] centre = centreOf(cells);
-        final List<Location> wound = new ArrayList<>(cells);
-        wound.sort(Comparator.comparingDouble(cell -> windingOf(centre, cell)));
+        final List<Location> order = new ArrayList<>(closingArm(cells, facing).order());
+        Collections.reverse(order);
         // Exactly as many steps as the sweep makes, cut by position rather than by a fixed
         // size: rounding a chunk size up loses a step whenever it does not divide evenly,
         // which made the spiral cross faster than every other style on the same setting.
-        return cut(wound, Math.min(wound.size(), Math.max(1, rings(cells, Style.SWEEP).size())));
+        return cut(order, Math.min(order.size(), Math.max(1, rings(cells, Style.SWEEP).size())));
     }
 
     /**
-     * How far round and out a cell sits, as one number.
+     * The cells along one spiral arm, wound in clockwise from the rim as the switch's side sees it.
      *
-     * <p>The radius dominates and the angle breaks ties within it, so the order runs round the
-     * middle and outwards at once.
+     * <p>An Archimedean spiral: the arm moves {@link #armWidth} blocks in each turn, and a cell
+     * sits on whichever turn of it passes nearest at the cell's angle. Sorted along the arm, so
+     * the iris fills in behind it rather than sweeping round like a clock hand.
      *
-     * @param centre
-     *            the centre as {x, y, z}
-     * @return the winding position
+     * @param cells
+     *            the cells, at least one
+     * @param facing
+     *            the way the activation switch faces, or null to guess from the opening
+     * @return every cell, in the order a closing iris covers them, and the arm's width
      */
-    private static double windingOf(final double[] centre, final Location cell)
+    static Arm closingArm(final List<Location> cells, final BlockFace facing)
     {
-        final double dx = cell.getBlockX() - centre[0];
-        final double dy = cell.getBlockY() - centre[1];
-        final double dz = cell.getBlockZ() - centre[2];
-        // The horizontal offset is whichever of x and z the gate actually spans; a gate stands
-        // in a plane, so the other is zero and adding them is the same as picking the right one.
-        final double across = dx + dz;
-        final double radius = Math.sqrt((across * across) + (dy * dy));
-        final double turn = (Math.atan2(dy, across) + Math.PI) / (2 * Math.PI);
-        return radius + turn;
+        final double[] centre = centreOf(cells);
+        final int[][] view = viewOf(cells, facing);
+        final double[][] polar = new double[cells.size()][];
+        double outermost = 0;
+        for (int i = 0; i < cells.size(); i++)
+        {
+            final Location cell = cells.get(i);
+            final double[] offset =
+            {
+                cell.getBlockX() - centre[0], cell.getBlockY() - centre[1], cell.getBlockZ() - centre[2]
+            };
+            final double right = dot(offset, view[0]);
+            final double up = dot(offset, view[1]);
+            // Turns clockwise from straight up, in [0, 1).
+            double turn = Math.atan2(right, up) / (2 * Math.PI);
+            if (turn < 0)
+            {
+                turn += 1;
+            }
+            polar[i] = new double[] { Math.hypot(right, up), turn };
+            outermost = Math.max(outermost, polar[i][0]);
+        }
+        final double width = armWidth(outermost);
+        final List<Wound> wound = new ArrayList<>(cells.size());
+        for (int i = 0; i < cells.size(); i++)
+        {
+            final double in = (outermost - polar[i][0]) / width;
+            wound.add(new Wound(cells.get(i), Math.round(in - polar[i][1]) + polar[i][1], polar[i][0]));
+        }
+        // Down the arm from the rim; across its width, the outer cell first.
+        wound.sort(Comparator.comparingDouble(Wound::along)
+            .thenComparing(Comparator.comparingDouble(Wound::radius).reversed()));
+        final List<Location> order = new ArrayList<>(wound.size());
+        for (final Wound w : wound)
+        {
+            order.add(w.cell());
+        }
+        return new Arm(order, width);
+    }
+
+    /**
+     * A spiral arm, as the closing iris covers it.
+     *
+     * @param order
+     *            every cell, the first covered first
+     * @param width
+     *            how wide the arm is, in blocks
+     */
+    record Arm(List<Location> order, double width)
+    {
+    }
+
+    /**
+     * How wide the arm is, in blocks: one on a small opening, wider on a big one so it still
+     * winds in about {@value #ARM_TURNS} turns at most.
+     *
+     * @param outermost
+     *            the radius of the rim
+     */
+    private static double armWidth(final double outermost)
+    {
+        return Math.max(1, Math.ceil(outermost / ARM_TURNS));
+    }
+
+    /**
+     * A cell and where it sits along the arm.
+     *
+     * @param cell
+     *            the cell
+     * @param along
+     *            turns along the arm from the rim
+     * @param radius
+     *            its distance from the centre, which orders cells across the arm's width
+     */
+    private record Wound(Location cell, double along, double radius)
+    {
+    }
+
+    /**
+     * The opening's axes as a player at the activation switch sees them: {right, up}.
+     *
+     * <p>An upright gate is seen from the side its switch faces, with up as up. A flat one is
+     * seen from above, with up as away from the switch. A gate with no facing is guessed at from
+     * the opening, which only decides which way round it winds. Flat means one block high: a
+     * custom shape whose flat opening steps up and down is taken as upright, and its spiral
+     * collapses into strips.
+     *
+     * @param facing
+     *            the way the switch faces, or null
+     * @return the right and up unit vectors, as {x, y, z}
+     */
+    private static int[][] viewOf(final List<Location> cells, final BlockFace facing)
+    {
+        final boolean flat = !spans(cells, 1) && spans(cells, 0) && spans(cells, 2);
+        final boolean level = (facing != null) && (facing.getModY() == 0)
+            && ((Math.abs(facing.getModX()) + Math.abs(facing.getModZ())) == 1);
+        final int[] up;
+        final int[] toViewer;
+        if (flat)
+        {
+            toViewer = new int[] { 0, 1, 0 };
+            up = level ? new int[] { -facing.getModX(), 0, -facing.getModZ() } : new int[] { 0, 0, -1 };
+        }
+        else
+        {
+            up = new int[] { 0, 1, 0 };
+            if (level)
+            {
+                toViewer = new int[] { facing.getModX(), 0, facing.getModZ() };
+            }
+            else
+            {
+                toViewer = spans(cells, 0) ? new int[] { 0, 0, 1 } : new int[] { 1, 0, 0 };
+            }
+        }
+        // The viewer looks against toViewer, so their right is up x toViewer.
+        final int[] right =
+        {
+            (up[1] * toViewer[2]) - (up[2] * toViewer[1]),
+            (up[2] * toViewer[0]) - (up[0] * toViewer[2]),
+            (up[0] * toViewer[1]) - (up[1] * toViewer[0])
+        };
+        return new int[][] { right, up };
+    }
+
+    /**
+     * Whether the cells differ along an axis.
+     *
+     * @param axis
+     *            0 for x, 1 for y, 2 for z
+     */
+    private static boolean spans(final List<Location> cells, final int axis)
+    {
+        final int first = coordinate(cells.get(0), axis);
+        for (final Location cell : cells)
+        {
+            if (coordinate(cell, axis) != first)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int coordinate(final Location cell, final int axis)
+    {
+        return switch (axis)
+        {
+            case 0 -> cell.getBlockX();
+            case 1 -> cell.getBlockY();
+            default -> cell.getBlockZ();
+        };
+    }
+
+    private static double dot(final double[] offset, final int[] axis)
+    {
+        return (offset[0] * axis[0]) + (offset[1] * axis[1]) + (offset[2] * axis[2]);
     }
 
 }

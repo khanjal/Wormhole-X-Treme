@@ -105,7 +105,7 @@ module.exports = {
       // A teleport is followed by redraws of every drawn iris for 60 ticks: let them pass.
       await ticks(70);
       const { stepTicks, maxSteps } = iris.pace();
-      const expected = iris.closingOrder(geom.opening, o.animation, maxSteps);
+      const expected = iris.closingOrder(geom.opening, o.animation, maxSteps, geom.normal);
       const crossMs = (expected.length * stepTicks + 20) * 50;
       let rec = iris.recordCells(watcher.bot, geom.opening);
       obs.closeLever = (await probe.click(lever)).getProperties().powered;
@@ -119,7 +119,7 @@ module.exports = {
       obs.openEvents = rec.stop();
       obs.openShown = geom.opening.map((c) => shown(watcher, c));
       obs.expectClose = expected;
-      obs.expectOpen = iris.openingOrder(geom.opening, o.animation, maxSteps);
+      obs.expectOpen = iris.openingOrder(geom.opening, o.animation, maxSteps, geom.normal);
       obs.stepTicks = stepTicks;
       obs.close = iris.stepsOf(obs.closeEvents, { to: g.iris });
       obs.open = iris.stepsOf(obs.openEvents, { to: 'air', first: true });

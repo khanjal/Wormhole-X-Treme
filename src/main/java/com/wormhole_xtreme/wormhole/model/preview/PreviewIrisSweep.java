@@ -91,7 +91,7 @@ final class PreviewIrisSweep
         final List<Location> places = preview.opening().stream()
             .map(cell -> new Location(preview.world(), cell.x(), cell.y(), cell.z()))
             .toList();
-        return IrisSweepDriver.ringIndexes(places, irisAnimation(preview), closing);
+        return IrisSweepDriver.ringIndexes(places, irisAnimation(preview), closing, preview.grid().facing());
     }
 
     /**

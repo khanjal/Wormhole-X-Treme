@@ -100,6 +100,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateIrisAnimator;
+import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
@@ -3564,8 +3565,8 @@ class GatePreviewsTest
         }
         final int cap = IrisSweepDriver.stepCap();
         final List<List<Location>> rings = closing
-            ? IrisSweep.closingOrder(places, IrisSweep.Style.of(style), cap)
-            : IrisSweep.openingOrder(places, IrisSweep.Style.of(style), cap);
+            ? IrisSweep.closingOrder(places, IrisSweep.Style.of(style), cap, thePreview().grid().facing())
+            : IrisSweep.openingOrder(places, IrisSweep.Style.of(style), cap, thePreview().grid().facing());
         final List<List<Integer>> out = new ArrayList<>();
         for (final List<Location> ring : rings)
         {
@@ -3793,6 +3794,78 @@ class GatePreviewsTest
             assertEquals(0, drawsMade, "nor is it drawn at all");
             assertTrue(irisPending.isEmpty(), "and nothing more is booked");
         }
+    }
+
+    /**
+     * A preview's spiral turns clockwise for a player at its switch, whichever way it faces.
+     *
+     * <p>The preview's facing has to reach the sweep. Dropped, the sweep guesses from the opening:
+     * south for an opening across x, east for one across z, so a preview facing north or west
+     * would wind the mirror image. Each step is read off the displays and named by its cell in the
+     * shape (x as the shape layer counts columns, y from the bottom), hard-coded from
+     * {@code iris/spiral-golden.txt}, so both facings must show the same steps.
+     */
+    @Test
+    void aPreviewsSpiralTurnsClockwiseFromItsSwitchFacingNorthOrWest()
+    {
+        final List<List<String>> expected = List.of(
+            List.of("4,1", "5,2", "5,3", "5,4", "4,5"),
+            List.of("1,3", "1,4", "2,5", "3,5"),
+            List.of("2,1", "3,1", "1,2", "2,2"),
+            List.of("4,2", "4,3", "3,4", "4,4"),
+            List.of("3,2", "2,3", "3,3", "2,4"));
+        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_ANIMATION, "spiral");
+        // Looking south, the preview faces north; looking east, it faces west.
+        for (final float yaw : new float[] { 0f, -90f })
+        {
+            standAt(0.5, 0.5, yaw);
+            GatePreviews.show(owner, standard, null);
+            final BlockFace looking = GateBlueprint.facingOf(yaw);
+            final GateGrid grid = GateBlueprint.inFrontOf(standard, 0, 64, 0, looking);
+            assertEquals((yaw == 0f) ? BlockFace.NORTH : BlockFace.WEST, thePreview().grid().facing(),
+                "the preview faces back at its owner");
+
+            final List<List<String>> closing = inTheShape(ringsSeen(true), grid);
+            final List<List<String>> opening = inTheShape(ringsSeen(false), grid);
+
+            assertEquals(expected, closing, "closing, facing " + grid.facing());
+            final List<List<String>> reversed = new ArrayList<>(expected);
+            Collections.reverse(reversed);
+            assertEquals(reversed, opening, "opening, facing " + grid.facing());
+            GatePreviews.clearAll(owner);
+        }
+    }
+
+    /** Each step's opening indexes as their shape cells, "x,y", ordered by y then x. */
+    private List<List<String>> inTheShape(final List<List<Integer>> steps, final GateGrid grid)
+    {
+        final Map<String, int[]> shapeAt = new HashMap<>();
+        final List<StargateShapeLayer> layers = standard.getShapeLayers();
+        for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
+        {
+            if (layers.get(layerIdx) == null)
+            {
+                continue;
+            }
+            for (final Integer[] pos : layers.get(layerIdx).getLayerPortalPositions())
+            {
+                shapeAt.put(grid.x(layerIdx, pos[2]) + "," + grid.y(pos[1]) + "," + grid.z(layerIdx, pos[2]),
+                    new int[] { pos[2], pos[1] });
+            }
+        }
+        final List<Cell> cells = GateBlueprint.openingOf(standard, grid);
+        final List<List<String>> out = new ArrayList<>();
+        for (final List<Integer> step : steps)
+        {
+            final List<int[]> at = new ArrayList<>();
+            for (final int i : step)
+            {
+                at.add(shapeAt.get(cells.get(i).x() + "," + cells.get(i).y() + "," + cells.get(i).z()));
+            }
+            at.sort((a, b) -> (a[1] == b[1]) ? Integer.compare(a[0], b[0]) : Integer.compare(a[1], b[1]));
+            out.add(at.stream().map(p -> p[0] + "," + p[1]).toList());
+        }
+        return out;
     }
 
     /**

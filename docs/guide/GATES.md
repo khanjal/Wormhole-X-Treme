@@ -402,7 +402,7 @@ with only one ring -- `Minimal` -- is one step.
 | Style | How it crosses |
 |---|---|
 | `sweep` | Rings, in from the rim and out from the middle |
-| `spiral` | A wedge turning round the middle and working outwards |
+| `spiral` | One arm, winding in clockwise from the rim as you see it from the activation switch |
 | `rows` | Rows, in from the top and bottom at once |
 | `columns` | Columns, in from both sides at once |
 | `instant` | No animation; the iris is simply there |
@@ -411,11 +411,14 @@ Each on a `Standard` gate, closing and opening again:
 
 | `sweep` *(default)* | `spiral` | `rows` |
 |---|---|---|
-| ![A Standard gate iris closing and opening: rings, in from the rim and out from the middle](../images/gates/iris-sweep.webp) | ![A Standard gate iris closing and opening: a wedge turning round the middle](../images/gates/iris-spiral.webp) | ![A Standard gate iris closing and opening: rows, in from the top and bottom](../images/gates/iris-rows.webp) |
+| ![A Standard gate iris closing and opening: rings, in from the rim and out from the middle](../images/gates/iris-sweep.webp) | ![A Standard gate iris closing and opening, in the spiral style as it looked before 1.14.0](../images/gates/iris-spiral.webp) | ![A Standard gate iris closing and opening: rows, in from the top and bottom](../images/gates/iris-rows.webp) |
 
 | `columns` | `instant` |
 |---|---|
 | ![A Standard gate iris closing and opening: columns, in from both sides](../images/gates/iris-columns.webp) | ![A Standard gate iris closing and opening: all at once](../images/gates/iris-instant.webp) |
+
+The `spiral` picture still shows the animation from before 1.14.0, a wedge turning outwards;
+it will be retaken. The spiral now winds one arm in clockwise from the rim.
 
 A gate can have its own: `/wormhole gate edit <gate> iris-animation <style>`, or `default` to go
 back. A material group can set one for its gates with `iris-animation:`. A gate uses its own, then

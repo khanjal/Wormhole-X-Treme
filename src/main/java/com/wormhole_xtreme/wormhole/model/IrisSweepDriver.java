@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.function.LongSupplier;
 
 import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
 
 /**
  * Runs one iris sweep a ring at a time, for a gate and for a build preview alike (#429).
@@ -162,13 +163,17 @@ public final class IrisSweepDriver<C>
      *            the iris animation in effect, which picks the style
      * @param closing
      *            true for the closing order, rim first
+     * @param facing
+     *            the way the gate's activation switch faces, which the spiral turns clockwise for
      * @return the rings
      */
-    public static List<List<Location>> rings(final List<Location> cells, final String animation, final boolean closing)
+    public static List<List<Location>> rings(final List<Location> cells, final String animation, final boolean closing,
+        final BlockFace facing)
     {
         final IrisSweep.Style style = IrisSweep.Style.of(animation);
         return closing
-            ? IrisSweep.closingOrder(cells, style, stepCap) : IrisSweep.openingOrder(cells, style, stepCap);
+            ? IrisSweep.closingOrder(cells, style, stepCap, facing)
+            : IrisSweep.openingOrder(cells, style, stepCap, facing);
     }
 
     /**
@@ -182,14 +187,14 @@ public final class IrisSweepDriver<C>
      * @return one list of indexes per ring
      */
     public static List<List<Integer>> ringIndexes(final List<Location> cells, final String animation,
-        final boolean closing)
+        final boolean closing, final BlockFace facing)
     {
         final IdentityHashMap<Location, Integer> index = new IdentityHashMap<>();
         for (int i = 0; i < cells.size(); i++)
         {
             index.put(cells.get(i), i);
         }
-        return rings(cells, animation, closing).stream()
+        return rings(cells, animation, closing, facing).stream()
             .map(ring -> ring.stream().map(index::get).toList())
             .toList();
     }

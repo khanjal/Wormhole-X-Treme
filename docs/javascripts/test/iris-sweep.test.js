@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseShape } from "../shape-parser.js";
 import {
-  STYLES, STEP_CAP, irisCells, openingOrder, closingOrder, irisStateAt,
+  STYLES, STEP_CAP, irisCells, openingOrder, closingOrder, irisStateAt, closingArm,
 } from "../iris-sweep.js";
 
 const SHAPES = fileURLToPath(new URL("../../../src/main/resources/shapes/gate/", import.meta.url));
@@ -117,10 +117,69 @@ test("a one-step iris closes at tick 0 and opens at once after the hold", () => 
   assert.equal(irisStateAt(1, 20).phase, "open");
 });
 
-test("the spiral winds one way: below the middle, then right, above, then left", () => {
+test("closing, the spiral arm turns clockwise seen from the switch: below the middle, left, above, then right", () => {
   const cells = irisCells(load("Standard"));
-  const order = openingOrder(cells, "spiral").flat().map((i) => `${cells[i].col},${cells[i].y}`);
+  const order = closingArm(cells).map((i) => `${cells[i].col},${cells[i].y}`);
   const at = (col, y) => order.indexOf(`${col},${y}`);
-  // The four cells a block from the middle (3,3): its winding is the radius plus the angle, from straight down.
-  assert.ok(at(3, 2) < at(4, 3) && at(4, 3) < at(3, 4) && at(3, 4) < at(2, 3), order.join(" "));
+  // The four cells a block from the middle (3,3), in the order the arm passes them, read round from
+  // whichever it reaches first; columns count up towards the viewer's right.
+  const ring = [at(3, 2), at(2, 3), at(3, 4), at(4, 3)];
+  const first = ring.indexOf(Math.min(...ring));
+  const round = [...ring.slice(first), ...ring.slice(0, first)];
+  assert.ok(round.every((n, k) => k === 0 || n > round[k - 1]), order.join(" "));
+});
+
+// The plugin's own spiral on a built gate, in shape coordinates, written by IrisSpiralGoldenTest.
+const GOLDEN = fileURLToPath(new URL("../../../src/test/resources/iris/spiral-golden.txt", import.meta.url));
+
+test("the spiral is the plugin's, step for step, on every golden shape", () => {
+  const lines = readFileSync(GOLDEN, "utf8").split(/\r?\n/).filter((l) => l && !l.startsWith("#"));
+  const names = [...new Set(lines.map((l) => l.split(" ")[0]))];
+  assert.deepEqual(names, ["Standard", "Large", "Massive", "Grand"]);
+  for (const name of names) {
+    const cells = irisCells(load(name));
+    const ours = closingOrder(cells, "spiral").map((step, n) => {
+      const at = step.map((i) => cells[i]).sort((a, b) => a.y - b.y || a.x - b.x);
+      return `${name} ${n + 1}: ${at.map((c) => `${c.x},${c.y}`).join(" ")}`;
+    });
+    assert.deepEqual(ours, lines.filter((l) => l.startsWith(`${name} `)), name);
+  }
+});
+
+test("across a wide arm the outer cell is covered first, as IrisSweepTest pins it", () => {
+  // A disc of radius 12 has a three-block arm; straight up, 12 and 11 out sit at one place along it.
+  const disc = [];
+  for (let col = -12; col <= 12; col++) {
+    for (let y = -12; y <= 12; y++) if (col * col + y * y <= 144) disc.push({ col, y, layer: 1 });
+  }
+  const arm = closingArm(disc);
+  const at = (col, y) => arm.findIndex((i) => disc[i].col === col && disc[i].y === y);
+  assert.equal(at(0, 11), at(0, 12) + 1);
+});
+
+test("the closing arm starts on the rim and ends in the middle", () => {
+  const cells = irisCells(load("Standard"));
+  const arm = closingArm(cells);
+  const far = (i) => Math.hypot(cells[i].col - 3, cells[i].y - 3);
+  assert.equal(far(arm[0]), Math.max(...arm.map(far)), "the first cell covered is one of the outermost");
+  assert.deepEqual([cells[arm.at(-1)].col, cells[arm.at(-1)].y], [3, 3]);
+});
+
+// How many times the arm comes back round past straight up.
+const turnsOf = (cells, arm) => {
+  const xs = cells.map((c) => c.col);
+  const ys = cells.map((c) => c.y);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const angle = (i) => (Math.atan2(cells[i].col - cx, cells[i].y - cy) + 2 * Math.PI) % (2 * Math.PI);
+  return arm.filter((i, n) => n > 0 && angle(i) < angle(arm[n - 1])).length;
+};
+
+test("the arm is a block wide on Standard and wider on Grand, so both wind in a few turns", () => {
+  const standard = irisCells(load("Standard"));
+  const small = turnsOf(standard, closingArm(standard));
+  assert.ok(small >= 2, `Standard goes round more than once: ${small}`);
+  const grand = irisCells(load("Grand"));
+  const big = turnsOf(grand, closingArm(grand));
+  assert.ok(big >= 3 && big <= 6, `Grand winds in about five turns, not ten and not one: ${big}`);
 });

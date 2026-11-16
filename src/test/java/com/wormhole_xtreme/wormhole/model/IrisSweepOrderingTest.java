@@ -1035,6 +1035,110 @@ class IrisSweepOrderingTest
         }
     }
 
+    /**
+     * A north-facing gate's spiral is drawn clockwise for a player at its switch, closing and opening.
+     *
+     * <p>The facing has to travel from the gate through the animator into the sweep. Dropped
+     * anywhere on the way, the sweep guesses from the opening, and for an opening across x it
+     * guesses south: the mirror image, anticlockwise for everyone at this gate's switch. Hard-coded
+     * so it does not lean on the code it checks. Seen from the north, -x is the player's right:
+     * the arm runs bottom-left, top-left, top, then down the right-hand column, then bottom, left
+     * and the middle.
+     */
+    @Test
+    void aNorthFacingGatesSpiralIsDrawnClockwiseFromItsSwitch()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateIrisAnimation("spiral");
+        final List<List<String>> closing = List.of(
+            List.of("0,65,0", "1,63,0", "1,65,0"),
+            List.of("-1,63,0", "-1,64,0", "-1,65,0"),
+            List.of("0,63,0", "0,64,0", "1,64,0"));
+
+        assertSpiralDrawn(closing);
+    }
+
+    /**
+     * The same for a west-facing gate, whose opening runs across z.
+     *
+     * <p>Seen from the west, +z is the player's right. Guessed without the facing, an opening
+     * across z is seen from the east, the mirror image.
+     */
+    @Test
+    void aWestFacingGatesSpiralIsDrawnClockwiseFromItsSwitch()
+    {
+        openingAcrossZ();
+        gate.setGateFacing(BlockFace.WEST);
+        gate.setGateIrisAnimation("spiral");
+        final List<List<String>> closing = List.of(
+            List.of("0,63,-1", "0,65,-1", "0,65,0"),
+            List.of("0,63,1", "0,64,1", "0,65,1"),
+            List.of("0,63,0", "0,64,-1", "0,64,0"));
+
+        assertSpiralDrawn(closing);
+    }
+
+    /** Closing draws these steps in order, and opening takes them away in the reverse order. */
+    private void assertSpiralDrawn(final List<List<String>> closing)
+    {
+        final BlockData real = realBlocksInTheOpening();
+        final Map<String, BlockData> closingScreen = new HashMap<>();
+        final List<List<String>> closingShown = new ArrayList<>();
+        startSweep(true, null);
+        walkSteps(() -> closingShown.add(showingInTheOpening(closingScreen, d -> d == real)), watcher);
+
+        final Map<String, BlockData> openingScreen = new HashMap<>();
+        final List<List<String>> openingShown = new ArrayList<>();
+        startSweep(false, null);
+        walkSteps(() -> openingShown.add(showingInTheOpening(openingScreen, d -> d == bareOpening)), watcher);
+
+        assertEquals(closing, added(closingShown), "closing, clockwise from the rim as the switch's side sees it");
+        final List<List<String>> opening = new ArrayList<>(closing);
+        Collections.reverse(opening);
+        assertEquals(opening, added(openingShown), "opening, the same arm backwards");
+    }
+
+    /** Folds what the watcher was sent into {@code screen}; the opening's cells showing that, sorted. */
+    private List<String> showingInTheOpening(final Map<String, BlockData> screen, final Predicate<BlockData> wanted)
+    {
+        final ArgumentCaptor<Location> where = ArgumentCaptor.forClass(Location.class);
+        final ArgumentCaptor<BlockData> what = ArgumentCaptor.forClass(BlockData.class);
+        verify(watcher, atLeast(0)).sendBlockChange(where.capture(), what.capture());
+        for (int i = 0; i < where.getAllValues().size(); i++)
+        {
+            final Location at = where.getAllValues().get(i);
+            screen.put(at.getBlockX() + "," + at.getBlockY() + "," + at.getBlockZ(), what.getAllValues().get(i));
+        }
+        final List<String> cells = new ArrayList<>();
+        for (final Location at : gate.getGatePortalBlocks())
+        {
+            final String key = at.getBlockX() + "," + at.getBlockY() + "," + at.getBlockZ();
+            if (wanted.test(screen.get(key)))
+            {
+                cells.add(key);
+            }
+        }
+        cells.sort(null);
+        return cells;
+    }
+
+    /** Swaps the fixture's opening for a three-by-three across z at x = 0. */
+    private void openingAcrossZ()
+    {
+        gate.getGatePortalBlocks().clear();
+        for (int z = -1; z <= 1; z++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                final Location at = new Location(world, 0, 64 + y, z);
+                gate.getGatePortalBlocks().add(at);
+                final Block block = mock(Block.class);
+                when(block.getLocation()).thenReturn(at);
+                when(world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ())).thenReturn(block);
+            }
+        }
+    }
+
     /** A gate with no animation of its own follows its material group's, ahead of the server's. */
     @Test
     void aGroupsIrisAnimationComesBeforeTheServers()
@@ -1063,14 +1167,14 @@ class IrisSweepOrderingTest
     private List<List<Location>> closingRingsOfTheGate()
     {
         return IrisSweep.closingOrder(gate.getGatePortalBlocks(),
-            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap());
+            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap(), gate.getGateFacing());
     }
 
     /** The same, opening order. */
     private List<List<Location>> openingRingsOfTheGate()
     {
         return IrisSweep.openingOrder(gate.getGatePortalBlocks(),
-            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap());
+            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap(), gate.getGateFacing());
     }
 
     /** Each ring as the sorted "x,y" of its cells, so a ring compares as a set. */

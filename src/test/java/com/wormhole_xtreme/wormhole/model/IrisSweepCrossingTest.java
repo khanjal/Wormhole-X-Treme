@@ -215,7 +215,7 @@ class IrisSweepCrossingTest
     {
         final List<List<String>> out = new ArrayList<>();
         for (final List<Location> ring : IrisSweepDriver.rings(gate.getGatePortalBlocks(),
-            gate.getEffectiveIrisAnimation(), closing))
+            gate.getEffectiveIrisAnimation(), closing, gate.getGateFacing()))
         {
             out.add(ring.stream().map(at -> at.getBlockX() + "," + at.getBlockY()).toList());
         }

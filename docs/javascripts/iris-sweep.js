@@ -16,7 +16,8 @@ export function irisCells(shape) {
   return shape.cells.filter((c) => c.portal);
 }
 
-// Cells are at (col, y, layer); only differences matter, so the file's mirroring does not.
+// Cells are at (col, y, layer); only differences matter. The spiral alone needs a side: columns
+// count up towards the right of a player at the activation switch, as the 3D viewers draw them.
 const centreOf = (cells) => {
   const lo = { col: Infinity, y: Infinity, layer: Infinity };
   const hi = { col: -Infinity, y: -Infinity, layer: -Infinity };
@@ -66,23 +67,34 @@ function rings(cells, style) {
   return [...groups.keys()].sort((a, b) => a - b).map((k) => groups.get(k).sort(byPlace(cells)));
 }
 
-/** How far round and out a cell sits: the radius dominates and the angle breaks ties within it. */
-function windingOf(centre, c) {
-  // `across` is the opening's own horizontal axis. Which way along it is "right" follows the
-  // gate's facing in the world, so the page draws the one a player at the activation switch sees.
-  const across = c.col - centre.col + (c.layer - centre.layer);
-  const dy = c.y - centre.y;
-  const radius = Math.sqrt(across * across + dy * dy);
-  const turn = (Math.atan2(dy, across) + Math.PI) / (2 * Math.PI);
-  return radius + turn;
+/** About the most turns the spiral makes, as IrisSweep.ARM_TURNS. */
+const ARM_TURNS = 5;
+
+/**
+ * The cells along one spiral arm, wound in clockwise from the rim as seen from the activation
+ * switch's side, as IrisSweep.closingArm. Upright openings only: there, columns count up towards
+ * that viewer's right.
+ */
+export function closingArm(cells) {
+  const centre = centreOf(cells);
+  const polar = cells.map((c) => {
+    const right = c.col - centre.col;
+    const up = c.y - centre.y;
+    let turn = Math.atan2(right, up) / (2 * Math.PI); // clockwise from straight up
+    if (turn < 0) turn += 1;
+    return { radius: Math.hypot(right, up), turn };
+  });
+  const outermost = Math.max(...polar.map((p) => p.radius));
+  const width = Math.max(1, Math.ceil(outermost / ARM_TURNS));
+  const along = polar.map((p) => Math.round((outermost - p.radius) / width - p.turn) + p.turn);
+  // Down the arm from the rim; across its width, the outer cell first.
+  return cells.map((_, i) => i).sort((a, b) => along[a] - along[b] || polar[b].radius - polar[a].radius);
 }
 
-/** A wedge turning round the centre and working outwards, in as many steps as the sweep makes. */
+/** The closing arm run backwards, in as many steps as the sweep makes. */
 function spiral(cells) {
   if (cells.length === 0) return [];
-  const centre = centreOf(cells);
-  const wound = cells.map((_, i) => i).sort((a, b) => windingOf(centre, cells[a]) - windingOf(centre, cells[b]));
-  return cut(wound, Math.min(wound.length, Math.max(1, rings(cells, "sweep").length)));
+  return cut(closingArm(cells).reverse(), Math.min(cells.length, Math.max(1, rings(cells, "sweep").length)));
 }
 
 /** Joins adjacent steps until there are no more than `maxSteps`; 0 leaves them alone. */

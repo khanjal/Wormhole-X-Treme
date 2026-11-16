@@ -662,7 +662,7 @@ s1 bad values	:: GATE_SOUNDS_ENABLED = true
 s1 bad values	:: GATE_SOUND_VOLUME = N
 s1 bad values	:: How a dialling gate's inner ring light moves before each chevron locks: TOP, CHEVRON, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE. Each is described in the gate guide. TOP rests half a second on the top chevron after each lock, and UNIVERSE turns at its own pace, so both dial a little slower.
 s1 bad values	:: How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).
-s1 bad values	:: How an iris crosses its opening: sweep (rings, from the rim in), spiral (a wedge turning outwards), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.
+s1 bad values	:: How an iris crosses its opening: sweep (rings, from the rim in), spiral (one arm, clockwise from the rim in), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.
 s1 bad values	:: How loud gate sounds are. Volume also sets audible range: N carries about twenty-four blocks.
 s1 bad values	:: How much the plugin logs: SEVERE, WARNING, INFO, CONFIG, FINE, FINER or FINEST, least to most.
 s1 bad values	:: LOG_LEVEL = INFO
@@ -761,7 +761,7 @@ s1 every setting	:: GATE_VIEW_FUNNEL_LENGTH = N
 s1 every setting	:: GATE_VIEW_FUNNEL_MIN_LENGTH = N
 s1 every setting	:: How a dialling gate's inner ring light moves before each chevron locks: TOP, CHEVRON, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE. Each is described in the gate guide. TOP rests half a second on the top chevron after each lock, and UNIVERSE turns at its own pace, so both dial a little slower.
 s1 every setting	:: How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).
-s1 every setting	:: How an iris crosses its opening: sweep (rings, from the rim in), spiral (a wedge turning outwards), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.
+s1 every setting	:: How an iris crosses its opening: sweep (rings, from the rim in), spiral (one arm, clockwise from the rim in), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.
 s1 every setting	:: How close a player must be, in blocks, for a mirror's banner to give way to the room it shows, and how near they must stay for it to stay on.
 s1 every setting	:: How far below its plane a ceiling ring will look for the floor, in blocks. Its rings stack up from there, so it needs a floor near enough to reach.
 s1 every setting	:: How far past its opening a mirror's room, or an open gate's far side, is drawn, N to N; past it this world shows through. N is ten chunks, about as far as a server sends. A gate shows the first N at once and fills in the rest behind. Lower it for a smoother view.

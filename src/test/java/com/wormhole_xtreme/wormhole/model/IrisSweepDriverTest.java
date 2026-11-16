@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -267,7 +268,7 @@ class IrisSweepDriverTest
     @Test
     void twoCellsAtTheSamePlaceKeepAnIndexEach()
     {
-        final List<List<Integer>> rings = IrisSweepDriver.ringIndexes(openingWithADuplicateMiddle(), "sweep", true);
+        final List<List<Integer>> rings = IrisSweepDriver.ringIndexes(openingWithADuplicateMiddle(), "sweep", true, BlockFace.SOUTH);
 
         final List<Integer> every = rings.stream().flatMap(List::stream).sorted().toList();
         assertEquals(List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), every, "each cell exactly once");
@@ -280,8 +281,8 @@ class IrisSweepDriverTest
     void openingIsTheClosingOrderRunBackwards()
     {
         final List<Location> cells = openingWithADuplicateMiddle();
-        final List<List<Integer>> closing = IrisSweepDriver.ringIndexes(cells, "sweep", true);
-        final List<List<Integer>> opening = IrisSweepDriver.ringIndexes(cells, "sweep", false);
+        final List<List<Integer>> closing = IrisSweepDriver.ringIndexes(cells, "sweep", true, BlockFace.SOUTH);
+        final List<List<Integer>> opening = IrisSweepDriver.ringIndexes(cells, "sweep", false, BlockFace.SOUTH);
 
         assertEquals(new TreeSet<>(List.of(4, 9)), new TreeSet<>(opening.get(0)), "opening starts from the middle");
         assertEquals(closing.size(), opening.size());
