@@ -2,8 +2,10 @@
 // assets/shapes/ by scripts/copy-docs-shapes.sh and draws them with three.js.
 import { describeShape, ShapeError } from "./shape-parser.js";
 import {
-  THREE, SceneBase, el, hex, palette, loadLibs, fetchManifest, fetchShape, TICK_MS, reduceMotion, stageWithLegend,
+  THREE, SceneBase, el, hex, palette, isDark, loadLibs, fetchManifest, fetchShape, TICK_MS, reduceMotion, stageWithLegend,
 } from "./scene-kit.js";
+
+import { TINT, wooshStep, wooshTint } from "./woosh-cue.js";
 
 const MIN_STEP_MS = 250; // real timings are too quick to follow on a page
 
@@ -139,6 +141,11 @@ export class GateViewer extends SceneBase {
     // Their counts start at 0, which a culling sphere taken then would keep.
     parts.wave.frustumCulled = false;
     parts.stay.frustumCulled = false;
+    // Every woosh cell, whatever its base kind (an Ignored cell included), for the designer's "Woosh cells" view.
+    mats.ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.5, depthWrite: false });
+    parts.ghostCells = cells.filter((c) => c.woosh !== null);
+    parts.ghost = add(this.instanced(parts.ghostCells, mats.ghost));
+    parts.ghost.visible = false;
 
     this.buildMarkers(parts, add);
 
@@ -180,7 +187,29 @@ export class GateViewer extends SceneBase {
     mats.woosh.color.set(p.woosh);
     grid.material.color.set(p.grid);
     this.paintLights();
+    this.paintGhost();
     this.renderLegend();
+    this.requestRender();
+  }
+
+  /** The woosh cells' colours: the faintest at the first step and the full colour at the last, as the grid tints them. */
+  paintGhost() {
+    const { ghost, ghostCells } = this.parts;
+    if (!ghostCells.length) return;
+    const orders = this.shape.wooshOrders;
+    const full = new THREE.Color(palette().woosh);
+    const page = new THREE.Color(isDark() ? 0x111318 : 0xffffff);
+    ghostCells.forEach((c, i) => {
+      const t = wooshTint(wooshStep(c.woosh, orders), orders.length) / TINT.max;
+      ghost.setColorAt(i, page.clone().lerp(full, t));
+    });
+    if (ghost.instanceColor) ghost.instanceColor.needsUpdate = true;
+  }
+
+  /** The woosh cells show while the gate is at rest (idle, dialling, dialled); opening plays them in order instead. */
+  syncGhost() {
+    const { ghost } = this.parts;
+    ghost.visible = Boolean(this.showWoosh) && this.state !== "opening" && this.state !== "open";
     this.requestRender();
   }
 
@@ -226,6 +255,7 @@ export class GateViewer extends SceneBase {
     stay.count = open ? stayCells.length : 0;
     this.paintLights();
     const names = { idle: "Idle: the gate is built and nothing is lit.", dialled: "Dialled: every chevron is lit.", open: "Open: the portal is filled." };
+    this.syncGhost();
     this.say(message || names[state]);
     for (const [k, b] of Object.entries(this.buttons)) {
       if (k !== "reset") b.setAttribute("aria-pressed", String((k === "dial" && state === "dialled") || k === state));
@@ -263,6 +293,7 @@ export class GateViewer extends SceneBase {
     this.litUpTo = Infinity;
     this.paintLights();
     this.state = "opening";
+    this.syncGhost();
     this.say("Opening: the woosh is pushing the portal out.");
     portal.visible = true;
     stay.count = 0;
@@ -324,15 +355,15 @@ export class GateViewer extends SceneBase {
     // A glyph beside each swatch, so no entry is told from another by hue alone.
     const items = [
       ["Gate frame", p.frame, "■"], ["Chevron, unlit", p.chevron, "▣"], ["Chevron, lit", p.lit, "★"],
-      ["Portal, when open", p.portal, "▒"], ["Woosh, while opening", p.woosh, "░"],
+      ["Portal, when open", p.portal, "▒"], ["Woosh, while opening", p.woosh, "░", "wxt-swatch-woosh"],
     ];
     const glyphs = { plate: "▬", sphere: "●", cone: "▲", cylinder: "▮", octa: "◆", cube: "■", tetra: "◢", ring: "◎" };
     const present = new Set(this.shape.cells.flatMap((c) => c.markers));
     for (const [key, spec] of Object.entries(MARKERS)) {
       if (present.has(key)) items.push([`${spec.label} (${key})`, spec.color, glyphs[spec.shape]]);
     }
-    this.legend.replaceChildren(...items.map(([label, color, glyph]) =>
-      el("li", {}, el("span", { class: "wxt-swatch", "aria-hidden": "true", style: `background:${hex(color)}` }), ` ${glyph} ${label}`)));
+    this.legend.replaceChildren(...items.map(([label, color, glyph, extra]) =>
+      el("li", {}, el("span", { class: extra ? `wxt-swatch ${extra}` : "wxt-swatch", "aria-hidden": "true", style: `background-color:${hex(color)}` }), ` ${glyph} ${label}`)));
   }
 }
 

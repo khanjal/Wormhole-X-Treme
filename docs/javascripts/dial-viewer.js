@@ -188,7 +188,7 @@ class DialViewer extends ManualViewer {
     const p = palette();
     return [
       ["Gate frame", p.frame, "■"], ["Chevron, not locked", p.chevron, "▣"], ["Chevron, locked", p.lit, "★"],
-      ["Ring light", p.spin, "◆"], ["Portal, when open", p.portal, "▒"], ["Woosh, while opening", p.woosh, "░"],
+      ["Ring light", p.spin, "◆"], ["Portal, when open", p.portal, "▒"], ["Woosh, while opening", p.woosh, "░", "wxt-swatch-woosh"],
     ];
   }
 }

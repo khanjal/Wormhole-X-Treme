@@ -386,6 +386,59 @@
 .wxt-k-P { background: rgba(47, 123, 255, 0.35); }
 .wxt-k-I { color: var(--md-default-fg-color--light); }
 
+/*
+ * A woosh cell (:W): diagonal stripes in green, over whatever its kind is, and the stripes (the cue that
+ * is not colour) keep at every size. --wxt-wt is the step's strength, set by the script: later steps are darker.
+ */
+.wxt-grid {
+  --wxt-wc: 22, 140, 52;
+}
+
+[data-md-color-scheme="slate"] .wxt-grid {
+  --wxt-wc: 60, 170, 90;
+}
+
+.wxt-grid td.wxt-woosh {
+  /* Full-strength text: the tint is under it, and 3:1 on the darkest step needs more than the light grey of an Ignored cell. */
+  color: var(--md-default-fg-color);
+  background-image:
+    repeating-linear-gradient(135deg, rgba(var(--wxt-wc), var(--wxt-wt, 0.5)) 0 3px, transparent 3px 7px),
+    linear-gradient(rgba(var(--wxt-wc), calc(var(--wxt-wt, 0.5) * 0.45)), rgba(var(--wxt-wc), calc(var(--wxt-wt, 0.5) * 0.45)));
+}
+
+.wxt-grid.wxt-tiny td.wxt-woosh {
+  background-image:
+    repeating-linear-gradient(135deg, rgba(var(--wxt-wc), var(--wxt-wt, 0.5)) 0 2px, transparent 2px 5px),
+    linear-gradient(rgba(var(--wxt-wc), calc(var(--wxt-wt, 0.5) * 0.45)), rgba(var(--wxt-wc), calc(var(--wxt-wt, 0.5) * 0.45)));
+}
+
+/* The step number, where the cells are big enough for it. */
+.wxt-grid.wxt-w-num td.wxt-woosh::before {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  padding: 0 2px;
+  font-size: max(0.5rem, calc(var(--wxt-cell) * 0.24));
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--md-default-fg-color);
+  content: attr(data-w);
+  background: var(--md-default-bg-color);
+  border-radius: 2px;
+}
+
+.wxt-swatch-woosh {
+  background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--md-default-bg-color) 2px 4px);
+}
+
+.wxt-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0 0.25rem;
+  cursor: pointer;
+}
+
 /* Text colour with a page-colour halo inside it: at least 3:1 on every cell tint in both schemes. */
 .wxt-grid td.wxt-sel {
   outline: 3px solid var(--md-default-fg-color);

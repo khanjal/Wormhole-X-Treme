@@ -73,7 +73,9 @@ bar between them, or move with the arrow keys once it has focus. **Escape** puts
 **+** and **−** buttons, the plus and minus keys over the grid, and Ctrl and scroll over the grid
 change the size of the cells, and **Fit to window** picks the biggest size that shows the whole layer
 (or the smallest that is still easy to read, with the grid scrolling). Even the smallest cells show their
-letter, and an underlined letter marks a cell with extras.
+letter, and an underlined letter marks a cell with extras. A woosh cell (one with `:W`) is striped green even when it is
+Ignored, darker the later its step, with the step number in its corner once the cells are big enough;
+the **Woosh cells** switch beside the 3D view shows or hides them there, and **Open** plays them in order.
 The legend sits beside each 3D view, or behind its **Legend** button on a narrow screen.
 
 ## Putting it on your server

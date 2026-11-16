@@ -131,8 +131,8 @@ export class ManualViewer extends SceneBase {
   }
 
   renderLegend() {
-    this.legend.replaceChildren(...this.legendItems().map(([label, color, glyph]) =>
-      el("li", {}, el("span", { class: "wxt-swatch", "aria-hidden": "true", style: `background:${hex(color)}` }), ` ${glyph} ${label}`)));
+    this.legend.replaceChildren(...this.legendItems().map(([label, color, glyph, extra]) =>
+      el("li", {}, el("span", { class: extra ? `wxt-swatch ${extra}` : "wxt-swatch", "aria-hidden": "true", style: `background-color:${hex(color)}` }), ` ${glyph} ${label}`)));
   }
 
   /** The floor grid under a shape, sized to it. */
