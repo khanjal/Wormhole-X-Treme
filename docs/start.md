@@ -78,7 +78,8 @@ A wormhole runs one way: `Away` is only an exit. To come back, click the button 
 
 ## Where next
 
-- [Gates](guide/GATES.md): shapes, materials, signs, the iris and redstone.
+- [Stargates](features/stargates.md): signs, the iris, redstone and what travels.
 - [Look at every gate shape in 3D](manual/gates.md) before you build a big one.
-- [Rings](guide/RINGS.md), [beaming](guide/BEAMS.md) and [mirrors](guide/MIRRORS.md).
-- [Server owner's guide](guide/SERVER.md): configuration, permissions and commands.
+- [Rings](features/rings.md), [beaming](features/beaming.md) and
+  [mirrors](features/mirrors.md).
+- [Server setup and configuration](guide/SERVER.md): settings, permissions and commands.

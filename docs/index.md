@@ -29,7 +29,7 @@ for shorter hops.
     Lay a frame of blocks and press the button. The chevrons light up one by one, then the
     wormhole opens. Step in and you come out at any other gate, even in another world.
 
-    [Build a gate](guide/GATES.md)
+    [Stargates in detail](features/stargates.md)
 
 -   **Transport rings**
 
@@ -40,7 +40,7 @@ for shorter hops.
     Lay a circle of slabs, then another one somewhere else. Walk into one and a stack of rings
     rises around you, light runs through it, and you arrive at its partner.
 
-    [Build rings](guide/RINGS.md)
+    [Rings in detail](features/rings.md)
 
 -   **Beaming**
 
@@ -51,7 +51,7 @@ for shorter hops.
     Nothing to build. Save a place where you stand, then beam to it from anywhere. You leave in
     a column of light.
 
-    [Try beaming](guide/BEAMS.md)
+    [Beaming in detail](features/beaming.md)
 
 -   **Quantum mirrors**
 
@@ -62,7 +62,7 @@ for shorter hops.
     Hang a banner on a wall and it shows the room it is in. Right-click to choose where it opens
     onto, punch it, and you step through.
 
-    [Hang a mirror](guide/MIRRORS.md)
+    [Mirrors in detail](features/mirrors.md)
 
 </div>
 
@@ -93,20 +93,21 @@ The full walk-through is in [Getting started](start.md).
 
 Minecraft 1.20 to 26.3, on Spigot, Paper and CraftBukkit (Purpur is best effort; Folia is not
 supported). The jar needs Java 17 or later, and your Minecraft version may ask for more. The
-[server owner's guide](guide/SERVER.md#compatibility) has the details.
+[server setup guide](guide/SERVER.md#compatibility) has the details.
 
 ---
 
 <div class="grid cards" markdown>
 
--   **[Server owner's guide](guide/SERVER.md)**
+-   **[For server owners](guide/SERVER.md)**
 
-    Install, configure, set permissions.
+    Install, configure and set permissions, with a
+    [reference](guide/README.md) for every setting.
 
 -   **Features**
 
-    [Gates](guide/GATES.md) · [Rings](guide/RINGS.md) · [Beaming](guide/BEAMS.md) ·
-    [Mirrors](guide/MIRRORS.md)
+    [Stargates](features/stargates.md) · [Rings](features/rings.md) ·
+    [Beaming](features/beaming.md) · [Mirrors](features/mirrors.md)
 
 -   **For developers**
 

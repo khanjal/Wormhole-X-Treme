@@ -59,19 +59,25 @@ extra_css:
 nav:
   - Home: index.md
   - Getting started: start.md
-  - Guide:
-      - guide/README.md
-      - Server: guide/SERVER.md
-      - Gates: guide/GATES.md
-      - Rings: guide/RINGS.md
-      - Beaming: guide/BEAMS.md
-      - Mirrors: guide/MIRRORS.md
+  - Features:
+      - Stargates: features/stargates.md
+      - Transport rings: features/rings.md
+      - Beaming: features/beaming.md
+      - Quantum mirrors: features/mirrors.md
+      - Try it in 3D:
+          - Gate shapes: manual/gates.md
+          - Iris styles: manual/iris.md
+          - Dialling and chevrons: manual/dialling.md
+  - For server owners:
+      - Server setup and configuration: guide/SERVER.md
       - Translating: guide/TRANSLATING.md
-  - User manual:
-      - Gate shapes: manual/gates.md
-      - Iris styles: manual/iris.md
-      - Dialling and chevrons: manual/dialling.md
-  - Internals:
+      - Reference:
+          - Reference overview: guide/README.md
+          - Gates reference: guide/GATES.md
+          - Rings reference: guide/RINGS.md
+          - Beaming reference: guide/BEAMS.md
+          - Mirrors reference: guide/MIRRORS.md
+  - For developers:
       - Gates: GATES.md
       - Rings: RINGS.md
       - Mirrors: MIRRORS.md
