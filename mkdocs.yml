@@ -88,7 +88,7 @@ nav:
       - Logo: LOGO.md
       - API: API.md
       - Development: DEVELOPMENT.md
-  - Changelog: https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md
+      - Changelog: https://github.com/khanjal/Wormhole-X-Treme/blob/main/CHANGELOG.md
 
 validation:
   links:

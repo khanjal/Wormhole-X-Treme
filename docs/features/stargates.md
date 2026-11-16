@@ -7,9 +7,10 @@ step through and you come out at the other end, even in another world.
 
 ## What you see
 
-1. You click the button. The chevrons light up one by one, and a light can run round the ring
-   before each one locks.
-2. The last chevron locks and the gate holds for a moment.
+1. You click the button. On a gate with no sign, every chevron lights and the gate waits for
+   you to type `/dial <gate>`. On a sign gate, it dials whatever the sign shows.
+2. The chevrons lock one by one, and a light can run round the ring before each one. The last
+   one holds for a moment.
 3. The wormhole bursts out of the opening, then settles into a shimmering surface.
 4. You walk in. You arrive at the other gate, facing out of it.
 
@@ -20,9 +21,10 @@ ring. The smallest shape, `Minimal`, has none.
 
 ## Build one
 
-1. Stand where you want it and type `/wormhole gate build Standard`. Add a material group to
-   change the look, such as `Atlantis`, `Universe` or `MilkyWay`. You need to be an operator or
-   hold `wormhole.config`.
+1. Stand where you want it and type `/wormhole gate build Standard`. You need `wormhole.config`
+   and `wormhole.build`, which operators have. The blocks you build the frame from give it its
+   look: obsidian for a Standard gate, lapis for an Atlantis one. A group name after the shape,
+   such as `Atlantis`, only dresses the ghost.
 2. Lay the frame. With `wormhole.build.preview` a full-size ghost shows where each block goes,
    only to you, and `/wormhole gate preview guide` marks what is still missing.
 3. Put a button on the DHD block and click it.
@@ -50,10 +52,13 @@ destinations, then click the button to dial the one shown.
 
 ## Who may do what
 
-Building and removing gates is for operators, or for anyone you give `wormhole.config`.
+Building a gate takes `wormhole.config` for the `gate` commands and `wormhole.build` (or
+`wormhole.build.<shape>`) for the build itself. Removing one takes `wormhole.config` and
+`wormhole.remove.own` or `wormhole.remove.all`. Operators have all of these.
 `wormhole.build.preview` lets other players call up the ghost with `gate build`, for their eyes
-only. Everyone else needs `wormhole.use.dialer` to dial, and `wormhole.use.sign` to use dial
-signs. A server can limit how many gates a player owns and how close two gates may stand.
+only. With a permissions plugin, players need `wormhole.use.dialer` to dial and
+`wormhole.use.sign` to use dial signs; without one, anyone can dial. A server can limit how many
+gates a player owns and how close two gates may stand.
 
 ## Go deeper
 

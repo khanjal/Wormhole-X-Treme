@@ -8,9 +8,9 @@ minutes.
 - A Spigot, Paper or CraftBukkit server on Minecraft 1.20 to 26.3 (Purpur is best effort).
 - Java 17 or later. Minecraft 1.20.5 and later need Java 21 on the server, and 26.1 and later
   need Java 25.
-- Operator status, to follow along as written. Building gates is for operators, or for anyone you
-  give `wormhole.config`; dialling needs `wormhole.use.dialer`. See
-  [permissions](guide/SERVER.md#permissions).
+- Operator status, to follow along as written. Anyone else needs `wormhole.config` and
+  `wormhole.build` to build, and, if you run a permissions plugin, `wormhole.use.dialer` to dial.
+  See [permissions](guide/SERVER.md#permissions).
 - Obsidian for the frame of a `Standard` gate.
 
 ## Install
@@ -38,7 +38,7 @@ needs editing to carry on.
     front of you. Only you can see it, and you can walk through it. Build where it stands.
     `/wormhole gate preview needs` lists the blocks you need.
 
-    ![Four of the gate shapes, built: Minimal, Large, Grand and Massive](images/gates/gate-shapes.png)
+    ![Other gate shapes you can build: Minimal, Large, Grand and Massive](images/gates/gate-shapes.png)
 
 2. Lay the frame in obsidian. `/wormhole gate preview guide` draws what is still missing.
 3. Put a button on the DHD block, the one the ghost has its button on, then click it.
@@ -61,7 +61,8 @@ Go somewhere else, in the same world or another, and do it all again. Name this 
 
 ## Dial and step through
 
-1. Stand at `Home` and click its button. Every chevron lights and the gate waits for you.
+1. Stand at `Home` and click its button. Every chevron lights and the gate waits for you, for
+   30 seconds by default.
 2. Type:
 
     ```
@@ -75,7 +76,7 @@ Go somewhere else, in the same world or another, and do it all again. Name this 
 3. Walk into the opening. You come out at `Away`.
 
 A wormhole runs one way: `Away` is only an exit. To come back, click the button at `Away` and type
-`/dial Home`. `/wormhole gate list` shows every gate you can see.
+`/dial Home`. `/wormhole list mine` shows your own gates.
 
 ## Where next
 

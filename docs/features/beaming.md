@@ -27,7 +27,8 @@ There is nothing to build, only a place to save.
    deletes one.
 
 Staff can save a public destination for everyone with `/wormhole beam admin set <name>`, and
-`/wormhole beam list` shows them. Both need `wormhole.beam.admin`, which operators have.
+`/wormhole beam list` shows them. Saving needs `wormhole.beam.admin`, which operators have;
+anyone with `wormhole.beam.use` can list and travel.
 
 ## Good to know
 
@@ -37,8 +38,9 @@ Staff can save a public destination for everyone with `/wormhole beam admin set 
 - **Beams cross worlds.** A destination in a world that is not loaded says so, rather than
   loading it.
 - **The ground may have changed.** You are put on the nearest safe spot.
-- **`/wormhole go <name>`** reaches the same places, and tries a gate name first. It needs
-  `wormhole.go`, which is off by default.
+- **`/wormhole go <name>`** reaches the same places, and tries a gate name first. A gate
+  through it needs `wormhole.go`, which is off by default; a beam place needs only
+  `wormhole.beam.use`.
 - **The only way back is another beam.** Save a place where you left from.
 
 ## Who may do what

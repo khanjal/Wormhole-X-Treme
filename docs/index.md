@@ -71,8 +71,8 @@ for shorter hops.
 1. **Drop the jar into `plugins/`** and restart the server. Nothing else is needed.
 2. **Build a gate.** Type `/wormhole gate build Standard`, lay the frame, place a button on the
    DHD and click it, and name the gate with `/wormhole gate complete Home`.
-3. **Build a second one and dial.** Click the first gate's button, type `/dial Away`, and walk
-   into the opening.
+3. **Build a second gate, called `Away`, and dial.** Click `Home`'s button, type `/dial Away`,
+   and walk into the opening.
 
 The full walk-through is in [Getting started](start.md).
 
@@ -84,7 +84,7 @@ The full walk-through is in [Getting started](start.md).
   build it with: the same `Standard` shape in obsidian or in lapis gives two different-looking
   gates.
 - Mirrors that show a room, in real blocks.
-- Every setting changes in game with `/wormhole config`, with no reload.
+- Most settings change in game with `/wormhole config`, with no reload.
 - Every sound is a setting, resource pack sounds included.
 - It works with or without a permissions plugin, and charges through Vault only if you want it to.
 - Gates are plain YAML files, and `/wormhole gate import` brings in gates from older forks.
