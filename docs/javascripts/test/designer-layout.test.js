@@ -92,11 +92,16 @@ test("a split with no room for both sides sits in the middle", () => {
 });
 
 test("a stored view state is read, and a damaged one falls back part by part", () => {
-  const good = { zoom: 28, split: 0.45, dockOpen: false, toolsOpen: false };
+  const good = { zoom: 28, split: 0.45, dockOpen: false, toolsOpen: false, symmetry: "both" };
   assert.deepEqual(parseViewState(viewStateText(good)), good);
   assert.deepEqual(parseViewState('{"zoom":"big","split":7,"dockOpen":"no"}'),
-    { zoom: null, split: null, dockOpen: true, toolsOpen: true });
+    { zoom: null, split: null, dockOpen: true, toolsOpen: true, symmetry: "none" });
   assert.equal(parseViewState('{"zoom":9999}').zoom, ZOOM.max);
+});
+
+test("the symmetry mode is remembered, and only a real one", () => {
+  assert.equal(parseViewState(viewStateText({ symmetry: "lr" })).symmetry, "lr");
+  for (const bad of ["diagonal", 3, null, ["lr"]]) assert.equal(parseViewState(JSON.stringify({ symmetry: bad })).symmetry, "none");
 });
 
 test("an expanded window is never restored, even from an old saved state", () => {
@@ -105,7 +110,7 @@ test("an expanded window is never restored, even from an old saved state", () =>
 });
 
 test("garbage in storage gives the plain defaults", () => {
-  const plain = { zoom: null, split: null, dockOpen: true, toolsOpen: true };
+  const plain = { zoom: null, split: null, dockOpen: true, toolsOpen: true, symmetry: "none" };
   for (const raw of [null, undefined, "", "{", "null", "[]", "7", '"x"', '{"expanded":"true"}', '{"__proto__":{"expanded":true}}']) {
     assert.deepEqual(parseViewState(raw), plain, String(raw));
   }
