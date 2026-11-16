@@ -342,8 +342,10 @@
   display: none;
 }
 
+/* The letter is the cue that is not colour, so it stays at every size. */
 .wxt-grid.wxt-tiny td {
-  font-size: 0;
+  font-size: 9px;
+  line-height: 1;
 }
 
 .wxt-grid.wxt-tight td.wxt-marked::before {
@@ -639,9 +641,9 @@ html.wxt-no-scroll body {
   display: contents;
 }
 
-.wxt-full .wxt-controls .wxt-status {
-  flex: 1 1 100%;
-  margin: 0;
+.wxt-full .wxt-edit > .wxt-status {
+  flex: none;
+  margin: 0 0 0.25rem;
 }
 
 .wxt-full .wxt-controls .wxt-brush {

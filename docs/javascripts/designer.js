@@ -7,7 +7,9 @@ import { GateViewer } from "./gate-viewer.js";
 import * as E from "./shape-edit.js";
 import { checkShape } from "./shape-check.js";
 import { writeShape } from "./shape-writer.js";
-import { ZOOM, SPLIT, clampZoom, stepZoom, fitZoom, clampSplit, splitBounds, parseViewState, viewStateText } from "./designer-layout.js";
+import {
+  ZOOM, SPLIT, clampZoom, stepZoom, fitZoom, wheelZoom, wheelPixels, clampSplit, splitBounds, parseViewState, viewStateText,
+} from "./designer-layout.js";
 
 const DRAFT_KEY = "wxt-gate-designer-draft";
 const VIEW_KEY = "wxt-gate-designer-view";
@@ -165,7 +167,7 @@ class Designer {
         button("Load", () => this.loadStart().catch((e) => this.fail(e)))),
       el("div", { class: "wxt-bar" }, this.drop),
       el("div", { class: "wxt-bar" }, this.downloadButton, this.copyButton, this.undoButton, this.redoButton, this.discardButton),
-      this.downloadNote, this.commandsNote, this.status, this.draftNote);
+      this.downloadNote, this.commandsNote, this.draftNote);
 
     // Editor.
     this.layerSelect = el("select", { id: "wxt-layer" });
@@ -206,13 +208,14 @@ class Designer {
     this.gridHelp = el("p", { class: "wxt-help" },
       "Arrow keys move between cells; Enter or Space paints with the chosen kind, or press I, S, P or C. Page Up and Page Down change layer, " +
       "Ctrl+Z undoes. Plus and minus make the cells bigger or smaller, as does Ctrl and scroll over the grid; Fit to window picks the biggest size that shows the whole layer. " +
-      "Expand fills the window, and Escape leaves it. Layer 1 is the far side; the highest layer faces the activation switch. Row 1 is the top, column 1 the left of the file.");
+      "Small cells show just their letter, and a dot marks a cell with extras. Expand fills the window, and Escape leaves it. Layer 1 is the far side; the highest layer faces the activation switch. Row 1 is the top, column 1 the left of the file.");
     this.gridBar = this.buildGridBar(button);
     this.applyZoom();
 
     this.cellBox = this.buildCellPanel();
     this.controls = el("div", { class: "wxt-controls", id: "wxt-controls" }, this.layerBar, this.tools, size, brush);
-    this.editEl = el("div", { class: "wxt-edit" }, this.controls, this.gridBar, this.scroller, this.gridHelp, this.cellBox);
+    // The one live region for the editor sits beside the grid, where no panel can be hidden from under it.
+    this.editEl = el("div", { class: "wxt-edit" }, this.controls, this.gridBar, this.status, this.scroller, this.gridHelp, this.cellBox);
     this.side = el("div", { class: "wxt-side", id: "wxt-side" }, this.view ? this.view.el : el("p", { class: "wxt-note" }, "The 3D view is not available, but the editor works."));
     this.handle = this.buildHandle();
     this.splitEl = el("div", { class: "wxt-split" }, this.editEl, this.handle, this.side);
@@ -279,37 +282,43 @@ class Designer {
   }
 
   savePrefs() {
+    clearTimeout(this.prefsTimer);
     viewStore.set(viewStateText(this.prefs));
   }
 
-  /** Fills the browser window, or gives the page back. `byUser` also remembers the choice and puts focus on the toggle. */
+  /** A run of zoom steps writes the browser's storage once, when it settles. */
+  savePrefsLater() {
+    clearTimeout(this.prefsTimer);
+    this.prefsTimer = setTimeout(() => this.savePrefs(), 400);
+  }
+
+  /** Every part of the page that differs between the two modes, set in one place so a failure can set it all back. */
+  applyExpanded(on) {
+    this.expanded = on;
+    this.designerEl.classList.toggle("wxt-full", on);
+    this.expandButton.setAttribute("aria-pressed", String(on));
+    for (const b of [this.toolsButton, this.dockButton]) b.hidden = !on;
+    for (const [name, value] of [["role", "dialog"], ["aria-modal", "true"], ["aria-label", "Gate designer, filling the window"]]) {
+      if (on) this.designerEl.setAttribute(name, value); else this.designerEl.removeAttribute(name);
+    }
+    this.place(on);
+    this.lockPage(on);
+    this.syncPanes();
+    this.layoutSplit();
+  }
+
+  /** Fills the browser window, or gives the page back; `byUser` also puts focus on the toggle. It is not remembered: a page should open as a page. */
   setExpanded(on, byUser = false) {
     if (on === this.expanded) return;
     try {
-      this.expanded = on;
-      this.designerEl.classList.toggle("wxt-full", on);
-      this.expandButton.setAttribute("aria-pressed", String(on));
-      for (const b of [this.toolsButton, this.dockButton]) b.hidden = !on;
-      for (const [name, value] of [["role", "dialog"], ["aria-modal", "true"], ["aria-label", "Gate designer, filling the window"]]) {
-        if (on) this.designerEl.setAttribute(name, value); else this.designerEl.removeAttribute(name);
-      }
-      this.place(on);
-      this.lockPage(on);
-      this.syncPanes();
-      this.layoutSplit();
+      this.applyExpanded(on);
       if (byUser) {
-        this.prefs.expanded = on;
-        this.savePrefs();
         this.say(on ? "The designer fills the window. Escape leaves it." : "Back on the page.");
         this.expandButton.focus();
       }
     } catch (error) {
       // Never leave the page locked behind a half-built overlay.
-      this.expanded = false;
-      this.designerEl.classList.remove("wxt-full");
-      this.place(false);
-      this.lockPage(false);
-      this.layoutSplit();
+      try { this.applyExpanded(false); } catch { this.lockPage(false); }
       this.say(`The window could not be filled (${error.message}).`);
     }
   }
@@ -321,7 +330,7 @@ class Designer {
       this.side.append(this.dockPanels);
       this.dockPanels.append(this.downloadNote, this.commandsNote, this.draftNote, this.gridHelp, this.cellBox, this.below);
     } else {
-      this.filesBox.append(this.downloadNote, this.commandsNote, this.status, this.draftNote);
+      this.filesBox.append(this.downloadNote, this.commandsNote, this.draftNote);
       this.designerEl.insertBefore(this.filesBox, this.splitEl);
       this.designerEl.append(this.below);
       this.editEl.append(this.gridHelp, this.cellBox);
@@ -451,7 +460,7 @@ class Designer {
     s.scrollLeft = left;
     s.scrollTop = top;
     this.prefs.zoom = next;
-    this.savePrefs();
+    this.savePrefsLater();
     return true;
   }
 
@@ -461,7 +470,7 @@ class Designer {
     if (quiet) this.sayLater(text); else this.say(text);
   }
 
-  /** The biggest size at which the whole layer shows; when none does, the smallest, with the rest to scroll to. */
+  /** The biggest size at which the whole layer shows; when it will not fit at a legible size, that size, with the rest to scroll to. */
   fit() {
     const s = this.scroller;
     const head = this.table.rows[0];
@@ -473,15 +482,31 @@ class Designer {
     this.setZoom(size);
     const whole = s.scrollWidth <= s.clientWidth + 1 && s.scrollHeight <= s.clientHeight + 1;
     this.say(whole ? `Fitted: cells are ${this.zoom} pixels and the whole layer is in view.`
-      : `Cells are ${this.zoom} pixels, the smallest size; this layer is bigger than the window, so scroll for the rest.`);
+      : `Cells are ${this.zoom} pixels, the smallest that stay easy to read; this layer is bigger than the window, so scroll for the rest.`);
   }
 
-  /** Ctrl and scroll over the grid zooms it (and a trackpad pinch, which arrives the same way). */
+  /** Ctrl and scroll over the grid zooms it (and a trackpad pinch, which arrives the same way): the events add up and apply once a frame. */
   wheel(e) {
     if (!e.ctrlKey) return;
     e.preventDefault();
     const r = this.scroller.getBoundingClientRect();
-    this.zoomBy(e.deltaY < 0 ? 1 : -1, { x: e.clientX - r.left, y: e.clientY - r.top }, true);
+    this.wheelSum = (this.wheelSum ?? 0) + wheelPixels(e.deltaY, e.deltaMode);
+    this.wheelAt = { x: e.clientX - r.left, y: e.clientY - r.top };
+    if (!this.wheelFrame) this.wheelFrame = requestAnimationFrame(() => this.applyWheel());
+  }
+
+  applyWheel() {
+    this.wheelFrame = 0;
+    const next = wheelZoom(this.zoom, this.wheelSum);
+    if (next !== this.zoom) {
+      this.wheelSum = 0;
+      this.setZoom(next, this.wheelAt);
+      this.sayLater(`Cells are ${this.zoom} pixels.`);
+    } else if ((this.zoom <= ZOOM.min && this.wheelSum > 0) || (this.zoom >= ZOOM.max && this.wheelSum < 0)) {
+      this.wheelSum = 0; // at the end of the range, so more of the same builds up nothing
+    }
+    clearTimeout(this.wheelIdle);
+    this.wheelIdle = setTimeout(() => { this.wheelSum = 0; }, 400);
   }
 
   buildCellPanel() {
@@ -585,7 +610,6 @@ class Designer {
     if (this.notice) this.say(this.notice);
     this.changed({ reframe: true });
     this.updateDraftNote();
-    if (this.prefs.expanded) this.setExpanded(true);
   }
 
   // --- state changes ------------------------------------------------------------------------
@@ -735,7 +759,11 @@ class Designer {
       for (let c = 0; c < s.width; c++) this.paintCell(this.tds[r][c], E.cellAt(s, this.layer, r, c));
     }
     this.table.setAttribute("aria-label", `Layer ${this.layer} of ${s.layers}: ${s.width} columns by ${s.height} rows`);
-    if (hadFocus && rebuilt) this.cellEl(this.row, this.col).focus();
+    // Focus stays with the selected cell however the selection moved (a resize, an undo, a jump).
+    if (hadFocus) {
+      const now = this.cellEl(this.row, this.col);
+      if (document.activeElement !== now) now.focus();
+    }
   }
 
   buildGrid() {

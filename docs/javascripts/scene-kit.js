@@ -52,9 +52,12 @@ export function stageWithLegend(stage, legend) {
     panel.classList.toggle("wxt-open", open);
     toggle.setAttribute("aria-expanded", String(open));
   };
+  // The button is only there in the narrow layout; when the layout turns wide an open legend is just the panel, so forget it.
+  const narrow = () => toggle.getClientRects().length > 0;
   toggle.addEventListener("click", () => setOpen(!panel.classList.contains("wxt-open")));
+  if (typeof ResizeObserver === "function") new ResizeObserver(() => { if (!narrow()) setOpen(false); }).observe(box);
   box.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape" || !panel.classList.contains("wxt-open")) return;
+    if (e.key !== "Escape" || !panel.classList.contains("wxt-open") || !narrow()) return;
     e.stopPropagation();
     e.preventDefault();
     setOpen(false);
