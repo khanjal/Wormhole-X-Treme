@@ -52,3 +52,6 @@ PR-*-review.md
 
 # MkDocs build output
 /site/
+
+# Copy of the shipped gate shapes for the docs viewer; scripts/copy-docs-shapes.sh makes it
+/docs/assets/shapes/

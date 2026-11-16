@@ -101,8 +101,15 @@ them locally, in a virtual environment of your own:
 
 ```bash
 pip install -r docs/requirements.txt
+bash scripts/copy-docs-shapes.sh
 mkdocs build --strict
 ```
+
+`scripts/copy-docs-shapes.sh` copies the shipped gate shapes and a manifest into `docs/assets/shapes/`
+(git-ignored) for the [gate viewer](manual/gates.md); the workflow runs it too, and a change under
+`src/main/resources/shapes/` triggers the docs build. The viewer's parser is
+`docs/javascripts/shape-parser.js`, matched to `Stargate3DShape` and `StargateShapeLayer`; test it
+with `node --test docs/javascripts/test/*.test.js`.
 
 `--strict` fails on a broken link or anchor, as CI does. `mkdocs serve` previews the site with
 live reload. Write links between pages as relative `.md` links, which work on GitHub and on the
