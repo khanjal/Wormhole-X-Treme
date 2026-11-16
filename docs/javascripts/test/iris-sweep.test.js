@@ -129,6 +129,23 @@ test("closing, the spiral arm turns clockwise seen from the switch: below the mi
   assert.ok(round.every((n, k) => k === 0 || n > round[k - 1]), order.join(" "));
 });
 
+// The plugin's own spiral on a built gate, in shape coordinates, written by IrisSpiralGoldenTest.
+const GOLDEN = fileURLToPath(new URL("../../../src/test/resources/iris/spiral-golden.txt", import.meta.url));
+
+test("the spiral is the plugin's, step for step, on every golden shape", () => {
+  const lines = readFileSync(GOLDEN, "utf8").split(/\r?\n/).filter((l) => l && !l.startsWith("#"));
+  const names = [...new Set(lines.map((l) => l.split(" ")[0]))];
+  assert.deepEqual(names, ["Standard", "Large", "Massive", "Grand"]);
+  for (const name of names) {
+    const cells = irisCells(load(name));
+    const ours = closingOrder(cells, "spiral").map((step, n) => {
+      const at = step.map((i) => cells[i]).sort((a, b) => a.y - b.y || a.x - b.x);
+      return `${name} ${n + 1}: ${at.map((c) => `${c.x},${c.y}`).join(" ")}`;
+    });
+    assert.deepEqual(ours, lines.filter((l) => l.startsWith(`${name} `)), name);
+  }
+});
+
 test("the closing arm starts on the rim and ends in the middle", () => {
   const cells = irisCells(load("Standard"));
   const arm = closingArm(cells);

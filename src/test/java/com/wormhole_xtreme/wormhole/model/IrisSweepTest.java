@@ -322,10 +322,10 @@ class IrisSweepTest
     @Test
     void aClosingSpiralTurnsClockwiseAsSeenFromTheSwitch()
     {
-        final List<Location> north = IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH);
+        final List<Location> north = IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH).order();
         assertClockwise(north, at(0, -1, 0), at(1, 0, 0), at(0, 1, 0), at(-1, 0, 0), "facing north");
 
-        final List<Location> south = IrisSweep.closingArm(fiveByFive(), BlockFace.SOUTH);
+        final List<Location> south = IrisSweep.closingArm(fiveByFive(), BlockFace.SOUTH).order();
         assertClockwise(south, at(0, -1, 0), at(-1, 0, 0), at(0, 1, 0), at(1, 0, 0), "facing south");
     }
 
@@ -347,7 +347,7 @@ class IrisSweepTest
                 cells.add(at(x, 0, z));
             }
         }
-        assertClockwise(IrisSweep.closingArm(cells, BlockFace.NORTH),
+        assertClockwise(IrisSweep.closingArm(cells, BlockFace.NORTH).order(),
             at(0, 0, -1), at(1, 0, 0), at(0, 0, 1), at(-1, 0, 0), "a flat gate facing north");
     }
 
@@ -384,7 +384,7 @@ class IrisSweepTest
     @Test
     void theClosingArmStartsOnTheRimAndEndsInTheMiddle()
     {
-        final List<Location> arm = IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH);
+        final List<Location> arm = IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH).order();
 
         final Location first = arm.get(0);
         assertTrue((Math.abs(first.getBlockX()) == 2) || (Math.abs(first.getBlockY()) == 2),
@@ -402,7 +402,7 @@ class IrisSweepTest
     @Test
     void theArmWindsInAFewTurnsWhateverTheSize()
     {
-        final int small = turnsOf(IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH));
+        final int small = turnsOf(IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH).order());
         assertTrue(small >= 3, "a five-wide opening has a one-block arm, so it goes round several times: " + small);
 
         final List<Location> disc = new ArrayList<>();
@@ -416,9 +416,39 @@ class IrisSweepTest
                 }
             }
         }
-        final int big = turnsOf(IrisSweep.closingArm(disc, BlockFace.NORTH));
+        final int big = turnsOf(IrisSweep.closingArm(disc, BlockFace.NORTH).order());
         assertTrue((big >= 3) && (big <= 6),
             "a twenty-five-wide opening winds in about five turns, not a dozen and not one: " + big);
+    }
+
+    /**
+     * Across a wide arm, the outer cell is covered first.
+     *
+     * <p>A disc twelve blocks across has a three-block arm, so the cells straight up from the
+     * middle at twelve and eleven blocks out sit at the same place along it. Closing comes in from
+     * the rim, so the outer one goes first; the other way round, every turn of the arm would fill
+     * from its inside edge and the rim would be left for last within it.
+     */
+    @Test
+    void acrossAWideArmTheOuterCellIsCoveredFirst()
+    {
+        final List<Location> disc = new ArrayList<>();
+        for (int x = -12; x <= 12; x++)
+        {
+            for (int y = -12; y <= 12; y++)
+            {
+                if (((x * x) + (y * y)) <= 144)
+                {
+                    disc.add(at(x, y, 0));
+                }
+            }
+        }
+        final IrisSweep.Arm arm = IrisSweep.closingArm(disc, BlockFace.NORTH);
+        assertEquals(3.0, arm.width(), "a twelve-block radius has a three-block arm");
+
+        final int outer = arm.order().indexOf(at(0, 12, 0));
+        final int inner = arm.order().indexOf(at(0, 11, 0));
+        assertEquals(outer + 1, inner, "the cell twelve up is covered just before the one eleven up, not after");
     }
 
     /** How many times the arm comes back round past straight up, seen from the north. */

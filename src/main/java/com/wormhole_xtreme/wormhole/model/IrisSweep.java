@@ -388,7 +388,7 @@ public final class IrisSweep
         {
             return new ArrayList<>();
         }
-        final List<Location> order = closingArm(cells, facing);
+        final List<Location> order = new ArrayList<>(closingArm(cells, facing).order());
         Collections.reverse(order);
         // Exactly as many steps as the sweep makes, cut by position rather than by a fixed
         // size: rounding a chunk size up loses a step whenever it does not divide evenly,
@@ -407,9 +407,9 @@ public final class IrisSweep
      *            the cells, at least one
      * @param facing
      *            the way the activation switch faces, or null to guess from the opening
-     * @return every cell, in the order a closing iris covers them
+     * @return every cell, in the order a closing iris covers them, and the arm's width
      */
-    static List<Location> closingArm(final List<Location> cells, final BlockFace facing)
+    static Arm closingArm(final List<Location> cells, final BlockFace facing)
     {
         final double[] centre = centreOf(cells);
         final int[][] view = viewOf(cells, facing);
@@ -448,7 +448,19 @@ public final class IrisSweep
         {
             order.add(w.cell());
         }
-        return order;
+        return new Arm(order, width);
+    }
+
+    /**
+     * A spiral arm, as the closing iris covers it.
+     *
+     * @param order
+     *            every cell, the first covered first
+     * @param width
+     *            how wide the arm is, in blocks
+     */
+    record Arm(List<Location> order, double width)
+    {
     }
 
     /**
