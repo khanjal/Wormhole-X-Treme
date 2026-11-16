@@ -1063,14 +1063,14 @@ class IrisSweepOrderingTest
     private List<List<Location>> closingRingsOfTheGate()
     {
         return IrisSweep.closingOrder(gate.getGatePortalBlocks(),
-            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap());
+            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap(), gate.getGateFacing());
     }
 
     /** The same, opening order. */
     private List<List<Location>> openingRingsOfTheGate()
     {
         return IrisSweep.openingOrder(gate.getGatePortalBlocks(),
-            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap());
+            IrisSweep.Style.of(gate.getEffectiveIrisAnimation()), IrisSweepDriver.stepCap(), gate.getGateFacing());
     }
 
     /** Each ring as the sorted "x,y" of its cells, so a ring compares as a set. */

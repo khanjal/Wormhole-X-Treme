@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -291,9 +292,9 @@ class IrisSweepTest
     /**
      * The spiral winds outwards rather than only turning.
      *
-     * <p>Sorted by radius with the angle breaking ties, so an opening spiral starts in the
-     * middle and finishes at the rim. A wedge that only rotated would have the same cells in
-     * every step and read as a clock hand.
+     * <p>An opening spiral is the closing arm run backwards, so it starts in the middle and
+     * finishes at the rim. A wedge that only rotated would have the same cells in every step and
+     * read as a clock hand.
      */
     @Test
     void theSpiralStartsInTheMiddleAndFinishesAtTheRim()
@@ -306,6 +307,128 @@ class IrisSweepTest
         final List<Location> last = steps.get(steps.size() - 1);
         assertTrue(last.stream().anyMatch(c -> (Math.abs(c.getBlockX()) == 2) || (Math.abs(c.getBlockY()) == 2)),
             "and finishes out at the rim: " + last);
+    }
+
+    /**
+     * Closing, the arm turns clockwise as a player at the activation switch sees it.
+     *
+     * <p>The switch faces {@link Stargate#getGateFacing()}, so that player stands on the facing
+     * side looking back at the gate. Facing north, they look south and their right hand is west,
+     * -x; facing south it is east. Clockwise for them is below, their left, above, their right, so
+     * the same opening must wind opposite ways in the world for the two facings. One that ignored
+     * the facing would turn anticlockwise on half the gates built.
+     */
+    @Test
+    void aClosingSpiralTurnsClockwiseAsSeenFromTheSwitch()
+    {
+        final List<Location> north = IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH);
+        assertClockwise(north, at(0, -1, 0), at(1, 0, 0), at(0, 1, 0), at(-1, 0, 0), "facing north");
+
+        final List<Location> south = IrisSweep.closingArm(fiveByFive(), BlockFace.SOUTH);
+        assertClockwise(south, at(0, -1, 0), at(-1, 0, 0), at(0, 1, 0), at(1, 0, 0), "facing south");
+    }
+
+    /**
+     * A flat gate is seen from above, and still turns clockwise.
+     *
+     * <p>Its opening has no height, so the upright view would put every cell at the same angle
+     * and the spiral would collapse into columns. Seen from above by a player at the switch,
+     * facing north: away from them is south, their right is west.
+     */
+    @Test
+    void aFlatSpiralTurnsClockwiseAsSeenFromAbove()
+    {
+        final List<Location> cells = new ArrayList<>();
+        for (int x = -2; x <= 2; x++)
+        {
+            for (int z = -2; z <= 2; z++)
+            {
+                cells.add(at(x, 0, z));
+            }
+        }
+        assertClockwise(IrisSweep.closingArm(cells, BlockFace.NORTH),
+            at(0, 0, -1), at(1, 0, 0), at(0, 0, 1), at(-1, 0, 0), "a flat gate facing north");
+    }
+
+    /** The four cells a block from the middle come in this order: bottom, left, top, right as seen. */
+    private static void assertClockwise(final List<Location> arm, final Location below, final Location left,
+        final Location above, final Location right, final String what)
+    {
+        final int b = arm.indexOf(below);
+        final int l = arm.indexOf(left);
+        final int a = arm.indexOf(above);
+        final int r = arm.indexOf(right);
+        assertTrue((b < l) && (l < a) && (a < r),
+            what + ": the arm should pass below, then left, above and right of the middle, clockwise; got "
+                + b + ", " + l + ", " + a + ", " + r);
+    }
+
+    /**
+     * The arm starts on the rim and its last cell is the middle.
+     *
+     * <p>Closing fills in behind the arm, so the opening shrinks to the middle rather than to
+     * wherever a sort happened to leave it.
+     */
+    @Test
+    void theClosingArmStartsOnTheRimAndEndsInTheMiddle()
+    {
+        final List<Location> arm = IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH);
+
+        final Location first = arm.get(0);
+        assertTrue((Math.abs(first.getBlockX()) == 2) || (Math.abs(first.getBlockY()) == 2),
+            "the first cell covered is on the rim: " + first);
+        assertEquals(at(0, 0, 0), arm.get(arm.size() - 1), "and the middle is covered last");
+    }
+
+    /**
+     * A small opening's arm is a block wide; a big one's is wider, so it still winds in a few turns.
+     *
+     * <p>A one-block arm on a gate twelve blocks across would go round a dozen times, each turn a
+     * thin ring: a sweep with extra steps. An arm as wide as the opening goes round once, which is
+     * a clock hand. Counted as the turns the arm makes, which is what a player sees.
+     */
+    @Test
+    void theArmWindsInAFewTurnsWhateverTheSize()
+    {
+        final int small = turnsOf(IrisSweep.closingArm(fiveByFive(), BlockFace.NORTH));
+        assertTrue(small >= 3, "a five-wide opening has a one-block arm, so it goes round several times: " + small);
+
+        final List<Location> disc = new ArrayList<>();
+        for (int x = -12; x <= 12; x++)
+        {
+            for (int y = -12; y <= 12; y++)
+            {
+                if (((x * x) + (y * y)) <= 144)
+                {
+                    disc.add(at(x, y, 0));
+                }
+            }
+        }
+        final int big = turnsOf(IrisSweep.closingArm(disc, BlockFace.NORTH));
+        assertTrue((big >= 3) && (big <= 6),
+            "a twenty-five-wide opening winds in about five turns, not a dozen and not one: " + big);
+    }
+
+    /** How many times the arm comes back round past straight up, seen from the north. */
+    private static int turnsOf(final List<Location> arm)
+    {
+        int turns = 0;
+        double previous = -1;
+        for (final Location cell : arm)
+        {
+            // Seen from the north, the viewer's right is -x.
+            double turn = Math.atan2(-cell.getBlockX(), cell.getBlockY());
+            if (turn < 0)
+            {
+                turn += 2 * Math.PI;
+            }
+            if (turn < previous)
+            {
+                turns++;
+            }
+            previous = turn;
+        }
+        return turns;
     }
 
     /**

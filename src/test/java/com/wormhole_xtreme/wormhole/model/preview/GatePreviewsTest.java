@@ -3564,8 +3564,8 @@ class GatePreviewsTest
         }
         final int cap = IrisSweepDriver.stepCap();
         final List<List<Location>> rings = closing
-            ? IrisSweep.closingOrder(places, IrisSweep.Style.of(style), cap)
-            : IrisSweep.openingOrder(places, IrisSweep.Style.of(style), cap);
+            ? IrisSweep.closingOrder(places, IrisSweep.Style.of(style), cap, thePreview().grid().facing())
+            : IrisSweep.openingOrder(places, IrisSweep.Style.of(style), cap, thePreview().grid().facing());
         final List<List<Integer>> out = new ArrayList<>();
         for (final List<Location> ring : rings)
         {
