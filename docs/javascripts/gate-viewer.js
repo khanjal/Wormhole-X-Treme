@@ -24,8 +24,8 @@ const MARKERS = {
   IA: { label: "Iris switch", color: 0xe91e8c, shape: "octa" },
   D: { label: "Sign dialler", color: 0x9b59b6, shape: "plate" },
   RD: { label: "Redstone activation block", color: 0xe74c3c, shape: "cube" },
-  RS: { label: "Redstone sign-cycle block", color: 0xc0392b, shape: "cube" },
-  RA: { label: "Redstone output block", color: 0xff7675, shape: "cube" },
+  RS: { label: "Redstone sign-cycle block", color: 0xc0392b, shape: "tetra" },
+  RA: { label: "Redstone output block", color: 0xff7675, shape: "ring" },
 };
 
 const el = (tag, attrs = {}, ...children) => {
@@ -73,7 +73,9 @@ class GateViewer {
     }
     this.stage = el("div", { class: "wxt-stage" });
     this.canvas = el("canvas", {
-      tabindex: "0", role: "img",
+      // A focusable region that takes the arrow keys, described by the text beside it.
+      tabindex: "0", role: "application", "aria-roledescription": "3D gate view",
+      "aria-describedby": "wxt-info",
       "aria-label": "3D view of the selected gate shape. Arrow keys rotate, plus and minus zoom, 0 resets the view.",
     });
     this.stage.append(this.canvas);
@@ -81,7 +83,7 @@ class GateViewer {
     this.help = el("p", { class: "wxt-help" },
       "Drag to orbit, scroll or pinch to zoom. With the 3D view focused: arrow keys rotate, + and − zoom, 0 resets the view. " +
       "The view starts from the side the dialling switch is on, as a player standing at the gate sees it.");
-    this.info = el("div", { class: "wxt-info" });
+    this.info = el("div", { class: "wxt-info", id: "wxt-info" });
     this.legend = el("ul", { class: "wxt-legend", "aria-label": "Legend" });
     this.root.replaceChildren(bar, this.stage, this.status, this.help, this.info,
       el("h3", {}, "Legend"), this.legend);
@@ -112,6 +114,8 @@ class GateViewer {
       cylinder: new THREE.CylinderGeometry(0.2, 0.2, 0.5, 12),
       octa: new THREE.OctahedronGeometry(0.33),
       cube: new THREE.BoxGeometry(0.4, 0.4, 0.4),
+      tetra: new THREE.TetrahedronGeometry(0.38),
+      ring: new THREE.TorusGeometry(0.25, 0.08, 8, 16),
     };
   }
 
@@ -120,7 +124,8 @@ class GateViewer {
     if (!res.ok) throw new Error(`the shape list answered ${res.status}`);
     const manifest = await res.json();
     for (const s of manifest.shapes) this.select.append(el("option", { value: s.file }, s.name));
-    const wanted = decodeURIComponent(location.hash.slice(1));
+    let wanted = "";
+    try { wanted = decodeURIComponent(location.hash.slice(1)); } catch { /* a malformed hash just means no pick */ }
     const match = manifest.shapes.find((s) => s.name === wanted);
     this.select.value = match ? match.file : (manifest.shapes.find((s) => s.name === "Standard") || manifest.shapes[0]).file;
     await this.load(this.select.value);
@@ -237,6 +242,7 @@ class GateViewer {
   }
 
   resetView() {
+    if (!this.home) return;
     this.controls.target.copy(this.home.target);
     this.camera.position.copy(this.home.target).add(this.home.offset);
     this.controls.update();
@@ -320,6 +326,7 @@ class GateViewer {
   // --- states -------------------------------------------------------------------------------
 
   command(key) {
+    if (!this.parts) return; // nothing is loaded yet
     if (key === "idle") this.setState("idle");
     else if (key === "dial") this.dial();
     else if (key === "open") this.open();
@@ -432,14 +439,18 @@ class GateViewer {
 
   renderLegend() {
     const p = palette();
+    // A glyph beside each swatch, so no entry is told from another by hue alone.
     const items = [
-      ["Gate frame", p.frame], ["Chevron, unlit", p.chevron], ["Chevron, lit", p.lit],
-      ["Portal, when open", p.portal], ["Woosh, while opening", p.woosh],
+      ["Gate frame", p.frame, "■"], ["Chevron, unlit", p.chevron, "▣"], ["Chevron, lit", p.lit, "★"],
+      ["Portal, when open", p.portal, "▒"], ["Woosh, while opening", p.woosh, "░"],
     ];
+    const glyphs = { plate: "▬", sphere: "●", cone: "▲", cylinder: "▮", octa: "◆", cube: "■", tetra: "◢", ring: "◎" };
     const present = new Set(this.shape.cells.flatMap((c) => c.markers));
-    for (const [key, spec] of Object.entries(MARKERS)) if (present.has(key)) items.push([spec.label, spec.color]);
-    this.legend.replaceChildren(...items.map(([label, color]) =>
-      el("li", {}, el("span", { class: "wxt-swatch", "aria-hidden": "true", style: `background:${hex(color)}` }), ` ${label}`)));
+    for (const [key, spec] of Object.entries(MARKERS)) {
+      if (present.has(key)) items.push([`${spec.label} (${key})`, spec.color, glyphs[spec.shape]]);
+    }
+    this.legend.replaceChildren(...items.map(([label, color, glyph]) =>
+      el("li", {}, el("span", { class: "wxt-swatch", "aria-hidden": "true", style: `background:${hex(color)}` }), ` ${glyph} ${label}`)));
   }
 }
 

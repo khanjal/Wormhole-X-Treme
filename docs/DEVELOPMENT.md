@@ -109,7 +109,7 @@ mkdocs build --strict
 (git-ignored) for the [gate viewer](manual/gates.md); the workflow runs it too, and a change under
 `src/main/resources/shapes/` triggers the docs build. The viewer's parser is
 `docs/javascripts/shape-parser.js`, matched to `Stargate3DShape` and `StargateShapeLayer`; test it
-with `node --test docs/javascripts/test/shape-parser.test.js`.
+with `node --test docs/javascripts/test/*.test.js`.
 
 `--strict` fails on a broken link or anchor, as CI does. `mkdocs serve` previews the site with
 live reload. Write links between pages as relative `.md` links, which work on GitHub and on the

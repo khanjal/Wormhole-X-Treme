@@ -50,7 +50,7 @@ jobs:
         run: pip install -r docs/requirements.txt
 
       - name: Test the gate shape parser
-        run: node --test docs/javascripts/test/shape-parser.test.js
+        run: node --test docs/javascripts/test/*.test.js
 
       - name: Copy the shipped gate shapes for the viewer
         run: bash scripts/copy-docs-shapes.sh

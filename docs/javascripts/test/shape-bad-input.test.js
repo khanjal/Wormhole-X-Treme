@@ -26,7 +26,7 @@ test("a non-numeric layer number, light order or woosh order is refused", () => 
 });
 
 test("layers before any GateShape= are refused", () => {
-  refused("Name=T\nLayer#1=\n[S:EP]\n\n", /GateShape/);
+  refused("Name=T\nVersion=2\nLayer#1=\n[S:EP]\n\n", /GateShape/);
 });
 
 test("a comment inside a layer replaces the row above it", () => {
@@ -59,4 +59,41 @@ test("more cells than the cap is refused", () => {
   let text = head;
   for (let n = 1; n <= 5; n++) text += layer(n);
   refused(text, /too many cells|More than \d+ cells/);
+});
+
+test("a last layer row on the final line of the file is refused, as the loader would crash on it", () => {
+  refused("Name=T\nVersion=2\nGateShape=\n\nLayer#1=\n[S:EP]", /end of the file/);
+  refused("Name=T\nVersion=2\nGateShape=\n\nLayer#1=\n[S:EP]\n", /end of the file/);
+  assert.ok(parseShape("Name=T\nVersion=2\nGateShape=\n\nLayer#1=\n[S:EP]\n\n"));
+});
+
+test("a negative light or woosh order is refused", () => {
+  refused(shape("Layer#1=\n[S:EP:L#-1]\n\n"), /negative/);
+  refused(shape("Layer#1=\n[S:EP:W#-2]\n\n"), /negative/);
+});
+
+test("numbers are read as Integer.parseInt reads them: no spaces, 32 bits", () => {
+  refused(shape("Layer# 1 =\n[S:EP]\n\n"), /layer number/);
+  refused(shape("Layer#1=\n[S:EP:L# 2]\n\n"), /light order/);
+  refused(shape("Layer#1=\n[S:EP]\n\nLIGHT_TICKS=99999999999999999999\n"), /LIGHT_TICKS/);
+  refused(shape("Layer#1=\n[S:EP]\n\nWOOSH_TICKS=2147483648\n"), /WOOSH_TICKS/);
+  assert.equal(parseShape(shape("Layer#1=\n[S:EP:L#+3]\n\n")).cells[0].light, 3);
+});
+
+test("a file with no Version=2 line is refused, even if it has layers", () => {
+  refused("Name=T\nVersion=1\nGateShape=\n\nLayer#1=\n[S:EP]\n\n", /Version=2/);
+  refused("Name=T\nGateShape=\n\nLayer#1=\n[S:EP]\n\n", /Version=2/);
+});
+
+test("Name= with nothing after it is refused", () => {
+  refused("Name=\nVersion=2\nGateShape=\n\nLayer#1=\n[S:EP]\n\n", /Name=/);
+});
+
+test("the grid width counts [] cells, as measureGrid does", () => {
+  const s = parseShape(shape("Layer#1=\n[][S:EP]\n\n"));
+  assert.equal(s.width, 2);
+});
+
+test("a very long row is refused rather than scanned", () => {
+  refused(shape(`Layer#1=\n[S:EP]\n\nLayer#2=\n${"[".repeat(LIMITS.row + 1)}\n\n`), /characters/);
 });
