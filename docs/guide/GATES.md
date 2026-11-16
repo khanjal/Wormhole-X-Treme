@@ -165,8 +165,9 @@ on `none`, to a gate in the Nether:
 ![A Standard gate dialling a gate in the Nether: seven chevrons, then the eighth at the bottom, then the kawoosh](../images/gates/dial-other-world.webp)
 
 A dial is refused when the target's iris is closed (unless you give its IDC), the target is
-already active, another gate already points at it, the gates are on different networks, or the
-gates are in different worlds while `same-world-only` is on.
+already active or already has a target, it has frame blocks missing, another gate already points at
+it, the gates are on different networks, or the gates are in different worlds while
+`same-world-only` is on. `/dial` retries with force when nothing is really using the target.
 
 **A wormhole runs one way.** The destination end is an exit: nothing travels back up an open
 wormhole, and a player walking into the destination ring is pushed out. A gate dialled out of
@@ -393,7 +394,8 @@ closed gets you nowhere at all, dialled or idle.
   - `gate edit <gate> idc <code>` later, and `gate edit <gate> idc -clear` to remove it. A
     gate's owner may do this without `wormhole.config`.
 
-  A sign gate has no iris lever, so it cannot be given a code.
+  `gate edit <gate> idc` is refused on a gate that dials by sign or has no iris lever; `gate complete`
+with `idc=` makes no such check.
 
 ### How it arrives
 
@@ -431,8 +433,10 @@ A gate can have its own: `/wormhole gate edit <gate> iris-animation <style>`, or
 back. A material group can set one for its gates with `iris-animation:`. A gate uses its own, then
 its group's, then `gate-iris-animation`; a build preview uses its group's, then the setting.
 
-`sweep` and `spiral` take one step per ring; `rows` and `columns` take fewer, so a `rows` iris is
-quicker than a `sweep` one -- a gate has fewer rows than rings. A name the plugin does not know falls back to `sweep`,
+`sweep` and `spiral` take one step per ring, unless there are more rings than the step cap allows
+(`IrisSweep` then merges rings into bands, and `spiral` is cut to `sweep`'s step count); `rows` and
+`columns` take fewer, so a `rows` iris is quicker than a `sweep` one -- a gate has fewer rows than
+rings. A name the plugin does not know falls back to `sweep`,
 so a typo costs you the style and not the iris.
 
 A wider gate has more rings than a small one: `Standard` has five rings and `Grand` sixty-one,
@@ -721,7 +725,7 @@ the setting does not touch them.
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
 
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),
-`woosh` (how far the woosh pushes out), `redstone` (`true`/`false`), `custom` (`true`/`false`: whether the gate's own `portal`, `iris` and `light` apply), `idc` (a code, or
+`woosh` (how far the woosh pushes out), `redstone` (`true`/`false`), `custom` (`true`/`false`: whether the gate's own `portal`, `iris`, `light` and woosh depth apply), `idc` (a code, or
 `-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`), `iris-animation` (a
 [style](#how-it-arrives), or `default`), `view` (`horizon`, `behind`, `open`, or `default`), `cost` (what a
 trip through it costs, `0` for free, or `default`).

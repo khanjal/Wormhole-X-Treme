@@ -115,7 +115,9 @@ screenshot is the licensed way to show the real thing. See [CAPTURES.md](CAPTURE
 <!-- shapes:end -->
 
 And four of them in game, in the `Standard` palette — idle, then dialled: `Minimal`, `Large`,
-`Grand` and `Massive`. The `Minimal` panel is a close-up, so the panels are not at one scale.
+`Grand` and `Massive`. Only `Grand` and `Massive` share a camera position. `Minimal` is a
+close-up, and `Large` is shot from its own position, closer when dialled than idle, so the panels
+are not at one scale.
 
 ![Four of the shipped shapes, idle: Minimal, Large, Grand and Massive](images/gates/gate-shapes.png)
 
@@ -132,11 +134,14 @@ rather than walked through:
 
 `Standard` against `StandardSignDial`, in the layer the DHD sits in, cropped to the corner that
 differs. Outlined cells are what the sign dial adds: `D`, the wall sign you right-click to pick
-a destination, one more frame block under it, and the two redstone cells that come with it — `RD` to dial and `RA` to report
-that the gate is open. Everything else in both files is the same ring.
+a destination, and the two redstone cells that come with it — `RD` to dial and `RA` to report
+that the gate is open. On `Standard` it also adds one frame block under `D`. Everything else in
+both files is the same ring.
 
-All three pairs differ this way. `Minimal` is the only one where it is more than a corner, and
-only because it is two blocks wide, so its DHD needs a column of its own.
+`Minimal` also adds a frame block under `D`, and is the only pair where the difference is more than
+a corner, only because it is two blocks wide, so its DHD needs a column of its own. In
+`HorizontalSignDial` the `D` takes the cell the name sign's `:N` marker sat on, the `:N` moves, and
+no frame block is added.
 
 **This is why sign-dialling should not be a shape at all.** Six files encode three rings, and
 the three largest shapes — `Large`, `Grand`, `Massive` — cannot be sign gates for no reason
@@ -300,9 +305,11 @@ going away, so listeners are not told to discard what they know.
 `/wormhole gate regen <gate>` re-detects the gate by name and without a click: it hands the
 gate's own stored dial-lever block and facing to the same detection `refresh` uses, with the shape
 as it is now, then re-derives the markers — the three redstone blocks, the iris lever, the dial
-sign, the name sign — and the light order, and recomputes the arrival point. Name, owner, IDC,
-network and open state are kept, none of which detection knows anything about. That is why this
-can run from a command while `refresh` needs somebody standing at the gate to click the DHD.
+sign, the name sign — and the light order, and recomputes the arrival point. An open or dialling
+gate is closed first. Re-detection happens only when the whole frame matches and `-shape` found no
+gaps; otherwise `GateRefresh.refresh` returns null and the old geometry stays. Name, owner, IDC and
+network are kept, none of which detection knows anything about. That is why this can run from a
+command while `refresh` needs somebody standing at the gate to click the DHD.
 
 ## Storage
 
@@ -404,8 +411,11 @@ activation succeeds, because the local path clears the target — assigning firs
 aborted dials. If the local end fails, nothing is left half-connected. Once both ends are up the
 destination's chunks are pre-loaded, so travellers do not fall through ungenerated terrain.
 
-A dial is refused when the target's iris is closed, when the target is already active, or when
-another active gate already points at it. `/wormhole gate force` does not bypass them; it closes a stuck gate.
+A dial is refused when the target's iris is closed, when the target is already active or already
+has a target, when it has frame blocks missing, or when another active gate already points at it.
+`/dial` retries with force when nothing is really using the target, which is how a stale activator
+left by a gate that never finished closing is cleared. `/wormhole gate force` does not bypass any
+of it; it closes a stuck gate.
 
 ### Why no shipped shape carries an `[RS]`
 
