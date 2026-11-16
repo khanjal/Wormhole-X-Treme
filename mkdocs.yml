@@ -14,6 +14,8 @@ exclude_docs: |
   listings/
   SONAR_BACKLOG.md
   requirements.txt
+  javascripts/test/
+  javascripts/package.json
 
 theme:
   name: material
@@ -50,6 +52,9 @@ markdown_extensions:
         kwds:
           case: lower
 
+extra_css:
+  - stylesheets/gate-viewer.css
+
 nav:
   - Home: index.md
   - Guide:
@@ -60,6 +65,8 @@ nav:
       - Beaming: guide/BEAMS.md
       - Mirrors: guide/MIRRORS.md
       - Translating: guide/TRANSLATING.md
+  - User manual:
+      - Gate shapes: manual/gates.md
   - Internals:
       - Gates: GATES.md
       - Rings: RINGS.md

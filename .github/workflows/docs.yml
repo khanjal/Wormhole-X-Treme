@@ -6,6 +6,8 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
+      - "src/main/resources/shapes/**"
+      - "scripts/copy-docs-shapes.sh"
   push:
     branches:
       - main
@@ -13,6 +15,8 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
+      - "src/main/resources/shapes/**"
+      - "scripts/copy-docs-shapes.sh"
 
 # Pages takes one deployment at a time; a newer push waits its turn rather than cutting a
 # deployment short, and a pull request's build is its own group.
@@ -39,6 +43,12 @@ jobs:
 
       - name: Install MkDocs
         run: pip install -r docs/requirements.txt
+
+      - name: Test the gate shape parser
+        run: node --test docs/javascripts/test/shape-parser.test.js
+
+      - name: Copy the shipped gate shapes for the viewer
+        run: bash scripts/copy-docs-shapes.sh
 
       - name: Build the site
         run: mkdocs build --strict

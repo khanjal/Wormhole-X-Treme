@@ -7,6 +7,7 @@ a gate, dial another one, and step through; or build a ring or a beam pad for sh
 
 - **[Guide](guide/README.md)** is for players and server owners: installing, configuring,
   building gates, rings, beams and mirrors, and translating the messages.
+- **[User manual](manual/gates.md)** lets you look at every gate shape in 3D before you build one.
 - **Internals** is for contributors and plugin authors: how [gates](GATES.md), [rings](RINGS.md),
   [beams](BEAMS.md) and [mirrors](MIRRORS.md) are designed, the [API](API.md), and the
   [development guide](DEVELOPMENT.md).
