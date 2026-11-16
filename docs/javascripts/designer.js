@@ -139,6 +139,7 @@ class Designer {
     this.downloadButton = button("Download .shape file", () => this.download(), { "aria-describedby": "wxt-download-note" });
     this.copyButton = button("Copy as text", () => this.copy());
     this.downloadNote = el("p", { class: "wxt-note", id: "wxt-download-note" });
+    this.commandsNote = el("p", { class: "wxt-help", id: "wxt-commands" });
     this.status = el("p", { class: "wxt-status", role: "status", "aria-live": "polite" });
     this.draftNote = el("p", { class: "wxt-help" });
     const files = el("section", { class: "wxt-files", "aria-label": "Files" },
@@ -146,7 +147,7 @@ class Designer {
         button("Load", () => this.loadStart().catch((e) => this.fail(e)))),
       el("div", { class: "wxt-bar" }, this.drop),
       el("div", { class: "wxt-bar" }, this.downloadButton, this.copyButton, this.undoButton, this.redoButton, this.discardButton),
-      this.downloadNote, this.status, this.draftNote);
+      this.downloadNote, this.commandsNote, this.status, this.draftNote);
 
     // Editor.
     this.layerSelect = el("select", { id: "wxt-layer" });
@@ -182,7 +183,7 @@ class Designer {
     this.table = el("table", { role: "grid", class: "wxt-grid" });
     this.table.addEventListener("click", (e) => { const td = e.target.closest("td"); if (td) this.clickCell(td); });
     this.table.addEventListener("keydown", (e) => this.gridKey(e));
-    this.scroller = el("div", { class: "wxt-grid-scroll", tabindex: "0", role: "region", "aria-label": "Grid of the layer, scrolls sideways" }, this.table);
+    this.scroller = el("div", { class: "wxt-grid-scroll", role: "region", "aria-label": "Grid of the layer, scrolls sideways" }, this.table);
     const gridHelp = el("p", { class: "wxt-help" },
       "Arrow keys move between cells; Enter or Space paints with the chosen kind, or press I, S, P or C. Page Up and Page Down change layer, " +
       "Ctrl+Z undoes. Layer 1 is the far side; the highest layer faces the activation switch. Row 1 is the top, column 1 the left of the file.");
@@ -242,7 +243,7 @@ class Designer {
       return input;
     };
     const num = (key) => {
-      const input = el("input", { type: "number", id: `wxt-s-${key}`, min: "0", step: "1", class: "wxt-number" });
+      const input = el("input", { type: "number", id: `wxt-s-${key}`, min: "0", max: "2147483647", step: "1", class: "wxt-number" });
       this.fields[key] = input;
       return input;
     };
@@ -292,8 +293,13 @@ class Designer {
       this.shape = draft;
       this.say("Your last draft is back. Discard draft starts again from the shape chosen above.");
     } else if (this.start.value) {
-      this.shape = E.fromParsed(await fetchShape(this.start.value)).shape;
-      this.say(`Loaded ${this.shape.name}. Edit it, or pick another shape and press Load.`);
+      try {
+        this.shape = this.shippedCopy((await this.fetchShipped(this.start.value)));
+        this.say(`Loaded ${this.shape.name}, a copy of the shipped shape under a name of its own. Edit it, or pick another shape and press Load.`);
+      } catch {
+        this.shape = E.newShape();
+        this.say("The shipped shape could not be loaded, so this is a blank one.");
+      }
     } else {
       this.shape = E.newShape();
     }
@@ -312,11 +318,21 @@ class Designer {
       if (e instanceof E.EditError) { this.say(e.message); return; }
       throw e;
     }
+    if (next === this.shape) { this.renderSettings(); return; } // nothing changed, so nothing to undo
     this.history.record(this.shape);
     this.shape = next;
     move?.();
     this.changed({ reframe });
     if (message) this.say(message);
+  }
+
+  async fetchShipped(file) {
+    return E.fromParsed(await fetchShape(file)).shape;
+  }
+
+  /** A shipped shape under a name of its own: a file with the stock name would replace the stock shape. */
+  shippedCopy(shape) {
+    return E.withSettings(shape, { name: E.customName(shape.name) });
   }
 
   /** Selects the first cell of the first layer, as a newly loaded shape starts. */
@@ -564,7 +580,8 @@ class Designer {
   // --- checks -------------------------------------------------------------------------------
 
   renderIssues() {
-    const issues = checkShape(this.shape);
+    const issues = checkShape(this.shape, { shipped: (this.shapes ?? []).map((s) => s.name) });
+    this.renderCommands();
     const errors = issues.filter((i) => i.level === "error").length;
     const warnings = issues.length - errors;
     const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -583,6 +600,18 @@ class Designer {
       return el("li", { class: `wxt-${issue.level}` }, inner);
     }));
     if (issues.length > 100) this.issueList.append(el("li", {}, `And ${issues.length - 100} more.`));
+  }
+
+  /** The commands for this shape: the file name and the Name= value are two things, and each command wants one. */
+  renderCommands() {
+    const name = this.shape.name.trim();
+    const base = E.fileNameFor(this.shape.name).slice(0, -".shape".length);
+    const parts = [`The file will be ${base}.shape. Check it with /wormhole gate shapes validate ${base} and load it with /wormhole gate shapes reload ${base}: those take the file name.`];
+    if (name) parts.push(`Build it with /wormhole gate build ${name}: that takes the shape's Name.`);
+    if (name && name !== base) {
+      parts.push(`The name "${name}" is not a file name, so the file is called ${base}.shape instead; use ${base} for the first two commands and "${name}" for gate build.`);
+    }
+    this.commandsNote.textContent = parts.join(" ");
   }
 
   jump(cell) {
@@ -621,8 +650,8 @@ class Designer {
         { reframe: true, move: () => this.home() });
       return;
     }
-    const { shape } = E.fromParsed(await fetchShape(file));
-    this.edit(() => shape, `Loaded ${shape.name}. Undo brings your last one back.`, { reframe: true, move: () => this.home() });
+    const shape = this.shippedCopy(await this.fetchShipped(file));
+    this.edit(() => shape, `Loaded a copy of the shipped shape as ${shape.name}, so saving it does not replace the stock one. Undo brings your last one back.`, { reframe: true, move: () => this.home() });
   }
 
   async readFile(file) {

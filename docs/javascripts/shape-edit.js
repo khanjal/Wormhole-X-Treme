@@ -210,7 +210,12 @@ export function describeCell(cell) {
   return { kind, tags, text: tags.length ? `${base}, ${tags.join(" ")}` : base };
 }
 
+/** The shape with `patch` applied; the very same shape when nothing in it differs, so no history step is spent. */
 export function withSettings(shape, patch) {
+  const same = Object.entries(patch).every(([key, value]) => (key === "materials"
+    ? JSON.stringify(Object.entries(value).sort()) === JSON.stringify(Object.entries(shape.materials).sort())
+    : shape[key] === value));
+  if (same) return shape;
   return { ...shape, ...patch, materials: patch.materials ? { ...patch.materials } : { ...shape.materials }, extra: [...shape.extra] };
 }
 
@@ -255,6 +260,7 @@ const DRAFT_VERSION = 1;
 const EXTRA = /^(MATERIAL_GROUPS|SOUND_SCALE|USE_COST)=[^\r\n]{1,200}$/;
 const text = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
 const whole = (v) => (Number.isInteger(v) && v >= 0 && v <= 1_000_000 ? v : null);
+const ticks = (v) => (Number.isInteger(v) && v >= 0 && v <= 2 ** 31 - 1 ? v : null);
 
 export const draftText = (shape) => JSON.stringify({ v: DRAFT_VERSION, shape });
 
@@ -282,13 +288,16 @@ export function readDraft(raw) {
     for (const key of MATERIAL_KEYS) if (typeof d.materials?.[key] === "string") materials[key] = text(d.materials[key], 100);
     const extra = (Array.isArray(d.extra) ? d.extra : []).filter((l) => typeof l === "string" && EXTRA.test(l)).slice(0, 20);
     return settle({
-      name: text(d.name, 100), width, height, layers, cells, lightTicks: whole(d.lightTicks), wooshTicks: whole(d.wooshTicks),
+      name: text(d.name, 100), width, height, layers, cells, lightTicks: ticks(d.lightTicks), wooshTicks: ticks(d.wooshTicks),
       redstoneActivated: d.redstoneActivated === true, materials, extra,
     });
   } catch {
     return null;
   }
 }
+
+/** The name a loaded shipped shape starts with in the editor, so saving it does not replace the stock one. */
+export const customName = (name) => `${name || "My"}Custom`;
 
 /** A file name from a shape name: letters, digits, underscore and hyphen only. */
 export function fileNameFor(name) {

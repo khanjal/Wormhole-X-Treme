@@ -24,7 +24,7 @@ function good() {
 }
 const put = (shape, layer, row, col, fn) => editCell(shape, layer, row, col, fn);
 const messages = (shape, level) => checkShape(shape).filter((i) => i.level === level);
-const errorsAbout = (shape, text) => messages(shape, "error").filter((i) => i.message.includes(text));
+const errorsAbout = (shape, text) => checkShape(shape).filter((i) => i.message.includes(text));
 
 test("the starting point passes", () => {
   assert.deepEqual(checkShape(good()), []);
@@ -99,9 +99,11 @@ test("a redstone block on its own empty cell above a frame block is fine; otherw
   const floating = put(base, 1, 0, 1, (c) => setMarker(c, "RA", true));
   assert.equal(messages(floating, "warning").filter((i) => i.message.includes("on top of")).length, 1);
   // Shared with another marker or a woosh step, or a chevron block: an error.
-  for (const fn of [(c) => setMarker(c, "EM", true), (c) => setOrder(c, "woosh", 1), (c) => setKind(c, "C"), (c) => setKind(c, "P")]) {
+  for (const fn of [(c) => setMarker(c, "EM", true), (c) => setOrder(c, "woosh", 1), (c) => setKind(c, "P")]) {
     assert.equal(errorsAbout(put(ok, 1, 1, 1, fn), "nothing else on it").length, 1);
   }
+  // A chevron cell counts as frame to the plugin, so that one is its error.
+  assert.equal(errorsAbout(put(ok, 1, 1, 1, (c) => setKind(c, "C")), "lands on")[0].level, "error");
   // The older [S:RA] form is the frame block itself; its landing cell, one up, must be empty.
   const legacy = put(base, 1, 2, 1, (c) => setMarker(c, "RA", true));
   assert.equal(errorsAbout(legacy, "nothing else").length, 0);
@@ -135,4 +137,37 @@ test("the name, ticks and materials are checked", () => {
 test("errors come before warnings", () => {
   const s = withSettings(put(good(), 1, 4, 2, (c) => setMarker(c, "EP", false)), { name: "bad name" });
   assert.deepEqual(checkShape(s).map((i) => i.level), ["error", "warning"]);
+});
+
+test("what ShapeFileValidator rejects is an error; the header's stricter rules are warnings that say so", () => {
+  const level = (shape, text) => errorsAbout(shape, text).map((i) => i.level);
+  assert.deepEqual(level(put(good(), 1, 0, 0, (c) => setMarker(c, "EP", true)), ":EP blocks"), ["error"]);
+  assert.deepEqual(level(put(put(good(), 1, 0, 0, (c) => setMarker(c, "RA", true)), 1, 0, 1, (c) => setMarker(c, "RA", true)), ":RA blocks"), ["warning"]);
+  const blocked = put(good(), 3, 2, 1, (c) => setKind(c, "S"));
+  const [front] = errorsAbout(blocked, "in front of it");
+  assert.equal(front.level, "warning");
+  assert.match(front.message, /validator does not reject this/);
+  assert.deepEqual(level(put(good(), 2, 2, 1, (c) => setMarker(c, "D", true)), "same block"), ["warning"]);
+});
+
+test("a repeated token in one cell counts twice, as the plugin counts it", () => {
+  const s = put(good(), 1, 4, 2, (c) => c.markers.push("EP"));
+  assert.equal(errorsAbout(s, "2 :EP blocks").length, 1);
+});
+
+test("tick settings past 32 bits or fractional are errors; a negative one only a warning", () => {
+  for (const bad of [1e10, 2 ** 31, 1.5]) {
+    assert.equal(errorsAbout(withSettings(good(), { lightTicks: bad }), "LIGHT_TICKS must").length, 1, String(bad));
+  }
+  assert.equal(errorsAbout(withSettings(good(), { wooshTicks: 2 ** 31 - 1 }), "WOOSH_TICKS").length, 0);
+  assert.equal(errorsAbout(withSettings(good(), { wooshTicks: -2 }), "negative")[0].level, "warning");
+});
+
+test("a name equal to a shipped shape's, in any case, is a warning to rename", () => {
+  const shipped = ["Standard", "Grand"];
+  const named = (name) => checkShape(withSettings(good(), { name }), { shipped });
+  assert.equal(named("Standard").length, 1);
+  assert.match(named("standard")[0].message, /shipped shape/);
+  assert.equal(named("StandardCustom").length, 0);
+  assert.equal(checkShape(withSettings(good(), { name: "Standard" })).length, 0);
 });

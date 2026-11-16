@@ -19,21 +19,32 @@ const isBuilt = (c) => c.block !== "none";
  * @returns {Array<{level: "error"|"warning", message: string, cell: ?{layer: number, row: number, col: number}}>}
  *   errors first, each group in file order
  */
-export function checkShape(shape) {
+const INT32 = 2 ** 31 - 1;
+const STRICT = " The plugin's validator does not reject this, but the shape file's header asks for it.";
+
+/**
+ * @param {object} shape a designer model
+ * @param {{shipped?: string[]}} [options] the names of the shipped shapes, to warn about a clash
+ */
+export function checkShape(shape, { shipped = [] } = {}) {
   const found = [];
   const error = (message, cell = null) => found.push({ level: "error", message, cell: cell && at(cell) });
   const warn = (message, cell = null) => found.push({ level: "warning", message, cell: cell && at(cell) });
+  // A rule from the file header that ShapeFileValidator does not enforce: shown, but not as an error.
+  const rule = (message, cell = null) => warn(message + STRICT, cell);
   const has = (c, key) => c.markers.includes(key);
   const withMarker = (key) => shape.cells.filter((c) => has(c, key));
 
-  checkSettings(shape, error, warn);
+  checkSettings(shape, error, warn, shipped);
   checkSize(shape, error);
 
   // 1 per gate: nothing enforces it, a second silently replaces the first.
+  // Counted by token, as the plugin does: [S:EP:EP] is two.
   for (const key of [...ONE_EACH, ...REDSTONE]) {
-    const list = withMarker(key);
+    const list = shape.cells.flatMap((c) => c.markers.filter((m) => m === key).map(() => c));
     if (list.length > 1) {
-      error(`${list.length} :${key} blocks, but a gate takes only one; the plugin keeps the last and ignores the rest. ` +
+      const report = ONE_EACH.includes(key) ? error : rule;
+      report(`${list.length} :${key} blocks, but a gate takes only one; the plugin keeps the last and ignores the rest. ` +
         `The others are at ${list.slice(0, -1).map(where).join("; ")}.`, list[list.length - 1]);
     }
   }
@@ -42,15 +53,16 @@ export function checkShape(shape) {
 
   for (const c of shape.cells) {
     const clash = SWITCHES.filter((k) => has(c, k));
-    if (clash.length > 1) error(`${clash.map((k) => `:${k}`).join(" and ")} are on the same block at ${where(c)}; they each need their own.`, c);
-    if (c.woosh !== null && clash.length) error(`:${clash[0]} is on a woosh (:W) block at ${where(c)}; none of :IA, :D, :N or :A can be.`, c);
-    checkFront(shape, c, has, error);
-    checkRedstoneCell(shape, c, error, warn);
+    if (clash.length > 1) rule(`${clash.map((k) => `:${k}`).join(" and ")} are on the same block at ${where(c)}; they each need their own.`, c);
+    if (c.woosh !== null && clash.length) rule(`:${clash[0]} is on a woosh (:W) block at ${where(c)}; none of :IA, :D, :N or :A can be.`, c);
+    checkFront(shape, c, has, error, rule);
+    checkRedstoneCell(shape, c, error, rule);
   }
 
   const dial = withMarker("D").length > 0;
   for (const key of ["RD", "RS"]) {
-    for (const c of withMarker(key)) if (!dial) error(`[${key}] needs a :D block to target, and there is none.`, c);
+    const report = key === "RD" ? error : rule;
+    for (const c of withMarker(key)) if (!dial) report(`[${key}] needs a :D block to target, and there is none.`, c);
   }
 
   checkOrders(shape.cells, "light", ":L", warn);
@@ -58,13 +70,19 @@ export function checkShape(shape) {
   return [...found.filter((f) => f.level === "error"), ...found.filter((f) => f.level === "warning")];
 }
 
-function checkSettings(shape, error, warn) {
+function checkSettings(shape, error, warn, shipped) {
   const name = shape.name ?? "";
   if (!name.trim()) error("The shape has no name; the plugin refuses a Name= line with nothing after it.");
   else if (name.includes("=")) error("The name cannot contain an = sign.");
   else if (!/^[A-Za-z0-9_-]+$/.test(name)) warn("A name of letters, digits, _ and - only is the safest, as it is also the file name and what you type in commands.");
+  if (shipped.some((s) => s.toLowerCase() === name.trim().toLowerCase())) {
+    warn(`"${name}" is the name of a shipped shape. A file with that Name= clashes with the stock one, and a file called ${name}.shape replaces it. Give yours a name of its own.`);
+  }
+  // Integer.valueOf reads these: a fraction or anything past 32 bits fails the load; a negative reads but means nothing.
   for (const [key, value] of [["LIGHT_TICKS", shape.lightTicks], ["WOOSH_TICKS", shape.wooshTicks]]) {
-    if (value !== null && (!Number.isInteger(value) || value < 0)) error(`${key} must be a whole number, 0 or more.`);
+    if (value === null) continue;
+    if (!Number.isInteger(value) || value > INT32) error(`${key} must be a whole number, at most ${INT32}; the plugin cannot read ${value}.`);
+    else if (value < 0) warn(`${key} is negative; the plugin reads it but a negative wait means nothing.`);
   }
   for (const [key, value] of Object.entries(shape.materials)) {
     if (value.trim() && !MATERIAL_NAME.test(value.trim())) error(`${key} is not a material name; use capital letters and underscores, like OBSIDIAN.`);
@@ -81,12 +99,12 @@ function checkSize(shape, error) {
 }
 
 /** :A and :D face the next layer up and need nothing built in front; so does the :N sign. */
-function checkFront(shape, c, has, error) {
+function checkFront(shape, c, has, error, rule) {
   const front = cellAt(shape, c.layer + 1, c.row, c.col);
   if (!front) return;
   for (const key of ["A", "D"]) {
     if (has(c, key) && (isBuilt(front) || front.portal)) {
-      error(`:${key} at ${where(c)} needs an Ignored block in front of it (layer ${front.layer}), so nothing is in the way of the ${key === "A" ? "switch" : "sign"}.`, front);
+      rule(`:${key} at ${where(c)} needs an Ignored block in front of it (layer ${front.layer}), so nothing is in the way of the ${key === "A" ? "switch" : "sign"}.`, front);
     }
   }
   if (has(c, "N") && (isBuilt(front) || front.portal)) {
@@ -95,13 +113,13 @@ function checkFront(shape, c, has, error) {
 }
 
 /** [RD], [RS] and [RA] sit alone on an empty cell above a frame block (or, as older shapes did, on the frame block itself). */
-function checkRedstoneCell(shape, c, error, warn) {
+function checkRedstoneCell(shape, c, error, rule) {
   const marks = c.markers.filter((m) => REDSTONE.includes(m));
   if (!marks.length) return;
   const label = `[${marks.join("][")}]`;
-  if (c.markers.length > marks.length || marks.length > 1 || c.portal || c.light !== null || c.woosh !== null || c.block === "chevron") {
-    error(`${label} at ${where(c)} must be on a block with nothing else on it.`, c);
-    return;
+  // A chevron cell is the plugin's own error below (the frame check counts it); the rest is the header's rule.
+  if (c.markers.length > marks.length || marks.length > 1 || c.portal || c.light !== null || c.woosh !== null) {
+    rule(`${label} at ${where(c)} must be on a block with nothing else on it.`, c);
   }
   // The plugin puts the redstone one up from a frame cell; what it lands in must be empty.
   const landing = c.block === "frame" ? cellAt(shape, c.layer, c.row - 1, c.col) : c;
@@ -111,7 +129,7 @@ function checkRedstoneCell(shape, c, error, warn) {
   if (c.block === "none") {
     const below = cellAt(shape, c.layer, c.row + 1, c.col);
     // Under the bottom row is the ground, which the shape cannot say anything about.
-    if (below && !isBuilt(below)) warn(`${label} at ${where(c)} should sit on top of a Stargate material block, with one directly below it.`, c);
+    if (below && !isBuilt(below)) rule(`${label} at ${where(c)} should sit on top of a Stargate material block, with one directly below it.`, c);
   }
 }
 

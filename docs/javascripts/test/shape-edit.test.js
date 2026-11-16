@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { parseShape } from "../shape-parser.js";
 import {
   fromParsed, newShape, cellAt, editCell, setKind, setMarker, setOrder, kindOf, addLayer, removeLayer, addRow, removeRow,
-  addColumn, removeColumn, resize, EditError, History, draftText, readDraft, fileNameFor, nextLightOrder, withSettings,
+  addColumn, removeColumn, resize, EditError, History, draftText, readDraft, fileNameFor, customName, nextLightOrder, withSettings,
 } from "../shape-edit.js";
 
 const SHAPES = fileURLToPath(new URL("../../../src/main/resources/shapes/gate/", import.meta.url));
@@ -154,4 +154,25 @@ test("a download is named after the shape, in letters, digits, _ and - only", ()
   assert.equal(fileNameFor("..\\evil.shape"), "evil_shape.shape");
   assert.equal(fileNameFor("  "), "MyGate.shape");
   assert.equal(fileNameFor(null), "MyGate.shape");
+});
+
+test("settings that do not change give back the same shape, so no history step is spent", () => {
+  const { shape } = standard();
+  const same = { name: "Standard", lightTicks: 10, wooshTicks: 3, redstoneActivated: false, materials: { ...shape.materials } };
+  assert.equal(withSettings(shape, same), shape);
+  assert.notEqual(withSettings(shape, { ...same, lightTicks: 11 }), shape);
+  assert.notEqual(withSettings(shape, { ...same, materials: { PORTAL_MATERIAL: "WATER" } }), shape);
+});
+
+test("a draft keeps tick settings up to 32 bits and drops the rest", () => {
+  const parsed = JSON.parse(draftText(standard().shape));
+  parsed.shape.lightTicks = 2 ** 31 - 1;
+  parsed.shape.wooshTicks = 1e10;
+  const got = readDraft(JSON.stringify(parsed));
+  assert.deepEqual([got.lightTicks, got.wooshTicks], [2 ** 31 - 1, null]);
+});
+
+test("a shipped shape starts under a name of its own", () => {
+  assert.equal(customName("Standard"), "StandardCustom");
+  assert.equal(customName(""), "MyCustom");
 });
