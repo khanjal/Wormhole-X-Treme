@@ -438,7 +438,7 @@ pattern that has not been built yet, with a layout guide to its slabs.
 
 **The frames are the real ones.** `RingPreview` steps through `RingAnimator.deployFrame`,
 `settledStack`, `ringAtRest`, `litRing` and `retractFrame` directly, at the server's own
-`ConfigManager.getRingDeployTicks` and `getRingFlashTicks`, so a preview cannot drift from a trip. It does not
+`ConfigManager.getRingDeployTicks` and `ConfigManager.getRingFlashTicks`, so a preview cannot drift from a trip. It does not
 reuse `RingCycle`, which runs a *pair* start to finish and has no state to rest in; what it
 reuses is the `Surroundings` seam, with `PreviewSurroundings` behind it.
 

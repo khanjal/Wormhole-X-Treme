@@ -48,7 +48,7 @@ Every `mirror` command needs `wormhole.config`, because a mirror moves players b
 Operators have it.
 
 Using a mirror, with right-click or punch, needs `wormhole.use.sign` or `wormhole.use.dialer`,
-the same as dialling a gate. In simple mode, which is when no Vault permission provider is installed or
+the same as dialling a gate. Operators always have it. In simple mode, which is when no Vault permission provider is installed or
 `permissions-support-disable` is on, everyone has them; otherwise grant one to whoever should travel
 by mirror.
 
