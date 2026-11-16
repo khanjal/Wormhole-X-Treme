@@ -414,7 +414,9 @@ destination's chunks are pre-loaded, so travellers do not fall through ungenerat
 A dial is refused when the target's iris is closed, when the target is already active or already
 has a target, when it has frame blocks missing, or when another active gate already points at it.
 `/dial` retries with force when nothing is really using the target, which is how a stale activator
-left by a gate that never finished closing is cleared. `/wormhole gate force` does not bypass any
+left by a gate that never finished closing is cleared. The retry skips the list above, so a sign or
+redstone dial is refused for missing frame blocks, while `/dial` connects to an idle target that has
+them; a target in use is still refused. `/wormhole gate force` does not bypass any
 of it; it closes a stuck gate.
 
 ### Why no shipped shape carries an `[RS]`

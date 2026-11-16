@@ -167,7 +167,8 @@ on `none`, to a gate in the Nether:
 A dial is refused when the target's iris is closed (unless you give its IDC), the target is
 already active or already has a target, it has frame blocks missing, another gate already points at
 it, the gates are on different networks, or the gates are in different worlds while
-`same-world-only` is on. `/dial` retries with force when nothing is really using the target.
+`same-world-only` is on. `/dial` retries with force when nothing is really using the target. A sign or redstone dial is
+refused for missing frame blocks; `/dial`, through that retry, connects to an idle target that has them.
 
 **A wormhole runs one way.** The destination end is an exit: nothing travels back up an open
 wormhole, and a player walking into the destination ring is pushed out. A gate dialled out of
@@ -593,7 +594,7 @@ of the block the DHD button is mounted on, including directly beneath it.
 
 `gate edit <gate> redstone true|false` switches redstone per gate. A dropped signal does
 nothing; the gate closes on its own timer (`timeout-shutdown`; `0` keeps it open until something
-goes through).
+goes through). `max-open-seconds` (default 300, `0` for no limit) closes it either way.
 
 ### What counts as a trigger
 
