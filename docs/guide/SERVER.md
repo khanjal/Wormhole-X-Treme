@@ -33,7 +33,7 @@ Drop `WormholeXTreme-<version>.jar` from the
 and start the server. Nothing else is needed: the plugin has no runtime dependencies, and
 SnakeYAML comes from the server itself.
 
-LuckPerms and Vault are both optional. See [Permissions](#permissions) and [Economy](#economy).
+Vault and a permission plugin such as LuckPerms are optional, but without a Vault permission provider the plugin ignores permission nodes. See [Permissions](#permissions) and [Economy](#economy).
 
 ## Compatibility
 
@@ -41,7 +41,7 @@ LuckPerms and Vault are both optional. See [Permissions](#permissions) and [Econ
 
 | Minecraft | In CI | Note |
 |---|---|---|
-| 1.20 | yes | Floor — `CALIBRATED_SCULK_SENSOR` arrives here, and gate detection needs it |
+| 1.20 | yes | Floor — `CALIBRATED_SCULK_SENSOR`, named in the redstone trigger list, arrives here |
 | 1.20.1 | yes | A commonly pinned version |
 | 1.20.4 | yes | Compile target |
 | 1.20.6 | yes | |
@@ -52,7 +52,7 @@ LuckPerms and Vault are both optional. See [Permissions](#permissions) and [Econ
 | 1.21.11 | yes | The last 1.x |
 | 26.1.2 | yes | Year-based version numbers start at 26.1 |
 | 26.2 | yes | Adds Sulfur Caves |
-| 26.3 | yes | Newest stable release |
+| 26.3 | yes | Newest release. Paper and Purpur 26.3 are pre-release builds in CI; Spigot 26.3 is stable |
 
 Versions between those points are expected to work and are not separately built; the matrix
 covers the boundaries where the API actually moved.
@@ -178,9 +178,9 @@ holding a gate open forever.
 
 ### What this costs a busy server
 
-One repeating task per subsystem and no background threads. Cost scales with how much
+A few repeating tasks, none per gate built. Cost scales with how much
 travelling is happening, not with how much has been built: three thousand gates cost the same
-per tick as three, as long as the same number are open.
+per tick as three, as long as the same number are open. The ones that scale with use:
 
 - **Entity sweep** — once a second, one entity query per *open* gate.
 - **Projectile tracking** — per tick, but only for projectiles in flight while a wormhole is
@@ -188,14 +188,18 @@ per tick as three, as long as the same number are open.
 - **Ambient hum** — every 70 ticks, one sound per open gate.
   `gate-sounds-enabled: false` removes it.
 
+There are also light timers for mirror views, the iris, build previews, the stats save and web
+maps. The plugin has no threads of its own beyond the update check, bStats and web-map drawing.
+
 Everything else is event-driven and answered by a hash lookup on the block position — including
 `BlockPhysicsEvent`, which fires for every water flow and redstone update. A world with no gates
 stops at the first lookup.
 
 ## Permissions
 
-Permissions go through Bukkit's `player.hasPermission()`, so any permission plugin works —
-LuckPerms, a Vault-bridged provider, or plain `ops.json`. Vault is not needed for permissions.
+Permissions go through Bukkit's `player.hasPermission()`, but the plugin only consults nodes when
+Vault is installed with a permission provider such as LuckPerms. Without one it runs in simple
+mode ([below](#permission-backend-and-fallback)) and ignores the nodes.
 
 **An operator may do anything with a gate**, with or without a permissions plugin, and that
 outranks a negated node.
@@ -206,22 +210,22 @@ outranks a negated node.
 |---|---|---|
 | `wormhole.use.sign` | false | Using sign dialers |
 | `wormhole.use.dialer` | false | Dialling a gate |
-| `wormhole.use.<shape>` | true | Using a gate of one [shape](GATES.md): dialling from it by sign or dialler, shutting it from its lever, stepping its sign and working its iris. Named as `wormhole.build.<shape>` is (`wormhole.use.grand_gate`), so two shapes whose names differ only in case or punctuation share one. Everyone holds it, so it only narrows: set it false on a rank to keep that rank off the shape, and true on another to let it back. It is wanted as well as `wormhole.use.sign` or `wormhole.use.dialer`, never instead. Only the gate dialled from is checked, so a refused shape can still be arrived through, and walked into once open unless [`wormhole-use-is-teleport`](../GATES.md#travelling) is on. Its owner, operators, a gate with no owner and simple mode are not refused. A shape called `Sign`, `Dialer` or `Compass` has none |
+| `wormhole.use.<shape>` | true | Using a gate of one [shape](GATES.md): dialling from it by sign or dialler, shutting it from its lever, stepping its sign and working its iris. Named as `wormhole.build.<shape>` is (`wormhole.use.grand_gate`), so two shapes whose names differ only in case or punctuation share one. Everyone holds it, so it only narrows: set it false on a rank to keep that rank off the shape, and true on another to let it back. It is wanted as well as `wormhole.use.sign` or `wormhole.use.dialer`, never instead. Only the gate dialled from is checked, so a refused shape can still be arrived through, and walked into once open unless `wormhole-use-is-teleport` (default false) is on, which makes walking in check the node too. Its owner, operators, a gate with no owner and simple mode are not refused. A shape called `Sign`, `Dialer` or `Compass` has none |
 | `wormhole.use.compass` | false | `/wormhole compass` |
-| `wormhole.list` | false | `/wormhole gate list`, whole, by network or by `top` |
+| `wormhole.list` | false | `/wormhole list`, whole, by network or by `top`. `/wormhole gate list` needs `wormhole.config` |
 | `wormhole.list.mine` | true | `/wormhole list mine`, your own gates, and completing only your own gate names for `/dial` and `/wormhole go` |
 | `wormhole.list.owner` | op | `/wormhole list owner <player>`, anybody's gates |
-| `wormhole.go` | false | `/wormhole go` |
-| `wormhole.build` | op | Building gates, of every shape |
-| `wormhole.build.<shape>` | op | Building gates of one [shape](GATES.md): its name in lower case, anything but a letter, digit or underscore made an underscore (`Grand Gate` is `wormhole.build.grand_gate`). Give it instead of `wormhole.build` to let a rank build only that shape; a shape called `Preview` or `MinDistance` has none, since those words are nodes above and below. Declared when the shapes load, so a permissions plugin lists them. Two shapes whose names differ only in case or punctuation share a node. `wormhole.build` still builds everything, so it cannot be held and one shape denied: leave it off the rank and grant the shapes. A `wormhole.build.*` grant now includes every shape's node, and so builds every shape |
+| `wormhole.go` | false | `/wormhole go <gate>`, for gates on networks the player may use. `gate go` needs `wormhole.config` instead |
+| `wormhole.build` | op | Finishing a gate, by building the frame and pressing the DHD, of every shape. `complete` and the other `gate` commands also need `wormhole.config`; `gate build` and its previews need `wormhole.build.preview` instead |
+| `wormhole.build.<shape>` | op | Finishing gates of one [shape](GATES.md): its name in lower case, anything but a letter, digit or underscore made an underscore (`Grand Gate` is `wormhole.build.grand_gate`). Give it instead of `wormhole.build` to let a rank build only that shape; a shape called `Preview` or `MinDistance` has none, since those words are nodes above and below. Declared when the shapes load, so a permissions plugin lists them. Two shapes whose names differ only in case or punctuation share a node. `wormhole.build` still builds everything, so it cannot be held and one shape denied: leave it off the rank and grant the shapes. A `wormhole.build.*` grant now includes every shape's node, and so builds every shape |
 | `wormhole.build.preview` | op | `/wormhole gate build` and its [previews](GATES.md#previews), without `wormhole.config` |
 | `wormhole.build.preview.share` | op | `gate preview share`, showing a preview to other players |
 | `wormhole.build.preview.place` | op | `gate preview place`, building a preview for real |
 | `wormhole.build.mindistance.bypass` | op | Building closer to another gate than [`min-gate-distance`](GATES.md#building-a-gate) allows |
 | `wormhole.gates.max.<n>` | false | Owning at most `n` gates: the highest `n` a player holds replaces [`max-gates-per-player`](GATES.md#building-a-gate), more or fewer. Any whole number above 0; give it to a group |
 | `wormhole.gates.unlimited` | op | Owning any number of gates, whatever `max-gates-per-player` or a `wormhole.gates.max.<n>` says. A group given `wormhole.*` or `*` by a permissions plugin that expands wildcards has it too |
-| `wormhole.remove.own` | false | Removing gates you own |
-| `wormhole.remove.all` | op | Removing any gate |
+| `wormhole.remove.own` | false | Nothing extra: a gate's owner may always take it apart by breaking it |
+| `wormhole.remove.all` | op | Breaking any gate's blocks, which takes it apart, and building in its opening. The `remove` commands themselves need `wormhole.config` |
 | `wormhole.config` | op | Settings, including `config -reload` and `lang export`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
 | `wormhole.network.use.<network>` | | Using gates on that network |
 | `wormhole.network.build.<network>` | | Building gates on that network |
@@ -258,8 +262,12 @@ or delete it.
 
 Worth knowing:
 
-- `beam`, `ring`, `go`, `list`, `compass` and `stats` answer to their own nodes, and a gate's owner may
-  run `gate edit <gate> idc` on it. Everything else under `/wormhole` needs `wormhole.config`.
+- `beam`, `ring`, `go`, `list`, `compass`, `stats`, `export`, `idc` and `freya` answer to their
+  own nodes, `gate build` and `gate preview` need `wormhole.build.preview`, and a gate's owner may
+  run `gate edit <gate> idc` on it. Everything else under `/wormhole` needs `wormhole.config`,
+  including every other `gate` subcommand, the `remove` commands and the hidden flat commands.
+  `/dial` is a separate command that needs `wormhole.use.dialer`.
+- `wormhole.freya` (default true) belongs to the hidden `/wormhole freya` command.
 - Nobody may build inside a gate's opening except those who could take the gate apart: operators,
   its owner, and holders of `wormhole.config` or `wormhole.remove.all`. `wormhole.build` does not
   carry it. A block left there is not part of the gate, so anyone can break it back out.
@@ -293,7 +301,7 @@ a dashed word is always the option and a bare word is always a name.
 | `lang export [code]` | [Translating](TRANSLATING.md): writes a starter `lang/<code>.yml`, never over one there |
 | `compass` | Points your compass at the nearest gate; `compass reset` points it back at spawn |
 | `export sqlite` | Writes your gates to a database the older plugins read, in a folder of its own; see [coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme). Needs `wormhole.export` |
-| `list [network\|mine\|owner <player>\|top]` | The gates on the network, or on none with `Public`; `mine` your own with `wormhole.list.mine`; `owner <player>` that player's, online or not, with `wormhole.list.owner`; `top` the ten with the most trips, each with its count. `mine`, `owner` and `top` win over a network of the same name. Holding `wormhole.list` allows all of them, and completing `/dial` and `/wormhole go` offers every gate to a player with it, only their own to one with just `wormhole.list.mine`, and none to the rest |
+| `list [network\|mine\|owner <player>\|top]` | The gates on the network, or on none with `Public`; `mine` your own with `wormhole.list.mine`; `owner <player>` that player's, online or not, with `wormhole.list.owner`; `top` up to ten gates with the most trips, those with at least one, each with its count. `mine`, `owner` and `top` win over a network of the same name. Holding `wormhole.list` allows all of them, and completing `/dial` and `/wormhole go` offers every gate to a player with it, only their own to one with just `wormhole.list.mine`, and none to the rest |
 | `stats [player]` | Lifetime trips through gates, gates built, ring trips and beams: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
 
 `compass` works without a compass in hand — the heading is stored against you. It says so when
@@ -311,8 +319,8 @@ at where you died.
 `shutdown_timeout`, `activate_timeout`, `cooldown` and `restrict` all still dispatch, so
 command blocks and scripts keep working. They are just no longer listed.
 
-`/wormhole cooldown` takes a number of seconds. `/wormhole restrict` reports that build
-restriction was removed; building is governed by `wormhole.build`.
+`/wormhole cooldown` takes a number of seconds, or `true` or `false` to switch the use cooldown. `/wormhole restrict` reports that build
+restriction was removed; building is governed by `wormhole.build` and `wormhole.config`.
 
 </details>
 
@@ -341,6 +349,7 @@ Gates, rings and beams make noise, all configured the same way. Tables are on ea
 plugins/WormholeXTreme/
 ├── config.yml
 ├── lang/*.yml          (optional, yours)
+├── exports/<stamp>/    (what `export sqlite` wrote, one folder a run)
 ├── shapes/gate/*.shape
 ├── shapes/mirror/*.mirror
 └── data/
@@ -350,6 +359,7 @@ plugins/WormholeXTreme/
     ├── rings/<world>.yml
     ├── beam.yml
     ├── mirror.yml
+    ├── freya.yml                  (who keeps a companion; absent when nobody does)
     └── stats.yml
 ```
 
@@ -429,7 +439,7 @@ nothing. If old gates are found on startup and you have none, the log says so on
 
 **`/wormhole export sqlite`** is the way back out, for going back to the original plugin or running
 Dakto's WormholeXTreme on a second server. It needs `wormhole.export` and writes a new
-`WormholeXTreme.sqlite` into `exports/<date>-<time>/` under the plugin folder, never into
+`WormholeXTreme.sqlite` into `exports/<yyyyMMdd-HHmmss>/` (with `-2`, `-3` on a clash) under the plugin folder, never into
 `WormholeXTremeDB` and never to your gate files; copy it into the other plugin's `WormholeXTremeDB`
 yourself. Both plugins keep gates in that one table, so the file is written once, as gate version 8,
 the newest they both read. It has not been tried against a real Dakto 1.1.8 data folder.
@@ -462,7 +472,7 @@ such as [EssentialsX](https://essentialsx.net/).
 
 - No Vault or no economy provider means charges are skipped.
 - A player who cannot afford the use cost is stopped and told.
-- A player who cannot afford the build cost still gets the gate, is told, and is not charged.
+- A player who cannot afford the build cost is told so and the gate is not built.
 
 Beaming has its own cost settings; see [Beam settings](BEAMS.md#settings).
 
@@ -574,9 +584,9 @@ viewer can switch on and off.
 | ![beam destination](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/beam.png) | A public beam destination |
 | ![quantum mirror](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/src/main/resources/dynmap/mirror.png) | A quantum mirror, at its banner |
 
-On 1.21.11 use Dynmap 3.8; its Spigot/Paper build is on [dynmap.us](https://dynmap.us) and
-CurseForge, while Modrinth's newest Paper build, 3.7-beta-8, stops at 1.21.4. Dynmap has no build
-for Minecraft 26.x yet: there the map stays off, and the log says Dynmap was not found or is not
+As of 2026-11, on 1.21.11 use Dynmap 3.8; its Spigot/Paper build is on [dynmap.us](https://dynmap.us) and
+CurseForge, while Modrinth's newest Paper build, 3.7-beta-8, stops at 1.21.4. Dynmap had no build
+for Minecraft 26.x then: there the map stays off, and the log says Dynmap was not found or is not
 running.
 
 | Setting | Default | What it does |
