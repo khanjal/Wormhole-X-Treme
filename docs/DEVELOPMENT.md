@@ -109,7 +109,7 @@ mkdocs build --strict
 (git-ignored) for the [gate viewer](manual/gates.md); the workflow runs it too, and a change under
 `src/main/resources/shapes/` triggers the docs build. The viewer's parser is
 `docs/javascripts/shape-parser.js`, matched to `Stargate3DShape` and `StargateShapeLayer`; test it
-with `node --test docs/javascripts/test/*.test.js`. The iris and dialling pages are ports of `IrisSweep`/`IrisSweepDriver` (`iris-sweep.js`) and `DialSpin`/`StargateAnimator` (`dial-spin.js`); keep them in step with the Java, and their tests read the shipped shapes too.
+with `node --test docs/javascripts/test/*.test.js`. The iris and dialling pages are ports of `IrisSweep`/`IrisSweepDriver` (`iris-sweep.js`) and `DialSpin`/`StargateAnimator` (`dial-spin.js`); keep them in step with the Java, and their tests read the shipped shapes too. The [gate designer](manual/designer.md) adds `shape-edit.js` (the editable model), `shape-writer.js` (back to `.shape` text, round-tripped through the parser for all nine shipped files) and `shape-check.js` (the live rules, from `ShapeFileValidator` and the shape file header); a rule changed in that Java belongs there too.
 
 `--strict` fails on a broken link or anchor, as CI does. `mkdocs serve` previews the site with
 live reload. Write links between pages as relative `.md` links, which work on GitHub and on the
