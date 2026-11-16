@@ -494,7 +494,9 @@ public final class IrisSweep
      *
      * <p>An upright gate is seen from the side its switch faces, with up as up. A flat one is
      * seen from above, with up as away from the switch. A gate with no facing is guessed at from
-     * the opening, which only decides which way round it winds.
+     * the opening, which only decides which way round it winds. Flat means one block high: a
+     * custom shape whose flat opening steps up and down is taken as upright, and its spiral
+     * collapses into strips.
      *
      * @param facing
      *            the way the switch faces, or null

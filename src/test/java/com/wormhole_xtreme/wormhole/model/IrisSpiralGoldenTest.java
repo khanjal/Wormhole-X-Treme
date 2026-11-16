@@ -31,10 +31,11 @@ import com.wormhole_xtreme.wormhole.logic.GateGrid;
  * <p>The page draws the spiral from {@code docs/javascripts/iris-sweep.js}, which has no world and
  * no facing: it can only be right if a real gate, built through {@link GateGrid} and swept by
  * {@link IrisSweep} with its facing, turns the same way in the shape's own coordinates whichever
- * way it faces. This builds each gate facing south and facing east, maps every step back to its
- * shape cell, and requires both to equal {@code iris/spiral-golden.txt};
+ * way it faces. This builds each gate facing each of the four ways, maps every step back to its
+ * shape cell, and requires all four to equal {@code iris/spiral-golden.txt};
  * {@code docs/javascripts/test/iris-sweep.test.js} requires the port to equal the same file. A
- * port that wound the other way, or a facing the plugin ignored, fails one side or the other.
+ * port that wound the other way fails there. South and east are what the sweep guesses for a
+ * gate with no facing, so they alone would pass with the facing dropped; north and west would not.
  *
  * <p>Large and Grand have openings an even number of blocks across, so their centres fall on
  * half blocks: any difference between Java's and V8's rounding or arctangent shows there.
@@ -64,8 +65,11 @@ class IrisSpiralGoldenTest
     void aBuiltGateSpiralsTheSameInItsShapeWhicheverWayItFacesAndAsTheGoldenFileSays() throws IOException
     {
         final List<String> south = describe(BlockFace.SOUTH);
-        assertEquals(south, describe(BlockFace.EAST),
-            "a gate facing east must wind the same way round its shape as one facing south, or the facing is ignored");
+        for (final BlockFace facing : new BlockFace[] { BlockFace.NORTH, BlockFace.EAST, BlockFace.WEST })
+        {
+            assertEquals(south, describe(facing), "a gate facing " + facing
+                + " must wind the same way round its shape as one facing south, or its facing is not used");
+        }
 
         if (Boolean.getBoolean("wormhole.golden.write"))
         {
@@ -137,7 +141,8 @@ class IrisSpiralGoldenTest
         final List<String> out = new ArrayList<>();
         out.add("# Closing spiral steps per shape, seen from the activation switch. x is the shape's column");
         out.add("# from the right as StargateShapeLayer counts it (the docs parser's x), y counts up from the");
-        out.add("# bottom row. Written by IrisSpiralGoldenTest; iris-sweep.test.js reads it too.");
+        out.add("# bottom row. The same for a gate facing any of the four ways. Written by IrisSpiralGoldenTest;");
+        out.add("# iris-sweep.test.js reads it too.");
         for (final String name : SHAPES)
         {
             final Map<Location, Integer[]> place = new IdentityHashMap<>();

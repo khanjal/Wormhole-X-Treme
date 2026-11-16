@@ -463,11 +463,14 @@ again:
 
 | `sweep` *(default)* | `spiral` | `rows` |
 |---|---|---|
-| ![A Standard gate iris closing and opening: rings, in from the rim and out from the middle](images/gates/iris-sweep.webp) | ![A Standard gate iris closing and opening: a wedge turning round the middle](images/gates/iris-spiral.webp) | ![A Standard gate iris closing and opening: rows, in from the top and bottom](images/gates/iris-rows.webp) |
+| ![A Standard gate iris closing and opening: rings, in from the rim and out from the middle](images/gates/iris-sweep.webp) | ![A Standard gate iris closing and opening, in the spiral style as it looked before 1.14.0](images/gates/iris-spiral.webp) | ![A Standard gate iris closing and opening: rows, in from the top and bottom](images/gates/iris-rows.webp) |
 
 | `columns` | `instant` |
 |---|---|
 | ![A Standard gate iris closing and opening: columns, in from both sides](images/gates/iris-columns.webp) | ![A Standard gate iris closing and opening: all at once](images/gates/iris-instant.webp) |
+
+The `spiral` picture still shows the animation from before 1.14.0, a wedge turning outwards;
+it will be retaken. The spiral now winds one arm in clockwise from the rim.
 
 The iris is a shield, and on an upright gate it is **drawn**, the same way the portal is: the
 server keeps the opening empty and each nearby client is sent the iris material for those cells.
