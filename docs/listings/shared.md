@@ -350,8 +350,9 @@ shape slated for removal does not belong in a listing that outlives it.
   26.1+ on Java 25 — that is the server's requirement, not this plugin's.
 
 > CI builds and tests each version and boots the built jar on a real server: Paper at every
-> version above, but Spigot 26.3, Purpur 26.3 and CraftBukkit 26.2 only, and beside LuckPerms,
-> Vault, PlaceholderAPI, CoreProtect and EssentialsX on Paper 1.20.4, 1.21.11, 26.2 and 26.3. A bot
+> version above, but Spigot 26.3, Purpur 26.3 and CraftBukkit 26.2 only, and, on Paper 1.20.4, 1.21.11, 26.2 and 26.3,
+> beside whichever of LuckPerms, Vault, PlaceholderAPI, CoreProtect and EssentialsX have a build
+> for that version (all five on 1.20.4 and 1.21.11). A bot
 > also plays it on a real Paper server at 1.20.4, 1.21.11 and 26.1.2 as a local check before
 > releases (not part of CI). The versions in between are expected to work but are not played one
 > by one, and what a player's client draws is checked by hand. Bug reports are welcome and get
