@@ -78,6 +78,29 @@ Ignored, darker the later its step, with the step number in its corner once the 
 the **Woosh cells** switch beside the 3D view shows or hides them there, and **Open** plays them in order.
 The legend sits beside each 3D view, or behind its **Legend** button on a narrow screen.
 
+## Drawing in one half
+
+Most gates are the same on both sides, so you can draw one side and let the designer do the other. Pick
+**Symmetry** above the grid: **Left-right** mirrors across a dashed line down the middle, **Top-bottom**
+across one along it, and **Both** draws in a single quarter and mirrors it three ways. The dotted edge
+marks the side to draw in. While a mode is on, painting a kind (I, S, P or C), clearing a cell, and
+setting or clearing a light or woosh order do the same to the cell across the line, and mirrored cells
+share the order number, so they light together. The middle row or column of an odd-sized grid mirrors
+onto itself. **Mirror now** copies the source half or quarter of this layer over the rest in one step
+(**Mirror all layers** does every layer, each on its own), says how many cells it changed, and **Undo**
+takes it back whole. Layers are never mirrored into each other.
+
+The extras that a gate has only one of (`:N`, `:EP`, `:EM`, `:A`, `:D`, `:IA`, `[RD]`, `[RS]` and
+`[RA]`) are never mirrored: ticking one marks only the cell you selected, and Mirror now leaves them
+where they are.
+
+## Seeing what is wrong
+
+A button beside the grid always shows the checks' result, such as "2 errors, 1 warning". Press it for the
+list, which opens over the grid and stays open as you step through; each entry jumps to its cell, and
+Escape or a click elsewhere closes it. Cells with a problem are outlined in the grid itself: a double
+border for an error and a dashed one for a warning.
+
 ## Putting it on your server
 
 1. Press **Download .shape file**. It is named after the shape's name.

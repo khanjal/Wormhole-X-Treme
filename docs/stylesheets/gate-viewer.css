@@ -818,3 +818,189 @@ html.wxt-no-scroll body {
 .wxt-full .wxt-split.wxt-bottom.wxt-stacked .wxt-side .wxt-stage {
   height: clamp(150px, 30vh, 260px);
 }
+
+/*
+ * Problems: a button beside the grid that is always in view, and a list that opens over the grid. A cell with
+ * a problem has a border you can tell by its shape: double for an error, dashed for a warning.
+ */
+.wxt-designer {
+  --wxt-bad: #c62828;
+  --wxt-warn: #8a5d00;
+}
+
+[data-md-color-scheme="slate"] .wxt-designer {
+  --wxt-bad: #ff8a80;
+  --wxt-warn: #f2c14e;
+}
+
+.wxt-gridwrap {
+  position: relative;
+  min-width: 0;
+}
+
+.wxt-full .wxt-gridwrap {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 6rem;
+}
+
+.wxt-chip {
+  display: inline-flex;
+  gap: 0.15rem;
+  align-items: center;
+  text-align: left;
+  border-width: 2px;
+}
+
+.wxt-chip-error {
+  color: var(--wxt-bad);
+  border-color: var(--wxt-bad);
+  border-style: double;
+  border-width: 4px;
+}
+
+.wxt-chip-warn {
+  color: var(--wxt-warn);
+  border-color: var(--wxt-warn);
+  border-style: dashed;
+}
+
+.wxt-chip-glyph {
+  font-weight: 700;
+}
+
+.wxt-flyout {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 6;
+  box-sizing: border-box;
+  max-height: min(24rem, 100%);
+  padding: 0.4rem 0.75rem;
+  overflow: auto;
+  background: var(--md-default-bg-color);
+  border: 2px solid var(--md-default-fg-color--light);
+  border-radius: 0.2rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.wxt-flyout[hidden] {
+  display: none;
+}
+
+.wxt-flyout-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wxt-flyout-close {
+  margin: 0;
+  padding: 0.1em 0.8em;
+}
+
+.wxt-issues li.wxt-error {
+  border-left-style: double;
+  border-left-width: 6px;
+}
+
+.wxt-issues li.wxt-warning {
+  border-left-style: dashed;
+}
+
+.wxt-grid-scroll {
+  position: relative;
+}
+
+.wxt-grid tbody th {
+  z-index: 1;
+}
+
+.wxt-grid td.wxt-err {
+  outline: 3px double var(--wxt-bad);
+  outline-offset: -3px;
+}
+
+.wxt-grid td.wxt-warn {
+  outline: 2px dashed var(--wxt-warn);
+  outline-offset: -2px;
+}
+
+/* The selected cell keeps its own ring; a problem there is the ring's style and an inner line in the problem's colour. */
+.wxt-grid td.wxt-sel.wxt-err {
+  outline: 4px double var(--md-default-fg-color);
+  box-shadow: inset 0 0 0 6px var(--md-default-bg-color), inset 0 0 0 8px var(--wxt-bad);
+}
+
+.wxt-grid td.wxt-sel.wxt-warn {
+  outline: 3px dashed var(--md-default-fg-color);
+  box-shadow: inset 0 0 0 5px var(--md-default-bg-color), inset 0 0 0 7px var(--wxt-warn);
+}
+
+.wxt-grid.wxt-tiny td.wxt-err {
+  outline-width: 2px;
+  outline-offset: -2px;
+}
+
+/* Symmetry: a dashed line down and across the middle, and the half or quarter to draw in marked off by a dotted edge. */
+.wxt-axes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.wxt-axis,
+.wxt-src-area {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.wxt-axis-v {
+  width: 0;
+  border-left: 2px dashed var(--md-accent-fg-color);
+  transform: translateX(-1px);
+}
+
+.wxt-axis-h {
+  height: 0;
+  border-top: 2px dashed var(--md-accent-fg-color);
+  transform: translateY(-1px);
+}
+
+.wxt-src-area {
+  background: rgba(var(--wxt-src, 20, 120, 220), 0.1);
+  border: 2px dotted var(--md-accent-fg-color);
+}
+
+[data-md-color-scheme="slate"] .wxt-src-area {
+  --wxt-src: 120, 180, 255;
+}
+
+.wxt-axes[hidden],
+.wxt-axis[hidden] {
+  display: none;
+}
+
+.wxt-symbar select {
+  max-width: 100%;
+}
+
+.wxt-issues li {
+  margin-left: 0;
+  list-style: none;
+}
+
+.wxt-symbar {
+  margin-bottom: 0.4rem;
+}
+
+.wxt-full .wxt-gridbar {
+  margin-bottom: 0.4rem;
+}

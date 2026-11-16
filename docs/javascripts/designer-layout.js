@@ -53,7 +53,7 @@ export function clampSplit(fraction, total, minMain, minDock) {
 }
 
 // Whether the window is expanded is not kept: a page that opens as a full-window overlay is a surprise.
-const DEFAULT_VIEW = { zoom: null, split: null, dockOpen: true, toolsOpen: true };
+const DEFAULT_VIEW = { zoom: null, split: null, dockOpen: true, toolsOpen: true, symmetry: "none" };
 
 /** The remembered view choices from stored text; missing or damaged parts fall back one by one. */
 export function parseViewState(raw) {
@@ -63,11 +63,12 @@ export function parseViewState(raw) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return view;
   if (data.dockOpen === false) view.dockOpen = false;
   if (data.toolsOpen === false) view.toolsOpen = false;
+  if (["lr", "tb", "both"].includes(data.symmetry)) view.symmetry = data.symmetry;
   if (finite(data.zoom)) view.zoom = clampZoom(data.zoom);
   if (finite(data.split) && data.split > 0 && data.split < 1) view.split = data.split;
   return view;
 }
 
 export const viewStateText = (view) => JSON.stringify({
-  zoom: view.zoom, split: view.split, dockOpen: view.dockOpen, toolsOpen: view.toolsOpen,
+  zoom: view.zoom, split: view.split, dockOpen: view.dockOpen, toolsOpen: view.toolsOpen, symmetry: view.symmetry,
 });
