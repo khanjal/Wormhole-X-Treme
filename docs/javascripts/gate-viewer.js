@@ -136,6 +136,9 @@ class GateViewer extends SceneBase {
     parts.stayCells = byOrder("woosh", (c) => c.woosh !== null && c.portal);
     parts.wave = add(this.instanced(parts.waveCells, mats.woosh));
     parts.stay = add(this.instanced(parts.stayCells, mats.portal));
+    // Their counts start at 0, which a culling sphere taken then would keep.
+    parts.wave.frustumCulled = false;
+    parts.stay.frustumCulled = false;
 
     this.buildMarkers(parts, add);
 

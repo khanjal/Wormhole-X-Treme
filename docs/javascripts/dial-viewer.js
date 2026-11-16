@@ -5,7 +5,7 @@ import { THREE, el, loadLibs, palette, TICK_MS } from "./scene-kit.js";
 import { ManualViewer } from "./manual-viewer.js";
 import {
   PATTERNS, LOCAL_CHEVRONS, OTHER_WORLD_CHEVRON, LAST_CHEVRON_PAUSE_TICKS,
-  DialSpin, ringCells, dialSchedule, dialStateAt,
+  DialSpin, ringCells, dialSchedule, dialStateAt, locksCrossed,
 } from "./dial-spin.js";
 
 const PATTERN_TEXT = {
@@ -16,11 +16,31 @@ const PATTERN_TEXT = {
   fill: "As pegasus, lighting the ring behind the light as it goes.",
   pegasus: "As an Atlantis gate dials: the light runs half the ring and lands on the chevron, turning the other way each glyph.",
   chase: "A whole turn anticlockwise from chevron 1 back to it, then from each locked chevron to the next, clockwise to chevron 2 and turning the other way each time.",
-  universe: "As Destiny's gate dials: the whole ring turns about a full turn for each glyph, the other way each time, and the locked chevrons ride round with it until the top one locks.",
+  universe: "As Destiny's gate dials: the whole ring turns about a full turn for each glyph, the other way each time, and the locked chevrons ride round with it until the last one locks, back in their own places once the top one has.",
   overshoot: "As pegasus, running a little past the chevron and backing onto it.",
 };
 
+// Which way each pattern's light runs, from DialSpin.path; positions are counted clockwise from the top chevron.
+const DIRECTION = {
+  top: "half the ring to the top chevron, clockwise on odd glyphs and anticlockwise on even ones",
+  chevron: "anticlockwise from the top to chevron 1, then chevron to chevron, the other way each glyph",
+  lap: "always clockwise, a whole turn",
+  fill: "half the ring to the chevron, clockwise on odd glyphs and anticlockwise on even ones",
+  pegasus: "half the ring to the chevron, clockwise on odd glyphs and anticlockwise on even ones",
+  chase: "anticlockwise round from chevron 1 back to it, then chevron to chevron, clockwise first and then the other way each glyph",
+  universe: "the ring itself turns, clockwise on odd glyphs and anticlockwise on even ones",
+  overshoot: "half the ring to the chevron and a little past it, clockwise on odd glyphs and anticlockwise on even ones",
+};
+
 const chevronName = (n) => (n === LOCAL_CHEVRONS ? "the top chevron" : n === OTHER_WORLD_CHEVRON ? "the eighth chevron, at the bottom" : `chevron ${n}`);
+/** How far apart this dial's locks fall, which depends on the pattern. */
+const spacing = (schedule) => {
+  const gaps = schedule.glyphs.slice(1).map((g, i) => g.lockAt - schedule.glyphs[i].lockAt);
+  if (!gaps.length) return "once";
+  const lo = Math.min(...gaps);
+  const hi = Math.max(...gaps);
+  return lo === hi ? `${lo} ticks apart` : `${lo} to ${hi} ticks apart`;
+};
 const seconds = (ticks) => (ticks * TICK_MS / 1000).toFixed(1);
 
 class DialViewer extends ManualViewer {
@@ -51,6 +71,9 @@ class DialViewer extends ManualViewer {
     const portal = this.instanced(cells.filter((c) => c.portal && c.woosh === null), materials.portal);
     const wave = this.instanced(waveCells, materials.woosh);
     const stay = this.instanced(stayCells, materials.portal);
+    // These start with a count of 0, which a culling sphere taken then would keep.
+    wave.frustumCulled = false;
+    stay.frustumCulled = false;
     for (const mesh of [body, portal, wave, stay]) group.add(mesh);
     // Where each cell of the ring is in the body mesh, so the light can be painted on it.
     const place = new Map(bodyCells.map((c, i) => [`${c.col},${c.y},${c.layer}`, i]));
@@ -90,9 +113,7 @@ class DialViewer extends ManualViewer {
     const { schedule, pattern } = this.plan;
     switch (s.phase) {
       case "turning": return `Turning: the ring light is on its way to ${chevronName(s.glyph)} (${pattern}).`;
-      case "locked": return s.locked === schedule.last
-        ? `${chevronName(s.locked)} locked: all ${schedule.last} chevrons are locked.`
-        : `Chevron ${s.locked} of ${schedule.last} locked.`;
+      case "locked": return `Chevron ${s.locked} of ${schedule.last} locked.`;
       case "holding": return `Holding: all ${schedule.last} chevrons are locked, and the gate waits two seconds before the wormhole forms.`;
       case "woosh": return "The woosh: the kawoosh pushes out, then draws back.";
       case "open": return "Open: the wormhole has formed.";
@@ -118,8 +139,14 @@ class DialViewer extends ManualViewer {
     portal.visible = s.open;
     stay.count = s.open ? stayCells.length : through(stayCells, s.woosh);
     wave.count = s.open ? 0 : through(waveCells, s.woosh);
-    const key = tick === 0 ? "start" : s.phase === "locked" ? `lock${s.locked}` : (s.phase === "holding" || s.phase === "open") ? s.phase : null;
-    this.announce(tick, key);
+    // A frame can skip ticks, so every lock since the last frame counts, not just one landing on this tick.
+    const crossed = tick > this.lastTick ? locksCrossed(this.plan.schedule, this.lastTick, tick) : [];
+    const lastOfAll = crossed.includes(this.plan.schedule.last);
+    const key = tick === 0 ? "start" : crossed.length ? `lock${crossed[crossed.length - 1]}`
+      : (s.phase === "holding" || s.phase === "open") ? s.phase : null;
+    const text = crossed.length && !lastOfAll
+      ? `Chevron${crossed.length > 1 ? "s" : ""} ${crossed.join(" and ")} of ${this.plan.schedule.last} locked.` : undefined;
+    this.announce(tick, key, text);
     this.requestRender();
   }
 
@@ -129,15 +156,15 @@ class DialViewer extends ManualViewer {
     const chevrons = this.shape.cells.filter((c) => c.light !== null).length;
     const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
     const lines = [
-      `${this.shape.name} has ${plural(chevrons, "chevron block")} lighting in ${plural(this.shape.lightOrders.length, "step")}, ` +
-        `${schedule.interval} ticks apart. This dial locks ${plural(schedule.last, "chevron")}, in the order of the number after :L, ` +
+      `${this.shape.name} has ${plural(chevrons, "chevron block")} lighting in ${plural(this.shape.lightOrders.length, "step")}. ` +
+        `This dial locks ${plural(schedule.last, "chevron")}, in the order of the number after :L, ${spacing(schedule)}, ` +
         `and the wormhole forms ${seconds(schedule.total)} s after the dial starts (${schedule.total} ticks, the woosh included).`,
       PATTERN_TEXT[pattern],
     ];
     if (pattern !== "none" && !spin) {
       lines.push(`${this.shape.name} has no top chevron (:L#7), so its ring has nothing to turn to: it dials as none does.`);
     } else if (spin && pattern !== "none") {
-      lines.push(`The light runs round the ${spin.size} frame cells of the ring, clockwise from the top chevron; the first chevron locks after ${schedule.glyphs[0].frames} ticks of turning.`);
+      lines.push(`The light runs round the ${spin.size} frame cells of the ring: ${DIRECTION[pattern]}. The first chevron locks after ${schedule.glyphs[0].frames} ticks of turning.`);
     }
     this.info.replaceChildren(...lines.map((t) => el("p", {}, t)));
     this.renderSchedule();

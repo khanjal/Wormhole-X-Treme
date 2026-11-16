@@ -114,6 +114,7 @@ export class ManualViewer extends SceneBase {
     this.applyPalette();
     this.spoken = "";
     this.milestone = null;
+    this.lastTick = -1;
     this.player.seek(0);
     // Starts paused when the visitor asks for less motion.
     if (!reduceMotion.matches) this.player.play();
@@ -159,8 +160,11 @@ export class ManualViewer extends SceneBase {
    * Says the current state, but while playing only at a milestone (`key` names it, null for none):
    * a polite live region that changes every two ticks is not a status, it is noise.
    */
-  announce(tick, key) {
-    if (!this.player.playing || (key !== null && key !== this.milestone)) this.say(this.words(tick));
+  announce(tick, key, text) {
+    // Going back (a step back, a scrub, a restart) forgets the milestone, so passing it again is heard.
+    if (tick < this.lastTick) this.milestone = null;
+    this.lastTick = tick;
+    if (!this.player.playing || (key !== null && key !== this.milestone)) this.say(text ?? this.words(tick));
     if (key !== null) this.milestone = key;
   }
 

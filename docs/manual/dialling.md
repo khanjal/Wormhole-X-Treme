@@ -28,8 +28,9 @@ settings, and [gate shapes](gates.md) to look at the shapes themselves.
 ## The ring lights
 
 `gate-dial-spin` (or a gate's own `spin`, or a [material group](../guide/GATES.md#material-groups)'s
-`dial-spin`) picks the pattern. The ring is the front layer of frame, nearest the DHD, and the
-light runs round it clockwise from the top chevron.
+`dial-spin`) picks the pattern. The ring is the front layer of frame, nearest the DHD. Each pattern sets its own direction:
+`lap` is always clockwise, `chevron` and `chase` start anticlockwise, and the half-ring patterns
+alternate each glyph, clockwise first.
 
 | Pattern | Before each chevron locks |
 |---|---|
@@ -40,7 +41,7 @@ light runs round it clockwise from the top chevron.
 | `fill` | As `pegasus`, lighting the ring behind it as it goes |
 | `pegasus` | The light runs half the ring and lands on the chevron, turning the other way each glyph |
 | `chase` | A whole turn anticlockwise from chevron 1 back to it, then from each locked chevron to the next |
-| `universe` | The whole ring turns about a full turn for each glyph; locked chevrons ride round with it until the top one locks |
+| `universe` | The whole ring turns about a full turn for each glyph; locked chevrons ride round with it until the last one locks (the top one, or the eighth on a dial to another world), back in their own places once the top one has |
 | `overshoot` | As `pegasus`, running a little past the chevron and backing onto it |
 
 Every pattern but two takes the chevron's own interval (`LIGHT_TICKS` in the shape) to travel.

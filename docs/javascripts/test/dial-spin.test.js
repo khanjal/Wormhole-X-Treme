@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseShape } from "../shape-parser.js";
 import {
-  PATTERNS, DialSpin, ringCells, dialSchedule, dialStateAt, wavesShowing, LAST_CHEVRON_PAUSE_TICKS,
+  PATTERNS, DialSpin, ringCells, dialSchedule, dialStateAt, locksCrossed, wavesShowing, LAST_CHEVRON_PAUSE_TICKS,
 } from "../dial-spin.js";
 
 const SHAPES = fileURLToPath(new URL("../../../src/main/resources/shapes/gate/", import.meta.url));
@@ -227,4 +227,22 @@ test("a shape with no :W cells has no woosh to play: WOOSH_DEPTH is overwritten 
   assert.deepEqual(shape.wooshOrders, []);
   const schedule = dialSchedule(shape, null, "none", false);
   assert.equal(schedule.settleAt, schedule.wooshStart);
+});
+
+test("a frame that skips ticks still passes every lock in between, once, in order", () => {
+  const shape = load("Standard");
+  const schedule = dialSchedule(shape, spinOf(shape), "pegasus", false);
+  assert.deepEqual(schedule.glyphs.slice(0, 3).map((g) => g.lockAt), [10, 21, 32]);
+  assert.deepEqual(locksCrossed(schedule, 0, 25), [1, 2]);
+  assert.deepEqual(locksCrossed(schedule, 10, 21), [2]);
+  assert.deepEqual(locksCrossed(schedule, 21, 21), []);
+  assert.deepEqual(locksCrossed(schedule, 25, 5), []);
+  assert.deepEqual(locksCrossed(dialSchedule(shape, null, "none", false), -1, 0), [1]);
+});
+
+test("the last chevron's lock tick is already the holding phase", () => {
+  const shape = load("Standard");
+  const spin = spinOf(shape);
+  const schedule = dialSchedule(shape, spin, "pegasus", false);
+  assert.equal(dialStateAt(schedule, spin, "pegasus", schedule.lastLock).phase, "holding");
 });

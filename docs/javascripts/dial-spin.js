@@ -309,6 +309,11 @@ export function dialSchedule(shape, spin, pattern, otherWorld) {
   return { last, turns, interval, glyphs, lastLock, wooshStart, wooshTicks, wooshSteps: steps, settleAt, total: settleAt };
 }
 
+/** The chevrons whose lock falls after `from` and up to `to`, in order: what a frame that skipped ticks passed. */
+export function locksCrossed(schedule, from, to) {
+  return schedule.glyphs.filter((g) => g.lockAt > from && g.lockAt <= to).map((g) => g.glyph);
+}
+
 /** How many woosh waves show at a woosh stage: out one at a time, then back in reverse. */
 export function wavesShowing(stage, steps) {
   if (stage < 0) return 0;
