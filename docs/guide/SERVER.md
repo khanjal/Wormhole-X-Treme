@@ -57,8 +57,12 @@ LuckPerms and Vault are both optional. See [Permissions](#permissions) and [Econ
 Versions between those points are expected to work and are not separately built; the matrix
 covers the boundaries where the API actually moved.
 
-**None of this has been runtime-verified on a live server.** CI proves the plugin compiles and
-its tests pass against each API — not that a gate behaves correctly in game.
+**Playing it on a server.** Before each release the plugin is played on a real Paper server at
+1.20.4, 1.21.11 and 26.1.2, with a bot that builds gates, rings, beams and mirrors and uses them.
+CI also boots the built jar on a real server at every Paper version in the table, on Purpur and
+Spigot 26.3 and on CraftBukkit 26.2, and again beside LuckPerms, Vault, PlaceholderAPI, CoreProtect
+and EssentialsX. The versions in between are expected to work but are not played one by one, and
+what a player's own client draws (the iris, the wormhole, previews) is checked by hand.
 
 | Server | Support |
 |---|---|

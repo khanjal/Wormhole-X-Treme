@@ -256,9 +256,7 @@ Drop the jar in `plugins/` and start the server. Nothing else is needed.
 - **Paper** is built and tested against at every one of those versions. **Spigot** is the API the jar is compiled against. **CraftBukkit** works, but has no action bar, so ring countdowns and mirror names do not appear above the hotbar. **Purpur** and **Pufferfish** are best effort. **Folia is not supported.**
 - **Java 17** or later for the plugin itself. Minecraft 1.20.5+ needs the server on Java 21, and 26.1+ on Java 25 — that is the server's requirement, not this plugin's.
 
-What CI proves is that the plugin compiles and its tests pass against each version. It is not a
-claim that every gate has been played on every one of them. Bug reports are welcome and get
-answered.
+CI builds and tests against each version and boots the built jar on a real server at most of them. Before each release the plugin is played on a real Paper server at 1.20.4, 1.21.11 and 26.1.2. The versions in between are expected to work but are not played one by one, and what a player's client draws is checked by hand. Bug reports are welcome and get answered.
 
 ## Under the hood
 
