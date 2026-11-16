@@ -13,14 +13,16 @@ step through and you come out at the other end, even in another world.
 3. The wormhole bursts out of the opening, then settles into a shimmering surface.
 4. You walk in. You arrive at the other gate, facing out of it.
 
-A dial to a gate in another world locks an eighth chevron at the bottom of the ring.
+On most shapes, a dial to a gate in another world locks an eighth chevron at the bottom of the
+ring. The smallest shape, `Minimal`, has none.
 
 ![A gate dialling a gate in the Nether](../images/gates/dial-other-world.webp)
 
 ## Build one
 
 1. Stand where you want it and type `/wormhole gate build Standard`. Add a material group to
-   change the look, such as lapis for an Atlantis gate. You need `wormhole.build`.
+   change the look, such as `Atlantis`, `Universe` or `MilkyWay`. You need to be an operator or
+   hold `wormhole.config`.
 2. Lay the frame. With `wormhole.build.preview` a full-size ghost shows where each block goes,
    only to you, and `/wormhole gate preview guide` marks what is still missing.
 3. Put a button on the DHD block and click it.
@@ -29,8 +31,9 @@ A dial to a gate in another world locks an eighth chevron at the bottom of the r
 5. Build a second gate the same way, called `Away`.
 6. Click the button at `Home`, type `/dial Away`, and step into the opening.
 
-For a gate that dials by itself, hang a sign on the dial block: right-click steps through the
-destinations, and clicking the button dials the one shown.
+Want a sign instead of typing? Build one of the `SignDial` shapes, such as
+`StandardSignDial`, and hang a sign on its dial block. Right-click the sign to step through the
+destinations, then click the button to dial the one shown.
 
 ## Good to know
 
@@ -39,17 +42,18 @@ destinations, and clicking the button dials the one shown.
   and your tamed pets beside you.
 - **An iris shuts a gate.** Give it a code and the plugin places an iris lever; a closed iris
   turns travellers back.
-- **A gate needs room to open.** `/dial` is refused if the far gate is busy or has its iris
-  closed.
+- **A dial can be refused.** It is if the far gate's iris is closed, the far gate is already
+  open, or another gate is already pointing at it. `/wormhole gate force <gate>` dials past all
+  three.
 - **Redstone can dial a gate** that has a sign.
 - **Taking one down:** `/wormhole gate remove <gate>`, and `-destroy` takes the frame too.
 
 ## Who may do what
 
-Operators can do everything. Everyone else needs `wormhole.build` to build and
-`wormhole.use.dialer` to dial; `wormhole.use.sign` lets them use dial signs. A server can limit
-how many gates a player owns and how close two gates may stand. `wormhole.remove.own` lets players
-remove their own gates.
+Building and removing gates is for operators, or for anyone you give `wormhole.config`.
+`wormhole.build.preview` lets other players call up the ghost with `gate build`, for their eyes
+only. Everyone else needs `wormhole.use.dialer` to dial, and `wormhole.use.sign` to use dial
+signs. A server can limit how many gates a player owns and how close two gates may stand.
 
 ## Go deeper
 

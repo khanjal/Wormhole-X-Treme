@@ -7,8 +7,8 @@ anywhere with one command.
 
 ## What you see
 
-1. You type the command. A glow gathers around you.
-2. A column of light rises, and you vanish.
+1. You type the command. A glow gathers around you, and you vanish.
+2. A column of light rises where you stood.
 3. At the other end a column of light comes down and fades.
 4. You are standing where the place was saved, facing the way it was facing.
 
@@ -37,7 +37,8 @@ Staff can save a public destination for everyone with `/wormhole beam admin set 
 - **Beams cross worlds.** A destination in a world that is not loaded says so, rather than
   loading it.
 - **The ground may have changed.** You are put on the nearest safe spot.
-- **`/wormhole go <name>`** reaches the same places, and tries a gate name first.
+- **`/wormhole go <name>`** reaches the same places, and tries a gate name first. It needs
+  `wormhole.go`, which is off by default.
 - **The only way back is another beam.** Save a place where you left from.
 
 ## Who may do what

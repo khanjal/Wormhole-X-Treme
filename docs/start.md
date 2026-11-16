@@ -8,8 +8,9 @@ minutes.
 - A Spigot, Paper or CraftBukkit server on Minecraft 1.20 to 26.3 (Purpur is best effort).
 - Java 17 or later. Minecraft 1.20.5 and later need Java 21 on the server, and 26.1 and later
   need Java 25.
-- Operator status, to follow along as written. Anyone else needs `wormhole.build` to build and
-  `wormhole.use.dialer` to dial; see [permissions](guide/SERVER.md#permissions).
+- Operator status, to follow along as written. Building gates is for operators, or for anyone you
+  give `wormhole.config`; dialling needs `wormhole.use.dialer`. See
+  [permissions](guide/SERVER.md#permissions).
 - Obsidian for the frame of a `Standard` gate.
 
 ## Install

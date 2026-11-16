@@ -8,11 +8,11 @@
 Stargate-style travel for your Minecraft server, with transport rings, beaming and quantum mirrors
 for shorter hops.
 
-[Get started](start.md){ .md-button .md-button--primary }
-[Download on Modrinth](https://modrinth.com/plugin/wormhole-x-treme){ .md-button }
-[Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme){ .md-button }
-[SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/){ .md-button }
-[See the gates in 3D](manual/gates.md){ .md-button }
+[Get started](start.md){ .md-button .md-button--primary style="margin:0.25rem" }
+[Download on Modrinth](https://modrinth.com/plugin/wormhole-x-treme){ .md-button style="margin:0.25rem" }
+[Hangar](https://hangar.papermc.io/khanjal/Wormhole-X-Treme){ .md-button style="margin:0.25rem" }
+[SpigotMC](https://www.spigotmc.org/resources/wormhole-x-treme.138936/){ .md-button style="margin:0.25rem" }
+[See the gates in 3D](manual/gates.md){ .md-button style="margin:0.25rem" }
 
 </div>
 
@@ -69,8 +69,8 @@ for shorter hops.
 ## Run it on your server in three steps
 
 1. **Drop the jar into `plugins/`** and restart the server. Nothing else is needed.
-2. **Build a gate.** Type `/wormhole gate build Standard`, lay the frame, click the button on the
-   DHD, and name it with `/wormhole gate complete Home`.
+2. **Build a gate.** Type `/wormhole gate build Standard`, lay the frame, place a button on the
+   DHD and click it, and name the gate with `/wormhole gate complete Home`.
 3. **Build a second one and dial.** Click the first gate's button, type `/dial Away`, and walk
    into the opening.
 
@@ -101,8 +101,8 @@ supported). The jar needs Java 17 or later, and your Minecraft version may ask f
 
 -   **[For server owners](guide/SERVER.md)**
 
-    Install, configure and set permissions, with a
-    [reference](guide/README.md) for every setting.
+    Install, set permissions and [configure](guide/SERVER.md#configuration), with a
+    [reference](guide/README.md) for each feature.
 
 -   **Features**
 
