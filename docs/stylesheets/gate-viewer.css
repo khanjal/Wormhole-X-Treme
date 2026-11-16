@@ -256,49 +256,105 @@
 
 .wxt-grid-scroll {
   max-width: 100%;
-  max-height: 28rem;
+  max-height: max(18rem, calc(100vh - 9rem));
   overflow: auto;
   border: 1px solid var(--md-default-fg-color--lightest);
 }
 
 .wxt-grid {
+  --wxt-cell: 40px; /* set by the script: the zoom */
+  --wxt-cols: 7; /* and the number of columns */
+  --wxt-gutter: 2rem;
   display: table;
-  width: auto;
+  width: calc(var(--wxt-gutter) + var(--wxt-cols) * var(--wxt-cell) + 1px);
+  table-layout: fixed;
   margin: 0;
   border-collapse: collapse;
-  font-size: 0.6rem;
+  font-size: max(0.45rem, calc(var(--wxt-cell) * 0.24));
 }
 
 .wxt-grid th {
-  min-width: 1.4rem;
-  padding: 0.1rem 0.2rem;
+  padding: 0.1rem 0;
+  overflow: hidden;
+  font-size: 0.6rem;
   font-weight: 400;
   color: var(--md-default-fg-color--light);
   text-align: center;
+  background: var(--md-default-bg-color);
+}
+
+/* The numbers stay in view while a big grid scrolls. */
+.wxt-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.wxt-grid tbody th {
+  position: sticky;
+  left: 0;
+}
+
+.wxt-grid th:first-child {
+  width: var(--wxt-gutter);
+}
+
+.wxt-grid thead th:first-child {
+  left: 0;
+  z-index: 2;
+}
+
+.wxt-grid thead th:not(:first-child) {
+  width: var(--wxt-cell);
 }
 
 .wxt-grid td {
   position: relative;
-  width: 2.6rem;
-  min-width: 2.6rem;
-  height: 2.6rem;
+  box-sizing: border-box;
+  width: var(--wxt-cell);
+  height: var(--wxt-cell);
   padding: 0.1rem;
+  overflow: hidden;
+  font-size: calc(var(--wxt-cell) * 0.34);
+  font-weight: 700;
   text-align: center;
   cursor: pointer;
   border: 1px solid var(--md-default-fg-color--lightest);
 }
 
-.wxt-grid .wxt-letter {
+.wxt-grid td::after {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.wxt-grid .wxt-tags {
-  display: block;
+  max-height: 55%;
   overflow: hidden;
+  font-size: max(0.45rem, calc(var(--wxt-cell) * 0.2));
+  font-weight: 400;
   line-height: 1.1;
   word-break: break-all;
+  content: attr(data-tags);
+}
+
+/* Small cells give up their labels, then their letters; a dot still marks a cell with extras. */
+.wxt-grid.wxt-tight td {
+  padding: 0;
+}
+
+.wxt-grid.wxt-tight td::after {
+  display: none;
+}
+
+.wxt-grid.wxt-tiny td {
+  font-size: 0;
+}
+
+.wxt-grid.wxt-tight td.wxt-marked::before {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
+  content: "";
+  background: var(--md-default-fg-color);
+  border-radius: 50%;
 }
 
 .wxt-k-S { background: rgba(124, 92, 200, 0.45); }
@@ -369,4 +425,302 @@ button.wxt-issue {
   width: 100%;
   font-family: var(--md-code-font-family, monospace);
   font-size: 0.7rem;
+}
+
+/* A viewer's 3D stage and its legend: side by side where there is room, a corner button where there is not. */
+.wxt-stage-box {
+  container-type: inline-size;
+}
+
+.wxt-stage-row {
+  position: relative;
+}
+
+.wxt-legend-toggle {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2;
+  padding: 0.1em 0.8em;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--md-default-fg-color);
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lighter);
+}
+
+.wxt-legend-toggle[aria-expanded="true"] {
+  border-color: var(--md-accent-fg-color);
+}
+
+.wxt-legend-body {
+  position: absolute;
+  top: 2.6rem;
+  left: 0.5rem;
+  z-index: 2;
+  display: none;
+  box-sizing: border-box;
+  width: min(16rem, calc(100% - 1rem));
+  max-height: calc(100% - 3.1rem);
+  padding: 0.4rem 0.75rem;
+  overflow: auto;
+  font-size: 0.8rem;
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 0.2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.wxt-legend-panel.wxt-open .wxt-legend-body {
+  display: block;
+}
+
+.wxt-legend-body:focus-visible,
+.wxt-legend-toggle:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: 2px;
+}
+
+.wxt-legend-panel .wxt-legend {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  list-style: none;
+}
+
+.wxt-legend-panel .wxt-legend li {
+  margin: 0;
+  list-style: none;
+}
+
+.wxt-legend-title {
+  display: none;
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+}
+
+@container (min-width: 34rem) {
+  .wxt-stage-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .wxt-stage-row .wxt-stage {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .wxt-legend-panel {
+    position: relative;
+    flex: 0 0 13rem;
+  }
+
+  .wxt-legend-panel .wxt-legend-toggle {
+    display: none;
+  }
+
+  .wxt-legend-body {
+    inset: 0;
+    display: block;
+    width: auto;
+    max-height: none;
+    box-shadow: none;
+  }
+
+  .wxt-legend-title {
+    display: block;
+  }
+}
+
+/* The designer, filling the window. */
+html.wxt-no-scroll,
+html.wxt-no-scroll body {
+  overflow: hidden;
+}
+
+.wxt-spacer {
+  flex: 1 1 auto;
+}
+
+.wxt-zoom-label {
+  min-width: 3.2rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.wxt-handle[hidden],
+.wxt-side[hidden],
+.wxt-controls[hidden],
+.wxt-gridbar [hidden] {
+  display: none !important;
+}
+
+.wxt-handle {
+  position: relative;
+  flex: 0 0 14px;
+  touch-action: none;
+  cursor: col-resize;
+}
+
+.wxt-handle::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  content: "";
+  background: var(--md-default-fg-color--lighter);
+  transform: translateX(-50%);
+}
+
+.wxt-handle:hover::before,
+.wxt-handle:focus-visible::before {
+  width: 4px;
+  background: var(--md-accent-fg-color);
+}
+
+.wxt-handle:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: -2px;
+}
+
+@media (pointer: coarse) {
+  .wxt-handle {
+    flex-basis: 24px;
+  }
+}
+
+.wxt-designer.wxt-full {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding: calc(0.5rem + env(safe-area-inset-top, 0px)) calc(0.75rem + env(safe-area-inset-right, 0px))
+    calc(0.5rem + env(safe-area-inset-bottom, 0px)) calc(0.75rem + env(safe-area-inset-left, 0px));
+  margin: 0;
+  overflow: hidden;
+  background: var(--md-default-bg-color);
+}
+
+.wxt-full .wxt-split {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  gap: 0;
+  align-items: stretch;
+  min-height: 0;
+  margin: 0;
+}
+
+.wxt-full .wxt-split.wxt-bottom {
+  flex-direction: column;
+}
+
+.wxt-full .wxt-edit {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.wxt-full .wxt-controls {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 0.1rem 1.25rem;
+  align-items: center;
+  max-height: 36%;
+  overflow: auto;
+}
+
+.wxt-full .wxt-files {
+  display: contents;
+}
+
+.wxt-full .wxt-controls .wxt-status {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.wxt-full .wxt-controls .wxt-brush {
+  margin: 0 0 0.5rem;
+}
+
+.wxt-full .wxt-gridbar {
+  flex: none;
+}
+
+.wxt-full .wxt-grid-scroll {
+  flex: 1 1 0;
+  min-height: 6rem;
+  max-height: none;
+}
+
+.wxt-full .wxt-side {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden auto;
+}
+
+.wxt-full .wxt-pinned {
+  position: static;
+}
+
+.wxt-full .wxt-designer-view {
+  flex: none;
+}
+
+.wxt-full .wxt-side .wxt-stage {
+  height: clamp(180px, 38vh, 420px);
+}
+
+.wxt-full .wxt-dock-panels {
+  flex: none;
+}
+
+.wxt-full .wxt-split.wxt-bottom .wxt-side {
+  flex-direction: row;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.wxt-full .wxt-split.wxt-bottom .wxt-designer-view {
+  flex: 1 1 55%;
+  min-width: 0;
+  overflow: auto;
+}
+
+.wxt-full .wxt-split.wxt-bottom .wxt-dock-panels {
+  flex: 1 1 45%;
+  min-width: 0;
+  overflow: auto;
+}
+
+.wxt-full .wxt-split.wxt-bottom .wxt-side .wxt-stage {
+  height: max(120px, calc(var(--wxt-dock, 220px) - 7rem));
+}
+
+.wxt-full .wxt-split.wxt-bottom .wxt-handle {
+  cursor: row-resize;
+}
+
+.wxt-full .wxt-split.wxt-bottom .wxt-handle::before {
+  top: 50%;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  width: auto;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.wxt-full .wxt-split.wxt-bottom .wxt-handle:hover::before,
+.wxt-full .wxt-split.wxt-bottom .wxt-handle:focus-visible::before {
+  width: auto;
+  height: 4px;
 }

@@ -9,6 +9,11 @@ The timing and the ring light come from the plugin's own rules: this page runs t
 `DialSpin` over the cells of the shape file. See [dialling](../guide/GATES.md#dialling) for the
 settings, and [gate shapes](gates.md) to look at the shapes themselves.
 
+<style>
+/* The 3D view and its legend sit side by side, which wants more than the usual page width. */
+.md-grid { max-width: 90rem; }
+</style>
+
 <div id="dial-viewer"><noscript>The 3D viewer needs JavaScript. Each ring light is described, and drawn as a picture, in <a href="../guide/GATES.html#dialling">the gate guide</a>.</noscript></div>
 
 <script type="importmap">

@@ -64,6 +64,16 @@ On top of a kind, a cell can carry extras. Tick them in the panel under the grid
 Layer 1 is the far side of the gate. Higher layers come towards you, and the activation switch
 faces the highest one.
 
+## Room for a big gate
+
+A Grand or Massive gate wants more than a page column. Press **Expand** and the designer fills your
+whole window: the grid takes most of the room, and the 3D view, the extras, the settings and the
+checks sit in a side panel (below the grid on a tall window) that you can hide, or drag wider with the
+bar between them, or move with the arrow keys once it has focus. **Escape** puts the page back. The
+**+** and **−** buttons, the plus and minus keys over the grid, and Ctrl and scroll over the grid
+change the size of the cells, and **Fit to window** picks the biggest size that shows the whole layer.
+The legend sits beside each 3D view, or behind its **Legend** button on a narrow screen.
+
 ## Putting it on your server
 
 1. Press **Download .shape file**. It is named after the shape's name.

@@ -2,13 +2,18 @@
 // it as the plugin would, and download or upload .shape files. Everything stays in the browser:
 // nothing is sent anywhere, and file text only ever goes to the parser and into textContent.
 import { parseShape, ShapeError, LIMITS } from "./shape-parser.js";
-import { THREE, el, loadLibs, fetchManifest, fetchShape, palette } from "./scene-kit.js";
+import { THREE, el, loadLibs, fetchManifest, fetchShape, palette, stageWithLegend } from "./scene-kit.js";
 import { GateViewer } from "./gate-viewer.js";
 import * as E from "./shape-edit.js";
 import { checkShape } from "./shape-check.js";
 import { writeShape } from "./shape-writer.js";
+import { ZOOM, SPLIT, clampZoom, stepZoom, fitZoom, clampSplit, splitBounds, parseViewState, viewStateText } from "./designer-layout.js";
 
 const DRAFT_KEY = "wxt-gate-designer-draft";
+const VIEW_KEY = "wxt-gate-designer-view";
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+const NARROW_PX = { main: 160, dock: 140 }; // smallest sizes when the dock sits below the grid
+const WIDE_PX = { main: 220, dock: 240 }; // and when it sits beside it
 const BRUSHES = [["select", "Select only"], ["I", "I  Ignored"], ["S", "S  Stargate material"], ["P", "P  Portal"], ["C", "C  Chevron material"]];
 const MARKERS = [
   ["N", "Name sign"], ["EP", "Player entry"], ["EM", "Minecart entry"], ["A", "Activation switch"], ["D", "Dial sign"],
@@ -20,6 +25,7 @@ const MATERIALS = [
 ];
 const SUMMARY_GAP_MS = 1500;
 const SAVE_DELAY_MS = 400;
+const SLOW_DELAY_MS = 250;
 
 /** Browser storage, where every touch may throw (private windows, blocked site data). */
 const store = {
@@ -27,6 +33,12 @@ const store = {
   set(text) { try { localStorage.setItem(DRAFT_KEY, text); return true; } catch { return false; } },
   backUp(raw) { try { return E.backUpUnreadable(localStorage, DRAFT_KEY, raw); } catch { return null; } },
   remove() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* nothing was kept */ } },
+};
+
+/** The view choices (expanded, cell size, split), kept the same careful way. */
+const viewStore = {
+  get() { try { return localStorage.getItem(VIEW_KEY); } catch { return null; } },
+  set(text) { try { localStorage.setItem(VIEW_KEY, text); } catch { /* the choice just is not remembered */ } },
 };
 
 /** The shipped gate viewer, minus its shape picker, fed from the editor. */
@@ -50,9 +62,9 @@ class DesignerView extends GateViewer {
     this.info = el("div", { class: "wxt-info", id: "wxt-info" });
     this.legend = el("ul", { class: "wxt-legend", "aria-label": "Legend" });
     // The picture and its buttons stay in view while the editor beside them scrolls.
-    this.el = el("div", { class: "wxt-designer-view" }, el("div", { class: "wxt-pinned" }, bar, this.stage, this.status),
+    this.el = el("div", { class: "wxt-designer-view" }, el("div", { class: "wxt-pinned" }, bar, stageWithLegend(this.stage, this.legend), this.status),
       el("p", { class: "wxt-help" }, "Drag to orbit, scroll or pinch to zoom. The outlined cell is the one selected in the editor."),
-      this.info, el("h3", {}, "Legend"), this.legend);
+      this.info);
     this.canvas.addEventListener("keydown", (e) => this.key(e));
   }
 
@@ -115,7 +127,12 @@ class Designer {
     this.saveTimer = 0;
     this.derivedHandle = 0;
     this.storageOk = true;
+    this.prefs = parseViewState(viewStore.get());
+    this.zoom = this.prefs.zoom ?? ZOOM.start;
+    this.expanded = false;
+    this.inerted = [];
     this.build();
+    this.watchLayout();
   }
 
   // --- building the page ------------------------------------------------------------------
@@ -184,15 +201,23 @@ class Designer {
     this.table = el("table", { role: "grid", class: "wxt-grid" });
     this.table.addEventListener("click", (e) => { const td = e.target.closest("td"); if (td) this.clickCell(td); });
     this.table.addEventListener("keydown", (e) => this.gridKey(e));
-    this.scroller = el("div", { class: "wxt-grid-scroll", role: "region", "aria-label": "Grid of the layer, scrolls sideways" }, this.table);
-    const gridHelp = el("p", { class: "wxt-help" },
+    this.scroller = el("div", { class: "wxt-grid-scroll", role: "region", tabindex: "0", "aria-label": "Grid of the layer. Scroll to see all of it." }, this.table);
+    this.scroller.addEventListener("wheel", (e) => this.wheel(e), { passive: false });
+    this.gridHelp = el("p", { class: "wxt-help" },
       "Arrow keys move between cells; Enter or Space paints with the chosen kind, or press I, S, P or C. Page Up and Page Down change layer, " +
-      "Ctrl+Z undoes. Layer 1 is the far side; the highest layer faces the activation switch. Row 1 is the top, column 1 the left of the file.");
+      "Ctrl+Z undoes. Plus and minus make the cells bigger or smaller, as does Ctrl and scroll over the grid; Fit to window picks the biggest size that shows the whole layer. " +
+      "Expand fills the window, and Escape leaves it. Layer 1 is the far side; the highest layer faces the activation switch. Row 1 is the top, column 1 the left of the file.");
+    this.gridBar = this.buildGridBar(button);
+    this.applyZoom();
 
     this.cellBox = this.buildCellPanel();
-    const edit = el("div", { class: "wxt-edit" }, this.layerBar, this.tools, size, brush, this.scroller, gridHelp, this.cellBox);
-    const side = el("div", { class: "wxt-side" }, this.view ? this.view.el : el("p", { class: "wxt-note" }, "The 3D view is not available, but the editor works."));
-    const split = el("div", { class: "wxt-split" }, edit, side);
+    this.controls = el("div", { class: "wxt-controls", id: "wxt-controls" }, this.layerBar, this.tools, size, brush);
+    this.editEl = el("div", { class: "wxt-edit" }, this.controls, this.gridBar, this.scroller, this.gridHelp, this.cellBox);
+    this.side = el("div", { class: "wxt-side", id: "wxt-side" }, this.view ? this.view.el : el("p", { class: "wxt-note" }, "The 3D view is not available, but the editor works."));
+    this.handle = this.buildHandle();
+    this.splitEl = el("div", { class: "wxt-split" }, this.editEl, this.handle, this.side);
+    this.dockPanels = el("div", { class: "wxt-dock-panels" });
+    this.filesBox = files;
 
     // Settings.
     this.settings = this.buildSettings();
@@ -209,7 +234,254 @@ class Designer {
     this.previewBox = el("details", {}, el("summary", {}, "Show the file text"), this.preview);
     this.previewBox.addEventListener("toggle", () => this.renderPreview());
 
-    this.root.replaceChildren(el("div", { class: "wxt-designer" }, files, split, this.settings, checks, this.previewBox));
+    this.below = el("div", { class: "wxt-below" }, this.settings, checks, this.previewBox);
+    this.designerEl = el("div", { class: "wxt-designer" }, files, this.splitEl, this.below);
+    this.root.replaceChildren(this.designerEl);
+  }
+
+  // --- the window: expand, cell zoom, split --------------------------------------------------
+
+  buildGridBar(button) {
+    this.zoomLabel = el("span", { class: "wxt-zoom-label" });
+    this.toolsButton = button("Tools", () => this.togglePane("toolsOpen"), { "aria-controls": "wxt-controls", hidden: "", title: "Show or hide the file, layer and row tools" });
+    this.dockButton = button("Side panel", () => this.togglePane("dockOpen"), { "aria-controls": "wxt-side", hidden: "", title: "Show or hide the 3D view, cell extras, settings and checks" });
+    this.expandButton = button("Expand", () => this.setExpanded(!this.expanded, true),
+      { "aria-pressed": "false", title: "Fill the whole window. Escape leaves it." });
+    return el("div", { class: "wxt-bar wxt-gridbar", role: "group", "aria-label": "Cell size and window size" },
+      button("\u2212", () => this.zoomBy(-1), { "aria-label": "Smaller cells", title: "Smaller cells" }),
+      this.zoomLabel,
+      button("+", () => this.zoomBy(1), { "aria-label": "Bigger cells", title: "Bigger cells" }),
+      button("Fit to window", () => this.fit(), { title: "The biggest cells that show the whole layer" }),
+      el("span", { class: "wxt-spacer" }), this.toolsButton, this.dockButton, this.expandButton);
+  }
+
+  buildHandle() {
+    const h = el("div", { class: "wxt-handle", role: "separator", tabindex: "0", "aria-label": "Resize the grid and the 3D view", "aria-controls": "wxt-side", hidden: "" });
+    h.addEventListener("keydown", (e) => this.handleKey(e));
+    h.addEventListener("pointerdown", (e) => {
+      if (e.button) return;
+      h.setPointerCapture(e.pointerId);
+      this.dragging = true;
+      e.preventDefault();
+    });
+    h.addEventListener("pointermove", (e) => { if (this.dragging) this.dragTo(e); });
+    const end = () => { if (this.dragging) { this.dragging = false; this.savePrefs(); } };
+    h.addEventListener("pointerup", end);
+    h.addEventListener("pointercancel", end);
+    h.addEventListener("dblclick", () => this.moveSplit(SPLIT.start));
+    return h;
+  }
+
+  /** Watches for what changes the layout: the window's shape, and keys that leave or trap focus. */
+  watchLayout() {
+    if (typeof ResizeObserver === "function") new ResizeObserver(() => { if (this.expanded) this.layoutSplit(); }).observe(this.splitEl);
+    document.addEventListener("keydown", (e) => this.fullKey(e));
+  }
+
+  savePrefs() {
+    viewStore.set(viewStateText(this.prefs));
+  }
+
+  /** Fills the browser window, or gives the page back. `byUser` also remembers the choice and puts focus on the toggle. */
+  setExpanded(on, byUser = false) {
+    if (on === this.expanded) return;
+    try {
+      this.expanded = on;
+      this.designerEl.classList.toggle("wxt-full", on);
+      this.expandButton.setAttribute("aria-pressed", String(on));
+      for (const b of [this.toolsButton, this.dockButton]) b.hidden = !on;
+      for (const [name, value] of [["role", "dialog"], ["aria-modal", "true"], ["aria-label", "Gate designer, filling the window"]]) {
+        if (on) this.designerEl.setAttribute(name, value); else this.designerEl.removeAttribute(name);
+      }
+      this.place(on);
+      this.lockPage(on);
+      this.syncPanes();
+      this.layoutSplit();
+      if (byUser) {
+        this.prefs.expanded = on;
+        this.savePrefs();
+        this.say(on ? "The designer fills the window. Escape leaves it." : "Back on the page.");
+        this.expandButton.focus();
+      }
+    } catch (error) {
+      // Never leave the page locked behind a half-built overlay.
+      this.expanded = false;
+      this.designerEl.classList.remove("wxt-full");
+      this.place(false);
+      this.lockPage(false);
+      this.layoutSplit();
+      this.say(`The window could not be filled (${error.message}).`);
+    }
+  }
+
+  /** The files, extras, settings and checks move into the overlay; the page order comes back on leaving. */
+  place(on) {
+    if (on) {
+      this.controls.prepend(this.filesBox);
+      this.side.append(this.dockPanels);
+      this.dockPanels.append(this.downloadNote, this.commandsNote, this.draftNote, this.gridHelp, this.cellBox, this.below);
+    } else {
+      this.filesBox.append(this.downloadNote, this.commandsNote, this.status, this.draftNote);
+      this.designerEl.insertBefore(this.filesBox, this.splitEl);
+      this.designerEl.append(this.below);
+      this.editEl.append(this.gridHelp, this.cellBox);
+      this.dockPanels.remove();
+    }
+  }
+
+  /** Locks the page's scroll and makes everything outside the overlay unreachable while it is open. */
+  lockPage(on) {
+    document.documentElement.classList.toggle("wxt-no-scroll", on);
+    for (const node of this.inerted) node.inert = false;
+    this.inerted = [];
+    if (!on) return;
+    for (let node = this.designerEl; node && node !== document.body; node = node.parentElement) {
+      for (const sibling of node.parentElement.children) {
+        if (sibling !== node && !sibling.inert) { sibling.inert = true; this.inerted.push(sibling); }
+      }
+    }
+  }
+
+  /** Escape leaves; Tab goes round inside the overlay. */
+  fullKey(e) {
+    if (!this.expanded) return;
+    if (e.key === "Escape" && !e.defaultPrevented) {
+      e.preventDefault();
+      this.setExpanded(false, true);
+    } else if (e.key === "Tab") {
+      const items = [...this.designerEl.querySelectorAll(FOCUSABLE)].filter((n) => (n.checkVisibility ? n.checkVisibility() : n.getClientRects().length));
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const inside = this.designerEl.contains(document.activeElement);
+      if (!inside || (e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      }
+    }
+  }
+
+  togglePane(key) {
+    this.prefs[key] = !this.prefs[key];
+    this.savePrefs();
+    this.syncPanes();
+    this.layoutSplit();
+  }
+
+  syncPanes() {
+    this.toolsButton.setAttribute("aria-expanded", String(this.prefs.toolsOpen));
+    this.dockButton.setAttribute("aria-expanded", String(this.prefs.dockOpen));
+    this.controls.hidden = this.expanded && !this.prefs.toolsOpen;
+  }
+
+  /** Sizes the grid pane from the remembered share, kept inside the smallest sizes; the dock takes the rest. */
+  layoutSplit() {
+    const open = this.expanded && this.prefs.dockOpen;
+    this.handle.hidden = !open;
+    this.side.hidden = this.expanded && !this.prefs.dockOpen;
+    if (!open) { this.editEl.style.flex = ""; return; }
+    const bottom = window.innerHeight > window.innerWidth; // a tall window docks the panel below the grid
+    this.splitEl.classList.toggle("wxt-bottom", bottom);
+    const grip = (bottom ? this.handle.offsetHeight : this.handle.offsetWidth) || 14;
+    const total = (bottom ? this.splitEl.clientHeight : this.splitEl.clientWidth) - grip;
+    const min = bottom ? NARROW_PX : WIDE_PX;
+    this.shownSplit = clampSplit(this.prefs.split ?? SPLIT.start, total, min.main, min.dock);
+    const basis = Math.round(this.shownSplit * total);
+    this.editEl.style.flex = `0 0 ${basis}px`;
+    this.splitEl.style.setProperty("--wxt-dock", `${Math.max(0, total - basis)}px`);
+    const { lo, hi } = splitBounds(total, min.main, min.dock);
+    this.handle.setAttribute("aria-orientation", bottom ? "horizontal" : "vertical");
+    this.handle.setAttribute("aria-valuemin", String(Math.round(lo * 100)));
+    this.handle.setAttribute("aria-valuemax", String(Math.round(hi * 100)));
+    this.handle.setAttribute("aria-valuenow", String(Math.round(this.shownSplit * 100)));
+    this.handle.setAttribute("aria-valuetext", `The grid takes ${Math.round(this.shownSplit * 100)} percent`);
+  }
+
+  moveSplit(fraction) {
+    this.prefs.split = fraction;
+    this.layoutSplit();
+    this.prefs.split = this.shownSplit;
+    this.savePrefs();
+  }
+
+  dragTo(e) {
+    const rect = this.splitEl.getBoundingClientRect();
+    const bottom = this.splitEl.classList.contains("wxt-bottom");
+    const grip = (bottom ? this.handle.offsetHeight : this.handle.offsetWidth) || 14;
+    const [pos, size] = bottom ? [e.clientY - rect.top, rect.height] : [e.clientX - rect.left, rect.width];
+    this.prefs.split = (pos - grip / 2) / (size - grip);
+    this.layoutSplit();
+    this.prefs.split = this.shownSplit;
+  }
+
+  handleKey(e) {
+    const bottom = this.splitEl.classList.contains("wxt-bottom");
+    const [less, more] = bottom ? ["ArrowUp", "ArrowDown"] : ["ArrowLeft", "ArrowRight"];
+    const jump = SPLIT.step * (e.shiftKey ? 5 : 1);
+    let next;
+    if (e.key === less) next = this.shownSplit - jump;
+    else if (e.key === more) next = this.shownSplit + jump;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = 1;
+    else return;
+    e.preventDefault();
+    this.moveSplit(next);
+  }
+
+  /** The cell size on the page; the letters and labels give way to colour as the cells shrink. */
+  applyZoom() {
+    this.table.style.setProperty("--wxt-cell", `${this.zoom}px`);
+    this.table.classList.toggle("wxt-tight", this.zoom < 32);
+    this.table.classList.toggle("wxt-tiny", this.zoom < 22);
+    this.zoomLabel.textContent = `${this.zoom} px`;
+  }
+
+  /** Sets the size, keeping the point under `anchor` (scroller pixels; the middle by default) where it was. */
+  setZoom(size, anchor) {
+    const next = clampZoom(size);
+    const old = this.zoom;
+    if (next === old) return false;
+    const s = this.scroller;
+    const ax = anchor?.x ?? s.clientWidth / 2;
+    const ay = anchor?.y ?? s.clientHeight / 2;
+    const left = (s.scrollLeft + ax) * (next / old) - ax;
+    const top = (s.scrollTop + ay) * (next / old) - ay;
+    this.zoom = next;
+    this.applyZoom();
+    s.scrollLeft = left;
+    s.scrollTop = top;
+    this.prefs.zoom = next;
+    this.savePrefs();
+    return true;
+  }
+
+  zoomBy(direction, anchor, quiet = false) {
+    const moved = this.setZoom(stepZoom(this.zoom, direction), anchor);
+    const text = moved ? `Cells are ${this.zoom} pixels.` : `The cells are as ${direction < 0 ? "small" : "big"} as they go.`;
+    if (quiet) this.sayLater(text); else this.say(text);
+  }
+
+  /** The biggest size at which the whole layer shows; when none does, the smallest, with the rest to scroll to. */
+  fit() {
+    const s = this.scroller;
+    const head = this.table.rows[0];
+    const maxHeight = parseFloat(getComputedStyle(s).maxHeight);
+    const size = fitZoom({
+      width: s.offsetWidth - 2, height: Number.isFinite(maxHeight) ? maxHeight : s.offsetHeight - 2,
+      columns: this.shape.width, rows: this.shape.height, gutterX: head.cells[0].offsetWidth, gutterY: head.offsetHeight,
+    });
+    this.setZoom(size);
+    const whole = s.scrollWidth <= s.clientWidth + 1 && s.scrollHeight <= s.clientHeight + 1;
+    this.say(whole ? `Fitted: cells are ${this.zoom} pixels and the whole layer is in view.`
+      : `Cells are ${this.zoom} pixels, the smallest size; this layer is bigger than the window, so scroll for the rest.`);
+  }
+
+  /** Ctrl and scroll over the grid zooms it (and a trackpad pinch, which arrives the same way). */
+  wheel(e) {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const r = this.scroller.getBoundingClientRect();
+    this.zoomBy(e.deltaY < 0 ? 1 : -1, { x: e.clientX - r.left, y: e.clientY - r.top }, true);
   }
 
   buildCellPanel() {
@@ -313,6 +585,7 @@ class Designer {
     if (this.notice) this.say(this.notice);
     this.changed({ reframe: true });
     this.updateDraftNote();
+    if (this.prefs.expanded) this.setExpanded(true);
   }
 
   // --- state changes ------------------------------------------------------------------------
@@ -399,8 +672,9 @@ class Designer {
     this.view?.show(this.shape, this.reframe);
     this.reframe = false;
     this.markView();
-    this.renderIssues();
-    this.renderPreview();
+    // The checks and the file text cost more than a frame on a big shape, so they wait for a pause in the editing.
+    clearTimeout(this.slowTimer);
+    this.slowTimer = setTimeout(() => { this.renderIssues(); this.renderPreview(); }, this.shape.cells.length > 2000 ? SLOW_DELAY_MS : 0);
   }
 
   markView() {
@@ -451,12 +725,23 @@ class Designer {
     for (const [key, input] of Object.entries(this.sizeInputs)) if (document.activeElement !== input) input.value = String(s[key]);
   }
 
+  /** Draws the layer. The cells are kept when the grid's size is the same, and only those that differ are touched: a big grid is slow to lay out again. */
   renderGrid() {
     const s = this.shape;
     const hadFocus = this.table.contains(document.activeElement);
+    const rebuilt = this.tds?.length !== s.height || this.tds[0]?.length !== s.width;
+    if (rebuilt) this.buildGrid();
+    for (let r = 0; r < s.height; r++) {
+      for (let c = 0; c < s.width; c++) this.paintCell(this.tds[r][c], E.cellAt(s, this.layer, r, c));
+    }
+    this.table.setAttribute("aria-label", `Layer ${this.layer} of ${s.layers}: ${s.width} columns by ${s.height} rows`);
+    if (hadFocus && rebuilt) this.cellEl(this.row, this.col).focus();
+  }
+
+  buildGrid() {
+    const s = this.shape;
     const head = el("tr", { role: "row" }, el("th", { scope: "col", "aria-label": "Row" }));
     for (let c = 0; c < s.width; c++) head.append(el("th", { scope: "col" }, String(c + 1)));
-    const rows = [el("thead", {}, head)];
     const body = el("tbody");
     this.tds = [];
     for (let r = 0; r < s.height; r++) {
@@ -464,16 +749,13 @@ class Designer {
       this.tds.push([]);
       for (let c = 0; c < s.width; c++) {
         const td = el("td", { role: "gridcell", "data-row": String(r), "data-col": String(c) });
-        this.paintCell(td, E.cellAt(s, this.layer, r, c));
         this.tds[r].push(td);
         tr.append(td);
       }
       body.append(tr);
     }
-    rows.push(body);
-    this.table.replaceChildren(...rows);
-    this.table.setAttribute("aria-label", `Layer ${this.layer} of ${s.layers}: ${s.width} columns by ${s.height} rows`);
-    if (hadFocus) this.cellEl(this.row, this.col).focus();
+    this.table.style.setProperty("--wxt-cols", String(s.width));
+    this.table.replaceChildren(el("thead", {}, head), body);
   }
 
   cellEl(row, col) {
@@ -482,15 +764,20 @@ class Designer {
 
   /** One cell's look, its label for a screen reader and its place in the tab order. */
   paintCell(td, cell) {
-    const d = E.describeCell(cell);
     const here = cell.row === this.row && cell.col === this.col;
-    td.className = `wxt-k-${d.kind}${here ? " wxt-sel" : ""}`;
+    if (td.wxtCell === cell && td.wxtHere === here) return; // cells are never changed in place, so the same object looks the same
+    td.wxtCell = cell;
+    td.wxtHere = here;
+    const d = E.describeCell(cell);
+    td.className = `wxt-k-${d.kind}${here ? " wxt-sel" : ""}${d.tags.length ? " wxt-marked" : ""}`;
     td.tabIndex = here ? 0 : -1;
     td.setAttribute("aria-selected", String(here));
     td.setAttribute("aria-label", `Row ${cell.row + 1}, column ${cell.col + 1}: ${d.text}`);
     td.title = d.text;
+    // The letter is the cell's text and the extras a CSS label; the content is touched only when it changes, as that is what costs a layout.
     const tags = d.tags.map((t) => t.slice(1).replace("#", "")).join(" ");
-    td.replaceChildren(el("span", { class: "wxt-letter", "aria-hidden": "true" }, d.kind), el("span", { class: "wxt-tags", "aria-hidden": "true" }, tags));
+    if (td.dataset.tags !== tags) td.dataset.tags = tags;
+    if (td.textContent !== d.kind) td.textContent = d.kind;
   }
 
   setLayer(n) {
@@ -541,6 +828,10 @@ class Designer {
       return;
     } else if (move) {
       this.select(this.row + move[0], this.col + move[1], true);
+    } else if (key === "+" || key === "=") {
+      this.zoomBy(1);
+    } else if (key === "-" || key === "_") {
+      this.zoomBy(-1);
     } else if (key === "Home") {
       this.select(this.row, 0, true);
     } else if (key === "End") {

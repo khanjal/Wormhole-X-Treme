@@ -35,6 +35,34 @@ export const isDark = () => document.body.getAttribute("data-md-color-scheme") =
 export const palette = () => (isDark() ? PALETTES.dark : PALETTES.light);
 export const hex = (n) => `#${n.toString(16).padStart(6, "0")}`;
 
+let legendCount = 0;
+
+/**
+ * The 3D stage with its legend: beside the stage when there is room for it, otherwise a Legend
+ * button over a corner of the stage that opens the list (Escape closes it again).
+ */
+export function stageWithLegend(stage, legend) {
+  const id = `wxt-legend-${++legendCount}`;
+  const toggle = el("button", { type: "button", class: "md-button wxt-legend-toggle", "aria-expanded": "false", "aria-controls": id }, "Legend");
+  const body = el("div", { class: "wxt-legend-body", id, tabindex: "0", role: "region", "aria-label": "Legend panel" },
+    el("h3", { class: "wxt-legend-title" }, "Legend"), legend);
+  const panel = el("div", { class: "wxt-legend-panel" }, toggle, body);
+  const box = el("div", { class: "wxt-stage-box" }, el("div", { class: "wxt-stage-row" }, stage, panel));
+  const setOpen = (open) => {
+    panel.classList.toggle("wxt-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+  };
+  toggle.addEventListener("click", () => setOpen(!panel.classList.contains("wxt-open")));
+  box.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !panel.classList.contains("wxt-open")) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setOpen(false);
+    if (panel.contains(document.activeElement)) toggle.focus();
+  });
+  return box;
+}
+
 /** Loads three.js; false (after saying so in the box) when the CDN cannot be reached. */
 export async function loadLibs(root) {
   try {

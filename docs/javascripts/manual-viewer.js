@@ -2,7 +2,7 @@
 // controls, the 3D view, a status line for screen readers and the text under it. A page's viewer
 // extends this and fills in buildParts, plan, show, describe and legend.
 import { ShapeError } from "./shape-parser.js";
-import { THREE, SceneBase, el, fetchManifest, fetchShape, palette, hex, reduceMotion } from "./scene-kit.js";
+import { THREE, SceneBase, el, fetchManifest, fetchShape, palette, hex, reduceMotion, stageWithLegend } from "./scene-kit.js";
 import { Player } from "./player.js";
 
 export class ManualViewer extends SceneBase {
@@ -53,8 +53,7 @@ export class ManualViewer extends SceneBase {
     this.info = el("div", { class: "wxt-info", id: "wxt-info" });
     this.extra = el("div", { class: "wxt-extra" });
     this.legend = el("ul", { class: "wxt-legend", "aria-label": "Legend" });
-    this.root.replaceChildren(bar, this.player.el, this.stage, this.status, this.help, this.info, this.extra,
-      el("h3", {}, "Legend"), this.legend);
+    this.root.replaceChildren(bar, this.player.el, stageWithLegend(this.stage, this.legend), this.status, this.help, this.info, this.extra);
     this.select.addEventListener("change", () => this.load(this.select.value).catch((e) => this.fail(e)));
     this.canvas.addEventListener("keydown", (e) => this.shortcut(e));
   }
