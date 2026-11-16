@@ -221,7 +221,9 @@ directly with Bukkit keep working: `wormhole.build.preview*`, `wormhole.list.min
 `wormhole.update.notify`.
 
 **An operator may do anything with a gate**, with or without a permissions plugin, and that
-outranks a negated node.
+outranks a negated node. The exceptions are nodes checked directly with Bukkit, which an operator
+can lose by negation: `wormhole.gates.unlimited`, `wormhole.build.mindistance.bypass` and
+`wormhole.export`, as with the other nodes listed above as working without Vault.
 
 **Gates**
 
@@ -246,8 +248,8 @@ outranks a negated node.
 | `wormhole.remove.own` | false | Nothing extra: a gate's owner may always take it apart by breaking it |
 | `wormhole.remove.all` | op | Breaking any gate's blocks, which takes it apart, and building in its opening. The `remove` commands themselves need `wormhole.config` |
 | `wormhole.config` | op | Settings, including `config -reload` and `lang export`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
-| `wormhole.network.use.<network>` | | Using gates on that network |
-| `wormhole.network.build.<network>` | | Building gates on that network |
+| `wormhole.network.use.<network>` | false | Using gates on that network |
+| `wormhole.network.build.<network>` | false | Building gates on that network |
 
 **Rings**
 
@@ -297,9 +299,9 @@ Worth knowing:
 
 - `permissions-support-disable` (default `false`) — keep the gate permissions in simple mode,
   ignoring their nodes, even when a Vault permission provider is installed.
-- With no provider found, the plugin runs in simple mode: basic use actions keep working and
-  advanced ones stay with operators and gate owners. Whether a provider is there is looked at
-  startup, and again whenever `permissions-support-disable` is changed in-game.
+- With no provider found, the plugin runs in simple mode: basic use actions (signs, dialling,
+  using a gate, `list` and `compass`) are open to everyone, and the rest stay with operators and
+  gate owners. Whether a provider is there is looked at on startup, and again whenever `permissions-support-disable` is changed in-game.
 
 ## Commands
 
