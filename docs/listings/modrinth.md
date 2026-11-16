@@ -252,7 +252,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Dialling the way the show does it.** Chevrons light in order — down the right side, up the left, the top one last — at half a second each on a Standard gate and a little slower on bigger ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
 - **Dial-spin patterns.** The dialling gate's inner ring turns before each chevron locks: `top` sweeps half the ring and reverses each glyph, `chevron` steps from each locked chevron to the next, `lap` takes a whole turn clockwise, `fill` lights the ring behind it as it goes, `pegasus` dials as an Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two more, and `none`, the default, turns it off. A gate, or a whole material group, can pick its own.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
-- **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped files update themselves when you have not edited them, and never overwrite one you have.
+- **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal (sign-dial variants of three of them ship too), the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped files update themselves when you have not edited them, and never overwrite one you have.
 - **Material groups.** A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build `Standard` in obsidian or in lapis and get a different-looking gate from one shape file. Several groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
 - **A building assistant.** `/wormhole gate build <shape>` stands the shape full size in front of you, seen by you alone and made of no blocks, so you can build straight into it. Then: `-materials` lists what it will cost you block by block; `-guide` draws what is still to place, outlines a wrong block in red and makes a correct one disappear; `-layer` steps through a deep gate a layer at a time; `-activate` test-dials it; `-iris`, `-chevrons`, `-dhd` and `-material` redress it; `-share` shows it to another player or the whole world; and `-place` builds it for real.
 - **An iris, with remote codes.** A closed iris bounces anyone dialling in, and sweeps shut a ring at a time, or as a spiral, rows or columns. Give a gate an IDC and callers can open it from the other end.
@@ -265,7 +265,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 
 ![Rings deploying](https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/rings/ring-cycle.webp)
 
-- **Built from slabs, in two patterns.** Lay a circle — 16 slabs across 7, or 12 across 6 — stand inside it and run `/wormhole ring create`. Do it again elsewhere in the same world and the two are paired. A refusal says exactly what is wrong, and `ring cancel` gives your slabs back.
+- **Built from slabs, in two patterns.** Lay a circle — 16 slabs across 7, or 12 across 6 — stand inside it and run `/wormhole ring create`. Do it again elsewhere in the same world and the two are paired. A refusal says exactly what is wrong, and `ring cancel` forgets a half-built pair, leaving the circle where you laid it.
 - **The material is whatever you laid.** Deepslate slabs rise as deepslate. Every end can then be re-dressed on its own: `ring` (any slab, including one a data pack adds), `light` for the pad while it works, `flash` for the light running through the stack, and `built` for what `reset` puts back.
 - **Two deployment styles, per end.** `CONCURRENT` sends several rings up together; `SEQUENTIAL` raises them one at a time. Set the default server-wide, or `ring edit style fast|slow` one end at a time.
 - **Floor rings and ceiling rings.** Bottom slabs on a floor make a ring that rises out of it; top slabs under a ceiling make one whose rings fall to the floor around you.
@@ -314,12 +314,12 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
-- **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
+- **PlaceholderAPI**, if you want it: gates total, gates open, gates owned, the nearest gate, and a player's own trip, gate-built, ring and beam counts, for a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
 - **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building and using gates in a region. Off until `worldguard-enabled` is set.
 - **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 - **BlueMap, squaremap and Pl3xMap**, if you want one: the same marks on each, with every world's layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`, `squaremap-enabled` or `pl3xmap-enabled` is set.
-- **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled. `metrics-enabled: false` turns it off.
+- **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled, plus the usual bStats server details (player count, online mode, Java version, operating system). `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
@@ -425,8 +425,8 @@ with no gallery section.
 
 | Image | Title | Description |
 |---|---|---|
-| `docs/images/gates/gate-shapes.png` | The shapes that ship | Minimal, Standard, Large, Grand, Massive and Horizontal, built side by side from one camera position. **Feature this one.** |
-| `docs/images/gates/gate-shapes-active.png` | The shapes, dialled | The same set with a wormhole open. |
+| `docs/images/gates/gate-shapes.png` | The shapes that ship | Minimal, Large, Grand and Massive, built side by side. Standard and Horizontal are in the pictures below. **Feature this one.** |
+| `docs/images/gates/gate-shapes-active.png` | The shapes, dialled | The same four with a wormhole open. |
 | `docs/images/gates/gate-horizontal.png` | Horizontal lies flat | Dropped into rather than walked through. Idle and dialled. |
 | `docs/images/gates/standard-palettes.png` | One shape, several palettes | The same Standard gate built in each material group that ships. The shape file is identical; only the blocks differ. |
 | `docs/images/gates/standard-palettes-active.png` | The palettes, dialled | |
@@ -455,8 +455,9 @@ Published 2026-09-19 at <https://modrinth.com/plugin/wormhole-x-treme>, withheld
 listing in late October 2026 — see [Status](#status-unlisted-by-modrinths-moderators-and-accepted).
 Releases still go up here for the update check. What is left:
 
-1. **Check which version the project carries.** It carried `1.12.0`, the newest release, on
-   2026-10-31.
+1. **Check which version the project carries** against the newest
+   [GitHub release](https://github.com/khanjal/Wormhole-X-Treme/releases), and upload the newer
+   jar if the page is behind.
 2. **Check the live page for the logo now, not at the next upload.** The page was set up on
    2026-09-19 from the copy before Rule 6 was read, which opened with `logo-banner.svg` and
    rendered the icon from `logo.svg`. If either is on the page, replace the icon (step 4) and
@@ -470,6 +471,6 @@ Releases still go up here for the update check. What is left:
    lost, re-crop from the same capture.
 5. **Do not add the banner back.** Whether Modrinth's renderer handles SVG is beside the point
    now; `logo-banner.svg` is AI-authored and may not go on the page at all.
-6. **The animated WebP captures** are 124 KB to 792 KB each. They serve with the right content
+6. **The animated WebP captures** are each under 1 MB. They serve with the right content
    type from `raw.githubusercontent.com`. If any fails to render, upload it to the gallery and
    point the description at the gallery URL.

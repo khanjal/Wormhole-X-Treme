@@ -48,8 +48,9 @@ Four ways to get somewhere, each a different trade between what you build and wh
 
 - **Everything travels** — minecarts and boats with their passengers, horses with their riders,
   arrows and ender pearls mid-flight, and mobs and items that wander into an open gate.
-- **Configured in-game** — `/wormhole config` changes any setting on the spot, with no reload.
-- **Six gate shapes** in any palette: build `Standard` in obsidian or in lapis and get a
+- **Configured in-game** — `/wormhole config` changes nearly any setting on the spot, with no reload; the few that wait for a
+  restart are named in the [server guide](docs/guide/SERVER.md).
+- **Six gate shapes** (nine shape files, counting the sign-dial variants) in any palette: build `Standard` in obsidian or in lapis and get a
   different-looking gate from one shape file.
 - **Mirrors that show a room** — walk up to one and it reflects its own room in real blocks;
   right-click it and it shows another world's.
@@ -120,7 +121,7 @@ played one by one. [Details](docs/guide/SERVER.md#compatibility)
 
 ## Building from source
 
-JDK 17 and Maven 3.8+.
+JDK 17 and Maven.
 
 ```bash
 mvn -DskipTests package

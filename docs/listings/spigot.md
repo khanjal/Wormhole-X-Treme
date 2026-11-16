@@ -90,7 +90,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]Dialling the way the show does it.[/B] Chevrons light in order — down the right side, up the left, the top one last — at half a second each on a Standard gate and a little slower on bigger ones. The last one holds two seconds and locks in with its own sound. Then the kawoosh.
 [*][B]Dial-spin patterns.[/B] The dialling gate's inner ring turns before each chevron locks: [ICODE]top[/ICODE] sweeps half the ring and reverses each glyph, [ICODE]chevron[/ICODE] steps from each locked chevron to the next, [ICODE]lap[/ICODE] takes a whole turn clockwise, [ICODE]fill[/ICODE] lights the ring behind it as it goes, [ICODE]pegasus[/ICODE] dials as an Atlantis gate does, [ICODE]universe[/ICODE] as Destiny's, [ICODE]chase[/ICODE] and [ICODE]overshoot[/ICODE] add two more, and [ICODE]none[/ICODE], the default, turns it off. A gate, or a whole material group, can pick its own.
 [*][B]An eighth chevron[/B] locks when the destination is in another world, after the top one.
-[*][B]The gate shapes that ship[/B] — Standard, Large, Grand, Massive, Minimal and Horizontal, the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and [ICODE]/wormhole gate shapes reload[/ICODE] tries it without a restart. Shipped files update themselves when you have not edited them, and never overwrite one you have.
+[*][B]The gate shapes that ship[/B] — Standard, Large, Grand, Massive, Minimal and Horizontal (sign-dial variants of three of them ship too), the last lying flat to be dropped into rather than walked through. Shapes are plain text files: copy one, edit the grid, and [ICODE]/wormhole gate shapes reload[/ICODE] tries it without a restart. Shipped files update themselves when you have not edited them, and never overwrite one you have.
 [*][B]Material groups.[/B] A shape is geometry; a group is what it is built from — frame, portal, iris, chevron, light and sign block. Build [ICODE]Standard[/ICODE] in obsidian or in lapis and get a different-looking gate from one shape file. Several groups ship, you can write as many as you like, and a gate framed in a material no group declares gets one added for it automatically. Per-gate overrides beat the shape, which beats the group.
 [*][B]A building assistant.[/B] [ICODE]/wormhole gate build <shape>[/ICODE] stands the shape full size in front of you, seen by you alone and made of no blocks, so you can build straight into it. Then: [ICODE]-materials[/ICODE] lists what it will cost you block by block; [ICODE]-guide[/ICODE] draws what is still to place, outlines a wrong block in red and makes a correct one disappear; [ICODE]-layer[/ICODE] steps through a deep gate a layer at a time; [ICODE]-activate[/ICODE] test-dials it; [ICODE]-iris[/ICODE], [ICODE]-chevrons[/ICODE], [ICODE]-dhd[/ICODE] and [ICODE]-material[/ICODE] redress it; [ICODE]-share[/ICODE] shows it to another player or the whole world; and [ICODE]-place[/ICODE] builds it for real.
 [*][B]An iris, with remote codes.[/B] A closed iris bounces anyone dialling in, and sweeps shut a ring at a time, or as a spiral, rows or columns. Give a gate an IDC and callers can open it from the other end.
@@ -106,7 +106,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [CENTER][IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/rings/ring-cycle.webp[/IMG][/CENTER]
 
 [LIST]
-[*][B]Built from slabs, in two patterns.[/B] Lay a circle — 16 slabs across 7, or 12 across 6 — stand inside it and run [ICODE]/wormhole ring create[/ICODE]. Do it again elsewhere in the same world and the two are paired. A refusal says exactly what is wrong, and [ICODE]ring cancel[/ICODE] gives your slabs back.
+[*][B]Built from slabs, in two patterns.[/B] Lay a circle — 16 slabs across 7, or 12 across 6 — stand inside it and run [ICODE]/wormhole ring create[/ICODE]. Do it again elsewhere in the same world and the two are paired. A refusal says exactly what is wrong, and [ICODE]ring cancel[/ICODE] forgets a half-built pair, leaving the circle where you laid it.
 [*][B]The material is whatever you laid.[/B] Deepslate slabs rise as deepslate. Every end can then be re-dressed on its own: [ICODE]ring[/ICODE] (any slab, including one a data pack adds), [ICODE]light[/ICODE] for the pad while it works, [ICODE]flash[/ICODE] for the light running through the stack, and [ICODE]built[/ICODE] for what [ICODE]reset[/ICODE] puts back.
 [*][B]Two deployment styles, per end.[/B] [ICODE]CONCURRENT[/ICODE] sends several rings up together; [ICODE]SEQUENTIAL[/ICODE] raises them one at a time. Set the default server-wide, or [ICODE]ring edit style fast|slow[/ICODE] one end at a time.
 [*][B]Floor rings and ceiling rings.[/B] Bottom slabs on a floor make a ring that rises out of it; top slabs under a ceiling make one whose rings fall to the floor around you.
@@ -162,12 +162,12 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]Works with or without a permissions plugin.[/B] Vault and LuckPerms if you have them, a built-in fallback if you do not.
 [*][B]Plain YAML storage[/B], one file per gate. No database.
 [*][B]Events for other plugins[/B] to watch or cancel travel, and to hear a wormhole open and close.
-[*][B]PlaceholderAPI[/B], if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
+[*][B]PlaceholderAPI[/B], if you want it: gates total, gates open, gates owned, the nearest gate, and a player's own trip, gate-built, ring and beam counts, for a scoreboard or tab list.
 [*][B]CoreProtect[/B], if you want it: gate and ring construction is logged so an admin can roll it back. Off until [ICODE]coreprotect-enabled[/ICODE] is set.
 [*][B]WorldGuard[/B], if you want it: [ICODE]wormhole-build[/ICODE] and [ICODE]wormhole-use[/ICODE] region flags refuse building and using gates in a region. Off until [ICODE]worldguard-enabled[/ICODE] is set.
 [*][B]Dynmap[/B], if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until [ICODE]dynmap-enabled[/ICODE] is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 [*][B]BlueMap, squaremap and Pl3xMap[/B], if you want one: the same marks on each, with every world's layers kept as worlds load and put back after a map reload. Off until [ICODE]bluemap-enabled[/ICODE], [ICODE]squaremap-enabled[/ICODE] or [ICODE]pl3xmap-enabled[/ICODE] is set.
-[*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled. [ICODE]metrics-enabled: false[/ICODE] turns it off.
+[*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled, plus the usual bStats server details (player count, online mode, Java version, operating system). [ICODE]metrics-enabled: false[/ICODE] turns it off.
 [*][B]Update check[/B]: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. [ICODE]update-check: false[/ICODE] turns it off.
 [*][B]Importer[/B] for gates from older Wormhole X-Treme forks' SQLite databases.
 [/LIST]
@@ -210,7 +210,7 @@ CI builds and tests each version and boots the built jar on a real server: Paper
 
 [SIZE=5][B]Gallery[/B][/SIZE]
 
-[B]The shapes that ship[/B], built side by side from one camera position — Minimal, Standard, Large, Grand, Massive and Horizontal.
+[B]The shapes that ship[/B], built side by side — Minimal, Large, Grand and Massive. Standard and Horizontal are in the pictures below.
 
 [CENTER][IMG]https://raw.githubusercontent.com/khanjal/Wormhole-X-Treme/main/docs/images/gates/gate-shapes.png[/IMG][/CENTER]
 
@@ -283,7 +283,7 @@ The code is all there under GPL-3.0. Read it, fork it, or tell me where it is wr
 - **The banner is an SVG and probably will not render.** `raw.githubusercontent.com` serves it as
   `image/svg+xml` correctly, but XenForo generally refuses SVG in `[IMG]`. Upload a PNG render to
   the resource gallery and use that URL, or drop the banner line and let the title carry it.
-- **The captures are animated WebP**, 124 KB to 792 KB, served with the right content type. If
+- **The captures are animated WebP**, each under 1 MB, served with the right content type. If
   they fail while the static PNGs work, it is Spigot's image proxy refusing animated WebP, and the
   fix is uploading them to the resource gallery.
 - **The gallery is about 1.9 MB of PNG.** If the page feels heavy, cut `gate-shapes-active.png`
@@ -364,11 +364,12 @@ is an upload in the first place — see [Fields](#fields).
 Published 2026-09-19 at <https://www.spigotmc.org/resources/wormhole-x-treme.138936/>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the resource carries.** `v1.13.0` is the newest release. Upload the newer
-   jar and update the Version field if it has not been done.
+1. **Check which version the resource carries** against the newest
+   [GitHub release](https://github.com/khanjal/Wormhole-X-Treme/releases). Upload the newer
+   jar and update the Version field if it is behind.
 2. **`plugin.yml`'s description is still the 2011 text** — "Splash Effect, IDC, Iris, configurable
    Wormhole materials, and much much more." It is what shows in `/plugins` and in server panels,
    and it names none of rings, beaming or mirrors. Not a blocker for the form, but the first thing
    anyone who installs from Spigot reads.
-3. **`pom.xml:35` still carries `<url>http://www.wormhole-xtreme.com</url>`** from the original
+3. **`pom.xml`'s `<url>` still carries `http://www.wormhole-xtreme.com`** from the original
    project. It did not resolve when checked. Worth cleaning out.

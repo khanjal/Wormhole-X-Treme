@@ -5,8 +5,9 @@ somebody is going. Everything a server owner needs is in the [guide](guide/READM
 subsystem is put together is in [GATES.md](GATES.md), [RINGS.md](RINGS.md), [BEAMS.md](BEAMS.md)
 and [MIRRORS.md](MIRRORS.md).
 
-The plugin needs **Java 17** and runs on Minecraft **1.20 through 26.3**. It is compiled against
-the oldest supported API, so everything here works across that whole range. Beaming and mirrors
+The plugin needs **Java 17** and runs on Minecraft **1.20 through 26.3**. It is built against
+the 1.20.4 API, and CI also builds and tests it against 1.20 and every later version in the
+README's range, so everything here works across that whole range. Beaming and mirrors
 raise no events yet.
 
 ## Depending on the plugin
@@ -23,7 +24,9 @@ guard your listener registration on the plugin being present.
 
 ## Events
 
-Every event lives in `com.wormhole_xtreme.wormhole.events`. They are ordinary Bukkit events:
+Every event lives in `com.wormhole_xtreme.wormhole.events`. The gate types they return, such as
+`Stargate`, are in `com.wormhole_xtreme.wormhole.model`, and `RingTravelEvent`'s `Ring` and
+`RingPair` in `com.wormhole_xtreme.wormhole.model.ring`. They are ordinary Bukkit events:
 register a `Listener`, annotate with `@EventHandler`, and set `ignoreCancelled = true` if you
 only care about trips nobody else has already stopped.
 
@@ -106,7 +109,8 @@ the wormhole.
 `StargatePlayerTravelEvent` fires once every check this plugin makes has passed — permission,
 iris code, cooldown, one-way, same-world — and before anything has moved. `getStargate()` is the
 gate being entered, `getDestination()` is where it leads, and `getArrival()` is the exact spot
-the player would land.
+the player would land. For a player on foot that is a safe spot searched near the far gate; for a
+rider it is the far gate's own arrival point, not a searched one.
 
 ```java
 @EventHandler
@@ -121,7 +125,9 @@ public void onTravel(final StargatePlayerTravelEvent event)
 
 It fires for a player on foot and for one riding anything — a horse, a minecart, a boat. It does
 not fire for the vehicle itself, nor for anything travelling on its own, so cancelling stops the
-player rather than the world around them.
+player rather than the world around them. A vehicle with riders is the one case where a cancel
+reaches further: the event fires once for each player aboard, and one listener cancelling it holds
+the whole vehicle and everyone in it.
 
 A cancelled traveller is held, not moved. If they were walking in they are kept out; if they were
 already standing in the portal they stay free to walk away, since refusing every move of someone
@@ -145,7 +151,9 @@ the other.
 Cancelling takes that player out of the trip and leaves everybody else in it: the rings still
 fire, and they stay put while the others go. There is no way to cancel a whole cycle, because by
 that point the rings are up and coming down again regardless. It fires only for players; mobs,
-items and vehicles ride along as cargo and raise nothing.
+items and vehicles ride along as cargo and raise nothing. `getPlayer()` is the traveller,
+`getFrom()` the ring end they are standing in, `getTo()` the end they would arrive at, and
+`getPair()` the pair carrying them.
 
 ```java
 @EventHandler

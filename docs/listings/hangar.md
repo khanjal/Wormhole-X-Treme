@@ -49,7 +49,7 @@ diverges from the others.
 | Discord **(confirmed)** | blank |
 | Donations **(confirmed)** | blank |
 | Dependencies **(confirmed)** | leave every row empty |
-| Avatar **(assumed)** | PNG rendered from `docs/images/logo.svg` — **but see the AI-image note below** |
+| Avatar **(assumed)** | PNG rendered from `docs/images/logo.svg` — Hangar has no AI rule, see the note at the top |
 
 **On the category.** Hangar's list is shorter than Modrinth's and has no Transportation
 **(assumed)** — Gameplay is the closest honest fit, with Misc the fallback if Gameplay is taken to
@@ -227,12 +227,12 @@ you turn them on.
 - **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
-- **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for a scoreboard or tab list.
+- **PlaceholderAPI**, if you want it: gates total, gates open, gates owned, the nearest gate, and a player's own trip, gate-built, ring and beam counts, for a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it back. Off until `coreprotect-enabled` is set.
 - **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building and using gates in a region. Off until `worldguard-enabled` is set.
 - **Dynmap**, if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until `dynmap-enabled` is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 - **BlueMap, squaremap and Pl3xMap**, if you want one: the same marks on each, with every world's layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`, `squaremap-enabled` or `pl3xmap-enabled` is set.
-- **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled. `metrics-enabled: false` turns it off.
+- **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled, plus the usual bStats server details (player count, online mode, Java version, operating system). `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. `update-check: false` turns it off.
 - **Importer** for gates from older Wormhole X-Treme forks' SQLite databases.
 
@@ -354,11 +354,12 @@ Hangar's form has no version title; the version string is the title.
 Published 2026-09-19 at <https://hangar.papermc.io/khanjal/Wormhole-X-Treme>. The jar blocker is gone: `v1.7.0` and `v1.7.1` are both released,
 so there is a jar to upload. What is left:
 
-1. **Check which version the project carries.** `v1.13.0` is the newest release.
-2. **Render the avatar** from `docs/images/logo.svg`, once the open AI-image question at the top
-   of this file is settled; if Hangar bans AI images, crop it from a capture instead. Size unverified; the 256×256 rendered for
-   Spigot is a reasonable starting point.
+1. **Check which version the project carries** against the newest
+   [GitHub release](https://github.com/khanjal/Wormhole-X-Treme/releases), and upload the newer
+   jar if the project is behind.
+2. **Render the avatar** from `docs/images/logo.svg`; Hangar has no AI rule (see the top of this
+   file). Size unverified; the 256×256 rendered for Spigot is a reasonable starting point.
 3. **Read the platform picker** and settle the Paper-only question properly, per the note above.
 4. **Confirm the keywords** on the form, per the provenance note above.
-5. **Point the four subpage links** in the main page at the subpages once they exist. They are
-   `#` placeholders as written.
+5. **Link the four systems** in the overview table to their subpages once they exist (the
+   comment under the table says where).
