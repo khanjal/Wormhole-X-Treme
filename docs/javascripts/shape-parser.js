@@ -101,6 +101,9 @@ function parseCell(mods, geometry) {
   return cell;
 }
 
+// The keys Stargate3DShape applies; any other *_MATERIAL line is ignored there too.
+const MATERIAL_KEYS = new Set(["PORTAL_MATERIAL", "IRIS_MATERIAL", "STARGATE_MATERIAL", "ACTIVE_MATERIAL", "CHEVRON_MATERIAL", "SIGN_MATERIAL"]);
+
 /** "KEY = value;" to "KEY=value", as normaliseSetting does. */
 function normaliseSetting(raw) {
   let s = raw.trim();
@@ -113,7 +116,7 @@ function applySetting(shape, rawLine) {
   const parts = javaSplit(line, "=");
   if (parts.length <= 1) return;
   const value = parts[1];
-  if (/^[A-Z]+_MATERIAL=/.test(line)) shape.materials[parts[0]] = value;
+  if (MATERIAL_KEYS.has(parts[0])) shape.materials[parts[0]] = value;
   else if (line.includes("LIGHT_TICKS=")) shape.lightTicks = integer(value, "LIGHT_TICKS");
   else if (line.includes("WOOSH_TICKS=")) shape.wooshTicks = integer(value, "WOOSH_TICKS");
   else if (line.startsWith("REDSTONE_ACTIVATED=")) shape.redstoneActivated = value.toLowerCase() === "true";

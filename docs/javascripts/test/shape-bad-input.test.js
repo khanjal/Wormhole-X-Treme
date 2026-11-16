@@ -97,3 +97,8 @@ test("the grid width counts [] cells, as measureGrid does", () => {
 test("a very long row is refused rather than scanned", () => {
   refused(shape(`Layer#1=\n[S:EP]\n\nLayer#2=\n${"[".repeat(LIMITS.row + 1)}\n\n`), /characters/);
 });
+
+test("a *_MATERIAL key the plugin does not know is ignored, as its loader ignores it", () => {
+  const parsed = parseShape("Name=T\nVersion=2\nFOO_MATERIAL=STONE\nCHEVRON_MATERIAL=GOLD_BLOCK\nGateShape=\n\nLayer#1=\n[S:EP]\n\n");
+  assert.deepEqual(Object.keys(parsed.materials), ["CHEVRON_MATERIAL"]);
+});
