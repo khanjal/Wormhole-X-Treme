@@ -138,7 +138,19 @@ wait for a restart. It needs `wormhole.config`.
 
 **A change applies from the next time it is used.** A wormhole already open closes on the timeout
 it opened with, a cooldown already running ends when it was going to, and a gate's name sign keeps
-its colours until it is next written. Nothing waits for a restart.
+its colours until it is next written. Settings do not wait for a restart, with these exceptions:
+
+- `gate-material-groups` edited in `config.yml` (the groups are not settings; `config -reload`
+  leaves them).
+- `worldguard-enabled` turned on, when the flags were not registered at startup; turning it off
+  applies at once.
+- `update-check`, which is only asked at startup.
+- A setting the command or the reload reports as saved but not applied: it applies at the next
+  restart.
+- A CoreProtect installed while the server runs.
+
+Shape files do not need one: `/wormhole gate shapes reload` reads them again. Language files are
+read again by `config -reload`.
 
 ### Pets
 
@@ -714,7 +726,7 @@ collected is public, on [its bStats page](https://bstats.org/plugin/bukkit/Wormh
 | Setting | Default | What it does |
 |---|---|---|
 | `metrics-enabled` | `true` | `false` stops it for this plugin, at once when set with `/wormhole config metrics-enabled false`. |
-| `update-check` | `true` | At startup, asks Modrinth for the newest release listed for this Minecraft version, or GitHub's latest release if Modrinth does not answer or has none for this version; if that release is newer than the one running, it says so once in the log and to players with `wormhole.update.notify` as they join. It never downloads anything. `false` stops it from the next restart. |
+| `update-check` | `true` | Read at startup, so a change waits for a restart. At startup, asks Modrinth for the newest release listed for this Minecraft version, or GitHub's latest release if Modrinth does not answer or has none for this version; if that release is newer than the one running, it says so once in the log and to players with `wormhole.update.notify` as they join. It never downloads anything. `false` stops it from the next restart. |
 
 What is sent, twice an hour:
 
