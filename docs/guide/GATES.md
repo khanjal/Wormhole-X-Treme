@@ -396,8 +396,8 @@ closed gets you nowhere at all, dialled or idle.
     gate's owner may do this without `wormhole.config`.
 
   `gate edit <gate> idc` is refused on a gate that dials by sign or has no iris lever. `gate complete`
-with `idc=` makes no such check: it stores the code and places the lever, at the shape's `:IA`
-marker or just below the DHD, on a sign gate too.
+  with `idc=` makes no such check: it stores the code and places the lever, at the shape's `:IA`
+  marker or just below the DHD, on a sign gate too.
 
 ### How it arrives
 
@@ -701,8 +701,8 @@ the setting does not touch them.
 
 | Command | What it does |
 |---|---|
-| `gate list [network\|mine\|owner <player>\|top]` | Gates you can see; `mine` and `owner` narrow them to one owner, `top` shows the busiest by trips |
-| `gate go <gate>` | Teleport to it |
+| `gate list [network\|mine\|owner <player>\|top]` | Gates you can see; `mine` and `owner` narrow them to one owner, `top` shows the busiest by trips; needs `wormhole.config`, and the top-level `/wormhole list` takes `wormhole.list` instead |
+| `gate go <gate>` | Teleport to it; needs `wormhole.config`, and the top-level `/wormhole go` takes `wormhole.go` instead |
 | `gate dial <from> <to> [idc]` | Open a wormhole from one named gate to another, under the rules `/dial` keeps; needs `wormhole.config`, and a player also needs the right to dial from that gate. A gate already open, or being dialled, is refused. |
 | `gate force <gate\|-all>` | Close a gate, or every gate, at once: shuts the wormhole, darkens the chevrons and opens the iris. Needs `wormhole.config` |
 
