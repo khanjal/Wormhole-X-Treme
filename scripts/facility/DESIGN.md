@@ -277,7 +277,7 @@ water lane and a run-up lane laid from the Motor Pool door to the stand.
 | group | Standard, Atlantis, Universe, MilkyWay, Diamond (autodiscovered from `Lab.shape`, tests G3) |
 | chevrons | frame (classic), chevron block (REDSTONE_LAMP / COPPER_BULB on 1.21+) |
 | how built | preview place, by hand (the bot lays every block from `preview needs`), console form |
-| dial | DHD + /dial, sign right-click, sign left-click, redstone lever, console `gate dial`, `gate force` |
+| dial | DHD + /dial, sign right-click, sign left-click, redstone lever, console `gate dial` (`gate force` is not a way to dial: it closes a gate and opens its iris, and the chambers use it to reset) |
 | spin | default, and each of the nine patterns via `edit spin` |
 | destination | Relay, Range (nether), Annex (End), Relay-busy (Relay already dialled elsewhere: expect refusal), self |
 | traveller | walk, minecart, boat, horse, camel, pig, donkey, llama, strider, wolf, cat, parrot, sitting wolf (must stay), projectile (below), item dropped by the bot (Q at the opening), item thrown by a dispenser, item stack from a hopper-minecart spill, XP, armour stand, item frame (must not), zombie |
@@ -485,7 +485,7 @@ The console, when you say `!` or click **Console** on the welcome line:
  ── GATE DYNAMICS · G1 Test Stand ──────────────────── idle · last: PASS 14:02
    shape     [Standard] Large Grand Massive Minimal Horizontal Standard+sign …
    group     [Standard] Atlantis Universe MilkyWay Diamond
-   dial      [DHD] sign-right sign-left redstone console force
+   dial      [DHD] sign-right sign-left redstone console
    traveller [walk] minecart boat horse … wolf cat parrot arrow pearl zombie …
    far iris  [open] shut+code shut-no-code shut+arrow
    ▶ Run   ◇ Stage   ↺ Reset   ⌖ Watch   ⟳ Again   ✎ Matrix

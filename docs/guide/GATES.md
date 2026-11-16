@@ -394,8 +394,9 @@ closed gets you nowhere at all, dialled or idle.
   - `gate edit <gate> idc <code>` later, and `gate edit <gate> idc -clear` to remove it. A
     gate's owner may do this without `wormhole.config`.
 
-  `gate edit <gate> idc` is refused on a gate that dials by sign or has no iris lever; `gate complete`
-with `idc=` makes no such check.
+  `gate edit <gate> idc` is refused on a gate that dials by sign or has no iris lever. `gate complete`
+with `idc=` makes no such check: it stores the code and places the lever, at the shape's `:IA`
+marker or just below the DHD, on a sign gate too.
 
 ### How it arrives
 
