@@ -8,6 +8,8 @@ on:
       - ".github/workflows/docs.yml"
       - "src/main/resources/shapes/**"
       - "scripts/copy-docs-shapes.sh"
+      - "src/main/java/com/wormhole_xtreme/wormhole/model/Stargate3DShape.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/model/StargateShapeLayer.java"
   push:
     branches:
       - main
@@ -17,12 +19,15 @@ on:
       - ".github/workflows/docs.yml"
       - "src/main/resources/shapes/**"
       - "scripts/copy-docs-shapes.sh"
+      - "src/main/java/com/wormhole_xtreme/wormhole/model/Stargate3DShape.java"
+      - "src/main/java/com/wormhole_xtreme/wormhole/model/StargateShapeLayer.java"
 
 # Pages takes one deployment at a time; a newer push waits its turn rather than cutting a
 # deployment short, and a pull request's build is its own group.
 concurrency:
   group: docs-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || 'pages' }}
-  cancel-in-progress: false
+  # Only a pull request's build is cut short by a newer push to it; the Pages group never is.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Read-only unless a job says otherwise.
 permissions:

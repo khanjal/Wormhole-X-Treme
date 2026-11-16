@@ -1,8 +1,10 @@
 // The gate shape viewer on the User manual page: reads the real .shape files copied to
 // assets/shapes/ by scripts/copy-docs-shapes.sh and draws them with three.js.
-import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { parseShape, describeShape } from "./shape-parser.js";
+import { parseShape, describeShape, ShapeError } from "./shape-parser.js";
+
+// Loaded in main() so a failed CDN fetch can be reported inside the viewer box.
+let THREE;
+let OrbitControls;
 
 const SHAPES_URL = new URL("../assets/shapes/", import.meta.url);
 const TICK_MS = 50;
@@ -40,12 +42,17 @@ const isDark = () => document.body.getAttribute("data-md-color-scheme") === "sla
 const palette = () => (isDark() ? PALETTES.dark : PALETTES.light);
 const hex = (n) => `#${n.toString(16).padStart(6, "0")}`;
 
+/** How many leading cells (sorted by order) belong to a step at or before `order`. */
+const through = (sorted, key, order) => sorted.filter((c) => c[key] <= order).length;
+
 class GateViewer {
   constructor(root) {
     this.root = root;
     this.runId = 0;
+    this.loadId = 0;
     this.state = "idle";
     this.parts = null;
+    this.litUpTo = 0;
     this.buildUi();
     this.buildScene();
     new MutationObserver(() => this.applyPalette()).observe(document.body,
@@ -72,12 +79,13 @@ class GateViewer {
     this.stage.append(this.canvas);
     this.status = el("p", { class: "wxt-status", role: "status", "aria-live": "polite" });
     this.help = el("p", { class: "wxt-help" },
-      "Drag to orbit, scroll or pinch to zoom. With the 3D view focused: arrow keys rotate, + and − zoom, 0 resets the view.");
+      "Drag to orbit, scroll or pinch to zoom. With the 3D view focused: arrow keys rotate, + and − zoom, 0 resets the view. " +
+      "The view starts from the side the dialling switch is on, as a player standing at the gate sees it.");
     this.info = el("div", { class: "wxt-info" });
     this.legend = el("ul", { class: "wxt-legend", "aria-label": "Legend" });
     this.root.replaceChildren(bar, this.stage, this.status, this.help, this.info,
       el("h3", {}, "Legend"), this.legend);
-    this.select.addEventListener("change", () => this.load(this.select.value));
+    this.select.addEventListener("change", () => this.load(this.select.value).catch((e) => this.fail(e)));
     this.canvas.addEventListener("keydown", (e) => this.key(e));
   }
 
@@ -93,11 +101,24 @@ class GateViewer {
     this.controls = new OrbitControls(this.camera, this.canvas);
     this.controls.enableDamping = false;
     this.controls.addEventListener("change", () => this.requestRender());
+    // OrbitControls sets "none"; a vertical swipe should still scroll the page on a phone.
+    this.canvas.style.touchAction = "pan-y";
+    // Geometries are shared by every shape; only materials and meshes are made per shape.
     this.cube = new THREE.BoxGeometry(0.92, 0.92, 0.92);
+    this.markerGeometries = {
+      plate: new THREE.BoxGeometry(0.8, 0.5, 0.15),
+      sphere: new THREE.SphereGeometry(0.28, 16, 12),
+      cone: new THREE.ConeGeometry(0.3, 0.6, 12),
+      cylinder: new THREE.CylinderGeometry(0.2, 0.2, 0.5, 12),
+      octa: new THREE.OctahedronGeometry(0.33),
+      cube: new THREE.BoxGeometry(0.4, 0.4, 0.4),
+    };
   }
 
   async start() {
-    const manifest = await (await fetch(new URL("manifest.json", SHAPES_URL))).json();
+    const res = await fetch(new URL("manifest.json", SHAPES_URL));
+    if (!res.ok) throw new Error(`the shape list answered ${res.status}`);
+    const manifest = await res.json();
     for (const s of manifest.shapes) this.select.append(el("option", { value: s.file }, s.name));
     const wanted = decodeURIComponent(location.hash.slice(1));
     const match = manifest.shapes.find((s) => s.name === wanted);
@@ -105,10 +126,19 @@ class GateViewer {
     await this.load(this.select.value);
   }
 
+  fail(error) {
+    this.say(error instanceof ShapeError ? `This shape cannot be shown: ${error.message}` : `Could not load the shape: ${error.message}`);
+  }
+
   async load(file) {
+    const id = ++this.loadId;
+    const res = await fetch(new URL(file, SHAPES_URL));
+    if (!res.ok) throw new Error(`${file} answered ${res.status}`);
+    const text = await res.text();
+    if (id !== this.loadId) return; // a newer pick has overtaken this one
+    const shape = parseShape(text);
     this.runId++;
-    const text = await (await fetch(new URL(file, SHAPES_URL))).text();
-    this.shape = parseShape(text);
+    this.shape = shape;
     this.disposeParts();
     this.buildParts();
     this.describe();
@@ -116,9 +146,11 @@ class GateViewer {
     this.setState("idle");
   }
 
-  // Cell position in the scene: layer 1 is nearest the camera, the file's top row is highest.
+  // Cell position in the scene. The file reads left to right as a player sees it standing on the
+  // high-layer side (where the activation switch faces), so that side is the camera's: high
+  // layers are near, layer 1 is far, column 0 is on the left.
   pos(c) {
-    return new THREE.Vector3(c.col, c.y, this.shape.layers - c.layer);
+    return new THREE.Vector3(c.col, c.y, c.layer);
   }
 
   instanced(cells, material) {
@@ -133,39 +165,38 @@ class GateViewer {
   buildParts() {
     const cells = this.shape.cells;
     const group = new THREE.Group();
+    const byOrder = (key, test) => cells.filter(test).sort((a, b) => a[key] - b[key]);
     const mats = {
       frame: new THREE.MeshStandardMaterial(),
       chevronIdle: new THREE.MeshStandardMaterial(),
+      light: new THREE.MeshStandardMaterial(),
       portal: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.4, depthWrite: false }),
       woosh: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.16, depthWrite: false }),
-      lights: new Map(),
+      markers: {},
     };
-    const parts = { group, mats, lights: new Map(), waves: [], stay: null, portal: null };
+    const parts = { group, mats, meshes: [] };
+    const add = (mesh) => { group.add(mesh); parts.meshes.push(mesh); return mesh; };
 
-    group.add(this.instanced(cells.filter((c) => c.block === "frame" && c.light === null), mats.frame));
-    group.add(this.instanced(cells.filter((c) => c.block === "chevron" && c.light === null), mats.chevronIdle));
-    for (const order of this.shape.lightOrders) {
-      const mat = new THREE.MeshStandardMaterial();
-      mats.lights.set(order, mat);
-      group.add(this.instanced(cells.filter((c) => c.light === order), mat));
-    }
+    add(this.instanced(cells.filter((c) => c.block === "frame" && c.light === null), mats.frame));
+    add(this.instanced(cells.filter((c) => c.block === "chevron" && c.light === null), mats.chevronIdle));
 
-    parts.portal = this.instanced(cells.filter((c) => c.portal && c.woosh === null), mats.portal);
-    group.add(parts.portal);
-    parts.stay = new THREE.Group();
-    group.add(parts.stay);
-    for (const order of this.shape.wooshOrders) {
-      const at = cells.filter((c) => c.woosh === order);
-      const wave = this.instanced(at.filter((c) => !c.portal), mats.woosh);
-      const stay = this.instanced(at.filter((c) => c.portal), mats.portal);
-      group.add(wave);
-      parts.stay.add(stay);
-      parts.waves.push({ order, wave, stay });
-    }
+    // One mesh for every lit cell, coloured per instance as the steps come on.
+    parts.lightCells = cells.filter((c) => c.light !== null);
+    parts.lightMesh = add(this.instanced(parts.lightCells, mats.light));
 
-    parts.markers = this.buildMarkers(group);
-    parts.grid = new THREE.GridHelper(Math.max(this.shape.width, this.shape.layers) * 2 + 4, 2 * Math.max(this.shape.width, this.shape.layers) + 4);
-    parts.grid.position.set(this.bounds().center.x, this.bounds().min.y - 0.5, this.bounds().center.z);
+    parts.portal = add(this.instanced(cells.filter((c) => c.portal && c.woosh === null), mats.portal));
+    // Woosh cells sorted by step, so a step is a prefix and showing it is setting a count.
+    parts.waveCells = byOrder("woosh", (c) => c.woosh !== null && !c.portal);
+    parts.stayCells = byOrder("woosh", (c) => c.woosh !== null && c.portal);
+    parts.wave = add(this.instanced(parts.waveCells, mats.woosh));
+    parts.stay = add(this.instanced(parts.stayCells, mats.portal));
+
+    this.buildMarkers(parts, add);
+
+    const b = this.bounds();
+    const span = Math.max(this.shape.width, this.shape.layers) * 2 + 4;
+    parts.grid = new THREE.GridHelper(span, span);
+    parts.grid.position.set(b.center.x, b.min.y - 0.5, b.center.z);
     group.add(parts.grid);
 
     this.parts = parts;
@@ -173,30 +204,20 @@ class GateViewer {
     this.applyPalette();
   }
 
-  buildMarkers(group) {
-    const made = [];
-    for (const c of this.shape.cells) {
-      c.markers.forEach((key, i) => {
-        const spec = MARKERS[key];
-        const mat = new THREE.MeshBasicMaterial({ color: spec.color, depthTest: false });
-        const mesh = new THREE.Mesh(this.markerGeometry(spec.shape), mat);
-        mesh.position.copy(this.pos(c)).add(new THREE.Vector3(i * 0.3, 0, 0));
-        mesh.renderOrder = 10;
-        group.add(mesh);
-        made.push(mesh);
-      });
-    }
-    return made;
-  }
-
-  markerGeometry(shape) {
-    switch (shape) {
-      case "plate": return new THREE.BoxGeometry(0.8, 0.5, 0.15);
-      case "sphere": return new THREE.SphereGeometry(0.28, 16, 12);
-      case "cone": return new THREE.ConeGeometry(0.3, 0.6, 12);
-      case "cylinder": return new THREE.CylinderGeometry(0.2, 0.2, 0.5, 12);
-      case "octa": return new THREE.OctahedronGeometry(0.33);
-      default: return new THREE.BoxGeometry(0.4, 0.4, 0.4);
+  buildMarkers(parts, add) {
+    const m = new THREE.Matrix4();
+    for (const [key, spec] of Object.entries(MARKERS)) {
+      const at = [];
+      for (const c of this.shape.cells) {
+        c.markers.forEach((k, i) => { if (k === key) at.push(this.pos(c).add(new THREE.Vector3(i * 0.3, 0, 0))); });
+      }
+      if (!at.length) continue;
+      const mat = new THREE.MeshBasicMaterial({ color: spec.color, depthTest: false });
+      parts.mats.markers[key] = mat;
+      const mesh = new THREE.InstancedMesh(this.markerGeometries[spec.shape], mat, at.length);
+      at.forEach((p, i) => mesh.setMatrixAt(i, m.setPosition(p)));
+      mesh.renderOrder = 10;
+      add(mesh);
     }
   }
 
@@ -277,23 +298,22 @@ class GateViewer {
 
   paintLights() {
     const p = palette();
-    for (const [order, mat] of this.parts.mats.lights) {
-      const lit = this.litUpTo >= order;
-      mat.color.set(lit ? p.lit : p.chevron);
-      mat.emissive.set(lit ? p.lit : 0x000000);
-      mat.emissiveIntensity = lit ? 0.9 : 0;
-    }
+    const { lightCells, lightMesh } = this.parts;
+    const lit = new THREE.Color(p.lit);
+    const unlit = new THREE.Color(p.chevron);
+    lightCells.forEach((c, i) => lightMesh.setColorAt(i, c.light <= this.litUpTo ? lit : unlit));
+    if (lightMesh.instanceColor) lightMesh.instanceColor.needsUpdate = true;
+    this.requestRender();
   }
 
   disposeParts() {
     if (!this.parts) return;
     this.scene.remove(this.parts.group);
-    this.parts.group.traverse((o) => {
-      if (o.geometry && o.geometry !== this.cube) o.geometry.dispose();
-      if (o.dispose) o.dispose();
-    });
-    for (const m of [this.parts.mats.frame, this.parts.mats.chevronIdle, this.parts.mats.portal,
-      this.parts.mats.woosh, ...this.parts.mats.lights.values()]) m.dispose();
+    for (const mesh of this.parts.meshes) mesh.dispose();
+    this.parts.grid.geometry.dispose();
+    this.parts.grid.material.dispose();
+    const { markers, ...own } = this.parts.mats;
+    for (const m of [...Object.values(own), ...Object.values(markers)]) m.dispose();
     this.parts = null;
   }
 
@@ -311,8 +331,10 @@ class GateViewer {
     this.state = state;
     this.litUpTo = state === "idle" ? 0 : Infinity;
     const open = state === "open";
-    this.parts.portal.visible = open;
-    for (const w of this.parts.waves) { w.wave.visible = false; w.stay.visible = open; }
+    const { portal, wave, stay, waveCells, stayCells } = this.parts;
+    portal.visible = open;
+    wave.count = 0;
+    stay.count = open ? stayCells.length : 0;
     this.paintLights();
     const names = { idle: "Idle: the gate is built and nothing is lit.", dialled: "Dialled: every chevron is lit.", open: "Open: the portal is filled." };
     this.say(message || names[state]);
@@ -335,11 +357,10 @@ class GateViewer {
     const run = this.runId;
     const orders = this.shape.lightOrders;
     this.state = "dialling";
-    for (const order of orders) {
+    for (const [index, order] of orders.entries()) {
       this.litUpTo = order;
       this.paintLights();
-      this.say(`Dialling: chevron step ${order} of ${orders.length} lit.`);
-      this.requestRender();
+      this.say(`Dialling: chevron step ${index + 1} of ${orders.length} lit.`);
       await this.wait(this.shape.lightTicks ?? 10);
       if (run !== this.runId) return;
     }
@@ -348,27 +369,35 @@ class GateViewer {
 
   async open() {
     const run = ++this.runId;
+    const { portal, wave, stay } = this.parts;
+    const orders = this.shape.wooshOrders;
     this.litUpTo = Infinity;
     this.paintLights();
     this.state = "opening";
     this.say("Opening: the woosh is pushing the portal out.");
-    this.parts.portal.visible = true;
+    portal.visible = true;
+    stay.count = 0;
+    wave.count = 0;
     this.requestRender();
-    const { waves } = this.parts;
-    for (const w of waves) w.stay.visible = false;
-    for (const w of waves) {
-      w.wave.visible = true;
-      w.stay.visible = true;
+    const step = (index) => {
+      const order = orders[index];
+      wave.count = index < 0 ? 0 : through(this.parts.waveCells, "woosh", order);
+      stay.count = index < 0 ? 0 : through(this.parts.stayCells, "woosh", order);
       this.requestRender();
-      await this.wait(this.shape.wooshTicks ?? 3);
+    };
+    const ticks = this.shape.wooshTicks ?? 3;
+    for (let i = 0; i < orders.length; i++) {
+      step(i);
+      await this.wait(ticks);
       if (run !== this.runId) return;
     }
     await this.wait(8);
     if (run !== this.runId) return;
-    for (const w of [...waves].reverse()) {
-      w.wave.visible = false;
+    // The woosh retreats in reverse; the [P:W] cells stay as portal.
+    for (let i = orders.length - 1; i >= 0; i--) {
+      wave.count = i === 0 ? 0 : through(this.parts.waveCells, "woosh", orders[i - 1]);
       this.requestRender();
-      await this.wait(this.shape.wooshTicks ?? 3);
+      await this.wait(ticks);
       if (run !== this.runId) return;
     }
     this.setState("open");
@@ -418,11 +447,19 @@ async function main() {
   const root = document.getElementById("gate-viewer");
   if (!root) return;
   try {
-    const viewer = new GateViewer(root);
-    await viewer.start();
+    THREE = await import("three");
+    ({ OrbitControls } = await import("three/addons/controls/OrbitControls.js"));
   } catch (error) {
-    root.replaceChildren(el("p", { class: "admonition warning" },
-      `The 3D viewer could not start (${error.message}). The shapes are still described in the Gates pages.`));
+    root.replaceChildren(el("p", { class: "admonition warning", role: "alert" },
+      "The 3D viewer could not load its drawing library (three.js from the jsDelivr CDN), so there is nothing to show here. " +
+      "Check your connection or a content blocker and reload; every shape is also drawn in the gate internals pages."));
+    return;
+  }
+  try {
+    await new GateViewer(root).start();
+  } catch (error) {
+    root.replaceChildren(el("p", { class: "admonition warning", role: "alert" },
+      `The 3D viewer could not start (${error.message}).`));
   }
 }
 

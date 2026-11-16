@@ -91,20 +91,20 @@ const tiny = (cells) =>
   parseShape(`Name=T\nVersion=2\nGateShape=\n\nLayer#1=\n${cells}\n\nLIGHT_TICKS = 4;\n`);
 
 test("[S:L#3] is a frame cell that lights third; a bare :L lights first", () => {
-  const [a, b] = tiny("[S:L#3][S:L]").cells;
+  const [a, b] = tiny("[S:L#3][S:L][I:EP]").cells;
   assert.equal(a.block, "frame");
   assert.equal(a.light, 3);
   assert.equal(b.light, 1);
 });
 
 test("[P:W#2] is a portal cell that wooshes second", () => {
-  const [a] = tiny("[P:W#2][I]").cells;
+  const [a] = tiny("[P:W#2][I:EP]").cells;
   assert.equal(a.portal, true);
   assert.equal(a.woosh, 2);
 });
 
 test("[S:C] is a chevron cell, not a frame cell as well", () => {
-  const [a, b] = tiny("[S:C][C]").cells;
+  const [a, b] = tiny("[S:C][C][I:EP]").cells;
   assert.equal(a.block, "chevron");
   assert.equal(a.lenientChevron, true);
   assert.equal(b.block, "chevron");
@@ -113,7 +113,7 @@ test("[S:C] is a chevron cell, not a frame cell as well", () => {
 
 test("the first column of the file is the highest x, and the first row the highest y", () => {
   const cells = parseShape(
-    "Name=T\nGateShape=\n\nLayer#1=\n[S][I][I]\n[I][I][S:A]\n\n").cells;
+    "Name=T\nGateShape=\n\nLayer#1=\n[S][I][I:EP]\n[I][I][S:A]\n\n").cells;
   const frame = cells.find((c) => c.block === "frame");
   assert.deepEqual([frame.x, frame.y], [2, 1]);
   const a = cells.find((c) => c.markers.includes("A"));
@@ -121,8 +121,8 @@ test("the first column of the file is the highest x, and the first row the highe
 });
 
 test("settings written 'KEY = value;' are read, and an unknown key is ignored", () => {
-  const shape = tiny("[I]");
+  const shape = tiny("[I:EP]");
   assert.equal(shape.lightTicks, 4);
-  const odd = parseShape("Name=T\nGateShape=\n\nLayer#1=\n[I]\n\nFUTURE_KEY = 9;\nCHEVRON_MATERIAL=GOLD_BLOCK\n");
+  const odd = parseShape("Name=T\nGateShape=\n\nLayer#1=\n[I:EP]\n\nFUTURE_KEY = 9;\nCHEVRON_MATERIAL=GOLD_BLOCK\n");
   assert.equal(odd.materials.CHEVRON_MATERIAL, "GOLD_BLOCK");
 });

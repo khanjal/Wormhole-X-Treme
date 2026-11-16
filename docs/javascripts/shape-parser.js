@@ -5,6 +5,12 @@
 const CELL = /\[(.+?)\]/g;
 const SINGLES = new Set(["N", "EP", "EM", "A", "D", "IA", "RA", "RD", "RS"]);
 
+/** Caps, because a shape from an upload is untrusted; no shipped shape is near any of them. */
+export const LIMITS = { bytes: 64 * 1024, side: 64, layers: 64, cells: 20000, orders: 256 };
+
+/** A shape file the plugin would refuse to load, or one too big to draw. */
+export class ShapeError extends Error {}
+
 /** Rows and columns of the first block grid after "GateShape=", as measureGrid counts them. */
 function measureGrid(lines, from) {
   let index = from;
@@ -16,20 +22,36 @@ function measureGrid(lines, from) {
     height++;
     index++;
   }
-  if (height <= 0 || width <= 0) throw new Error("no block grid after GateShape=");
+  if (height <= 0 || width <= 0) throw new ShapeError("No block grid follows GateShape=.");
+  if (height > LIMITS.side || width > LIMITS.side) {
+    throw new ShapeError(`The grid is ${width} by ${height}; at most ${LIMITS.side} each way is drawn.`);
+  }
   return { height, width };
 }
 
-/** The rows of one layer: lines starting "[" up to the first line that is neither "[" nor "#". */
-function readLayerRows(lines, start) {
-  const rows = [];
+/**
+ * The rows of one layer, as readLayerLines collects them: a comment line is stored in the slot
+ * of the row before it and replaces that row, so the row above a comment is lost.
+ */
+function readLayerRows(lines, start, height, layer) {
+  const rows = new Array(height).fill(null);
   let i = start;
+  let slot = 0;
   while (i < lines.length && (lines[i].startsWith("[") || lines[i].startsWith("#"))) {
-    if (lines[i].startsWith("[")) rows.push(lines[i]);
+    if (slot >= height) throw new ShapeError(`Layer#${layer} has more rows than the ${height}-row grid.`);
+    rows[slot] = lines[i];
     i++;
+    if (i >= lines.length || !lines[i].startsWith("#")) slot++;
   }
+  if (rows.includes(null)) throw new ShapeError(`Layer#${layer} has fewer rows than the ${height}-row grid.`);
   // Past the line that ended the layer, as the plugin does.
   return { rows, next: i + 1 };
+}
+
+/** parseInt that refuses what Integer.parseInt refuses. */
+function integer(text, what) {
+  if (!/^[+-]?\d+$/.test(text.trim())) throw new ShapeError(`${what} is not a number: "${text}".`);
+  return parseInt(text, 10);
 }
 
 function parseCell(mods, geometry) {
@@ -49,8 +71,8 @@ function parseCell(mods, geometry) {
   for (const m of upper) {
     if (m === "S" || m === "P" || m === "C") continue;
     if (SINGLES.has(m)) cell.markers.push(m);
-    else if (m.includes("L")) cell.light = m.includes("#") ? parseInt(m.split("#")[1], 10) : 1;
-    else if (m.includes("W")) cell.woosh = m.includes("#") ? parseInt(m.split("#")[1], 10) : 1;
+    else if (m.includes("L")) cell.light = m.includes("#") ? integer(m.split("#")[1], "A light order") : 1;
+    else if (m.includes("W")) cell.woosh = m.includes("#") ? integer(m.split("#")[1], "A woosh order") : 1;
   }
   return cell;
 }
@@ -68,8 +90,8 @@ function applySetting(shape, rawLine) {
   if (parts.length <= 1) return;
   const value = parts[1];
   if (/^[A-Z]+_MATERIAL=/.test(line)) shape.materials[parts[0]] = value;
-  else if (line.includes("LIGHT_TICKS=")) shape.lightTicks = parseInt(value, 10);
-  else if (line.includes("WOOSH_TICKS=")) shape.wooshTicks = parseInt(value, 10);
+  else if (line.includes("LIGHT_TICKS=")) shape.lightTicks = integer(value, "LIGHT_TICKS");
+  else if (line.includes("WOOSH_TICKS=")) shape.wooshTicks = integer(value, "WOOSH_TICKS");
   else if (line.startsWith("REDSTONE_ACTIVATED=")) shape.redstoneActivated = value.toLowerCase() === "true";
 }
 
@@ -77,8 +99,15 @@ function distinctSorted(cells, key) {
   return [...new Set(cells.map((c) => c[key]).filter((n) => n !== null))].sort((a, b) => a - b);
 }
 
-/** Parses shape file text into its cells, orders and settings. */
+/**
+ * Parses shape file text into its cells, orders and settings.
+ * @throws {ShapeError} for what Stargate3DShape refuses (no grid, a ragged layer, a bad number,
+ *   no :EP) and for a file over LIMITS.
+ */
 export function parseShape(text) {
+  if (text.length > LIMITS.bytes) {
+    throw new ShapeError(`The file is over ${LIMITS.bytes / 1024} KB.`);
+  }
   const lines = text.split(/\r\n|\n|\r/);
   const shape = {
     name: null, width: 0, height: 0, layers: 0, cells: [], lightTicks: null, wooshTicks: null,
@@ -96,9 +125,15 @@ export function parseShape(text) {
       shape.height = grid.height;
       shape.width = grid.width;
     } else if (line.startsWith("Layer")) {
-      const layer = parseInt(line.trim().split(/[#=]/)[1], 10);
-      const { rows, next } = readLayerRows(lines, i);
+      if (shape.height === 0) throw new ShapeError("A Layer comes before any GateShape= line.");
+      const layer = integer(line.trim().split(/[#=]/)[1] ?? "", "A layer number");
+      if (layer < 1 || layer > LIMITS.layers) {
+        throw new ShapeError(`Layer#${layer}: layers are numbered 1 to ${LIMITS.layers}.`);
+      }
+      const { rows, next } = readLayerRows(lines, i, shape.height, layer);
       i = next;
+      // A layer named twice replaces the first, as recordLayer's list slot does.
+      shape.cells = shape.cells.filter((c) => c.layer !== layer);
       rows.forEach((rowText, row) => {
         let col = 0;
         for (const m of rowText.matchAll(CELL)) {
@@ -106,14 +141,23 @@ export function parseShape(text) {
           shape.cells.push(parseCell(m[1].split(":"), geometry));
           col++;
         }
+        if (shape.cells.length > LIMITS.cells) {
+          throw new ShapeError(`More than ${LIMITS.cells} cells; that is too many to draw.`);
+        }
       });
       shape.layers = Math.max(shape.layers, layer);
     } else {
       applySetting(shape, line);
     }
   }
+  if (!shape.cells.some((c) => c.markers.includes("EP"))) {
+    throw new ShapeError("No :EP block, where players teleport in; the plugin refuses a shape without one.");
+  }
   shape.lightOrders = distinctSorted(shape.cells, "light");
   shape.wooshOrders = distinctSorted(shape.cells, "woosh");
+  if (shape.lightOrders.length > LIMITS.orders || shape.wooshOrders.length > LIMITS.orders) {
+    throw new ShapeError(`More than ${LIMITS.orders} light or woosh steps.`);
+  }
   return shape;
 }
 
