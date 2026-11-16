@@ -249,7 +249,8 @@
   white-space: nowrap;
 }
 
-.wxt-cell .wxt-radio {
+.wxt-cell .wxt-radio,
+.wxt-field .wxt-radio {
   margin: 0;
   white-space: normal;
 }
@@ -277,6 +278,8 @@
   padding: 0.1rem 0;
   overflow: hidden;
   font-size: 0.6rem;
+  line-height: 1;
+  white-space: nowrap;
   font-weight: 400;
   color: var(--md-default-fg-color--light);
   text-align: center;
@@ -290,9 +293,16 @@
   z-index: 1;
 }
 
+/* A row is as tall as the cell size says, whatever its number needs. */
 .wxt-grid tbody th {
   position: sticky;
   left: 0;
+  height: var(--wxt-cell);
+  padding: 0;
+}
+
+.wxt-grid.wxt-tiny th {
+  font-size: 0.5rem;
 }
 
 .wxt-grid th:first-child {
@@ -348,15 +358,27 @@
   line-height: 1;
 }
 
-.wxt-grid.wxt-tight td.wxt-marked::before {
+/* A cell with extras has its letter underlined: a cue that is not colour and clears the letter at every size. */
+.wxt-grid.wxt-tight td.wxt-marked {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 1px;
+}
+
+.wxt-cue {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+.wxt-sr {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 5px;
-  height: 5px;
-  content: "";
-  background: var(--md-default-fg-color);
-  border-radius: 50%;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .wxt-k-S { background: rgba(124, 92, 200, 0.45); }
@@ -725,4 +747,21 @@ html.wxt-no-scroll body {
 .wxt-full .wxt-split.wxt-bottom .wxt-handle:focus-visible::before {
   width: auto;
   height: 4px;
+}
+
+/* A narrow tall window (a phone): grid on top, the dock below it, and the dock's parts in one column. */
+.wxt-full .wxt-split.wxt-bottom.wxt-stacked .wxt-side {
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden auto;
+}
+
+.wxt-full .wxt-split.wxt-bottom.wxt-stacked .wxt-designer-view,
+.wxt-full .wxt-split.wxt-bottom.wxt-stacked .wxt-dock-panels {
+  flex: none;
+  overflow: visible;
+}
+
+.wxt-full .wxt-split.wxt-bottom.wxt-stacked .wxt-side .wxt-stage {
+  height: clamp(150px, 30vh, 260px);
 }

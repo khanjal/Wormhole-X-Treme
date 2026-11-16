@@ -14,6 +14,7 @@ import {
 const DRAFT_KEY = "wxt-gate-designer-draft";
 const VIEW_KEY = "wxt-gate-designer-view";
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+const STACK_PX = 640;
 const NARROW_PX = { main: 160, dock: 140 }; // smallest sizes when the dock sits below the grid
 const WIDE_PX = { main: 220, dock: 240 }; // and when it sits beside it
 const BRUSHES = [["select", "Select only"], ["I", "I  Ignored"], ["S", "S  Stargate material"], ["P", "P  Portal"], ["C", "C  Chevron material"]];
@@ -37,7 +38,7 @@ const store = {
   remove() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* nothing was kept */ } },
 };
 
-/** The view choices (expanded, cell size, split), kept the same careful way. */
+/** The view choices (cell size, split, which panels are open), kept the same careful way. */
 const viewStore = {
   get() { try { return localStorage.getItem(VIEW_KEY); } catch { return null; } },
   set(text) { try { localStorage.setItem(VIEW_KEY, text); } catch { /* the choice just is not remembered */ } },
@@ -107,6 +108,12 @@ class DesignerView extends GateViewer {
     if (cell) this.outline.position.copy(this.pos(cell));
     this.outline.material.color.set(palette().fresh);
     this.requestRender();
+  }
+
+  /** The shape's legend, plus the grid's cue for a cell with extras, so the key is always in view beside the picture. */
+  renderLegend() {
+    super.renderLegend();
+    this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "S"), " Underlined letter in the grid: the cell has extras"));
   }
 
   applyPalette() {
@@ -215,7 +222,9 @@ class Designer {
     this.cellBox = this.buildCellPanel();
     this.controls = el("div", { class: "wxt-controls", id: "wxt-controls" }, this.layerBar, this.tools, size, brush);
     // The one live region for the editor sits beside the grid, where no panel can be hidden from under it.
-    this.editEl = el("div", { class: "wxt-edit" }, this.controls, this.gridBar, this.status, this.scroller, this.gridHelp, this.cellBox);
+    // The checks' summary is read out through a second region that is never visible, so hiding the side panel cannot silence it.
+    this.liveEl = el("p", { class: "wxt-sr", role: "status", "aria-live": "polite" });
+    this.editEl = el("div", { class: "wxt-edit" }, this.controls, this.gridBar, this.status, this.liveEl, this.scroller, this.gridHelp, this.cellBox);
     this.side = el("div", { class: "wxt-side", id: "wxt-side" }, this.view ? this.view.el : el("p", { class: "wxt-note" }, "The 3D view is not available, but the editor works."));
     this.handle = this.buildHandle();
     this.splitEl = el("div", { class: "wxt-split" }, this.editEl, this.handle, this.side);
@@ -226,7 +235,7 @@ class Designer {
     this.settings = this.buildSettings();
 
     // Checks.
-    this.summaryEl = el("p", { class: "wxt-status", role: "status", "aria-live": "polite" });
+    this.summaryEl = el("p", { class: "wxt-status" });
     this.issueList = el("ul", { class: "wxt-issues", "aria-label": "Problems found" });
     const checks = el("section", { class: "wxt-checks" }, el("h3", { id: "wxt-checks-title" }, "Checks"), this.summaryEl, this.issueList,
       el("p", { class: "wxt-help" }, "These are the rules the plugin applies when it reads a shape, as far as this page can tell. " +
@@ -356,6 +365,8 @@ class Designer {
     if (!this.expanded) return;
     if (e.key === "Escape" && !e.defaultPrevented) {
       e.preventDefault();
+      // Leaving moves the fields, and some browsers drop a typed value that was not committed first.
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
       this.setExpanded(false, true);
     } else if (e.key === "Tab") {
       const items = [...this.designerEl.querySelectorAll(FOCUSABLE)].filter((n) => (n.checkVisibility ? n.checkVisibility() : n.getClientRects().length));
@@ -391,6 +402,7 @@ class Designer {
     if (!open) { this.editEl.style.flex = ""; return; }
     const bottom = window.innerHeight > window.innerWidth; // a tall window docks the panel below the grid
     this.splitEl.classList.toggle("wxt-bottom", bottom);
+    this.splitEl.classList.toggle("wxt-stacked", bottom && window.innerWidth < STACK_PX); // too narrow for two columns below the grid
     const grip = (bottom ? this.handle.offsetHeight : this.handle.offsetWidth) || 14;
     const total = (bottom ? this.splitEl.clientHeight : this.splitEl.clientWidth) - grip;
     const min = bottom ? NARROW_PX : WIDE_PX;
@@ -979,6 +991,7 @@ class Designer {
     if (s.pending === s.shown) return;
     s.shown = s.pending;
     this.summaryEl.textContent = s.pending;
+    this.liveEl.textContent = s.pending;
     s.timer = setTimeout(() => { s.timer = 0; this.flushSummary(); }, SUMMARY_GAP_MS);
   }
 
