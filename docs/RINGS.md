@@ -400,7 +400,7 @@ ring, the bottom for a ceiling one. Not symmetry for its own sake: if a ceiling 
 stopped highest, every ring after it would descend through where it had already settled.
 
 The drop is measured when a cycle engages, not when the ring is built, because floors change. Two
-limits come with it: **at least four blocks** from ceiling to floor, derived rather than chosen,
+limits come with it: **at least three blocks** of clear drop below the slabs (four counting their own layer), derived rather than chosen,
 since the plane has to be at least level with the top of the finished stack; and **at most
 `ring-max-ceiling-drop`**, ten by default, past which the ring is over a shaft rather than a
 room.

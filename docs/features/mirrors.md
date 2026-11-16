@@ -49,7 +49,7 @@ Operators have it.
 
 Using a mirror, with right-click or punch, needs `wormhole.use.sign` or `wormhole.use.dialer`,
 the same as dialling a gate. In simple mode, which is when no Vault permission provider is installed or
-`permissions-support-disable` is on, everyone has it; otherwise grant it to whoever should travel
+`permissions-support-disable` is on, everyone has them; otherwise grant one to whoever should travel
 by mirror.
 
 ## Go deeper
