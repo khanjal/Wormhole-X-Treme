@@ -343,7 +343,7 @@
   content: attr(data-tags);
 }
 
-/* Small cells give up their labels, then their letters; a dot still marks a cell with extras. */
+/* Small cells give up their labels but keep their letter; an underlined letter marks a cell with extras. */
 .wxt-grid.wxt-tight td {
   padding: 0;
 }
