@@ -75,6 +75,11 @@ made one wide stays one wide: `remove` it, hang the second banner, and `create` 
 
 All of them need `wormhole.config`: a mirror moves players between worlds.
 
+**Using** a mirror, with right-click or punch, needs `wormhole.use.sign` or `wormhole.use.dialer`,
+the same as dialling a gate. Without a permissions plugin everyone has
+them; with one, grant one to whoever should travel by mirror. Operators always may.
+Creating, changing and removing mirrors needs `wormhole.config`.
+
 **Leave the name out** to mean the banner you are looking at: `mirror set -start hub`,
 `mirror set -stamp cavern`, `mirror remove`. What `set` changes always starts with a dash, and
 no mirror's name may, which is how it tells the two apart. Where a word could still be either —

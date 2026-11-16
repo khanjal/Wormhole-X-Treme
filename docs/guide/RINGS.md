@@ -6,7 +6,7 @@ both ends swaps in the same instant. Why they work the way they do is in the des
 
 Unlike a gate, a ring is a fixed pair: it is not dialled, it lies in a floor or ceiling rather
 than standing up, both ends fire together, and it stays in one world. Two people at opposite ends
-swap places in one trip. Rings reach 256 blocks across but the full height of the world, because
+swap places in one trip. Rings reach 256 blocks across and 384 in height, the Overworld's whole height, because
 going straight down — a mine to the hall above it — is what they are for.
 
 ## Contents
@@ -37,14 +37,17 @@ notes.
 - **All facing the same way.** Bottom slabs on a floor make a floor ring; top slabs under a ceiling
   make a ceiling ring. Double slabs are refused.
 - **Four blocks of headroom** above a floor ring: the finished stack stands that tall.
-- **A ceiling ring needs a room four to ten blocks tall**, since its rings fall to the floor.
+- **A ceiling ring needs room to fall**: at least three blocks of clear drop below the slabs (four
+  counting their own layer) and at most `ring-max-ceiling-drop`, ten by default, since its rings
+  fall to the floor.
 - Not overlapping another ring or a gate, and within 256 blocks across and 384 in height of its
   partner.
 
 <img src="../images/rings/stack.svg" width="252" alt="the finished ring stack in elevation">
 
-A refusal says exactly what is wrong. `/wormhole ring cancel` abandons a half-built pair and gives
-its slabs back; `/wormhole ring remove` lays both circles back out so a pair can be moved.
+A refusal says exactly what is wrong. `/wormhole ring cancel` forgets a half-built pair; the circle you
+laid stays where it is, since slabs are only taken when the second end completes the pair.
+`/wormhole ring remove` lays both circles back out so a pair can be moved.
 
 ### From the console and command blocks
 
@@ -114,7 +117,7 @@ possible.
 |---|---|---|
 | `ring-reach` | 4 | Block layers of passenger volume above the pad. |
 | `ring-min-separation` | 8 | Required distance between ring anchors. |
-| `ring-max-link-distance` | 256 | Furthest two ends may be across. `0` is unlimited. In height they may span the whole world. |
+| `ring-max-link-distance` | 256 | Furthest two ends may be across. `0` is unlimited. In height the limit is fixed at 384 blocks, the Overworld's height. |
 | `ring-max-ceiling-drop` | 10 | How far below a ceiling ring to look for the floor. |
 | `ring-max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
 
@@ -173,15 +176,15 @@ to see where a ring is. The other steps go on from there, whenever you run them:
 | `deploy` | Raises the stack in that end's style (`fast` or `slow`) and leaves it standing; a ceiling ring's stack drops to the floor, as it does for real |
 | `light` | Runs the transport light through the standing stack, towards the pad, in that end's `flash` material; run it again as often as you like |
 | `collapse` | Brings the rings home, nearest first, and leaves the pad lit |
-| `cycle` | Plays the whole thing end to end on this end, with the real pauses (`ring-settle-ticks`, `ring-hold-ticks`, `ring-lights-linger-ticks`), and ends with the pad lit and the stack gone |
+| `cycle` | Plays the whole thing end to end on this end, with the real pauses (the settle, hold and lights-linger times, each 20 ticks at the default `ring-animation-speed`), and ends with the pad lit and the stack gone |
 | `-clear` | Takes everything back at once |
 
 `light` and `collapse` act on the stack you have up, wherever you have walked to since. A step that
 makes no sense says so: `light` with no stack up, `deploy` with one already standing, anything
 while the rings are still moving.
 
-`cycle` is a trip with nobody carried: the pad lights if it is not already, the stack rises at
-`ring-deploy-ticks`, settles, the transport light runs through it once (as it does for a trip with
+`cycle` is a trip with nobody carried: the pad lights if it is not already, the stack rises a frame every
+2 ticks at the default speed, settles, the transport light runs through it once (as it does for a trip with
 passengers, though nobody goes), the stack holds, comes home, and the pad stays lit for the
 lights-linger pause. It uses the settings the real cycle uses, and any values you are trying. It
 is refused while a stack stands: `collapse` first. Any other step, `-clear`, or anything that takes a

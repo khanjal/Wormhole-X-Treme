@@ -47,6 +47,10 @@ ordinary banner again.
 Every `mirror` command needs `wormhole.config`, because a mirror moves players between worlds.
 Operators have it.
 
+Using a mirror, with right-click or punch, needs `wormhole.use.sign` or `wormhole.use.dialer`,
+the same as dialling a gate. Without a permissions plugin everyone has it; with one, grant it to
+whoever should travel by mirror.
+
 ## Go deeper
 
 - [Mirrors reference](../guide/MIRRORS.md): the commands, the look library and the settings.
