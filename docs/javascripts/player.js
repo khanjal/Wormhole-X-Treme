@@ -19,6 +19,8 @@ export class Player {
     this.speed = 0.5;
     this.carry = 0;
     this.stamp = 0;
+    this.handle = 0; // the pending animation frame, so a second play cannot start a second loop
+    this.onPause = null;
 
     this.playButton = el("button", { type: "button", class: "md-button" }, "Play");
     this.back = el("button", { type: "button", class: "md-button", "aria-label": "Step back one tick" }, "Step back");
@@ -67,13 +69,16 @@ export class Player {
     this.carry = 0;
     this.stamp = 0;
     this.playButton.textContent = "Pause";
-    requestAnimationFrame((now) => this.frame(now));
+    this.handle = requestAnimationFrame((now) => this.frame(now));
   }
 
   pause() {
+    const was = this.playing;
+    cancelAnimationFrame(this.handle);
     this.playing = false;
     this.playButton.textContent = "Play";
     this.slider.setAttribute("aria-valuetext", this.valueText(this.tick));
+    if (was && this.onPause) this.onPause();
   }
 
   frame(now) {
@@ -87,6 +92,6 @@ export class Player {
       this.seek(this.tick + whole);
       if (this.tick >= this.total) { this.pause(); return; }
     }
-    requestAnimationFrame((t) => this.frame(t));
+    this.handle = requestAnimationFrame((t) => this.frame(t));
   }
 }

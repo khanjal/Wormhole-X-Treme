@@ -1,8 +1,8 @@
 # Iris styles
 
 Watch an iris close and open on the real opening of a shipped gate. Pick a shape and a style, then
-press **Play**: the iris sweeps shut from the rim, holds, and draws back from the middle. The pink
-cells are the step that has just arrived. **Step** and the slider go a tick at a time, and a table
+press **Play**: the iris sweeps shut from the rim, holds, and draws back from the middle. While it closes, the pink
+cells are the step that has just arrived; opening takes cells away, so nothing is pink then. **Step** and the slider go a tick at a time, and a table
 under the picture numbers every cell by the step that covers it.
 
 The step order is the one the plugin works out: this page runs the same arithmetic as

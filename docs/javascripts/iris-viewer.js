@@ -102,10 +102,10 @@ class IrisViewer extends ManualViewer {
     const count = this.plan.upTo[s.covered];
     iris.count = count;
     // The ring that has just arrived stands out, so the order can be followed.
-    const from = s.phase === "closing" ? this.plan.upTo[s.covered - 1] : count;
+    const from = s.arriving ? this.plan.upTo[s.covered - 1] : count;
     for (let i = 0; i < count; i++) iris.setColorAt(i, i >= from ? this.freshColor : this.irisColor);
     if (iris.instanceColor) iris.instanceColor.needsUpdate = true;
-    this.say(this.words(tick));
+    this.announce(tick, tick === 0 ? "start" : (s.phase === "closed" || s.phase === "open") ? s.phase : null);
     this.requestRender();
   }
 
@@ -140,14 +140,14 @@ class IrisViewer extends ManualViewer {
     this.extra.replaceChildren(
       el("h3", {}, "Closing step of each cell"),
       el("p", { class: "wxt-help" }, "The number is the step that covers the cell when the iris closes, as seen from the activation switch's side. Opening runs the numbers from the highest down."),
-      el("div", { class: "wxt-table-wrap" }, el("table", { class: "wxt-steps", "aria-label": "Closing step of each cell of the opening" }, el("tbody", {}, ...body))));
+      el("div", { class: "wxt-table-wrap", tabindex: "0", role: "region", "aria-label": "Closing step of each cell, scrollable" }, el("table", { class: "wxt-steps", "aria-label": "Closing step of each cell of the opening" }, el("tbody", {}, ...body))));
   }
 
   legendItems() {
     const p = palette();
     const material = IRIS_MATERIALS[this.choice("material")];
     return [
-      ["Gate frame", p.frame, "■"], [`Iris, ${material.label}`, material.color, "▒"], ["Ring or step that has just arrived", p.fresh, "◆"],
+      ["Gate frame", p.frame, "■"], [`Iris, ${material.label}`, material.color, "▒"], ["Step that has just arrived, while closing", p.fresh, "◆"],
     ];
   }
 }

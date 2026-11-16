@@ -37,6 +37,8 @@ export class ManualViewer extends SceneBase {
       bar.append(el("label", { for: `wxt-${choice.key}` }, `${choice.label} `), select);
     }
     this.player = new Player((tick) => this.render(tick), (tick) => this.words(tick));
+    // Said when playback stops, since nothing is announced while it runs.
+    this.player.onPause = () => this.say(this.words(this.player.tick));
     this.stage = el("div", { class: "wxt-stage" });
     this.canvas = el("canvas", {
       // A focusable region that takes the arrow keys, described by the text beside it.
@@ -111,6 +113,7 @@ export class ManualViewer extends SceneBase {
     this.describe();
     this.applyPalette();
     this.spoken = "";
+    this.milestone = null;
     this.player.seek(0);
     // Starts paused when the visitor asks for less motion.
     if (!reduceMotion.matches) this.player.play();
@@ -150,6 +153,15 @@ export class ManualViewer extends SceneBase {
     this.parts.grid.material.dispose();
     for (const m of this.parts.materials) m.dispose();
     this.parts = null;
+  }
+
+  /**
+   * Says the current state, but while playing only at a milestone (`key` names it, null for none):
+   * a polite live region that changes every two ticks is not a status, it is noise.
+   */
+  announce(tick, key) {
+    if (!this.player.playing || (key !== null && key !== this.milestone)) this.say(this.words(tick));
+    if (key !== null) this.milestone = key;
   }
 
   say(text) {

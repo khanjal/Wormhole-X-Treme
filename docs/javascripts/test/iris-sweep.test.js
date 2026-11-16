@@ -102,12 +102,12 @@ test("an opening with no cells has no steps", () => {
 });
 
 test("the page's clock draws step one at tick 0 and a step every two ticks, closing then opening", () => {
-  assert.deepEqual(irisStateAt(5, 0), { phase: "closing", step: 1, covered: 1, total: 46 });
+  assert.deepEqual(irisStateAt(5, 0), { phase: "closing", step: 1, covered: 1, arriving: true, total: 46 });
   assert.equal(irisStateAt(5, 3).covered, 2);
   assert.equal(irisStateAt(5, 8).phase, "closed");
   assert.equal(irisStateAt(5, 20).phase, "closed");
   // 8 ticks to shut, 20 held, then the first opening step uncovers the last closing step.
-  assert.deepEqual(irisStateAt(5, 28), { phase: "opening", step: 1, covered: 4, total: 46 });
+  assert.deepEqual(irisStateAt(5, 28), { phase: "opening", step: 1, covered: 4, arriving: false, total: 46 });
   assert.equal(irisStateAt(5, 36).phase, "open");
   assert.equal(irisStateAt(5, 36).covered, 0);
 });
@@ -115,4 +115,12 @@ test("the page's clock draws step one at tick 0 and a step every two ticks, clos
 test("a one-step iris closes at tick 0 and opens at once after the hold", () => {
   assert.equal(irisStateAt(1, 0).phase, "closed");
   assert.equal(irisStateAt(1, 20).phase, "open");
+});
+
+test("the spiral winds one way: below the middle, then right, above, then left", () => {
+  const cells = irisCells(load("Standard"));
+  const order = openingOrder(cells, "spiral").flat().map((i) => `${cells[i].col},${cells[i].y}`);
+  const at = (col, y) => order.indexOf(`${col},${y}`);
+  // The four cells a block from the middle (3,3): its winding is the radius plus the angle, from straight down.
+  assert.ok(at(3, 2) < at(4, 3) && at(4, 3) < at(3, 4) && at(3, 4) < at(2, 3), order.join(" "));
 });

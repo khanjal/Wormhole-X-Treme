@@ -247,7 +247,7 @@ class GateViewer extends SceneBase {
       this.litUpTo = order;
       this.paintLights();
       this.say(`Dialling: chevron step ${index + 1} of ${orders.length} lit.`);
-      await this.wait(this.shape.lightTicks ?? 10);
+      await this.wait(this.shape.lightTicks ?? 3);
       if (run !== this.runId) return;
     }
     this.setState("dialled");

@@ -6,6 +6,8 @@
 export const LOCAL_CHEVRONS = 7; // the top chevron, the last of a dial within the world
 export const OTHER_WORLD_CHEVRON = 8; // the bottom one, locked only on a dial to another world
 export const LAST_CHEVRON_PAUSE_TICKS = 40;
+// A shape that omits LIGHT_TICKS or WOOSH_TICKS gets 3 of each (StargateShape's own defaults).
+export const DEFAULT_LIGHT_TICKS = 3;
 const TOP_HOLD_TICKS = 10;
 const UNIVERSE_PACE = 12;
 const GLYPHS = 36;
@@ -289,7 +291,7 @@ export class DialSpin {
 export function dialSchedule(shape, spin, pattern, otherWorld) {
   const highest = shape.lightOrders.length ? Math.max(...shape.lightOrders) : 0;
   const last = Math.min(highest, otherWorld ? OTHER_WORLD_CHEVRON : LOCAL_CHEVRONS);
-  const interval = Math.max(1, shape.lightTicks ?? 10);
+  const interval = Math.max(1, shape.lightTicks ?? DEFAULT_LIGHT_TICKS);
   const turns = spin !== null && pattern !== "none";
   const glyphs = [];
   let t = 0;
@@ -299,7 +301,7 @@ export function dialSchedule(shape, spin, pattern, otherWorld) {
     t += turns ? frames + 1 : interval;
   }
   const lastLock = glyphs.length ? glyphs[glyphs.length - 1].lockAt : 0;
-  const wooshTicks = shape.wooshTicks ?? 3;
+  const wooshTicks = shape.wooshTicks ?? DEFAULT_LIGHT_TICKS;
   const steps = shape.wooshOrders.length;
   const wooshStart = lastLock + LAST_CHEVRON_PAUSE_TICKS;
   // Stage s draws wave s, then takes them back in reverse; the last stage settles into the open portal.

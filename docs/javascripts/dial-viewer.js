@@ -118,7 +118,8 @@ class DialViewer extends ManualViewer {
     portal.visible = s.open;
     stay.count = s.open ? stayCells.length : through(stayCells, s.woosh);
     wave.count = s.open ? 0 : through(waveCells, s.woosh);
-    this.say(this.words(tick));
+    const key = tick === 0 ? "start" : s.phase === "locked" ? `lock${s.locked}` : (s.phase === "holding" || s.phase === "open") ? s.phase : null;
+    this.announce(tick, key);
     this.requestRender();
   }
 
@@ -129,7 +130,7 @@ class DialViewer extends ManualViewer {
     const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
     const lines = [
       `${this.shape.name} has ${plural(chevrons, "chevron block")} lighting in ${plural(this.shape.lightOrders.length, "step")}, ` +
-        `${this.shape.lightTicks ?? 10} ticks apart. This dial locks ${plural(schedule.last, "chevron")}, in the order of the number after :L, ` +
+        `${schedule.interval} ticks apart. This dial locks ${plural(schedule.last, "chevron")}, in the order of the number after :L, ` +
         `and the wormhole forms ${seconds(schedule.total)} s after the dial starts (${schedule.total} ticks, the woosh included).`,
       PATTERN_TEXT[pattern],
     ];

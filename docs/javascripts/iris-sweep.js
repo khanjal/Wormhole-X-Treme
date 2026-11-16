@@ -115,6 +115,7 @@ export const HOLD_OPEN_TICKS = 10;
  * Where a closing then opening iris of `steps` steps is at a tick: the first step is drawn at
  * tick 0 and each next STEP_TICKS later. `covered` is how many steps of the closing order are over
  * the opening; closing steps cover from the front of that order and opening ones uncover from the back.
+ * `arriving` is true while the step just drawn is a closing one, so its cells are the ones to point out.
  */
 export function irisStateAt(steps, tick) {
   const closedAt = (steps - 1) * STEP_TICKS;
@@ -122,10 +123,10 @@ export function irisStateAt(steps, tick) {
   const total = openFrom + (steps - 1) * STEP_TICKS + HOLD_OPEN_TICKS;
   if (tick <= closedAt) {
     const drawn = Math.floor(tick / STEP_TICKS) + 1;
-    return { phase: tick === closedAt ? "closed" : "closing", step: drawn, covered: drawn, total };
+    return { phase: tick === closedAt ? "closed" : "closing", step: drawn, covered: drawn, arriving: true, total };
   }
-  if (tick < openFrom) return { phase: "closed", step: steps, covered: steps, total };
+  if (tick < openFrom) return { phase: "closed", step: steps, covered: steps, arriving: false, total };
   const drawn = Math.min(steps, Math.floor((tick - openFrom) / STEP_TICKS) + 1);
   const covered = steps - drawn;
-  return { phase: covered === 0 ? "open" : "opening", step: drawn, covered, total };
+  return { phase: covered === 0 ? "open" : "opening", step: drawn, covered, arriving: false, total };
 }
