@@ -156,8 +156,8 @@ class IrisSpiralGoldenTest
                 {
                     step.add(place.get(at));
                 }
-                step.sort((a, b) -> (a[1].intValue() != b[1].intValue()) ? Integer.compare(a[1], b[1])
-                    : Integer.compare(a[2], b[2]));
+                step.sort((a, b) -> (a[1].intValue() == b[1].intValue()) ? Integer.compare(a[2], b[2])
+                    : Integer.compare(a[1], b[1]));
                 final StringBuilder line = new StringBuilder(name).append(' ').append(i + 1).append(':');
                 for (final Integer[] pos : step)
                 {

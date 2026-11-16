@@ -3862,7 +3862,7 @@ class GatePreviewsTest
             {
                 at.add(shapeAt.get(cells.get(i).x() + "," + cells.get(i).y() + "," + cells.get(i).z()));
             }
-            at.sort((a, b) -> (a[1] != b[1]) ? Integer.compare(a[1], b[1]) : Integer.compare(a[0], b[0]));
+            at.sort((a, b) -> (a[1] == b[1]) ? Integer.compare(a[0], b[0]) : Integer.compare(a[1], b[1]));
             out.add(at.stream().map(p -> p[0] + "," + p[1]).toList());
         }
         return out;
