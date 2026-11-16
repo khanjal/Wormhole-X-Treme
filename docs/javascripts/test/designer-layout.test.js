@@ -29,6 +29,11 @@ test("fit picks the largest size whose whole layer fits, limited by the tighter 
   assert.equal(fitZoom({ width: 600, height: 600, columns: 20, rows: 40, gutterX: 20, gutterY: 18 }), 14);
 });
 
+test("fit reads the height for the rows and the width for the columns", () => {
+  assert.equal(fitZoom({ width: 900, height: 400, columns: 10, rows: 10 }), 39);
+  assert.equal(fitZoom({ width: 400, height: 900, columns: 10, rows: 10 }), 39);
+});
+
 test("fit never goes above the largest size, nor below the smallest when nothing fits", () => {
   assert.equal(fitZoom({ width: 4000, height: 4000, columns: 3, rows: 3 }), ZOOM.max);
   assert.equal(fitZoom({ width: 300, height: 300, columns: 64, rows: 64 }), ZOOM.min);
