@@ -102,3 +102,11 @@ test("a *_MATERIAL key the plugin does not know is ignored, as its loader ignore
   const parsed = parseShape("Name=T\nVersion=2\nFOO_MATERIAL=STONE\nCHEVRON_MATERIAL=GOLD_BLOCK\nGateShape=\n\nLayer#1=\n[S:EP]\n\n");
   assert.deepEqual(Object.keys(parsed.materials), ["CHEVRON_MATERIAL"]);
 });
+
+test("an order over the cap is refused, and a long line of brackets is refused fast", () => {
+  refused(shape("Layer#1=\n[S:EP:L#5000]\n\n"), /over 1000/);
+  refused(shape("Layer#1=\n[S:EP:W#2147483647]\n\n"), /over 1000/);
+  const started = Date.now();
+  refused(`Version=2\nGateShape=\n${"[".repeat(60000)}\n`, /row over/);
+  assert.ok(Date.now() - started < 500);
+});
