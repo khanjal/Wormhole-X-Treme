@@ -8,7 +8,7 @@ import {
 
 const STYLE_TEXT = {
   sweep: "Rings, in from the rim and out from the middle.",
-  spiral: "A wedge turning round the middle and working outwards.",
+  spiral: "One arm, winding in clockwise from the rim as seen from the activation switch's side.",
   rows: "Rows, in from the top and bottom at once.",
   columns: "Columns, in from both sides at once.",
   instant: "No animation: the iris is simply there.",

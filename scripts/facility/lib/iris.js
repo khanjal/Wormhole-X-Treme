@@ -6,7 +6,8 @@
 // DrawnHorizon, MaterialUtils).
 //
 //  - Styles: sweep (rings by squared distance from the middle), rows (by height), columns (by
-//    the horizontal), spiral (wound round the middle, cut into as many steps as the sweep makes),
+//    the horizontal), spiral (one arm wound in clockwise from the rim as seen from the switch,
+//    cut into as many steps as the sweep makes),
 //    instant (no animation). The centre is the midpoint of the opening's extremes.
 //  - Opening runs innermost first; closing is the same steps reversed.
 //  - A step is drawn every 2 ticks (IrisSweepDriver.STEP_TICKS), the first in the tick of the
@@ -49,19 +50,53 @@ function cut(items, wanted) {
   return out;
 }
 
-function spiral(cells) {
-  if (!cells.length) return [];
+/**
+ * The opening's {right, up} as a player at the activation switch sees it (IrisSweep.viewOf).
+ * `facing` is the switch's facing as {x, z}, or null to guess from the opening.
+ */
+function viewOf(cells, facing) {
+  const spans = (k) => cells.some((c) => c[k] !== cells[0][k]);
+  const level = !!facing && Math.abs(facing.x) + Math.abs(facing.z) === 1;
+  const flat = !spans('y') && spans('x') && spans('z');
+  let up;
+  let toViewer;
+  if (flat) {
+    toViewer = [0, 1, 0];
+    up = level ? [-facing.x, 0, -facing.z] : [0, 0, -1];
+  } else {
+    up = [0, 1, 0];
+    toViewer = level ? [facing.x, 0, facing.z] : spans('x') ? [0, 0, 1] : [1, 0, 0];
+  }
+  const right = [
+    up[1] * toViewer[2] - up[2] * toViewer[1],
+    up[2] * toViewer[0] - up[0] * toViewer[2],
+    up[0] * toViewer[1] - up[1] * toViewer[0],
+  ];
+  return { right, up };
+}
+
+/** One arm wound in clockwise from the rim, the closing order cell by cell (IrisSweep.closingArm). */
+function closingArm(cells, facing) {
   const centre = centreOf(cells);
-  const winding = (c) => {
-    const dx = c.x - centre.x;
-    const dy = c.y - centre.y;
-    const dz = c.z - centre.z;
-    const across = dx + dz;
-    return Math.sqrt(across * across + dy * dy) + (Math.atan2(dy, across) + Math.PI) / (2 * Math.PI);
-  };
+  const { right, up } = viewOf(cells, facing);
+  const dot = (c, v) => (c.x - centre.x) * v[0] + (c.y - centre.y) * v[1] + (c.z - centre.z) * v[2];
+  const polar = cells.map((c) => {
+    const a = dot(c, right);
+    const b = dot(c, up);
+    let turn = Math.atan2(a, b) / (2 * Math.PI);
+    if (turn < 0) turn += 1;
+    return { radius: Math.hypot(a, b), turn };
+  });
+  const outermost = Math.max(...polar.map((p) => p.radius));
+  const width = Math.max(1, Math.ceil(outermost / 5));
+  const along = polar.map((p) => Math.round((outermost - p.radius) / width - p.turn) + p.turn);
   // Java's sort is stable; so is Array.prototype.sort.
-  const wound = [...cells].sort((a, b) => winding(a) - winding(b));
-  return cut(wound, Math.min(wound.length, Math.max(1, rings(cells, 'sweep').length)));
+  return cells.map((_, i) => i).sort((a, b) => along[a] - along[b] || polar[b].radius - polar[a].radius).map((i) => cells[i]);
+}
+
+function spiral(cells, facing = null) {
+  if (!cells.length) return [];
+  return cut(closingArm(cells, facing).reverse(), Math.min(cells.length, Math.max(1, rings(cells, 'sweep').length)));
 }
 
 /** At most `maxSteps` steps, adjacent ones merged (0: as many as there are). */
@@ -70,14 +105,14 @@ function atMost(steps, maxSteps) {
   return cut(steps, maxSteps).map((band) => band.flat());
 }
 
-/** The steps an opening iris uncovers the cells in, first first. `instant` is one step. */
-function openingOrder(cells, style, maxSteps = 0) {
+/** The steps an opening iris uncovers the cells in, first first. `instant` is one step. `facing` is the switch's, as {x, z}. */
+function openingOrder(cells, style, maxSteps = 0, facing = null) {
   if (style === 'instant') return [cells.slice()];
-  return atMost(style === 'spiral' ? spiral(cells) : rings(cells, style), maxSteps);
+  return atMost(style === 'spiral' ? spiral(cells, facing) : rings(cells, style), maxSteps);
 }
 
-function closingOrder(cells, style, maxSteps = 0) {
-  return openingOrder(cells, style, maxSteps).slice().reverse();
+function closingOrder(cells, style, maxSteps = 0, facing = null) {
+  return openingOrder(cells, style, maxSteps, facing).slice().reverse();
 }
 
 /** The plugin's step pace and band limit, fixed in IrisSweepDriver since 1.11.0; worked out as maxSteps does. */

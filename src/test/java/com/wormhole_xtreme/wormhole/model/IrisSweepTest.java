@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -350,17 +351,28 @@ class IrisSweepTest
             at(0, 0, -1), at(1, 0, 0), at(0, 0, 1), at(-1, 0, 0), "a flat gate facing north");
     }
 
-    /** The four cells a block from the middle come in this order: bottom, left, top, right as seen. */
+    /**
+     * The four cells a block from the middle come round in the order bottom, left, top, right as
+     * seen, starting from whichever the arm reaches first.
+     */
     private static void assertClockwise(final List<Location> arm, final Location below, final Location left,
         final Location above, final Location right, final String what)
     {
-        final int b = arm.indexOf(below);
-        final int l = arm.indexOf(left);
-        final int a = arm.indexOf(above);
-        final int r = arm.indexOf(right);
-        assertTrue((b < l) && (l < a) && (a < r),
-            what + ": the arm should pass below, then left, above and right of the middle, clockwise; got "
-                + b + ", " + l + ", " + a + ", " + r);
+        final int[] at = { arm.indexOf(below), arm.indexOf(left), arm.indexOf(above), arm.indexOf(right) };
+        int first = 0;
+        for (int i = 1; i < at.length; i++)
+        {
+            if (at[i] < at[first])
+            {
+                first = i;
+            }
+        }
+        for (int k = 1; k < at.length; k++)
+        {
+            assertTrue(at[(first + k) % at.length] > at[(first + k - 1) % at.length],
+                what + ": the arm should pass below, left, above and right of the middle in turn, clockwise; got "
+                    + Arrays.toString(at));
+        }
     }
 
     /**

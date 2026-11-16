@@ -402,7 +402,7 @@ with only one ring -- `Minimal` -- is one step.
 | Style | How it crosses |
 |---|---|
 | `sweep` | Rings, in from the rim and out from the middle |
-| `spiral` | A wedge turning round the middle and working outwards |
+| `spiral` | One arm, winding in clockwise from the rim as you see it from the activation switch |
 | `rows` | Rows, in from the top and bottom at once |
 | `columns` | Columns, in from both sides at once |
 | `instant` | No animation; the iris is simply there |

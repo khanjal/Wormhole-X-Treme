@@ -30,7 +30,7 @@ the setting does on a server.
 | Style | How it crosses |
 |---|---|
 | `sweep` *(default)* | Rings, in from the rim and out from the middle |
-| `spiral` | A wedge turning round the middle and working outwards |
+| `spiral` | One arm, winding in clockwise from the rim as you see it from the activation switch |
 | `rows` | Rows, in from the top and bottom at once |
 | `columns` | Columns, in from both sides at once |
 | `instant` | No animation; the iris is simply there |
@@ -47,8 +47,9 @@ the setting does on a server.
 ## What this page leaves out
 
 - Only upright gates are shown. `Horizontal` lies flat, and its opening is several layers deep.
-- The `spiral` turns one way here, as a player at the activation switch sees it. In the world the
-  direction follows which way the gate faces.
+- The `spiral` is drawn as a player at the activation switch sees it, turning clockwise. In the
+  world it turns clockwise for that player whichever way the gate faces. Its arm is a block wide
+  on the smaller gates and two on `Massive` and `Grand`, so it winds in about five turns at most.
 - A real iris is drawn for each viewer, with the wormhole behind it on a glass iris; see
   [how it arrives](../guide/GATES.md#how-it-arrives). This page draws the iris alone.
 - The four iris materials are the ones the shipped [material groups](../guide/GATES.md#material-groups)
