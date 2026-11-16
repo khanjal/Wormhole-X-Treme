@@ -7,7 +7,7 @@ import {
 
 const MIN_STEP_MS = 250; // real timings are too quick to follow on a page
 
-const MARKERS = {
+export const MARKERS = {
   N: { label: "Name sign", color: 0xf1c40f, shape: "plate" },
   EP: { label: "Player entry point", color: 0x2ecc71, shape: "sphere" },
   EM: { label: "Minecart entry point", color: 0x1abc9c, shape: "cone" },
@@ -22,7 +22,8 @@ const MARKERS = {
 /** How many leading cells (sorted by order) belong to a step at or before `order`. */
 const through = (sorted, key, order) => sorted.filter((c) => c[key] <= order).length;
 
-class GateViewer extends SceneBase {
+// The designer page builds on this one, replacing buildUi.
+export class GateViewer extends SceneBase {
   constructor(root) {
     super();
     this.root = root;

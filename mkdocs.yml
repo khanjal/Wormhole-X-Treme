@@ -68,6 +68,7 @@ nav:
           - Gate shapes: manual/gates.md
           - Iris styles: manual/iris.md
           - Dialling and chevrons: manual/dialling.md
+          - Gate designer: manual/designer.md
   - For server owners:
       - Server setup and configuration: guide/SERVER.md
       - Translating: guide/TRANSLATING.md

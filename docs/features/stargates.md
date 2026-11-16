@@ -66,4 +66,5 @@ gates a player owns and how close two gates may stand.
 - [Gates reference](../guide/GATES.md): shapes, materials, signs, the iris and redstone.
 - [Gate shapes in 3D](../manual/gates.md), [iris styles](../manual/iris.md) and
   [dialling and chevrons](../manual/dialling.md): watch each one before you build.
+- [The gate designer](../manual/designer.md): draw your own shape, see it in 3D and download the file.
 - [Permissions](../guide/SERVER.md#permissions) for ranks.

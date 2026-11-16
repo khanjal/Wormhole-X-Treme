@@ -5,10 +5,10 @@
 const CELL = /\[(.+?)\]/g;
 // measureGrid counts cells with a different pattern from the layer reader; so do we.
 const MEASURE_CELL = /\[[^\]]*\]/g;
-const SINGLES = new Set(["N", "EP", "EM", "A", "D", "IA", "RA", "RD", "RS"]);
+export const SINGLES = new Set(["N", "EP", "EM", "A", "D", "IA", "RA", "RD", "RS"]);
 
 /** Caps, because a shape from an upload is untrusted; no shipped shape is near any of them. */
-export const LIMITS = { bytes: 64 * 1024, side: 64, layers: 64, cells: 20000, orders: 256, row: 2048 };
+export const LIMITS = { bytes: 64 * 1024, side: 64, layers: 64, cells: 20000, orders: 256, row: 2048, order: 1000 };
 
 /** A shape file the plugin would refuse to load, or one too big to draw. */
 export class ShapeError extends Error {}
@@ -20,6 +20,8 @@ function measureGrid(lines, from) {
   let height = 0;
   let width = 0;
   while (index < lines.length && lines[index].startsWith("[")) {
+    // Checked before the scan: a huge line of brackets makes the pattern crawl.
+    if (lines[index].length > LIMITS.row) throw new ShapeError(`The grid has a row over ${LIMITS.row} characters.`);
     if (width <= 0) width = (lines[index].match(MEASURE_CELL) || []).length;
     height++;
     index++;
@@ -75,6 +77,8 @@ function integer(text, what) {
 function order(text, what) {
   const n = integer(text, what);
   if (n < 0) throw new ShapeError(`${what} cannot be negative: "${text}".`);
+  // addToWave pads a list out to the number, in every layer that uses it: a large one exhausts memory.
+  if (n > LIMITS.order) throw new ShapeError(`${what} is over ${LIMITS.order}: "${text}". The plugin builds a list that long, so it is refused.`);
   return n;
 }
 
@@ -102,7 +106,9 @@ function parseCell(mods, geometry) {
 }
 
 // The keys Stargate3DShape applies; any other *_MATERIAL line is ignored there too.
-const MATERIAL_KEYS = new Set(["PORTAL_MATERIAL", "IRIS_MATERIAL", "STARGATE_MATERIAL", "ACTIVE_MATERIAL", "CHEVRON_MATERIAL", "SIGN_MATERIAL"]);
+export const MATERIAL_KEYS = new Set(["PORTAL_MATERIAL", "IRIS_MATERIAL", "STARGATE_MATERIAL", "ACTIVE_MATERIAL", "CHEVRON_MATERIAL", "SIGN_MATERIAL"]);
+
+const EXTRA_KEYS = /^(MATERIAL_GROUPS|SOUND_SCALE|USE_COST)=/;
 
 /** "KEY = value;" to "KEY=value", as normaliseSetting does. */
 function normaliseSetting(raw) {
@@ -120,6 +126,8 @@ function applySetting(shape, rawLine) {
   else if (line.includes("LIGHT_TICKS=")) shape.lightTicks = integer(value, "LIGHT_TICKS");
   else if (line.includes("WOOSH_TICKS=")) shape.wooshTicks = integer(value, "WOOSH_TICKS");
   else if (line.startsWith("REDSTONE_ACTIVATED=")) shape.redstoneActivated = value.toLowerCase() === "true";
+  // Read by the plugin but not drawn; kept so a shape saved from the designer does not lose them.
+  else if (EXTRA_KEYS.test(line)) shape.extra.push(line);
 }
 
 function distinctSorted(cells, key) {
@@ -144,7 +152,7 @@ export function parseShape(text) {
   }
   const shape = {
     name: null, width: 0, height: 0, layers: 0, cells: [], lightTicks: null, wooshTicks: null,
-    redstoneActivated: false, materials: {},
+    redstoneActivated: false, materials: {}, extra: [],
   };
   let i = 0;
   while (i < lines.length) {
