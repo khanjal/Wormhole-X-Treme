@@ -172,6 +172,22 @@ export function editCell(shape, layer, row, col, fn) {
   return settle({ ...shape, cells });
 }
 
+/** `fn` changes a copy of each of the cells at `places` ([row, col] pairs, one layer) as one change; the very same shape when none differs. */
+export function editCells(shape, layer, places, fn) {
+  const cells = shape.cells.slice();
+  let changed = false;
+  for (const [row, col] of places) {
+    const at = cellAt(shape, layer, row, col);
+    if (!at) throw new EditError("There is no such cell.");
+    const next = cloneCell(at);
+    fn(next);
+    if (JSON.stringify(cellFields(next)) === JSON.stringify(cellFields(at))) continue;
+    cells[cells.indexOf(at)] = next;
+    changed = true;
+  }
+  return changed ? settle({ ...shape, cells }) : shape;
+}
+
 /** The palette kind a cell shows as: a portal cell is P whatever else it is. */
 export function kindOf(cell) {
   if (cell.portal) return "P";
