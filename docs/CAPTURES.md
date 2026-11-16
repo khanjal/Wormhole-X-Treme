@@ -184,7 +184,7 @@ animation rather than embedding it to run forever.
 | Each ring pattern dialling a Standard gate | `gates/dial-<pattern>.webp` | [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation). Made by the facility, below. |
 | A dial to another world: the eighth chevron | `gates/dial-other-world.webp` | [guide/GATES.md](guide/GATES.md#dialling), [GATES.md](GATES.md#animation). Made by the facility, below. |
 | Each iris animation closing and opening | `gates/iris-<style>.webp` | [guide/GATES.md](guide/GATES.md#how-it-arrives), [GATES.md](GATES.md#the-iris). Made by the facility, below. |
-| The six shipped shapes, idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
+| Four of the shipped shapes (Minimal, Large, Grand, Massive), idle and dialled | `gates/gate-shapes.png`, `gates/gate-shapes-active.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
 | `Horizontal`, idle and dialled | `gates/gate-horizontal.png` | [guide/GATES.md](guide/GATES.md#shapes), [GATES.md](GATES.md#the-shapes-that-ship) |
 | The four palettes: open, dialled, iris closed | `gates/standard-palettes*.png` | [guide/GATES.md](guide/GATES.md#material-groups), [GATES.md](GATES.md#palettes-are-separate-from-shapes) |
 | A ring pair's whole cycle | `rings/ring-cycle.webp` | [README](https://github.com/khanjal/Wormhole-X-Treme/blob/main/README.md), [guide/RINGS.md](guide/RINGS.md#using-rings), [RINGS.md](RINGS.md#animation) |

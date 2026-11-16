@@ -9,7 +9,7 @@ matched against every shape the server has loaded. Its geometry comes from a `.s
 it is made of comes from a palette in `config.yml`; the two are deliberately independent. The
 portal is drawn to clients rather than built, which is what lets a water gate not drown anyone.
 Most of the hard-won detail below is about three things: telling two shapes apart when both
-match, surviving nine save formats, and animating something a client can be shown but the server
+match, surviving seven save formats, and animating something a client can be shown but the server
 cannot ask about.
 
 ## Contents
@@ -67,7 +67,7 @@ block this server does not know, where the setting is left alone and the palette
 rather than the whole shape failing to load.
 
 **A shape may pin its own materials.** `PORTAL_MATERIAL`, `IRIS_MATERIAL`, `STARGATE_MATERIAL`,
-`LIGHT_MATERIAL`, `SIGN_MATERIAL` and `CHEVRON_MATERIAL` override the palette.
+`ACTIVE_MATERIAL` (the lit chevrons), `SIGN_MATERIAL` and `CHEVRON_MATERIAL` override the palette.
 `CHEVRON_MATERIAL` defaults to null rather than to the frame material, because every gate
 standing today has frame material in its chevron cells — a shape that does not ask for distinct
 chevrons has to go on accepting exactly what it accepted before.
@@ -114,13 +114,12 @@ screenshot is the licensed way to show the real thing. See [CAPTURES.md](CAPTURE
 
 <!-- shapes:end -->
 
-And the same six in game, in the `Standard` palette — idle, then dialled. The camera does not
-move between panels, so the size differences are honest: `Minimal` really is that small beside
-`Massive`.
+And four of them in game, in the `Standard` palette — idle, then dialled: `Minimal`, `Large`,
+`Grand` and `Massive`. The `Minimal` panel is a close-up, so the panels are not at one scale.
 
-![The six shipped shapes, idle](images/gates/gate-shapes.png)
+![Four of the shipped shapes, idle: Minimal, Large, Grand and Massive](images/gates/gate-shapes.png)
 
-![The six shipped shapes, dialled](images/gates/gate-shapes-active.png)
+![Four of the shipped shapes, dialled: Minimal, Large, Grand and Massive](images/gates/gate-shapes-active.png)
 
 `Horizontal` is the one the grid above cannot show, because it lies flat and is dropped into
 rather than walked through:
@@ -133,7 +132,7 @@ rather than walked through:
 
 `Standard` against `StandardSignDial`, in the layer the DHD sits in, cropped to the corner that
 differs. Outlined cells are what the sign dial adds: `D`, the wall sign you right-click to pick
-a destination, and the two redstone cells that come with it — `RD` to dial and `RA` to report
+a destination, one more frame block under it, and the two redstone cells that come with it — `RD` to dial and `RA` to report
 that the gate is open. Everything else in both files is the same ring.
 
 All three pairs differ this way. `Minimal` is the only one where it is more than a corner, and
@@ -209,7 +208,7 @@ first:
    proves the player built a sign gate. Without this, `HorizontalSignDial` could never be
    detected: `Horizontal` came back first and overwrote the player's dial sign with its own name
    sign.
-2. **`REDSTONE_ACTIVATED=TRUE`.** No shipped pair needs this now, but custom shapes can be
+2. **`REDSTONE_ACTIVATED=TRUE`.** No shipped pair relies on it to be told apart, but custom shapes can be
    written as redstone twins.
 3. **More frame blocks.** The shape accounting for more of what is actually built is the more
    specific description of it. This settles `MinimalSignDial` against `Minimal`.
@@ -289,7 +288,7 @@ forgotten what it was shown, and with `-all` anyone who arrives later. Displays 
 are shown to viewers as they spawn, and fake blocks and sounds go to everyone watching. The button's
 box is the owner's alone, so nobody else can dial it.
 
-Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, which is what the
+Every block goes into `gateBlocksByWorld` — a per-world `Long -> Stargate` map keyed by block position, which is what the
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions
 like "is there a gate near here".
 
@@ -298,13 +297,12 @@ refresh mode and their next DHD click re-detects the geometry from scratch, keep
 IDC and network. No blocks are touched and no removal event is raised — a refresh is not the gate
 going away, so listeners are not told to discard what they know.
 
-`/wormhole gate regen <gate>` re-derives the narrower thing, by name and without a click: it
-hands the gate's own stored dial-lever block and facing back to `checkStargate` with the shape as
-it is now, and copies the markers off the result — the three redstone blocks, the iris lever, the
-dial sign, the name sign. Copying markers rather than swapping the gate object is what keeps
-identity, network, owner, IDC and open state, none of which detection knows anything about, and
-is why this can run from a command while `refresh` needs somebody standing at the gate. Frame,
-portal, animation waves and arrival point are deliberately not copied.
+`/wormhole gate regen <gate>` re-detects the gate by name and without a click: it hands the
+gate's own stored dial-lever block and facing to the same detection `refresh` uses, with the shape
+as it is now, then re-derives the markers — the three redstone blocks, the iris lever, the dial
+sign, the name sign — and the light order, and recomputes the arrival point. Name, owner, IDC,
+network and open state are kept, none of which detection knows anything about. That is why this
+can run from a command while `refresh` needs somebody standing at the gate to click the DHD.
 
 ## Storage
 
@@ -328,7 +326,7 @@ geometry — every block position, the arrival points, the facing, the flags, pa
 from. A name that no longer matches any shape is kept rather than resolved, and logged: the gate
 still works from its stored geometry but cannot be re-derived until the shape is back.
 
-**`GateData` carries nine save versions.** Files written by any Wormhole X-Treme since version 3
+**`GateData` carries seven save formats (versions 3 to 9).** Files written by any Wormhole X-Treme since version 3
 still load. This is legacy weight the rings deliberately did not inherit — they are plain YAML
 from the start — but gates cannot shed it without stranding worlds.
 
@@ -386,7 +384,7 @@ dialled by redstone at all.**
 ```
 -GateName-
 PreviousGate
->CurrentGate<
+»CurrentGate«
 NextGate
 ```
 
@@ -407,7 +405,7 @@ aborted dials. If the local end fails, nothing is left half-connected. Once both
 destination's chunks are pre-loaded, so travellers do not fall through ungenerated terrain.
 
 A dial is refused when the target's iris is closed, when the target is already active, or when
-another active gate already points at it. `/wormhole gate force` bypasses those.
+another active gate already points at it. `/wormhole gate force` does not bypass them; it closes a stuck gate.
 
 ### Why no shipped shape carries an `[RS]`
 
@@ -556,7 +554,7 @@ for the length of its animation; drawn after it, every ring of a see-through iri
 the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
 two ways of being wrong, in reverse. `IrisSweepDriver.Canvas.moveHorizon` is the per-ring hook
 for it, so both sweeps say which cells they have just reached; for a gate,
-`StargateBlockSetup.horizonBehind` moves the far layer of those cells.
+`StargateBlockSetup.sweepRing` moves the far layer of those cells.
 
 It follows the viewer as well (#447). What each viewer has been drawn is kept per cell, and every
 step checks, beside the cells it has just reached, every cell the sweep has covered for them
@@ -977,7 +975,7 @@ as `view-depth`. "What the server sends" is the world's view distance; on Paper 
   the window, which only sends what changed since it last drew, does not send it again until it does.
 - **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
   point draws its old capture until its next retake, at most a minute after it is next dialled.
-- **No setting per gate**, no horizontal gates, and no creatures on the far side.
+- **No horizontal gates.**
 - **A tunnel's wall is see-through if its portal material is.** Two blocks of water still show
   whatever really stands behind them in this world, tinted, and so the far room past the tunnel's
   end, which nothing walls; only an opaque material such as lava hides it. The wall costs two rings

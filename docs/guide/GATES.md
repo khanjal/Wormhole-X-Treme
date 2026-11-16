@@ -13,6 +13,7 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 - [The iris](#the-iris)
 - [The ripple](#the-ripple)
 - [A big gate onto a small one](#a-big-gate-onto-a-small-one)
+- [Choosing what a gate shows](#choosing-what-a-gate-shows)
 - [Redstone](#redstone)
 - [What travels through a gate](#what-travels-through-a-gate)
 - [Commands](#commands)
@@ -81,7 +82,7 @@ for you to finish (`clickable-chat` in [the server guide](SERVER.md#clickable-ch
 | `needs` | Lists what it takes to build, material by material, with how many of each are still to place and how many blocks are in its opening. Was `materials` in 1.7.0, which still works |
 | `guide` | Builds by it: a block still to place is drawn small, a wrong block is outlined in red, a placed block disappears, and a block in the opening is marked in red glass. Again shows the whole gate. |
 | `layer [<n>\|-next\|-all]` | Shows the layers up to a number, counting from the back. `-next`, or nothing, shows one more each time and all of them after the last; `-all` shows every layer. For a gate as deep as `Grand` or `Massive`. |
-| `share [<player>\|-all]` | Shows it to a player, or with `-all` to everyone in its world, including anyone who arrives later; again stops. With `wormhole.build.preview.share`. They see it change, dial and guide as you do, and hear it, but only you can change it or press its button. Alone, `-share` says who sees it. |
+| `share [<player>\|-all]` | Shows it to a player, or with `-all` to everyone in its world, including anyone who arrives later; again stops. With `wormhole.build.preview.share`. They see it change, dial and guide as you do, and hear it, but only you can change it or press its button. `share` alone says who sees it. |
 | `place` | Builds it for real, with `wormhole.build.preview.place`: frame, chevrons, DHD and a button, in the materials it shows. Then name it with `/wormhole gate complete`, as if you had pressed the button. A button or lever already hung on the DHD facing you is kept. Nothing is placed if a block is in the way (the first five are named), part of it belongs to another gate or ring, is unloaded or past the world border, or no material group uses its frame block. A dial sign is left for you to hang and write before you complete it. With `wormhole.config`, a preview laid over one gate already standing fills in only the blocks that gate is missing, never replacing one, and then regenerates it, keeping its name, owner, network and IDC. |
 
 **Picking a build back up.** Look at the button or lever on a DHD you have already placed and run
@@ -163,8 +164,9 @@ on `none`, to a gate in the Nether:
 
 ![A Standard gate dialling a gate in the Nether: seven chevrons, then the eighth at the bottom, then the kawoosh](../images/gates/dial-other-world.webp)
 
-A dial is refused when the target's iris is closed, the target is already active, or another
-gate already points at it. `/wormhole gate force <gate>` dials past those.
+A dial is refused when the target's iris is closed (unless you give its IDC), the target is
+already active, another gate already points at it, the gates are on different networks, or the
+gates are in different worlds while `same-world-only` is on.
 
 **A wormhole runs one way.** The destination end is an exit: nothing travels back up an open
 wormhole, and a player walking into the destination ring is pushed out. A gate dialled out of
@@ -182,7 +184,9 @@ Nine shape files ship, but they are six gates. `Minimal`, `Standard`, `Large`, `
 `Massive` and `Horizontal` are the rings; the three `SignDial` files are three of those
 rings again with a dial sign on the DHD instead of a plain button.
 
-![The six shipped shapes, built, from one camera position](../images/gates/gate-shapes.png)
+![Four of the shipped shapes, built: Minimal, Large, Grand and Massive](../images/gates/gate-shapes.png)
+
+Standard is in the palette pictures below and Horizontal in the next picture.
 
 `Horizontal` lies flat and is dropped into rather than walked through:
 
@@ -279,7 +283,8 @@ on `pegasus` and Universe on `universe`; leave it out and the gates follow `gate
 
 Materials resolve in this order:
 
-1. A per-gate override (`/wormhole gate edit <gate> portal|iris|light`).
+1. A per-gate override (`/wormhole gate edit <gate> portal|iris|light`), once the gate is in
+   custom mode (`gate edit <gate> custom true`).
 2. A material named in the shape file.
 3. The gate's material group.
 4. The built-in defaults.
@@ -340,7 +345,7 @@ built-in defaults is touched, so deliberate choices are left alone.
 A gate has up to two signs.
 
 - The **name sign** is placed by the plugin on the shape's `:N` block: name, network, owner.
-- The **dial sign** is placed by *you* on the `[D]` block, and makes it a sign gate. Write the
+- The **dial sign** is placed by *you* on the `:D` block, and makes it a sign gate. Write the
   gate's name on it when you build. Right-click steps through destinations, left-click back.
 
 ```
@@ -388,6 +393,8 @@ closed gets you nowhere at all, dialled or idle.
   - `gate edit <gate> idc <code>` later, and `gate edit <gate> idc -clear` to remove it. A
     gate's owner may do this without `wormhole.config`.
 
+  A sign gate has no iris lever, so it cannot be given a code.
+
 ### How it arrives
 
 An iris sweeps shut a ring at a time from the rim inwards, and draws back from the middle out.
@@ -424,8 +431,8 @@ A gate can have its own: `/wormhole gate edit <gate> iris-animation <style>`, or
 back. A material group can set one for its gates with `iris-animation:`. A gate uses its own, then
 its group's, then `gate-iris-animation`; a build preview uses its group's, then the setting.
 
-Each takes as many steps as it has pieces to cross, so a `rows` iris is quicker than a `sweep`
-one -- a gate has fewer rows than rings. A name the plugin does not know falls back to `sweep`,
+`sweep` and `spiral` take one step per ring; `rows` and `columns` take fewer, so a `rows` iris is
+quicker than a `sweep` one -- a gate has fewer rows than rings. A name the plugin does not know falls back to `sweep`,
 so a typo costs you the style and not the iris.
 
 A wider gate has more rings than a small one: `Standard` has five rings and `Grand` sixty-one,
@@ -579,8 +586,9 @@ All three `SignDial` shapes mark two cells:
 A signal counts on the marked block or on **any redstone component touching it**. The same is true
 of the block the DHD button is mounted on, including directly beneath it.
 
-`gate edit <gate> redstone true|false` switches redstone per gate. When the signal drops, a gate
-with `shutdown_timeout: 0` shuts down.
+`gate edit <gate> redstone true|false` switches redstone per gate. A dropped signal does
+nothing; the gate closes on its own timer (`timeout-shutdown`; `0` keeps it open until something
+goes through).
 
 ### What counts as a trigger
 
@@ -603,7 +611,7 @@ The DHD corner of `Standard` beside `StandardSignDial`, seen face-on:
 ![A plain DHD and a sign dial, side by side](../images/gates/dhd.svg)
 
 `A` is the activation block the button goes on and `IA`, under it, carries the iris lever on its
-face toward the player. The sign dial adds `D`, the block the dial sign hangs on, and the two
+face toward the player. The sign dial adds `D`, the block the dial sign hangs on, one more frame block under it, and the two
 redstone cells: `RD` two blocks up, where the dust goes, and `RA` on the ground row, where the
 lever goes. Both sheets are drawn by `scripts/render_gate_sheets.py` from the shape files.
 
@@ -690,7 +698,7 @@ the setting does not touch them.
 | `gate list [network\|mine\|owner <player>\|top]` | Gates you can see; `mine` and `owner` narrow them to one owner, `top` shows the busiest by trips |
 | `gate go <gate>` | Teleport to it |
 | `gate dial <from> <to> [idc]` | Open a wormhole from one named gate to another, under the rules `/dial` keeps; needs `wormhole.config`, and a player also needs the right to dial from that gate. A gate already open, or being dialled, is refused. |
-| `gate force <gate>` | Dial past the usual refusals |
+| `gate force <gate\|-all>` | Close a gate, or every gate, at once: shuts the wormhole, darkens the chevrons and opens the iris. Needs `wormhole.config` |
 
 **Looking after gates**
 
@@ -713,7 +721,7 @@ the setting does not touch them.
 | `gate import` | [Bring gates from another fork](SERVER.md#coming-from-another-wormhole-x-treme) |
 
 **`gate edit` fields:** `portal`, `iris` and `light` (materials), `group` (a whole material group),
-`woosh` (how far the woosh pushes out), `redstone` and `custom` (`true`/`false`), `idc` (a code, or
+`woosh` (how far the woosh pushes out), `redstone` (`true`/`false`), `custom` (`true`/`false`: whether the gate's own `portal`, `iris` and `light` apply), `idc` (a code, or
 `-clear`), `owner`, `spin` (a [ring pattern](#dialling), or `default`), `iris-animation` (a
 [style](#how-it-arrives), or `default`), `view` (`horizon`, `behind`, `open`, or `default`), `cost` (what a
 trip through it costs, `0` for free, or `default`).
@@ -767,7 +775,8 @@ a smaller one, scaled from the shape's width against `Standard`'s 7, or its `SOU
 | `Minimal` | 1.15x (the limit) | 0.85x (the limit) |
 | `Standard`, `Horizontal` | 1x | 1x |
 | `Large` | 0.90x | 1.24x |
-| `Grand`, `Massive` | 0.75x (the limit) | 2x (the limit) |
+| `Grand` | 0.75x (the limit) | 1.99x |
+| `Massive` | 0.75x (the limit) | 2x (the limit) |
 
 In `config.yml` the sounds are under `# --- Stargate sounds ---`: the first two settings, then
 three runs, each under its own `# -- ... --` sub-heading.
