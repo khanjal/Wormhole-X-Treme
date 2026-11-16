@@ -21,8 +21,9 @@ ring. The smallest shape, `Minimal`, has none.
 
 ## Build one
 
-1. Stand where you want it and type `/wormhole gate build Standard`. You need `wormhole.config`
-   and `wormhole.build`, which operators have. The blocks you build the frame from give it its
+1. Stand where you want it and type `/wormhole gate build Standard`. Starting a build only needs
+   `wormhole.build.preview`; finishing the gate needs `wormhole.config` and `wormhole.build`,
+   which operators have. The blocks you build the frame from give it its
    look: obsidian for a Standard gate, lapis for an Atlantis one. A group name after the shape,
    such as `Atlantis`, only dresses the ghost.
 2. Lay the frame. With `wormhole.build.preview` a full-size ghost shows where each block goes,

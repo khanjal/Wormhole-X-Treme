@@ -9,7 +9,8 @@ minutes.
 - Java 17 or later. Minecraft 1.20.5 and later need Java 21 on the server, and 26.1 and later
   need Java 25.
 - Operator status, to follow along as written. Anyone else needs `wormhole.config` and
-  `wormhole.build` to build, and, if you run a permissions plugin, `wormhole.use.dialer` to dial.
+  `wormhole.build` to finish a gate (`wormhole.build.preview` alone only lets them start one and
+  see the ghost), and, if you run a permissions plugin, `wormhole.use.dialer` to dial.
   See [permissions](guide/SERVER.md#permissions).
 - Obsidian for the frame of a `Standard` gate.
 
