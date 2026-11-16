@@ -102,6 +102,8 @@ one. [Details](docs/guide/SERVER.md#compatibility)
 
 ## Documentation
 
+**Read it as a site, with search and a [3D viewer for the gate shapes](https://khanjal.github.io/Wormhole-X-Treme/manual/gates.html):** [khanjal.github.io/Wormhole-X-Treme](https://khanjal.github.io/Wormhole-X-Treme/). The same pages are listed below.
+
 **Running a server** — [Setup, upgrading, configuration, permissions and commands](docs/guide/SERVER.md) ·
 [Translating](docs/guide/TRANSLATING.md)
 
