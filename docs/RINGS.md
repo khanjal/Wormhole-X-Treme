@@ -438,7 +438,7 @@ pattern that has not been built yet, with a layout guide to its slabs.
 
 **The frames are the real ones.** `RingPreview` steps through `RingAnimator.deployFrame`,
 `settledStack`, `ringAtRest`, `litRing` and `retractFrame` directly, at the server's own
-`RingSettings.getRingDeployTicks` and `getRingFlashTicks`, so a preview cannot drift from a trip. It does not
+`ConfigManager.getRingDeployTicks` and `getRingFlashTicks`, so a preview cannot drift from a trip. It does not
 reuse `RingCycle`, which runs a *pair* start to finish and has no state to rest in; what it
 reuses is the `Surroundings` seam, with `PreviewSurroundings` behind it.
 
@@ -701,7 +701,7 @@ removal on retract so nothing outlives the cycle that requested it.
 **The reach limit is a design choice, not a technical one**, and it is two numbers because the
 two axes are different questions. `ring-max-link-distance` is 256 blocks on the ground —
 comfortably a whole base and nowhere near town to town — which stops rings becoming the answer to
-everything; `0` lifts it. The height limit is the constant `MAX_LINK_HEIGHT`, fixed at 384 blocks, the Overworld's height, because
+everything; `0` lifts it. The height limit is the constant `MAX_LINK_HEIGHT`, fixed at 384 blocks, the Overworld's height (in a taller custom world the limit, not the world, is what stops a link), because
 going straight down is exactly what rings are *for*. **Quota** is
 `ring-max-pairs-per-player`, bypassed by `wormhole.ring.unlimited`.
 
