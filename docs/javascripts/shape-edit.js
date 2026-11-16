@@ -158,12 +158,15 @@ export function resize(shape, width, height, layers) {
 
 // --- cells ----------------------------------------------------------------------------------
 
+const cellFields = (c) => [c.block, c.lenientChevron, c.portal, c.markers, c.light, c.woosh];
+
 /** `fn` changes a copy of one cell; the rest of the shape is shared with the old one. */
 export function editCell(shape, layer, row, col, fn) {
   const at = cellAt(shape, layer, row, col);
   if (!at) throw new EditError("There is no such cell.");
   const next = cloneCell(at);
   fn(next);
+  if (JSON.stringify(cellFields(next)) === JSON.stringify(cellFields(at))) return shape; // nothing changed
   const cells = shape.cells.slice();
   cells[cells.indexOf(at)] = next;
   return settle({ ...shape, cells });
@@ -176,10 +179,12 @@ export function kindOf(cell) {
   return cell.block === "frame" ? "S" : "I";
 }
 
+/** Painting a chevron over a chevron keeps an [S:C] cell as it was; any other kind drops it. There is no control to make one: it comes from a file. */
 export function setKind(cell, kind) {
+  const keep = kind === "C" && cell.block === "chevron" && cell.lenientChevron;
   cell.block = kind === "S" ? "frame" : kind === "C" ? "chevron" : "none";
   cell.portal = kind === "P";
-  cell.lenientChevron = false;
+  cell.lenientChevron = keep;
 }
 
 export function setMarker(cell, key, on) {
@@ -189,8 +194,8 @@ export function setMarker(cell, key, on) {
 
 /** Orders are whole numbers from 0; null takes the step off the cell. */
 export function setOrder(cell, which, order) {
-  if (order !== null && (!Number.isInteger(order) || order < 0 || order > 1_000_000)) {
-    throw new EditError("An order number is a whole number from 0 up.");
+  if (order !== null && (!Number.isInteger(order) || order < 0 || order > LIMITS.order)) {
+    throw new EditError(`An order number is a whole number from 0 to ${LIMITS.order}.`);
   }
   cell[which] = order;
 }
@@ -259,7 +264,12 @@ export class History {
 const DRAFT_VERSION = 1;
 const EXTRA = /^(MATERIAL_GROUPS|SOUND_SCALE|USE_COST)=[^\r\n]{1,200}$/;
 const text = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
-const whole = (v) => (Number.isInteger(v) && v >= 0 && v <= 1_000_000 ? v : null);
+/** A light or woosh order, or null for none; anything else makes the whole draft unreadable rather than quietly losing it. */
+const orderOf = (v) => {
+  if (v === null || v === undefined) return null;
+  if (Number.isInteger(v) && v >= 0 && v <= LIMITS.order) return v;
+  throw new Error("order");
+};
 const ticks = (v) => (Number.isInteger(v) && v >= 0 && v <= 2 ** 31 - 1 ? v : null);
 
 export const draftText = (shape) => JSON.stringify({ v: DRAFT_VERSION, shape });
@@ -280,8 +290,8 @@ export function readDraft(raw) {
       cell.lenientChevron = c.lenientChevron === true && cell.block === "chevron";
       cell.portal = c.portal === true;
       cell.markers = Array.isArray(c.markers) ? c.markers.filter((m) => SINGLES.has(m)).slice(0, 12) : [];
-      cell.light = whole(c.light);
-      cell.woosh = whole(c.woosh);
+      cell.light = orderOf(c.light);
+      cell.woosh = orderOf(c.woosh);
       return cell;
     });
     const materials = {};
@@ -291,6 +301,20 @@ export function readDraft(raw) {
       name: text(d.name, 100), width, height, layers, cells, lightTicks: ticks(d.lightTicks), wooshTicks: ticks(d.wooshTicks),
       redstoneActivated: d.redstoneActivated === true, materials, extra,
     });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Keeps a draft the designer could not read, under a key of its own, so saving a new one does not destroy it.
+ * @returns {?string} the key it went under, or null when storage refused
+ */
+export function backUpUnreadable(storage, key, raw, now = Date.now()) {
+  const backup = `${key}-unreadable-${now}`;
+  try {
+    storage.setItem(backup, raw);
+    return backup;
   } catch {
     return null;
   }

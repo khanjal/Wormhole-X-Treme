@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { parseShape } from "../shape-parser.js";
 import {
   fromParsed, newShape, cellAt, editCell, setKind, setMarker, setOrder, kindOf, addLayer, removeLayer, addRow, removeRow,
-  addColumn, removeColumn, resize, EditError, History, draftText, readDraft, fileNameFor, customName, nextLightOrder, withSettings,
+  addColumn, removeColumn, resize, EditError, History, draftText, readDraft, fileNameFor, customName, backUpUnreadable, nextLightOrder, withSettings,
 } from "../shape-edit.js";
 
 const SHAPES = fileURLToPath(new URL("../../../src/main/resources/shapes/gate/", import.meta.url));
@@ -139,11 +139,10 @@ test("a saved draft comes back as it was, and anything else is refused", () => {
 test("a draft keeps only what the designer writes: unknown markers and materials are dropped", () => {
   const parsed = JSON.parse(draftText(standard().shape));
   parsed.shape.cells[0].markers = ["EP", "<img>"];
-  parsed.shape.cells[0].light = -3;
   parsed.shape.materials = { PORTAL_MATERIAL: "WATER", EVIL: "x" };
   parsed.shape.extra = ["SOUND_SCALE=2", "Layer#1=", "SOUND_SCALE=1\nName=x"];
   const got = readDraft(JSON.stringify(parsed));
-  assert.deepEqual([got.cells[0].markers, got.cells[0].light], [["EP"], null]);
+  assert.deepEqual(got.cells[0].markers, ["EP"]);
   assert.deepEqual(got.materials, { PORTAL_MATERIAL: "WATER" });
   assert.deepEqual(got.extra, ["SOUND_SCALE=2"]);
 });
@@ -175,4 +174,42 @@ test("a draft keeps tick settings up to 32 bits and drops the rest", () => {
 test("a shipped shape starts under a name of its own", () => {
   assert.equal(customName("Standard"), "StandardCustom");
   assert.equal(customName(""), "MyCustom");
+});
+
+test("a draft with an order the editor would refuse is refused whole, not trimmed", () => {
+  for (const bad of [-3, 5000, 1.5]) {
+    const parsed = JSON.parse(draftText(standard().shape));
+    parsed.shape.cells[0].light = bad;
+    assert.equal(readDraft(JSON.stringify(parsed)), null, String(bad));
+  }
+});
+
+test("an order number over the cap cannot be set", () => {
+  const { shape } = standard();
+  assert.throws(() => editCell(shape, 1, 0, 0, (c) => setOrder(c, "light", 1001)), EditError);
+  assert.equal(cellAt(editCell(shape, 1, 0, 0, (c) => setOrder(c, "light", 1000)), 1, 0, 0).light, 1000);
+});
+
+test("painting the kind a cell already is changes nothing, so there is no step to undo", () => {
+  const { shape } = standard();
+  assert.equal(editCell(shape, 1, 3, 3, (c) => setKind(c, "P")), shape);
+  assert.notEqual(editCell(shape, 1, 3, 3, (c) => setKind(c, "S")), shape);
+});
+
+test("painting chevron over an [S:C] cell keeps it, and any other kind drops it", () => {
+  const c = { block: "chevron", lenientChevron: true, portal: false, markers: [], light: null, woosh: null };
+  setKind(c, "C");
+  assert.equal(c.lenientChevron, true);
+  setKind(c, "S");
+  setKind(c, "C");
+  assert.equal(c.lenientChevron, false);
+});
+
+test("an unreadable draft is copied under its own key before anything new is saved", () => {
+  const kept = {};
+  const storage = { setItem: (k, v) => { kept[k] = v; } };
+  const key = backUpUnreadable(storage, "draft", "garbage", 7);
+  assert.equal(key, "draft-unreadable-7");
+  assert.deepEqual(kept, { "draft-unreadable-7": "garbage" });
+  assert.equal(backUpUnreadable({ setItem() { throw new Error("full"); } }, "draft", "x"), null);
 });

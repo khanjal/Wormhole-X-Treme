@@ -25,6 +25,7 @@ const SAVE_DELAY_MS = 400;
 const store = {
   get() { try { return localStorage.getItem(DRAFT_KEY); } catch { return null; } },
   set(text) { try { localStorage.setItem(DRAFT_KEY, text); return true; } catch { return false; } },
+  backUp(raw) { try { return E.backUpUnreadable(localStorage, DRAFT_KEY, raw); } catch { return null; } },
   remove() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* nothing was kept */ } },
 };
 
@@ -289,6 +290,12 @@ class Designer {
     }
     const saved = store.get();
     const draft = saved ? E.readDraft(saved) : null;
+    if (saved && !draft) {
+      const kept = store.backUp(saved);
+      this.notice = kept
+        ? "A draft from an older version could not be read. It is kept in this browser under another name, and this is a fresh start."
+        : "A draft from an older version could not be read, and the browser would not keep a copy; it will be replaced.";
+    }
     if (draft) {
       this.shape = draft;
       this.say("Your last draft is back. Discard draft starts again from the shape chosen above.");
@@ -303,6 +310,7 @@ class Designer {
     } else {
       this.shape = E.newShape();
     }
+    if (this.notice) this.say(this.notice);
     this.changed({ reframe: true });
     this.updateDraftNote();
   }
@@ -350,9 +358,11 @@ class Designer {
       if (e instanceof E.EditError) { this.say(e.message); this.renderPanel(); return; }
       throw e;
     }
+    if (next === this.shape) { this.renderPanel(); return; } // nothing changed, so nothing to undo
     this.history.record(this.shape);
     this.shape = next;
     this.changed({ cell: true });
+    return true;
   }
 
   undo() {
@@ -410,6 +420,19 @@ class Designer {
 
   say(text) {
     this.status.textContent = text;
+  }
+
+  /** Says it, but a run of paints is heard once a second rather than each time. */
+  sayLater(text) {
+    const t = this.late ??= { timer: 0, pending: null };
+    t.pending = text;
+    if (t.timer) return;
+    this.say(text);
+    t.pending = null;
+    t.timer = setTimeout(() => {
+      t.timer = 0;
+      if (t.pending) this.sayLater(t.pending);
+    }, 1000);
   }
 
   fail(error) {
@@ -498,7 +521,10 @@ class Designer {
   }
 
   paintBrush(kind) {
-    if (kind !== "select") this.editCell((c) => E.setKind(c, kind));
+    if (kind === "select") return;
+    if (this.editCell((c) => E.setKind(c, kind))) {
+      this.sayLater(`Row ${this.row + 1}, column ${this.col + 1} is now ${E.KIND_NAMES[kind]}.`);
+    }
   }
 
   gridKey(e) {
@@ -585,7 +611,7 @@ class Designer {
     const errors = issues.filter((i) => i.level === "error").length;
     const warnings = issues.length - errors;
     const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-    const text = issues.length ? `${plural(errors, "error")} and ${plural(warnings, "warning")}.` : "No problems found.";
+    const text = issues.length ? `${plural(errors, "error")} and ${plural(warnings, "warning")}.` : `No problems found; reload should accept this.${Object.keys(this.shape.materials).length ? " Material names are not checked here, but validate checks them." : ""}`;
     const note = errors
       ? "This shape has errors. You can still download it, but the plugin may refuse it or build a broken gate."
       : "";

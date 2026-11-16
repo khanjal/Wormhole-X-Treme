@@ -306,9 +306,11 @@
 .wxt-k-P { background: rgba(47, 123, 255, 0.35); }
 .wxt-k-I { color: var(--md-default-fg-color--light); }
 
+/* Text colour with a page-colour halo inside it: at least 3:1 on every cell tint in both schemes. */
 .wxt-grid td.wxt-sel {
-  outline: 3px solid var(--md-accent-fg-color);
+  outline: 3px solid var(--md-default-fg-color);
   outline-offset: -3px;
+  box-shadow: inset 0 0 0 5px var(--md-default-bg-color);
 }
 
 .wxt-settings > summary,

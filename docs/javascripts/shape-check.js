@@ -2,7 +2,7 @@
 // (ShapeFileValidator) refuse or report, plus the rules in the shipped files' header comment.
 // The in-game command is the authority; this is the same list while you edit.
 import { LIMITS } from "./shape-parser.js";
-import { cellAt } from "./shape-edit.js";
+import { cellAt, fileNameFor } from "./shape-edit.js";
 
 const ONE_EACH = ["N", "EP", "EM", "A", "D", "IA"];
 const REDSTONE = ["RD", "RS", "RA"];
@@ -65,8 +65,9 @@ export function checkShape(shape, { shipped = [] } = {}) {
     for (const c of withMarker(key)) if (!dial) report(`[${key}] needs a :D block to target, and there is none.`, c);
   }
 
-  checkOrders(shape.cells, "light", ":L", warn);
-  checkOrders(shape.cells, "woosh", ":W", warn);
+  // ShapeFileValidator.checkNoGap files a gap as a problem, and reload refuses a file with any problem.
+  checkOrders(shape.cells, "light", ":L", error);
+  checkOrders(shape.cells, "woosh", ":W", error);
   return [...found.filter((f) => f.level === "error"), ...found.filter((f) => f.level === "warning")];
 }
 
@@ -75,8 +76,11 @@ function checkSettings(shape, error, warn, shipped) {
   if (!name.trim()) error("The shape has no name; the plugin refuses a Name= line with nothing after it.");
   else if (name.includes("=")) error("The name cannot contain an = sign.");
   else if (!/^[A-Za-z0-9_-]+$/.test(name)) warn("A name of letters, digits, _ and - only is the safest, as it is also the file name and what you type in commands.");
-  if (shipped.some((s) => s.toLowerCase() === name.trim().toLowerCase())) {
-    warn(`"${name}" is the name of a shipped shape. A file with that Name= clashes with the stock one, and a file called ${name}.shape replaces it. Give yours a name of its own.`);
+  // The registry is keyed by Name and the file by its sanitised name: either one can land on a stock shape.
+  const file = fileNameFor(name).slice(0, -".shape".length).toLowerCase();
+  const clash = shipped.find((s) => s.toLowerCase() === name.trim().toLowerCase() || s.toLowerCase() === file);
+  if (clash) {
+    warn(`"${name}" is the name or file name of the shipped shape ${clash}. A file with that Name= clashes with the stock one, and a file called ${clash}.shape replaces it. Give yours a name of its own.`);
   }
   // Integer.valueOf reads these: a fraction or anything past 32 bits fails the load; a negative reads but means nothing.
   for (const [key, value] of [["LIGHT_TICKS", shape.lightTicks], ["WOOSH_TICKS", shape.wooshTicks]]) {
@@ -93,6 +97,13 @@ function checkSize(shape, error) {
   if (shape.width > LIMITS.side || shape.height > LIMITS.side) error(`The grid is ${shape.width} by ${shape.height}; this page edits and draws at most ${LIMITS.side} each way.`);
   if (shape.layers > LIMITS.layers) error(`${shape.layers} layers; this page edits and draws at most ${LIMITS.layers}.`);
   if (shape.cells.length > LIMITS.cells) error(`${shape.cells.length} cells; this page edits and draws at most ${LIMITS.cells}.`);
+  for (const c of shape.cells) {
+    for (const [key, label] of [["light", ":L"], ["woosh", ":W"]]) {
+      if (c[key] !== null && c[key] > LIMITS.order) {
+        error(`${label}#${c[key]} is over ${LIMITS.order}; the plugin builds a list that long, so keep order numbers small.`, c);
+      }
+    }
+  }
   if (shape.lightOrders.length > LIMITS.orders || shape.wooshOrders.length > LIMITS.orders) {
     error(`More than ${LIMITS.orders} light or woosh steps; this page draws at most that many.`);
   }
@@ -134,13 +145,13 @@ function checkRedstoneCell(shape, c, error, rule) {
 }
 
 /** Light and woosh steps should run on without a gap; a gap is a tick that draws nothing. */
-function checkOrders(cells, key, label, warn) {
+function checkOrders(cells, key, label, report) {
   const orders = [...new Set(cells.map((c) => c[key]).filter((n) => n !== null))].sort((a, b) => a - b);
   for (let i = 1; i < orders.length; i++) {
     if (orders[i] === orders[i - 1] + 1) continue;
     const first = orders[i - 1] + 1;
     const missing = orders[i] - 1 === first ? `#${first} is` : `#${first} through #${orders[i] - 1} are`;
-    warn(`${label} ${missing} never used, between #${orders[i - 1]} and #${orders[i]}; that tick draws nothing instead of skipping on.`,
+    report(`${label} ${missing} never used, between #${orders[i - 1]} and #${orders[i]}; that tick draws nothing. /wormhole gate shapes reload refuses a shape with this, though a restart still loads it.`,
       cells.find((c) => c[key] === orders[i]));
   }
 }

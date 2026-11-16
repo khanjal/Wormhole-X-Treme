@@ -111,13 +111,14 @@ test("a redstone block on its own empty cell above a frame block is fine; otherw
   assert.equal(errorsAbout(put(legacy, 1, 1, 1, (c) => setKind(c, "S")), "lands on").length, 1);
 });
 
-test("a gap in the light or woosh steps is a warning that points at the step after it", () => {
+test("a gap in the light or woosh steps is an error, as reload refuses it, and points at the step after it", () => {
   let s = put(good(), 1, 0, 0, (c) => setOrder(c, "light", 1));
   s = put(s, 1, 0, 1, (c) => setOrder(c, "light", 4));
   s = put(s, 1, 0, 2, (c) => setOrder(c, "woosh", 2));
   s = put(s, 1, 0, 3, (c) => setOrder(c, "woosh", 3));
-  const [gap, ...rest] = messages(s, "warning");
+  const [gap, ...rest] = messages(s, "error");
   assert.match(gap.message, /:L #2 through #3 are never used/);
+  assert.match(gap.message, /reload refuses/);
   assert.deepEqual(gap.cell, { layer: 1, row: 0, col: 1 });
   assert.deepEqual(rest, []);
 });
@@ -170,4 +171,16 @@ test("a name equal to a shipped shape's, in any case, is a warning to rename", (
   assert.match(named("standard")[0].message, /shipped shape/);
   assert.equal(named("StandardCustom").length, 0);
   assert.equal(checkShape(withSettings(good(), { name: "Standard" })).length, 0);
+});
+
+test("an order number over the cap is an error", () => {
+  const s = put(good(), 1, 0, 0, (c) => { c.light = 5000; });
+  assert.equal(errorsAbout(s, "over 1000").length, 1);
+});
+
+test("a name that sanitises to a shipped file name clashes too", () => {
+  const shipped = ["Standard"];
+  const issues = checkShape(withSettings(good(), { name: "Standard!" }), { shipped });
+  assert.equal(issues.filter((i) => i.message.includes("shipped shape Standard")).length, 1);
+  assert.equal(checkShape(withSettings(good(), { name: "sTANDARD ." }), { shipped }).filter((i) => i.message.includes("shipped shape")).length, 1);
 });

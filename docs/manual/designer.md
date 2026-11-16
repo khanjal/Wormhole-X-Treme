@@ -69,7 +69,8 @@ faces the highest one.
 1. Press **Download .shape file**. It is named after the shape's name.
 2. Put the file in `plugins/WormholeXTreme/shapes/gate/` on your server.
 3. Run `/wormhole gate shapes validate <name>` to check it, then `/wormhole gate shapes reload <name>`
-   to load it without a restart, or just restart the server.
+   to load it without a restart, or just restart the server. Reload refuses a file that `validate`
+   reports a problem with, and a restart is more forgiving, so fix what the page lists first.
 4. Build it with `/wormhole gate build <name>`.
 
 The checks under the grid run as you edit and follow the rules the plugin uses when it reads a shape, but

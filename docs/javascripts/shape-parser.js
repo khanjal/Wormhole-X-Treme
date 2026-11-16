@@ -8,7 +8,7 @@ const MEASURE_CELL = /\[[^\]]*\]/g;
 export const SINGLES = new Set(["N", "EP", "EM", "A", "D", "IA", "RA", "RD", "RS"]);
 
 /** Caps, because a shape from an upload is untrusted; no shipped shape is near any of them. */
-export const LIMITS = { bytes: 64 * 1024, side: 64, layers: 64, cells: 20000, orders: 256, row: 2048 };
+export const LIMITS = { bytes: 64 * 1024, side: 64, layers: 64, cells: 20000, orders: 256, row: 2048, order: 1000 };
 
 /** A shape file the plugin would refuse to load, or one too big to draw. */
 export class ShapeError extends Error {}
@@ -20,6 +20,8 @@ function measureGrid(lines, from) {
   let height = 0;
   let width = 0;
   while (index < lines.length && lines[index].startsWith("[")) {
+    // Checked before the scan: a huge line of brackets makes the pattern crawl.
+    if (lines[index].length > LIMITS.row) throw new ShapeError(`The grid has a row over ${LIMITS.row} characters.`);
     if (width <= 0) width = (lines[index].match(MEASURE_CELL) || []).length;
     height++;
     index++;
@@ -75,6 +77,8 @@ function integer(text, what) {
 function order(text, what) {
   const n = integer(text, what);
   if (n < 0) throw new ShapeError(`${what} cannot be negative: "${text}".`);
+  // addToWave pads a list out to the number, in every layer that uses it: a large one exhausts memory.
+  if (n > LIMITS.order) throw new ShapeError(`${what} is over ${LIMITS.order}: "${text}". The plugin builds a list that long, so it is refused.`);
   return n;
 }
 
