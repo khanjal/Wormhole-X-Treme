@@ -8,7 +8,7 @@ are in [BSTATS.md](BSTATS.md).
 
 ## Building and testing
 
-JDK 17 and Maven.
+JDK 17 and Maven 3.6.3 or newer (the floor of the plugins in `pom.xml`).
 
 ```bash
 mvn test                    # JUnit 5 + Mockito; no live server needed
@@ -1288,8 +1288,8 @@ To add a new Minecraft version:
 3. Add it to the other version matrices in the same file: `paper-api` (the same versions as
    `server-api`, under the key `paper:`) and `boot-test` (under `version:`, with its Java version).
    Neither uses `minecraft:`, or `release.yml` would read it as a second range. `boot-integrations`,
-   `boot-migration` and `boot-travel` list chosen versions only; add the new one if it should be
-   covered there.
+   `boot-migration` and `boot-travel` in `ci.yml`, and the matrix in `integrations-latest.yml`, list
+   chosen versions only; add the new one if it should be covered there.
 4. Update the range printed in the README (badge, tagline and Compatibility table),
    `docs/API.md`, the table in [guide/SERVER.md](guide/SERVER.md#compatibility) and the listings
    under `docs/listings/`.
@@ -1315,8 +1315,7 @@ symbol, and one was fixable in a line.
   (`WormholeXTremeVehicleListener`'s rider re-attach holds itself in a `Runnable[] taskHolder` so
   it can schedule its own next try).
 - Catch `RuntimeException`, not `Throwable`. Where cross-version compatibility needs a missing
-  method or class caught, catch `LinkageError` alongside it (`Exception | LinkageError`), and say
-  why in a comment.
+  method or class caught, catch `Exception | LinkageError` together, and say why in a comment.
 - Log through `WormholeXTreme.getThisPlugin().prettyLog(Level, String)`. The three-argument
   overload adds the plugin version to the tag and is for startup and shutdown lines only; never
   pass it `false`.

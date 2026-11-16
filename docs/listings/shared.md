@@ -174,8 +174,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   `pegasus` dials as an Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two
   more, and `none`, the default, turns it off. A gate, or a whole material group, can pick its own.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
-- **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal (sign-dial
-  variants of three of them ship too), the last lying flat to be dropped into rather than walked
+- **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal (some also
+  ship as sign-dial variants), the last lying flat to be dropped into rather than walked
   through. Shapes are plain text files:
   copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped
   files update themselves when you have not edited them, and never overwrite one you have.
@@ -297,7 +297,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and
   `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate,
   lighter on a small one.
-- **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in
+- **Works with or without a permissions plugin.** Vault with a permissions provider such as LuckPerms (LuckPerms alone is not enough), a built-in
   fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.

@@ -55,7 +55,8 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Mirrors that show a room** — walk up to one and it reflects its own room in real blocks;
   right-click it and it shows another world's.
 - **Every sound is a setting**, resource pack sounds included.
-- **Works with or without a permissions plugin**, and charges through Vault only if you want it to.
+- **Works with or without a permissions plugin**: node-based permissions need Vault with a provider
+  such as LuckPerms (LuckPerms alone is not enough), and it charges through Vault only if you want it to.
 - **Events for other plugins** to watch or cancel travel — see [docs/API.md](docs/API.md).
 - **Plain YAML storage**, and `/wormhole gate import` for gates from older forks' SQLite databases.
 
@@ -121,7 +122,7 @@ played one by one. [Details](docs/guide/SERVER.md#compatibility)
 
 ## Building from source
 
-JDK 17 and Maven.
+JDK 17 and Maven 3.6.3 or newer (the floor of the plugins in `pom.xml`).
 
 ```bash
 mvn -DskipTests package

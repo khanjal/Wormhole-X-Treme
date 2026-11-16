@@ -6,8 +6,8 @@ subsystem is put together is in [GATES.md](GATES.md), [RINGS.md](RINGS.md), [BEA
 and [MIRRORS.md](MIRRORS.md).
 
 The plugin needs **Java 17** and runs on Minecraft **1.20 through 26.3**. It is built against
-the 1.20.4 API, and CI also builds and tests it against 1.20 and every later version in the
-README's range, so everything here works across that whole range. Beaming and mirrors
+the 1.20.4 API, and CI also builds and tests it against a chosen set of versions across that
+range (listed in the README), so everything here is meant to work across that whole range. Beaming and mirrors
 raise no events yet.
 
 ## Depending on the plugin
@@ -110,7 +110,8 @@ the wormhole.
 iris code, cooldown, one-way, same-world — and before anything has moved. `getStargate()` is the
 gate being entered, `getDestination()` is where it leads, and `getArrival()` is the exact spot
 the player would land. For a player on foot that is a safe spot searched near the far gate; for a
-rider it is the far gate's own arrival point, not a searched one.
+rider it is the far gate's own player arrival point, not a searched one. A vehicle itself lands at
+the far gate's minecart landing spot when it has one, which this event does not report.
 
 ```java
 @EventHandler
@@ -126,8 +127,8 @@ public void onTravel(final StargatePlayerTravelEvent event)
 It fires for a player on foot and for one riding anything — a horse, a minecart, a boat. It does
 not fire for the vehicle itself, nor for anything travelling on its own, so cancelling stops the
 player rather than the world around them. A vehicle with riders is the one case where a cancel
-reaches further: the event fires once for each player aboard, and one listener cancelling it holds
-the whole vehicle and everyone in it.
+reaches further: the event fires for each player aboard in turn until one is cancelled, and that one
+cancelling holds the whole vehicle and everyone in it.
 
 A cancelled traveller is held, not moved. If they were walking in they are kept out; if they were
 already standing in the portal they stay free to walk away, since refusing every move of someone

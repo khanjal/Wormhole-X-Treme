@@ -224,7 +224,7 @@ you turn them on.
 - **Everything travels** — minecarts and boats with their passengers, ridden horses, camels, pigs, donkeys, llamas and striders with their riders, arrows and tridents and ender pearls in mid-flight, and mobs, items and XP orbs that wander into an open gate. Tamed wolves, cats and parrots follow their owner through any of the four.
 - **Configured in game.** `/wormhole config <setting> <value>` changes any setting on the spot — no reload, no restart. `/wormhole config sign` searches them.
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate, lighter on a small one.
-- **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in fallback if you do not.
+- **Works with or without a permissions plugin.** Vault with a permissions provider such as LuckPerms (LuckPerms alone is not enough), a built-in fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned, the nearest gate, and a player's own trip, gate-built, ring and beam counts, for a scoreboard or tab list.
@@ -361,5 +361,5 @@ so there is a jar to upload. What is left:
    file). Size unverified; the 256×256 rendered for Spigot is a reasonable starting point.
 3. **Read the platform picker** and settle the Paper-only question properly, per the note above.
 4. **Confirm the keywords** on the form, per the provenance note above.
-5. **Link the four systems** in the overview table to their subpages once they exist (the
-   comment under the table says where).
+5. **Link the four systems** in the "Each has its own section below" line to their subpages once
+   they exist (the comment under it says where).
