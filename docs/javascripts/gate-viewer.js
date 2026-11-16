@@ -1,20 +1,11 @@
 // The gate shape viewer on the User manual page: reads the real .shape files copied to
 // assets/shapes/ by scripts/copy-docs-shapes.sh and draws them with three.js.
-import { parseShape, describeShape, ShapeError } from "./shape-parser.js";
+import { describeShape, ShapeError } from "./shape-parser.js";
+import {
+  THREE, SceneBase, el, hex, palette, loadLibs, fetchManifest, fetchShape, TICK_MS, reduceMotion,
+} from "./scene-kit.js";
 
-// Loaded in main() so a failed CDN fetch can be reported inside the viewer box.
-let THREE;
-let OrbitControls;
-
-const SHAPES_URL = new URL("../assets/shapes/", import.meta.url);
-const TICK_MS = 50;
 const MIN_STEP_MS = 250; // real timings are too quick to follow on a page
-const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-const PALETTES = {
-  light: { frame: 0x3b2f5c, chevron: 0xa23b3b, lit: 0xf59e0b, portal: 0x2f7bff, woosh: 0x00a6d6, grid: 0xbbbbbb },
-  dark: { frame: 0x9a88c8, chevron: 0xc9605a, lit: 0xffd36b, portal: 0x58a6ff, woosh: 0x7fe3ff, grid: 0x555555 },
-};
 
 const MARKERS = {
   N: { label: "Name sign", color: 0xf1c40f, shape: "plate" },
@@ -28,25 +19,12 @@ const MARKERS = {
   RA: { label: "Redstone output block", color: 0xff7675, shape: "ring" },
 };
 
-const el = (tag, attrs = {}, ...children) => {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") node.className = v;
-    else node.setAttribute(k, v);
-  }
-  node.append(...children);
-  return node;
-};
-
-const isDark = () => document.body.getAttribute("data-md-color-scheme") === "slate";
-const palette = () => (isDark() ? PALETTES.dark : PALETTES.light);
-const hex = (n) => `#${n.toString(16).padStart(6, "0")}`;
-
 /** How many leading cells (sorted by order) belong to a step at or before `order`. */
 const through = (sorted, key, order) => sorted.filter((c) => c[key] <= order).length;
 
-class GateViewer {
+class GateViewer extends SceneBase {
   constructor(root) {
+    super();
     this.root = root;
     this.runId = 0;
     this.loadId = 0;
@@ -55,9 +33,7 @@ class GateViewer {
     this.litUpTo = 0;
     this.buildUi();
     this.buildScene();
-    new MutationObserver(() => this.applyPalette()).observe(document.body,
-      { attributes: true, attributeFilter: ["data-md-color-scheme"] });
-    new ResizeObserver(() => this.resize()).observe(this.stage);
+    this.watch(() => this.applyPalette());
   }
 
   buildUi() {
@@ -92,21 +68,7 @@ class GateViewer {
   }
 
   buildScene() {
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(40, 1, 0.1, 500);
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x666677, 1.6));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-    sun.position.set(4, 8, 6);
-    this.scene.add(sun);
-    this.controls = new OrbitControls(this.camera, this.canvas);
-    this.controls.enableDamping = false;
-    this.controls.addEventListener("change", () => this.requestRender());
-    // OrbitControls sets "none"; a vertical swipe should still scroll the page on a phone.
-    this.canvas.style.touchAction = "pan-y";
-    // Geometries are shared by every shape; only materials and meshes are made per shape.
-    this.cube = new THREE.BoxGeometry(0.92, 0.92, 0.92);
+    super.buildScene();
     this.markerGeometries = {
       plate: new THREE.BoxGeometry(0.8, 0.5, 0.15),
       sphere: new THREE.SphereGeometry(0.28, 16, 12),
@@ -120,14 +82,12 @@ class GateViewer {
   }
 
   async start() {
-    const res = await fetch(new URL("manifest.json", SHAPES_URL));
-    if (!res.ok) throw new Error(`the shape list answered ${res.status}`);
-    const manifest = await res.json();
-    for (const s of manifest.shapes) this.select.append(el("option", { value: s.file }, s.name));
+    const shapes = await fetchManifest();
+    for (const s of shapes) this.select.append(el("option", { value: s.file }, s.name));
     let wanted = "";
     try { wanted = decodeURIComponent(location.hash.slice(1)); } catch { /* a malformed hash just means no pick */ }
-    const match = manifest.shapes.find((s) => s.name === wanted);
-    this.select.value = match ? match.file : (manifest.shapes.find((s) => s.name === "Standard") || manifest.shapes[0]).file;
+    const match = shapes.find((s) => s.name === wanted);
+    this.select.value = match ? match.file : (shapes.find((s) => s.name === "Standard") || shapes[0]).file;
     await this.load(this.select.value);
   }
 
@@ -137,11 +97,8 @@ class GateViewer {
 
   async load(file) {
     const id = ++this.loadId;
-    const res = await fetch(new URL(file, SHAPES_URL));
-    if (!res.ok) throw new Error(`${file} answered ${res.status}`);
-    const text = await res.text();
+    const shape = await fetchShape(file);
     if (id !== this.loadId) return; // a newer pick has overtaken this one
-    const shape = parseShape(text);
     this.runId++;
     this.shape = shape;
     this.disposeParts();
@@ -149,22 +106,6 @@ class GateViewer {
     this.describe();
     this.frameCamera();
     this.setState("idle");
-  }
-
-  // Cell position in the scene. The file reads left to right as a player sees it standing on the
-  // high-layer side (where the activation switch faces), so that side is the camera's: high
-  // layers are near, layer 1 is far, column 0 is on the left.
-  pos(c) {
-    return new THREE.Vector3(c.col, c.y, c.layer);
-  }
-
-  instanced(cells, material) {
-    const mesh = new THREE.InstancedMesh(this.cube, material, Math.max(cells.length, 1));
-    const m = new THREE.Matrix4();
-    cells.forEach((c, i) => mesh.setMatrixAt(i, m.setPosition(this.pos(c))));
-    mesh.count = cells.length;
-    mesh.instanceMatrix.needsUpdate = true;
-    return mesh;
   }
 
   buildParts() {
@@ -195,6 +136,9 @@ class GateViewer {
     parts.stayCells = byOrder("woosh", (c) => c.woosh !== null && c.portal);
     parts.wave = add(this.instanced(parts.waveCells, mats.woosh));
     parts.stay = add(this.instanced(parts.stayCells, mats.portal));
+    // Their counts start at 0, which a culling sphere taken then would keep.
+    parts.wave.frustumCulled = false;
+    parts.stay.frustumCulled = false;
 
     this.buildMarkers(parts, add);
 
@@ -224,68 +168,6 @@ class GateViewer {
       mesh.renderOrder = 10;
       add(mesh);
     }
-  }
-
-  bounds() {
-    const box = new THREE.Box3();
-    for (const c of this.shape.cells) {
-      if (c.block !== "none" || c.portal || c.woosh !== null) box.expandByPoint(this.pos(c));
-    }
-    return { min: box.min, max: box.max, center: box.getCenter(new THREE.Vector3()), size: box.getSize(new THREE.Vector3()) };
-  }
-
-  frameCamera() {
-    const b = this.bounds();
-    const radius = Math.max(b.size.length() / 2, 2);
-    this.home = { target: b.center.clone(), offset: new THREE.Vector3(0.55, 0.45, 1).normalize().multiplyScalar(radius * 3) };
-    this.resetView();
-  }
-
-  resetView() {
-    if (!this.home) return;
-    this.controls.target.copy(this.home.target);
-    this.camera.position.copy(this.home.target).add(this.home.offset);
-    this.controls.update();
-    this.requestRender();
-  }
-
-  key(e) {
-    const offset = this.camera.position.clone().sub(this.controls.target);
-    const sph = new THREE.Spherical().setFromVector3(offset);
-    const step = 0.15;
-    switch (e.key) {
-      case "ArrowLeft": sph.theta -= step; break;
-      case "ArrowRight": sph.theta += step; break;
-      case "ArrowUp": sph.phi = Math.max(0.1, sph.phi - step); break;
-      case "ArrowDown": sph.phi = Math.min(Math.PI - 0.1, sph.phi + step); break;
-      case "+": case "=": sph.radius *= 0.85; break;
-      case "-": case "_": sph.radius /= 0.85; break;
-      case "0": this.resetView(); e.preventDefault(); return;
-      default: return;
-    }
-    e.preventDefault();
-    this.camera.position.copy(this.controls.target).add(offset.setFromSpherical(sph));
-    this.controls.update();
-    this.requestRender();
-  }
-
-  resize() {
-    const w = this.stage.clientWidth;
-    const h = this.stage.clientHeight;
-    if (!w || !h) return;
-    this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
-    this.requestRender();
-  }
-
-  requestRender() {
-    if (this.queued) return;
-    this.queued = true;
-    requestAnimationFrame(() => {
-      this.queued = false;
-      this.renderer.render(this.scene, this.camera);
-    });
   }
 
   applyPalette() {
@@ -368,7 +250,7 @@ class GateViewer {
       this.litUpTo = order;
       this.paintLights();
       this.say(`Dialling: chevron step ${index + 1} of ${orders.length} lit.`);
-      await this.wait(this.shape.lightTicks ?? 10);
+      await this.wait(this.shape.lightTicks ?? 3);
       if (run !== this.runId) return;
     }
     this.setState("dialled");
@@ -456,16 +338,7 @@ class GateViewer {
 
 async function main() {
   const root = document.getElementById("gate-viewer");
-  if (!root) return;
-  try {
-    THREE = await import("three");
-    ({ OrbitControls } = await import("three/addons/controls/OrbitControls.js"));
-  } catch (error) {
-    root.replaceChildren(el("p", { class: "admonition warning", role: "alert" },
-      "The 3D viewer could not load its drawing library (three.js from the jsDelivr CDN), so there is nothing to show here. " +
-      "Check your connection or a content blocker and reload; every shape is also drawn in the gate internals pages."));
-    return;
-  }
+  if (!root || !(await loadLibs(root))) return;
   try {
     await new GateViewer(root).start();
   } catch (error) {
