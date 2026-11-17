@@ -402,4 +402,33 @@ class PortalViewsTest
         assertTrue(PortalViews.links().isEmpty());
         assertTrue(released.contains("portal:world 0,64,10 x south"));
     }
+
+    /** Past mirror-proximity-distance (16 by default) a portal is offered nothing, though in front of it. */
+    @Test
+    void aPlayerOutOfReachIsOfferedNothing()
+    {
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
+        travel(100.5, 70.0, 5.5, 180.0f);
+
+        PortalViews.offer(List.of(lookingFrom(0.5, 40.0)), 3_000L);
+
+        assertTrue(offered.isEmpty());
+        PortalViews.offer(List.of(lookingFrom(0.5, 20.0)), 3_000L);
+        assertEquals(1, offered.size(), "ten blocks off it is");
+    }
+
+    /** A player in the far world, at the near portal's coordinates, is offered nothing of it. */
+    @Test
+    void aPlayerInAnotherWorldIsOfferedNothing()
+    {
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
+        travel(100.5, 70.0, 5.5, 180.0f);
+        final Player player = lookingFrom(0.5, 15.0);
+        final Location eye = player.getEyeLocation();
+        eye.setWorld(nether);
+
+        PortalViews.offer(List.of(player), 3_000L);
+
+        assertTrue(offered.isEmpty());
+    }
 }

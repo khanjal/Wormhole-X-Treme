@@ -130,4 +130,24 @@ class NetherPortalTest
         assertTrue(portal.frame().contains(new Spot(-1, 63, 10)), "a corner");
         assertTrue(GateViews.framed(portal.cells(), portal.frame(), new Spot(1, 0, 0)));
     }
+
+    /**
+     * A sheet of portal blocks far bigger than any portal stops the fill once it passes the biggest,
+     * rather than reading every block of it on the main thread.
+     */
+    @Test
+    void aHugeSheetStopsTheFillEarly()
+    {
+        light(Axis.X, 0, 60, 60);
+        final int[] read = { 0 };
+
+        final NetherPortal portal = NetherPortal.at("overworld", 0, 64, 10, (bx, by, bz) ->
+        {
+            read[0]++;
+            return blocks.get(new Spot(bx, by, bz));
+        });
+
+        assertNull(portal);
+        assertTrue(read[0] < 2000, "read " + read[0] + " blocks of a 3600-block sheet");
+    }
 }
