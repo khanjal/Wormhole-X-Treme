@@ -135,7 +135,9 @@ the far edge of the view. The setting that pulled your fog in to the room's dept
 **Blocks, and creatures if the server turns them on.** With `mirror-show-entities` on, the mobs
 standing in the room show through the mirror (or an open gate) as copies only you see; it is off by
 default. With `mirror-show-players` on as well, so do the players there, by name: a mannequin in
-their skin from Minecraft 1.21.9, an armour stand wearing their head before. Never yourself through a mirror (through a gate whose far room is close by and covers you, such as one facing it, you do see yourself), nor
+their skin from Minecraft 1.21.9, an armour stand wearing their head before. A mirror showing its
+own room shows the others in front of it, flipped, as a mirror does. Never yourself through a mirror
+(through a gate whose far room is close by and covers you, such as one facing it, you do), nor
 anyone invisible, spectating or riding something, nor anyone a vanish plugin hides from you with
 `hidePlayer`; a plugin that hides players by rewriting packets is not seen by this check, and its
 players do show. The skin is the player's real one, not a disguise plugin's, so a server that

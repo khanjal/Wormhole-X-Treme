@@ -89,6 +89,7 @@ final class WindowCreatures
             for (final String name : view.mirrors)
             {
                 final WindowState window = ACTIVE.get(name);
+                // A reflection's room is in front of the viewer, and nothing is loaded for it: it is read only where the server already has it.
                 if ((window != null) && !window.shape.mirrored())
                 {
                     nearest.merge(name, apartFrom(window, view), Math::min);
@@ -187,15 +188,12 @@ final class WindowCreatures
             wanted -> !drawn.contains(wanted.window()) || WindowVeil.stillSeen(eye, wanted.here(), seeing, fixed);
         final List<FarCreatures.Wanted> inRoom = new ArrayList<>();
         view.tallies.clear();
+        // A reflection's room is the viewer's own: its creatures are flipped across the wall like its blocks, the viewer never among them.
         for (final WindowState window : Windows.nearestFirst(seeing, eye))
         {
-            // A reflection's room is the viewer's own, which is a later step of #296.
-            if (!window.shape.mirrored())
-            {
-                final CreatureTally tally = new CreatureTally();
-                view.tallies.put(window.name(), tally);
-                inRoomThrough(player, view, window, byName, kept, inRoom, tally);
-            }
+            final CreatureTally tally = new CreatureTally();
+            view.tallies.put(window.name(), tally);
+            inRoomThrough(player, view, window, byName, kept, inRoom, tally);
         }
         // The costly view test runs nearest first and stops at the cap: a farm far off costs a sort, not a projection each.
         final List<FarCreatures.Wanted> chosen = FarCreatures.choose(inRoom, eye, FarCreatures.MOST_PER_VIEWER,

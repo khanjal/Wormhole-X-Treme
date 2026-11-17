@@ -871,6 +871,38 @@ What the jars say, read with `javap` from the API jars this plugin builds agains
 - `World.refreshChunk(int, int)`: every Spigot jar from 1.20 on. `getPlayersSeeingChunk(int,
   int)`: from 1.20.6, and absent on 1.20 through 1.20.4.
 
+### Researched, not built: scenery past the send distance (#526)
+
+What the API and the code settle before anything is judged in a world. Sources are the Spigot and
+Paper API jars for 1.20.4, 1.21.11 and 26.2 and the server's tracking code; Purpur and the
+version-by-version default ranges were not checked.
+
+- **A display is never sent past the player's send distance.** `showEntity` on a hidden-by-default
+  display still goes through the tracker, which caps the range at the smaller of
+  `entity-tracking-range.display` (128 by default) and the player's view distance times 16. Raising
+  the config cannot beat the view-distance cap, so no display can be anchored past the edge of
+  the chunks the client holds (a translation or scale reaching outward from an anchor in range
+  was not tested). Scaled `BlockDisplay` impostors can therefore stand in for the far
+  part of a view, not for what is beyond it. They also need `view_range` raised, or the client
+  culls them at about 64 blocks.
+- **A capture does not reach past 160 either.** The box stops at `Captures.MOST_REACH` and reads
+  loaded chunks only. Scenery beyond it needs a separate far base: surface height and top block per
+  column from `ChunkSnapshot.getHighestBlockYAt` and `getBlockType` (both there in the 1.20.4, 1.21.11 and 26.2 jars;
+  the `HeightMap` variants are `World` calls on the main thread). A 320 by 320 ring is 400 chunks,
+  102,400 columns, 307 KB raw, and only exists where the chunks are held (`FarChunkHolds` holds 400).
+- **A wall is a block per cell of the frustum's cross-section.** Through a 3 by 2 opening seen from
+  a block back that is about 25,000 blocks at 64, 56,000 at 96 and 100,000 at 128, in the range of
+  the non-air blocks a view already draws (not counted per depth), so a wall sheds the volume of air-and-terrain between it
+  and 160 but is no cheaper than the terrain surface it replaces. Its sky cells have to be blocks too,
+  or this world's real blocks show through the gaps, which is the fake sky already ruled out.
+- **Parallax error of a wall at *d* for scenery at 160**, per block the eye steps sideways: 0.53° at
+  64, 0.23° at 96, 0.09° at 128. Its resolution is a block per 0.88°, 0.59° and 0.44°.
+- **The painting is cheap to make.** Projecting the stored blocks beyond *d* onto the wall is a loop
+  over `Capture.forEachKept` off the main thread, estimated at 20 to 30 ns a block from a micro-benchmark: 20 to 30 ms for a million.
+
+The look is the open question, and `WX_FAR_SCENERY=1` builds a chamber to judge it (see the
+Facility section of the development guide).
+
 ### What is left to try
 
 Each of these is a real lever, and none is free. The first is the one to build next.
@@ -1032,8 +1064,19 @@ that one viewer (`HiddenEntities`).
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
   has lost track of is removed at the next sweep.
-- **Not yet in a reflection.** A mirror showing its own room shows no creatures: drawing the room
-  in front of it is a later step, with the rule that a viewer never sees themselves.
+- **In a reflection.** A mirror showing its own room shows the mobs, and with `mirror-show-players`
+  the other players, standing in front of it, flipped across the wall as its blocks are: one a step
+  to the viewer's left in front shows a step to their left behind the wall, and one looking into the
+  mirror looks back out of it (#296, step 3). Never the viewer themselves, by the same
+  `FarPlayers.showsTheViewer` rule as any mirror, so two players at one mirror each see the other
+  and not themselves. It is the same path as any window's, through `WindowShape.hereOf`, so every
+  rule above holds, the cap of twenty included, and so does one stand-in a creature a viewer: in a
+  room with two mirrors, or a mirror beside a gate dialled onto it, it shows in one of them. The
+  room is the viewer's own and in front of them, so nothing is held loaded for it and it is read
+  only where the server already has it. The viewer's own mount or pet is reflected too (the mount
+  without its rider). Every reflected creature's real self stands in front of the wall, where the
+  veil never reaches, so each shows once in the room and once in the reflection. Only position and
+  facing are flipped: what a player holds stays in the same hand.
 
 **What it costs.** A watched window holds 15 chunks at the default radius (45 at 4), and with the
 ring the server keeps round each, about 63 chunks loaded (about 135 at 4), some 35 of them ticking
@@ -1064,9 +1107,9 @@ wall banners.
 the other, and the second banner's name was one nobody chose. The network replaced it: one room per
 mirror, and the choice of where to open made at the mirror.
 
-**Seeing yourself in a reflection.** A reflection shows an empty room. Drawing the players in front
-of it, flipped, needs the stand-ins of [Seeing creatures](#seeing-creatures) for players, and is
-a later step of #296, with the rule that the viewer never sees themselves.
+**Seeing yourself in a reflection.** A reflection shows the others in front of it
+([Seeing creatures](#seeing-creatures)), but never the viewer, the rule set for mirrors in #296:
+the step first planned had the viewer seeing themselves, flipped, and was replaced by this one.
 
 **Groups, hidden mirrors and a sign to choose with** — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280).
 **Mirrors on other servers** — [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257).
