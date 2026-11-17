@@ -28,6 +28,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorFollow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
@@ -132,10 +133,13 @@ public class MirrorCommand implements SubCommand
     /** The property naming the mirror a right-click opens onto first. */
     private static final String START = "-start";
 
-    /** What {@code set} can change. Dashed, like every keyword that can stand where a name does. */
-    private static final String[] PROPERTIES = { "-stamp", START, "-capture" };
+    /** The property making a mirror's banner follow where it opens first (#613). */
+    private static final String FOLLOW = "-follow";
 
-    /** The same three, for looking a word up without building a list each time. */
+    /** What {@code set} can change. Dashed, like every keyword that can stand where a name does. */
+    private static final String[] PROPERTIES = { "-stamp", START, "-capture", FOLLOW };
+
+    /** The same words, for looking a word up without building a list each time. */
     private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
 
     /** A start that is the mirror's own room again. */
@@ -217,6 +221,11 @@ public class MirrorCommand implements SubCommand
             sayStartUsage(sender);
             return;
         }
+        if (FOLLOW.equals(property) && (at == 3) && (args.length == 4))
+        {
+            sayFollowUsage(sender);
+            return;
+        }
         final List<String> asVerb = new ArrayList<>();
         asVerb.add(args[0]);
         asVerb.add(property);
@@ -230,6 +239,7 @@ public class MirrorCommand implements SubCommand
         {
             case "-stamp" -> stamp(sender, shifted);
             case "-capture" -> capture(sender, shifted);
+            case FOLLOW -> follow(sender, shifted);
             default -> start(sender, shifted);
         }
     }
@@ -838,6 +848,7 @@ public class MirrorCommand implements SubCommand
             MirrorManager.add(mirror.withStart(null));
             MirrorYamlManager.saveAll();
             say(sender, Messages.get(sender, "mirror.cmd.start.none", MirrorText.name(mirror.name())));
+            restampIfFollowing(sender, MirrorManager.byName(mirror.name()));
             return;
         }
         final QuantumMirror first = known(sender, word);
@@ -854,12 +865,97 @@ public class MirrorCommand implements SubCommand
         MirrorYamlManager.saveAll();
         say(sender, Messages.get(sender, "mirror.cmd.start.set", MirrorText.name(mirror.name()),
             MirrorText.name(first.name())));
+        restampIfFollowing(sender, MirrorManager.byName(mirror.name()));
     }
 
     /** @see #start */
     private static void sayStartUsage(final CommandSender sender)
     {
         sayUsage(sender, "set [<name>] -start <mirror|" + NONE + ">");
+    }
+
+    /**
+     * Makes a mirror's banner follow where it opens first, or keep the look it has (#613).
+     *
+     * <p>Off by default, since a look somebody chose by hand should stay. Turned on, the banner is
+     * stamped from that room's capture at once, and again when the start changes or the room is
+     * captured again; never on a right-click.
+     */
+    private static void follow(final CommandSender sender, final String[] args)
+    {
+        if (args.length < 3)
+        {
+            sayFollowUsage(sender);
+            return;
+        }
+        final boolean unnamed = args.length == 3;
+        final String word = args[unnamed ? 2 : 3].toLowerCase(Locale.ROOT);
+        if (!"on".equals(word) && !"off".equals(word))
+        {
+            sayFollowUsage(sender);
+            return;
+        }
+        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
+            () -> sayFollowUsage(sender));
+        if (mirror == null)
+        {
+            return;
+        }
+        final boolean on = "on".equals(word);
+        final QuantumMirror changed = mirror.withFollows(on);
+        MirrorManager.add(changed);
+        MirrorYamlManager.saveAll();
+        if (!on)
+        {
+            MirrorFollow.forget(mirror.name());
+            say(sender, Messages.get(sender, "mirror.cmd.follow.off", MirrorText.name(mirror.name())));
+            return;
+        }
+        say(sender, Messages.get(sender, "mirror.cmd.follow.on", MirrorText.name(mirror.name()),
+            followedRoom(sender, changed)));
+        restampIfFollowing(sender, changed);
+    }
+
+    /** @see #follow */
+    private static void sayFollowUsage(final CommandSender sender)
+    {
+        sayUsage(sender, "set [<name>] " + FOLLOW + " <on|off>");
+    }
+
+    /** The room a following banner reads, as a person would say it. */
+    private static String followedRoom(final CommandSender sender, final QuantumMirror mirror)
+    {
+        final QuantumMirror room = MirrorFollow.followed(mirror);
+        if (room == mirror)
+        {
+            return Messages.get(sender, "mirror.cmd.follow.own-room");
+        }
+        return Messages.get(sender, "mirror.cmd.follow.room", MirrorText.name(room.name()));
+    }
+
+    /**
+     * Stamps a following mirror's banner from the room it follows now, and says what came of it.
+     *
+     * @param mirror
+     *            the mirror as it is now, or null if it has gone
+     */
+    private static void restampIfFollowing(final CommandSender sender, final QuantumMirror mirror)
+    {
+        if ((mirror == null) || !mirror.follows())
+        {
+            return;
+        }
+        final MirrorFollow.Result result = MirrorFollow.restamp(mirror);
+        switch (result.outcome())
+        {
+            case STAMPED -> say(sender, Messages.get(sender, "mirror.cmd.stamp.shows", MirrorText.name(mirror.name()),
+                describe(sender, result.view(), result.preset())));
+            case WAITING -> say(sender, Messages.get(sender, "mirror.cmd.follow.waiting",
+                followedRoom(sender, mirror)));
+            case LATER -> say(sender, Messages.get(sender, "mirror.cmd.follow.later", MirrorText.name(mirror.name()),
+                describe(sender, result.view(), result.preset())));
+            default -> refuseNotStamped(sender);
+        }
     }
 
     /**
@@ -958,7 +1054,7 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * The mirror's start, or nothing at all for a mirror without one.
+     * The mirror's start and whether its banner follows, or nothing at all for an ordinary mirror.
      *
      * @param mirror
      *            the mirror being listed
@@ -966,11 +1062,9 @@ public class MirrorCommand implements SubCommand
      */
     private static String settingsOf(final CommandSender sender, final QuantumMirror mirror)
     {
-        if (mirror.start() == null)
-        {
-            return "";
-        }
-        return Messages.get(sender, "mirror.cmd.list.starts", mirror.start());
+        final String starts = (mirror.start() == null) ? ""
+            : Messages.get(sender, "mirror.cmd.list.starts", mirror.start());
+        return mirror.follows() ? (starts + Messages.get(sender, "mirror.cmd.list.follows")) : starts;
     }
 
     /** A destination as a person would read it. */

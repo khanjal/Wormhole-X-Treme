@@ -944,6 +944,10 @@ public final class SubCommands
         {
             return both(mirrorNames(), new String[] { "-none" });
         }
+        if ("follow".equals(verb))
+        {
+            return new String[] { "on", "off" };
+        }
         return new String[0];
     }
 

@@ -32,6 +32,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorFollow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -807,6 +808,8 @@ public final class Captures
                 plugin.prettyLog(Level.FINE, "Read capture " + file.getName() + " in " + millis + " ms: "
                     + capture.filled() + " blocks");
             }
+            // A banner that asked for this room while it was being read takes its look now (#613).
+            followersOf(key, false);
             return;
         }
         if (failure != null)
@@ -1107,6 +1110,27 @@ public final class Captures
     static int generation()
     {
         return generation;
+    }
+
+    /**
+     * Re-stamps the banners following a room whose capture just arrived (#613).
+     *
+     * <p>A banner that cannot be stamped must not cost the capture, which is already kept.
+     */
+    private static void followersOf(final String key, final boolean taken)
+    {
+        try
+        {
+            MirrorFollow.captured(key, taken);
+        }
+        catch (final Exception | LinkageError failed)
+        {
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not stamp the banners following " + key, failed);
+            }
+        }
     }
 
     /** Notes that a capture arrived or changed, so every view knows to look again. */
@@ -1657,6 +1681,8 @@ public final class Captures
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
                     + " blocks ahead to keep under " + most + " blocks") : ""));
             save(capture, fileOf(key));
+            // Every banner following this room takes its new look (#613).
+            followersOf(key, true);
         }
 
         /** Gives up a retake that met a chunk no longer loaded: the old capture stays, and the next sweep tries again. */

@@ -161,6 +161,15 @@ class MirrorTabCompletionTest
         assertTrue(complete("mirror", "set", "museum", "-start", "").contains("-none"));
     }
 
+    /** follow takes on or off, after the optional name (#613). */
+    @Test
+    void followCompletesOnAndOff()
+    {
+        assertTrue(complete("mirror", "set", "").contains("-follow"));
+        assertTrue(complete("mirror", "set", "-follow", "").contains("on"), "looking at the banner, the setting is the first word");
+        assertEquals(List.of("off"), complete("mirror", "set", "museum", "-follow", "of"));
+    }
+
     /**
      * create offers nothing, on purpose.
      *

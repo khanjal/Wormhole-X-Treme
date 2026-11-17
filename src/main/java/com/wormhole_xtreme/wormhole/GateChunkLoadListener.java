@@ -8,6 +8,7 @@ import org.bukkit.event.world.ChunkLoadEvent;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorFollow;
 
 /**
  * Reads a gate's material group off its frame when the frame's chunk loads, so bStats counts
@@ -31,5 +32,7 @@ public class GateChunkLoadListener implements Listener
         {
             gate.resolveGroupIfFrameIn(chunk);
         }
+        // A following mirror's banner whose look was chosen while this chunk was unloaded (#613).
+        MirrorFollow.chunkLoaded(chunk);
     }
 }
