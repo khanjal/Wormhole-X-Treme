@@ -188,6 +188,14 @@ holding a gate open forever.
 |---|---|---|
 | `show-gate-welcome-message` | false | A player coming out of a gate is told in chat which gate they arrived at, once; their pets and mount are not. Gates only: rings and beams name their destination whatever this is set to |
 
+### Locator bar ping (experimental)
+
+| Setting | Default | What it does |
+|---|---|---|
+| `ping-enabled` | false | `/wormhole ping <gate>` shows a gate on the player's locator bar for a moment. Needs Minecraft 1.21.6 or later; see [Locator bar ping](GATES.md#locator-bar-ping-experimental) |
+| `ping-seconds` | 8 | How long a ping stays up, 1 to 60 seconds |
+| `ping-cooldown-seconds` | 20 | Seconds a player waits after a ping before the next. `0` for none |
+
 ### What this costs a busy server
 
 A few repeating tasks, none per gate built. Cost scales with how much
@@ -231,8 +239,9 @@ can lose by negation: `wormhole.gates.unlimited`, `wormhole.build.mindistance.by
 |---|---|---|
 | `wormhole.use.sign` | false | Using sign dialers |
 | `wormhole.use.dialer` | false | Dialling a gate |
-| `wormhole.use.<shape>` | true | Using a gate of one [shape](GATES.md): dialling from it by sign or dialler, shutting it from its lever, stepping its sign and working its iris. Named as `wormhole.build.<shape>` is (`wormhole.use.grand_gate`), so two shapes whose names differ only in case or punctuation share one. Everyone holds it, so it only narrows: set it false on a rank to keep that rank off the shape, and true on another to let it back. It is wanted as well as `wormhole.use.sign` or `wormhole.use.dialer`, never instead. Only the gate dialled from is checked, so a refused shape can still be arrived through, and walked into once open unless `wormhole-use-is-teleport` (default false) is on, which makes walking in check the node too. Its owner, operators, a gate with no owner and simple mode are not refused. A shape called `Sign`, `Dialer` or `Compass` has none |
+| `wormhole.use.<shape>` | true | Using a gate of one [shape](GATES.md): dialling from it by sign or dialler, shutting it from its lever, stepping its sign and working its iris. Named as `wormhole.build.<shape>` is (`wormhole.use.grand_gate`), so two shapes whose names differ only in case or punctuation share one. Everyone holds it, so it only narrows: set it false on a rank to keep that rank off the shape, and true on another to let it back. It is wanted as well as `wormhole.use.sign` or `wormhole.use.dialer`, never instead. Only the gate dialled from is checked, so a refused shape can still be arrived through, and walked into once open unless `wormhole-use-is-teleport` (default false) is on, which makes walking in check the node too. Its owner, operators, a gate with no owner and simple mode are not refused. A shape called `Sign`, `Dialer`, `Compass` or `Ping` has none |
 | `wormhole.use.compass` | false | `/wormhole compass` |
+| `wormhole.use.ping` | false | `/wormhole ping <gate>`, while `ping-enabled` is on: only a gate the player could list, on a network they may use. See [Locator bar ping](GATES.md#locator-bar-ping-experimental) |
 | `wormhole.list` | false | `/wormhole list`, whole, by network or by `top`. `/wormhole gate list` needs `wormhole.config` |
 | `wormhole.list.mine` | true | `/wormhole list mine`, your own gates, and completing only your own gate names for `/dial` and `/wormhole go` |
 | `wormhole.list.owner` | op | `/wormhole list owner <player>`, anybody's gates |
@@ -283,7 +292,7 @@ or delete it.
 
 Worth knowing:
 
-- `beam`, `ring`, `go`, `list`, `compass`, `stats`, `export`, `idc` and `freya` answer to their
+- `beam`, `ring`, `go`, `list`, `compass`, `ping`, `stats`, `export`, `idc` and `freya` answer to their
   own nodes, `gate build` and `gate preview` need `wormhole.build.preview`, and a gate's owner may
   run `gate edit <gate> idc` on it. Everything else under `/wormhole` needs `wormhole.config`,
   including every other `gate` subcommand, the `remove` commands and the other hidden flat commands.
@@ -300,7 +309,7 @@ Worth knowing:
 - `permissions-support-disable` (default `false`) — keep the gate permissions in simple mode,
   ignoring their nodes, even when a Vault permission provider is installed.
 - With no provider found, the plugin runs in simple mode: basic use actions (signs, dialling,
-  using a gate, `list` and `compass`) are open to everyone, and the rest stay with operators and
+  using a gate, `list`, `compass` and `ping`) are open to everyone, and the rest stay with operators and
   gate owners. Whether a provider is there is looked at on startup, and again whenever `permissions-support-disable` is changed in-game.
 
 ## Commands
@@ -321,6 +330,7 @@ a dashed word is always the option and a bare word is always a name.
 | `config …` | [Configuration](#configuration) |
 | `lang export [code]` | [Translating](TRANSLATING.md): writes a starter `lang/<code>.yml`, never over one there |
 | `compass` | Points your compass at the nearest gate; `compass reset` points it back at spawn |
+| `ping <gate>` | Experimental, and off unless `ping-enabled`: shows a gate on your locator bar for a few seconds, on Minecraft 1.21.6 or later. Not listed in `/wormhole`; see [Locator bar ping](GATES.md#locator-bar-ping-experimental) |
 | `export sqlite` | Writes your gates to a database the older plugins read, in a folder of its own; see [coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme). Needs `wormhole.export` |
 | `list [network\|mine\|owner <player>\|top]` | The gates on the network, or on none with `Public`; `mine` your own with `wormhole.list.mine`; `owner <player>` that player's, online or not, with `wormhole.list.owner`; `top` up to ten gates with the most trips, those with at least one, each with its count. `mine`, `owner` and `top` win over a network of the same name. Holding `wormhole.list` allows all of them, and completing `/dial` and `/wormhole go` offers every gate to a player with it, only their own to one with just `wormhole.list.mine`, and none to the rest |
 | `stats [player]` | Lifetime trips through gates, gates built, ring trips and beams: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
