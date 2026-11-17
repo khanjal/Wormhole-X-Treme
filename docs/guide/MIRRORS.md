@@ -118,7 +118,9 @@ sign does nothing to the mirror, so the sign can be broken like any other.
 list only: the mirror's start, then its group's mirrors, never a hidden or private one, even for
 a player with `wormhole.mirror.private`. If somebody allowed a private mirror turns the banner to
 one, the sign's middle line is left blank rather than naming it. The sign is redrawn whenever the
-mirror changes, and when it goes back to its own room. Its colours and glow are the dial sign's
+mirror moves on, and when it goes back to its own room. A right-click on it never opens the sign
+for editing; to rewrite it, or after the mirror is created again under another name, break it and
+put up a fresh `[mirror]` sign. Its colours and glow are the dial sign's
 (`sign-color-gate-name`, `sign-color-selected`, `sign-color-neighbour`, `sign-glowing-text`).
 
 ## Commands
