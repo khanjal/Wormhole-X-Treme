@@ -405,6 +405,15 @@ const WATCH = {
  */
 const SCHEMATICS = [];
 
+// Far scenery (#526, chambers/far-scenery.js): only with WX_FAR_SCENERY set, so the campus is
+// otherwise unchanged. A viewing room far west with its own forceloaded strip south of it.
+if (require('./farscenery').enabled()) {
+  CHAMBERS.push({ id: 'far', wing: 'systems', title: 'Far Scenery', kind: 'desk', stage: 6, logic: 'far-scenery', at: { x: -400, y: 0, z: -5 } });
+  FORCELOAD.push({ dim: OVERWORLD, from: [-512, -16], to: [-288, 160], why: 'Far Scenery' });
+  WATCH.far = { dim: OVERWORLD, x: -399.5, y: 0, z: -2.5, at: { x: -400, y: 20, z: 100 },
+    look: 'turn round and look south through the opening: is the far land distance or a painting? Walk up to it, past it and sideways' };
+}
+
 function wing(id) {
   const w = WINGS.find((x) => x.id === id);
   if (!w) throw new Error(`no wing ${id}`);

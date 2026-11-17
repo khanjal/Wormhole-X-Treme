@@ -852,6 +852,37 @@ What the jars say, read with `javap` from the API jars this plugin builds agains
 - `World.refreshChunk(int, int)`: every Spigot jar from 1.20 on. `getPlayersSeeingChunk(int,
   int)`: from 1.20.6, and absent on 1.20 through 1.20.4.
 
+### Researched, not built: scenery past the send distance (#526)
+
+What the API and the code settle before anything is judged in a world. Sources are the Spigot and
+Paper API jars for 1.20.4, 1.21.11 and 26.2 and the server's tracking code; Purpur and the
+version-by-version default ranges were not checked.
+
+- **A display is never sent past the player's send distance.** `showEntity` on a hidden-by-default
+  display still goes through the tracker, which caps the range at the smaller of
+  `entity-tracking-range.display` (128 by default) and the player's view distance times 16. Raising
+  the config cannot beat the view-distance cap, so nothing a display draws lies past the edge of
+  the chunks the client holds. Scaled `BlockDisplay` impostors can therefore stand in for the far
+  part of a view, not for what is beyond it. They also need `view_range` raised, or the client
+  culls them at about 64 blocks.
+- **A capture does not reach past 160 either.** The box stops at `Captures.MOST_REACH` and reads
+  loaded chunks only. Scenery beyond it needs a separate far base: surface height and top block per
+  column from `ChunkSnapshot.getHighestBlockYAt` and `getBlockType` (both there from 1.19.4 to 26.2;
+  the `HeightMap` variants are `World` calls on the main thread). A 320 by 320 ring is 400 chunks,
+  102,400 columns, 307 KB raw, and only exists where the chunks are held (`FarChunkHolds` holds 400).
+- **A wall is a block per cell of the frustum's cross-section.** Through a 3 by 2 opening seen from
+  a block back that is about 25,000 blocks at 64, 56,000 at 96 and 100,000 at 128, comparable with
+  the non-air blocks a view already draws, so a wall sheds the volume of air-and-terrain between it
+  and 160 but is no cheaper than the terrain surface it replaces. Its sky cells have to be blocks too,
+  or this world's real blocks show through the gaps, which is the fake sky already ruled out.
+- **Parallax error of a wall at *d* for scenery at 160**, per block the eye steps sideways: 0.53° at
+  64, 0.23° at 96, 0.09° at 128. Its resolution is a block per 0.88°, 0.59° and 0.44°.
+- **The painting is cheap to make.** Projecting the stored blocks beyond *d* onto the wall is a loop
+  over `Capture.forEachKept` at about 25 ns a block off the main thread: 22 ms for a million.
+
+The look is the open question, and `WX_FAR_SCENERY=1` builds a chamber to judge it (see the
+Facility section of the development guide).
+
 ### What is left to try
 
 Each of these is a real lever, and none is free. The first is the one to build next.
