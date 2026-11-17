@@ -92,7 +92,8 @@ class MirrorChoosingSignTest
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.hasPermission(MirrorNetwork.SEE_PRIVATE)).thenReturn(true);
         when(player.isOp()).thenReturn(true);
-        when(player.spigot()).thenReturn(mock(Player.Spigot.class));
+        final Player.Spigot spigot = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(spigot);
         return player;
     }
 

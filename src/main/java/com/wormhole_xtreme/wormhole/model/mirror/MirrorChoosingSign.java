@@ -69,13 +69,8 @@ public final class MirrorChoosingSign
         String first = null;
         for (final BlockFace face : BESIDE)
         {
-            final Block next = block.getRelative(face);
-            if (!MirrorInteraction.isBanner(next.getType()))
-            {
-                continue;
-            }
-            final QuantumMirror mirror = MirrorManager.at(BlockPlace.of(next));
-            if ((mirror == null) || (mirror.destination() == null))
+            final QuantumMirror mirror = mirrorAt(block.getRelative(face));
+            if (mirror == null)
             {
                 continue;
             }
@@ -89,6 +84,17 @@ public final class MirrorChoosingSign
             }
         }
         return null;
+    }
+
+    /** The made mirror whose banner is this block, or null. */
+    private static QuantumMirror mirrorAt(final Block next)
+    {
+        if (!MirrorInteraction.isBanner(next.getType()))
+        {
+            return null;
+        }
+        final QuantumMirror mirror = MirrorManager.at(BlockPlace.of(next));
+        return ((mirror == null) || (mirror.destination() == null)) ? null : mirror;
     }
 
     /**
