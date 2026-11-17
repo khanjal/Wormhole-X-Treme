@@ -10,6 +10,7 @@
 //   rings.js        the ring settings: defaults a new pair takes, refusals, outline, timings
 //   more.js         mirrors, logging, integrations, and the settings read only at start
 //   permissions.js  a non-op with no permissions plugin: the fallback
+//   ping.js         the experimental locator bar ping (#16), as far as a server can see it
 //
 // The settings no case changes are listed in docs/DEVELOPMENT.md, each with why.
 
@@ -18,7 +19,7 @@ const { deskLayout } = require('../lib/blueprint');
 const { GateKit } = require('../lib/gatekit');
 
 const def = campus.chamber('s1');
-const GROUPS = ['console', 'sounds', 'gates', 'rings', 'more', 'permissions'].map((name) => ({ name, mod: require(`./s1/${name}`) }));
+const GROUPS = ['console', 'sounds', 'gates', 'rings', 'more', 'permissions', 'ping'].map((name) => ({ name, mod: require(`./s1/${name}`) }));
 
 const CASES = GROUPS.flatMap((g) => g.mod.cases.map((x) => ({ ...x, group: g.name })));
 
