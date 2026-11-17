@@ -2,6 +2,7 @@
 // pattern, chevrons locking in their :L order and then the woosh in its :W order. The timing and
 // the light come from dial-spin.js, a port of DialSpin and StargateAnimator.
 import { THREE, el, loadLibs, palette, TICK_MS } from "./scene-kit.js";
+import { partitionCells } from "./woosh-cue.js";
 import { ManualViewer } from "./manual-viewer.js";
 import {
   PATTERNS, LOCAL_CHEVRONS, OTHER_WORLD_CHEVRON, LAST_CHEVRON_PAUSE_TICKS,
@@ -60,15 +61,13 @@ class DialViewer extends ManualViewer {
     const materials = {
       body: new THREE.MeshStandardMaterial({ color: 0xffffff }),
       portal: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.4, depthWrite: false }),
-      woosh: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.16, depthWrite: false }),
+      woosh: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.6, depthWrite: false }),
     };
     const cells = this.shape.cells;
     const bodyCells = cells.filter((c) => c.block !== "none");
-    const byOrder = (test) => cells.filter(test).sort((a, b) => a.woosh - b.woosh);
-    const waveCells = byOrder((c) => c.woosh !== null && !c.portal);
-    const stayCells = byOrder((c) => c.woosh !== null && c.portal);
+    const { portal: portalCells, wave: waveCells, stay: stayCells } = partitionCells(cells);
     const body = this.instanced(bodyCells, materials.body);
-    const portal = this.instanced(cells.filter((c) => c.portal && c.woosh === null), materials.portal);
+    const portal = this.instanced(portalCells, materials.portal);
     const wave = this.instanced(waveCells, materials.woosh);
     const stay = this.instanced(stayCells, materials.portal);
     // These start with a count of 0, which a culling sphere taken then would keep.
@@ -188,7 +187,7 @@ class DialViewer extends ManualViewer {
     const p = palette();
     return [
       ["Gate frame", p.frame, "■"], ["Chevron, not locked", p.chevron, "▣"], ["Chevron, locked", p.lit, "★"],
-      ["Ring light", p.spin, "◆"], ["Portal, when open", p.portal, "▒"], ["Woosh, while opening", p.woosh, "░"],
+      ["Ring light", p.spin, "◆"], ["Portal, when open", p.portal, "▒"], ["Woosh, while opening", p.woosh, "░", "wxt-swatch-woosh"],
     ];
   }
 }

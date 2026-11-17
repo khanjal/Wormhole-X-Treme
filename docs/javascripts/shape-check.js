@@ -68,6 +68,14 @@ export function checkShape(shape, { shipped = [] } = {}) {
   // ShapeFileValidator.checkNoGap files a gap as a problem, and reload refuses a file with any problem.
   checkOrders(shape.cells, "light", ":L", error);
   checkOrders(shape.cells, "woosh", ":W", error);
+  // The plugin plays order n at step n, so a woosh that starts at #3 has two empty steps before it.
+  const first = shape.wooshOrders[0];
+  if (first > 1) {
+    warn(`The woosh starts at #${first}: steps #1 to #${first - 1} are empty, so the woosh waits ${first - 1} step${first > 2 ? "s" : ""} (WOOSH_TICKS each) before it begins.`,
+      shape.cells.find((c) => c.woosh === first));
+  }
+  const never = shape.cells.find((c) => c.woosh === 0);
+  if (never) warn(`Woosh order 0 is never played: the woosh starts at #1 (a :W with no number is #1), so this cell at ${where(never)} never wooshes.`, never);
   return [...found.filter((f) => f.level === "error"), ...found.filter((f) => f.level === "warning")];
 }
 

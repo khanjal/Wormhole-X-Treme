@@ -7,6 +7,7 @@ import { GateViewer } from "./gate-viewer.js";
 import * as E from "./shape-edit.js";
 import { checkShape } from "./shape-check.js";
 import { writeShape } from "./shape-writer.js";
+import { wooshStep, wooshTint, wooshCue, withoutWooshTag } from "./woosh-cue.js";
 import {
   ZOOM, SPLIT, clampZoom, stepZoom, fitZoom, wheelZoom, wheelPixels, clampSplit, splitBounds, parseViewState, viewStateText,
 } from "./designer-layout.js";
@@ -55,6 +56,14 @@ class DesignerView extends GateViewer {
       this.buttons[key] = b;
       bar.append(b);
     }
+    // Woosh cells are often Ignored in the shape, so they are drawn only when asked for (and play in order on Open).
+    this.showWoosh = true;
+    this.wooshToggle = el("input", { type: "checkbox", id: "wxt-show-woosh", checked: "" });
+    this.wooshToggle.addEventListener("change", () => {
+      this.showWoosh = this.wooshToggle.checked;
+      if (this.parts) this.syncGhost();
+    });
+    bar.append(el("label", { class: "wxt-toggle", for: "wxt-show-woosh" }, this.wooshToggle, " Woosh cells"));
     this.stage = el("div", { class: "wxt-stage" });
     this.canvas = el("canvas", {
       tabindex: "0", role: "application", "aria-roledescription": "3D gate view", "aria-describedby": "wxt-info",
@@ -112,6 +121,7 @@ class DesignerView extends GateViewer {
 
   /** The shape's legend, plus the grid's cue for a cell with extras, so the key is always in view beside the picture. */
   renderLegend() {
+    this.wooshLabel = "Woosh cell: a striped cell in the grid and a crossed wireframe block in the 3D view, stronger in up to five bands as its step goes up, with the step number in the corner of bigger cells";
     super.renderLegend();
     this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "S"), " Underlined letter in the grid: the cell has extras"));
   }
@@ -454,6 +464,7 @@ class Designer {
     this.table.style.setProperty("--wxt-cell", `${this.zoom}px`);
     this.table.classList.toggle("wxt-tight", this.zoom < 32);
     this.table.classList.toggle("wxt-tiny", this.zoom < 22);
+    this.table.classList.toggle("wxt-w-num", wooshCue(this.zoom).number);
     this.zoomLabel.textContent = `${this.zoom} px`;
   }
 
@@ -805,18 +816,37 @@ class Designer {
   /** One cell's look, its label for a screen reader and its place in the tab order. */
   paintCell(td, cell) {
     const here = cell.row === this.row && cell.col === this.col;
-    if (td.wxtCell === cell && td.wxtHere === here) return; // cells are never changed in place, so the same object looks the same
+    // A woosh cell's tint depends on the other cells' steps too, so the set of steps is part of what makes it look the same.
+    const orders = this.shape.wooshOrders;
+    const key = orders.join(",");
+    if (td.wxtCell === cell && td.wxtHere === here && td.wxtKey === key) return; // cells are never changed in place, so the same object looks the same
     td.wxtCell = cell;
     td.wxtHere = here;
+    td.wxtKey = key;
     const d = E.describeCell(cell);
-    td.className = `wxt-k-${d.kind}${here ? " wxt-sel" : ""}${d.tags.length ? " wxt-marked" : ""}`;
+    const step = wooshStep(cell.woosh, orders);
+    td.className = `wxt-k-${d.kind}${here ? " wxt-sel" : ""}${d.tags.length ? " wxt-marked" : ""}${step >= 0 ? " wxt-woosh" : ""}`;
+    if (step >= 0) {
+      td.style.setProperty("--wxt-wt", wooshTint(step, orders.length).toFixed(2));
+      td.dataset.w = String(step + 1); // the step, not the raw order, as the label says
+    } else {
+      td.style.removeProperty("--wxt-wt");
+      delete td.dataset.w;
+    }
+    // The :W tag and the step would say the same twice, so the label gives the step alone.
+    const bare = withoutWooshTag(d.text);
+    const text = step >= 0 ? `${bare}, woosh step ${step + 1} of ${orders.length}`
+      : cell.woosh === 0 ? `${bare}, woosh order 0, never played` : d.text;
     td.tabIndex = here ? 0 : -1;
     td.setAttribute("aria-selected", String(here));
-    td.setAttribute("aria-label", `Row ${cell.row + 1}, column ${cell.col + 1}: ${d.text}`);
-    td.title = d.text;
+    td.setAttribute("aria-label", `Row ${cell.row + 1}, column ${cell.col + 1}: ${text}`);
+    td.title = text;
     // The letter is the cell's text and the extras a CSS label; the content is touched only when it changes, as that is what costs a layout.
     const tags = d.tags.map((t) => t.slice(1).replace("#", "")).join(" ");
     if (td.dataset.tags !== tags) td.dataset.tags = tags;
+    // Where the corner badge shows the step, the label leaves out the :W tag it would repeat.
+    const noW = d.tags.filter((t) => !t.startsWith(":W")).map((t) => t.slice(1).replace("#", "")).join(" ");
+    if (td.dataset.tagsBare !== noW) td.dataset.tagsBare = noW;
     if (td.textContent !== d.kind) td.textContent = d.kind;
   }
 

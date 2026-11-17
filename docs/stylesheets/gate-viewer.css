@@ -386,6 +386,91 @@
 .wxt-k-P { background: rgba(47, 123, 255, 0.35); }
 .wxt-k-I { color: var(--md-default-fg-color--light); }
 
+/*
+ * A woosh cell (:W): diagonal stripes over whatever its kind is, and the stripes (the cue that is not colour)
+ * keep at every size. The script sets --wxt-wt, the step's band from 0 (lightest) to 1: later bands are stronger,
+ * by the fill under the stripes and by how wide the stripes are. A clear disc under the letter keeps it off the stripes.
+ * The two hues are the 3D view's woosh colours, the same as the legend swatch.
+ */
+.wxt-grid {
+  --wxt-wc: 29, 11, 218;
+}
+
+[data-md-color-scheme="slate"] .wxt-grid {
+  --wxt-wc: 111, 91, 255;
+}
+
+/* The cell's own colour as a solid, for the disc under the letter to match. */
+.wxt-grid td {
+  --wxt-gap: var(--md-default-bg-color);
+}
+
+.wxt-grid td.wxt-k-S {
+  --wxt-gap: color-mix(in srgb, rgb(124, 92, 200) 45%, var(--md-default-bg-color));
+}
+
+.wxt-grid td.wxt-k-C {
+  --wxt-gap: color-mix(in srgb, rgb(214, 78, 70) 45%, var(--md-default-bg-color));
+}
+
+.wxt-grid td.wxt-k-P {
+  --wxt-gap: color-mix(in srgb, rgb(47, 123, 255) 35%, var(--md-default-bg-color));
+}
+
+.wxt-grid td.wxt-woosh {
+  --wxt-period: 7px;
+  --wxt-fa: calc(0.05 + var(--wxt-wt, 0.5) * 0.3); /* the fill under the stripes: 5% to 35% */
+  --wxt-sa: calc(0.85 + var(--wxt-wt, 0.5) * 0.15); /* the stripes: 85% to fully opaque */
+  --wxt-sw: calc((0.28 + var(--wxt-wt, 0.5) * 0.48) * var(--wxt-period)); /* their width: 28% to 76% of the period */
+  --wxt-fill: color-mix(in srgb, rgb(var(--wxt-wc)) calc(var(--wxt-fa) * 100%), var(--wxt-gap));
+  color: var(--md-default-fg-color);
+  background-image:
+    radial-gradient(circle closest-side, var(--wxt-fill) 0 56%, transparent 58%),
+    repeating-linear-gradient(135deg,
+      rgba(var(--wxt-wc), var(--wxt-sa)) 0 var(--wxt-sw),
+      var(--md-default-fg-color) var(--wxt-sw) calc(var(--wxt-sw) + 1px),
+      transparent calc(var(--wxt-sw) + 1px) var(--wxt-period)),
+    linear-gradient(rgba(var(--wxt-wc), var(--wxt-fa)), rgba(var(--wxt-wc), var(--wxt-fa)));
+  /* Besides the disc, a halo in the page colour. */
+  text-shadow: 0 0 1px var(--md-default-bg-color), 0 0 2px var(--md-default-bg-color);
+}
+
+.wxt-grid.wxt-tiny td.wxt-woosh {
+  --wxt-period: 5px;
+}
+
+/* The step number, where the cells are big enough for it; the label then drops the :W it would repeat. */
+.wxt-grid.wxt-w-num td.wxt-woosh::after {
+  content: attr(data-tags-bare);
+}
+
+.wxt-grid.wxt-w-num td.wxt-woosh::before {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  padding: 0 2px;
+  font-size: max(0.5rem, calc(var(--wxt-cell) * 0.24));
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--md-default-fg-color);
+  content: attr(data-w);
+  background: var(--md-default-bg-color);
+  border-radius: 2px;
+}
+
+/* The swatch is the cue's own: stripes of the woosh colour on the page colour, the colour set inline. */
+.wxt-swatch-woosh {
+  background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--md-default-bg-color) 2px 4px);
+}
+
+.wxt-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0 0.25rem;
+  cursor: pointer;
+}
+
 /* Text colour with a page-colour halo inside it: at least 3:1 on every cell tint in both schemes. */
 .wxt-grid td.wxt-sel {
   outline: 3px solid var(--md-default-fg-color);

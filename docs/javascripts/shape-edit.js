@@ -22,7 +22,7 @@ export function settle(shape) {
     c.x = shape.width - 1 - c.col;
   }
   shape.lightOrders = distinct(shape.cells, "light");
-  shape.wooshOrders = distinct(shape.cells, "woosh");
+  shape.wooshOrders = distinct(shape.cells, "woosh").filter((n) => n >= 1); // order 0 is never played (StargateHelper.recordWooshWaves)
   return shape;
 }
 

@@ -198,7 +198,8 @@ export function parseShape(text) {
     throw new ShapeError("No :EP block, where players teleport in; the plugin refuses a shape without one.");
   }
   shape.lightOrders = distinctSorted(shape.cells, "light");
-  shape.wooshOrders = distinctSorted(shape.cells, "woosh");
+  // StargateHelper.recordWooshWaves starts at 1: a :W#0 cell is never wooshed, so it is not a step.
+  shape.wooshOrders = distinctSorted(shape.cells, "woosh").filter((n) => n >= 1);
   if (shape.lightOrders.length > LIMITS.orders || shape.wooshOrders.length > LIMITS.orders) {
     throw new ShapeError(`More than ${LIMITS.orders} light or woosh steps.`);
   }
@@ -219,7 +220,7 @@ export function describeShape(shape) {
     chevrons: count((c) => c.light !== null),
     lightSteps: shape.lightOrders.length,
     portal: count((c) => c.portal),
-    wooshCells: count((c) => c.woosh !== null),
+    wooshCells: count((c) => c.woosh >= 1), // order 0 never plays
     wooshSteps: shape.wooshOrders.length,
     dialSign: has("D"),
     redstone: ["RD", "RS", "RA"].filter(has),
