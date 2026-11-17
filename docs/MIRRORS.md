@@ -156,7 +156,11 @@ solid with no colour. A capture keeps no biome, and adding one would change the 
 frame, so the biome is read only where the room's chunk is loaded, and otherwise taken from the
 world's kind: the Nether's wastes, the End, or the generic frame. With no capture yet the banner
 is left untouched; one still being read off the disk stamps it when it lands, and that read stamps
-only a banner that asked for it, since every capture is read again after a restart.
+only a banner that asked for it, since every capture is read again after a restart. The first
+capture of a room, taken when somebody first walks up to its mirror, is a take like any other and
+stamps every banner following that room. Nor is the banner's own chunk loaded for it: a banner
+whose chunk is not loaded has its look written down and put on, both banners of a pair, the tick
+after that chunk next loads.
 
 ### How a capture is kept
 

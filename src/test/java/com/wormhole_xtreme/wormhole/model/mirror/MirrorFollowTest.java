@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,7 @@ import org.bukkit.World;
 import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Capture;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
@@ -77,6 +80,8 @@ class MirrorFollowTest
         when(block.getState()).thenReturn(banner);
         bannerWorld = mock(World.class);
         when(bannerWorld.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);
+        when(bannerWorld.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        MirrorFollow.nextTick = Runnable::run;
     }
 
     @AfterEach
@@ -284,6 +289,81 @@ class MirrorFollowTest
 
         assertEquals(1, captured(hub, false), "museum asked while it was being read");
         assertEquals(0, captured(hub, false), "and asked once");
+    }
+
+    /**
+     * A banner far off in an unloaded chunk is not loaded to stamp it: its look is written down
+     * and put on once that chunk loads, and a chunk elsewhere does nothing.
+     */
+    @Test
+    void aBannerInAnUnloadedChunkTakesItsLookWhenTheChunkLoads()
+    {
+        final QuantumMirror museum = mirror("museum", 0, null, true);
+        MirrorManager.add(museum);
+        store(museum, filled(0, Material.BOOKSHELF, 73));
+        when(bannerWorld.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+
+        assertEquals(MirrorFollow.Outcome.LATER, restamp(museum).outcome());
+        verify(bannerWorld, never()).getBlockAt(anyInt(), anyInt(), anyInt());
+        assertEquals(DyeColor.BROWN, MirrorManager.byName("museum").look().view().dominant(), "the look is kept");
+
+        when(bannerWorld.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
+            MirrorFollow.chunkLoaded("world", 5, 5);
+            verify(banner, never()).setBaseColor(any());
+
+            MirrorFollow.chunkLoaded("world", 0, 0);
+            MirrorFollow.chunkLoaded("world", 0, 0);
+        }
+        verify(banner).setBaseColor(DyeColor.BROWN);
+    }
+
+    /** Both banners of a mirror two wide take the look, not just the one a click names. */
+    @Test
+    void bothBannersOfAPairAreStamped()
+    {
+        final QuantumMirror pair = mirror("museum", 0, null, true).withWidth(2);
+        MirrorManager.add(pair);
+        store(pair, filled(0, Material.BOOKSHELF, 73));
+
+        assertEquals(MirrorFollow.Outcome.STAMPED, restamp(pair).outcome());
+
+        for (final BlockPlace at : pair.banners())
+        {
+            verify(bannerWorld).getBlockAt(at.x(), at.y(), at.z());
+        }
+        verify(banner, times(2)).setBaseColor(DyeColor.BROWN);
+    }
+
+    /**
+     * A mirror removed, renamed or turned off stops waiting for a capture.
+     *
+     * <p>Otherwise a later read of the room would stamp a banner that no longer follows, or one
+     * a new mirror of the same name now owns.
+     */
+    @Test
+    void removingOrTurningOffAFollowerForgetsItWasWaiting()
+    {
+        final QuantumMirror hub = mirror("hub", 40, null, false);
+        MirrorManager.add(hub);
+        MirrorManager.add(mirror("museum", 0, "hub", true));
+        assertEquals(MirrorFollow.Outcome.WAITING, restamp(MirrorManager.byName("museum")).outcome());
+
+        MirrorManager.remove("museum");
+        MirrorManager.add(mirror("museum", 0, "hub", true));
+        store(hub, filled(40, Material.SAND, 63));
+        assertEquals(0, captured(hub, false), "the removed mirror's wait went with it");
+
+        stored.clear();
+        assertEquals(MirrorFollow.Outcome.WAITING, restamp(MirrorManager.byName("museum")).outcome());
+        final Player op = mock(Player.class);
+        when(op.isOp()).thenReturn(true);
+        new MirrorCommand().execute(op, new String[] { "mirror", "set", "museum", "-follow", "off" });
+        MirrorManager.add(MirrorManager.byName("museum").withFollows(true));
+        store(hub, filled(40, Material.SAND, 63));
+        assertEquals(0, captured(hub, false), "turning it off forgot the wait");
     }
 
     /** A world not loaded here gives no biome; one whose chunk is not loaded gives its kind's. */

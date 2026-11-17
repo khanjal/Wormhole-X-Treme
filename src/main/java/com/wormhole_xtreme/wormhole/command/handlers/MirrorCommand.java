@@ -139,7 +139,7 @@ public class MirrorCommand implements SubCommand
     /** What {@code set} can change. Dashed, like every keyword that can stand where a name does. */
     private static final String[] PROPERTIES = { "-stamp", START, "-capture", FOLLOW };
 
-    /** The same three, for looking a word up without building a list each time. */
+    /** The same words, for looking a word up without building a list each time. */
     private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
 
     /** A start that is the mirror's own room again. */
@@ -907,6 +907,7 @@ public class MirrorCommand implements SubCommand
         MirrorYamlManager.saveAll();
         if (!on)
         {
+            MirrorFollow.forget(mirror.name());
             say(sender, Messages.get(sender, "mirror.cmd.follow.off", MirrorText.name(mirror.name())));
             return;
         }
@@ -951,6 +952,8 @@ public class MirrorCommand implements SubCommand
                 describe(sender, result.view(), result.preset())));
             case WAITING -> say(sender, Messages.get(sender, "mirror.cmd.follow.waiting",
                 followedRoom(sender, mirror)));
+            case LATER -> say(sender, Messages.get(sender, "mirror.cmd.follow.later", MirrorText.name(mirror.name()),
+                describe(sender, result.view(), result.preset())));
             default -> refuseNotStamped(sender);
         }
     }

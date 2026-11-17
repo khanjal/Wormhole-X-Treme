@@ -69,6 +69,7 @@ import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
 
@@ -166,6 +167,31 @@ class CapturesTest
         MirrorManager.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
+    }
+
+    /**
+     * A following banner that cannot be stamped costs the capture nothing (#613).
+     *
+     * <p>Re-stamping the banners that follow a room runs as the capture finishes. Thrown out of
+     * there, a banner's failure would leave a finished capture unsaved and unannounced.
+     */
+    @Test
+    void aFollowingBannerThatThrowsLeavesTheCaptureTaken()
+    {
+        MirrorPresetRegistry.load(new File(dataFolder, "presets"));
+        MirrorManager.add(mirror);
+        MirrorManager.add(new QuantumMirror("hall", new BlockPlace("far", 100, 75, -25), null, null, "museum", 1, true));
+        when(far.getBlockAt(anyInt(), anyInt(), anyInt())).thenThrow(new IllegalStateException("no banner here"));
+
+        withServer(() ->
+        {
+            assertTrue(Captures.request(mirror));
+            Captures.step(100);
+        });
+
+        assertNotNull(Captures.get(mirror), "the capture is kept");
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not stamp the banners following"),
+            any(IllegalStateException.class));
     }
 
     /**
