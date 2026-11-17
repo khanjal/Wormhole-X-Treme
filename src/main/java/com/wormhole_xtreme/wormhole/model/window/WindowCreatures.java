@@ -89,7 +89,7 @@ final class WindowCreatures
             for (final String name : view.mirrors)
             {
                 final WindowState window = ACTIVE.get(name);
-                // A reflection's room is in front of the viewer, loaded already: nothing to hold.
+                // A reflection's room is in front of the viewer, and nothing is loaded for it: it is read only where the server already has it.
                 if ((window != null) && !window.shape.mirrored())
                 {
                     nearest.merge(name, apartFrom(window, view), Math::min);

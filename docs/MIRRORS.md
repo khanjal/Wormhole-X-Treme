@@ -1020,7 +1020,8 @@ that one viewer (`HiddenEntities`).
   `FarPlayers.showsTheViewer` rule as any mirror, so two players at one mirror each see the other
   and not themselves. It is the same path as any window's, through `WindowShape.hereOf`, so every
   rule above holds, the cap of twenty included; the room is the viewer's own and in front of them,
-  so it is loaded already and nothing is held for it. Their real selves stand in front of the wall,
+  so nothing is held loaded for it and it is read only where the server already has it. The
+  viewer's own mount or pet is reflected too (the mount without its rider). Their real selves stand in front of the wall,
   where the veil never reaches, so each shows once in the room and once in the reflection.
 
 **What it costs.** A watched window holds 15 chunks at the default radius (45 at 4), and with the
