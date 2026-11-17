@@ -308,7 +308,7 @@ class StargateLifecycle
                 // stand-in belongs. Both were then corrected, but not until the sweep had
                 // finished, so a gate spent the length of its own animation showing the one
                 // picture the layering exists to avoid.
-                StargateBlockSetup.sendPortalBackdrop(gate, true);
+                PortalBackdrop.sendPortalBackdrop(gate, true);
             }
             // A drawn iris needs nothing here: the sweep brings the far layer in with each
             // ring that covers it, and sendLayered below settles the lot afterwards.
