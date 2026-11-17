@@ -158,6 +158,12 @@ public class MirrorCommand implements SubCommand
     /** The same words, for looking a word up without building a list each time. */
     private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
 
+    /** The two words a switch takes, for -follow, -hidden and -private. */
+    private static final String ON = "on";
+
+    /** @see #ON */
+    private static final String OFF = "off";
+
     /** A start that is the mirror's own room again. */
     private static final String NONE = "-none";
 
@@ -915,7 +921,7 @@ public class MirrorCommand implements SubCommand
         }
         final boolean unnamed = args.length == 3;
         final String word = args[unnamed ? 2 : 3].toLowerCase(Locale.ROOT);
-        if (!"on".equals(word) && !"off".equals(word))
+        if (!ON.equals(word) && !OFF.equals(word))
         {
             sayFollowUsage(sender);
             return;
@@ -926,7 +932,7 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        final boolean on = "on".equals(word);
+        final boolean on = ON.equals(word);
         final QuantumMirror changed = mirror.withFollows(on);
         MirrorManager.add(changed);
         MirrorYamlManager.saveAll();
@@ -1008,7 +1014,7 @@ public class MirrorCommand implements SubCommand
         }
         final boolean unnamed = args.length == 3;
         final String word = args[unnamed ? 2 : 3].toLowerCase(Locale.ROOT);
-        if (!"on".equals(word) && !"off".equals(word))
+        if (!ON.equals(word) && !OFF.equals(word))
         {
             sayOnOffUsage(sender, property);
             return;
@@ -1019,19 +1025,31 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        final boolean on = "on".equals(word);
+        final boolean on = ON.equals(word);
         final boolean hidden = HIDDEN.equals(property);
         MirrorManager.add(mirror.withAccess(hidden ? mirror.access().withHidden(on)
             : mirror.access().withRestricted(on)));
         MirrorYamlManager.saveAll();
-        final String name = MirrorText.name(mirror.name());
+        say(sender, listingSaid(sender, MirrorText.name(mirror.name()), hidden, on));
+    }
+
+    /** What {@link #listing} says; each key written out, so the key guard can read it. */
+    private static String listingSaid(final CommandSender sender, final String name, final boolean hidden,
+        final boolean on)
+    {
         if (hidden)
         {
-            say(sender, Messages.get(sender, on ? "mirror.cmd.hidden.on" : "mirror.cmd.hidden.off", name));
-            return;
+            if (on)
+            {
+                return Messages.get(sender, "mirror.cmd.hidden.on", name);
+            }
+            return Messages.get(sender, "mirror.cmd.hidden.off", name);
         }
-        say(sender, Messages.get(sender, on ? "mirror.cmd.private.on" : "mirror.cmd.private.off", name,
-            MirrorText.command(MirrorNetwork.SEE_PRIVATE)));
+        if (on)
+        {
+            return Messages.get(sender, "mirror.cmd.private.on", name, MirrorText.command(MirrorNetwork.SEE_PRIVATE));
+        }
+        return Messages.get(sender, "mirror.cmd.private.off", name);
     }
 
     /** @see #listing */
