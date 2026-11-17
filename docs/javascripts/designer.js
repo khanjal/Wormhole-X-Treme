@@ -4,6 +4,7 @@
 import { parseShape, ShapeError, LIMITS } from "./shape-parser.js";
 import { THREE, el, loadLibs, fetchManifest, fetchShape, palette, stageWithLegend } from "./scene-kit.js";
 import { GateViewer } from "./gate-viewer.js";
+import { detailsName } from "./legend-size.js";
 import * as E from "./shape-edit.js";
 import { checkShape } from "./shape-check.js";
 import { writeShape } from "./shape-writer.js";
@@ -129,28 +130,35 @@ class DesignerView extends GateViewer {
    * short so the list stays compact; the full explanation of an entry is its title (and the Designer page).
    */
   renderLegend() {
+    // A rebuild (an edit, the colour scheme) keeps the explanations a reader opened and the "?" that had the focus.
+    const more = (key) => [...this.legend.querySelectorAll(".wxt-legend-more")].find((b) => b.dataset.key === key);
+    const opened = [...this.legend.querySelectorAll(".wxt-legend-more[aria-expanded='true']")].map((b) => b.dataset.key);
+    const focused = document.activeElement?.classList?.contains("wxt-legend-more") && this.legend.contains(document.activeElement)
+      ? document.activeElement.dataset.key : null;
     this.wooshLabel = "Woosh cell";
     super.renderLegend();
-    const explain = (li, text) => {
+    const explain = (li, label, text) => {
       const id = `wxt-legend-note-${++legendNotes}`;
       const note = el("span", { class: "wxt-legend-note", id, hidden: "" }, text);
-      const more = el("button", { type: "button", class: "wxt-legend-more", "aria-expanded": "false", "aria-controls": id, "aria-label": `Details: ${li.textContent.trim()}` }, "?");
-      more.addEventListener("click", () => {
+      const button = el("button", { type: "button", class: "wxt-legend-more", "data-key": label, "aria-expanded": "false", "aria-controls": id, "aria-label": detailsName(label) }, "?");
+      button.addEventListener("click", () => {
         note.hidden = !note.hidden;
-        more.setAttribute("aria-expanded", String(!note.hidden));
+        button.setAttribute("aria-expanded", String(!note.hidden));
       });
       li.setAttribute("title", text);
-      li.append(" ", more, note);
+      li.append(" ", button, note);
     };
-    explain(this.legend.children[4], "A striped cell in the grid and a crossed wireframe block in the 3D view, stronger in up to five bands as its step goes up, with the step number in the corner of bigger cells");
+    explain(this.legend.children[4], this.wooshLabel, "A striped cell in the grid and a crossed wireframe block in the 3D view, stronger in up to five bands as its step goes up, with the step number in the corner of bigger cells");
     const cue = (glyph, label, text) => {
       const li = el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, glyph), ` ${label}`);
-      explain(li, text);
+      explain(li, label, text);
       this.legend.append(li);
     };
     cue("S", "Underlined letter: extras", "Underlined letter in the grid: the cell has extras");
     cue("\u25A0", "Double border: error; dashed: warning", "Double border in the grid (a thick one with a corner mark on small cells): an error. Dashed border: a warning");
     cue("\u254E", "Dashed line: symmetry axis", "Dashed line in the grid, with Symmetry on: painting mirrors the kind across it and the order boxes mirror the number; Mirror now copies the dotted area, kinds only unless told");
+    for (const key of opened) more(key)?.click();
+    if (focused) more(focused)?.focus({ preventScroll: true });
   }
 
   applyPalette() {

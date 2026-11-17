@@ -551,7 +551,7 @@ button.wxt-issue {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
-  z-index: 2;
+  z-index: 3;
   padding: 0.1em 0.8em;
   margin: 0;
   font-size: 0.75rem;
@@ -591,7 +591,8 @@ button.wxt-issue {
   outline-offset: 2px;
 }
 
-.wxt-legend-panel .wxt-legend {
+/* Material sets `display: flow-root` on a list in the text, so this has to outrank it. */
+.md-typeset .wxt-legend-panel ul.wxt-legend:not([hidden]) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
   gap: 0.3rem 0.75rem;
@@ -604,6 +605,8 @@ button.wxt-issue {
 }
 
 .wxt-legend-more {
+  min-width: 24px;
+  min-height: 24px;
   padding: 0 0.4em;
   margin-left: 0.2em;
   font-size: 0.7rem;
@@ -613,6 +616,11 @@ button.wxt-issue {
   background: none;
   border: 1px solid var(--md-default-fg-color--lighter);
   border-radius: 50%;
+}
+
+.wxt-legend-more:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: 2px;
 }
 
 .wxt-legend-more[aria-expanded="true"] {
@@ -672,7 +680,7 @@ button.wxt-issue {
     display: none;
   }
 
-  .wxt-legend-panel .wxt-legend {
+  .md-typeset .wxt-legend-panel ul.wxt-legend:not([hidden]) {
     grid-template-columns: 1fr;
   }
 

@@ -1,7 +1,7 @@
 // What the User manual's 3D viewers share: the three.js loader, the theme, the scene and camera,
 // and the shape loader. The pages' own scripts (gate, iris, dialling) build on it.
 import { parseShape } from "./shape-parser.js";
-import { reserveHeight, overlayPlacement } from "./legend-size.js";
+import { reserveHeight, collapsedHeight, overlayPlacement } from "./legend-size.js";
 
 // Bound by loadLibs(); a viewer that imports them reads them live once it has run.
 export let THREE;
@@ -41,7 +41,7 @@ let legendCount = 0;
 /**
  * The 3D stage with its legend: beside the stage when there is room for it, otherwise a Legend
  * button over a corner of the stage that opens the list (Escape closes it again). The legend is as tall
- * as its entries and never scrolls; the stage stretches to match it, and keeps the tallest legend it has
+ * as its entries and scrolls only in a window shorter than they are; the stage stretches to match it, and keeps the tallest legend it has
  * had, so changing shape does not move the page.
  */
 export function stageWithLegend(stage, legend) {
@@ -54,14 +54,18 @@ export function stageWithLegend(stage, legend) {
   const box = el("div", { class: "wxt-stage-box" }, row);
   // The button is only there in the narrow layout; when the layout turns wide an open legend is just the panel, so forget it.
   const narrow = () => toggle.getClientRects().length > 0;
-  // The overlay shows every entry, past the stage if need be; only a window shorter than the list makes it scroll.
+  // The overlay shows every entry, below the button or above it, never over it; only a window shorter than the list makes it scroll.
   const limitOverlay = () => {
     body.style.maxHeight = "";
-    body.style.transform = "";
+    body.style.top = "";
     if (!narrow() || !panel.classList.contains("wxt-open")) return;
     const r = row.getBoundingClientRect();
-    const place = overlayPlacement(r.top + body.offsetTop, body.offsetHeight, window.innerHeight);
-    if (place.shift) body.style.transform = `translateY(-${place.shift}px)`;
+    const t = toggle.getBoundingClientRect();
+    const place = overlayPlacement({
+      toggleTop: t.top, toggleBottom: t.bottom, natural: body.offsetHeight, viewport: window.innerHeight,
+      minTop: document.querySelector(".md-header")?.getBoundingClientRect().bottom ?? 0,
+    });
+    body.style.top = `${place.top - r.top}px`;
     if (place.maxHeight !== null) body.style.maxHeight = `${place.maxHeight}px`;
   };
   const setOpen = (open) => {
@@ -74,7 +78,9 @@ export function stageWithLegend(stage, legend) {
     if (narrow()) return;
     // Un-stretched for a moment, the panel is as tall as its entries need, margins and all.
     body.style.alignSelf = "flex-start";
-    const next = reserveHeight(reserved, body.offsetHeight);
+    const open = [...legend.querySelectorAll(".wxt-legend-note:not([hidden])")]
+      .map((n) => n.offsetHeight + (Number.parseFloat(getComputedStyle(n).marginTop) || 0));
+    const next = reserveHeight(reserved, collapsedHeight(body.offsetHeight, open));
     body.style.alignSelf = "";
     if (next === reserved) return;
     reserved = next;
