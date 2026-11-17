@@ -1042,6 +1042,23 @@ that one viewer (`HiddenEntities`).
   kind, one of it, with only an enchantment glint, an armour trim, a leather colour and a head's
   skin carried over. Custom model data is not carried (its API changed shape inside the supported
   range), so a resource pack's custom model shows as the plain item.
+- **Boats and minecarts across versions** (a `javap` survey of the Spigot API jars for 1.20,
+  1.20.4, 1.20.6, 1.21, 1.21.1, 1.21.3, 1.21.4, 1.21.10, 26.1.2, 26.2 and 26.3, for #296 step 1b).
+  `Boat`, `ChestBoat`, `Minecart` and the seven `org.bukkit.entity.minecart` interfaces
+  (`RideableMinecart`, `StorageMinecart`, `HopperMinecart`, `PoweredMinecart`, `ExplosiveMinecart`,
+  `SpawnerMinecart`, `CommandMinecart`) exist throughout. Up to 1.21.1 a boat is one entity type,
+  `BOAT` or `CHEST_BOAT`, its wood a `Boat.Type` read and set by `getBoatType`/`setBoatType`
+  (nine woods, bamboo raft included). From 1.21.3 each wood is its own entity type and interface
+  (`OAK_BOAT`/`OakBoat`, `OAK_CHEST_BOAT`/`OakChestBoat`, `BAMBOO_RAFT`, ..., `PALE_OAK_BOAT`), the
+  plain `BOAT` and `CHEST_BOAT` are gone, and `getBoatType`/`setBoatType` are deprecated; `Boat.Type`
+  never gains pale oak, so the wood is the entity type. The minecart types are renamed in 1.20.6
+  (`MINECART_CHEST` becomes `CHEST_MINECART`, `MINECART_TNT` `TNT_MINECART` and so on; plain
+  `MINECART` keeps its name), and `Minecart.setMaxSpeed` is there, undeprecated, throughout, while
+  `Boat.setMaxSpeed` has been deprecated since 1.20. `EntityType` is an enum throughout. The vehicle
+  events (`VehicleEnterEvent`, `VehicleExitEvent`, `VehicleDamageEvent`, `VehicleDestroyEvent`,
+  `VehicleEntityCollisionEvent`) are cancellable throughout; `VehicleMoveEvent` and
+  `VehicleBlockCollisionEvent` are not. `Entity` has no `isInvisible` or `setCollidable`; those are
+  `LivingEntity`'s.
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
   has lost track of is removed at the next sweep.
