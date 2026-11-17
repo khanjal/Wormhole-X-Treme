@@ -151,7 +151,7 @@ field is authoritative, not the filename, because world names can contain charac
 filesystem will not take. Only the anchor, pattern and orientation are stored — the footprint is
 a pure function of those three. A pair-level `Style` is what files from before it moved look
 like, and is read as the fallback for both ends. Format is plain YAML from the start:
-`GateSerializer` carries nine versions of legacy binary baggage and there is no reason to
+`GateSerializer` carries seven versions (3 to 9) of legacy binary baggage and there is no reason to
 inherit that.
 
 **Pairs are keyed by id, not by coordinates**, and nothing looks a ring up by key at runtime

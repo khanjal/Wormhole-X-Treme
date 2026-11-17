@@ -45,9 +45,9 @@ destinations, then click the button to dial the one shown.
   and your tamed pets beside you.
 - **An iris shuts a gate.** Give it a code and the plugin places an iris lever; a closed iris
   turns travellers back.
-- **A dial can be refused.** It is if the far gate's iris is closed, the far gate is already
-  open, or another gate is already pointing at it. `/wormhole gate force <gate>` dials past all
-  three.
+- **A dial can be refused.** It is if the far gate's iris is closed (unless you give its
+  code), the far gate is already open, another gate is already pointing at it, or the gates are
+  on different networks.
 - **Redstone can dial a gate** that has a sign.
 - **Taking one down:** `/wormhole gate remove <gate>`, and `-destroy` takes the frame too.
 
