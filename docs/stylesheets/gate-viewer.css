@@ -30,7 +30,9 @@
 }
 
 .wxt-stage {
-  height: clamp(300px, 60vh, 560px);
+  --wxt-stage-h: clamp(300px, 60vh, 560px);
+
+  height: var(--wxt-stage-h);
   background: var(--md-code-bg-color);
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.2rem;
@@ -210,7 +212,7 @@
 }
 
 .wxt-side .wxt-stage {
-  height: clamp(260px, 50vh, 460px);
+  --wxt-stage-h: clamp(260px, 50vh, 460px);
 }
 
 @media (min-width: 60em) {
@@ -570,7 +572,6 @@ button.wxt-issue {
   display: none;
   box-sizing: border-box;
   width: min(16rem, calc(100% - 1rem));
-  max-height: calc(100% - 3.1rem);
   padding: 0.4rem 0.75rem;
   overflow: auto;
   font-size: 0.8rem;
@@ -609,19 +610,29 @@ button.wxt-issue {
 }
 
 @container (min-width: 34rem) {
+  /* The legend is as tall as its entries and the stage stretches to meet it: no scroll bar in the legend. */
   .wxt-stage-row {
     display: flex;
     gap: 0.75rem;
     align-items: stretch;
+    min-height: var(--wxt-legend-reserve, 0);
   }
 
   .wxt-stage-row .wxt-stage {
+    position: relative;
     flex: 1 1 auto;
+    height: auto;
+    min-height: var(--wxt-stage-h);
     min-width: 0;
   }
 
+  .wxt-stage-row .wxt-stage canvas {
+    position: absolute;
+    inset: 0;
+  }
+
   .wxt-legend-panel {
-    position: relative;
+    display: flex;
     flex: 0 0 13rem;
   }
 
@@ -630,10 +641,11 @@ button.wxt-issue {
   }
 
   .wxt-legend-body {
-    inset: 0;
+    position: static;
     display: block;
+    flex: 1 1 auto;
     width: auto;
-    max-height: none;
+    overflow: visible;
     box-shadow: none;
   }
 
@@ -785,7 +797,7 @@ html.wxt-no-scroll body {
 }
 
 .wxt-full .wxt-side .wxt-stage {
-  height: clamp(180px, 38vh, 420px);
+  --wxt-stage-h: clamp(180px, 38vh, 420px);
 }
 
 .wxt-full .wxt-dock-panels {
@@ -811,7 +823,7 @@ html.wxt-no-scroll body {
 }
 
 .wxt-full .wxt-split.wxt-bottom .wxt-side .wxt-stage {
-  height: max(120px, calc(var(--wxt-dock, 220px) - 7rem));
+  --wxt-stage-h: max(120px, calc(var(--wxt-dock, 220px) - 7rem));
 }
 
 .wxt-full .wxt-split.wxt-bottom .wxt-handle {
@@ -848,7 +860,7 @@ html.wxt-no-scroll body {
 }
 
 .wxt-full .wxt-split.wxt-bottom.wxt-stacked .wxt-side .wxt-stage {
-  height: clamp(150px, 30vh, 260px);
+  --wxt-stage-h: clamp(150px, 30vh, 260px);
 }
 
 /*

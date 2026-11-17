@@ -77,7 +77,7 @@ letter, and an underlined letter marks a cell with extras. A woosh cell (one wit
 Ignored, stronger the later its step (in up to five bands on a long woosh), with the step number in its corner once the cells are big enough;
 the **Woosh cells** switch in the bar above the 3D view (on by default) shows or hides them there as crossed wireframe blocks, and **Open** plays them in order.
 A `:W#0` cell is never played, and the checks say so.
-The legend sits beside each 3D view, or behind its **Legend** button on a narrow screen.
+The legend sits beside each 3D view, or behind its **Legend** button on a narrow screen. It lists every entry in full, so the page scrolls rather than the legend.
 
 ## Drawing in one half
 
