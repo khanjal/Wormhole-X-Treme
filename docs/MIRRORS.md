@@ -961,8 +961,12 @@ that one viewer (`HiddenEntities`).
   an admin, and anyone the viewer could not see standing beside them is not shown through a window
   either. A far player is chosen by the mobs' rules (read from loaded chunks only, in the room, in
   view, on drawn floor unless flying or swimming) and shares their twenty, nearest first. Never the
-  viewer themselves, through a mirror or a gate (one condition, `FarPlayers.showsTheViewer`, which a
-  gate facing back at its viewer will turn on later); never one the viewer cannot see
+  viewer themselves through a mirror; through a gate they are shown (one condition,
+  `FarPlayers.showsTheViewer`), since the far box holds them only when the far room is close by and
+  covers them, as for two gates facing each other, and the stand-in stands at their real position
+  mapped through the window, so they see themselves walk towards the gate, without a name over it
+  (#296, step 4). A creature has one stand-in a viewer, so between two facing gates they see
+  themselves through one gate, not both; never one the viewer cannot see
   (`canSee`, which is what vanish plugins change with `hidePlayer`; a plugin that hides players by
   rewriting packets, through ProtocolLib or the like, leaves `canSee` true and is not seen by this
   check, so its hidden players do show), nor an invisible player, a
