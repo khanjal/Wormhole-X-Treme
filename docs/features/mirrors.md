@@ -41,6 +41,8 @@ ordinary banner again.
   room's edges better.
 - **Two banners side by side** make one bigger mirror.
 - **Pick the first stop** with `/wormhole mirror set archive -start hub`.
+- **Split the list** with `-group <name>`, and keep a mirror out of it with `-hidden on` or
+  `-private on`. See [groups](../guide/MIRRORS.md#groups-hidden-and-private-mirrors).
 
 ## Who may do what
 
@@ -51,6 +53,9 @@ Using a mirror, with right-click or punch, needs `wormhole.use.sign` or `wormhol
 the same as dialling a gate. Operators always have it. In simple mode, which is when no Vault permission provider is installed or
 `permissions-support-disable` is on, everyone has them; otherwise grant one to whoever should travel
 by mirror.
+
+A private mirror is listed, and reachable, only for players with `wormhole.mirror.private`, which
+operators have, unless it is the start of the mirror they clicked.
 
 ## Go deeper
 

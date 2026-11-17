@@ -15,6 +15,7 @@ dropped — is in the design notes, [docs/MIRRORS.md](../MIRRORS.md).
 ## Contents
 
 - [Setting one up](#setting-one-up)
+- [Groups, hidden and private mirrors](#groups-hidden-and-private-mirrors)
 - [Commands](#commands)
 - [What you see in one](#what-you-see-in-one)
 - [Its look](#its-look)
@@ -58,6 +59,36 @@ traveller lands between them. The wall must then be solid four across and four t
 either side of the banners, and from one above them to one below the opening. A mirror already
 made one wide stays one wide: `remove` it, hang the second banner, and `create` again.
 
+## Groups, hidden and private mirrors
+
+Every mirror starts on the public network, and a right-click on one lists every other mirror on
+it. Three settings narrow that list, and all three are off until you set them.
+
+- **A group.** `mirror set lobby -group museum` puts `lobby` in a group called `museum`. A
+  right-click on a mirror in a group lists only the other mirrors in that group, and a mirror with
+  no group lists only the others with none, so a museum wing's mirrors list the museum and the
+  survival hub's list the hub. Case does not matter. `-group -none` puts it back on the public
+  network.
+- **Hidden.** `mirror set return -hidden on` leaves `return` out of every right-click list,
+  whoever is clicking. It is still reachable as another mirror's start: give the mirror that
+  should lead to it `-start return`. `-hidden off` lists it again.
+- **Private.** `mirror set staff -private on` lists `staff` only for players with
+  `wormhole.mirror.private`, which operators have by default. Mirrors have no owner, so the
+  permission is the only way in, apart from a start. `-private off` lists it for everybody again.
+
+**A start is always reachable.** A mirror's start is first in its list whatever group the start
+is in, and whether or not it is hidden or private: whoever set the start chose it.
+
+**A punch asks again.** What a mirror shows is shared by everybody at it, so a player without the
+permission could otherwise follow a staff member's choice into a private mirror. A punch goes
+through only if the puncher's own right-click would reach that mirror; otherwise it says so, and
+a right-click turns the mirror to one they may use. The line above the hotbar does not name a
+mirror the player could not reach either.
+
+**Web maps** leave hidden and private mirrors off; a mirror in a group is marked as before.
+
+`mirror-per-world-limit` still counts every mirror in a world, whatever its group.
+
 ## Commands
 
 | Command | What it does |
@@ -68,6 +99,9 @@ made one wide stays one wide: `remove` it, hang the second banner, and `create` 
 | `mirror set [name] -stamp [look]` | Makes the banner look like where it goes. See [Its look](#its-look) |
 | `mirror set [name] -capture` | Takes the room's capture again |
 | `mirror set [name] -follow <on\|off>` | Makes the banner follow where it opens first. See [Its look](#its-look) |
+| `mirror set [name] -group <group\|-none>` | Lists only the mirrors in a named group; `-none` puts it back on the public network. See [Groups](#groups-hidden-and-private-mirrors) |
+| `mirror set [name] -hidden <on\|off>` | Leaves it out of every right-click list; still reachable as a start |
+| `mirror set [name] -private <on\|off>` | Lists it only for players with `wormhole.mirror.private` |
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
 | `mirror debug [name] [-all\|-full\|-on\|-off]` | Why a mirror draws what it draws. See [below](#what-you-see-in-one) |
@@ -79,7 +113,8 @@ All of them need `wormhole.config`: a mirror moves players between worlds.
 **Using** a mirror, with right-click or punch, needs `wormhole.use.sign` or `wormhole.use.dialer`,
 the same as dialling a gate. In simple mode, which is when no Vault permission provider is
 installed or `permissions-support-disable` is on, everyone has them; otherwise grant one to
-whoever should travel by mirror. Operators always may.
+whoever should travel by mirror. Operators always may. A private mirror also needs
+`wormhole.mirror.private`, unless it is the start of the mirror clicked.
 
 **Leave the name out** to mean the banner you are looking at: `mirror set -start hub`,
 `mirror set -stamp cavern`, `mirror remove`. What `set` changes always starts with a dash, and
@@ -181,7 +216,8 @@ Indoors, the room's own blocks decide instead, so a library comes back the brown
 
 Ninety looks ship: one for every biome in the game, and the rest say something about the mirror
 instead — `mirror`, `hub`, `exit`, `market`, `warning`, `private`, `plain` and more. None change
-what a mirror does: `private` is paint, not a permission. They are `.mirror` text files in
+what a mirror does: the `private` look is paint, and `-private` is the
+[setting](#groups-hidden-and-private-mirrors) that keeps a mirror out of a list. They are `.mirror` text files in
 `shapes/mirror/`; edit one and it stays edited, delete one and it comes back, add your own and
 `-stamp` offers it. Every look is drawn, with its recipe, in
 [the library](../MIRRORS.md#the-library-at-a-glance).

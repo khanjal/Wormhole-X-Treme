@@ -217,8 +217,8 @@ Vault is installed with a permission provider such as LuckPerms. Without one, th
 ([below](#permission-backend-and-fallback)) and their nodes are ignored. Nodes the plugin checks
 directly with Bukkit keep working: `wormhole.build.preview*`, `wormhole.list.mine`,
 `wormhole.list.owner`, `wormhole.stats*`, `wormhole.export`, `wormhole.freya`, `wormhole.ring.*`,
-`wormhole.beam.*`, `wormhole.gates.*`, `wormhole.build.mindistance.bypass` and
-`wormhole.update.notify`.
+`wormhole.beam.*`, `wormhole.gates.*`, `wormhole.build.mindistance.bypass`,
+`wormhole.mirror.private` and `wormhole.update.notify`.
 
 **An operator may do anything with a gate**, with or without a permissions plugin, and that
 outranks a negated node. The exceptions are nodes checked directly with Bukkit, which an operator
@@ -248,6 +248,7 @@ can lose by negation: `wormhole.gates.unlimited`, `wormhole.build.mindistance.by
 | `wormhole.remove.own` | false | Nothing extra: a gate's owner may always take it apart by breaking it |
 | `wormhole.remove.all` | op | Breaking any gate's blocks, which takes it apart, and building in its opening. The `remove` commands themselves need `wormhole.config` |
 | `wormhole.config` | op | Settings, including `config -reload` and `lang export`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
+| `wormhole.mirror.private` | op | Seeing [private mirrors](MIRRORS.md#groups-hidden-and-private-mirrors) in a mirror's right-click list, and going through one to them |
 | `wormhole.network.use.<network>` | false | Using gates on that network |
 | `wormhole.network.build.<network>` | false | Building gates on that network |
 
