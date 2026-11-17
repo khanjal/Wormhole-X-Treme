@@ -25,22 +25,22 @@ commands:
 
 permissions:
   wormhole.use.sign:
-    description: Allow using sign-based dialers and sign interactions.
+    description: Allow using dial signs.
     default: false
   wormhole.use.dialer:
-    description: Allow using the dialer to initiate a gate dial.
+    description: Allow dialling a gate.
     default: false
   wormhole.use.compass:
-    description: Allow using the compass command to point to gates.
+    description: Allow /wormhole compass.
     default: false
   wormhole.remove.own:
-    description: Allow removing gates you own.
+    description: Does nothing extra; a gate's owner may always take it apart by breaking it.
     default: false
   wormhole.remove.all:
-    description: Allow removing any gate (admin-level).
+    description: Allow breaking any gate's blocks, which takes it apart. The remove commands need wormhole.config.
     default: op
   wormhole.build:
-    description: Allow building gates using automation commands.
+    description: Allow finishing a gate by hand at the DHD, of every shape. gate build needs wormhole.build.preview; the other gate commands need wormhole.config.
     default: op
   wormhole.build.preview:
     description: Allow showing a gate shape full size in front of you with /wormhole gate build, seen by you alone.
@@ -58,7 +58,7 @@ permissions:
     description: Allow owning more gates than max-gates-per-player or wormhole.gates.max.<n> allows.
     default: op
   wormhole.config:
-    description: Allow changing plugin configuration via command.
+    description: Allow changing settings and managing any gate with the config, gate and mirror commands.
     default: op
   wormhole.update.notify:
     description: Be told when a newer Wormhole X-Treme release is available, on joining.
@@ -88,7 +88,7 @@ permissions:
     description: Allow beaming yourself or another player straight to a player or raw coordinates, including from console and command blocks.
     default: op
   wormhole.list:
-    description: Allow listing gates via command.
+    description: Allow /wormhole list, including mine, owner and top.
     default: false
   wormhole.list.mine:
     description: Allow listing your own gates.
@@ -97,7 +97,7 @@ permissions:
     description: Allow listing another player's gates.
     default: op
   wormhole.go:
-    description: Allow teleporting to gates via command.
+    description: Allow /wormhole go <gate>. gate go needs wormhole.config.
     default: false
   wormhole.stats:
     description: Allow seeing your own lifetime trips, gates built, ring trips and beams with /wormhole stats.
@@ -109,5 +109,5 @@ permissions:
     description: Allow writing the gates out as a database for the older Wormhole X-Treme plugins with /wormhole export.
     default: op
   wormhole.freya:
-    description: Allow using hidden cosmetic commands.
+    description: Allow the hidden cosmetic commands.
     default: true

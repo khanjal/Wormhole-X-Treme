@@ -3,7 +3,7 @@
 ## Project Overview
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that implements inter-dimensional "stargate" portals in Minecraft. Players (and vehicles — boats, minecarts) walk or ride through portal frames and are teleported to linked destination gates.
 
-One jar supports **Minecraft 1.20 through 26.3**. It compiles against 1.20.4 — the oldest supported API, so the compiler enforces the floor — and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
+One jar supports **Minecraft 1.20 through 26.3**. It compiles against 1.20.4, an old API that stops us calling anything newer by accident (the one API carrying both `EntityDismountEvent` packages; CI builds 1.20 and 1.20.1 with `-Plegacy-api`), and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
 
 ## Build System
 - **Java 17**, Maven. `maven-shade-plugin` is configured but the jar bundles no third-party dependencies: SnakeYAML is `provided` by the server, and there is no database driver, since storage is plain YAML files
@@ -64,8 +64,10 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
   anywhere, so guarding an API call is right; catching `Throwable` to do it is not. It swallows
   `Error` — `OutOfMemoryError`, `StackOverflowError`, a `NoClassDefFoundError` from a genuinely
   missing class — and hides real bugs behind a silently degraded feature. "Exception handling no
-  longer swallows `Error`" is a recorded decision (see the 1.1.0 changelog); the ~86
-  remaining `catch (Throwable)` blocks are legacy being narrowed, not the target style.
+  longer swallows `Error`" is a recorded decision (see the 1.1.0 changelog); `catch (Throwable)` is not
+  the target style.
+  Where a missing method or class must be caught across versions, catch `Exception | LinkageError`
+  and say why in a comment.
 
   The exception is deliberate cross-version compatibility: `plugin/EconomySupport` and
   `plugin/PermissionsSupport` catch `NoSuchMethodError` on purpose so the plugin stays standing
