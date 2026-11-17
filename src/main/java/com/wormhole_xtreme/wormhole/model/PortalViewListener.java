@@ -67,7 +67,14 @@ public final class PortalViewListener implements Listener
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(final PlayerQuitEvent event)
     {
-        PortalViews.forgetViewer(event.getPlayer().getUniqueId());
+        try
+        {
+            PortalViews.forgetViewer(event.getPlayer().getUniqueId());
+        }
+        catch (final Exception | LinkageError e)
+        {
+            GateViews.failedOnce("Could not forget a nether portal trip", e);
+        }
     }
 
     /**
@@ -79,6 +86,13 @@ public final class PortalViewListener implements Listener
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldUnload(final WorldUnloadEvent event)
     {
-        PortalViews.worldUnloaded(event.getWorld().getName());
+        try
+        {
+            PortalViews.worldUnloaded(event.getWorld().getName());
+        }
+        catch (final Exception | LinkageError e)
+        {
+            GateViews.failedOnce("Could not drop nether portal links of an unloaded world", e);
+        }
     }
 }

@@ -265,7 +265,7 @@ nothing in the world changes, and vanilla still decides where a portal goes and 
 
 - **Only after a trip.** A portal shows nothing until somebody has gone through it. It then shows
   the portal they came out of, turned the way vanilla turned them. The way back is learnt by
-  going back. Links are kept until the server restarts, and forgotten when either portal is broken.
+  going back. Links are kept until the plugin stops, and forgotten when either portal is broken.
 - **Captured from what is loaded.** The far side is captured as the traveller arrives, or while
   somebody stands at the far portal. No chunk is ever loaded to draw a view, so a portal whose far
   side nobody has been near since a restart shows nothing.
