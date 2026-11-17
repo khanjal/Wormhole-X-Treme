@@ -19,7 +19,7 @@ redstone-extend-open-time: true
 # Anything unrecognised, or a formatting code that is not a colour such as MAGIC, falls
 # back to the default rather than putting a stray code on a sign.
 #
-# The selected destination on a dial sign is also wrapped in >> << markers, so it still
+# The selected destination on a dial sign is also wrapped in » « markers, so it still
 # reads as the chosen one with colours turned off or for a colourblind player.
 
 # Whether a player-placed dial sign is converted to the gate's own sign material, so a
