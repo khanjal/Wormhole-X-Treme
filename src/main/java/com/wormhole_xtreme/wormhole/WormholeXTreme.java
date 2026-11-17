@@ -28,6 +28,8 @@ import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
 import com.wormhole_xtreme.wormhole.model.GateViews;
+import com.wormhole_xtreme.wormhole.model.PortalViewListener;
+import com.wormhole_xtreme.wormhole.model.PortalViews;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
 import com.wormhole_xtreme.wormhole.model.HorizonRipple;
@@ -176,6 +178,8 @@ public class WormholeXTreme extends JavaPlugin
         // A view is built again when the world behind its wall changes (#609).
         pm.registerEvents(new ViewChangeListener(), tp);
         pm.registerEvents(new GateChunkLoadListener(), tp);
+        // Nether portal trips, to learn where each portal goes (#514).
+        pm.registerEvents(new PortalViewListener(), tp);
         registerDismountListener(pm, tp);
     }
 
@@ -327,6 +331,7 @@ public class WormholeXTreme extends JavaPlugin
             {
                 WindowSweep.restoreAll();
                 GateViews.clear();
+                PortalViews.clear();
             }
             catch (final Exception | LinkageError e)
             {
@@ -839,7 +844,12 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ItemGateTracker.createTicker(), 20L, 1L);
         // Open gates join the mirror sweep when gate-view asks them to (#516).
-        WindowSweep.alsoOffer(GateViews::offerAll);
+        WindowSweep.alsoOffer(() ->
+        {
+            GateViews.offerAll();
+            // And the nether portals somebody looks into, with nether-portal-views on (#514).
+            PortalViews.offerAll();
+        });
         // And a cleared horizon is cleared only for whoever is drawn the view.
         Windows.onDrawn(GateViews::drawn);
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.

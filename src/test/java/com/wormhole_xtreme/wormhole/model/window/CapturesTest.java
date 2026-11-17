@@ -1241,6 +1241,32 @@ class CapturesTest
     }
 
     /**
+     * A nether portal's first capture, unlike a gate's, waits for its chunks rather than loading them (#514).
+     *
+     * <p>A portal's far side is whatever the traveller came out at; loading it to draw a view would load
+     * chunks for every portal anybody walks past.
+     */
+    @Test
+    void aPortalsFirstCaptureWaitsForItsChunksToBeLoaded()
+    {
+        chunksLoaded = false;
+
+        withServer(() -> assertFalse(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L),
+            "none of its chunks is loaded"));
+
+        assertEquals(0, Captures.taking(), "and no job is left reading");
+        chunksLoaded = true;
+        withServer(() ->
+        {
+            assertTrue(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L));
+            Captures.step(100);
+        });
+        assertNotNull(Captures.get(gateKey()), "taken once they are");
+        withServer(() -> assertFalse(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L),
+            "and not again while fresh"));
+    }
+
+    /**
      * Two gates whose names are made file-safe alike keep captures of their own.
      *
      * <p>Every character that is not a plain letter or digit became an underscore, so "a b" and
