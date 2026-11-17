@@ -61,13 +61,20 @@ public final class FarCreatures
      * Whether a creature in a far room is shown: a mob, not a player ({@link FarPlayers}), not scenery, and not
      * somebody's companion or one of the stand-ins themselves, and nothing another plugin hides by
      * default or a boss whose copy would bring its bar or its parts with it. Nor a snow golem, which
-     * lays snow, or a shulker, which teleports, with no AI at all.
+     * lays snow, or a shulker, which teleports, with no AI at all. Boats and minecarts are shown too
+     * ({@link FarVehicles}).
      *
      * @param entity
      *            an entity in a far room
      * @return true if it is given a stand-in
      */
     static boolean copied(final Entity entity)
+    {
+        return FarVehicles.copied(entity) || copiedMob(entity);
+    }
+
+    /** Whether a mob in a far room is shown. */
+    private static boolean copiedMob(final Entity entity)
     {
         return (entity instanceof LivingEntity living) && !(entity instanceof Player)
             && !(entity instanceof ArmorStand) && !(entity instanceof ComplexLivingEntity) && !(entity instanceof Wither)

@@ -512,6 +512,10 @@ public final class StandIns
             PlayerFigures.dress(copy, player, viewer);
             return;
         }
+        if (FarVehicles.isVehicle(original))
+        {
+            FarVehicles.dress(copy, original);
+        }
         EntityNames.copy(original, copy);
         copy.setCustomNameVisible(original.isCustomNameVisible());
         if ((copy instanceof Colorable dyed) && (original instanceof Colorable source))
@@ -600,7 +604,8 @@ public final class StandIns
     }
 
     /**
-     * What a creature's stand-in is spawned as: its own type for a mob, a figure for a player.
+     * What a creature's stand-in is spawned as: its own type for a mob, a figure for a player, a plain
+     * boat or minecart for a vehicle.
      *
      * @param original
      *            the far creature
@@ -613,6 +618,10 @@ public final class StandIns
         if (original instanceof Player)
         {
             return playerKind();
+        }
+        if (FarVehicles.isVehicle(original))
+        {
+            return FarVehicles.kindOf(original);
         }
         final EntityType type = original.getType();
         return (type == null) ? null : type.getEntityClass();

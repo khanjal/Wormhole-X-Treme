@@ -35,6 +35,7 @@ import com.wormhole_xtreme.wormhole.events.StargateMinecartTeleportEvent;
 import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
@@ -1287,6 +1288,12 @@ class WormholeXTremeVehicleListener implements Listener
         final Heading heading = Heading.of(vehicle, event.getFrom(), event.getTo());
         final boolean noseMoved = heading.noseChangedBlock(event.getFrom(), event.getTo());
         if (!centreMoved && !noseMoved)
+        {
+            return;
+        }
+        // A window's boat or cart stand-in (#296) that drifts into a gate is no traveller; asked only
+        // once the block has changed, as the check reads the entity's tags.
+        if (StandIns.isStandIn(vehicle))
         {
             return;
         }

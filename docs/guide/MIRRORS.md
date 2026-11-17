@@ -133,7 +133,8 @@ the far edge of the view. The setting that pulled your fog in to the room's dept
 1.11.0.
 
 **Blocks, and creatures if the server turns them on.** With `mirror-show-entities` on, the mobs
-standing in the room show through the mirror (or an open gate) as copies only you see; it is off by
+standing in the room show through the mirror (or an open gate) as copies only you see, and so do its
+boats and minecarts, every cart as a plain empty one and a chest boat as a plain boat; it is off by
 default. With `mirror-show-players` on as well, so do the players there, by name: a mannequin in
 their skin from Minecraft 1.21.9, an armour stand wearing their head before. A mirror showing its
 own room shows the others in front of it, flipped, as a mirror does. Never yourself through a mirror
@@ -238,7 +239,7 @@ and `gate-view-full-depth`, written to the file as `view-depth`.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `mirror-show-entities` | `false` | Show the mobs standing in a mirror's or an open gate's far room, as copies only the viewer sees. |
+| `mirror-show-entities` | `false` | Show the mobs, boats and minecarts in a mirror's or an open gate's far room, as copies only the viewer sees. |
 | `mirror-show-players` | `false` | With `mirror-show-entities` on too, show the players there as well. It tells a viewer who is at the destination. |
 | `mirror-entity-load-radius` | 2 | With creatures shown, how many chunks in front of a watched far side are held, as `/forceload` holds them: 15 at 2, each with a two-chunk ring kept loaded round it, about 63 chunks loaded in all. 0 for none, at most 4. The ring can generate terrain at the edge of explored land. |
 
