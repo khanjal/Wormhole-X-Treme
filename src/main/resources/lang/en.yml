@@ -725,6 +725,8 @@ mirror.interact.refused-hint: "A world-access or land-claim plugin is the usual 
 mirror.interact.unbound: "'{0}' does not open onto anywhere yet."
 mirror.interact.unbound-hint: "Look at it and run {0} to set it up again."
 mirror.interact.not-open: "This mirror opens onto somewhere you may not go. Right-click it to choose another."
+mirror.sign.no-others: "No other mirrors"
+mirror.sign.own-room: "Its own room"
 mirror.signpost.approach-world: "{0} -- punch to travel to {1}, right-click for another."
 mirror.signpost.approach-mirror: "{0} -- punch to travel to {1}, right-click for another."
 mirror.signpost.reflection: "{0} -- right-click to choose a mirror."

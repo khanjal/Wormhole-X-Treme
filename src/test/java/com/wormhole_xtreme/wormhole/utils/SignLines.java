@@ -86,6 +86,34 @@ public final class SignLines
     }
 
     /**
+     * Gives a mock one line {@link SignText#get} reads from it on this API build.
+     *
+     * @param side
+     *            the mock
+     * @param line
+     *            which line, 0 to 3
+     * @param text
+     *            its text, in legacy colour codes
+     * @throws ReflectiveOperationException
+     *             never, on an API build that has the method it found
+     */
+    // Spigot's API has only the methods Paper deprecates.
+    @SuppressWarnings("deprecation")
+    public static void holdLine(final SignSide side, final int line, final String text)
+        throws ReflectiveOperationException
+    {
+        final Method paper = paper("line", int.class);
+        if (paper == null)
+        {
+            when(side.getLine(line)).thenReturn(text);
+        }
+        else
+        {
+            when(paper.invoke(side, line)).thenReturn(LEGACY.deserialize(text));
+        }
+    }
+
+    /**
      * Verifies, on a mock in verification mode, that its lines were read.
      *
      * @param verifying

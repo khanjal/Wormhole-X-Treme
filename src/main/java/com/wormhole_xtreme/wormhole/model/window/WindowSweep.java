@@ -12,6 +12,7 @@ import org.bukkit.block.data.Directional;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorArrival;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorChoosingSign;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
@@ -148,7 +149,10 @@ public final class WindowSweep
             return;
         }
         // Nobody at it any more: back to its own room.
-        MirrorNetwork.settle(mirror, MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), null));
+        if (MirrorNetwork.settle(mirror, MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), null)))
+        {
+            MirrorChoosingSign.redraw(mirror, block.getWorld());
+        }
         offerMirror(mirror, block);
     }
 
@@ -168,7 +172,10 @@ public final class WindowSweep
     static boolean offerMirror(final QuantumMirror mirror, final Block banner)
     {
         // Never a room somebody in range could not go to, since the view is drawn for them too (#280).
-        MirrorNetwork.keepToWhatAllMaySee(mirror, banner.getWorld());
+        if (MirrorNetwork.keepToWhatAllMaySee(mirror, banner.getWorld()))
+        {
+            MirrorChoosingSign.redraw(mirror, banner.getWorld());
+        }
         final BlockData data = banner.getBlockData();
         // A banner on a post is no window: nothing hides its room past its edges, and create refuses one.
         if (!(data instanceof Directional))

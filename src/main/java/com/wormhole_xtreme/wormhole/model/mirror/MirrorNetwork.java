@@ -259,7 +259,7 @@ public final class MirrorNetwork
      */
     public static String scroll(final QuantumMirror mirror, final boolean othersNear, final Player reader)
     {
-        return scroll(mirror, othersNear, reader, List.of());
+        return scroll(mirror, othersNear, reader, List.of(), order(mirror, reader));
     }
 
     /**
@@ -279,13 +279,29 @@ public final class MirrorNetwork
      */
     public static String scroll(final QuantumMirror mirror, final List<Player> others, final Player reader)
     {
-        return scroll(mirror, !others.isEmpty(), reader, others);
+        return scroll(mirror, !others.isEmpty(), reader, others, order(mirror, reader));
+    }
+
+    /**
+     * {@link #scroll(QuantumMirror, List, Player)} through the public list only, for a choosing sign,
+     * which shows the same list to everybody (#280).
+     *
+     * @param mirror
+     *            the mirror whose sign was right-clicked
+     * @param others
+     *            everybody else within reach of it
+     * @param reader
+     *            whoever clicked
+     * @return what to tell whoever clicked, or null for a repeat of the same press
+     */
+    public static String scrollPublic(final QuantumMirror mirror, final List<Player> others, final Player reader)
+    {
+        return scroll(mirror, !others.isEmpty(), reader, others, order(mirror));
     }
 
     private static String scroll(final QuantumMirror mirror, final boolean othersNear, final Player reader,
-        final List<Player> others)
+        final List<Player> others, final List<QuantumMirror> order)
     {
-        final List<QuantumMirror> order = order(mirror, reader);
         order.removeIf(other -> !other.name().equalsIgnoreCase(mirror.start())
             && others.stream().anyMatch(viewer -> !listed(mirror, other, viewer)));
         if (order.isEmpty())
@@ -341,14 +357,16 @@ public final class MirrorNetwork
      *
      * @param anybodyNear
      *            whether anybody is within reach of it
+     * @return true if a choice was dropped
      */
-    public static void settle(final QuantumMirror mirror, final boolean anybodyNear)
+    public static boolean settle(final QuantumMirror mirror, final boolean anybodyNear)
     {
-        if (!anybodyNear)
+        if (anybodyNear)
         {
-            CHOSEN.remove(key(mirror.name()));
-            CHOSEN_AT.remove(key(mirror.name()));
+            return false;
         }
+        CHOSEN_AT.remove(key(mirror.name()));
+        return CHOSEN.remove(key(mirror.name())) != null;
     }
 
     /**
