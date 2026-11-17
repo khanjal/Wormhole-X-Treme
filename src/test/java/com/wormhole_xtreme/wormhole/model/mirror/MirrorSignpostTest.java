@@ -176,6 +176,34 @@ class MirrorSignpostTest
             "an action bar line fades, so staying on screen means being re-sent");
     }
 
+    /**
+     * A private mirror somebody else turned this one to is named only to a holder of the node (#280).
+     *
+     * <p>The line names where a punch goes; to a player whose own list would not reach it, that is
+     * the private mirror's name handed out to anybody who looks.
+     */
+    @Test
+    void aPrivateMirrorItOpensOntoIsNamedOnlyToAHolderOfTheNode()
+    {
+        MirrorNetwork.clear();
+        boundMirror();
+        MirrorManager.add(new QuantumMirror("vault", new BlockPlace("end", 0, 64, 0),
+            new Place("end", 0.5, 63, 0.5, 0f, 0f)).withAccess(new MirrorAccess(null, false, true)));
+        final Player staff = mock(Player.class);
+        when(staff.hasPermission(MirrorNetwork.SEE_PRIVATE)).thenReturn(true);
+        MirrorNetwork.scroll(MirrorManager.byName("museum"), false, staff);
+        lookingAt(banner);
+
+        sweep();
+        assertTrue(shown().isEmpty(), "not named to a player without the node: " + shown());
+
+        when(player.hasPermission(MirrorNetwork.SEE_PRIVATE)).thenReturn(true);
+        sweep();
+        assertEquals(1, shown().size(), "named to one with it: " + shown());
+        assertTrue(shown().get(0).contains("vault"), "it names the private mirror: " + shown());
+        MirrorNetwork.clear();
+    }
+
     /** Look away and it stops, rather than following you round. */
     @Test
     void lookingAwaySaysNothing()
