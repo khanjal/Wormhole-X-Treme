@@ -86,7 +86,7 @@ class PortalBehindTheIrisTest
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
         gate.getGatePortalBlocks().add(new Location(world, 10, 65, 20));
 
-        final List<Location> behind = StargateBlockSetup.portalBackdropCells(gate);
+        final List<Location> behind = PortalBackdrop.portalBackdropCells(gate);
 
         assertEquals(2, behind.size(), "one cell behind each portal cell");
         assertEquals(19, behind.get(0).getBlockZ(),
@@ -110,7 +110,7 @@ class PortalBehindTheIrisTest
             one.setGateFacing(facing);
             one.getGatePortalBlocks().add(new Location(world, 0, 64, 0));
 
-            final Location behind = StargateBlockSetup.portalBackdropCells(one).get(0);
+            final Location behind = PortalBackdrop.portalBackdropCells(one).get(0);
 
             assertEquals(-facing.getModX(), behind.getBlockX(), facing + " moved the wrong way in x");
             assertEquals(-facing.getModZ(), behind.getBlockZ(), facing + " moved the wrong way in z");
@@ -131,7 +131,7 @@ class PortalBehindTheIrisTest
         gate.setGateFacing(BlockFace.UP);
         gate.getGatePortalBlocks().add(new Location(world, 4, 70, 9));
 
-        final Location behind = StargateBlockSetup.portalBackdropCells(gate).get(0);
+        final Location behind = PortalBackdrop.portalBackdropCells(gate).get(0);
 
         assertEquals(69, behind.getBlockY(), "up-facing, so behind it is one block down");
     }
@@ -186,7 +186,7 @@ class PortalBehindTheIrisTest
             materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
             materials.when(() -> MaterialUtils.isAirMaterial(Material.STONE)).thenReturn(false);
 
-            StargateBlockSetup.sendPortalBackdrop(gate, true);
+            PortalBackdrop.sendPortalBackdrop(gate, true);
         }
 
         verify(watcher).sendBlockChange(argThat(at -> at.getBlockY() == 64), eq(horizon));
@@ -211,7 +211,7 @@ class PortalBehindTheIrisTest
         when(distant.getLocation()).thenReturn(new Location(world, 10, 64, 900));
         when(world.getPlayers()).thenReturn(List.of(distant));
 
-        StargateBlockSetup.sendPortalBackdrop(gate, true);
+        PortalBackdrop.sendPortalBackdrop(gate, true);
 
         verify(distant, never()).sendBlockChange(any(Location.class), any(BlockData.class));
     }
@@ -227,8 +227,8 @@ class PortalBehindTheIrisTest
     {
         gate.getGatePortalBlocks().add(new Location(world, 0, 64, 0));
 
-        assertTrue(StargateBlockSetup.portalBackdropCells(gate).isEmpty(),
+        assertTrue(PortalBackdrop.portalBackdropCells(gate).isEmpty(),
             "no facing, no behind");
-        assertTrue(StargateBlockSetup.portalBackdropCells(null).isEmpty(), "and no gate at all is not a crash");
+        assertTrue(PortalBackdrop.portalBackdropCells(null).isEmpty(), "and no gate at all is not a crash");
     }
 }
