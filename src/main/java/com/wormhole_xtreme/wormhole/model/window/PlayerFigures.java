@@ -231,6 +231,11 @@ final class PlayerFigures
         {
             return true;
         }
+        if (viewer.getUniqueId().equals(player.getUniqueId()))
+        {
+            // Vanilla never shows you your own name tag, so a gate's figure of the viewer carries none.
+            return false;
+        }
         try
         {
             final Scoreboard board = viewer.getScoreboard();
