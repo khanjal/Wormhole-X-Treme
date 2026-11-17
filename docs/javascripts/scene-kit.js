@@ -1,7 +1,7 @@
 // What the User manual's 3D viewers share: the three.js loader, the theme, the scene and camera,
 // and the shape loader. The pages' own scripts (gate, iris, dialling) build on it.
 import { parseShape } from "./shape-parser.js";
-import { reserveHeight, overlayMaxHeight } from "./legend-size.js";
+import { reserveHeight, overlayPlacement } from "./legend-size.js";
 
 // Bound by loadLibs(); a viewer that imports them reads them live once it has run.
 export let THREE;
@@ -54,14 +54,15 @@ export function stageWithLegend(stage, legend) {
   const box = el("div", { class: "wxt-stage-box" }, row);
   // The button is only there in the narrow layout; when the layout turns wide an open legend is just the panel, so forget it.
   const narrow = () => toggle.getClientRects().length > 0;
-  // The overlay shows every entry; only a window too short for them makes it scroll.
+  // The overlay shows every entry, past the stage if need be; only a window shorter than the list makes it scroll.
   const limitOverlay = () => {
-    if (!narrow() || !panel.classList.contains("wxt-open")) {
-      body.style.maxHeight = "";
-      return;
-    }
+    body.style.maxHeight = "";
+    body.style.transform = "";
+    if (!narrow() || !panel.classList.contains("wxt-open")) return;
     const r = row.getBoundingClientRect();
-    body.style.maxHeight = `${overlayMaxHeight(r.top + body.offsetTop, Math.min(r.bottom, window.innerHeight))}px`;
+    const place = overlayPlacement(r.top + body.offsetTop, body.offsetHeight, window.innerHeight);
+    if (place.shift) body.style.transform = `translateY(-${place.shift}px)`;
+    if (place.maxHeight !== null) body.style.maxHeight = `${place.maxHeight}px`;
   };
   const setOpen = (open) => {
     panel.classList.toggle("wxt-open", open);

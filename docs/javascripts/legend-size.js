@@ -11,13 +11,17 @@ export function reserveHeight(reserved, measured) {
 }
 
 /**
- * The most the open Legend overlay may be, in px, given where it starts and the lowest line it may reach
- * (the stage's bottom or the window's, whichever is higher). It only matters where the entries do not
- * fit, and the overlay then scrolls rather than cover what is below.
+ * Where the open Legend overlay goes so every entry shows: `top` is where it starts in the window and
+ * `natural` its height with room to spare. The overlay may run past the stage, but not the window, so a
+ * list that would is lifted by `shift` px (never above the window's top), and only a window shorter than
+ * the list itself leaves `maxHeight` (px, else null) and the overlay scrolls.
  */
-export function overlayMaxHeight(top, bottom) {
-  const room = bottom - top - OVERLAY_MARGIN;
-  return Number.isFinite(room) ? Math.max(MIN_OVERLAY, Math.floor(room)) : MIN_OVERLAY;
+export function overlayPlacement(top, natural, viewportHeight) {
+  const limit = viewportHeight - OVERLAY_MARGIN;
+  if (![top, natural, limit].every(Number.isFinite)) return { shift: 0, maxHeight: null };
+  const shift = Math.min(Math.max(0, top + natural - limit), Math.max(0, top - OVERLAY_MARGIN));
+  const room = Math.floor(limit - (top - shift));
+  return { shift, maxHeight: room >= natural ? null : Math.max(MIN_OVERLAY, room) };
 }
 
 const OVERLAY_MARGIN = 8;
