@@ -23,7 +23,6 @@ import org.bukkit.Axis;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
@@ -72,7 +71,7 @@ class PortalViewsTest
         ConfigTestSupport.clear();
         ConfigTestSupport.set(ConfigKeys.NETHER_PORTAL_VIEWS, true);
         overworld = worldNamed("world");
-        nether = worldNamed("world_nether");
+        nether = worldNamed("World_Nether");
         capture = mock(Capture.class, withSettings().stubOnly());
         cellsWas = PortalViews.cellsIn;
         worldWas = PortalViews.worldNamed;
@@ -81,7 +80,7 @@ class PortalViewsTest
         offererWas = PortalViews.offerer;
         releaserWas = PortalViews.releaser;
         PortalViews.cellsIn = world -> (x, y, z) -> blocks.getOrDefault(world.getName(), Map.of()).get(new Spot(x, y, z));
-        PortalViews.worldNamed = name -> "world".equals(name) ? overworld : ("world_nether".equals(name) ? nether : null);
+        PortalViews.worldNamed = name -> "world".equals(name) ? overworld : ("World_Nether".equals(name) ? nether : null);
         PortalViews.captureOf = key -> capture;
         PortalViews.requester = (key, what, arrival, depth, older) ->
         {
@@ -152,13 +151,13 @@ class PortalViewsTest
     @Test
     void oneTripLearnsWhereThePortalWentAndNotTheWayBack()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
 
         travel(100.5, 70.0, 5.5, 180.0f);
 
         final PortalViews.Link link = PortalViews.links().get("world 0,64,10 x");
         assertNotNull(link);
-        assertEquals("world_nether 100,70,5 x", link.to().id());
+        assertEquals("World_Nether 100,70,5 x", link.to().id());
         assertEquals(0, link.turn());
         assertEquals(1, PortalViews.links().size(), "the way back is learnt by going back");
     }
@@ -167,7 +166,7 @@ class PortalViewsTest
     @Test
     void aPlayerInFrontIsOfferedTheFarPortalsMatchingSide()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
 
         PortalViews.offer(List.of(lookingFrom(0.5, 15.0)), 3_000L);
@@ -176,7 +175,7 @@ class PortalViewsTest
         final WindowSource source = offered.get(0);
         assertEquals("portal:world 0,64,10 x south", source.name());
         final Place far = source.destination();
-        assertEquals("world_nether", far.worldName());
+        assertEquals("World_Nether", far.worldName());
         assertEquals(new Spot(100, 70, 4), new Spot((int) Math.floor(far.x()), (int) far.y(), (int) Math.floor(far.z())));
         assertEquals(180.0f, far.yaw(), "looking north out of the far portal");
         assertTrue(source.walkThrough(), "walked into, never barred");
@@ -188,7 +187,7 @@ class PortalViewsTest
     @Test
     void aPlayerOnTheOtherSideSeesTheFarPortalsOtherSide()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
 
         PortalViews.offer(List.of(lookingFrom(0.5, 6.0)), 3_000L);
@@ -203,7 +202,7 @@ class PortalViewsTest
     @Test
     void aFarPortalOnTheOtherAxisTurnsTheView()
     {
-        light("world_nether", Axis.Z, 5, 70, 50, 2, 3);
+        light("World_Nether", Axis.Z, 5, 70, 50, 2, 3);
         travel(50.5, 70.0, 5.5, 270.0f);
 
         PortalViews.offer(List.of(lookingFrom(0.5, 15.0)), 3_000L);
@@ -219,7 +218,7 @@ class PortalViewsTest
     @Test
     void aLandingThatIsNotSquareToTheFarPortalTeachesNothing()
     {
-        light("world_nether", Axis.Z, 5, 70, 50, 2, 3);
+        light("World_Nether", Axis.Z, 5, 70, 50, 2, 3);
 
         travel(50.5, 70.0, 5.5, 180.0f);
 
@@ -230,39 +229,64 @@ class PortalViewsTest
     @Test
     void aLandingOutsideAPortalTeachesNothing()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
 
         travel(200.5, 70.0, 5.5, 180.0f);
 
         assertTrue(PortalViews.links().isEmpty());
     }
 
-    /** Off, which is the default, a trip teaches nothing and nothing is offered. */
+    /** Off, which is the default, a trip teaches nothing. */
     @Test
-    void offTheFeatureLearnsAndOffersNothing()
+    void offTheFeatureLearnsNothing()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         ConfigTestSupport.set(ConfigKeys.NETHER_PORTAL_VIEWS, false);
 
         travel(100.5, 70.0, 5.5, 180.0f);
-        PortalViews.offer(List.of(lookingFrom(0.5, 15.0)), 3_000L);
 
         assertTrue(PortalViews.links().isEmpty());
+    }
+
+    /** Turned off after a trip, the portal is offered nothing and its far side is asked for no more: the kill switch. */
+    @Test
+    void turnedOffALearntPortalIsOfferedAndCapturedNoMore()
+    {
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
+        travel(100.5, 70.0, 5.5, 180.0f);
+        assertEquals(1, PortalViews.links().size(), "learnt while on");
+        ConfigTestSupport.set(ConfigKeys.NETHER_PORTAL_VIEWS, false);
+
+        PortalViews.offer(List.of(lookingFrom(0.5, 15.0)), 3_000L);
+
         assertTrue(offered.isEmpty());
+        assertTrue(asked.isEmpty());
+    }
+
+    /** A landing back in the world it left -- some other plugin's doing -- teaches nothing. */
+    @Test
+    void aLandingInTheSameWorldTeachesNothing()
+    {
+        light("world", Axis.X, 40, 64, 30, 2, 3);
+        PortalViews.leaving(TRAVELLER, new Location(overworld, 0.5, 64.0, 10.5, 180.0f, 0.0f), 1_000L);
+
+        PortalViews.arrived(TRAVELLER, new Location(overworld, 40.5, 64.0, 30.5, 180.0f, 0.0f), 2_000L);
+
+        assertTrue(PortalViews.links().isEmpty());
     }
 
     /** A far world left off the allow list is never learnt. */
     @Test
     void aWorldOffTheAllowListIsNeverLearnt()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         ConfigTestSupport.set(ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, "world, other");
 
         travel(100.5, 70.0, 5.5, 180.0f);
 
         assertTrue(PortalViews.links().isEmpty());
 
-        ConfigTestSupport.set(ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, "World, World_Nether");
+        ConfigTestSupport.set(ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, "WORLD, world_nether");
         travel(100.5, 70.0, 5.5, 180.0f);
         assertEquals(1, PortalViews.links().size(), "both listed, in any case");
     }
@@ -271,7 +295,7 @@ class PortalViewsTest
     @Test
     void aBrokenPortalDropsItsLinkAndItsViews()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
         blocks.get("world").remove(new Spot(1, 65, 10));
 
@@ -287,9 +311,9 @@ class PortalViewsTest
     @Test
     void aBrokenFarPortalDropsTheLink()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
-        blocks.get("world_nether").remove(new Spot(100, 72, 5));
+        blocks.get("World_Nether").remove(new Spot(100, 72, 5));
 
         PortalViews.offer(List.of(lookingFrom(0.5, 15.0)), 3_000L);
 
@@ -303,7 +327,7 @@ class PortalViewsTest
     {
         blocks.clear();
         light("world", Axis.X, 0, 64, 10, 19, 3);
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
 
         PortalViews.offer(List.of(lookingFrom(9.5, 15.0)), 3_000L);
@@ -316,7 +340,7 @@ class PortalViewsTest
     @Test
     void aFreshTripAsksForBothFarSides()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
 
         PortalViews.offer(List.of(), 3_000L);
@@ -330,7 +354,7 @@ class PortalViewsTest
     @Test
     void anOldTripIsNoLongerAskedForUnlessLookedAt()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
 
         PortalViews.offer(List.of(), 2_000L + PortalViews.ARRIVAL_MILLIS + 1L);
@@ -342,7 +366,7 @@ class PortalViewsTest
     @Test
     void aPlayerWithoutThePermissionIsOfferedNothing()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
         final Player player = lookingFrom(0.5, 15.0);
         when(player.hasPermission(PortalSource.PERMISSION)).thenReturn(false);
@@ -356,7 +380,7 @@ class PortalViewsTest
     @Test
     void noCaptureYetOffersNothing()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
         PortalViews.captureOf = key -> null;
 
@@ -370,10 +394,10 @@ class PortalViewsTest
     @Test
     void aWorldUnloadingForgetsItsLinks()
     {
-        light("world_nether", Axis.X, 100, 70, 5, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
         travel(100.5, 70.0, 5.5, 180.0f);
 
-        PortalViews.worldUnloaded("world_nether");
+        PortalViews.worldUnloaded("World_Nether");
 
         assertTrue(PortalViews.links().isEmpty());
         assertTrue(released.contains("portal:world 0,64,10 x south"));

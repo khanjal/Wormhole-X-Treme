@@ -368,34 +368,44 @@ public final class PortalViews
             return null;
         }
         final double reach = ConfigManager.getMirrorProximityDistance();
-        final Vector look = eye.getDirection();
         Choice best = null;
         for (final Link link : LINKS.values())
         {
-            final NetherPortal portal = link.from();
-            if (!portal.world().equals(world.getName()))
+            if (link.from().world().equals(world.getName()))
             {
-                continue;
-            }
-            final Spot low = portal.spotAt(portal.lowAcross(), portal.lowY());
-            final Spot high = portal.spotAt(portal.highAcross(), portal.highY());
-            final Vector to = new Vector(((low.x() + high.x()) / 2.0) + 0.5 - eye.getX(),
-                ((low.y() + high.y()) / 2.0) + 0.5 - eye.getY(), ((low.z() + high.z()) / 2.0) + 0.5 - eye.getZ());
-            final double length = to.length();
-            if (length > reach)
-            {
-                continue;
-            }
-            final double cosine = (length == 0) ? 1.0 : (to.dot(look) / length);
-            for (final BlockFace face : portal.faces())
-            {
-                if ((portal.outFrom(face, eye.getX(), eye.getZ()) > 0.5) && ((best == null) || (cosine > best.cosine())))
-                {
-                    best = new Choice(link, face, world, cosine);
-                }
+                best = better(link, eye, reach, best);
             }
         }
         return best;
+    }
+
+    /**
+     * The better of a choice so far and a link's portal face an eye is in front of, near and looking at.
+     *
+     * @return whichever the eye looks at more straight; the choice so far if the portal is out of reach or behind it
+     */
+    private static Choice better(final Link link, final Location eye, final double reach, final Choice best)
+    {
+        final NetherPortal portal = link.from();
+        final Spot low = portal.spotAt(portal.lowAcross(), portal.lowY());
+        final Spot high = portal.spotAt(portal.highAcross(), portal.highY());
+        final Vector to = new Vector(((low.x() + high.x()) / 2.0) + 0.5 - eye.getX(),
+            ((low.y() + high.y()) / 2.0) + 0.5 - eye.getY(), ((low.z() + high.z()) / 2.0) + 0.5 - eye.getZ());
+        final double length = to.length();
+        if (length > reach)
+        {
+            return best;
+        }
+        final double cosine = (length == 0) ? 1.0 : (to.dot(eye.getDirection()) / length);
+        Choice chosen = best;
+        for (final BlockFace face : portal.faces())
+        {
+            if ((portal.outFrom(face, eye.getX(), eye.getZ()) > 0.5) && ((chosen == null) || (cosine > chosen.cosine())))
+            {
+                chosen = new Choice(link, face, eye.getWorld(), cosine);
+            }
+        }
+        return chosen;
     }
 
     /** Offers one portal face, once both its portals are still lit and its far side is captured. */

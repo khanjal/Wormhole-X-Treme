@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.IntSummaryStatistics;
 import java.util.List;
 import java.util.Set;
 
@@ -60,34 +61,47 @@ public record NetherPortal(String world, boolean alongX, int lowAcross, int high
             return null;
         }
         final boolean alongX = axis == Axis.X;
+        final Set<Spot> seen = fill(new Spot(x, y, z), axis, cells);
+        if (seen.isEmpty())
+        {
+            return null;
+        }
+        final IntSummaryStatistics across = seen.stream().mapToInt(cell -> alongX ? cell.x() : cell.z())
+            .summaryStatistics();
+        final IntSummaryStatistics rows = seen.stream().mapToInt(Spot::y).summaryStatistics();
+        final NetherPortal portal = new NetherPortal(world, alongX, across.getMin(), across.getMax(), rows.getMin(),
+            rows.getMax(), alongX ? z : x);
+        return ((portal.width() <= MOST_SIDE) && (portal.height() <= MOST_SIDE)
+            && (seen.size() == (portal.width() * portal.height()))) ? portal : null;
+    }
+
+    /**
+     * The portal blocks joined to one in its plane that share its axis.
+     *
+     * @return them, or none once there are more than the biggest portal holds
+     */
+    private static Set<Spot> fill(final Spot first, final Axis axis, final Cells cells)
+    {
         final Set<Spot> seen = new HashSet<>();
         final Deque<Spot> next = new ArrayDeque<>();
-        final Spot first = new Spot(x, y, z);
         seen.add(first);
         next.add(first);
-        int[] box = { Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE };
         while (!next.isEmpty())
         {
-            final Spot cell = next.poll();
-            final int across = alongX ? cell.x() : cell.z();
-            box = new int[] { Math.min(box[0], across), Math.max(box[1], across), Math.min(box[2], cell.y()),
-                Math.max(box[3], cell.y()) };
-            for (final Spot side : sides(cell, alongX))
+            for (final Spot side : sides(next.poll(), axis == Axis.X))
             {
                 if (!seen.contains(side) && (cells.axisAt(side.x(), side.y(), side.z()) == axis))
                 {
                     if (seen.size() >= (MOST_SIDE * MOST_SIDE))
                     {
-                        return null;
+                        return Set.of();
                     }
                     seen.add(side);
                     next.add(side);
                 }
             }
         }
-        final NetherPortal portal = new NetherPortal(world, alongX, box[0], box[1], box[2], box[3], alongX ? z : x);
-        return ((portal.width() <= MOST_SIDE) && (portal.height() <= MOST_SIDE)
-            && (seen.size() == (portal.width() * portal.height()))) ? portal : null;
+        return seen;
     }
 
     /** The four blocks beside one in a portal's plane. */

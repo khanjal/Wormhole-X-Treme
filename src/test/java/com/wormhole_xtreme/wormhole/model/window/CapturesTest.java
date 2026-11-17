@@ -1267,6 +1267,25 @@ class CapturesTest
     }
 
     /**
+     * A portal's first capture that meets a chunk let go of mid-way gives up rather than load it (#514).
+     *
+     * <p>A gate's first capture loads what it must; a portal's must not, even with nothing yet to draw.
+     */
+    @Test
+    void aPortalsFirstCaptureGivesUpWhenAChunkIsLetGoMeanwhile()
+    {
+        withServer(() ->
+        {
+            assertTrue(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L));
+            chunksLoaded = false;
+            Captures.step(1000);
+        });
+
+        assertEquals(0, Captures.taking(), "the job is over");
+        assertNull(Captures.get(gateKey()), "and nothing was taken by loading the chunk");
+    }
+
+    /**
      * Two gates whose names are made file-safe alike keep captures of their own.
      *
      * <p>Every character that is not a plain letter or digit became an underscore, so "a b" and
