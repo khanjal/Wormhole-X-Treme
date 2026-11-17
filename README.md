@@ -48,13 +48,15 @@ Four ways to get somewhere, each a different trade between what you build and wh
 
 - **Everything travels** — minecarts and boats with their passengers, horses with their riders,
   arrows and ender pearls mid-flight, and mobs and items that wander into an open gate.
-- **Configured in-game** — `/wormhole config` changes any setting on the spot, with no reload.
-- **Six gate shapes** in any palette: build `Standard` in obsidian or in lapis and get a
+- **Configured in-game** — `/wormhole config` changes nearly any setting on the spot, with no reload; a few, such as turning
+  `worldguard-enabled` on or edited material groups, wait for a restart.
+- **Six gate shapes** (nine shape files, counting the sign-dial variants) in any palette: build `Standard` in obsidian or in lapis and get a
   different-looking gate from one shape file.
 - **Mirrors that show a room** — walk up to one and it reflects its own room in real blocks;
   right-click it and it shows another world's.
 - **Every sound is a setting**, resource pack sounds included.
-- **Works with or without a permissions plugin**, and charges through Vault only if you want it to.
+- **Works with or without a permissions plugin**: permission nodes need both Vault and a permissions
+  plugin such as LuckPerms, and it charges through Vault only if you want it to.
 - **Events for other plugins** to watch or cancel travel — see [docs/API.md](docs/API.md).
 - **Plain YAML storage**, and `/wormhole gate import` for gates from older forks' SQLite databases.
 
@@ -120,7 +122,7 @@ played one by one. [Details](docs/guide/SERVER.md#compatibility)
 
 ## Building from source
 
-JDK 17 and Maven 3.8+.
+JDK 17 or newer and Maven 3.6.3 or newer (the floor of the plugins in `pom.xml`).
 
 ```bash
 mvn -DskipTests package

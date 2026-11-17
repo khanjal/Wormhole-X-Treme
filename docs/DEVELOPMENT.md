@@ -8,7 +8,7 @@ are in [BSTATS.md](BSTATS.md).
 
 ## Building and testing
 
-JDK 17 and Maven 3.8+.
+JDK 17 or newer and Maven 3.6.3 or newer (the floor of the plugins in `pom.xml`).
 
 ```bash
 mvn test                    # JUnit 5 + Mockito; no live server needed
@@ -107,7 +107,8 @@ mkdocs build --strict
 
 `scripts/copy-docs-shapes.sh` copies the shipped gate shapes and a manifest into `docs/assets/shapes/`
 (git-ignored) for the [gate viewer](manual/gates.md); the workflow runs it too, and a change under
-`src/main/resources/shapes/` triggers the docs build. The viewer's parser is
+`src/main/resources/shapes/`, or to one of the Java classes the viewer mirrors (listed in `docs.yml`),
+triggers the docs build. The viewer's parser is
 `docs/javascripts/shape-parser.js`, matched to `Stargate3DShape` and `StargateShapeLayer`; test it
 with `node --test docs/javascripts/test/*.test.js`. The iris and dialling pages are ports of `IrisSweep`/`IrisSweepDriver` (`iris-sweep.js`) and `DialSpin`/`StargateAnimator` (`dial-spin.js`); keep them in step with the Java, and their tests read the shipped shapes too. The [gate designer](manual/designer.md) adds `shape-edit.js` (the editable model), `shape-writer.js` (back to `.shape` text, round-tripped through the parser for all nine shipped files) and `shape-check.js` (the live rules, from `ShapeFileValidator` and the shape file header); a rule changed in that Java belongs there too.
 
@@ -120,7 +121,7 @@ site; a link to a file outside `docs/`, or to one the site leaves out (`docs/lis
 to `main` that does. It deploys only once Pages is on: Settings → Pages → Source "GitHub Actions",
 then a repository variable `PAGES_ENABLED` set to `true` (Settings → Secrets and variables →
 Actions → Variables). Without the variable a merge only builds, so a repository with Pages off
-gets no failing deploy. This repository has both set, so the site is live at
+gets no failing deploy. The owner has set both for this repository, so the site is live at
 [khanjal.github.io/Wormhole-X-Treme](https://khanjal.github.io/Wormhole-X-Treme/). To publish a fork's site:
 
 1. Settings → Pages → Source "GitHub Actions".
@@ -191,7 +192,8 @@ does the same.
 
 Join `localhost:25599` from a Minecraft client of that version under any name. You are made a
 spectator and moved to a spot facing each trip before it starts, and the bot says in chat what to
-watch for. After each trip it asks whether you saw it; answer `y` or `n` in chat. The terminal ends
+watch for. After each trip it asks whether you saw it; answer `y` or `n` in chat. After the last trip,
+say a trip's name to see it again, `all` for every one, or `done` to stop. The terminal ends
 with a summary of each trip's automatic result and your answer, and a `n` fails the run just as a
 failed check does. So does no answer in time, or the watcher leaving: a watched run that nobody
 confirmed does not pass. `BOOT_DIR=somewhere` keeps the server folder and its `console.log`;
@@ -199,7 +201,8 @@ use a new folder each run, since a world already holding the gates makes every s
 
 The **Player journeys** workflow (`player.yml`) runs the same thing without an observer on
 Paper 1.20.4 and 1.21.11. It runs when started by hand from the Actions tab, and when the harness
-itself changes. It does not run on pull requests yet.
+itself changes. It does not run as a pull-request check, but a push to any branch that changes the
+harness runs it.
 
 What it does not cover yet: sign dialling, other worlds beyond the `pet` trip's gate and beam into
 the nether (so a mirror's trip is within one world, with `mirror-per-world-limit` set to 0), a
@@ -267,10 +270,10 @@ node scripts/facility/run-facility.js --selftest --quick --versions 1.20.4,26.1.
 ```
 
 A self-test also collects every message the plugin showed (its `:: ` lines, colour codes stripped,
-numbers and ids replaced) and compares them with the committed `scripts/facility/messages/<version>.snap`,
-within the cells that ran. A difference is printed as `messages on <version>: CHANGED` with `-` and `+`
+numbers and ids replaced) and compares them with `scripts/facility/messages/<version>.snap` where one is committed (only
+1.20.4 so far; on another version it says there is no snapshot yet), within the cells that ran. A difference is printed as `messages on <version>: CHANGED` with `-` and `+`
 lines; it never fails the run. After a wording change you meant, run again with `--update-messages` and
-commit the snapshot. The snapshot is taken from a `--quick` run, so `transit` and `settings`, whose text
+commit the snapshot, which is also how a version's first one is written. The snapshot is taken from a `--quick` run, so `transit` and `settings`, whose text
 depends on the profile, are compared only in a full run.
 
 The launcher builds the plugin with Maven (offline, on a JDK 17 it finds; `--plugin <jar>` or
@@ -452,8 +455,9 @@ to a page, so nothing is cut off. Its pages are NBT before 1.20.5, the
 tested version takes that path), and SNBT pages with snake_case click keys from 1.21.5
 (`text.bookItem`). The self-test's `logbook` section judges what a non-op Tester's client holds.
 
-There are two self-test profiles. The full one runs the whole matrix (over 700 checks on one
-server at stage 6, 600 of them the matrix's cells and their resets) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
+There are two self-test profiles. The counts and timings below were measured on one machine at
+stage 6 (2026-10), so read them as orders of magnitude. The full one runs the whole matrix (over 700
+checks on one server, 600 of them the matrix's cells and their resets) and takes about an hour on one version; it is the one to iterate on, on 1.21.11.
 `--quick` runs everything else the same but only a short matrix: one walk, one cart, one horse,
 one pet, a bow, a throw, a dispenser, a dropped item, one refusal, a gallery gate, the first
 #491 cell, a ring walk and a swap, one refusal from each ring chamber, a ring edit, two beam pads
@@ -462,7 +466,7 @@ banner's patterns are read under another key on 1.20.4), a horse to the Range, a
 a gate built by hand and one by preview, a lever and a command block at G3, a G4 activate and
 share, three G5 iris cells, seven of S1's (the setting audit, bad values, gate and beam sounds,
 the permission fallback, a ring's defaults), and one transit route per feature, in about
-17 minutes. It is the cross-version check (text formats, entity ids, boats, the
+15 to 17 minutes. It is the cross-version check (text formats, entity ids, boats, the
 1.20.4 teleport quirk): `--versions` runs each version as its own process, all at once, on ports
 `--port`, `--port`+2 and so on. Each is tied to it as a server is to a launcher: Ctrl+C stops
 them all, and if the launcher is killed outright its children and their servers go with it.
@@ -573,7 +577,7 @@ the run like a chamber's `needs.config`. A false check also prints what it saw (
   CoreProtect with neither installed; the entity sweep at its fixed once a second (an item lying in
   an open gate is sent within a second or two); and placeholders and economy, in force at once
   (each says at once that its plugin is missing; the start before said neither).
-- **Permissions** (`permissions.js`), by Probe2, never an op, with no permissions plugin: the
+- **Permissions** (`permissions.js`), by Probe2, never an op, with no permissions plugin or no Vault: the
   plugin falls back to its simple mode at start, so Probe2 may use a gate, `/wormhole list` and the
   compass, but not preview, configure or remove (and `go` to a gate is no gate to it). It refuses
   a run with LuckPerms installed: the Permissions Desk covers that.
@@ -612,7 +616,7 @@ Every setting, and where it is changed and its effect seen:
 
 Not changed by any case, and why:
 
-- `permissions-support-disable`: off by default, and with no permissions plugin the simple mode
+- `permissions-support-disable`: off by default, and with no permissions plugin or no Vault the simple mode
   comes from the fallback anyway. #550 retired `help-support-disable` (nothing read it), and made
   `ring-default-material` (removed in 1.11.0, its smooth stone slab now fixed) the slab a ring is
   drawn in when its own is one the server lacks, which no case stages.
@@ -801,7 +805,7 @@ What the companion stage found (the combined jar, #240 + #236 + #491 on main, 1.
 - The #236 checklist's gate rename has nothing to run: `gate edit` has no `name` field, so a gate
   cannot be renamed (`map rename`, a known failure). Rings (`ring edit name`) and mirrors (made
   again at the same banner) do relabel.
-- With a permissions plugin, a player holds only the nodes given, and a mirror is used under a
+- With a permissions plugin and Vault, a player holds only the nodes given, and a mirror is used under a
   gate's use check (`wormhole.use.sign` or `wormhole.use.dialer`, both `default: false`; the
   `wormhole.use.<shape>` part of it never refuses a mirror, which has no shape), where
   rings and beams have nodes that default to true: Probe2 with no group could not choose a mirror
@@ -1256,11 +1260,12 @@ grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code' | cut -d/ -
 The supported range is 1.20 through 26.3. The floor is `Material.CALIBRATED_SCULK_SENSOR`, which
 gate detection switches on and 1.19.4 lacks; the top is the newest stable release.
 
-The plugin compiles against the **oldest** API it supports, not the newest. A plugin built
+The plugin compiles against an **old** API, 1.20.4, not the newest. A plugin built
 against an old API runs on newer servers; one built against a new API can call something an
 older server has never heard of, and nothing catches that until a player reports a crash.
-Compiling against the floor makes the compiler enforce it. That says nothing about a newer server
-*removing* something, so CI also builds and tests against every newer supported version.
+Compiling against an old API makes the compiler hold that line, and CI builds the 1.20 floor itself.
+That says nothing about a newer server *removing* something, so CI also builds and tests against a
+chosen set of newer supported versions.
 
 | Where | Example | What it means |
 |---|---|---|
@@ -1277,10 +1282,25 @@ out the listener that cannot compile; the shipped jar uses neither.
 
 To add a new Minecraft version:
 
-1. Build against it: `mvn verify -Dspigot.api.version=<version>-R0.1-SNAPSHOT`.
-2. If it passes, add it to the `server-api` matrix in `.github/workflows/ci.yml` and to the table
-   in [guide/SERVER.md](guide/SERVER.md#compatibility).
-3. Leave `spigot.api.version` and `api-version` alone unless you are dropping old versions.
+1. Build against it: `mvn verify -Pmodern-api -Dspigot.api.version=<api>`, where `<api>` is the
+   Spigot API version, usually `<version>-R0.1-SNAPSHOT` (1.21.11 is `R0.2`). Without `-Pmodern-api`
+   any version from 1.20.6 fails on `LegacyGateDismountListener`, which is a profile matter and not
+   a removed API; 1.20 and 1.20.1 take `-Plegacy-api` and 1.20.4 neither.
+2. If it passes, add it to the `server-api` matrix in `.github/workflows/ci.yml`, as an entry with
+   `minecraft:`, `api:` and `profile:`. Keep that matrix in ascending order: `release.yml` takes the
+   release title's range from its first and last `- minecraft:` lines.
+3. Add it to the other version matrices in the same file: `paper-api` (the same versions as
+   `server-api`, with `paper:`, `api:` a Paper build string such as `26.3.build.19-alpha`,
+   `profile:` and `java:`) and `boot-test` (`version:` and `java:`). Neither uses `minecraft:`, or
+   `release.yml` would read it as a second range. `boot-integrations`,
+   `boot-migration` and `boot-travel` in `ci.yml`, and the matrix in `integrations-latest.yml`, list
+   chosen versions only; add the new one if it should be covered there.
+4. Update every place that carries the range, the version list or the count of versions: the
+   README (badge, tagline and Compatibility table, which says how many versions), `docs/index.md`,
+   `docs/start.md`, `docs/API.md`, `docs/BEAMS.md`, the top of this section, the table in
+   [guide/SERVER.md](guide/SERVER.md#compatibility), `.github/copilot-instructions.md` and the
+   listings under `docs/listings/`.
+5. Leave `spigot.api.version` and `api-version` alone unless you are dropping old versions.
 
 If it fails, the compiler names what was removed. Both boundaries found so far were a single
 symbol, and one was fixable in a line.
@@ -1301,8 +1321,8 @@ symbol, and one was fixable in a line.
   keeps that state in a field, or in a one-element array the lambda captures
   (`WormholeXTremeVehicleListener`'s rider re-attach holds itself in a `Runnable[] taskHolder` so
   it can schedule its own next try).
-- Catch `RuntimeException`, not `Throwable`, except where cross-version compatibility needs a
-  `NoSuchMethodError` caught on purpose, and say so in a comment.
+- Catch `RuntimeException`, not `Throwable`. Where cross-version compatibility needs a missing
+  method or class caught, catch `Exception | LinkageError` together, and say why in a comment.
 - Log through `WormholeXTreme.getThisPlugin().prettyLog(Level, String)`. The three-argument
   overload adds the plugin version to the tag and is for startup and shutdown lines only; never
   pass it `false`.
@@ -1384,8 +1404,9 @@ client codes seen are remembered up to a bound. Sign text is not localised.
 - **Plugin-site listing copy lives in [`docs/listings/`](https://github.com/khanjal/Wormhole-X-Treme/tree/main/docs/listings).** Its facts are in
   `listings/shared.md` and each site's fields and markup in its own file. It prints no count a
   release can change — not settings, test classes, CI legs, shapes or mirror looks — because such
-  a figure goes stale where nobody is looking. Only the version, the supported range and the Java
-  versions are numbers there, and a live badge carries the rest.
+  a figure goes stale where nobody is looking. Only the version, the supported range, the Java
+  versions and numbers that describe behaviour (slab counts, timings) are printed there, and a
+  live badge carries the rest.
 
 ## Submitting changes
 

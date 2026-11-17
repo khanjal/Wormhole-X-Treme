@@ -174,8 +174,9 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   `pegasus` dials as an Atlantis gate does, `universe` as Destiny's, `chase` and `overshoot` add two
   more, and `none`, the default, turns it off. A gate, or a whole material group, can pick its own.
 - **An eighth chevron** locks when the destination is in another world, after the top one.
-- **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal, the
-  last lying flat to be dropped into rather than walked through. Shapes are plain text files:
+- **The gate shapes that ship** — Standard, Large, Grand, Massive, Minimal and Horizontal (some also
+  ship as sign-dial variants), the last lying flat to be dropped into rather than walked
+  through. Shapes are plain text files:
   copy one, edit the grid, and `/wormhole gate shapes reload` tries it without a restart. Shipped
   files update themselves when you have not edited them, and never overwrite one you have.
 - **Material groups.** A shape is geometry; a group is what it is built from — frame, portal,
@@ -210,7 +211,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 
 - **Built from slabs, in two patterns.** Lay a circle — 16 slabs across 7, or 12 across 6 — stand
   inside it and run `/wormhole ring create`. Do it again elsewhere in the same world and the two
-  are paired. A refusal says exactly what is wrong, and `ring cancel` gives your slabs back.
+  are paired. A refusal says exactly what is wrong, and `ring cancel` forgets a half-built pair, leaving the circle where you laid it.
 - **The material is whatever you laid.** Deepslate slabs rise as deepslate. Every end can then be
   re-dressed on its own: `ring` (any slab, including one a data pack adds), `light` for the pad
   while it works, `flash` for the light running through the stack, and `built` for what `reset`
@@ -291,17 +292,18 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   donkeys, llamas and striders with their riders, arrows and tridents and ender pearls in
   mid-flight, and mobs, items and XP orbs that wander into an open gate. Tamed wolves, cats and
   parrots follow their owner through any of the four.
-- **Configured in game.** `/wormhole config <setting> <value>` changes any setting on
-  the spot — no reload, no restart. `/wormhole config sign` searches them.
+- **Configured in game.** `/wormhole config <setting> <value>` changes nearly any
+  setting on the spot, with no reload; a few, such as turning `worldguard-enabled` on, wait for a
+  restart. `/wormhole config sign` searches them.
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and
   `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate,
   lighter on a small one.
-- **Works with or without a permissions plugin.** Vault and LuckPerms if you have them, a built-in
+- **Works with or without a permissions plugin.** Vault and a permissions plugin such as LuckPerms, both needed for permission nodes, a built-in
   fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
-- **PlaceholderAPI**, if you want it: gates total, gates open, gates owned and the nearest gate, for
-  a scoreboard or tab list.
+- **PlaceholderAPI**, if you want it: gates total, gates open, gates owned, the nearest gate, and a player's own trip, gate-built, ring and beam counts,
+  for a scoreboard or tab list.
 - **CoreProtect**, if you want it: gate and ring construction is logged so an admin can roll it
   back. Off until `coreprotect-enabled` is set.
 - **WorldGuard**, if you want it: `wormhole-build` and `wormhole-use` region flags refuse building
@@ -314,8 +316,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`,
   `squaremap-enabled` or `pl3xmap-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
-  server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled.
-  `metrics-enabled: false` turns it off.
+  server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled, plus the usual bStats server details (player count,
+  online mode, Java version, operating system). `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to
   operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never
   downloads anything. `update-check: false` turns it off.
@@ -374,10 +376,10 @@ Badges: SonarCloud `coverage`, `sqale_rating`, `reliability_rating`, `security_r
 - **Every push builds and tests the whole matrix.** Java 17 and Java 25; every supported
   Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A
   Minecraft version is only claimed as supported if it is in that matrix.
-- **Compiled against the oldest supported API on purpose.** A plugin built against an old API runs
+- **Compiled against an old API (1.20.4) on purpose.** A plugin built against an old API runs
   on newer servers; one built against a new API can call something an old server has never heard
-  of, and nothing catches that until a player reports a crash. Building against the floor makes
-  the compiler enforce the floor — and the newest-version legs of the matrix catch the opposite
+  of, and nothing catches that until a player reports a crash. Building against an old API makes
+  the compiler hold that line, CI also builds the 1.20 floor itself — and the newest-version legs of the matrix catch the opposite
   case, an API that has been removed.
 - **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a
   pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring
