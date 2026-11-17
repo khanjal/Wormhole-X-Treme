@@ -128,7 +128,7 @@ public final class PortalViews
     {
     }
 
-    /** Forgets every link and trip, for a reload, a stop or a test. */
+    /** Forgets every link and trip, as the plugin stops, or for a test. */
     public static void clear()
     {
         LINKS.clear();
@@ -232,6 +232,11 @@ public final class PortalViews
         return link.to().alongX() ? (ahead.x() == 0) : (ahead.z() == 0);
     }
 
+    /** Where {@link #near} looks, nearest first: the block itself, the one above, then those beside either. */
+    private static final int[][] NEAR = { { 0, 0, 0 }, { 0, 1, 0 }, { -1, 0, 0 }, { 1, 0, 0 }, { 0, 0, -1 },
+        { 0, 0, 1 }, { -1, 1, 0 }, { 1, 1, 0 }, { 0, 1, -1 }, { 0, 1, 1 }, { -1, 0, -1 }, { -1, 0, 1 }, { 1, 0, -1 },
+        { 1, 0, 1 }, { -1, 1, -1 }, { -1, 1, 1 }, { 1, 1, -1 }, { 1, 1, 1 } };
+
     /**
      * The portal a place is in or beside: its own block, the one above, or one next to either.
      *
@@ -243,18 +248,13 @@ public final class PortalViews
         final int x = (int) Math.floor(at.getX());
         final int y = (int) Math.floor(at.getY());
         final int z = (int) Math.floor(at.getZ());
-        for (final int dy : new int[] { 0, 1 })
+        // Their own block first, then the one above, so a portal beside theirs is never taken for it.
+        for (final int[] step : NEAR)
         {
-            for (int dx = -1; dx <= 1; dx++)
+            final NetherPortal portal = NetherPortal.at(world.getName(), x + step[0], y + step[1], z + step[2], cells);
+            if (portal != null)
             {
-                for (int dz = -1; dz <= 1; dz++)
-                {
-                    final NetherPortal portal = NetherPortal.at(world.getName(), x + dx, y + dy, z + dz, cells);
-                    if (portal != null)
-                    {
-                        return portal;
-                    }
-                }
+                return portal;
             }
         }
         return null;
@@ -345,7 +345,8 @@ public final class PortalViews
         {
             RECENT.pollFirst();
         }
-        for (final Link link : RECENT)
+        // A far world taken off the list since the trip is captured no more.
+        for (final Link link : RECENT.stream().filter(link -> allowed(link.to().world())).toList())
         {
             for (final BlockFace face : link.from().faces())
             {
@@ -371,7 +372,8 @@ public final class PortalViews
         Choice best = null;
         for (final Link link : LINKS.values())
         {
-            if (link.from().world().equals(world.getName()))
+            // The far world too: one taken off the list by a reload stops being drawn on the next sweep.
+            if (link.from().world().equals(world.getName()) && allowed(link.to().world()))
             {
                 best = better(link, eye, reach, best);
             }

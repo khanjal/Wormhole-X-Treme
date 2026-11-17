@@ -432,4 +432,42 @@ class PortalViewsTest
         assertTrue(offered.isEmpty());
         assertEquals(1, PortalViews.links().size(), "nor is the portal judged broken by reading the wrong world");
     }
+
+    /**
+     * A far world taken off the list after the trip -- a config reload -- is drawn and captured no more,
+     * though the portal it leaves from is still listed.
+     */
+    @Test
+    void aFarWorldTakenOffTheListIsNoLongerDrawn()
+    {
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
+        travel(100.5, 70.0, 5.5, 180.0f);
+        PortalViews.offer(List.of(lookingFrom(0.5, 15.0)), 3_000L);
+        assertEquals(1, offered.size(), "drawn while both are listed");
+        offered.clear();
+        asked.clear();
+
+        ConfigTestSupport.set(ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, "world");
+        PortalViews.offer(List.of(lookingFrom(0.5, 15.0)), 4_000L);
+
+        assertTrue(offered.isEmpty());
+        assertTrue(asked.isEmpty(), "nor its far side captured on arrival");
+    }
+
+    /**
+     * Stepping into a portal with another portal beside it, the trip is from the portal they stand in.
+     *
+     * <p>Looked for in a fixed order from a corner, the neighbour was found first and its link learnt.
+     */
+    @Test
+    void aTripIsFromThePortalStoodInNotOneBesideIt()
+    {
+        light("world", Axis.Z, 8, 64, -1, 2, 3);
+        light("World_Nether", Axis.X, 100, 70, 5, 2, 3);
+
+        travel(100.5, 70.0, 5.5, 180.0f);
+
+        assertNotNull(PortalViews.links().get("world 0,64,10 x"), "learnt for the portal stood in");
+        assertEquals(1, PortalViews.links().size());
+    }
 }

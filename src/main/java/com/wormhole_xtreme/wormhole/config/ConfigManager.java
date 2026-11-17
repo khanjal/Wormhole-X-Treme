@@ -991,9 +991,25 @@ public class ConfigManager
             return Set.of();
         }
         final String raw = String.valueOf(value);
-        return Arrays.stream(raw.split(",")).map(name -> name.trim().toLowerCase(Locale.ROOT))
+        // Asked for each player every sweep, so split once per value rather than each time.
+        final ParsedWorlds parsed = netherPortalViewWorlds;
+        if ((parsed != null) && parsed.raw().equals(raw))
+        {
+            return parsed.worlds();
+        }
+        final Set<String> worlds = Arrays.stream(raw.split(",")).map(name -> name.trim().toLowerCase(Locale.ROOT))
             .filter(name -> !name.isEmpty()).collect(Collectors.toUnmodifiableSet());
+        netherPortalViewWorlds = new ParsedWorlds(raw, worlds);
+        return worlds;
     }
+
+    /** {@code nether-portal-view-worlds} as last read, and the names it split into. */
+    private record ParsedWorlds(String raw, Set<String> worlds)
+    {
+    }
+
+    /** The last {@code nether-portal-view-worlds} split, or null before the first. */
+    private static volatile ParsedWorlds netherPortalViewWorlds;
 
     /** See {@link SignSettings#isSignDialMatchMaterial()}. */
     public static boolean isSignDialMatchMaterial()
