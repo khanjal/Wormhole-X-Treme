@@ -26,7 +26,8 @@ way round: its rings fall to the floor, so you stand inside them.
 5. Walk into one. You arrive in the other.
 
 A refusal says what is wrong, such as a slab out of place or too little headroom.
-`/wormhole ring cancel` gives the slabs back from a half-built pair.
+`/wormhole ring cancel` forgets a half-built pair; the circle you laid stays, so pair it later or
+pick the slabs up yourself.
 
 ## Good to know
 
@@ -38,7 +39,7 @@ A refusal says what is wrong, such as a slab out of place or too little headroom
 - **A pair rests for thirty seconds** after carrying someone.
 - **Name an end** with `/wormhole ring edit name Tower`, standing in it. The other end then tells
   travellers where they are heading.
-- **Rings stay in one world.** They reach 256 blocks across, and the full height of the world.
+- **Rings stay in one world.** They reach 256 blocks across, and 384 in height, the Overworld's height.
 - **Nothing is built.** The rings and lights are drawn for nearby players, so they do not light
   up a room.
 

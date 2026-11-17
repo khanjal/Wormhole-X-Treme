@@ -349,13 +349,18 @@ shape slated for removal does not belong in a listing that outlives it.
 - **Java 17** or later for the plugin itself. Minecraft 1.20.5+ needs the server on Java 21, and
   26.1+ on Java 25 — that is the server's requirement, not this plugin's.
 
-> What CI proves is that the plugin compiles and its tests pass against each version. It is not a
-> claim that every gate has been played on every one of them. Bug reports are welcome and get
+> CI builds and tests each version and boots the built jar on a real server: Paper at every
+> version above, but Spigot 26.3, Purpur 26.3 and CraftBukkit 26.2 only, and on Paper 1.20.4, 1.21.11, 26.2 and 26.3,
+> beside whichever of LuckPerms, Vault, PlaceholderAPI, CoreProtect and EssentialsX have a build
+> for that version (all five on 1.20.4 and 1.21.11). A bot
+> also plays it on a real Paper server at 1.20.4, 1.21.11 and 26.1.2 as a local check before
+> releases (not part of CI). The versions in between are expected to work but are not played one
+> by one, and what a player's client draws is checked by hand. Bug reports are welcome and get
 > answered.
 
-Keep that last paragraph. `docs/guide/SERVER.md` says plainly that none of this has been
-runtime-verified on a live server, and the sentence costs nothing while protecting the listing the
-first time someone's 26.3 server does something unexpected.
+Keep that last paragraph. `docs/guide/SERVER.md` says plainly which versions are played and which
+are only built and booted, and the paragraph costs nothing while protecting the listing the first
+time someone's 26.3 server does something unexpected.
 
 ## Under the hood
 

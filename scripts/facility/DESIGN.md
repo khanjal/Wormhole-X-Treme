@@ -35,7 +35,7 @@ does not have; see the note under the tables).
 | G4 | Building by hand: `gate build <shape> [group]`, lay the frame, click DHD, `gate complete <name> [idc=] [net=]` | `Build`, `Complete`, `StargateHelper` | part: build pad only, always via preview place |
 | G5 | Previews: `activate`, `iris`, `material <group>` / `-frame|-chevron|-light|-portal|-iris|-sign`, `chevrons`, `dhd`, `needs`, `guide`, `layer`, `share`, `place`, `clear`; `gate-preview-minutes`, `gate-preview-max-blocks`; preview over a standing gate fills its gaps | `model/preview/*`, `PreviewPlacer` | part: only `place` |
 | G6 | Console build: `gate build <shape> <name> <world> x y z <facing> [net=] [idc=]`, `~` coordinates, from command blocks | `GateConsoleCommands` | part: used as a fixture, never as the thing under test |
-| G7 | Dialling: DHD then `/dial <gate> [idc]`; dial sign right-click forward / left-click back; redstone on `[RD]`; console `gate dial <from> <to> [idc]`; `gate force` past refusals | `StargateDialManager`, `WormholeXTremePlayerListener`, `Dial`, `Force` | part: no left-click, `force` only as a reset tool |
+| G7 | Dialling: DHD then `/dial <gate> [idc]`; dial sign right-click forward / left-click back; redstone on `[RD]`; console `gate dial <from> <to> [idc]`; `gate force` closes a gate | `StargateDialManager`, `WormholeXTremePlayerListener`, `Dial`, `Force` | part: no left-click, `force` only as a reset tool |
 | G8 | Dial-spin patterns: top, chevron, lap, fill, pegasus, chase, universe, overshoot, none; per gate `edit spin`, per group `dial-spin`, `gate-dial-spin` | `DialSpin`, `DialSpinPattern`, `GateEditCommand` | part: only whatever the group implies |
 | G9 | Refusals: iris shut (no code / wrong code), target already active, another gate already dialled at target, `same-world-only`, `wormhole.network.use.<net>`, use cooldown | `StargateDialManager`, `GateInteractionHandler`, `StargateRestrictions` | part: iris only |
 | G10 | Wormhole is one way: entering the destination ring pushes a player out | `GateWalkThrough` | no |
@@ -277,7 +277,7 @@ water lane and a run-up lane laid from the Motor Pool door to the stand.
 | group | Standard, Atlantis, Universe, MilkyWay, Diamond (autodiscovered from `Lab.shape`, tests G3) |
 | chevrons | frame (classic), chevron block (REDSTONE_LAMP / COPPER_BULB on 1.21+) |
 | how built | preview place, by hand (the bot lays every block from `preview needs`), console form |
-| dial | DHD + /dial, sign right-click, sign left-click, redstone lever, console `gate dial`, `gate force` |
+| dial | DHD + /dial, sign right-click, sign left-click, redstone lever, console `gate dial` (`gate force` is not a way to dial: it closes a gate and opens its iris, and the chambers use it to reset) |
 | spin | default, and each of the nine patterns via `edit spin` |
 | destination | Relay, Range (nether), Annex (End), Relay-busy (Relay already dialled elsewhere: expect refusal), self |
 | traveller | walk, minecart, boat, horse, camel, pig, donkey, llama, strider, wolf, cat, parrot, sitting wolf (must stay), projectile (below), item dropped by the bot (Q at the opening), item thrown by a dispenser, item stack from a hopper-minecart spill, XP, armour stand, item frame (must not), zombie |
@@ -485,7 +485,7 @@ The console, when you say `!` or click **Console** on the welcome line:
  ── GATE DYNAMICS · G1 Test Stand ──────────────────── idle · last: PASS 14:02
    shape     [Standard] Large Grand Massive Minimal Horizontal Standard+sign …
    group     [Standard] Atlantis Universe MilkyWay Diamond
-   dial      [DHD] sign-right sign-left redstone console force
+   dial      [DHD] sign-right sign-left redstone console
    traveller [walk] minecart boat horse … wolf cat parrot arrow pearl zombie …
    far iris  [open] shut+code shut-no-code shut+arrow
    ▶ Run   ◇ Stage   ↺ Reset   ⌖ Watch   ⟳ Again   ✎ Matrix
