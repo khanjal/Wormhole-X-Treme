@@ -6,7 +6,7 @@ Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that implements inter-dimension
 One jar supports **Minecraft 1.20 through 26.3**. It compiles against 1.20.4, an old API that stops us calling anything newer by accident (the one API carrying both `EntityDismountEvent` packages; CI builds 1.20 and 1.20.1 with `-Plegacy-api`), and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
 
 ## Build System
-- **Java 17**, Maven. `maven-shade-plugin` is configured but the jar bundles no third-party dependencies: SnakeYAML is `provided` by the server, and there is no database driver, since storage is plain YAML files
+- **Java 17**, Maven. `maven-shade-plugin` bundles one third-party library, bStats, relocated into the plugin's own package. SnakeYAML is `provided` by the server, and there is no database driver, since storage is plain YAML files
 - Build command: `mvn -o -q package -DskipTests` → produces `target/WormholeXTreme-<version>.jar`, versioned from the pom
 - Test command: `mvn -o test` — JUnit 5 + Mockito, no live server needed
 - Deploy by copying the JAR to `plugins/` on the server
@@ -64,14 +64,13 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
   anywhere, so guarding an API call is right; catching `Throwable` to do it is not. It swallows
   `Error` — `OutOfMemoryError`, `StackOverflowError`, a `NoClassDefFoundError` from a genuinely
   missing class — and hides real bugs behind a silently degraded feature. "Exception handling no
-  longer swallows `Error`" is a recorded decision (see the 1.1.0 changelog); `catch (Throwable)` is not
-  the target style.
+  longer swallows `Error`" is a recorded decision (see the 1.1.0 changelog); `catch (Throwable)` is not the target style.
   Where a missing method or class must be caught across versions, catch `Exception | LinkageError`
   and say why in a comment.
 
   The exception is deliberate cross-version compatibility: `plugin/EconomySupport` and
-  `plugin/PermissionsSupport` catch `NoSuchMethodError` on purpose so the plugin stays standing
-  across API versions. Where that is the reason, say so in a comment.
+  `plugin/PermissionsSupport` catch `Exception | LinkageError` on purpose so the plugin stays
+  standing across API versions. Where that is the reason, say so in a comment.
 - **`instanceof` before cast** — always guard casts with `instanceof`.
 
 ### Logging
@@ -83,7 +82,7 @@ WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "verbose/debug message");
 ```
 `Level.FINE` is for verbose diagnostics (only visible when debug logging is enabled). `Level.INFO` for normal operational events. `Level.WARNING` for unexpected conditions.
 
-There is a three-argument overload, `prettyLog(Level, boolean, String)`, whose boolean puts the plugin version in the tag. It is for lifecycle lines only — the nine callers are all in `WormholeXTreme` itself. **Do not call it with `false`**; that is the two-argument form written the long way, and `PrettyLogTest` fails on it.
+There is a three-argument overload, `prettyLog(Level, boolean, String)`, whose boolean puts the plugin version in the tag. It is for lifecycle lines only — its callers are all in `WormholeXTreme` itself. **Do not call it with `false`**; that is the two-argument form written the long way, and `PrettyLogTest` fails on it.
 
 ### Bukkit Scheduler
 ```java
@@ -108,7 +107,7 @@ Anything that touches Bukkit entities, blocks or worlds runs on the main server 
 | `WormholeXTremeVehicleListener` | `VehicleMoveEvent` → unmanned or driver-controlled vehicle gate entry |
 | `WormholeXTremeBlockListener` | Block break/place protection around gate frames |
 | `StargateManager` | Gate registry, spatial lookup |
-| `StargateRestrictions` | Cooldown, recent-arrival, permission checks |
+| `StargateRestrictions` | Use cooldowns and recent arrivals |
 | `ConfigManager` | Plugin config (timeout, gate shapes, etc.) |
 | `MaterialUtils` | Shared material classification helpers (isIce, etc.) |
 

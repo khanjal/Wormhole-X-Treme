@@ -25,10 +25,10 @@ commands:
 
 permissions:
   wormhole.use.sign:
-    description: Allow using dial signs.
+    description: Allow dialling and travelling through a gate with a dial sign.
     default: false
   wormhole.use.dialer:
-    description: Allow dialling a gate.
+    description: Allow dialling and travelling through a gate with a DHD.
     default: false
   wormhole.use.compass:
     description: Allow /wormhole compass.
@@ -37,10 +37,10 @@ permissions:
     description: Does nothing extra; a gate's owner may always take it apart by breaking it.
     default: false
   wormhole.remove.all:
-    description: Allow breaking any gate's blocks, which takes it apart. The remove commands need wormhole.config.
+    description: Allow breaking any gate's blocks, which takes it apart, and building in its opening. The remove commands need wormhole.config.
     default: op
   wormhole.build:
-    description: Allow finishing a gate by hand at the DHD, of every shape. gate build needs wormhole.build.preview; the other gate commands need wormhole.config.
+    description: Allow finishing a gate by hand at the DHD, of every shape. complete also needs wormhole.config; gate build needs wormhole.build.preview.
     default: op
   wormhole.build.preview:
     description: Allow showing a gate shape full size in front of you with /wormhole gate build, seen by you alone.
@@ -58,7 +58,7 @@ permissions:
     description: Allow owning more gates than max-gates-per-player or wormhole.gates.max.<n> allows.
     default: op
   wormhole.config:
-    description: Allow changing settings and managing any gate with the config, gate and mirror commands.
+    description: Allow changing settings, managing any gate and the mirror commands; also lists gates and breaks any gate. An owner may edit their gate's idc without it.
     default: op
   wormhole.update.notify:
     description: Be told when a newer Wormhole X-Treme release is available, on joining.
@@ -88,7 +88,7 @@ permissions:
     description: Allow beaming yourself or another player straight to a player or raw coordinates, including from console and command blocks.
     default: op
   wormhole.list:
-    description: Allow /wormhole list, including mine, owner and top.
+    description: Allow /wormhole list, including mine, owner and top. wormhole.config also allows it.
     default: false
   wormhole.list.mine:
     description: Allow listing your own gates.

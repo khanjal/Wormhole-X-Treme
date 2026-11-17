@@ -50,7 +50,7 @@ class StargateDialManager
      * <pre>
      *   Line 0  -GateName-          (always the gate's own name)
      *   Line 1  PreviousGate        (gate before the current selection)
-     *   Line 2  >CurrentGate<       (selected destination)
+     *   Line 2  »CurrentGate«       (selected destination)
      *   Line 3  NextGate            (gate after the current selection)
      * </pre>
      *
