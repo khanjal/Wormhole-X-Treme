@@ -191,7 +191,7 @@ first, its start's or its own without one, read from that room's capture the way
 room. It is stamped again when you change the start and when that room is captured again, never
 on a right-click, so the banner says where the mirror goes rather than wherever somebody last
 clicked it. Until the room has a capture the banner is left as it is, and a banner far off in an
-unloaded chunk takes its look when that chunk next loads. It is off by default, since
+unloaded chunk takes its look when that chunk next loads, if that is before a restart. It is off by default, since
 a look you chose by hand should stay; `-follow off` keeps whatever the banner shows then, and a
 `-stamp` on a following mirror lasts until its next re-stamp. `mirror list` marks the mirrors that
 follow.

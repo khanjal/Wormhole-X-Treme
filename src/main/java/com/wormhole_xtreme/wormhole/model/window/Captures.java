@@ -1123,7 +1123,7 @@ public final class Captures
         {
             MirrorFollow.captured(key, taken);
         }
-        catch (final RuntimeException failed)
+        catch (final Exception | LinkageError failed)
         {
             final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
             if (plugin != null)

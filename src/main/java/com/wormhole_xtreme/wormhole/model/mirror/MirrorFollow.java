@@ -261,8 +261,10 @@ public final class MirrorFollow
             return;
         }
         final World world = Bukkit.getWorld(mirror.banner().worldName());
-        if ((world != null) && loaded(world, mirror) && stampEach(world, mirror, mirror.look()))
+        if ((world != null) && loaded(world, mirror))
         {
+            // Tried once while loaded, then dropped: a block that is no banner now never will be.
+            stampEach(world, mirror, mirror.look());
             UNLOADED.remove(lower(name));
         }
     }

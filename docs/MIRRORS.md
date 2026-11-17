@@ -160,7 +160,7 @@ only a banner that asked for it, since every capture is read again after a resta
 capture of a room, taken when somebody first walks up to its mirror, is a take like any other and
 stamps every banner following that room. Nor is the banner's own chunk loaded for it: a banner
 whose chunk is not loaded has its look written down and put on, both banners of a pair, the tick
-after that chunk next loads.
+after that chunk next loads, until a restart: the wait is kept in memory only.
 
 ### How a capture is kept
 
