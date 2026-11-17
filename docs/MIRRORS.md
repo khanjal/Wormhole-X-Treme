@@ -1055,8 +1055,13 @@ that one viewer (`HiddenEntities`).
   shown. Inert as a mob's stand-in, tagged, never saved and in the one registry, so every cleanup
   below covers them: no gravity, silent, invulnerable, a cart's top speed nothing and its velocity
   multipliers zero. Bukkit has no `setCollidable` for anything but a living entity, so a vehicle
-  stand-in keeps its solid box, and as a real entity at its spot it can trigger a detector or
-  activator rail or a pressure plate there, which the window's wall makes rare; the listener refuses getting in or out (whichever side is a
+  stand-in keeps its solid box, and as a real entity at its spot a cart can power a detector rail
+  there (no event to refuse; the window's wall makes it rare), though plates and tripwires are
+  refused as for any stand-in. Not yet seen on a server: whether the 1.21.2 minecart behaviour
+  (the `minecart_improvements` experiment, if a server turns it on) honours a top speed of nothing,
+  as its speed may come from a game rule; the follow task puts a cart that rolls back within two
+  ticks. A vehicle a player rides is copied empty, so a viewer between facing gates or in a
+  reflection may see their own boat riderless. The listener refuses getting in or out (whichever side is a
   stand-in, since a real boat bumping a mob's stand-in would pick it up), vehicle damage and
   breaking (at the lowest priority and again at the highest), and vehicle bumps both ways. A cart
   or boat that moves anyway, a boat lifted by water behind the wall, is put back by the follow
