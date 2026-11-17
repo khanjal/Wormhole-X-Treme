@@ -106,6 +106,12 @@ class MirrorFollowTest
     /** A capture round a room, filled with one block up to and including a height. */
     private static Capture filled(final int roomX, final Material material, final int upTo)
     {
+        return filling(roomX, material, upTo).build();
+    }
+
+    /** The same, not yet built, so a test can prune it as a real capture is. */
+    private static Capture.Builder filling(final int roomX, final Material material, final int upTo)
+    {
         final BlockData air = mock(BlockData.class);
         when(air.getAsString()).thenReturn("minecraft:air");
         when(air.getMaterial()).thenReturn(Material.AIR);
@@ -122,7 +128,7 @@ class MirrorFollowTest
                 }
             }
         }
-        return builder.build();
+        return builder;
     }
 
     private void store(final QuantumMirror room, final Capture capture)
@@ -171,6 +177,24 @@ class MirrorFollowTest
 
         assertEquals(DyeColor.BROWN, view.dominant());
         assertTrue(view.enclosed());
+    }
+
+    /**
+     * Rock nobody at the opening could see still counts as solid.
+     *
+     * <p>A real capture drops what is buried, keeping no colour for it; counted as air, a mirror
+     * cut into a hillside would read as open sky.
+     */
+    @Test
+    void blocksTheCaptureDroppedAsUnseenStillCountAsSolid()
+    {
+        final QuantumMirror room = mirror("vault", 40, null, false);
+        final Capture.Builder builder = filling(40, Material.STONE, 73);
+        builder.prune();
+        final Capture capture = builder.build();
+        assertTrue(capture.isBuried(40, 64, 11), "the fixture's middle is buried, or this proves nothing");
+
+        assertTrue(MirrorView.fromCapture(capture, room.destination(), "").enclosed());
     }
 
     /** With a start, the banner reads the start's room, not its own. */
