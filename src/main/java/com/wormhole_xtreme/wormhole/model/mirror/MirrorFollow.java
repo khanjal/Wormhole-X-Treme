@@ -325,8 +325,9 @@ public final class MirrorFollow
         WormholeXTreme.getScheduler().runTask(WormholeXTreme.getThisPlugin(), step);
     }
 
+    /** A mirror's name as it is kept here; the registry allows for a null name, so this does too. */
     private static String lower(final String name)
     {
-        return name.toLowerCase(Locale.ROOT);
+        return (name == null) ? "" : name.toLowerCase(Locale.ROOT);
     }
 }
