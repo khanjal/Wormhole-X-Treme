@@ -101,7 +101,8 @@ public final class PingMarkers
     }
 
     /**
-     * Puts a ping up for a player, replacing any they already have, and starts their cooldown.
+     * Puts a ping up for a player and starts their cooldown, whether or not the marker stands; one
+     * they already have is replaced only once the new one stands.
      *
      * @param owner
      *            who pinged
@@ -116,10 +117,11 @@ public final class PingMarkers
             return Outcome.UNSUPPORTED;
         }
         final UUID id = owner.getUniqueId();
-        remove(id);
+        // Every attempt counts, so a server that keeps failing cannot be made to spawn every tick.
+        startCooldown(id);
         final Chunk chunk = at.getChunk();
         ChunkTickets.hold(chunk);
-        final ArmorStand stand;
+        ArmorStand stand = null;
         try
         {
             stand = spawner.spawn(at.clone());
@@ -128,7 +130,14 @@ public final class PingMarkers
         catch (final RuntimeException e)
         {
             PluginLog.log(Level.WARNING, "Could not place a locator bar ping", e);
-            ChunkTickets.release(chunk);
+            if (stand == null)
+            {
+                ChunkTickets.release(chunk);
+            }
+            else
+            {
+                discard(new Marker(stand, chunk, -1));
+            }
             return Outcome.FAILED;
         }
         if (!transmits(stand))
@@ -145,12 +154,18 @@ public final class PingMarkers
             discard(new Marker(stand, chunk, -1));
             return Outcome.FAILED;
         }
+        remove(id);
         LIVE.put(id, new Marker(stand, chunk, task));
+        return Outcome.PLACED;
+    }
+
+    /** Starts a player's cooldown now, forgetting every cooldown already over. */
+    private static void startCooldown(final UUID owner)
+    {
         final long now = clock.getAsLong();
         final long cooldown = ConfigManager.getPingCooldownSeconds() * 1000L;
         LAST_PING.values().removeIf(last -> (now - last.longValue()) >= cooldown);
-        LAST_PING.put(id, Long.valueOf(now));
-        return Outcome.PLACED;
+        LAST_PING.put(owner, Long.valueOf(now));
     }
 
     /**

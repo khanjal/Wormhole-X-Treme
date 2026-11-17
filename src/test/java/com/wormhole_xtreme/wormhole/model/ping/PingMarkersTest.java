@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -304,6 +305,58 @@ class PingMarkersTest
         verify(chunk).removePluginChunkTicket(plugin);
         assertEquals(0, PingMarkers.live());
         assertEquals(0, held.pending());
+    }
+
+    /** A stand that throws while it is being set up is removed again, not left unregistered with no expiry. */
+    @Test
+    void aMarkerThatFailsToSettleIsRemovedAgain()
+    {
+        PingMarkers.spawnWith(at ->
+        {
+            final ArmorStand stand = stand(true);
+            doThrow(new IllegalStateException("refused")).when(stand).setMarker(true);
+            return stand;
+        });
+
+        assertEquals(PingMarkers.Outcome.FAILED, PingMarkers.place(player(UUID.randomUUID()), gate()));
+
+        verify(spawned.get(0)).remove();
+        verify(chunk).removePluginChunkTicket(plugin);
+        assertEquals(0, PingMarkers.live());
+        assertEquals(0, held.pending());
+    }
+
+    /** A failed attempt still starts the cooldown, so a failing server is not asked to spawn on every try. */
+    @Test
+    void aFailedPingStillStartsTheCooldown()
+    {
+        final UUID id = UUID.randomUUID();
+        PingMarkers.spawnWith(at -> stand(false));
+
+        assertEquals(PingMarkers.Outcome.FAILED, PingMarkers.place(player(id), gate()));
+
+        assertEquals(20, PingMarkers.cooldownLeft(id), "the attempt counts, not only a ping that stood");
+    }
+
+    /** A failed attempt leaves the player's ping that is still up exactly as it was, expiry and chunk included. */
+    @Test
+    void aFailedPingLeavesThePreviousOneStanding()
+    {
+        final Player owner = player(UUID.randomUUID());
+        PingMarkers.place(owner, gate());
+        PingMarkers.spawnWith(at -> stand(false));
+
+        assertEquals(PingMarkers.Outcome.FAILED, PingMarkers.place(owner, gate()));
+
+        verify(spawned.get(0), never()).remove();
+        verify(spawned.get(1)).remove();
+        verify(chunk, never()).removePluginChunkTicket(any());
+        assertEquals(1, PingMarkers.live(), "the first ping is still up");
+        assertEquals(1, held.pending(), "with its expiry still waiting");
+
+        held.runNext();
+        verify(spawned.get(0)).remove();
+        assertEquals(0, PingMarkers.live());
     }
 
     /** The range is read back, not assumed: a server that keeps it at 0 gets no marker either. */
