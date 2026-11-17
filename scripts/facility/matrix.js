@@ -275,6 +275,9 @@ for (const [id, cells] of Object.entries(MATRIX)) {
 // The companion desks' cells (companion-matrix.js), each marked `with` or `without`.
 Object.assign(MATRIX, require('./companion-matrix').CELLS);
 
+// Far scenery (#526): only with WX_FAR_SCENERY set.
+if (require('./lib/farscenery').enabled()) Object.assign(MATRIX, require('./chambers/far-scenery').CELLS);
+
 /**
  * Whether a cell belongs in this run: one marked `with` only when every companion it names is
  * installed; one marked `without` (the paired run: the plugin must do without that companion)
