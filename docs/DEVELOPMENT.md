@@ -660,6 +660,32 @@ the cells now expect its behaviour:
 - A preview's expiry is silent: it is gone within a minute and ten seconds of
   `gate-preview-minutes 1`, with nothing said.
 
+#### Far scenery (`WX_FAR_SCENERY=1`, a research spike for #526)
+
+A throwaway desk, `far`, for judging whether far land seen through a gate reads as distance or
+as a painting. It is off unless `WX_FAR_SCENERY=1` is set: without it the campus, the chamber list
+and the self-test are unchanged. With it, a viewing room is built far west (x −410..−390, z −7..−2)
+with a 3 by 5 opening in its south wall and its own forceloaded strip (x −512..−288, z −16..160).
+South of the opening is a procedural landscape (`lib/farscenery.js`: hills, a forest, a coast on
+the left, towers at 50, 130 and 300, snowcapped mountains past 170). `scenery` picks how its far
+part is shown: `panorama 120` (default) builds the land for real to 120, then hangs one
+TextDisplay there, a 128 by 72 grid of `█` coloured by projecting the land beyond it from the
+seat; `wall 64` and `wall 96` do the same with a wall of concrete, terracotta, wool and ice, sky
+cells included (that the sky is blocks is the known weakness); `off` is the control, every block
+real to 160. `gaps` sets the panorama's background: its mean colour, or transparent. The panorama
+stops at 120 because a display is only sent within `entity-tracking-range.display` (128 by
+default) and the facility has no hook to raise it.
+
+```bash
+WX_FAR_SCENERY=1 node scripts/facility/run-facility.js 1.21.11 --selftest --cells "^far "
+WX_FAR_SCENERY=1 node scripts/facility/run-facility.js 1.21.11    # hold; Stage `far` from the console
+```
+
+Watch puts you at the seat, 1.5 blocks behind the opening's near face, facing the desk: turn round. Look at
+where the real land meets the picture, then walk up to the opening, through it, and sideways in
+the room. Both pictures are right from the seat only, so moving shows how fast they give away
+that they are flat.
+
 #### Companion plugins (`--with`)
 
 `--with <list>` installs companion plugins beside Wormhole: `viaversion`, `viabackwards`,
