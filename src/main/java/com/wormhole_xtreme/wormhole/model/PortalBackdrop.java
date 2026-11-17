@@ -14,8 +14,8 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 /**
  * Where an open gate's horizon is drawn while its iris is shut, and who it is drawn for (#734).
  *
- * <p>{@link StargateBlockSetup} and the iris layering call it; the geometry here is arithmetic
- * over the gate's facing.
+ * <p>{@link StargateBlockSetup}, {@code HorizonRipple}, {@code StargateAnimator} and
+ * {@code StargateLifecycle} call it; the geometry here is arithmetic over the gate's facing.
  */
 final class PortalBackdrop
 {
