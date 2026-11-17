@@ -33,7 +33,7 @@ Drop `WormholeXTreme-<version>.jar` from the
 and start the server. Nothing else is needed: the plugin has no runtime dependencies, and
 SnakeYAML comes from the server itself.
 
-Vault and a permission plugin such as LuckPerms are optional, but without a Vault permission provider the gate permissions fall back to simple mode. See [Permissions](#permissions) and [Economy](#economy).
+Vault and a permissions plugin such as LuckPerms are optional. To use permission nodes for gates you need both: the permissions plugin, and Vault to connect it to this plugin. Without both, the gate permissions fall back to simple mode. See [Permissions](#permissions) and [Economy](#economy).
 
 ## Compatibility
 

@@ -86,7 +86,7 @@ The full walk-through is in [Getting started](start.md).
 - Mirrors that show a room, in real blocks.
 - Most settings change in game with `/wormhole config`, with no reload.
 - Every sound is a setting, resource pack sounds included.
-- It works with or without Vault and a permissions provider such as LuckPerms (without one, gate permissions fall back to simple mode), and charges through Vault only if you want it to.
+- It works with or without Vault and a permissions plugin such as LuckPerms (without both, gate permissions fall back to simple mode), and charges through Vault only if you want it to.
 - Gates are plain YAML files, and `/wormhole gate import` brings in gates from older forks.
 
 ## Compatibility
