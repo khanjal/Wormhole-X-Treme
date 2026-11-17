@@ -45,20 +45,21 @@ destinations, then click the button to dial the one shown.
   and your tamed pets beside you.
 - **An iris shuts a gate.** Give it a code and the plugin places an iris lever; a closed iris
   turns travellers back.
-- **A dial can be refused.** It is if the far gate's iris is closed, the far gate is already
-  open, or another gate is already pointing at it. `/wormhole gate force <gate>` dials past all
-  three.
+- **A dial can be refused.** It is if the far gate's iris is closed (unless you give its
+  code), the far gate is already open, another gate is already pointing at it, or the gates are
+  on different networks.
 - **Redstone can dial a gate** that has a sign.
 - **Taking one down:** `/wormhole gate remove <gate>`, and `-destroy` takes the frame too.
 
 ## Who may do what
 
 Building a gate takes `wormhole.config` for the `gate` commands and `wormhole.build` (or
-`wormhole.build.<shape>`) for the build itself. Removing one takes `wormhole.config` and
-`wormhole.remove.own` or `wormhole.remove.all`. Operators have all of these.
+`wormhole.build.<shape>`) for the build itself. The `remove` commands take `wormhole.config`;
+`wormhole.remove.all` decides who may break another player's gate, and an owner may always break
+their own. Operators have all of these.
 `wormhole.build.preview` lets other players call up the ghost with `gate build`, for their eyes
-only. With a permissions plugin, players need `wormhole.use.dialer` to dial and
-`wormhole.use.sign` to use dial signs; without one, anyone can dial. A server can limit how many
+only. With Vault and a permissions plugin, players need `wormhole.use.dialer` to dial and
+`wormhole.use.sign` to use dial signs; without a Vault permission provider, anyone can dial. A server can limit how many
 gates a player owns and how close two gates may stand.
 
 ## Go deeper

@@ -9,6 +9,11 @@ The step order is the one the plugin works out: this page runs the same arithmet
 `IrisSweep` over the cells of the shape file. See [the iris](../guide/GATES.md#the-iris) for what
 the setting does on a server.
 
+<style>
+/* The 3D view and its legend sit side by side, which wants more than the usual page width. */
+.md-grid { max-width: 90rem; }
+</style>
+
 <div id="iris-viewer"><noscript>The 3D viewer needs JavaScript. The styles are described, and drawn as pictures, in <a href="../guide/GATES.html#how-it-arrives">the gate guide</a>.</noscript></div>
 
 <script type="importmap">

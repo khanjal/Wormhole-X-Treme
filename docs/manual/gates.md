@@ -8,6 +8,11 @@ The viewer reads the same `.shape` files the plugin loads, so what you see here 
 builds. See [building gates](../guide/GATES.md#shapes) for how to put one up in the world, and the
 [gate internals](../GATES.md) for how the format is read.
 
+<style>
+/* The 3D view and its legend sit side by side, which wants more than the usual page width. */
+.md-grid { max-width: 90rem; }
+</style>
+
 <div id="gate-viewer"><noscript>The 3D viewer needs JavaScript. Each shape is also drawn in the <a href="../GATES.html#the-shapes-that-ship">gate internals</a> page.</noscript></div>
 
 <script type="importmap">

@@ -10,7 +10,9 @@ minutes.
   need Java 25.
 - Operator status, to follow along as written. Anyone else needs `wormhole.config` and
   `wormhole.build` to finish a gate (`wormhole.build.preview` alone only lets them start one and
-  see the ghost), and, if you run a permissions plugin, `wormhole.use.dialer` to dial.
+  see the ghost), and, if you run Vault together with a permissions plugin such as LuckPerms,
+  `wormhole.use.dialer` to dial. Without both of those, anyone can dial but only operators and a
+  gate's owner can build.
   See [permissions](guide/SERVER.md#permissions).
 - Obsidian for the frame of a `Standard` gate.
 

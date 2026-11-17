@@ -2,7 +2,7 @@
 // assets/shapes/ by scripts/copy-docs-shapes.sh and draws them with three.js.
 import { describeShape, ShapeError } from "./shape-parser.js";
 import {
-  THREE, SceneBase, el, hex, palette, loadLibs, fetchManifest, fetchShape, TICK_MS, reduceMotion,
+  THREE, SceneBase, el, hex, palette, loadLibs, fetchManifest, fetchShape, TICK_MS, reduceMotion, stageWithLegend,
 } from "./scene-kit.js";
 
 const MIN_STEP_MS = 250; // real timings are too quick to follow on a page
@@ -62,8 +62,7 @@ export class GateViewer extends SceneBase {
       "The view starts from the side the dialling switch is on, as a player standing at the gate sees it.");
     this.info = el("div", { class: "wxt-info", id: "wxt-info" });
     this.legend = el("ul", { class: "wxt-legend", "aria-label": "Legend" });
-    this.root.replaceChildren(bar, this.stage, this.status, this.help, this.info,
-      el("h3", {}, "Legend"), this.legend);
+    this.root.replaceChildren(bar, stageWithLegend(this.stage, this.legend), this.status, this.help, this.info);
     this.select.addEventListener("change", () => this.load(this.select.value).catch((e) => this.fail(e)));
     this.canvas.addEventListener("keydown", (e) => this.key(e));
   }
