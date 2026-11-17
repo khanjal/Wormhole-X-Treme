@@ -115,22 +115,36 @@ class FarPlayersTest
         assertFalse(FarPlayers.copied(mock(Zombie.class)), "a mob is not a player");
     }
 
-    /**
-     * The viewer is never shown themselves, through a mirror or a gate, while another player standing
-     * beside them in the far room is.
-     */
+    /** The viewer is never shown themselves through a mirror, while another player beside them is. */
     @Test
-    void theViewerIsNeverShownThemselvesThroughAMirrorOrAGate()
+    void theViewerIsNeverShownThemselvesThroughAMirror()
     {
         final Player viewer = farPlayer();
         final Player other = farPlayer();
         when(viewer.canSee(any(Player.class))).thenReturn(true);
-        for (final WindowState window : List.of(mirror, gate))
-        {
-            assertEquals(CreatureTally.Skip.YOU, FarPlayers.whyNot(viewer, viewer, window), window.name());
-            assertNull(FarPlayers.whyNot(viewer, other, window), "another player shows through " + window.name());
-            assertFalse(FarPlayers.showsTheViewer(window));
-        }
+
+        assertEquals(CreatureTally.Skip.YOU, FarPlayers.whyNot(viewer, viewer, mirror));
+        assertNull(FarPlayers.whyNot(viewer, other, mirror), "another player shows through a mirror");
+        assertFalse(FarPlayers.showsTheViewer(mirror));
+    }
+
+    /**
+     * Through a gate the viewer is shown themselves, as the far gate's box holds them only when the
+     * two gates face each other close by (#296, step 4); the other refusals still apply to them.
+     */
+    @Test
+    void theViewerIsShownThemselvesThroughAGateUnlessSomethingElseHidesThem()
+    {
+        final Player viewer = farPlayer();
+        when(viewer.canSee(any(Player.class))).thenReturn(true);
+
+        assertTrue(FarPlayers.showsTheViewer(gate));
+        assertNull(FarPlayers.whyNot(viewer, viewer, gate));
+        assertTrue(FarPlayers.stillShown(viewer, viewer, gate));
+
+        when(viewer.getGameMode()).thenReturn(GameMode.SPECTATOR);
+        assertEquals(CreatureTally.Skip.PLAYER_UNSHOWN, FarPlayers.whyNot(viewer, viewer, gate));
+        assertFalse(FarPlayers.stillShown(viewer, viewer, gate));
     }
 
     /** A player the viewer cannot see, as a vanish plugin's hidePlayer leaves them, is not shown. */
