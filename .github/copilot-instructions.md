@@ -3,10 +3,10 @@
 ## Project Overview
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that implements inter-dimensional "stargate" portals in Minecraft. Players (and vehicles — boats, minecarts) walk or ride through portal frames and are teleported to linked destination gates.
 
-One jar supports **Minecraft 1.20 through 26.3**. It compiles against 1.20.4 — the oldest supported API, so the compiler enforces the floor — and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
+One jar supports **Minecraft 1.20 through 26.3**. It compiles against 1.20.4, an old API that stops us calling anything newer by accident (the one API carrying both `EntityDismountEvent` packages; CI builds 1.20 and 1.20.1 with `-Plegacy-api`), and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
 
 ## Build System
-- **Java 17**, Maven. `maven-shade-plugin` is configured but the jar bundles no third-party dependencies: SnakeYAML is `provided` by the server, and there is no database driver, since storage is plain YAML files
+- **Java 17**, Maven. `maven-shade-plugin` bundles one third-party library, bStats, relocated into the plugin's own package. SnakeYAML is `provided` by the server, and the jar ships no database driver, since storage is plain YAML files (only the legacy database export and import use the server's own SQLite JDBC)
 - Build command: `mvn -o -q package -DskipTests` → produces `target/WormholeXTreme-<version>.jar`, versioned from the pom
 - Test command: `mvn -o test` — JUnit 5 + Mockito, no live server needed
 - Deploy by copying the JAR to `plugins/` on the server
@@ -19,12 +19,14 @@ be worth stating so it is not "simplified" back into the bug it solves.
 - Paper 1.20+ requires the client to send `ServerboundAcceptTeleportationPacket` before it processes any subsequent packets (including `ClientboundSetPassengersPacket`).
 - If `player.teleport()` is called and then `addPassenger()` fires too soon, the mount packet is silently dropped by the client even though the server reports success.
 
-So in `GateWalkThrough` (player-enters-gate path, called from `WormholeXTremePlayerListener`) the **vehicle** is teleported and
-the player is not: the vehicle move ejects the player server-side, event cancellation keeps the
-player at the gate, and `addPassenger` two ticks later lands because the client never received a
-player teleport to acknowledge. If `addPassenger` fails, the fallback teleports the player and
-retries. `WormholeXTremeVehicleListener` runs the same reattach loop with a 5-tick initial delay
-and a post-success re-teleport for client sync.
+So `RiddenTeleport.move` takes the riders off, teleports the players first (another plugin refusing
+a player's teleport stops the trip before anything has moved), then moves the bare vehicle, and a
+refusal anywhere puts everyone back where they started. The caller then re-seats the riders on a
+delay with `PassengerReattach.schedule`, because the client withholds the seat packet until it has
+acknowledged the teleport: `GateWalkThrough` (player-enters-gate path, called from
+`WormholeXTremePlayerListener`) waits 5 ticks, beaming 2. If `addPassenger` fails, the re-seat
+retries with backoff. `WormholeXTremeVehicleListener` moves an occupied vehicle through the same
+`RiddenTeleport.move` and runs its own re-seat loop.
 
 For what is actually open, read `CHANGELOG.md` and the repository's issues rather than this file.
 
@@ -33,10 +35,10 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
 ## Code Style & Conventions
 
 ### Formatting
-- **Allman-style braces**: opening brace on its own line for all blocks (class, method, if, for, try, etc.).
+- **Allman-style braces**: opening brace on its own line for blocks (class, method, if, for, try, etc.); a few single-line exceptions exist.
 - **4-space indentation** (no tabs).
 - `final` on every local variable and parameter that is not reassigned.
-- One blank line between logical sections inside a method; two blank lines between methods.
+- One blank line between logical sections inside a method; one blank line between methods.
 - Import types; do not write `org.bukkit.World` or `java.util.UUID` inline. A package-qualified name in code is only for a clash between two types with the same simple name; `Map.Entry` and `ConfigManager.ConfigKeys` are fine.
 
 ### Java Idioms Used In This Codebase
@@ -63,13 +65,14 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
 - **Catch `RuntimeException`, not `Throwable`.** Bukkit/Paper can throw unchecked exceptions from
   anywhere, so guarding an API call is right; catching `Throwable` to do it is not. It swallows
   `Error` — `OutOfMemoryError`, `StackOverflowError`, a `NoClassDefFoundError` from a genuinely
-  missing class — and hides real bugs behind a silently degraded feature. "Exception handling no
-  longer swallows `Error`" is a recorded decision (see the 1.1.0 changelog); the ~86
-  remaining `catch (Throwable)` blocks are legacy being narrowed, not the target style.
+  missing class — and hides real bugs behind a silently degraded feature.
+  Not swallowing `Error` is a recorded decision (the 1.5.0 changelog: every `catch (Throwable)` is gone); `catch (Throwable)` is not the target style.
+  Where a missing method or class must be caught across versions, catch `Exception | LinkageError`
+  and say why in a comment.
 
   The exception is deliberate cross-version compatibility: `plugin/EconomySupport` and
-  `plugin/PermissionsSupport` catch `NoSuchMethodError` on purpose so the plugin stays standing
-  across API versions. Where that is the reason, say so in a comment.
+  `plugin/PermissionsSupport` are two examples of catching `Exception | LinkageError` on purpose,
+  so the plugin stays standing across API versions.
 - **`instanceof` before cast** — always guard casts with `instanceof`.
 
 ### Logging
@@ -81,7 +84,7 @@ WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "verbose/debug message");
 ```
 `Level.FINE` is for verbose diagnostics (only visible when debug logging is enabled). `Level.INFO` for normal operational events. `Level.WARNING` for unexpected conditions.
 
-There is a three-argument overload, `prettyLog(Level, boolean, String)`, whose boolean puts the plugin version in the tag. It is for lifecycle lines only — the nine callers are all in `WormholeXTreme` itself. **Do not call it with `false`**; that is the two-argument form written the long way, and `PrettyLogTest` fails on it.
+There is a three-argument overload, `prettyLog(Level, boolean, String)`, whose boolean puts the plugin version in the tag. It is for lifecycle lines only — its callers are all in `WormholeXTreme` itself. **Do not call it with `false`**; that is the two-argument form written the long way, and `PrettyLogTest` fails on it.
 
 ### Bukkit Scheduler
 ```java
@@ -106,14 +109,14 @@ Anything that touches Bukkit entities, blocks or worlds runs on the main server 
 | `WormholeXTremeVehicleListener` | `VehicleMoveEvent` → unmanned or driver-controlled vehicle gate entry |
 | `WormholeXTremeBlockListener` | Block break/place protection around gate frames |
 | `StargateManager` | Gate registry, spatial lookup |
-| `StargateRestrictions` | Cooldown, recent-arrival, permission checks |
+| `StargateRestrictions` | Use cooldowns and recent arrivals |
 | `ConfigManager` | Plugin config (timeout, gate shapes, etc.) |
 | `MaterialUtils` | Shared material classification helpers (isIce, etc.) |
 
 ### Testing
 - Tests live in `src/test/java/`. Framework: JUnit 5 + Mockito.
 - Bukkit API is mocked; no live server needed.
-- Run all tests before committing: `mvn -DskipTests=false test`.
+- Run all tests before committing: `mvn -o test`.
 - Do not break existing tests when adding new behaviour.
 - New features should have accompanying unit tests where feasible.
 
