@@ -387,33 +387,56 @@
 .wxt-k-I { color: var(--md-default-fg-color--light); }
 
 /*
- * A woosh cell (:W): diagonal stripes in green, over whatever its kind is, and the stripes (the cue that
- * is not colour) keep at every size. --wxt-wt is the step's strength, set by the script: later steps are darker.
+ * A woosh cell (:W): diagonal stripes over whatever its kind is, and the stripes (the cue that is not colour)
+ * keep at every size. The script sets --wxt-wt, the step's band from 0 (lightest) to 1: later bands are stronger,
+ * by the fill under the stripes and by how wide the stripes are. A clear disc under the letter keeps it off the stripes.
+ * The two hues are the 3D view's woosh colours, the same as the legend swatch.
  */
 .wxt-grid {
   --wxt-wc: 29, 11, 218;
 }
 
 [data-md-color-scheme="slate"] .wxt-grid {
-  --wxt-wc: 190, 180, 255; /* a lighter step of the 3D view's blue-violet, so the stripes stand out of the dark cells */
+  --wxt-wc: 111, 91, 255;
+}
+
+/* The cell's own colour as a solid, for the disc under the letter to match. */
+.wxt-grid td {
+  --wxt-gap: var(--md-default-bg-color);
+}
+
+.wxt-grid td.wxt-k-S {
+  --wxt-gap: color-mix(in srgb, rgb(124, 92, 200) 45%, var(--md-default-bg-color));
+}
+
+.wxt-grid td.wxt-k-C {
+  --wxt-gap: color-mix(in srgb, rgb(214, 78, 70) 45%, var(--md-default-bg-color));
+}
+
+.wxt-grid td.wxt-k-P {
+  --wxt-gap: color-mix(in srgb, rgb(47, 123, 255) 35%, var(--md-default-bg-color));
 }
 
 .wxt-grid td.wxt-woosh {
-  /* Full-strength text: the tint is under it, and 3:1 on the darkest step needs more than the light grey of an Ignored cell. */
+  --wxt-period: 7px;
+  --wxt-fa: calc(0.05 + var(--wxt-wt, 0.5) * 0.3); /* the fill under the stripes: 5% to 35% */
+  --wxt-sa: calc(0.85 + var(--wxt-wt, 0.5) * 0.15); /* the stripes: 85% to fully opaque */
+  --wxt-sw: calc((0.28 + var(--wxt-wt, 0.5) * 0.48) * var(--wxt-period)); /* their width: 28% to 76% of the period */
+  --wxt-fill: color-mix(in srgb, rgb(var(--wxt-wc)) calc(var(--wxt-fa) * 100%), var(--wxt-gap));
   color: var(--md-default-fg-color);
   background-image:
-    repeating-linear-gradient(135deg, rgba(var(--wxt-wc), var(--wxt-sa)) 0 3px, transparent 3px 7px),
+    radial-gradient(circle closest-side, var(--wxt-fill) 0 56%, transparent 58%),
+    repeating-linear-gradient(135deg,
+      rgba(var(--wxt-wc), var(--wxt-sa)) 0 var(--wxt-sw),
+      var(--md-default-fg-color) var(--wxt-sw) calc(var(--wxt-sw) + 1px),
+      transparent calc(var(--wxt-sw) + 1px) var(--wxt-period)),
     linear-gradient(rgba(var(--wxt-wc), var(--wxt-fa)), rgba(var(--wxt-wc), var(--wxt-fa)));
-  /* A halo in the page colour keeps the letter clear of the stripes behind it. */
-  text-shadow: 0 0 1px var(--md-default-bg-color), 0 0 2px var(--md-default-bg-color), 0 0 3px var(--md-default-bg-color), 0 0 3px var(--md-default-bg-color);
-  --wxt-sa: calc(0.85 + (var(--wxt-wt, 0.3) - 0.1) * 0.375); /* the stripes: 0.85 to 1 opaque, so they stand out of the cell at every step */
-  --wxt-fa: calc(var(--wxt-wt, 0.3) * 0.3); /* the fill under them: the step, light to dark */
+  /* Besides the disc, a halo in the page colour. */
+  text-shadow: 0 0 1px var(--md-default-bg-color), 0 0 2px var(--md-default-bg-color);
 }
 
 .wxt-grid.wxt-tiny td.wxt-woosh {
-  background-image:
-    repeating-linear-gradient(135deg, rgba(var(--wxt-wc), var(--wxt-sa)) 0 2px, transparent 2px 5px),
-    linear-gradient(rgba(var(--wxt-wc), var(--wxt-fa)), rgba(var(--wxt-wc), var(--wxt-fa)));
+  --wxt-period: 5px;
 }
 
 /* The step number, where the cells are big enough for it; the label then drops the :W it would repeat. */
@@ -435,6 +458,7 @@
   border-radius: 2px;
 }
 
+/* The swatch is the cue's own: stripes of the woosh colour on the page colour, the colour set inline. */
 .wxt-swatch-woosh {
   background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--md-default-bg-color) 2px 4px);
 }

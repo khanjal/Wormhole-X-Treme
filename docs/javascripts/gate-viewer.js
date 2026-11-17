@@ -5,7 +5,7 @@ import {
   THREE, SceneBase, el, hex, palette, isDark, loadLibs, fetchManifest, fetchShape, TICK_MS, reduceMotion, stageWithLegend,
 } from "./scene-kit.js";
 
-import { TINT, wooshStep, wooshTint } from "./woosh-cue.js";
+import { wooshStep, wooshTint, partitionCells } from "./woosh-cue.js";
 
 const MIN_STEP_MS = 250; // real timings are too quick to follow on a page
 
@@ -113,13 +113,13 @@ export class GateViewer extends SceneBase {
   buildParts() {
     const cells = this.shape.cells;
     const group = new THREE.Group();
-    const byOrder = (key, test) => cells.filter(test).sort((a, b) => a[key] - b[key]);
     const mats = {
       frame: new THREE.MeshStandardMaterial(),
       chevronIdle: new THREE.MeshStandardMaterial(),
       light: new THREE.MeshStandardMaterial(),
       portal: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.4, depthWrite: false }),
-      woosh: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.16, depthWrite: false }),
+      // Opaque enough to tell from the portal as drawn (a delta-E of 25 or more under normal, red-weak and green-weak sight, both themes).
+      woosh: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.6, depthWrite: false }),
       markers: {},
     };
     const parts = { group, mats, meshes: [] };
@@ -132,12 +132,17 @@ export class GateViewer extends SceneBase {
     parts.lightCells = cells.filter((c) => c.light !== null);
     parts.lightMesh = add(this.instanced(parts.lightCells, mats.light));
 
-    parts.portal = add(this.instanced(cells.filter((c) => c.portal && c.woosh === null), mats.portal));
     // Woosh cells sorted by step, so a step is a prefix and showing it is setting a count.
-    // Order 0 is never played (StargateHelper.recordWooshWaves starts at 1), so it is no part of the animation.
-    parts.waveCells = byOrder("woosh", (c) => c.woosh >= 1 && !c.portal);
-    parts.stayCells = byOrder("woosh", (c) => c.woosh >= 1 && c.portal);
+    const split = partitionCells(cells);
+    parts.portal = add(this.instanced(split.portal, mats.portal));
+    parts.waveCells = split.wave;
+    parts.stayCells = split.stay;
     parts.wave = add(this.instanced(parts.waveCells, mats.woosh));
+    // The wave's edges, so it is not told from the portal by hue alone; it shows as many cells as the wave does.
+    mats.ghostWire = new THREE.MeshBasicMaterial({ wireframe: true, depthWrite: false });
+    parts.waveWire = add(this.instanced(parts.waveCells, mats.ghostWire));
+    parts.waveWire.frustumCulled = false;
+    parts.waveWire.onBeforeRender = () => { parts.waveWire.count = parts.wave.count; };
     parts.stay = add(this.instanced(parts.stayCells, mats.portal));
     // Their counts start at 0, which a culling sphere taken then would keep.
     parts.wave.frustumCulled = false;
@@ -145,14 +150,18 @@ export class GateViewer extends SceneBase {
     // Every woosh cell, whatever its base kind (an Ignored cell included), for the designer's "Woosh cells" view.
     // Smaller than the 0.92 cubes so it never shares a face with a frame, chevron or light cell, and crossed with
     // a wireframe so it is not told from them by hue alone.
-    mats.ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.45, depthWrite: false });
-    mats.ghostWire = new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0.9, depthWrite: false });
+    mats.ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.6, depthWrite: false });
     parts.ghostCells = cells.filter((c) => c.woosh >= 1);
     this.ghostCube ??= new THREE.BoxGeometry(0.8, 0.8, 0.8);
+    this.ghostShell ??= new THREE.BoxGeometry(0.98, 0.98, 0.98);
     parts.ghost = this.instanced(parts.ghostCells, mats.ghost);
     parts.ghostWire = this.instanced(parts.ghostCells, mats.ghostWire);
-    for (const mesh of [parts.ghost, parts.ghostWire]) {
-      mesh.geometry = this.ghostCube;
+    // A woosh cell inside a frame, chevron or light block would be hidden by it, so those get their edges drawn on its outside.
+    parts.ghostShell = this.instanced(parts.ghostCells.filter((c) => c.block !== "none"), mats.ghostWire);
+    parts.ghost.geometry = this.ghostCube;
+    parts.ghostWire.geometry = this.ghostCube;
+    parts.ghostShell.geometry = this.ghostShell;
+    for (const mesh of [parts.ghost, parts.ghostWire, parts.ghostShell]) {
       mesh.visible = false;
       add(mesh);
     }
@@ -203,25 +212,34 @@ export class GateViewer extends SceneBase {
     this.requestRender();
   }
 
-  /** The woosh cells' colours: the faintest at the first step and the full colour at the last, as the grid tints them. */
+  /** The colour the stage is drawn on, so the faintest ghost fades into the real background. */
+  stageColor() {
+    const css = this.stage ? getComputedStyle(this.stage).backgroundColor : "";
+    const color = new THREE.Color(isDark() ? 0x272a35 : 0xf5f5f5);
+    if (/^rgb/.test(css)) color.setStyle(css.replace(/,\s*[\d.]+\)$/, ")").replace("rgba", "rgb"));
+    return color;
+  }
+
+  /** The woosh cells' colours: from half strength at the first band to the full colour at the last, as the grid tints them. */
   paintGhost() {
     const { ghost, ghostCells } = this.parts;
     if (!ghostCells.length) return;
     const orders = this.shape.wooshOrders;
     const full = new THREE.Color(palette().woosh);
-    const page = new THREE.Color(isDark() ? 0x111318 : 0xffffff);
+    const stage = this.stageColor();
     ghostCells.forEach((c, i) => {
-      const t = wooshTint(wooshStep(c.woosh, orders), orders.length) / TINT.max;
-      ghost.setColorAt(i, page.clone().lerp(full, t));
+      const t = 0.5 + 0.5 * wooshTint(wooshStep(c.woosh, orders), orders.length);
+      ghost.setColorAt(i, stage.clone().lerp(full, t));
     });
     if (ghost.instanceColor) ghost.instanceColor.needsUpdate = true;
   }
 
   /** The woosh cells show while the gate is at rest (idle, dialling, dialled); opening plays them in order instead. */
   syncGhost() {
-    const { ghost, ghostWire } = this.parts;
+    const { ghost, ghostWire, ghostShell } = this.parts;
     ghost.visible = Boolean(this.showWoosh) && this.state !== "opening" && this.state !== "open";
     ghostWire.visible = ghost.visible;
+    ghostShell.visible = ghost.visible;
     this.requestRender();
   }
 
@@ -318,6 +336,11 @@ export class GateViewer extends SceneBase {
       this.requestRender();
     };
     const ticks = this.shape.wooshTicks ?? 3;
+    // The plugin plays order n at step n, so a woosh that starts at #3 waits two steps first.
+    if (orders.length && orders[0] > 1) {
+      await this.wait(ticks * (orders[0] - 1));
+      if (run !== this.runId) return;
+    }
     for (let i = 0; i < orders.length; i++) {
       step(i);
       await this.wait(ticks);
@@ -367,7 +390,7 @@ export class GateViewer extends SceneBase {
     // A glyph beside each swatch, so no entry is told from another by hue alone.
     const items = [
       ["Gate frame", p.frame, "■"], ["Chevron, unlit", p.chevron, "▣"], ["Chevron, lit", p.lit, "★"],
-      ["Portal, when open", p.portal, "▒"], ["Woosh, while opening", p.woosh, "░", "wxt-swatch-woosh"],
+      ["Portal, when open", p.portal, "▒"], [this.wooshLabel ?? "Woosh, while opening", p.woosh, "░", "wxt-swatch-woosh"],
     ];
     const glyphs = { plate: "▬", sphere: "●", cone: "▲", cylinder: "▮", octa: "◆", cube: "■", tetra: "◢", ring: "◎" };
     const present = new Set(this.shape.cells.flatMap((c) => c.markers));

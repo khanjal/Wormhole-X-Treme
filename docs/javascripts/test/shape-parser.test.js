@@ -126,7 +126,7 @@ test("settings written 'KEY = value;' are read, and an unknown key is ignored", 
   const odd = parseShape("Name=T\nVersion=2\nGateShape=\n\nLayer#1=\n[I:EP]\n\nFUTURE_KEY = 9;\nCHEVRON_MATERIAL=GOLD_BLOCK\n");
   assert.equal(odd.materials.CHEVRON_MATERIAL, "GOLD_BLOCK");
 });
-
+
 test("a :W#0 cell is not a woosh step, as the plugin never plays order 0", () => {
   const text = readFileSync(SHAPES + "Minimal.shape", "utf8");
   const base = parseShape(text);
@@ -136,4 +136,15 @@ test("a :W#0 cell is not a woosh step, as the plugin never plays order 0", () =>
   const shape = parseShape(lines.join("\n"));
   assert.equal(shape.cells.filter((c) => c.woosh === 0).length, 1);
   assert.deepEqual(shape.wooshOrders, base.wooshOrders);
+});
+
+test("describeShape counts only the woosh cells that play: a :W#0 cell is not one", () => {
+  const text = readFileSync(SHAPES + "Minimal.shape", "utf8");
+  const base = describeShape(parseShape(text));
+  const lines = text.split(/\r?\n/);
+  const at = lines.findIndex((l) => l.startsWith("[") && l.includes("[I]"));
+  lines[at] = lines[at].replace("[I]", "[I:W#0]");
+  const d = describeShape(parseShape(lines.join("\n")));
+  assert.equal(d.wooshCells, base.wooshCells);
+  assert.equal(d.wooshSteps, base.wooshSteps);
 });

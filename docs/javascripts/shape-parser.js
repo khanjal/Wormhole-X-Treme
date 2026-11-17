@@ -220,7 +220,7 @@ export function describeShape(shape) {
     chevrons: count((c) => c.light !== null),
     lightSteps: shape.lightOrders.length,
     portal: count((c) => c.portal),
-    wooshCells: count((c) => c.woosh !== null),
+    wooshCells: count((c) => c.woosh >= 1), // order 0 never plays
     wooshSteps: shape.wooshOrders.length,
     dialSign: has("D"),
     redstone: ["RD", "RS", "RA"].filter(has),

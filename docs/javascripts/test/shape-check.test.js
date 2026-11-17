@@ -193,3 +193,12 @@ test("woosh order 0 is a warning, because the plugin starts the woosh at 1 and n
   assert.deepEqual(messages(s, "error"), []);
   assert.equal(messages(put(good(), 1, 0, 0, (c) => setOrder(c, "woosh", 1)), "warning").length, 0);
 });
+
+test("a woosh that starts above #1 is a warning: the plugin plays the empty steps before it", () => {
+  const s = put(put(good(), 1, 0, 0, (c) => setOrder(c, "woosh", 3)), 1, 0, 1, (c) => setOrder(c, "woosh", 4));
+  const found = messages(s, "warning").filter((i) => i.message.includes("The woosh starts at #3"));
+  assert.equal(found.length, 1);
+  assert.match(found[0].message, /#1 to #2 are empty/);
+  assert.deepEqual(found[0].cell, { layer: 1, row: 0, col: 0 });
+  assert.equal(messages(put(good(), 1, 0, 0, (c) => setOrder(c, "woosh", 1)), "warning").filter((i) => i.message.includes("starts at")).length, 0);
+});
