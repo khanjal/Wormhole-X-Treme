@@ -28,6 +28,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorAccess;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -210,6 +211,97 @@ class MirrorSettingsCommandTest
         run("mirror", "list");
 
         verify(sender, atLeastOnce()).sendMessage(contains("(banner follows)"));
+    }
+
+    /**
+     * {@code -group}, {@code -hidden} and {@code -private} are saved and survive a restart (#280).
+     *
+     * <p>Through the real file: a mirror that forgot its group on a restart would quietly start
+     * listing every public mirror again, which is the museum wing showing the survival hub.
+     */
+    @Test
+    void groupHiddenAndPrivateSurviveARestart()
+    {
+        run("mirror", "set", "museum", "-group", "Wing");
+        run("mirror", "set", "museum", "-hidden", "on");
+        run("mirror", "set", "museum", "-private", "on");
+
+        MirrorManager.clear();
+        MirrorYamlManager.loadAll();
+
+        final QuantumMirror museum = MirrorManager.byName("museum");
+        assertEquals("Wing", museum.access().group());
+        assertTrue(museum.access().hidden(), "hidden should be read back");
+        assertTrue(museum.access().restricted(), "private should be read back");
+        verify(sender, atLeastOnce()).sendMessage(plainContains("'museum' is in the group 'Wing' now"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("listed only for players with wormhole.mirror.private"));
+    }
+
+    /** {@code -none} takes a mirror out of its group, and off turns each flag back off. */
+    @Test
+    void noneAndOffPutAMirrorBackOnThePublicNetwork()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withAccess(new MirrorAccess("wing", true, true)));
+
+        run("mirror", "set", "museum", "-group", "-none");
+        run("mirror", "set", "museum", "-hidden", "off");
+        run("mirror", "set", "museum", "-private", "off");
+
+        assertEquals(MirrorAccess.OPEN, MirrorManager.byName("museum").access());
+    }
+
+    /**
+     * A group named with a dash is refused, since a dash marks an option.
+     *
+     * <p>Otherwise {@code -group -hidden} would put the mirror in a group called "-hidden".
+     */
+    @Test
+    void aGroupStartingWithADashIsRefused()
+    {
+        run("mirror", "set", "museum", "-group", "-hidden");
+
+        assertEquals(MirrorAccess.OPEN, MirrorManager.byName("museum").access());
+        verify(sender, atLeastOnce()).sendMessage(plainContains("A group's name cannot start with -"));
+    }
+
+    /** A flag with no on or off, or a group with no name, is a usage line, not a guess. */
+    @Test
+    void aFlagWithoutOnOrOffChangesNothing()
+    {
+        run("mirror", "set", "museum", "-hidden");
+        run("mirror", "set", "museum", "-private", "maybe");
+        run("mirror", "set", "museum", "-group");
+
+        assertEquals(MirrorAccess.OPEN, MirrorManager.byName("museum").access());
+        verify(sender, atLeastOnce()).sendMessage(plainContains("-hidden <on|off>"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("-private <on|off>"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("-group <group|-none>"));
+    }
+
+    /**
+     * A name with no value after it is the name, not the value (#280).
+     *
+     * <p>{@code set museum -group} would otherwise shift to {@code -group museum}: the banner
+     * being looked at put in a group called "museum". Here nothing is looked at, so that reading
+     * asks the player to look at a banner instead of saying the form.
+     */
+    @Test
+    void aNameAloneBeforeAValuedPropertyIsNotTakenAsItsValue()
+    {
+        run("mirror", "set", "museum", "-group");
+
+        verify(sender, atLeastOnce()).sendMessage(plainContains("set [<name>] -group <group|-none>"));
+        verify(sender, never()).sendMessage(plainContains("Look at the banner you want to use"));
+    }
+
+    /** The list says which group a mirror is in, and which are hidden or private. */
+    @Test
+    void listsTheGroupAndTheFlags()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withAccess(new MirrorAccess("wing", true, true)));
+        run("mirror", "list");
+
+        verify(sender, atLeastOnce()).sendMessage(contains("(group wing) (hidden) (private)"));
     }
 
     /** Gives museum its room, so it has a capture key to wait on. */

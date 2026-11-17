@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -944,11 +945,26 @@ public final class SubCommands
         {
             return both(mirrorNames(), new String[] { "-none" });
         }
-        if ("follow".equals(verb))
+        if ("follow".equals(verb) || "hidden".equals(verb) || "private".equals(verb))
         {
             return new String[] { "on", "off" };
         }
+        if ("group".equals(verb))
+        {
+            return both(groupNames(), new String[] { "-none" });
+        }
         return new String[0];
+    }
+
+    /** @return every group a mirror is in, once each however its case was typed, as first spelled */
+    private static String[] groupNames()
+    {
+        final Map<String, String> groups = new LinkedHashMap<>();
+        MirrorManager.all().stream()
+            .map(mirror -> mirror.access().group())
+            .filter(Objects::nonNull)
+            .forEach(group -> groups.putIfAbsent(group.toLowerCase(Locale.ROOT), group));
+        return groups.values().toArray(new String[0]);
     }
 
     /** @return every registered mirror's name */

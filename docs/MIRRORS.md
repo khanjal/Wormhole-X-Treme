@@ -49,6 +49,23 @@ change, so nobody is swapped out from under a trip they were about to take. Only
 half of a click counts, or one press would skip a mirror, and the view is redrawn at once rather
 than on the next sweep. When nobody is near a mirror any more it is off again, showing its own room.
 
+**Groups, hidden and private (#280).** "Every other mirror" is the ones listed for whoever
+clicks. A mirror in a named group lists only that group's, and one with no group only the others
+with none, so a server that never sets a group sees no change; a group per mirror, set by a
+command, rather than one per world, since a wing of a museum can span worlds. A hidden mirror is in
+nobody's list and a private one only for holders of `wormhole.mirror.private`: both are flags on
+the mirror rather than a node per mirror, because a node per mirror is one more thing to set up in
+a permissions plugin for every mirror made. Mirrors record no owner, so private is the node alone.
+A mirror's start is first whatever its group or flags — whoever set it chose it — which is how a
+hidden return is reached. The choice at a mirror is shared, so a punch asks again whether the
+puncher's own list would reach where it opens; without that, anybody standing by could follow a
+staff member's right-click into a private world. The view is shared the same way, and drawing it
+per viewer would mean one capture and one drawn room per viewer, so instead a right-click skips a
+private mirror while anybody in range lacks the node, and the sweep turns a mirror back to its own
+room at its next pass after such a player comes near, so a newcomer may glimpse the room for about
+a second. The per-world limit still counts every mirror in a
+world, whatever its group.
+
 **A punch goes through**, which is why a mirror cannot be broken: the banner and the wall round its
 opening ignore a punch and survive an explosion, and `mirror remove` is how one comes down.
 
@@ -1156,7 +1173,10 @@ mirror, and the choice of where to open made at the mirror.
 ([Seeing creatures](#seeing-creatures)), but never the viewer, the rule set for mirrors in #296:
 the step first planned had the viewer seeing themselves, flipped, and was replaced by this one.
 
-**Groups, hidden mirrors and a sign to choose with** — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280).
+**A sign to choose with**, showing the previous, current and next mirror beside the banner the
+way a gate's dial sign does — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280). Not
+built with the groups: a sign is seen by everybody, and the list it would show depends on who is
+looking once a mirror can be private.
 **Mirrors on other servers** — [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257).
 
 **Colour-averaging a banner into a gradient.** Two colours blended are muddier than two colours

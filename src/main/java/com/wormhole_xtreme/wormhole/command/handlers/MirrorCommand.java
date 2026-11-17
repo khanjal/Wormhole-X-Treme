@@ -27,6 +27,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorAccess;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorFollow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
@@ -59,6 +60,9 @@ import com.wormhole_xtreme.wormhole.utils.Messages;
  * mirror set [name] start &lt;m|none&gt;  the mirror a right-click opens onto first
  * mirror set [name] stamp [look]    give the banner a look
  * mirror set [name] capture         take the room's capture again
+ * mirror set [name] group &lt;g|none&gt;  list only the mirrors in a named group
+ * mirror set [name] hidden &lt;on|off&gt; leave it out of every right-click list
+ * mirror set [name] private &lt;on|off&gt; list it only for holders of wormhole.mirror.private
  * mirror remove [name]              forget it; the banner becomes an ordinary banner again
  * mirror list                       every mirror, and what each shows
  * </pre>
@@ -136,11 +140,32 @@ public class MirrorCommand implements SubCommand
     /** The property making a mirror's banner follow where it opens first (#613). */
     private static final String FOLLOW = "-follow";
 
+    /** The property putting a mirror in a named group, which lists only its own (#280). */
+    private static final String GROUP = "-group";
+
+    /** The property leaving a mirror out of every right-click list (#280). */
+    private static final String HIDDEN = "-hidden";
+
+    /** The property listing a mirror only for holders of the private node (#280). */
+    private static final String PRIVATE = "-private";
+
     /** What {@code set} can change. Dashed, like every keyword that can stand where a name does. */
-    private static final String[] PROPERTIES = { "-stamp", START, "-capture", FOLLOW };
+    private static final String[] PROPERTIES = { "-stamp", START, "-capture", FOLLOW, GROUP, HIDDEN, PRIVATE };
+
+    /** The properties that need a value after them, so a name alone before one is not the value. */
+    private static final Set<String> VALUED = Set.of(START, FOLLOW, GROUP, HIDDEN, PRIVATE);
 
     /** The same words, for looking a word up without building a list each time. */
     private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
+
+    /** The two words a switch takes, for -follow, -hidden and -private. */
+    private static final String ON = "on";
+
+    /** @see #ON */
+    private static final String OFF = "off";
+
+    /** How a {@code set} usage line opens, before the property. */
+    private static final String SET_NAMED = "set [<name>] ";
 
     /** A start that is the mirror's own room again. */
     private static final String NONE = "-none";
@@ -215,15 +240,10 @@ public class MirrorCommand implements SubCommand
             saySetUsage(sender);
             return;
         }
-        // "set hub start" with no value would shift to "start hub", the looked-at banner's start.
-        if (START.equals(property) && (at == 3) && (args.length == 4))
+        // "set hub -start" with no value would shift to "start hub", the looked-at banner's start.
+        if (VALUED.contains(property) && (at == 3) && (args.length == 4))
         {
-            sayStartUsage(sender);
-            return;
-        }
-        if (FOLLOW.equals(property) && (at == 3) && (args.length == 4))
-        {
-            sayFollowUsage(sender);
+            sayValueUsage(sender, property);
             return;
         }
         final List<String> asVerb = new ArrayList<>();
@@ -240,7 +260,21 @@ public class MirrorCommand implements SubCommand
             case "-stamp" -> stamp(sender, shifted);
             case "-capture" -> capture(sender, shifted);
             case FOLLOW -> follow(sender, shifted);
+            case GROUP -> group(sender, shifted);
+            case HIDDEN, PRIVATE -> listing(sender, shifted, property);
             default -> start(sender, shifted);
+        }
+    }
+
+    /** The usage of a property that takes a value, for one typed without it. */
+    private static void sayValueUsage(final CommandSender sender, final String property)
+    {
+        switch (property)
+        {
+            case FOLLOW -> sayFollowUsage(sender);
+            case GROUP -> sayGroupUsage(sender);
+            case HIDDEN, PRIVATE -> sayOnOffUsage(sender, property);
+            default -> sayStartUsage(sender);
         }
     }
 
@@ -890,7 +924,7 @@ public class MirrorCommand implements SubCommand
         }
         final boolean unnamed = args.length == 3;
         final String word = args[unnamed ? 2 : 3].toLowerCase(Locale.ROOT);
-        if (!"on".equals(word) && !"off".equals(word))
+        if (!ON.equals(word) && !OFF.equals(word))
         {
             sayFollowUsage(sender);
             return;
@@ -901,7 +935,7 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        final boolean on = "on".equals(word);
+        final boolean on = ON.equals(word);
         final QuantumMirror changed = mirror.withFollows(on);
         MirrorManager.add(changed);
         MirrorYamlManager.saveAll();
@@ -919,7 +953,112 @@ public class MirrorCommand implements SubCommand
     /** @see #follow */
     private static void sayFollowUsage(final CommandSender sender)
     {
-        sayUsage(sender, "set [<name>] " + FOLLOW + " <on|off>");
+        sayUsage(sender, SET_NAMED + FOLLOW + " <on|off>");
+    }
+
+    /**
+     * Puts a mirror in a named group, or back on the public network (#280).
+     *
+     * <p>A grouped mirror's right-click lists only its own group's mirrors, and a mirror with no
+     * group only the others with none; its start is first whatever group that is in.
+     */
+    private static void group(final CommandSender sender, final String[] args)
+    {
+        if (args.length < 3)
+        {
+            sayGroupUsage(sender);
+            return;
+        }
+        final boolean unnamed = args.length == 3;
+        final String word = args[unnamed ? 2 : 3];
+        final boolean none = NONE.equalsIgnoreCase(word);
+        if (!none && word.startsWith("-"))
+        {
+            refuse(sender, Messages.get(sender, "mirror.cmd.group.dash", MirrorText.command("-"),
+                MirrorText.command(NONE)));
+            return;
+        }
+        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
+            () -> sayGroupUsage(sender));
+        if (mirror == null)
+        {
+            return;
+        }
+        MirrorManager.add(mirror.withAccess(mirror.access().withGroup(none ? null : word)));
+        MirrorYamlManager.saveAll();
+        if (none)
+        {
+            say(sender, Messages.get(sender, "mirror.cmd.group.none", MirrorText.name(mirror.name())));
+            return;
+        }
+        say(sender, Messages.get(sender, "mirror.cmd.group.set", MirrorText.name(mirror.name()),
+            MirrorText.name(word)));
+    }
+
+    /** @see #group */
+    private static void sayGroupUsage(final CommandSender sender)
+    {
+        sayUsage(sender, SET_NAMED + GROUP + " <group|" + NONE + ">");
+    }
+
+    /**
+     * Hides a mirror from every right-click list, or lists it only for holders of the private
+     * node; or undoes either (#280). Neither stops it being another mirror's start.
+     *
+     * @param property
+     *            {@link #HIDDEN} or {@link #PRIVATE}
+     */
+    private static void listing(final CommandSender sender, final String[] args, final String property)
+    {
+        if (args.length < 3)
+        {
+            sayOnOffUsage(sender, property);
+            return;
+        }
+        final boolean unnamed = args.length == 3;
+        final String word = args[unnamed ? 2 : 3].toLowerCase(Locale.ROOT);
+        if (!ON.equals(word) && !OFF.equals(word))
+        {
+            sayOnOffUsage(sender, property);
+            return;
+        }
+        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
+            () -> sayOnOffUsage(sender, property));
+        if (mirror == null)
+        {
+            return;
+        }
+        final boolean on = ON.equals(word);
+        final boolean hidden = HIDDEN.equals(property);
+        MirrorManager.add(mirror.withAccess(hidden ? mirror.access().withHidden(on)
+            : mirror.access().withRestricted(on)));
+        MirrorYamlManager.saveAll();
+        say(sender, listingSaid(sender, MirrorText.name(mirror.name()), hidden, on));
+    }
+
+    /** What {@link #listing} says; each key written out, so the key guard can read it. */
+    private static String listingSaid(final CommandSender sender, final String name, final boolean hidden,
+        final boolean on)
+    {
+        if (hidden)
+        {
+            if (on)
+            {
+                return Messages.get(sender, "mirror.cmd.hidden.on", name);
+            }
+            return Messages.get(sender, "mirror.cmd.hidden.off", name);
+        }
+        if (on)
+        {
+            return Messages.get(sender, "mirror.cmd.private.on", name, MirrorText.command(MirrorNetwork.SEE_PRIVATE));
+        }
+        return Messages.get(sender, "mirror.cmd.private.off", name);
+    }
+
+    /** @see #listing */
+    private static void sayOnOffUsage(final CommandSender sender, final String property)
+    {
+        sayUsage(sender, SET_NAMED + property + " <on|off>");
     }
 
     /** The room a following banner reads, as a person would say it. */
@@ -1062,9 +1201,29 @@ public class MirrorCommand implements SubCommand
      */
     private static String settingsOf(final CommandSender sender, final QuantumMirror mirror)
     {
-        final String starts = (mirror.start() == null) ? ""
-            : Messages.get(sender, "mirror.cmd.list.starts", mirror.start());
-        return mirror.follows() ? (starts + Messages.get(sender, "mirror.cmd.list.follows")) : starts;
+        final StringBuilder notes = new StringBuilder();
+        if (mirror.start() != null)
+        {
+            notes.append(Messages.get(sender, "mirror.cmd.list.starts", mirror.start()));
+        }
+        if (mirror.follows())
+        {
+            notes.append(Messages.get(sender, "mirror.cmd.list.follows"));
+        }
+        final MirrorAccess access = mirror.access();
+        if (access.group() != null)
+        {
+            notes.append(Messages.get(sender, "mirror.cmd.list.group", access.group()));
+        }
+        if (access.hidden())
+        {
+            notes.append(Messages.get(sender, "mirror.cmd.list.hidden"));
+        }
+        if (access.restricted())
+        {
+            notes.append(Messages.get(sender, "mirror.cmd.list.private"));
+        }
+        return notes.toString();
     }
 
     /** A destination as a person would read it. */

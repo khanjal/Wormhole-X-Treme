@@ -1102,7 +1102,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set"));
         assertTrue(run(player, "mirror", "set", "museum"));
 
-        verify(player, atLeast(2)).sendMessage(plainContains("set [<name>] <-stamp|-start|-capture|-follow>"));
+        verify(player, atLeast(2)).sendMessage(plainContains("set [<name>] <-stamp|-start|-capture|-follow|-group|-hidden|-private>"));
     }
 
     /** A property without its dash is not a property any more, and says so. */
@@ -1127,7 +1127,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set", "museum", "colour", "blue"));
 
         verify(player, atLeastOnce()).sendMessage(contains("is not something a mirror has"));
-        verify(player, atLeastOnce()).sendMessage(plainContains("set [<name>] <-stamp|-start|-capture|-follow>"));
+        verify(player, atLeastOnce()).sendMessage(plainContains("set [<name>] <-stamp|-start|-capture|-follow|-group|-hidden|-private>"));
     }
 
     /**

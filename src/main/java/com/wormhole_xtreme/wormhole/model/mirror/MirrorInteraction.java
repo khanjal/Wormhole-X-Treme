@@ -137,7 +137,7 @@ public final class MirrorInteraction
         }
         final String before = MirrorNetwork.chosen(mirror).name();
         final String said = MirrorNetwork.scroll(mirror,
-            MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), player), player);
+            MirrorNetwork.playersNear(block.getWorld(), mirror.banner(), player), player);
         if (said != null)
         {
             hint(player, said);
@@ -187,6 +187,12 @@ public final class MirrorInteraction
         if (MirrorNetwork.reflects(mirror))
         {
             hint(player, Messages.get(player, "mirror.interact.reflecting", MirrorText.name(mirror.name())));
+            return;
+        }
+        // Somebody else may have turned it to a mirror this player's own right-click would not list.
+        if (!MirrorNetwork.reachable(mirror, player))
+        {
+            hint(player, Messages.get(player, "mirror.interact.not-open"));
             return;
         }
         final QuantumMirror target = MirrorNetwork.chosen(mirror);

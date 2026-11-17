@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -174,6 +175,37 @@ class MirrorSignpostTest
 
         assertEquals(3, shown().size(),
             "an action bar line fades, so staying on screen means being re-sent");
+    }
+
+    /**
+     * A private mirror somebody else turned this one to is named only to a holder of the node (#280).
+     *
+     * <p>The line names where a punch goes; to a player whose own list would not reach it, that is
+     * the private mirror's name handed out to anybody who looks.
+     */
+    @Test
+    void aPrivateMirrorItOpensOntoIsNamedOnlyToAHolderOfTheNode()
+    {
+        MirrorNetwork.clear();
+        boundMirror();
+        MirrorManager.add(new QuantumMirror("vault", new BlockPlace("end", 0, 64, 0),
+            new Place("end", 0.5, 63, 0.5, 0f, 0f)).withAccess(new MirrorAccess(null, false, true)));
+        final Player staff = mock(Player.class);
+        when(staff.hasPermission(MirrorNetwork.SEE_PRIVATE)).thenReturn(true);
+        MirrorNetwork.scroll(MirrorManager.byName("museum"), false, staff);
+        lookingAt(banner);
+
+        sweep();
+        assertEquals(1, shown().size(), "one line to a player without the node: " + shown());
+        assertTrue(shown().get(0).contains("right-click to choose a mirror you may use"),
+            "asked to choose another instead: " + shown());
+        assertFalse(shown().get(0).contains("vault"), "without naming the private mirror: " + shown());
+
+        when(player.hasPermission(MirrorNetwork.SEE_PRIVATE)).thenReturn(true);
+        sweep();
+        assertEquals(2, shown().size(), "and one to a holder of it: " + shown());
+        assertTrue(shown().get(1).contains("vault"), "which names the private mirror: " + shown());
+        MirrorNetwork.clear();
     }
 
     /** Look away and it stops, rather than following you round. */
