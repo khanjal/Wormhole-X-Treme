@@ -278,6 +278,22 @@ class MirrorSettingsCommandTest
         verify(sender, atLeastOnce()).sendMessage(plainContains("-group <group|-none>"));
     }
 
+    /**
+     * A name with no value after it is the name, not the value (#280).
+     *
+     * <p>{@code set museum -group} would otherwise shift to {@code -group museum}: the banner
+     * being looked at put in a group called "museum". Here nothing is looked at, so that reading
+     * asks the player to look at a banner instead of saying the form.
+     */
+    @Test
+    void aNameAloneBeforeAValuedPropertyIsNotTakenAsItsValue()
+    {
+        run("mirror", "set", "museum", "-group");
+
+        verify(sender, atLeastOnce()).sendMessage(plainContains("set [<name>] -group <group|-none>"));
+        verify(sender, never()).sendMessage(plainContains("Look at the banner you want to use"));
+    }
+
     /** The list says which group a mirror is in, and which are hidden or private. */
     @Test
     void listsTheGroupAndTheFlags()

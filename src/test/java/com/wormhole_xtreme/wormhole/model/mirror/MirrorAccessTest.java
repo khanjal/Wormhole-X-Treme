@@ -191,9 +191,14 @@ class MirrorAccessTest
             "an ordinary mirror's entry is as it was: " + written);
         assertEquals(MirrorAccess.OPEN, MirrorYamlManager.readMirror("hub", written).access());
 
-        final QuantumMirror closed = plain.withAccess(new MirrorAccess("Museum", true, true));
-        final QuantumMirror back = MirrorYamlManager.readMirror("hub", MirrorYamlManager.writeMirror(closed));
-        assertEquals(new MirrorAccess("Museum", true, true), back.access());
+        // One flag on and the other off each way round, so neither can be read from the other's key.
+        for (final MirrorAccess access : List.of(new MirrorAccess("Museum", false, true),
+            new MirrorAccess(null, true, false)))
+        {
+            final QuantumMirror back = MirrorYamlManager.readMirror("hub",
+                MirrorYamlManager.writeMirror(plain.withAccess(access)));
+            assertEquals(access, back.access(), "read back as written");
+        }
     }
 
     /** A blank group is no group, so a hand-edited empty one does not make a group of its own. */
