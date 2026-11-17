@@ -164,6 +164,9 @@ public class MirrorCommand implements SubCommand
     /** @see #ON */
     private static final String OFF = "off";
 
+    /** How a {@code set} usage line opens, before the property. */
+    private static final String SET_NAMED = "set [<name>] ";
+
     /** A start that is the mirror's own room again. */
     private static final String NONE = "-none";
 
@@ -950,7 +953,7 @@ public class MirrorCommand implements SubCommand
     /** @see #follow */
     private static void sayFollowUsage(final CommandSender sender)
     {
-        sayUsage(sender, "set [<name>] " + FOLLOW + " <on|off>");
+        sayUsage(sender, SET_NAMED + FOLLOW + " <on|off>");
     }
 
     /**
@@ -995,7 +998,7 @@ public class MirrorCommand implements SubCommand
     /** @see #group */
     private static void sayGroupUsage(final CommandSender sender)
     {
-        sayUsage(sender, "set [<name>] " + GROUP + " <group|" + NONE + ">");
+        sayUsage(sender, SET_NAMED + GROUP + " <group|" + NONE + ">");
     }
 
     /**
@@ -1055,7 +1058,7 @@ public class MirrorCommand implements SubCommand
     /** @see #listing */
     private static void sayOnOffUsage(final CommandSender sender, final String property)
     {
-        sayUsage(sender, "set [<name>] " + property + " <on|off>");
+        sayUsage(sender, SET_NAMED + property + " <on|off>");
     }
 
     /** The room a following banner reads, as a person would say it. */
