@@ -274,6 +274,8 @@ class MirrorChoosingSignTest
         final QuantumMirror hub = mirror("hub", 0);
         mirror("farm", 4);
         mirror("nether", 8);
+        // First in this holder's own right-click list, so a sign walking that list would open it.
+        mirror("aaa-vault", 12, MirrorAccess.OPEN.withRestricted(true));
         final Block banner = block(Material.WHITE_WALL_BANNER, 0, 64);
         final Block[] sign = new Block[1];
         final SignSide front = signUnder(banner, "[mirror]", sign);
