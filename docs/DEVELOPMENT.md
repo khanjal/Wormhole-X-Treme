@@ -577,7 +577,7 @@ the run like a chamber's `needs.config`. A false check also prints what it saw (
   CoreProtect with neither installed; the entity sweep at its fixed once a second (an item lying in
   an open gate is sent within a second or two); and placeholders and economy, in force at once
   (each says at once that its plugin is missing; the start before said neither).
-- **Permissions** (`permissions.js`), by Probe2, never an op, with no permissions plugin: the
+- **Permissions** (`permissions.js`), by Probe2, never an op, with no permissions plugin or no Vault: the
   plugin falls back to its simple mode at start, so Probe2 may use a gate, `/wormhole list` and the
   compass, but not preview, configure or remove (and `go` to a gate is no gate to it). It refuses
   a run with LuckPerms installed: the Permissions Desk covers that.
@@ -616,7 +616,7 @@ Every setting, and where it is changed and its effect seen:
 
 Not changed by any case, and why:
 
-- `permissions-support-disable`: off by default, and with no permissions plugin the simple mode
+- `permissions-support-disable`: off by default, and with no permissions plugin or no Vault the simple mode
   comes from the fallback anyway. #550 retired `help-support-disable` (nothing read it), and made
   `ring-default-material` (removed in 1.11.0, its smooth stone slab now fixed) the slab a ring is
   drawn in when its own is one the server lacks, which no case stages.
@@ -805,7 +805,7 @@ What the companion stage found (the combined jar, #240 + #236 + #491 on main, 1.
 - The #236 checklist's gate rename has nothing to run: `gate edit` has no `name` field, so a gate
   cannot be renamed (`map rename`, a known failure). Rings (`ring edit name`) and mirrors (made
   again at the same banner) do relabel.
-- With a permissions plugin, a player holds only the nodes given, and a mirror is used under a
+- With a permissions plugin and Vault, a player holds only the nodes given, and a mirror is used under a
   gate's use check (`wormhole.use.sign` or `wormhole.use.dialer`, both `default: false`; the
   `wormhole.use.<shape>` part of it never refuses a mirror, which has no shape), where
   rings and beams have nodes that default to true: Probe2 with no group could not choose a mirror

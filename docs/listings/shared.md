@@ -298,7 +298,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and
   `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate,
   lighter on a small one.
-- **Works with or without a permissions plugin.** Vault with a permissions provider such as LuckPerms (LuckPerms alone is not enough), a built-in
+- **Works with or without a permissions plugin.** Vault and a permissions plugin such as LuckPerms, both needed for permission nodes, a built-in
   fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.

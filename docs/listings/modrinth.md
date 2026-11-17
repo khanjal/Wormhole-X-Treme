@@ -311,7 +311,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Everything travels** — minecarts and boats with their passengers, ridden horses, camels, pigs, donkeys, llamas and striders with their riders, arrows and tridents and ender pearls in mid-flight, and mobs, items and XP orbs that wander into an open gate. Tamed wolves, cats and parrots follow their owner through any of the four.
 - **Configured in game.** `/wormhole config <setting> <value>` changes nearly any setting on the spot, with no reload; a few, such as turning `worldguard-enabled` on, wait for a restart. `/wormhole config sign` searches them.
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate, lighter on a small one.
-- **Works with or without a permissions plugin.** Vault with a permissions provider such as LuckPerms (LuckPerms alone is not enough), a built-in fallback if you do not.
+- **Works with or without a permissions plugin.** Vault and a permissions plugin such as LuckPerms, both needed for permission nodes, a built-in fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
 - **Events for other plugins** to watch or cancel travel, and to hear a wormhole open and close.
 - **PlaceholderAPI**, if you want it: gates total, gates open, gates owned, the nearest gate, and a player's own trip, gate-built, ring and beam counts, for a scoreboard or tab list.
