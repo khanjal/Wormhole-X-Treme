@@ -94,7 +94,7 @@ class PortalBackdropTest
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
         gate.getGatePortalBlocks().add(new Location(world, 11, 65, 20));
 
-        final List<Location> front = StargateBlockSetup.portalForecourtCells(gate);
+        final List<Location> front = PortalBackdrop.portalForecourtCells(gate);
 
         assertEquals(2, front.size(), "one cell per portal cell");
         assertEquals(21, front.get(0).getBlockZ(), "south faces +z, so in front is +z");
@@ -114,9 +114,9 @@ class PortalBackdropTest
         gate.setGateFacing(BlockFace.UP);
         gate.getGatePortalBlocks().add(new Location(world, 4, 70, 9));
 
-        assertEquals(71, StargateBlockSetup.portalForecourtCells(gate).get(0).getBlockY(),
+        assertEquals(71, PortalBackdrop.portalForecourtCells(gate).get(0).getBlockY(),
             "up-facing, so in front of it is one block up");
-        assertEquals(69, StargateBlockSetup.portalBackdropCells(gate).get(0).getBlockY(),
+        assertEquals(69, PortalBackdrop.portalBackdropCells(gate).get(0).getBlockY(),
             "and the backdrop is the other way");
     }
 
@@ -135,11 +135,11 @@ class PortalBackdropTest
         noFacing.setGateWorld(world);
         noFacing.getGatePortalBlocks().add(new Location(world, 0, 64, 0));
 
-        assertTrue(StargateBlockSetup.portalForecourtCells(null).isEmpty(), "no gate");
-        assertTrue(StargateBlockSetup.portalForecourtCells(noWorld).isEmpty(), "no world");
-        assertTrue(StargateBlockSetup.portalForecourtCells(noFacing).isEmpty(), "no facing");
-        assertTrue(StargateBlockSetup.portalBackdropCells(noWorld).isEmpty(), "no world, backdrop");
-        assertEquals(1, StargateBlockSetup.portalForecourtCells(gate).size(), "a whole gate does");
+        assertTrue(PortalBackdrop.portalForecourtCells(null).isEmpty(), "no gate");
+        assertTrue(PortalBackdrop.portalForecourtCells(noWorld).isEmpty(), "no world");
+        assertTrue(PortalBackdrop.portalForecourtCells(noFacing).isEmpty(), "no facing");
+        assertTrue(PortalBackdrop.portalBackdropCells(noWorld).isEmpty(), "no world, backdrop");
+        assertEquals(1, PortalBackdrop.portalForecourtCells(gate).size(), "a whole gate does");
     }
 
     // -----------------------------------------------------------------------
@@ -155,11 +155,11 @@ class PortalBackdropTest
         gate.setGateFacing(BlockFace.SOUTH);
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
 
-        assertTrue(StargateBlockSetup.seesFront(gate, new Location(world, 10.5, 64.5, 20.5)),
+        assertTrue(PortalBackdrop.seesFront(gate, new Location(world, 10.5, 64.5, 20.5)),
             "in the plane is the front");
-        assertFalse(StargateBlockSetup.seesFront(gate, new Location(world, 10.5, 64.5, 20.4)),
+        assertFalse(PortalBackdrop.seesFront(gate, new Location(world, 10.5, 64.5, 20.4)),
             "a hair behind it is not");
-        assertTrue(StargateBlockSetup.seesFront(gate, new Location(world, 10.5, 64.5, 20.6)),
+        assertTrue(PortalBackdrop.seesFront(gate, new Location(world, 10.5, 64.5, 20.6)),
             "a hair in front is");
     }
 
@@ -170,17 +170,17 @@ class PortalBackdropTest
     void whenItCannotTellItAnswersFront()
     {
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
-        assertTrue(StargateBlockSetup.seesFront(gate, new Location(world, 10.5, 64, 0.0)),
+        assertTrue(PortalBackdrop.seesFront(gate, new Location(world, 10.5, 64, 0.0)),
             "no facing yet");
 
         final Stargate empty = new Stargate();
         empty.setGateWorld(world);
         empty.setGateFacing(BlockFace.SOUTH);
-        assertTrue(StargateBlockSetup.seesFront(empty, new Location(world, 10.5, 64, 0.0)),
+        assertTrue(PortalBackdrop.seesFront(empty, new Location(world, 10.5, 64, 0.0)),
             "no portal cells yet, from behind where they would be");
 
         gate.setGateFacing(BlockFace.SOUTH);
-        assertTrue(StargateBlockSetup.seesFront(gate, null), "no eye");
+        assertTrue(PortalBackdrop.seesFront(gate, null), "no eye");
     }
 
     /**
@@ -193,7 +193,7 @@ class PortalBackdropTest
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 20));
         gate.getGatePortalBlocks().add(new Location(world, 10, 64, 25));
 
-        assertTrue(StargateBlockSetup.seesFront(gate, new Location(world, 10.5, 64.5, 22.0)),
+        assertTrue(PortalBackdrop.seesFront(gate, new Location(world, 10.5, 64.5, 22.0)),
             "in front of the first cell, though behind the second");
     }
 
@@ -217,10 +217,10 @@ class PortalBackdropTest
             manager.when(() -> StargateManager.isPortalBlock(air)).thenReturn(false);
             manager.when(() -> StargateManager.isPortalBlock(neighbours)).thenReturn(true);
 
-            assertTrue(StargateBlockSetup.backdropIsFree(new Location(world, 1, 64, 1)), "air");
-            assertTrue(StargateBlockSetup.backdropIsFree(new Location(world, 2, 64, 2)), "cave air");
-            assertFalse(StargateBlockSetup.backdropIsFree(new Location(world, 3, 64, 3)), "stone");
-            assertFalse(StargateBlockSetup.backdropIsFree(new Location(world, 4, 64, 4)),
+            assertTrue(PortalBackdrop.backdropIsFree(new Location(world, 1, 64, 1)), "air");
+            assertTrue(PortalBackdrop.backdropIsFree(new Location(world, 2, 64, 2)), "cave air");
+            assertFalse(PortalBackdrop.backdropIsFree(new Location(world, 3, 64, 3)), "stone");
+            assertFalse(PortalBackdrop.backdropIsFree(new Location(world, 4, 64, 4)),
                 "air that is a neighbouring gate's opening");
         }
     }
@@ -243,7 +243,7 @@ class PortalBackdropTest
         final BlockData freeData = free.getBlockData();
         final Player player = watcherAt(10, 64, 24);
 
-        StargateBlockSetup.sendPortalBackdropTo(player, gate, false);
+        PortalBackdrop.sendPortalBackdropTo(player, gate, false);
 
         verify(player).sendBlockChange(argThat(at -> at.getBlockY() == 64 && at.getBlockZ() == 19),
             eq(freeData));
@@ -270,7 +270,7 @@ class PortalBackdropTest
                 .thenReturn(horizon);
             materials.when(() -> MaterialUtils.isAirMaterial(Material.AIR)).thenReturn(true);
 
-            StargateBlockSetup.sendPortalBackdropTo(player, gate, true);
+            PortalBackdrop.sendPortalBackdropTo(player, gate, true);
         }
 
         verify(player).sendBlockChange(any(Location.class), eq(horizon));
@@ -286,8 +286,8 @@ class PortalBackdropTest
         final Player player = watcherAt(0, 64, 0);
         when(world.getPlayers()).thenReturn(List.of(player));
 
-        StargateBlockSetup.sendPortalBackdropTo(player, gate, true);
-        StargateBlockSetup.sendPortalBackdrop(gate, true);
+        PortalBackdrop.sendPortalBackdropTo(player, gate, true);
+        PortalBackdrop.sendPortalBackdrop(gate, true);
 
         verify(player, never()).sendBlockChange(any(Location.class), any(BlockData.class));
         verify(world, never()).getPlayers();
@@ -306,7 +306,7 @@ class PortalBackdropTest
         final Player behind = watcherAt(10, 64, 10);
         when(world.getPlayers()).thenReturn(List.of(inFront, behind));
 
-        StargateBlockSetup.sendPortalBackdrop(gate, false);
+        PortalBackdrop.sendPortalBackdrop(gate, false);
 
         verify(inFront).sendBlockChange(any(Location.class), any(BlockData.class));
         verify(behind).sendBlockChange(any(Location.class), any(BlockData.class));

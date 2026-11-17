@@ -230,9 +230,9 @@ class IrisLayeringTest
     @Test
     void theFrontIsTheSideTheGateFaces()
     {
-        assertTrue(StargateBlockSetup.seesFront(gate, new Location(world, X + 0.5, Y, Z - 3.0)),
+        assertTrue(PortalBackdrop.seesFront(gate, new Location(world, X + 0.5, Y, Z - 3.0)),
             "a north-facing gate's front is to the north, the smaller z");
-        assertFalse(StargateBlockSetup.seesFront(gate, new Location(world, X + 0.5, Y, Z + 4.0)),
+        assertFalse(PortalBackdrop.seesFront(gate, new Location(world, X + 0.5, Y, Z + 4.0)),
             "and three blocks the other way is behind it");
     }
 
