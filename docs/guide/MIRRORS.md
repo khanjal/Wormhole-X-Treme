@@ -115,8 +115,8 @@ click opens onto. The banner still answers a right-click; the sign sits beside i
 sign does nothing to the mirror, so the sign can be broken like any other.
 
 **One list for everybody.** A sign is read by everybody who walks past, so it walks the public
-list only: the mirror's start, then its group's mirrors, never a hidden or private one, even for
-a player with `wormhole.mirror.private`. If somebody allowed a private mirror turns the banner to
+list only: the mirror's start (named even if hidden, as on the banner), then its group's listed
+mirrors, never another hidden or private one, even for a player with `wormhole.mirror.private`. If somebody allowed a private mirror turns the banner to
 one, the sign's middle line is left blank rather than naming it. The sign is redrawn whenever the
 mirror moves on, and when it goes back to its own room. A right-click on it never opens the sign
 for editing; to rewrite it, or after the mirror is created again under another name, break it and
