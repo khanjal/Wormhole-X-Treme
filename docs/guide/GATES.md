@@ -697,8 +697,10 @@ default 8), then takes itself down. It is off unless `ping-enabled` is true, nee
   `waypoint_transmit_range` attribute (6.0E7, the most it takes, so your own receive range decides
   how far off you see it) and coloured aqua on the bar where the server allows. It is shown only
   to you as an entity, is never saved, and holds its chunk loaded only while it stands.
-- **Which gates.** Only a gate you could list, on a network you may use; any other name gets the
-  same "no gate called" answer as one that does not exist. Tab completion offers the same gates.
+- **Which gates.** The gates `/dial` completes for you: every gate with `wormhole.list`, only your
+  own with `wormhole.list.mine` alone (which everyone holds), none otherwise; and of those, only
+  one on a network you may use. Any other name gets the same "no gate called" answer as one that
+  does not exist. Tab completion offers the same gates.
 - **One world.** The locator bar shows your own world only, so a gate elsewhere is named and not
   pinged.
 - **One at a time.** A new ping replaces your last; `ping-cooldown-seconds` (default 20) spaces
@@ -707,6 +709,8 @@ default 8), then takes itself down. It is off unless `ping-enabled` is true, nee
 - **Not verified on a client yet.** The server side is checked: the marker stands, takes the
   attribute and goes on time. Whether the locator bar draws it, and whether other players see it
   too, is for a player to confirm in game ([#16](https://github.com/khanjal/Wormhole-X-Treme/issues/16)).
+  On 1.21.11 the server's own `/waypoint list` did list the invisible marker; if the bar still
+  does not draw it, leaving the marker visible is the fallback to try.
 
 ## Commands
 
