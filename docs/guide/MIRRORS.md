@@ -16,6 +16,7 @@ dropped — is in the design notes, [docs/MIRRORS.md](../MIRRORS.md).
 
 - [Setting one up](#setting-one-up)
 - [Groups, hidden and private mirrors](#groups-hidden-and-private-mirrors)
+- [A sign to choose with](#a-sign-to-choose-with)
 - [Commands](#commands)
 - [What you see in one](#what-you-see-in-one)
 - [Its look](#its-look)
@@ -94,6 +95,31 @@ near: they may glimpse it for about a second. A start is the exception, as above
 **Web maps** leave hidden and private mirrors off; a mirror in a group is marked as before.
 
 `mirror-per-world-limit` still counts every mirror in a world, whatever its group.
+
+## A sign to choose with
+
+For anybody who would rather see the list than click through it blind, put a sign touching a
+mirror's banner (beside it, under it or above it) and write `[mirror]` on the first line of its
+front. Right-click the sign and the mirror moves on, as a right-click on the banner does, and the
+sign shows the mirror's name, then the previous, current and next mirror:
+
+```
+-library-
+tower
+»garden«
+nether
+```
+
+Before anybody chooses, the middle line says `Its own room` and the last the mirror the first
+click opens onto. The banner still answers a right-click; the sign sits beside it. A punch on the
+sign does nothing to the mirror, so the sign can be broken like any other.
+
+**One list for everybody.** A sign is read by everybody who walks past, so it walks the public
+list only: the mirror's start, then its group's mirrors, never a hidden or private one, even for
+a player with `wormhole.mirror.private`. If somebody allowed a private mirror turns the banner to
+one, the sign's middle line is left blank rather than naming it. The sign is redrawn whenever the
+mirror changes, and when it goes back to its own room. Its colours and glow are the dial sign's
+(`sign-color-gate-name`, `sign-color-selected`, `sign-color-neighbour`, `sign-glowing-text`).
 
 ## Commands
 
