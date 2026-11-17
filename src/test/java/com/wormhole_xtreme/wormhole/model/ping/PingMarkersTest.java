@@ -305,6 +305,24 @@ class PingMarkersTest
         assertEquals(0, held.pending());
     }
 
+    /** The range is read back, not assumed: a server that keeps it at 0 gets no marker either. */
+    @Test
+    void aMarkerThatKeepsARangeOfNothingIsRemovedAgain()
+    {
+        PingMarkers.spawnWith(at ->
+        {
+            final ArmorStand stand = stand(false);
+            final AttributeInstance stuck = mock(AttributeInstance.class);
+            when(stand.getAttribute(transmit)).thenReturn(stuck);
+            return stand;
+        });
+
+        assertEquals(PingMarkers.Outcome.FAILED, PingMarkers.place(player(UUID.randomUUID()), gate()));
+
+        verify(spawned.get(0)).remove();
+        assertEquals(0, PingMarkers.live());
+    }
+
     /**
      * The marker is set up so nobody can see, hit, push or hear it, it is never saved, it is
      * tagged for the orphan sweep, it is shown to its owner, and it transmits as far as the
