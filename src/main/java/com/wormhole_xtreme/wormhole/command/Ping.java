@@ -45,8 +45,8 @@ public class Ping implements CommandExecutor
     }
 
     /**
-     * The gates a sender may be offered after {@code ping}: none while ping is off or to anyone
-     * but a player, else those {@link #maySee} allows.
+     * The gates a sender may be offered after {@code ping}: none while ping is off, on a server
+     * with no locator bar, or to anyone but a player; else those {@link #maySee} allows.
      *
      * @param sender
      *            who is completing
@@ -54,7 +54,7 @@ public class Ping implements CommandExecutor
      */
     static Collection<Stargate> gatesToComplete(final CommandSender sender)
     {
-        if (!(sender instanceof Player player) || !ConfigManager.isPingEnabled())
+        if (!(sender instanceof Player player) || !ConfigManager.isPingEnabled() || !Waypoints.isSupported())
         {
             return Collections.emptyList();
         }

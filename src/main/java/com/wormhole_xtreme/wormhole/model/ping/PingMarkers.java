@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongSupplier;
 import java.util.logging.Level;
 
@@ -15,6 +16,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -77,6 +79,12 @@ public final class PingMarkers
 
     private static LongSupplier clock = System::currentTimeMillis;
 
+    /** True only while a marker is being spawned, so its own spawn event can be told apart. */
+    private static boolean spawning;
+
+    /** Whether that spawn event finished cancelled; set by the listener during the spawn call. */
+    private static final AtomicBoolean SPAWN_REFUSED = new AtomicBoolean();
+
     /** Static helpers only. */
     private PingMarkers()
     {
@@ -119,31 +127,17 @@ public final class PingMarkers
         final UUID id = owner.getUniqueId();
         // Every attempt counts, so a server that keeps failing cannot be made to spawn every tick.
         startCooldown(id);
-        final Chunk chunk = at.getChunk();
-        ChunkTickets.hold(chunk);
-        ArmorStand stand = null;
-        try
+        final Marker raised = raise(owner, at);
+        if (raised == null)
         {
-            stand = spawner.spawn(at.clone());
-            settle(stand, owner);
-        }
-        catch (final RuntimeException e)
-        {
-            PluginLog.log(Level.WARNING, "Could not place a locator bar ping", e);
-            if (stand == null)
-            {
-                ChunkTickets.release(chunk);
-            }
-            else
-            {
-                discard(new Marker(stand, chunk, -1));
-            }
             return Outcome.FAILED;
         }
+        final ArmorStand stand = raised.stand();
+        // Only after settle has hidden it: Paper sends a waypoint only to a player who can see its source.
         if (!transmits(stand))
         {
             PluginLog.log(Level.WARNING, "A locator bar ping would not take its waypoint transmit range; removed it");
-            discard(new Marker(stand, chunk, -1));
+            discard(raised);
             return Outcome.FAILED;
         }
         Waypoints.colour(stand, COLOUR);
@@ -151,12 +145,114 @@ public final class PingMarkers
         if (task < 0)
         {
             // Nothing would ever take it down.
-            discard(new Marker(stand, chunk, -1));
+            discard(raised);
             return Outcome.FAILED;
         }
         remove(id);
-        LIVE.put(id, new Marker(stand, chunk, task));
+        LIVE.put(id, new Marker(stand, raised.chunk(), task));
         return Outcome.PLACED;
+    }
+
+    /**
+     * Holds the chunk, spawns the marker and settles it; on any failure, or a spawn another plugin
+     * cancelled, lets go of whatever it had.
+     *
+     * @param owner
+     *            who pinged
+     * @param at
+     *            where the marker stands
+     * @return the settled marker with no expiry yet, or null
+     */
+    private static Marker raise(final Player owner, final Location at)
+    {
+        Chunk chunk = null;
+        boolean held = false;
+        ArmorStand stand = null;
+        try
+        {
+            chunk = at.getChunk();
+            ChunkTickets.hold(chunk);
+            held = true;
+            stand = spawn(at);
+            if (SPAWN_REFUSED.get())
+            {
+                PluginLog.log(Level.FINE, "A locator bar ping's spawn was cancelled by another plugin");
+                letGo(stand, chunk, held);
+                return null;
+            }
+            settle(stand, owner);
+            return new Marker(stand, chunk, -1);
+        }
+        catch (final RuntimeException e)
+        {
+            PluginLog.log(Level.WARNING, "Could not place a locator bar ping", e);
+            letGo(stand, chunk, held);
+            return null;
+        }
+    }
+
+    /** Spawns the stand, recording whether its spawn event finished cancelled. */
+    private static ArmorStand spawn(final Location at)
+    {
+        spawning = true;
+        SPAWN_REFUSED.set(false);
+        try
+        {
+            return spawner.spawn(at.clone());
+        }
+        finally
+        {
+            spawning = false;
+        }
+    }
+
+    /** Removes a stand that never became a ping, or lets go of the chunk held for it. */
+    private static void letGo(final ArmorStand stand, final Chunk chunk, final boolean held)
+    {
+        if (stand != null)
+        {
+            discard(new Marker(stand, chunk, -1));
+        }
+        else if (held)
+        {
+            ChunkTickets.release(chunk);
+        }
+    }
+
+    /**
+     * Whether a marker is being spawned right now.
+     *
+     * @return true only inside a ping's own spawn call
+     */
+    public static boolean isSpawning()
+    {
+        return spawning;
+    }
+
+    /**
+     * Records how a marker's spawn event finished.
+     *
+     * @param cancelled
+     *            whether it ended cancelled after every listener had run
+     */
+    public static void spawnSettled(final boolean cancelled)
+    {
+        if (spawning)
+        {
+            SPAWN_REFUSED.set(cancelled);
+        }
+    }
+
+    /**
+     * Whether an entity is a ping's marker, for the sweeps that move what stands in a gate.
+     *
+     * @param entity
+     *            any entity
+     * @return true for a tagged marker armour stand
+     */
+    public static boolean isMarker(final Entity entity)
+    {
+        return (entity instanceof ArmorStand) && entity.getScoreboardTags().contains(TAG);
     }
 
     /** Starts a player's cooldown now, forgetting every cooldown already over. */

@@ -304,6 +304,9 @@ class PingCommandTest
         ConfigTestSupport.set(ConfigKeys.PING_ENABLED, true);
         assertEquals(List.of("Abydos"), entry.completeArgs(alice, new String[] { "ping", "" }),
             "the private network's gate is not offered");
+        PingTestSupport.locatorBar(false, ranges::get);
+        assertTrue(entry.completeArgs(alice, new String[] { "ping", "" }).isEmpty(),
+            "nothing on a server with no locator bar, where every ping would be refused");
         assertFalse(entry.completeArgs(mock(ConsoleCommandSender.class),
             new String[] { "ping", "" }).contains("Abydos"), "the console cannot ping");
     }

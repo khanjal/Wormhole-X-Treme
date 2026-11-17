@@ -34,6 +34,7 @@ import org.bukkit.util.BoundingBox;
 import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.ping.PingMarkers;
 import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
@@ -857,8 +858,9 @@ public final class GateEntityScanner implements Runnable
         // Display and interaction entities are scenery another plugin put somewhere on purpose,
         // holograms and build previews among them, and have no business travelling.
         // A view's stand-in (#296) is a picture of a creature somewhere else, shown to one viewer.
+        // A locator bar ping's marker (#16) marks this gate for a few seconds and must stay put.
         if ((entity instanceof Hanging) || (entity instanceof Display)
-            || (entity instanceof Interaction) || StandIns.isStandIn(entity))
+            || (entity instanceof Interaction) || StandIns.isStandIn(entity) || PingMarkers.isMarker(entity))
         {
             return false;
         }

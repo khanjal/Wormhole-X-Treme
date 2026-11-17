@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -27,11 +28,13 @@ import org.bukkit.World;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import com.wormhole_xtreme.wormhole.HeldScheduler;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -356,6 +359,59 @@ class PingMarkersTest
 
         held.runNext();
         verify(spawned.get(0)).remove();
+        assertEquals(0, PingMarkers.live());
+    }
+
+    /**
+     * The marker is hidden from everyone but its owner before it is given its range: Paper sends a
+     * waypoint only to a player who can see its source, so in the other order every player in the
+     * world would be sent the ping for the moment in between.
+     */
+    @Test
+    void theMarkerIsHiddenBeforeItIsGivenItsRange()
+    {
+        final Player owner = player(UUID.randomUUID());
+        PingMarkers.place(owner, gate());
+        final ArmorStand stand = spawned.get(0);
+
+        final InOrder order = inOrder(stand, owner, ranges.get(stand));
+        order.verify(stand).setVisibleByDefault(false);
+        order.verify(owner).showEntity(plugin, stand);
+        order.verify(ranges.get(stand)).setBaseValue(Waypoints.TRANSMIT_RANGE);
+    }
+
+    /** A spawn another plugin cancelled is no ping: the stand is removed and its chunk let go. */
+    @Test
+    void aCancelledSpawnIsNoPing()
+    {
+        PingMarkers.spawnWith(at ->
+        {
+            final ArmorStand stand = stand(true);
+            final EntitySpawnEvent spawn = mock(EntitySpawnEvent.class);
+            when(spawn.getEntity()).thenReturn(stand);
+            when(spawn.isCancelled()).thenReturn(true);
+            new PingListener().onSpawnSettled(spawn);
+            return stand;
+        });
+
+        assertEquals(PingMarkers.Outcome.FAILED, PingMarkers.place(player(UUID.randomUUID()), gate()));
+
+        verify(spawned.get(0)).remove();
+        verify(spawned.get(0), never()).setMarker(true);
+        verify(chunk).removePluginChunkTicket(plugin);
+        assertEquals(0, PingMarkers.live());
+        assertEquals(0, held.pending());
+    }
+
+    /** A chunk that will not load is no ping, and nothing is held or spawned for it. */
+    @Test
+    void aChunkThatWillNotLoadIsNoPing()
+    {
+        when(world.getChunkAt(any(Location.class))).thenThrow(new IllegalStateException("no chunk"));
+
+        assertEquals(PingMarkers.Outcome.FAILED, PingMarkers.place(player(UUID.randomUUID()), gate()));
+
+        assertTrue(spawned.isEmpty());
         assertEquals(0, PingMarkers.live());
     }
 
