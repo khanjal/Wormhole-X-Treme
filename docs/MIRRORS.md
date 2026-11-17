@@ -911,7 +911,7 @@ and each drew the eye to the very edge it was there to hide.
 
 `mirror-show-entities`, off by default, and it governs gate views as much as mirrors
 ([#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)). With it on, the mobs standing in
-a window's far room show through it. Bukkit has no call for a fake entity, so each is a
+a window's far room show through it, and so do its boats and minecarts. Bukkit has no call for a fake entity, so each is a
 **stand-in**: a real entity of the same type, spawned in the viewer's world where the far side's
 blocks for that spot are drawn, turned or flipped as they are, hidden from everybody and shown to
 that one viewer (`HiddenEntities`).
@@ -947,7 +947,7 @@ that one viewer (`HiddenEntities`).
   (`Chunk.isEntitiesLoaded`, since 1.17 a separate step); the reading never loads one itself. So a
   held chunk's creatures show at the next sweep once its entities are in. The tests are
   `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities` and `FarChunkHoldsTest`.
-- **What is copied.** Mobs, and players only with `mirror-show-players` (below); not armour stands,
+- **What is copied.** Mobs, boats and minecarts (below), and players only with `mirror-show-players` (below); not armour stands,
   displays, interactions, the companion, invisible mobs, anything hidden by default or hidden from
   this viewer by anything but this view's own veil, the dragon or the wither (a boss bar, and the
   dragon's parts), a snow golem or a shulker (with no AI at all, one still lays snow and the other
@@ -1042,6 +1042,28 @@ that one viewer (`HiddenEntities`).
   kind, one of it, with only an enchantment glint, an armour trim, a leather colour and a head's
   skin carried over. Custom model data is not carried (its API changed shape inside the supported
   range), so a resource pack's custom model shows as the plain item.
+- **Boats and minecarts** (#296, step 1b). Boats, chest boats and every minecart in the far room
+  are chosen by the mobs' rules (loaded chunks only, in the room, in view, on drawn floor unless
+  in water or without gravity) and share their twenty, nearest first, so a rail yard can crowd out
+  mobs no further away than its carts but no more. Not item frames, paintings, dropped items,
+  armour stands or displays: a gate preview's own figures are armour stands and displays. Every
+  minecart, chest, hopper, furnace, TNT, spawner and command cart alike, is shown as a plain empty
+  cart, so a copy can never explode, pick up or move items, spawn, smoke or run a command; a chest
+  boat as the plain boat of its wood; nothing inside one is copied. The wood is the boat's entity
+  type from 1.21.3 (the chest boat's type without `CHEST_`), and up to 1.21.1 it is copied through
+  `getBoatType`/`setBoatType`, looked up by name; a boat with no plain boat by its name is not
+  shown. Inert as a mob's stand-in, tagged, never saved and in the one registry, so every cleanup
+  below covers them: no gravity, silent, invulnerable, a cart's top speed nothing and its velocity
+  multipliers zero. Bukkit has no `setCollidable` for anything but a living entity, so a vehicle
+  stand-in keeps its solid box; the listener refuses getting in or out (whichever side is a
+  stand-in, since a real boat bumping a mob's stand-in would pick it up), vehicle damage and
+  breaking (at the lowest priority and again at the highest), and vehicle bumps both ways. A cart
+  or boat that moves anyway, a boat lifted by water behind the wall, is put back by the follow
+  task within two ticks, which teleports any stand-in found away from where its vehicle shows, and
+  the vehicle listener never sends a stand-in through a gate. A mob riding a far vehicle is shown
+  standing where it sits, not seated; a player riding one is still not shown, and the vehicle shows
+  empty. Facing is mapped through the window like a mob's. Not yet seen on a server: whether a
+  cart stand-in on a real rail keeps still between follows on every version, and a boat's on water.
 - **Boats and minecarts across versions** (a `javap` survey of the Spigot API jars for 1.20,
   1.20.4, 1.20.6, 1.21, 1.21.1, 1.21.3, 1.21.4, 1.21.10, 26.1.2, 26.2 and 26.3, for #296 step 1b).
   `Boat`, `ChestBoat`, `Minecart` and the seven `org.bukkit.entity.minecart` interfaces
