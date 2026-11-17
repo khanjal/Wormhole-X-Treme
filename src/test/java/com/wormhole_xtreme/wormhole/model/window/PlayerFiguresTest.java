@@ -553,6 +553,18 @@ class PlayerFiguresTest
         }
     }
 
+    /** A gate that shows the viewer themselves puts no name over their own figure, as vanilla never does. */
+    @Test
+    void theViewersOwnFigureHasNoNameTag()
+    {
+        final Player viewer = player("Sam");
+        final Scoreboard board = mock(Scoreboard.class);
+        when(viewer.getScoreboard()).thenReturn(board);
+        assertFalse(PlayerFigures.nameTagShown(viewer, viewer));
+        assertTrue(PlayerFigures.nameTagShown(viewer, player("Alex")), "another player, with no team, is named");
+        assertTrue(PlayerFigures.nameTagShown(null, viewer));
+    }
+
     private static ItemStack stack(final Material type, final int amount)
     {
         final ItemStack stack = mock(ItemStack.class);
