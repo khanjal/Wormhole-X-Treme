@@ -1055,7 +1055,8 @@ that one viewer (`HiddenEntities`).
   shown. Inert as a mob's stand-in, tagged, never saved and in the one registry, so every cleanup
   below covers them: no gravity, silent, invulnerable, a cart's top speed nothing and its velocity
   multipliers zero. Bukkit has no `setCollidable` for anything but a living entity, so a vehicle
-  stand-in keeps its solid box; the listener refuses getting in or out (whichever side is a
+  stand-in keeps its solid box, and as a real entity at its spot it can trigger a detector or
+  activator rail or a pressure plate there, which the window's wall makes rare; the listener refuses getting in or out (whichever side is a
   stand-in, since a real boat bumping a mob's stand-in would pick it up), vehicle damage and
   breaking (at the lowest priority and again at the highest), and vehicle bumps both ways. A cart
   or boat that moves anyway, a boat lifted by water behind the wall, is put back by the follow

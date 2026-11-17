@@ -1275,8 +1275,7 @@ class WormholeXTremeVehicleListener implements Listener
     public void onVehicleMove(final VehicleMoveEvent event)
     {
         final Vehicle vehicle = event.getVehicle();
-        // A window's boat or cart stand-in (#296) that drifts into a gate is no traveller.
-        if (!handlesMovementOf(vehicle) || StandIns.isStandIn(vehicle))
+        if (!handlesMovementOf(vehicle))
         {
             return;
         }
@@ -1289,6 +1288,12 @@ class WormholeXTremeVehicleListener implements Listener
         final Heading heading = Heading.of(vehicle, event.getFrom(), event.getTo());
         final boolean noseMoved = heading.noseChangedBlock(event.getFrom(), event.getTo());
         if (!centreMoved && !noseMoved)
+        {
+            return;
+        }
+        // A window's boat or cart stand-in (#296) that drifts into a gate is no traveller; asked only
+        // once the block has changed, as the check reads the entity's tags.
+        if (StandIns.isStandIn(vehicle))
         {
             return;
         }
