@@ -97,8 +97,9 @@ in another world; right-click a mirror to choose where it opens onto, and punch 
 | Servers | Spigot, Paper and CraftBukkit. Purpur best effort. Not Folia. |
 | Java | 17 or later. Minecraft 1.20.5+ itself needs Java 21, and 26.1+ needs Java 25. |
 
-CI proves it compiles and passes its tests on each version, not that it has been played on each
-one. [Details](docs/guide/SERVER.md#compatibility)
+CI builds and tests each version and boots the jar on real servers; a bot plays it on a real Paper
+server at 1.20.4, 1.21.11 and 26.1.2 as a local check, not part of CI. The other versions are not
+played one by one. [Details](docs/guide/SERVER.md#compatibility)
 
 ## Documentation
 
