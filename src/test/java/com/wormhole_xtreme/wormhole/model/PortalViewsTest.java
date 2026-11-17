@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -111,7 +112,8 @@ class PortalViewsTest
         final World world = mock(World.class, withSettings().stubOnly());
         when(world.getName()).thenReturn(name);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
-        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(mock(Block.class, withSettings().stubOnly()));
+        final Block block = mock(Block.class, withSettings().stubOnly());
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);
         return world;
     }
 
@@ -347,7 +349,7 @@ class PortalViewsTest
 
         assertEquals(2, asked.size());
         assertTrue(asked.get(0).contains("nether_portal_world_nether_100_70_5_x"), asked.get(0));
-        assertFalse(asked.get(0).equals(asked.get(1)), "a capture for each way out of the far portal");
+        assertNotEquals(asked.get(0), asked.get(1), "a capture for each way out of the far portal");
     }
 
     /** A minute on, a trip's far side is no longer asked for unless somebody looks. */

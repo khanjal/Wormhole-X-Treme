@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -992,14 +993,14 @@ public class ConfigManager
         }
         final String raw = String.valueOf(value);
         // Asked for each player every sweep, so split once per value rather than each time.
-        final ParsedWorlds parsed = netherPortalViewWorlds;
+        final ParsedWorlds parsed = NETHER_PORTAL_VIEW_WORLDS_SPLIT.get();
         if ((parsed != null) && parsed.raw().equals(raw))
         {
             return parsed.worlds();
         }
         final Set<String> worlds = Arrays.stream(raw.split(",")).map(name -> name.trim().toLowerCase(Locale.ROOT))
             .filter(name -> !name.isEmpty()).collect(Collectors.toUnmodifiableSet());
-        netherPortalViewWorlds = new ParsedWorlds(raw, worlds);
+        NETHER_PORTAL_VIEW_WORLDS_SPLIT.set(new ParsedWorlds(raw, worlds));
         return worlds;
     }
 
@@ -1009,7 +1010,7 @@ public class ConfigManager
     }
 
     /** The last {@code nether-portal-view-worlds} split, or null before the first. */
-    private static volatile ParsedWorlds netherPortalViewWorlds;
+    private static final AtomicReference<ParsedWorlds> NETHER_PORTAL_VIEW_WORLDS_SPLIT = new AtomicReference<>();
 
     /** See {@link SignSettings#isSignDialMatchMaterial()}. */
     public static boolean isSignDialMatchMaterial()
