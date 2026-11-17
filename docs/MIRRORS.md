@@ -1013,8 +1013,19 @@ that one viewer (`HiddenEntities`).
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
   has lost track of is removed at the next sweep.
-- **Not yet in a reflection.** A mirror showing its own room shows no creatures: drawing the room
-  in front of it is a later step, with the rule that a viewer never sees themselves.
+- **In a reflection.** A mirror showing its own room shows the mobs, and with `mirror-show-players`
+  the other players, standing in front of it, flipped across the wall as its blocks are: one a step
+  to the viewer's left in front shows a step to their left behind the wall, and one looking into the
+  mirror looks back out of it (#296, step 3). Never the viewer themselves, by the same
+  `FarPlayers.showsTheViewer` rule as any mirror, so two players at one mirror each see the other
+  and not themselves. It is the same path as any window's, through `WindowShape.hereOf`, so every
+  rule above holds, the cap of twenty included, and so does one stand-in a creature a viewer: in a
+  room with two mirrors, or a mirror beside a gate dialled onto it, it shows in one of them. The
+  room is the viewer's own and in front of them, so nothing is held loaded for it and it is read
+  only where the server already has it. The viewer's own mount or pet is reflected too (the mount
+  without its rider). Every reflected creature's real self stands in front of the wall, where the
+  veil never reaches, so each shows once in the room and once in the reflection. Only position and
+  facing are flipped: what a player holds stays in the same hand.
 
 **What it costs.** A watched window holds 15 chunks at the default radius (45 at 4), and with the
 ring the server keeps round each, about 63 chunks loaded (about 135 at 4), some 35 of them ticking
@@ -1045,9 +1056,9 @@ wall banners.
 the other, and the second banner's name was one nobody chose. The network replaced it: one room per
 mirror, and the choice of where to open made at the mirror.
 
-**Seeing yourself in a reflection.** A reflection shows an empty room. Drawing the players in front
-of it, flipped, needs the stand-ins of [Seeing creatures](#seeing-creatures) for players, and is
-a later step of #296, with the rule that the viewer never sees themselves.
+**Seeing yourself in a reflection.** A reflection shows the others in front of it
+([Seeing creatures](#seeing-creatures)), but never the viewer, the rule set for mirrors in #296:
+the step first planned had the viewer seeing themselves, flipped, and was replaced by this one.
 
 **Groups, hidden mirrors and a sign to choose with** — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280).
 **Mirrors on other servers** — [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257).
