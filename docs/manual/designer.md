@@ -91,16 +91,25 @@ onto itself. **Mirror now** copies the source half or quarter of this layer over
 (**Mirror all layers** does every layer, each on its own), says how many cells it changed, and **Undo**
 takes it back whole. Layers are never mirrored into each other.
 
+Mirror now copies only the kinds by default, so each cell keeps its own light and woosh numbers: a gate's
+light numbers often run round the ring, and copying them would leave gaps that make `reload` refuse the
+file. Tick **Copy light and woosh orders** to copy them too; if that makes new problems the status says how
+many and the list shows them. Painting a kind while symmetry is on does share the order number with the
+cell across the line. A cell with an `[S:C]` either-material flag keeps it only where you painted.
+
 The extras that a gate has only one of (`:N`, `:EP`, `:EM`, `:A`, `:D`, `:IA`, `[RD]`, `[RS]` and
-`[RA]`) are never mirrored: ticking one marks only the cell you selected, and Mirror now leaves them
-where they are.
+`[RA]`) are never mirrored: ticking one marks only the cell you selected. A cell that holds one is
+never changed by a mirror either, whether by painting or by Mirror now; the status says how many cells
+were skipped.
 
 ## Seeing what is wrong
 
 A button beside the grid always shows the checks' result, such as "2 errors, 1 warning". Press it for the
-list, which opens over the grid and stays open as you step through; each entry jumps to its cell, and
-Escape or a click elsewhere closes it. Cells with a problem are outlined in the grid itself: a double
-border for an error and a dashed one for a warning.
+list, which opens over the foot of the grid. Press an entry, or use the Up and Down arrows, to select that
+problem's cell: the list keeps the focus and the grid scrolls the cell clear of it, so you can step on
+through the problems. **Escape** closes the list and puts you on the selected cell, as does a click on
+the grid. Cells with a problem are outlined in the grid itself: a double border for an error (a thick
+one with a corner mark on small cells) and a dashed one for a warning.
 
 ## Putting it on your server
 

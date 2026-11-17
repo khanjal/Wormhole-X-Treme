@@ -5,7 +5,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseShape, SINGLES } from "../shape-parser.js";
 import { fromParsed, newShape, cellAt, editCells, setKind, setOrder, setMarker, kindOf } from "../shape-edit.js";
-import { MODES, flip, images, sourceOf, isSource, sourceSize, mirrorableMarkers, mirrorLayers } from "../symmetry.js";
+import { MODES, flip, images, sourceOf, isSource, sourceSize, mirrorableMarkers, mirrorLayers, targets, holdsSingle, singlesHeld, newIssues } from "../symmetry.js";
+import { checkShape } from "../shape-check.js";
 
 const SHAPES = fileURLToPath(new URL("../../../src/main/resources/shapes/gate/", import.meta.url));
 const shipped = (file) => fromParsed(parseShape(readFileSync(`${SHAPES}${file}.shape`, "utf8"))).shape;
@@ -97,21 +98,61 @@ test("the one-per-gate markers are never mirrored, and every marker the plugin r
   assert.deepEqual(mirrorableMarkers(["EP", "X"]), ["X"], "a marker that were not one per gate would be copied");
 });
 
-test("Mirror now copies the left half over the right and leaves a one-per-gate marker where it is", () => {
+test("Mirror now copies the left half over the right, orders with it only when asked, and leaves one-per-gate markers alone", () => {
   let s = blank(7, 5, 2);
   s = paint(s, 1, 0, 1, "S");
   s = paint(s, 1, 2, 0, "P");
   s = editCells(s, 1, [[2, 0]], (c) => { setOrder(c, "woosh", 2); setMarker(c, "A", true); });
-  s = editCells(s, 1, [[2, 6]], (c) => setMarker(c, "EP", true));
-  const { shape, changed } = mirrorLayers(s, [1], "lr");
-  assert.equal(changed, 2);
-  assert.equal(kindOf(cellAt(shape, 1, 0, 5)), "S");
-  const right = cellAt(shape, 1, 2, 6);
-  assert.equal(kindOf(right), "P");
-  assert.equal(right.woosh, 2, "the order is copied, so the two light together");
-  assert.deepEqual(right.markers, ["EP"], "the marker it had stays, and :A is not copied onto it");
-  assert.deepEqual(cellAt(shape, 1, 2, 0).markers, ["A"]);
-  assert.equal(kindOf(cellAt(shape, 2, 0, 5)), "I", "another layer is left alone");
+  s = editCells(s, 1, [[2, 5]], (c) => setOrder(c, "woosh", 1));
+  const kinds = mirrorLayers(s, [1], "lr");
+  assert.equal(kinds.changed, 2);
+  assert.equal(kindOf(cellAt(kinds.shape, 1, 0, 5)), "S");
+  assert.equal(kindOf(cellAt(kinds.shape, 1, 2, 6)), "P");
+  assert.equal(cellAt(kinds.shape, 1, 2, 6).woosh, null, "a mirrored cell keeps its own orders by default");
+  assert.equal(cellAt(kinds.shape, 1, 2, 5).woosh, 1);
+  assert.deepEqual(cellAt(kinds.shape, 1, 2, 6).markers, [], ":A is not copied");
+  const both = mirrorLayers(s, [1], "lr", { copyOrders: true });
+  assert.equal(cellAt(both.shape, 1, 2, 6).woosh, 2, "with orders on the order is copied, so the two light together");
+  assert.deepEqual(cellAt(both.shape, 1, 2, 0).markers, ["A"]);
+  assert.equal(kindOf(cellAt(kinds.shape, 2, 0, 5)), "I", "another layer is left alone");
+});
+
+test("a cell holding a one-per-gate marker is never changed by a mirror, and is counted", () => {
+  let s = blank(7, 5);
+  s = paint(s, 1, 0, 1, "S");
+  s = paint(s, 1, 0, 5, "P");
+  s = editCells(s, 1, [[0, 5]], (c) => setMarker(c, "EP", true));
+  const r = mirrorLayers(s, [1], "lr");
+  assert.equal(kindOf(cellAt(r.shape, 1, 0, 5)), "P", "the :EP cell stays as it was");
+  assert.deepEqual(r.skipped.map((c) => [c.row, c.col]), [[0, 5]]);
+  assert.deepEqual(singlesHeld(r.skipped), [":EP"]);
+  assert.equal(r.changed, 0);
+  assert.equal(holdsSingle(cellAt(s, 1, 0, 5)), true);
+  const t = targets(s, 1, 0, 1, "lr");
+  assert.deepEqual(t.places, []);
+  assert.equal(t.skipped.length, 1);
+  assert.deepEqual(targets(s, 1, 1, 1, "lr").places, [[1, 5]]);
+});
+
+test("painting Ignored beside Standard's :S:A cell does not turn the switch block into air", () => {
+  const s = shipped("Standard");
+  const a = s.cells.find((c) => c.markers.includes("A"));
+  const [row, col] = [a.row, a.col];
+  const left = Math.min(col, flip(col, s.width));
+  const t = targets(s, a.layer, row, left, "lr");
+  assert.equal(t.places.some(([r, c]) => r === row && c === col), false);
+  assert.equal(t.skipped.length, 1);
+});
+
+test("Mirror now on a gate whose light numbers run round the ring makes no new problems unless orders are copied", () => {
+  const grand = shipped("Grand");
+  const before = checkShape(grand);
+  const layers = Array.from({ length: grand.layers }, (_, i) => i + 1);
+  for (const mode of ["lr", "tb", "both"]) {
+    assert.deepEqual(newIssues(before, checkShape(mirrorLayers(grand, layers, mode).shape)), [], mode);
+  }
+  const copied = mirrorLayers(grand, layers, "tb", { copyOrders: true });
+  assert.ok(newIssues(before, checkShape(copied.shape)).length > 0, "copying the orders leaves a gap in the light order");
 });
 
 test("Mirror now says how many cells it changed and how many of them held something", () => {

@@ -51,23 +51,53 @@ export const mirrorableMarkers = (markers) => markers.filter((m) => !SINGLES.has
 const LOOK = (c) => JSON.stringify([c.block, c.lenientChevron, c.portal, c.light, c.woosh]);
 const isEmpty = (c) => c.block === "none" && !c.portal && c.light === null && c.woosh === null;
 
-/** Gives `to` the look of `from` (kind and orders), keeping every one-per-gate marker `to` already has. */
-export function copyLook(from, to) {
+/** A cell that holds a one-per-gate marker: a mirrored change never touches it, as it is the gate's only one and may sit across the axis on purpose. */
+export const holdsSingle = (cell) => cell.markers.some((m) => SINGLES.has(m));
+
+/** The marker names a list of cells hold, for the status line ("skipped 2 cells holding :A, :EP"). */
+export const singlesHeld = (cells) => [...new Set(cells.flatMap((c) => c.markers.filter((m) => SINGLES.has(m))))].map((m) => `:${m}`);
+
+/**
+ * The cells a paint or an order at (row, col) reaches besides that one: its images, less any that hold a one-per-gate marker.
+ * @returns {{places: number[][], skipped: object[]}} the places to change, and the cells left alone
+ */
+export function targets(shape, layer, row, col, mode) {
+  const places = [];
+  const skipped = [];
+  for (const [r, c] of images(mode, row, col, shape.width, shape.height)) {
+    const cell = cellAt(shape, layer, r, c);
+    if (cell && holdsSingle(cell)) skipped.push(cell); else places.push([r, c]);
+  }
+  return { places, skipped };
+}
+
+/** Gives `to` the look of `from`: its kind, and its light and woosh orders unless `orders` is false; its own one-per-gate markers stay. */
+export function copyLook(from, to, orders = true) {
   to.block = from.block;
   to.lenientChevron = from.lenientChevron;
   to.portal = from.portal;
-  to.light = from.light;
-  to.woosh = from.woosh;
+  if (orders) {
+    to.light = from.light;
+    to.woosh = from.woosh;
+  }
   to.markers = [...to.markers, ...mirrorableMarkers(from.markers).filter((m) => !to.markers.includes(m))];
 }
 
+/** The problems in `after` that `before` did not have, told apart by their text. */
+export function newIssues(before, after) {
+  const had = new Set(before.map((i) => i.message));
+  return after.filter((i) => !had.has(i.message));
+}
+
 /**
- * Copies the source half or quadrant of each given layer over the rest.
- * @returns {{shape: object, changed: number, overwritten: number}} how many cells differ now, and how many of those held something
+ * Copies the source half or quadrant of each given layer over the rest. A cell holding a one-per-gate marker is skipped.
+ * Orders are copied only with `copyOrders`: a gate's light numbers often run round the ring, so copying them leaves gaps.
+ * @returns {{shape: object, changed: number, overwritten: number, skipped: object[]}} how many cells differ now, how many of those held something, and the cells left alone
  */
-export function mirrorLayers(shape, layers, mode) {
-  if (!isMode(mode) || mode === "none") return { shape, changed: 0, overwritten: 0 };
+export function mirrorLayers(shape, layers, mode, { copyOrders = false } = {}) {
+  if (!isMode(mode) || mode === "none") return { shape, changed: 0, overwritten: 0, skipped: [] };
   const cells = shape.cells.slice();
+  const skipped = [];
   let changed = 0;
   let overwritten = 0;
   for (const layer of layers) {
@@ -77,13 +107,14 @@ export function mirrorLayers(shape, layers, mode) {
         if (sr === r && sc === c) continue;
         const to = cellAt(shape, layer, r, c);
         const next = { ...to, markers: [...to.markers] };
-        copyLook(cellAt(shape, layer, sr, sc), next);
+        copyLook(cellAt(shape, layer, sr, sc), next, copyOrders);
         if (LOOK(next) === LOOK(to)) continue;
+        if (holdsSingle(to)) { skipped.push(to); continue; }
         changed++;
         if (!isEmpty(to)) overwritten++;
         cells[((layer - 1) * shape.height + r) * shape.width + c] = next;
       }
     }
   }
-  return { shape: changed ? settle({ ...shape, cells }) : shape, changed, overwritten };
+  return { shape: changed ? settle({ ...shape, cells }) : shape, changed, overwritten, skipped };
 }

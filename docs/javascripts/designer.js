@@ -125,6 +125,8 @@ class DesignerView extends GateViewer {
     this.wooshLabel = "Woosh cell: a striped cell in the grid and a crossed wireframe block in the 3D view, stronger in up to five bands as its step goes up, with the step number in the corner of bigger cells";
     super.renderLegend();
     this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "S"), " Underlined letter in the grid: the cell has extras"));
+    this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "■"),
+      " Double border in the grid (a thick one with a corner mark on small cells): an error. Dashed border: a warning"));
   }
 
   applyPalette() {
@@ -156,6 +158,7 @@ class Designer {
     this.inerted = [];
     this.build();
     this.watchLayout();
+    document.fonts?.ready?.then(() => this.placeAxes());
   }
 
   // --- building the page ------------------------------------------------------------------
@@ -230,15 +233,17 @@ class Designer {
     this.axes = el("div", { class: "wxt-axes", "aria-hidden": "true" },
       el("div", { class: "wxt-src-area" }),
       el("div", { class: "wxt-axis wxt-axis-v" }), el("div", { class: "wxt-axis wxt-axis-h" }));
-    this.scroller.append(this.axes);
+    this.scrollPad = el("div", { class: "wxt-scroll-pad", "aria-hidden": "true" });
+    this.scroller.append(this.axes, this.scrollPad);
     this.flyout = this.buildFlyout();
     this.gridWrap = el("div", { class: "wxt-gridwrap" }, this.scroller, this.flyout);
     this.gridHelp = el("p", { class: "wxt-help" },
       "Arrow keys move between cells; Enter or Space paints with the chosen kind, or press I, S, P or C. Page Up and Page Down change layer, " +
       "Ctrl+Z undoes. Plus and minus make the cells bigger or smaller, as does Ctrl and scroll over the grid; Fit to window picks the biggest size that shows the whole layer. " +
       "Small cells show just their letter, and an underlined letter marks a cell with extras. Expand fills the window, and Escape leaves it. Layer 1 is the far side; the highest layer faces the activation switch. Row 1 is the top, column 1 the left of the file. " +
-      "A cell with a double border has an error and one with a dashed border a warning; the problems button above the grid lists them. " +
-      "Symmetry mirrors the kind you paint and the light and woosh order numbers onto the cells across the dashed line, inside one layer. " +
+      "A cell with a double border, or a thick one and a corner mark on small cells, has an error and one with a dashed border a warning; the problems button above the grid lists them. " +
+      "Symmetry mirrors the kind you paint and the light and woosh order numbers onto the cells across the dashed line, inside one layer (an [S:C] cell's either-material flag is not mirrored). " +
+      "A cell holding a one-per-gate extra is never changed by a mirror, whichever way it is made. " +
       "The one-per-gate extras (:N, :EP, :EM, :A, :D, :IA, [RD], [RS] and [RA]) are never mirrored: a new one goes on the cell you click only, and Mirror now leaves them where they are.");
     this.gridBar = this.buildGridBar(button);
     this.symBar = this.buildSymBar(button);
@@ -308,10 +313,13 @@ class Designer {
       { title: "Copy the source half or quarter of this layer over the rest. One undo step." });
     this.mirrorAllButton = button("Mirror all layers", () => this.mirrorNow(true),
       { title: "The same, for every layer, each on its own. One undo step." });
+    this.orderBox = el("input", { type: "checkbox", id: "wxt-mirror-orders" });
     this.symNote = el("span", { class: "wxt-sr", id: "wxt-commands-sym" }, "One-per-gate extras are never mirrored.");
     this.syncSymmetry();
     return el("div", { class: "wxt-bar wxt-gridbar wxt-symbar", role: "group", "aria-label": "Symmetry" },
-      el("label", { for: "wxt-symmetry" }, "Symmetry "), this.symSelect, this.mirrorLayerButton, this.mirrorAllButton, this.symNote);
+      el("label", { for: "wxt-symmetry" }, "Symmetry "), this.symSelect, this.mirrorLayerButton, this.mirrorAllButton,
+      el("label", { class: "wxt-toggle", for: "wxt-mirror-orders", title: "Off: only the kinds are copied, and each cell keeps its own light and woosh numbers." }, this.orderBox, " Copy light and woosh orders"),
+      this.symNote);
   }
 
   /** The problems flyout: a list over the top of the grid, so opening it moves nothing. */
@@ -321,17 +329,20 @@ class Designer {
     close.addEventListener("click", () => { this.closeFlyout(); this.chip.focus(); });
     const flyout = el("div", { class: "wxt-flyout", id: "wxt-flyout", role: "region", "aria-label": "Problems", hidden: "" },
       el("div", { class: "wxt-flyout-head" }, el("strong", {}, "Problems"), close), this.flyoutList,
-      el("p", { class: "wxt-help" }, "Pick one to jump to its cell. This list stays open; Escape closes it."));
+      el("p", { class: "wxt-help" }, "Press an entry, or Up and Down, to select its cell; the list keeps the focus so you can step on. Escape closes it and puts you on the selected cell."));
     flyout.addEventListener("keydown", (e) => this.flyoutKey(e));
     this.flyoutOpen = false;
     // Escape and a click elsewhere close it; the Escape is taken first, so it does not also leave the expanded window.
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape" || !this.flyoutOpen || e.defaultPrevented) return;
+      // One overlay a press: the narrow Legend, when the focus is in it, answers first.
+      if (document.activeElement?.closest?.(".wxt-legend-panel.wxt-open")) return;
       e.preventDefault();
       e.stopPropagation();
-      const inside = flyout.contains(document.activeElement) || document.activeElement === this.chip;
+      const inList = flyout.contains(document.activeElement);
+      const onChip = document.activeElement === this.chip;
       this.closeFlyout();
-      if (inside) this.chip.focus();
+      if (onChip) this.chip.focus(); else if (inList) this.cellEl(this.row, this.col)?.focus();
     }, true);
     document.addEventListener("pointerdown", (e) => {
       if (this.flyoutOpen && !flyout.contains(e.target) && !this.chip.contains(e.target)) this.closeFlyout();
@@ -348,12 +359,34 @@ class Designer {
     this.flyout.hidden = false;
     this.chip.setAttribute("aria-expanded", "true");
     this.renderFlyout();
+    this.padScroller();
   }
 
   closeFlyout() {
     this.flyoutOpen = false;
     this.flyout.hidden = true;
     this.chip.setAttribute("aria-expanded", "false");
+    this.padScroller();
+  }
+
+  /** The flyout sits over the foot of the grid, so the grid gets room to scroll its last rows above it. */
+  padScroller() {
+    this.scrollPad.style.height = this.flyoutOpen ? `${this.flyout.offsetHeight}px` : "0";
+  }
+
+  /** Scrolls the cell into the part of the grid the headers and the flyout leave clear. */
+  revealCell(td) {
+    const s = this.scroller;
+    const box = s.getBoundingClientRect();
+    const t = td.getBoundingClientRect();
+    const head = this.table.rows[0];
+    const top = box.top + head.offsetHeight;
+    const left = box.left + head.cells[0].offsetWidth;
+    const bottom = box.bottom - (this.flyoutOpen ? this.flyout.offsetHeight : 0) - 2;
+    if (t.top < top) s.scrollTop -= top - t.top;
+    else if (t.bottom > bottom) s.scrollTop += t.bottom - bottom;
+    if (t.left < left) s.scrollLeft -= left - t.left;
+    else if (t.right > box.right) s.scrollLeft += t.right - box.right;
   }
 
   /** Up and down walk the list, so a keyboard user can step through the problems. */
@@ -364,7 +397,9 @@ class Designer {
     const at = items.indexOf(document.activeElement);
     if (!items.length) return;
     e.preventDefault();
-    items[Math.min(Math.max(at + move, 0), items.length - 1)].focus();
+    const next = items[Math.min(Math.max(at + move, 0), items.length - 1)];
+    next.focus();
+    next.click(); // stepping selects the cell as well; the focus stays in the list
   }
 
   buildHandle() {
@@ -806,26 +841,45 @@ class Designer {
     Object.assign(box.querySelector(".wxt-src-area").style, { left: `${left}px`, top: `${top}px`, width: `${cols * this.zoom}px`, height: `${rows * this.zoom}px` });
   }
 
-  /** The cells a paint or an order reaches: the selected one, then its mirror images in this layer. */
+  /** The cells a paint or an order reaches: the selected one, then its mirror images in this layer, less those holding a one-per-gate extra. */
   mirrored(row = this.row, col = this.col) {
-    return [[row, col], ...Sym.images(this.symmetry, row, col, this.shape.width, this.shape.height)];
+    const { places, skipped } = Sym.targets(this.shape, this.layer, row, col, this.symmetry);
+    return { places: [[row, col], ...places], skipped };
+  }
+
+  /** " (and skipped 2 cells holding :A)" for the status line, or nothing. */
+  skippedNote(skipped) {
+    return skipped.length ? `, and skipped ${skipped.length} ${skipped.length === 1 ? "cell" : "cells"} holding ${Sym.singlesHeld(skipped).join(", ")}` : "";
   }
 
   /** Copies the source half or quarter over the rest, of this layer or of all of them, as one undo step. */
   mirrorNow(all) {
     const layers = all ? Array.from({ length: this.shape.layers }, (_, i) => i + 1) : [this.layer];
-    const result = Sym.mirrorLayers(this.shape, layers, this.symmetry);
-    if (!result.changed) { this.say("Nothing to mirror: the rest already matches the source."); return; }
+    const copyOrders = this.orderBox.checked;
+    const result = Sym.mirrorLayers(this.shape, layers, this.symmetry, { copyOrders });
+    if (!result.changed) { this.say(`Nothing to mirror: the rest already matches the source${this.skippedNote(result.skipped).replace(", and", ";")}.`); return; }
     const what = all ? `${layers.length} layers` : `layer ${this.layer}`;
-    const held = result.overwritten ? `, ${result.overwritten} of them replacing something already drawn or numbered` : "";
-    this.edit(() => result.shape, `Mirrored ${what}: ${result.changed} ${result.changed === 1 ? "cell" : "cells"} changed${held}. One-per-gate extras were left where they are. Undo puts it back.`);
+    const held = result.overwritten ? `, ${result.overwritten} of them replacing something already drawn` + (copyOrders ? " or numbered" : "") : "";
+    // Copying orders can leave a gap in the light order, which makes reload refuse the file: say so, and show it.
+    let warn = "";
+    let fresh = [];
+    if (copyOrders) {
+      const known = (this.shapes ?? []).map((s) => s.name);
+      fresh = Sym.newIssues(checkShape(this.shape, { shipped: known }), checkShape(result.shape, { shipped: known }));
+      if (fresh.length) warn = ` That made ${fresh.length} new ${fresh.length === 1 ? "problem" : "problems"}; the list shows them.`;
+    }
+    this.edit(() => result.shape, `Mirrored ${what}: ${result.changed} ${result.changed === 1 ? "cell" : "cells"} changed${held}${this.skippedNote(result.skipped)}. ${copyOrders ? "" : "Light and woosh numbers were not copied. "}Undo puts it back.${warn}`);
+    if (fresh.length) {
+      this.renderIssues();
+      this.openFlyout();
+    }
   }
 
   editCell(fn, { mirror = false } = {}) {
     let next;
     try {
       next = mirror && this.symmetry !== "none"
-        ? E.editCells(this.shape, this.layer, this.mirrored(), fn)
+        ? E.editCells(this.shape, this.layer, this.mirrored().places, fn)
         : E.editCell(this.shape, this.layer, this.row, this.col, fn);
     } catch (e) {
       if (e instanceof E.EditError) { this.say(e.message); this.renderPanel(); return; }
@@ -854,6 +908,8 @@ class Designer {
     this.layer = Math.min(Math.max(this.layer, 1), s.layers);
     this.row = Math.min(Math.max(this.row, 0), s.height - 1);
     this.col = Math.min(Math.max(this.col, 0), s.width - 1);
+    // A row, column or layer added or removed moves every cell, so the outlines from the last check would sit on the wrong ones until the next.
+    if (this.problems.size && this.dims() !== this.problemDims) this.problems = new Map();
     if (cell) this.paintCell(this.cellEl(this.row, this.col), E.cellAt(s, this.layer, this.row, this.col));
     else this.renderGrid();
     this.renderLayerBar();
@@ -961,6 +1017,17 @@ class Designer {
     }
     this.table.style.setProperty("--wxt-cols", String(s.width));
     this.table.replaceChildren(el("thead", {}, head), body);
+    this.watchHeader();
+  }
+
+  /** The axes are measured from the header row, which changes height when the fonts arrive; they follow it. */
+  watchHeader() {
+    if (typeof ResizeObserver !== "function") return;
+    this.headerWatch ??= new ResizeObserver(() => this.placeAxes());
+    this.headerWatch.disconnect();
+    const head = this.table.rows[0];
+    this.headerWatch.observe(head);
+    this.headerWatch.observe(head.cells[0]);
   }
 
   cellEl(row, col) {
@@ -973,7 +1040,7 @@ class Designer {
     // A woosh cell's tint depends on the other cells' steps too, so the set of steps is part of what makes it look the same.
     const orders = this.shape.wooshOrders;
     const problem = this.problems.get(`${cell.layer},${cell.row},${cell.col}`);
-    const key = `${orders.join(",")}|${problem ? problem.id : ""}`;
+    const key = `${orders.join(",")}|${problem ? problem.sig : ""}`;
     if (td.wxtCell === cell && td.wxtHere === here && td.wxtKey === key) return; // cells are never changed in place, so the same object looks the same
     td.wxtCell = cell;
     td.wxtHere = here;
@@ -1038,8 +1105,9 @@ class Designer {
   paintBrush(kind) {
     if (kind === "select") return;
     if (this.editCell((c) => E.setKind(c, kind), { mirror: true })) {
-      const also = this.mirrored().length - 1;
-      this.sayLater(`Row ${this.row + 1}, column ${this.col + 1} is now ${E.KIND_NAMES[kind]}${also ? `, and ${also} mirrored ${also === 1 ? "cell" : "cells"}` : ""}.`);
+      const { places, skipped } = this.mirrored();
+      const also = places.length - 1;
+      this.sayLater(`Row ${this.row + 1}, column ${this.col + 1} is now ${E.KIND_NAMES[kind]}${also ? `, and ${also} mirrored ${also === 1 ? "cell" : "cells"}` : ""}${this.skippedNote(skipped)}.`);
     }
   }
 
@@ -1151,7 +1219,7 @@ class Designer {
       const inner = issue.cell
         ? el("button", { type: "button", class: "wxt-issue" }, label)
         : el("span", { class: "wxt-issue" }, label);
-      if (issue.cell) inner.addEventListener("click", () => this.jump(issue.cell));
+      if (issue.cell) inner.addEventListener("click", () => this.jump(issue.cell, list !== this.flyoutList));
       // The same shapes as the grid's borders: a double bar for an error, a dashed one for a warning.
       return el("li", { class: `wxt-${issue.level}` }, inner);
     }));
@@ -1178,27 +1246,31 @@ class Designer {
 
   /** The cells with a problem, so the grid can outline them; a cell with both an error and a warning shows the error. */
   markProblems(issues) {
-    this.problemId = (this.problemId ?? 0) + 1;
     const found = new Map();
     for (const issue of issues) {
       if (!issue.cell) continue;
       const key = `${issue.cell.layer},${issue.cell.row},${issue.cell.col}`;
       const have = found.get(key);
-      if (!have) found.set(key, { level: issue.level, messages: [issue.message], id: this.problemId });
+      if (!have) found.set(key, { level: issue.level, messages: [issue.message], sig: "" });
       else {
         have.messages.push(issue.message);
         if (issue.level === "error") have.level = "error";
       }
     }
+    for (const p of found.values()) p.sig = `${p.level}|${p.messages.join(" ")}`;
+    // Only the cells whose problems changed are painted again.
+    const old = this.problems;
     this.problems = found;
-    this.paintLayer();
+    this.problemDims = this.dims();
+    for (const key of new Set([...old.keys(), ...found.keys()])) {
+      if (old.get(key)?.sig === found.get(key)?.sig) continue;
+      const [layer, row, col] = key.split(",").map(Number);
+      if (layer === this.layer && this.tds[row]?.[col]) this.paintCell(this.tds[row][col], E.cellAt(this.shape, layer, row, col));
+    }
   }
 
-  paintLayer() {
-    const s = this.shape;
-    for (let r = 0; r < s.height; r++) {
-      for (let c = 0; c < s.width; c++) this.paintCell(this.tds[r][c], E.cellAt(s, this.layer, r, c));
-    }
+  dims() {
+    return `${this.shape.width},${this.shape.height},${this.shape.layers}`;
   }
 
   /** The commands for this shape: the file name and the Name= value are two things, and each command wants one. */
@@ -1213,13 +1285,17 @@ class Designer {
     this.commandsNote.textContent = parts.join(" ");
   }
 
-  jump(cell) {
+  /** Selects the cell of a problem; the focus goes to it unless the list is stepping (`focus` false), and the cell is scrolled clear of the flyout. */
+  jump(cell, focus = true) {
     this.layer = cell.layer;
     this.row = cell.row;
     this.col = cell.col;
     this.changed({});
-    this.cellEl(cell.row, cell.col).focus();
+    const td = this.cellEl(cell.row, cell.col);
+    if (focus) td.focus();
+    this.revealCell(td);
     this.markView();
+    if (!focus) this.say(`Selected layer ${cell.layer}, row ${cell.row + 1}, column ${cell.col + 1}.`);
   }
 
   /** Says the checks' result, but no more than once every second or so while someone is editing. */

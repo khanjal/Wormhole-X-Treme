@@ -904,12 +904,12 @@ html.wxt-no-scroll body {
 
 .wxt-flyout {
   position: absolute;
-  top: 0;
   right: 0;
+  bottom: 0;
   left: 0;
   z-index: 6;
   box-sizing: border-box;
-  max-height: min(24rem, 100%);
+  max-height: 40%;
   padding: 0.4rem 0.75rem;
   overflow: auto;
   background: var(--md-default-bg-color);
@@ -961,20 +961,43 @@ html.wxt-no-scroll body {
   outline-offset: -2px;
 }
 
-/* The selected cell keeps its own ring; a problem there is the ring's style and an inner line in the problem's colour. */
+/* The selected cell's ring (and its halo) takes the problem's style and colour, so what is under it still shows. */
 .wxt-grid td.wxt-sel.wxt-err {
-  outline: 4px double var(--md-default-fg-color);
-  box-shadow: inset 0 0 0 6px var(--md-default-bg-color), inset 0 0 0 8px var(--wxt-bad);
+  outline: 3px double var(--wxt-bad);
 }
 
 .wxt-grid td.wxt-sel.wxt-warn {
-  outline: 3px dashed var(--md-default-fg-color);
-  box-shadow: inset 0 0 0 5px var(--md-default-bg-color), inset 0 0 0 7px var(--wxt-warn);
+  outline: 3px dashed var(--wxt-warn);
+}
+
+/* Under about 32 px a double line is too fine to read as double: an error is a thick solid line with a corner mark, a warning stays dashed. */
+.wxt-grid.wxt-tight td.wxt-err {
+  outline: 3px solid var(--wxt-bad);
+  outline-offset: -3px;
+}
+
+.wxt-grid.wxt-tight td.wxt-err::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  content: "";
+  border-top: 7px solid var(--wxt-bad);
+  border-right: 7px solid transparent;
 }
 
 .wxt-grid.wxt-tiny td.wxt-err {
   outline-width: 2px;
   outline-offset: -2px;
+}
+
+.wxt-grid.wxt-tight td.wxt-sel.wxt-err {
+  outline: 3px solid var(--wxt-bad);
+}
+
+.wxt-scroll-pad {
+  height: 0;
 }
 
 /* Symmetry: a dashed line down and across the middle, and the half or quarter to draw in marked off by a dotted edge. */
