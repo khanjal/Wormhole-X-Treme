@@ -1,7 +1,7 @@
 // Run from the repository root with plain `node --test`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BANDS_MAX, wooshStep, wooshBands, wooshBand, wooshTint, wooshCue, partitionCells } from "../woosh-cue.js";
+import { BANDS_MAX, wooshStep, wooshBands, wooshBand, wooshTint, wooshCue, partitionCells, withoutWooshTag, parseRgb } from "../woosh-cue.js";
 
 test("the step is the place among the distinct orders: gaps are collapsed for tinting (the checks refuse a gap anyway)", () => {
   assert.equal(wooshStep(2, [2, 5, 9]), 0);
@@ -80,4 +80,22 @@ test("an [I:W#0] cell is in no mesh, and the wave and stay lists come out in ste
   assert.equal(portal.length, 0);
   assert.deepEqual(wave.map((c) => c.woosh), [1, 3]);
   assert.deepEqual(stay.map((c) => c.woosh), [1, 2]);
+});
+
+test("the woosh tag is taken out of a description wherever it stands among the tags", () => {
+  assert.equal(withoutWooshTag("Ignored, :W#1"), "Ignored");
+  assert.equal(withoutWooshTag("Ignored, :L#2 :W#3"), "Ignored, :L#2");
+  assert.equal(withoutWooshTag("Ignored, :W#3 :EP"), "Ignored, :EP");
+  assert.equal(withoutWooshTag("Portal, :EP :L#2 :W"), "Portal, :EP :L#2");
+  assert.equal(withoutWooshTag("Stargate material"), "Stargate material");
+  assert.equal(withoutWooshTag("Ignored, :WX"), "Ignored, :WX");
+});
+
+test("a computed colour is read in rgb() and rgba(), comma or space syntax, and anything else is the fallback", () => {
+  const f = [1, 2, 3];
+  assert.deepEqual(parseRgb("rgb(245, 245, 245)", f), [245, 245, 245]);
+  assert.deepEqual(parseRgb("rgba(39, 42, 53, 0.5)", f), [39, 42, 53]);
+  assert.deepEqual(parseRgb("rgb(39 42 53)", f), [39, 42, 53]);
+  assert.deepEqual(parseRgb("rgb(39 42 53 / 50%)", f), [39, 42, 53]);
+  for (const bad of ["", "transparent", "#fff", "rgb(1, 2)", "rgb(300, 0, 0)", undefined, "color(srgb 1 0 0)"]) assert.deepEqual(parseRgb(bad, f), f);
 });

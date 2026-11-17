@@ -46,3 +46,23 @@ export function partitionCells(cells) {
     stay: byStep(cells.filter((c) => played(c) && c.portal)),
   };
 }
+
+/** A cell's description with its woosh tag (`:W` or `:W#n`) taken out wherever it stands among the other tags, so a label that gives the step does not say it twice. */
+export function withoutWooshTag(text) {
+  const at = text.indexOf(", :");
+  if (at < 0) return text;
+  const head = text.slice(0, at);
+  const tags = text.slice(at + 2).split(" ").filter((t) => !/^:W(#\d+)?$/.test(t));
+  return tags.length ? `${head}, ${tags.join(" ")}` : head;
+}
+
+/**
+ * The red, green and blue (0 to 255) of a computed CSS colour, `rgb(r, g, b)` or `rgba(r, g, b, a)`
+ * in the comma or the space and slash syntax; `fallback` for anything else, and for a colour with a part out of range.
+ */
+export function parseRgb(css, fallback) {
+  const m = /^rgba?\(\s*([\d.]+)(?:\s*,\s*|\s+)([\d.]+)(?:\s*,\s*|\s+)([\d.]+)(?:\s*[,/]\s*[\d.]+%?)?\s*\)$/.exec(String(css).trim());
+  if (!m) return fallback;
+  const rgb = m.slice(1, 4).map(Number);
+  return rgb.every((n) => Number.isFinite(n) && n >= 0 && n <= 255) ? rgb.map(Math.round) : fallback;
+}

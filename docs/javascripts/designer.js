@@ -7,7 +7,7 @@ import { GateViewer } from "./gate-viewer.js";
 import * as E from "./shape-edit.js";
 import { checkShape } from "./shape-check.js";
 import { writeShape } from "./shape-writer.js";
-import { wooshStep, wooshTint, wooshCue } from "./woosh-cue.js";
+import { wooshStep, wooshTint, wooshCue, withoutWooshTag } from "./woosh-cue.js";
 import {
   ZOOM, SPLIT, clampZoom, stepZoom, fitZoom, wheelZoom, wheelPixels, clampSplit, splitBounds, parseViewState, viewStateText,
 } from "./designer-layout.js";
@@ -834,7 +834,7 @@ class Designer {
       delete td.dataset.w;
     }
     // The :W tag and the step would say the same twice, so the label gives the step alone.
-    const bare = d.text.replace(/, :W#\d+/, "");
+    const bare = withoutWooshTag(d.text);
     const text = step >= 0 ? `${bare}, woosh step ${step + 1} of ${orders.length}`
       : cell.woosh === 0 ? `${bare}, woosh order 0, never played` : d.text;
     td.tabIndex = here ? 0 : -1;

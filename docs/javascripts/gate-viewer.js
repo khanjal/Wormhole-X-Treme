@@ -5,7 +5,7 @@ import {
   THREE, SceneBase, el, hex, palette, isDark, loadLibs, fetchManifest, fetchShape, TICK_MS, reduceMotion, stageWithLegend,
 } from "./scene-kit.js";
 
-import { wooshStep, wooshTint, partitionCells } from "./woosh-cue.js";
+import { wooshStep, wooshTint, partitionCells, parseRgb } from "./woosh-cue.js";
 
 const MIN_STEP_MS = 250; // real timings are too quick to follow on a page
 
@@ -215,9 +215,8 @@ export class GateViewer extends SceneBase {
   /** The colour the stage is drawn on, so the faintest ghost fades into the real background. */
   stageColor() {
     const css = this.stage ? getComputedStyle(this.stage).backgroundColor : "";
-    const color = new THREE.Color(isDark() ? 0x272a35 : 0xf5f5f5);
-    if (/^rgb/.test(css)) color.setStyle(css.replace(/,\s*[\d.]+\)$/, ")").replace("rgba", "rgb"));
-    return color;
+    const [r, g, b] = parseRgb(css, isDark() ? [39, 42, 53] : [245, 245, 245]);
+    return new THREE.Color(`rgb(${r}, ${g}, ${b})`);
   }
 
   /** The woosh cells' colours: from half strength at the first band to the full colour at the last, as the grid tints them. */
