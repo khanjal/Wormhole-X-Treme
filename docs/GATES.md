@@ -1259,7 +1259,7 @@ model/StrandedLiquid.java          real water and lava left in a closed gate's o
 model/StargateRedstone.java        dial and sign wires, the output lever, the dial lever's state
 model/GateFittings.java            the name sign, the dial sign's material, the iris lever
 model/IrisClearance.java           moving whoever stands in the opening clear of a closing iris
-model/PortalBackdrop.java           where the horizon is drawn behind a shut iris, and who sees the front
+model/PortalBackdrop.java          where the horizon is drawn behind a shut iris, and who sees the front
 model/GateSounds.java              what a gate sounds like
 model/GateSerializer.java          GateData, save versions 3 to 9
 model/StargateYamlManager.java     one file per gate
