@@ -1255,6 +1255,62 @@ class StandInsTest
         return player;
     }
 
+    /**
+     * A stand-in in a reflection follows its creature flipped across the wall, in the viewer's own world,
+     * and goes by the same paths as any other: a quit, a death or a change of world, and the plugin stopping
+     * (#296, step 3).
+     *
+     * <p>The creature and its stand-in share a world here, so a follow that judged the far world by
+     * anything but the capture's name would drop it at once.
+     */
+    @Test
+    void aReflectionsStandInFollowsFlippedAndGoesTheWayEveryOtherDoes()
+    {
+        when(here.getName()).thenReturn("world");
+        final Place room = new Place("world", 10.5, 63.0, 10.5, 180.0f, 0.0f);
+        final WindowShape shape = WindowShape.of(new BlockPlace("world", 10, 64, 10), BlockFace.NORTH, room, true);
+        final MirrorSource source = new MirrorSource(new QuantumMirror("hall", new BlockPlace("world", 10, 64, 10), room),
+            mock(Block.class), shape, List.of(new Spot(10, 63, 11), new Spot(10, 64, 11)), 16);
+        final WindowState reflection = new WindowState(source,
+            new Capture.Builder("world", true, new Capture.Box(0, 54, -10, 20, 74, 10), mock(BlockData.class)).build());
+        final Zombie original = creature(Zombie.class, 10.5, 63.0, 7.5);
+        when(original.getLocation()).thenReturn(new Location(here, 10.5, 63.0, 7.5, 0.0f, 0.0f));
+        final Zombie copy = copy(Zombie.class);
+        nextCopy = copy;
+        StandIns.show(viewer, view, List.of(new FarCreatures.Wanted(original,
+            FarCreatures.hereOf(here, shape, original.getLocation()), reflection)), 0L);
+        // Two steps nearer the mirror, still looking south into it.
+        when(original.getLocation()).thenReturn(new Location(here, 10.5, 63.0, 9.5, 0.0f, 0.0f));
+
+        StandIns.follow(view);
+
+        final ArgumentCaptor<Location> to = ArgumentCaptor.forClass(Location.class);
+        verify(copy).teleport(to.capture());
+        assertEquals(13.5, to.getValue().getZ(), 1.0e-9, "two steps nearer the wall from behind it, as it came two nearer in front");
+        assertEquals(180.0f, Math.abs(to.getValue().getYaw()), 1.0e-3f, "facing north, out of the mirror");
+
+        final UUID id = viewer.getUniqueId();
+        WindowStore.VIEWS.put(id, view);
+        try
+        {
+            Windows.dropStandIns(id);
+        }
+        finally
+        {
+            WindowStore.VIEWS.remove(id);
+        }
+        verify(copy).remove();
+        assertTrue(view.standIns.isEmpty(), "a quit, death or change of world takes it");
+
+        final Zombie another = copy(Zombie.class);
+        nextCopy = another;
+        StandIns.show(viewer, view, List.of(new FarCreatures.Wanted(original,
+            FarCreatures.hereOf(here, shape, original.getLocation()), reflection)), 0L);
+        StandIns.removeEverything();
+        verify(another).remove();
+        assertEquals(0, StandIns.count(), "and stopping takes every one");
+    }
+
     private FarCreatures.Wanted wanted(final Entity original)
     {
         return new FarCreatures.Wanted(original, FarCreatures.hereOf(here, window.shape, original.getLocation()), window);
