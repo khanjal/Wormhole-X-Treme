@@ -83,7 +83,12 @@ is in, and whether or not it is hidden or private: whoever set the start chose i
 permission could otherwise follow a staff member's choice into a private mirror. A punch goes
 through only if the puncher's own right-click would reach that mirror; otherwise it says so, and
 a right-click turns the mirror to one they may use. The line above the hotbar does not name a
-mirror the player could not reach either.
+mirror the player could not reach either; it asks them to choose another.
+
+**Nobody sees a room they could not go to.** The view in a mirror is the same for everybody at
+it, so a right-click skips a private mirror while somebody without the permission is in range, and
+a mirror already turned to one goes back to its own room when such a player comes near. A start is
+the exception, as above.
 
 **Web maps** leave hidden and private mirrors off; a mirror in a group is marked as before.
 

@@ -229,9 +229,11 @@ public final class MirrorSignpost
             return;
         }
         // Not named to somebody it is not listed for: a private or hidden mirror stays unnamed (#280).
-        if (MirrorNetwork.reachable(mirror, player))
+        if (!MirrorNetwork.reachable(mirror, player))
         {
-            ActionBar.send(player, MirrorText.approachMirror(player, mirror.name(), chosen.name()));
+            ActionBar.send(player, MirrorText.notOpen(player, mirror.name()));
+            return;
         }
+        ActionBar.send(player, MirrorText.approachMirror(player, mirror.name(), chosen.name()));
     }
 }

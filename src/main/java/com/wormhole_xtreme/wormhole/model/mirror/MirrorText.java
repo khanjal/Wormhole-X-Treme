@@ -215,6 +215,20 @@ public final class MirrorText
     }
 
     /**
+     * The action bar line for a mirror opening somewhere the reader may not go (#280).
+     *
+     * @param reader
+     *            who reads it, in their own language
+     * @param name
+     *            the mirror's name
+     * @return the line, coloured
+     */
+    public static String notOpen(final Player reader, final String name)
+    {
+        return ChatText.status(Messages.get(reader, "mirror.signpost.not-open", ChatText.name(name)));
+    }
+
+    /**
      * A list of names, with the separators left in the body colour.
      *
      * <p>The commas belong to the sentence rather than to the names, and colouring them along

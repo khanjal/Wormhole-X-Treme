@@ -137,7 +137,7 @@ public final class MirrorInteraction
         }
         final String before = MirrorNetwork.chosen(mirror).name();
         final String said = MirrorNetwork.scroll(mirror,
-            MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), player), player);
+            MirrorNetwork.playersNear(block.getWorld(), mirror.banner(), player), player);
         if (said != null)
         {
             hint(player, said);

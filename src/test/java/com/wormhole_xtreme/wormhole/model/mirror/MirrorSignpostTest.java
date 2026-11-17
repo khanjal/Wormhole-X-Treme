@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -195,12 +196,15 @@ class MirrorSignpostTest
         lookingAt(banner);
 
         sweep();
-        assertTrue(shown().isEmpty(), "not named to a player without the node: " + shown());
+        assertEquals(1, shown().size(), "one line to a player without the node: " + shown());
+        assertTrue(shown().get(0).contains("right-click to choose a mirror you may use"),
+            "asked to choose another instead: " + shown());
+        assertFalse(shown().get(0).contains("vault"), "without naming the private mirror: " + shown());
 
         when(player.hasPermission(MirrorNetwork.SEE_PRIVATE)).thenReturn(true);
         sweep();
-        assertEquals(1, shown().size(), "named to one with it: " + shown());
-        assertTrue(shown().get(0).contains("vault"), "it names the private mirror: " + shown());
+        assertEquals(2, shown().size(), "and one to a holder of it: " + shown());
+        assertTrue(shown().get(1).contains("vault"), "which names the private mirror: " + shown());
         MirrorNetwork.clear();
     }
 

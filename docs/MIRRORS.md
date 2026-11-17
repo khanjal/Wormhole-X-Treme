@@ -59,7 +59,10 @@ a permissions plugin for every mirror made. Mirrors record no owner, so private 
 A mirror's start is first whatever its group or flags — whoever set it chose it — which is how a
 hidden return is reached. The choice at a mirror is shared, so a punch asks again whether the
 puncher's own list would reach where it opens; without that, anybody standing by could follow a
-staff member's right-click into a private world. The per-world limit still counts every mirror in a
+staff member's right-click into a private world. The view is shared the same way, and drawing it
+per viewer would mean one capture and one drawn room per viewer, so instead a right-click skips a
+private mirror while anybody in range lacks the node, and the sweep turns a mirror back to its own
+room when such a player comes near. The per-world limit still counts every mirror in a
 world, whatever its group.
 
 **A punch goes through**, which is why a mirror cannot be broken: the banner and the wall round its

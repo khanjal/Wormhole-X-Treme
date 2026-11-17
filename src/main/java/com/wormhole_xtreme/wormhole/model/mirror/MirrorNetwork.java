@@ -259,7 +259,35 @@ public final class MirrorNetwork
      */
     public static String scroll(final QuantumMirror mirror, final boolean othersNear, final Player reader)
     {
+        return scroll(mirror, othersNear, reader, List.of());
+    }
+
+    /**
+     * {@link #scroll(QuantumMirror, boolean, Player)}, skipping any mirror one of the others at it
+     * could not reach.
+     *
+     * <p>What a mirror shows is drawn for everybody at it, so a private room chosen by a holder of
+     * the node would show to whoever stands beside them (#280).
+     *
+     * @param mirror
+     *            the mirror right-clicked
+     * @param others
+     *            everybody else within reach of it
+     * @param reader
+     *            whoever clicked
+     * @return what to tell whoever clicked, or null for a repeat of the same press
+     */
+    public static String scroll(final QuantumMirror mirror, final List<Player> others, final Player reader)
+    {
+        return scroll(mirror, !others.isEmpty(), reader, others);
+    }
+
+    private static String scroll(final QuantumMirror mirror, final boolean othersNear, final Player reader,
+        final List<Player> others)
+    {
         final List<QuantumMirror> order = order(mirror, reader);
+        order.removeIf(other -> !other.name().equalsIgnoreCase(mirror.start())
+            && others.stream().anyMatch(viewer -> !listed(mirror, other, viewer)));
         if (order.isEmpty())
         {
             return Messages.get(reader, "mirror.interact.no-others");
@@ -321,6 +349,57 @@ public final class MirrorNetwork
             CHOSEN.remove(key(mirror.name()));
             CHOSEN_AT.remove(key(mirror.name()));
         }
+    }
+
+    /**
+     * Turns a mirror back to its own room if somebody within reach could not go where it opens.
+     *
+     * <p>The view is shared: a holder of the private node who turned a mirror to a private room
+     * would otherwise show that room to anybody who walked up afterwards (#280). Called by the
+     * sweep before a mirror's view is drawn.
+     *
+     * @param world
+     *            the banner's world
+     * @return true if the choice was dropped
+     */
+    public static boolean keepToWhatAllMaySee(final QuantumMirror mirror, final World world)
+    {
+        if ((world == null) || (chosen(mirror) == mirror))
+        {
+            return false;
+        }
+        for (final Player viewer : playersNear(world, mirror.banner(), null))
+        {
+            if (!reachable(mirror, viewer))
+            {
+                forget(mirror.name());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Everybody, other than one player, within the proximity distance of a banner.
+     *
+     * @param world
+     *            the banner's world
+     * @param except
+     *            a player not to count, or null
+     * @return those players, possibly none
+     */
+    public static List<Player> playersNear(final World world, final BlockPlace banner, final Player except)
+    {
+        final double reach = ConfigManager.getMirrorProximityDistance();
+        final List<Player> near = new ArrayList<>();
+        for (final Player player : world.getPlayers())
+        {
+            if (!player.equals(except) && within(player.getLocation(), banner, reach))
+            {
+                near.add(player);
+            }
+        }
+        return near;
     }
 
     /**

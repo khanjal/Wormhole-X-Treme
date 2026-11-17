@@ -728,6 +728,7 @@ mirror.interact.not-open: "This mirror opens onto somewhere you may not go. Righ
 mirror.signpost.approach-world: "{0} -- punch to travel to {1}, right-click for another."
 mirror.signpost.approach-mirror: "{0} -- punch to travel to {1}, right-click for another."
 mirror.signpost.reflection: "{0} -- right-click to choose a mirror."
+mirror.signpost.not-open: "{0} -- right-click to choose a mirror you may use."
 mirror.cmd.usage.what: "A mirror is a wall banner. Make one with {0} while looking at it."
 mirror.cmd.usage.click: "Right-click a mirror to choose another, and punch it to go through."
 mirror.cmd.usage.set: "{0} changes one thing it has: {1}."

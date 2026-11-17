@@ -956,14 +956,15 @@ public final class SubCommands
         return new String[0];
     }
 
-    /** @return every group a mirror is in, once each */
+    /** @return every group a mirror is in, once each however its case was typed, as first spelled */
     private static String[] groupNames()
     {
-        return MirrorManager.all().stream()
+        final Map<String, String> groups = new LinkedHashMap<>();
+        MirrorManager.all().stream()
             .map(mirror -> mirror.access().group())
             .filter(Objects::nonNull)
-            .distinct()
-            .toArray(String[]::new);
+            .forEach(group -> groups.putIfAbsent(group.toLowerCase(Locale.ROOT), group));
+        return groups.values().toArray(new String[0]);
     }
 
     /** @return every registered mirror's name */

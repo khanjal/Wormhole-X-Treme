@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -164,6 +166,74 @@ class MirrorAccessTest
         assertEquals("staff", MirrorNetwork.chosen(hub).name());
         assertTrue(MirrorNetwork.reachable(hub, staff));
         assertFalse(MirrorNetwork.reachable(hub, visitor));
+    }
+
+    /**
+     * A right-click skips a private mirror while somebody without the node is at the mirror.
+     *
+     * <p>The view is drawn for everybody in range, so a staff member choosing the staff room
+     * beside a visitor would show the visitor that room.
+     */
+    @Test
+    void aRightClickSkipsAPrivateMirrorWhileSomebodyWithoutTheNodeIsAtIt()
+    {
+        final QuantumMirror hub = mirror("hub", MirrorAccess.OPEN);
+        mirror("staff", new MirrorAccess(null, false, true));
+        mirror("zoo", MirrorAccess.OPEN);
+
+        MirrorNetwork.scroll(hub, List.of(visitor), staff);
+        assertEquals("zoo", MirrorNetwork.chosen(hub).name(), "staff is skipped with a visitor beside");
+
+        MirrorNetwork.clear();
+        MirrorNetwork.scroll(hub, List.of(staff), staff);
+        assertEquals("staff", MirrorNetwork.chosen(hub).name(), "listed when everybody there holds the node");
+    }
+
+    /** A start is still chosen with a visitor beside: whoever set it chose it for everybody. */
+    @Test
+    void aPrivateStartIsChosenWhoeverIsAtTheMirror()
+    {
+        mirror("staff", new MirrorAccess(null, false, true));
+        final QuantumMirror hub = mirror("hub", MirrorAccess.OPEN).withStart("staff");
+        MirrorManager.add(hub);
+
+        MirrorNetwork.scroll(hub, List.of(visitor), visitor);
+
+        assertEquals("staff", MirrorNetwork.chosen(hub).name());
+    }
+
+    /**
+     * A mirror turned to a private room goes back to its own when somebody without the node walks up.
+     *
+     * <p>Checked by the sweep before the view is drawn, which is what stops a late arrival seeing
+     * a room they could not choose.
+     */
+    @Test
+    void aPrivateChoiceIsDroppedWhenSomebodyWithoutTheNodeComesNear()
+    {
+        final QuantumMirror hub = mirror("hub", MirrorAccess.OPEN);
+        mirror("staff", new MirrorAccess(null, false, true));
+        MirrorNetwork.scroll(hub, false, staff);
+        final World world = mock(World.class);
+        nearHub(hub, world, staff);
+
+        assertFalse(MirrorNetwork.keepToWhatAllMaySee(hub, world), "only the staff member is near");
+        assertEquals("staff", MirrorNetwork.chosen(hub).name());
+
+        nearHub(hub, world, staff, visitor);
+
+        assertTrue(MirrorNetwork.keepToWhatAllMaySee(hub, world));
+        assertEquals("hub", MirrorNetwork.chosen(hub).name(), "back to its own room");
+    }
+
+    /** Puts these players a couple of blocks in front of the hub's banner. */
+    private static void nearHub(final QuantumMirror hub, final World world, final Player... players)
+    {
+        for (final Player player : players)
+        {
+            when(player.getLocation()).thenReturn(new Location(world, hub.banner().x() + 0.5, 64, 12.5));
+        }
+        when(world.getPlayers()).thenReturn(List.of(players));
     }
 
     /** With nothing else listed for the clicker, a right-click says there are no others. */
