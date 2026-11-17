@@ -218,7 +218,7 @@ Vault is installed with a permission provider such as LuckPerms. Without one, th
 directly with Bukkit keep working: `wormhole.build.preview*`, `wormhole.list.mine`,
 `wormhole.list.owner`, `wormhole.stats*`, `wormhole.export`, `wormhole.freya`, `wormhole.ring.*`,
 `wormhole.beam.*`, `wormhole.gates.*`, `wormhole.build.mindistance.bypass`,
-`wormhole.mirror.private` and `wormhole.update.notify`.
+`wormhole.mirror.private`, `wormhole.view.netherportal` and `wormhole.update.notify`.
 
 **An operator may do anything with a gate**, with or without a permissions plugin, and that
 outranks a negated node. The exceptions are nodes checked directly with Bukkit, which an operator
@@ -281,6 +281,7 @@ or delete it.
 | `wormhole.stats` | true | `/wormhole stats`, your own counts |
 | `wormhole.stats.others` | op | `/wormhole stats <player>`, anybody's |
 | `wormhole.export` | op | `/wormhole export sqlite`; the console may always run it |
+| `wormhole.view.netherportal` | true | Being drawn the far side through a nether portal, with `nether-portal-views` on ([Nether portals](MIRRORS.md#nether-portals)) |
 
 Worth knowing:
 

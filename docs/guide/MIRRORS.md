@@ -20,6 +20,7 @@ dropped — is in the design notes, [docs/MIRRORS.md](../MIRRORS.md).
 - [What you see in one](#what-you-see-in-one)
 - [Its look](#its-look)
 - [Saying what it is](#saying-what-it-is)
+- [Nether portals](#nether-portals)
 - [Settings](#settings)
 
 ## Setting one up
@@ -256,6 +257,26 @@ Look at a mirror from about six blocks and it says what a click will do, above t
 It stays while you keep looking, and only the mirror under your crosshair speaks.
 `mirror-approach-message: false` turns it off.
 
+## Nether portals
+
+With `nether-portal-views: true`, a vanilla nether portal shows the other side behind its purple
+sheet, the way an open gate does with `gate-view: behind`. It is a picture drawn for each viewer;
+nothing in the world changes, and vanilla still decides where a portal goes and takes you there.
+
+- **Only after a trip.** A portal shows nothing until somebody has gone through it. It then shows
+  the portal they came out of, turned the way vanilla turned them. The way back is learnt by
+  going back. Links are kept until the server restarts, and forgotten when either portal is broken.
+- **Captured from what is loaded.** The far side is captured as the traveller arrives, or while
+  somebody stands at the far portal. No chunk is ever loaded to draw a view, so a portal whose far
+  side nobody has been near since a restart shows nothing.
+- **One at a time.** You are drawn only the portal you look at, from the side you stand on, within
+  `mirror-proximity-distance`. Step into the portal and the drawing ends, so you walk in as usual.
+- **Up to 18 blocks wide or tall.** Bigger portals stay plain.
+- Being drawn one needs `wormhole.view.netherportal`, which everyone holds.
+
+It is an experiment ([#514](https://github.com/khanjal/Wormhole-X-Treme/issues/514)). How it is
+built is in the [design notes](../MIRRORS.md#nether-portals).
+
 ## Settings
 
 In `config.yml` under `# --- Gate views and mirrors ---`, which opens with `view-depth` and also
@@ -269,6 +290,13 @@ The mirror settings follow in three runs, each under its own `# -- ... --` sub-h
 
 An upgraded `config.yml` without `view-depth` gets the shallower of its old `mirror-view-depth`
 and `gate-view-full-depth`, written to the file as `view-depth`.
+
+### Nether portal views
+
+| Setting | Default | What it does |
+|---|---|---|
+| `nether-portal-views` | `false` | Whether nether portals show the far side once somebody has travelled through them. |
+| `nether-portal-view-worlds` | (empty) | The worlds whose portals may show one, comma-separated, such as `world, world_nether`. Both ends of a trip must be listed. Empty for every world. |
 
 ### Mirror views
 
