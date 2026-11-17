@@ -67,8 +67,8 @@ async function run(ctx, o) {
   const sent = Date.now();
   obs.told = await told(probe, () => probe.bot.chat(`/wormhole ping ${GATE}`), 1000);
   obs.stood = await markers(ctx);
-  obs.range = (await said(ctx, `attribute ${MARKER.replace(']', ',limit=1]')} minecraft:waypoint_transmit_range get`)).join(' / ');
-  obs.data = (await said(ctx, `data get entity ${MARKER.replace(']', ',limit=1]')}`)).join(' ');
+  obs.range = (await said(ctx, `attribute ${MARKER.replace(/\]$/, ',limit=1]')} minecraft:waypoint_transmit_range get`)).join(' / ');
+  obs.data = (await said(ctx, `data get entity ${MARKER.replace(/\]$/, ',limit=1]')}`)).join(' ');
   obs.waypoints = (await said(ctx, 'waypoint list')).join(' / ');
   obs.waypointsBefore = waypointsBefore;
   // Gone within ping-seconds and a second's grace, polled rather than slept.
