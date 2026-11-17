@@ -49,6 +49,9 @@ public final class MirrorYamlManager
     /** How many banners wide it is, written only when more than one. */
     private static final String WIDTH = "Width";
 
+    /** Whether its banner follows where it opens first, written only when it does (#613). */
+    private static final String FOLLOW = "Follow";
+
     /** Inside {@link #LOOK}: the preset an operator named, if they named one. */
     private static final String PRESET = "Preset";
 
@@ -148,7 +151,8 @@ public final class MirrorYamlManager
             // legible, and every one of these settings has a sensible "as it always was".
             return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
                 readLook(map.get(LOOK)), text(map.get(START)),
-                (map.get(WIDTH) instanceof Number wide) ? wide.intValue() : 1);
+                (map.get(WIDTH) instanceof Number wide) ? wide.intValue() : 1,
+                Boolean.TRUE.equals(map.get(FOLLOW)));
         }
         catch (final RuntimeException e)
         {
@@ -327,6 +331,10 @@ public final class MirrorYamlManager
         if (mirror.width() > 1)
         {
             map.put(WIDTH, mirror.width());
+        }
+        if (mirror.follows())
+        {
+            map.put(FOLLOW, true);
         }
         writeLook(map, mirror.look());
         return map;

@@ -143,6 +143,21 @@ A **dynamic** mode that re-read the far side on approach and repainted the banne
 dropped: "we shouldn't update the banner automatically. It should be an understood command." A
 `Mode` line in an older `mirror.yml` is read and ignored, and dropped on the next save.
 
+**Following is opt-in for that reason** (#613). `mirror set -follow on` lets a banner be stamped
+again from where its mirror opens first, so it can stand in for the room from far off. It is an
+understood command, a mirror's own setting, off by default and saved as `Follow: true` only when
+on, so an older file reads as off. What re-stamps it is something somebody did: a new `-start`,
+or the followed room being captured again. A right-click does not, since a passing choice would
+otherwise rewrite the world's banner every click.
+
+It reads the room's stored capture, not the live world, so it loads no far chunk; the same box
+`-stamp` samples, with a block the capture kept but nobody at the opening could see counted as
+solid with no colour. A capture keeps no biome, and adding one would change the file format for a
+frame, so the biome is read only where the room's chunk is loaded, and otherwise taken from the
+world's kind: the Nether's wastes, the End, or the generic frame. With no capture yet the banner
+is left untouched; one still being read off the disk stamps it when it lands, and that read stamps
+only a banner that asked for it, since every capture is read again after a restart.
+
 ### How a capture is kept
 
 A capture keeps only what somebody at the opening could see: the blocks, and the air seen among

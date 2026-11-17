@@ -7,13 +7,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
 import org.bukkit.Keyed;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 
+import com.wormhole_xtreme.wormhole.model.window.Capture;
 import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
@@ -115,13 +117,102 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
                 }
                 for (int z = -RADIUS; z <= RADIUS; z += STEP)
                 {
-                    tally.add(world.getBlockAt(ox + x, y, oz + z));
+                    tally.add(world.getBlockAt(ox + x, y, oz + z).getType());
                 }
             }
         }
         final int biomeY = Math.min(Math.max(oy, floor), ceiling);
         return new MirrorView(biomeNameAt(world, ox, biomeY, oz), topColours(tally.counts),
             tally.enclosed());
+    }
+
+    /**
+     * The same look, read from a room's stored capture instead of the live world (#613).
+     *
+     * <p>The same box as {@link #look}, so a banner that follows a room reads like one stamped
+     * there by hand. A block the capture kept but nobody at the opening could see counts as
+     * solid with no colour: it is what makes a cellar a cellar, and its colour was never kept.
+     * A block outside the capture's box is not counted at all.
+     *
+     * @param capture
+     *            the room's capture
+     * @param point
+     *            the room's arrival point, in the capture's world
+     * @param biome
+     *            the biome there, or an empty string for the generic frame
+     * @return what the capture shows around the point
+     */
+    public static MirrorView fromCapture(final Capture capture, final Place point, final String biome)
+    {
+        final int ox = (int) Math.floor(point.x());
+        final int oy = (int) Math.floor(point.y());
+        final int oz = (int) Math.floor(point.z());
+        final Tally tally = new Tally();
+        for (int x = -RADIUS; x <= RADIUS; x += STEP)
+        {
+            for (int dy = -BELOW; dy <= ABOVE; dy += STEP)
+            {
+                for (int z = -RADIUS; z <= RADIUS; z += STEP)
+                {
+                    tallyKept(tally, capture, ox + x, oy + dy, oz + z);
+                }
+            }
+        }
+        return new MirrorView((biome == null) ? "" : biome, topColours(tally.counts), tally.enclosed());
+    }
+
+    /** Counts one block of a capture, as {@link Tally#add} counts one of the world. */
+    private static void tallyKept(final Tally tally, final Capture capture, final int x, final int y, final int z)
+    {
+        if (!capture.contains(x, y, z))
+        {
+            return;
+        }
+        if (capture.isBuried(x, y, z))
+        {
+            tally.addUnseen();
+            return;
+        }
+        if (capture.isAir(x, y, z))
+        {
+            tally.add(Material.AIR);
+            return;
+        }
+        final BlockData data = capture.at(x, y, z);
+        tally.add((data == null) ? Material.AIR : data.getMaterial());
+    }
+
+    /**
+     * The biome's name at a room, read only where it costs nothing.
+     *
+     * <p>A capture keeps no biome. Its chunk loaded, the biome is read there; not loaded, it is not
+     * loaded for this, and the world's kind answers instead: the Nether's wastes, the End, or
+     * nothing, which is the generic frame. Nothing at all for a world that is not loaded.
+     *
+     * @param point
+     *            the room's arrival point
+     * @return the biome's name upper-cased, or an empty string
+     */
+    public static String biomeOf(final Place point)
+    {
+        final World world = Bukkit.getWorld(point.worldName());
+        if (world == null)
+        {
+            return "";
+        }
+        final int x = (int) Math.floor(point.x());
+        final int z = (int) Math.floor(point.z());
+        if (world.isChunkLoaded(x >> 4, z >> 4))
+        {
+            final int y = Math.min(Math.max((int) Math.floor(point.y()), world.getMinHeight()), world.getMaxHeight() - 1);
+            return biomeNameAt(world, x, y, z);
+        }
+        final World.Environment kind = world.getEnvironment();
+        if (kind == World.Environment.NETHER)
+        {
+            return "NETHER_WASTES";
+        }
+        return (kind == World.Environment.THE_END) ? "THE_END" : "";
     }
 
     /** What the sweep found: how much of it was solid, and what colours were in it. */
@@ -144,10 +235,9 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
          * rather than calling {@code Material.isAir()}, which from 1.20.6 on goes through the
          * live block registry. This runs a few hundred times per stamp.
          */
-        void add(final Block block)
+        void add(final Material material)
         {
             sampled++;
-            final Material material = block.getType();
             if (MaterialUtils.isAirMaterial(material))
             {
                 return;
@@ -158,6 +248,13 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
             {
                 counts.merge(colour, 1, Integer::sum);
             }
+        }
+
+        /** Counts a block that is there but whose colour is not known: solid, and no square. */
+        void addUnseen()
+        {
+            sampled++;
+            solid++;
         }
 
         /** @return true if enough of the sample was solid to call this a room */

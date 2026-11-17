@@ -67,6 +67,7 @@ made one wide stays one wide: `remove` it, hang the second banner, and `create` 
 | `mirror set [name] -start <mirror\|-none>` | The mirror a right-click opens onto first; `-none` takes it away |
 | `mirror set [name] -stamp [look]` | Makes the banner look like where it goes. See [Its look](#its-look) |
 | `mirror set [name] -capture` | Takes the room's capture again |
+| `mirror set [name] -follow <on\|off>` | Makes the banner follow where it opens first. See [Its look](#its-look) |
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
 | `mirror debug [name] [-all\|-full\|-on\|-off]` | Why a mirror draws what it draws. See [below](#what-you-see-in-one) |
@@ -184,6 +185,19 @@ what a mirror does: `private` is paint, not a permission. They are `.mirror` tex
 
 A look never changes on its own: stamp it again when the room has changed. `-stamp` is about the
 banner and leaves the capture alone; `-capture` is the reverse.
+
+**Or let it follow.** `mirror set museum -follow on` stamps the banner from the room it opens onto
+first, its start's or its own without one, read from that room's capture the way `-stamp` reads a
+room. It is stamped again when you change the start and when that room is captured again, never
+on a right-click, so the banner says where the mirror goes rather than wherever somebody last
+clicked it. Until the room has a capture the banner is left as it is. It is off by default, since
+a look you chose by hand should stay; `-follow off` keeps whatever the banner shows then, and a
+`-stamp` on a following mirror lasts until its next re-stamp. `mirror list` marks the mirrors that
+follow.
+
+A capture keeps the blocks but not the biome, so a following banner reads the biome only where the
+room's chunk happens to be loaded. Otherwise the Nether gets the Nether's frame, the End the End's,
+and anywhere else the generic one, with the room's own colours in it as usual.
 
 ## Saying what it is
 

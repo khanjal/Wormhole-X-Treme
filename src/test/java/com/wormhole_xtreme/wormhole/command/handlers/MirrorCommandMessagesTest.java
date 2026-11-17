@@ -224,7 +224,7 @@ class MirrorCommandMessagesTest
 
     private static String setUsage()
     {
-        return info(ChatText.usage("/wormhole mirror set [<name>] <-stamp|-start|-capture> ..."));
+        return info(ChatText.usage("/wormhole mirror set [<name>] <-stamp|-start|-capture|-follow> ..."));
     }
 
     private static String value(final long number)
@@ -241,10 +241,12 @@ class MirrorCommandMessagesTest
                 info("A mirror is a wall banner. Make one with " + MirrorText.command(CREATE) + " while looking at it."),
                 info("Right-click a mirror to choose another, and punch it to go through."),
                 info(MirrorText.command(SET) + " changes one thing it has: " + MirrorText.command("-stamp") + ", "
-                    + MirrorText.command(START) + ", " + MirrorText.command("-capture") + ".")),
+                    + MirrorText.command(START) + ", " + MirrorText.command("-capture") + ", "
+                    + MirrorText.command("-follow") + ".")),
             List.of(usageLine(), info("QQ banner " + MirrorText.command(CREATE) + "."), info("QQ click punch."),
                 info("QQ " + MirrorText.command(SET) + " sets " + MirrorText.command("-stamp") + " | "
-                    + MirrorText.command(START) + " | " + MirrorText.command("-capture") + ".")));
+                    + MirrorText.command(START) + " | " + MirrorText.command("-capture") + " | "
+                    + MirrorText.command("-follow") + ".")));
     }
 
     /** A word after set that is no property, and a name that starts with a dash. */

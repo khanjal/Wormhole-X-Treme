@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,6 +26,8 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Place;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -64,6 +67,7 @@ class MirrorSettingsCommandTest
     void tearDown() throws Exception
     {
         MirrorManager.clear();
+        Captures.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -146,6 +150,72 @@ class MirrorSettingsCommandTest
 
         assertEquals("hub", MirrorManager.byName("museum").start(),
             "a named mirror's setting does not depend on where anybody is standing");
+    }
+
+    /**
+     * {@code -follow on} is saved and survives a restart, and with no capture of the room yet the
+     * banner is left alone and the reply says why (#613).
+     */
+    @Test
+    void followIsSavedAndLeavesTheBannerAloneWithoutACapture()
+    {
+        pointMuseum();
+        run("mirror", "set", "museum", "-follow", "on");
+
+        verify(sender, atLeastOnce()).sendMessage(plainContains("'museum's banner follows its own room now"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("There is no capture of its own room to read yet"));
+        MirrorManager.clear();
+        MirrorYamlManager.loadAll();
+        assertTrue(MirrorManager.byName("museum").follows());
+
+        run("mirror", "set", "museum", "-follow", "off");
+        assertFalse(MirrorManager.byName("museum").follows());
+    }
+
+    /** A follow with no on or off is a usage line, not a guess. */
+    @Test
+    void followWithoutOnOrOffChangesNothing()
+    {
+        run("mirror", "set", "museum", "-follow");
+        run("mirror", "set", "museum", "-follow", "maybe");
+
+        assertFalse(MirrorManager.byName("museum").follows());
+        verify(sender, atLeastOnce()).sendMessage(plainContains("-follow <on|off>"));
+    }
+
+    /**
+     * A new start re-stamps a following banner, and leaves an ordinary one alone.
+     *
+     * <p>The waiting reply is the sign a re-stamp was tried: the start's room has no capture here.
+     */
+    @Test
+    void aNewStartReStampsOnlyAFollowingBanner()
+    {
+        pointMuseum();
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 5, 64, 5),
+            new Place("world", 5.5, 62, 6.5, 0f, 0f)));
+        run("mirror", "set", "museum", "-start", "hub");
+        verify(sender, never()).sendMessage(plainContains("There is no capture"));
+
+        MirrorManager.add(MirrorManager.byName("museum").withFollows(true));
+        run("mirror", "set", "museum", "-start", "hub");
+        verify(sender, atLeastOnce()).sendMessage(plainContains("There is no capture of 'hub's room to read yet"));
+    }
+
+    /** The list says which banners follow. */
+    @Test
+    void listsAFollowingBanner()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withFollows(true));
+        run("mirror", "list");
+
+        verify(sender, atLeastOnce()).sendMessage(contains("(banner follows)"));
+    }
+
+    /** Gives museum its room, so it has a capture key to wait on. */
+    private static void pointMuseum()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withDestination(new Place("world", 1.5, 62, 2.5, 0f, 0f)));
     }
 
     private boolean run(final String... args)
