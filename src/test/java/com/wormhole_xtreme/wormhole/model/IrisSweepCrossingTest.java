@@ -874,6 +874,17 @@ class IrisSweepCrossingTest
         assertFalse(recorded(viewer), "the whole draw says what they hold now");
     }
 
+    /** A take-back drops the record too: it hands back every layer the record says they hold. */
+    @Test
+    void aTakeBackDropsTheRecord() throws ReflectiveOperationException
+    {
+        final Player viewer = midClose();
+
+        StargateBlockSetup.takeBackLayers(gate);
+
+        assertFalse(recorded(viewer), "nothing is drawn either side of the ring for them now");
+    }
+
     /**
      * A gate with no name sweeps without recording anything, and without throwing.
      *
