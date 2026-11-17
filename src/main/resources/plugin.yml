@@ -28,7 +28,7 @@ permissions:
     description: Allow dialling and travelling through a gate with a dial sign.
     default: false
   wormhole.use.dialer:
-    description: Allow dialling and travelling through a gate with a DHD.
+    description: Allow dialling and travelling through a gate with a DHD, and /dial.
     default: false
   wormhole.use.compass:
     description: Allow /wormhole compass.
