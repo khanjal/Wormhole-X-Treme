@@ -77,7 +77,7 @@ class GateViewForgottenOnWorldChangeTest
     void whatASweepDrewAViewerWhoChangesWorldIsForgotten() throws ReflectiveOperationException
     {
         final Map<UUID, Map<String, Map<Integer, Object>>> swept =
-            PrivateStatics.of(Class.forName("com.wormhole_xtreme.wormhole.model.StargateBlockSetup"), "SWEPT");
+            PrivateStatics.of(Class.forName("com.wormhole_xtreme.wormhole.model.ViewerIrisSweep"), "SWEPT");
         swept.put(player.getUniqueId(), new ConcurrentHashMap<>(Map.of("Abydos", new ConcurrentHashMap<>())));
         final PlayerChangedWorldEvent event = mock(PlayerChangedWorldEvent.class);
         when(event.getPlayer()).thenReturn(player);
