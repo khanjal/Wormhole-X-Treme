@@ -430,5 +430,6 @@ class PortalViewsTest
         PortalViews.offer(List.of(player), 3_000L);
 
         assertTrue(offered.isEmpty());
+        assertEquals(1, PortalViews.links().size(), "nor is the portal judged broken by reading the wrong world");
     }
 }
