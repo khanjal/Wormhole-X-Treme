@@ -25,6 +25,11 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.vehicle.VehicleDamageEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
+import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
+import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.Plugin;
@@ -267,6 +272,92 @@ public class StandInListener implements Listener
     }
 
     /**
+     * Nobody gets into a boat or minecart stand-in, and no stand-in gets into a real one: a boat
+     * bumping a mob picks it up.
+     *
+     * @param event
+     *            the boarding
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onVehicleEnter(final VehicleEnterEvent event)
+    {
+        refuse(event, event.getVehicle(), event.getEntered());
+    }
+
+    /**
+     * Nobody leaves one either, should anything have got in.
+     *
+     * @param event
+     *            the leaving
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onVehicleExit(final VehicleExitEvent event)
+    {
+        refuse(event, event.getVehicle(), event.getExited());
+    }
+
+    /**
+     * A vehicle stand-in is hurt by nothing: a few hits break a real boat into planks.
+     *
+     * @param event
+     *            the damage
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onVehicleDamage(final VehicleDamageEvent event)
+    {
+        refuse(event, event.getVehicle());
+    }
+
+    /**
+     * Nor broken, which a creative player does with one hit, dropping the boat or cart.
+     *
+     * @param event
+     *            the breaking
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onVehicleDestroy(final VehicleDestroyEvent event)
+    {
+        refuse(event, event.getVehicle());
+    }
+
+    /**
+     * A vehicle stand-in pushes nothing and is pushed by nothing, and no real cart or boat pushes a
+     * stand-in.
+     *
+     * @param event
+     *            the bump
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onVehicleBump(final VehicleEntityCollisionEvent event)
+    {
+        refuse(event, event.getVehicle(), event.getEntity());
+    }
+
+    /**
+     * Vehicle damage again, last, past any plugin that uncancels it.
+     *
+     * @param event
+     *            the damage, cancelled or not
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onVehicleDamageAgain(final VehicleDamageEvent event)
+    {
+        refuse(event, event.getVehicle());
+    }
+
+    /**
+     * Breaking again, last, for the same reason.
+     *
+     * @param event
+     *            the breaking, cancelled or not
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onVehicleDestroyAgain(final VehicleDestroyEvent event)
+    {
+        refuse(event, event.getVehicle());
+    }
+
+    /**
      * One killed anyway, by a command, drops nothing: what it wears was copied, not earned.
      *
      * @param event
@@ -344,6 +435,15 @@ public class StandInListener implements Listener
     private static void refuse(final Cancellable event, final Entity entity)
     {
         if (StandIns.isStandIn(entity))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Cancels an event about two entities if either is a stand-in. */
+    private static void refuse(final Cancellable event, final Entity one, final Entity other)
+    {
+        if (StandIns.isStandIn(one) || StandIns.isStandIn(other))
         {
             event.setCancelled(true);
         }
