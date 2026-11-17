@@ -62,7 +62,8 @@ puncher's own list would reach where it opens; without that, anybody standing by
 staff member's right-click into a private world. The view is shared the same way, and drawing it
 per viewer would mean one capture and one drawn room per viewer, so instead a right-click skips a
 private mirror while anybody in range lacks the node, and the sweep turns a mirror back to its own
-room when such a player comes near. The per-world limit still counts every mirror in a
+room at its next pass after such a player comes near, so a newcomer may glimpse the room for about
+a second. The per-world limit still counts every mirror in a
 world, whatever its group.
 
 **A punch goes through**, which is why a mirror cannot be broken: the banner and the wall round its

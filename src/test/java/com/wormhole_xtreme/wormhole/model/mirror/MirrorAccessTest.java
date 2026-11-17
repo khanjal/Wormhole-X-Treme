@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
 import com.wormhole_xtreme.wormhole.model.window.Place;
@@ -224,6 +225,30 @@ class MirrorAccessTest
 
         assertTrue(MirrorNetwork.keepToWhatAllMaySee(hub, world));
         assertEquals("hub", MirrorNetwork.chosen(hub).name(), "back to its own room");
+    }
+
+    /**
+     * A player at the edge of the proximity distance on the low-x, low-z side counts as near.
+     *
+     * <p>The windows measure who is drawn a view from the banner block's corner; measured from its
+     * centre here, a player just inside on that side would be drawn the private room and not
+     * counted, so the choice would stand.
+     */
+    @Test
+    void aViewerAtTheEdgeOnTheLowSideCountsAsNear()
+    {
+        final QuantumMirror hub = mirror("hub", MirrorAccess.OPEN);
+        mirror("staff", new MirrorAccess(null, false, true));
+        MirrorNetwork.scroll(hub, false, staff);
+        final World world = mock(World.class);
+        // Just inside the radius from the corner, and outside it from the centre.
+        final double off = (ConfigManager.getMirrorProximityDistance() / Math.sqrt(2)) - 0.02;
+        when(visitor.getLocation()).thenReturn(new Location(world, hub.banner().x() - off, 64,
+            hub.banner().z() - off));
+        when(world.getPlayers()).thenReturn(List.of(visitor));
+
+        assertTrue(MirrorNetwork.keepToWhatAllMaySee(hub, world), "the visitor is drawn the view, so is counted");
+        assertEquals("hub", MirrorNetwork.chosen(hub).name());
     }
 
     /** Puts these players a couple of blocks in front of the hub's banner. */

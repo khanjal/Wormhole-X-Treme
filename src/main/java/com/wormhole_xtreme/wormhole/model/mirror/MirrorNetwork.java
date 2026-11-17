@@ -424,16 +424,21 @@ public final class MirrorNetwork
         return false;
     }
 
-    /** Whether a place is within a distance of a banner; never for no place. */
+    /**
+     * Whether a place is within a distance of a banner; never for no place.
+     *
+     * <p>Measured from the block's corner, as the windows measure who is drawn a view, so anybody
+     * drawn a mirror's view is counted as at it (#280).
+     */
     private static boolean within(final Location at, final BlockPlace banner, final double reach)
     {
         if (at == null)
         {
             return false;
         }
-        final double dx = at.getX() - (banner.x() + 0.5);
+        final double dx = at.getX() - banner.x();
         final double dy = at.getY() - banner.y();
-        final double dz = at.getZ() - (banner.z() + 0.5);
+        final double dz = at.getZ() - banner.z();
         return ((dx * dx) + (dy * dy) + (dz * dz)) <= (reach * reach);
     }
 

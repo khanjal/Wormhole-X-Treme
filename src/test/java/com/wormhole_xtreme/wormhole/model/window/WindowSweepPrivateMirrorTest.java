@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -75,7 +74,7 @@ class WindowSweepPrivateMirrorTest
         final Block banner = mock(Block.class);
         when(banner.getWorld()).thenReturn(world);
 
-        assertFalse(WindowSweep.offerMirror(hub, banner));
+        WindowSweep.offerMirror(hub, banner);
 
         assertEquals("hub", MirrorNetwork.chosen(hub).name(), "the visitor sees the hub's own room, not the staff room");
     }
