@@ -149,7 +149,7 @@ module.exports = {
         return passed(r) && !/count: (?!1\b)\d+/.test(r.lines.join(' '));
       }));
       list.push(c(`its text has ${fs.PANORAMA.cols} x ${fs.PANORAMA.rows} glyphs`, () => obs.glyphs === obs.expectGlyphs));
-      list.push(c('its line width is set', async () => (await s.run(`data get entity ${sel.replace(']', ',limit=1]')} line_width`)).lines.join(' ').includes(String(obs.lineWidth))));
+      list.push(c('its line width is set', async () => (await s.run(`data get entity ${sel.replace(/\]$/,',limit=1]')} line_width`)).lines.join(' ').includes(String(obs.lineWidth))));
       return list;
     }
     const w = wallOf(o);
