@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.entity.Entity;
@@ -33,6 +34,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
+import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 /**
@@ -337,6 +339,60 @@ class WormholeXTremeVehicleListenerEventTest
 
         // Cleanup
         StargateManager.removeBlockIndex(ch);
+    }
+
+    /**
+     * A window's minecart stand-in (#296) that drifts into an open gate stays where it is, while a
+     * real cart moving the same way is sent: sent on, the copy would arrive as a real, inert cart
+     * in the far world that no view holds.
+     */
+    @Test
+    void aWindowsCartStandInDriftingIntoAnOpenGateIsNotSentButARealCartIs()
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+        final int bx = 10, by = 64, bz = 20;
+        final Block ch = mock(Block.class);
+        when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
+        when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
+        when(ch.getType()).thenReturn(Material.AIR);
+        when(ch.getWorld()).thenReturn(world);
+        final Stargate src = new Stargate();
+        src.setGateName("src");
+        src.setGateActive(true);
+        src.setGatePortalOpen(true);
+        final Stargate target = new Stargate();
+        target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
+        target.setGateFacing(BlockFace.NORTH);
+        StargateTestSupport.target(src, target);
+        StargateManager.addBlockIndex(ch, src);
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
+        final Location toLoc = new Location(world, bx + 0.5, by, bz + 0.5);
+        final Minecart standIn = movingCart();
+        when(standIn.getScoreboardTags()).thenReturn(Set.of(StandIns.TAG));
+        final Minecart real = movingCart();
+
+        final WormholeXTremeVehicleListener listener = new WormholeXTremeVehicleListener();
+        listener.onVehicleMove(new VehicleMoveEvent(standIn, fromLoc, toLoc));
+        listener.onVehicleMove(new VehicleMoveEvent(real, fromLoc, toLoc));
+
+        verify(standIn, never().description("a stand-in is no traveller")).teleport(any(Location.class));
+        verify(real, atLeastOnce().description("a real cart in the same place goes through")).teleport(any(Location.class));
+        StargateManager.removeBlockIndex(ch);
+    }
+
+    /** An empty cart rolling east. */
+    private static Minecart movingCart()
+    {
+        final Minecart cart = mock(Minecart.class);
+        when(cart.getPassengers()).thenReturn(Collections.<Entity>emptyList());
+        when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
+        return cart;
     }
 
     @Test
