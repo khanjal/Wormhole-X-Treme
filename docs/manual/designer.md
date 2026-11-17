@@ -79,6 +79,46 @@ the **Woosh cells** switch in the bar above the 3D view (on by default) shows or
 A `:W#0` cell is never played, and the checks say so.
 The legend sits beside each 3D view, or behind its **Legend** button on a narrow screen.
 
+## Drawing in one half
+
+Most gates are the same on both sides, so you can draw one side and let the designer do the other. Pick
+**Symmetry** above the grid: **Left-right** mirrors across a dashed line down the middle, **Top-bottom**
+across one along it, and **Both** draws in a single quarter and mirrors it three ways. The dotted edge
+marks the side to draw in; in a short window the Symmetry button in the toolbar opens the controls over
+the grid.
+
+What is mirrored depends on how you change a cell. **Painting** (I, S, P or C, and clearing) mirrors the
+kind only, onto the cell across the line in the same layer; a mirrored cell that turns Ignored loses its
+light number, as the plugin would read a light number on an Ignored cell as a light position. It does not
+copy an `[S:C]` either-material flag. The **light and woosh order boxes** in the cell panel mirror the
+order number, so the pair light together, and the status says how many cells that reached, how many it
+renumbered, and whether it made new problems. The middle row or column of an odd-sized grid mirrors onto
+itself. **Mirror now** copies the kinds of the source half or quarter of this layer over the rest in
+one step, including an `[S:C]` flag (**Mirror all layers** does every layer, each on its own), says how
+many cells it changed, and **Undo** takes it back whole. Layers are never mirrored into each other.
+
+Mirror now leaves the light and woosh numbers alone by default, so each cell keeps its own: a gate's
+light numbers often run round the ring, and copying them would leave gaps that make `reload` refuse the
+file. Tick **Copy light and woosh orders** to copy them too; if that makes new problems the status says how
+many and the list shows them.
+
+The extras that a gate has only one of (`:N`, `:EP`, `:EM`, `:A`, `:D`, `:IA`, `[RD]`, `[RS]` and
+`[RA]`) are never mirrored: ticking one marks only the cell you selected. A cell that holds one is
+never changed by a mirror either, whether by painting or by Mirror now; the status says how many cells
+were skipped.
+
+## Seeing what is wrong
+
+A button beside the grid always shows the checks' result, such as "2 errors, 1 warning". Press it for the
+list, which opens over the foot of the grid. Press an entry, or use the Up and Down arrows, to select that
+problem's cell: the list keeps the focus and the grid scrolls the cell clear of it, so you can step on
+through the problems. Opened from the keyboard (Enter or Space on the button), the list takes the focus and
+hands it back to the button when it closes; opened with the pointer, **Escape** puts you on the selected
+cell. Cells with a problem are outlined in the grid itself: a double border for an error (a thick one with
+a corner mark on small cells) and a dashed one for a warning, and the selected cell has a second ring
+inside the first. A light number on an Ignored cell is a warning, since the plugin would record it as a
+light position.
+
 ## Putting it on your server
 
 1. Press **Download .shape file**. It is named after the shape's name.

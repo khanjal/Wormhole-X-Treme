@@ -202,3 +202,14 @@ test("a woosh that starts above #1 is a warning: the plugin plays the empty step
   assert.deepEqual(found[0].cell, { layer: 1, row: 0, col: 0 });
   assert.equal(messages(put(good(), 1, 0, 0, (c) => setOrder(c, "woosh", 1)), "warning").filter((i) => i.message.includes("starts at")).length, 0);
 });
+
+test("an :L on an Ignored cell is a warning, but a :W there is not, and neither is an :L on a built cell", () => {
+  const light = put(good(), 1, 0, 0, (c) => setOrder(c, "light", 1));
+  const [hit] = errorsAbout(light, "Ignored cell");
+  assert.equal(hit.level, "warning");
+  assert.deepEqual(hit.cell, { layer: 1, row: 0, col: 0 });
+  const woosh = put(good(), 1, 0, 0, (c) => setOrder(c, "woosh", 1));
+  assert.deepEqual(errorsAbout(woosh, "Ignored cell"), []);
+  const built = put(good(), 1, 0, 0, (c) => { setKind(c, "S"); setOrder(c, "light", 1); });
+  assert.deepEqual(errorsAbout(built, "Ignored cell"), []);
+});
