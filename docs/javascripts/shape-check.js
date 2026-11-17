@@ -68,6 +68,8 @@ export function checkShape(shape, { shipped = [] } = {}) {
   // ShapeFileValidator.checkNoGap files a gap as a problem, and reload refuses a file with any problem.
   checkOrders(shape.cells, "light", ":L", error);
   checkOrders(shape.cells, "woosh", ":W", error);
+  const never = shape.cells.find((c) => c.woosh === 0);
+  if (never) warn(`Woosh order 0 is never played: the woosh starts at #1 (a :W with no number is #1), so this cell at ${where(never)} never wooshes.`, never);
   return [...found.filter((f) => f.level === "error"), ...found.filter((f) => f.level === "warning")];
 }
 

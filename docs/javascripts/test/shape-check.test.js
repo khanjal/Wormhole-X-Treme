@@ -184,3 +184,12 @@ test("a name that sanitises to a shipped file name clashes too", () => {
   assert.equal(issues.filter((i) => i.message.includes("shipped shape Standard")).length, 1);
   assert.equal(checkShape(withSettings(good(), { name: "sTANDARD ." }), { shipped }).filter((i) => i.message.includes("shipped shape")).length, 1);
 });
+
+test("woosh order 0 is a warning, because the plugin starts the woosh at 1 and never plays it", () => {
+  const s = put(good(), 1, 0, 0, (c) => setOrder(c, "woosh", 0));
+  const found = messages(s, "warning").filter((i) => i.message.includes("Woosh order 0 is never played"));
+  assert.equal(found.length, 1);
+  assert.deepEqual(found[0].cell, { layer: 1, row: 0, col: 0 });
+  assert.deepEqual(messages(s, "error"), []);
+  assert.equal(messages(put(good(), 1, 0, 0, (c) => setOrder(c, "woosh", 1)), "warning").length, 0);
+});

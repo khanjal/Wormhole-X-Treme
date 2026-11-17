@@ -65,8 +65,9 @@ class DialViewer extends ManualViewer {
     const cells = this.shape.cells;
     const bodyCells = cells.filter((c) => c.block !== "none");
     const byOrder = (test) => cells.filter(test).sort((a, b) => a.woosh - b.woosh);
-    const waveCells = byOrder((c) => c.woosh !== null && !c.portal);
-    const stayCells = byOrder((c) => c.woosh !== null && c.portal);
+    // Order 0 is never played (StargateHelper.recordWooshWaves starts at 1).
+    const waveCells = byOrder((c) => c.woosh >= 1 && !c.portal);
+    const stayCells = byOrder((c) => c.woosh >= 1 && c.portal);
     const body = this.instanced(bodyCells, materials.body);
     const portal = this.instanced(cells.filter((c) => c.portal && c.woosh === null), materials.portal);
     const wave = this.instanced(waveCells, materials.woosh);

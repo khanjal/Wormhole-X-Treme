@@ -391,28 +391,36 @@
  * is not colour) keep at every size. --wxt-wt is the step's strength, set by the script: later steps are darker.
  */
 .wxt-grid {
-  --wxt-wc: 22, 140, 52;
+  --wxt-wc: 29, 11, 218;
 }
 
 [data-md-color-scheme="slate"] .wxt-grid {
-  --wxt-wc: 60, 170, 90;
+  --wxt-wc: 190, 180, 255; /* a lighter step of the 3D view's blue-violet, so the stripes stand out of the dark cells */
 }
 
 .wxt-grid td.wxt-woosh {
   /* Full-strength text: the tint is under it, and 3:1 on the darkest step needs more than the light grey of an Ignored cell. */
   color: var(--md-default-fg-color);
   background-image:
-    repeating-linear-gradient(135deg, rgba(var(--wxt-wc), var(--wxt-wt, 0.5)) 0 3px, transparent 3px 7px),
-    linear-gradient(rgba(var(--wxt-wc), calc(var(--wxt-wt, 0.5) * 0.45)), rgba(var(--wxt-wc), calc(var(--wxt-wt, 0.5) * 0.45)));
+    repeating-linear-gradient(135deg, rgba(var(--wxt-wc), var(--wxt-sa)) 0 3px, transparent 3px 7px),
+    linear-gradient(rgba(var(--wxt-wc), var(--wxt-fa)), rgba(var(--wxt-wc), var(--wxt-fa)));
+  /* A halo in the page colour keeps the letter clear of the stripes behind it. */
+  text-shadow: 0 0 1px var(--md-default-bg-color), 0 0 2px var(--md-default-bg-color), 0 0 3px var(--md-default-bg-color), 0 0 3px var(--md-default-bg-color);
+  --wxt-sa: calc(0.85 + (var(--wxt-wt, 0.3) - 0.1) * 0.375); /* the stripes: 0.85 to 1 opaque, so they stand out of the cell at every step */
+  --wxt-fa: calc(var(--wxt-wt, 0.3) * 0.3); /* the fill under them: the step, light to dark */
 }
 
 .wxt-grid.wxt-tiny td.wxt-woosh {
   background-image:
-    repeating-linear-gradient(135deg, rgba(var(--wxt-wc), var(--wxt-wt, 0.5)) 0 2px, transparent 2px 5px),
-    linear-gradient(rgba(var(--wxt-wc), calc(var(--wxt-wt, 0.5) * 0.45)), rgba(var(--wxt-wc), calc(var(--wxt-wt, 0.5) * 0.45)));
+    repeating-linear-gradient(135deg, rgba(var(--wxt-wc), var(--wxt-sa)) 0 2px, transparent 2px 5px),
+    linear-gradient(rgba(var(--wxt-wc), var(--wxt-fa)), rgba(var(--wxt-wc), var(--wxt-fa)));
 }
 
-/* The step number, where the cells are big enough for it. */
+/* The step number, where the cells are big enough for it; the label then drops the :W it would repeat. */
+.wxt-grid.wxt-w-num td.wxt-woosh::after {
+  content: attr(data-tags-bare);
+}
+
 .wxt-grid.wxt-w-num td.wxt-woosh::before {
   position: absolute;
   top: 1px;

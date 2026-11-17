@@ -12,11 +12,11 @@ export const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)"
 
 export const PALETTES = {
   light: {
-    frame: 0x3b2f5c, chevron: 0xa23b3b, lit: 0xf59e0b, spin: 0x0891b2, portal: 0x2f7bff, woosh: 0x1a9a3e,
+    frame: 0x3b2f5c, chevron: 0xa23b3b, lit: 0xf59e0b, spin: 0x0891b2, portal: 0x2f7bff, woosh: 0x1d0bda,
     iris: 0x6b7280, fresh: 0xe11d74, grid: 0xbbbbbb,
   },
   dark: {
-    frame: 0x9a88c8, chevron: 0xc9605a, lit: 0xffd36b, spin: 0x7fe3ff, portal: 0x58a6ff, woosh: 0x4cd37a,
+    frame: 0x9a88c8, chevron: 0xc9605a, lit: 0xffd36b, spin: 0x7fe3ff, portal: 0x58a6ff, woosh: 0x6f5bff,
     iris: 0x9ca3af, fresh: 0xff7ab8, grid: 0x555555,
   },
 };

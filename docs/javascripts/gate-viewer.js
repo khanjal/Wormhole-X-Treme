@@ -134,18 +134,28 @@ export class GateViewer extends SceneBase {
 
     parts.portal = add(this.instanced(cells.filter((c) => c.portal && c.woosh === null), mats.portal));
     // Woosh cells sorted by step, so a step is a prefix and showing it is setting a count.
-    parts.waveCells = byOrder("woosh", (c) => c.woosh !== null && !c.portal);
-    parts.stayCells = byOrder("woosh", (c) => c.woosh !== null && c.portal);
+    // Order 0 is never played (StargateHelper.recordWooshWaves starts at 1), so it is no part of the animation.
+    parts.waveCells = byOrder("woosh", (c) => c.woosh >= 1 && !c.portal);
+    parts.stayCells = byOrder("woosh", (c) => c.woosh >= 1 && c.portal);
     parts.wave = add(this.instanced(parts.waveCells, mats.woosh));
     parts.stay = add(this.instanced(parts.stayCells, mats.portal));
     // Their counts start at 0, which a culling sphere taken then would keep.
     parts.wave.frustumCulled = false;
     parts.stay.frustumCulled = false;
     // Every woosh cell, whatever its base kind (an Ignored cell included), for the designer's "Woosh cells" view.
-    mats.ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.5, depthWrite: false });
-    parts.ghostCells = cells.filter((c) => c.woosh !== null);
-    parts.ghost = add(this.instanced(parts.ghostCells, mats.ghost));
-    parts.ghost.visible = false;
+    // Smaller than the 0.92 cubes so it never shares a face with a frame, chevron or light cell, and crossed with
+    // a wireframe so it is not told from them by hue alone.
+    mats.ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.45, depthWrite: false });
+    mats.ghostWire = new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0.9, depthWrite: false });
+    parts.ghostCells = cells.filter((c) => c.woosh >= 1);
+    this.ghostCube ??= new THREE.BoxGeometry(0.8, 0.8, 0.8);
+    parts.ghost = this.instanced(parts.ghostCells, mats.ghost);
+    parts.ghostWire = this.instanced(parts.ghostCells, mats.ghostWire);
+    for (const mesh of [parts.ghost, parts.ghostWire]) {
+      mesh.geometry = this.ghostCube;
+      mesh.visible = false;
+      add(mesh);
+    }
 
     this.buildMarkers(parts, add);
 
@@ -185,6 +195,7 @@ export class GateViewer extends SceneBase {
     mats.chevronIdle.color.set(p.chevron);
     mats.portal.color.set(p.portal);
     mats.woosh.color.set(p.woosh);
+    mats.ghostWire.color.set(p.woosh);
     grid.material.color.set(p.grid);
     this.paintLights();
     this.paintGhost();
@@ -208,8 +219,9 @@ export class GateViewer extends SceneBase {
 
   /** The woosh cells show while the gate is at rest (idle, dialling, dialled); opening plays them in order instead. */
   syncGhost() {
-    const { ghost } = this.parts;
+    const { ghost, ghostWire } = this.parts;
     ghost.visible = Boolean(this.showWoosh) && this.state !== "opening" && this.state !== "open";
+    ghostWire.visible = ghost.visible;
     this.requestRender();
   }
 

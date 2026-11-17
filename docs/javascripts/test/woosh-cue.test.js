@@ -1,13 +1,25 @@
 // Run from the repository root with plain `node --test`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { TINT, BADGE_MIN_ZOOM, wooshStep, wooshTint, wooshCue } from "../woosh-cue.js";
+import { TINT, wooshStep, wooshTint, wooshCue } from "../woosh-cue.js";
 
-test("a woosh order is its place among the distinct orders, so gaps do not skip a tint", () => {
+test("the step is the place among the distinct orders: gaps are collapsed for tinting, though the Java plays a gap as an empty tick", () => {
   assert.equal(wooshStep(2, [2, 5, 9]), 0);
+  assert.equal(wooshStep(5, [2, 5, 9]), 1);
   assert.equal(wooshStep(9, [2, 5, 9]), 2);
   assert.equal(wooshStep(null, [2, 5, 9]), -1);
   assert.equal(wooshStep(4, [2, 5, 9]), -1);
+});
+
+test("the corner badge shows step + 1, so :W#2, :W#5 and :W#9 read 1, 2 and 3", () => {
+  const orders = [2, 5, 9];
+  assert.deepEqual([2, 5, 9].map((n) => wooshStep(n, orders) + 1), [1, 2, 3]);
+});
+
+test("order 0 is never played, so it is no step even when it is listed", () => {
+  assert.equal(wooshStep(0, [0, 1, 2]), -1);
+  assert.equal(wooshStep(1, [0, 1, 2]), 1); // listed first, but the list a shape gives never holds 0
+  assert.equal(wooshStep(0, []), -1);
 });
 
 test("the tint grows with each step, from the lightest to the darkest", () => {
@@ -21,10 +33,10 @@ test("a lone step is the middle tint, and a bad step is the lightest", () => {
   for (const [s, n] of [[-1, 3], [3, 3], [0, 0], [NaN, 3], [1.5, 3]]) assert.equal(wooshTint(s, n), TINT.min);
 });
 
-test("stripes are drawn at every size and the number only where it fits", () => {
+test("stripes are drawn at every size and the number from 40 pixels, where two digits clear the letter", () => {
   assert.deepEqual(wooshCue(12), { stripes: true, number: false });
-  assert.equal(wooshCue(BADGE_MIN_ZOOM - 1).number, false);
-  assert.equal(wooshCue(BADGE_MIN_ZOOM).number, true);
+  assert.equal(wooshCue(39).number, false);
+  assert.equal(wooshCue(40).number, true);
   assert.equal(wooshCue(48).number, true);
   assert.equal(wooshCue(NaN).number, false);
 });

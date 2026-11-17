@@ -2,7 +2,7 @@
 // it as the plugin would, and download or upload .shape files. Everything stays in the browser:
 // nothing is sent anywhere, and file text only ever goes to the parser and into textContent.
 import { parseShape, ShapeError, LIMITS } from "./shape-parser.js";
-import { THREE, el, loadLibs, fetchManifest, fetchShape, palette, stageWithLegend } from "./scene-kit.js";
+import { THREE, el, hex, loadLibs, fetchManifest, fetchShape, palette, stageWithLegend } from "./scene-kit.js";
 import { GateViewer } from "./gate-viewer.js";
 import * as E from "./shape-edit.js";
 import { checkShape } from "./shape-check.js";
@@ -123,8 +123,8 @@ class DesignerView extends GateViewer {
   renderLegend() {
     super.renderLegend();
     this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "S"), " Underlined letter in the grid: the cell has extras"));
-    this.legend.append(el("li", {}, el("span", { class: "wxt-swatch wxt-swatch-woosh", "aria-hidden": "true" }),
-      " Striped cell in the grid: a woosh cell, darker the later its step, with the step number in the corner of bigger cells"));
+    this.legend.append(el("li", {}, el("span", { class: "wxt-swatch wxt-swatch-woosh", "aria-hidden": "true", style: `background-color:${hex(palette().woosh)}` }),
+      " Striped cell in the grid, and a crossed wireframe block in the 3D view: a woosh cell, darker the later its step, with the step number in the corner of bigger cells"));
   }
 
   applyPalette() {
@@ -829,12 +829,13 @@ class Designer {
     td.className = `wxt-k-${d.kind}${here ? " wxt-sel" : ""}${d.tags.length ? " wxt-marked" : ""}${step >= 0 ? " wxt-woosh" : ""}`;
     if (step >= 0) {
       td.style.setProperty("--wxt-wt", wooshTint(step, orders.length).toFixed(2));
-      td.dataset.w = String(cell.woosh);
+      td.dataset.w = String(step + 1); // the step, not the raw order, as the label says
     } else {
       td.style.removeProperty("--wxt-wt");
       delete td.dataset.w;
     }
-    const text = step >= 0 ? `${d.text}, woosh step ${step + 1} of ${orders.length}` : d.text;
+    const text = step >= 0 ? `${d.text}, woosh step ${step + 1} of ${orders.length}`
+      : cell.woosh === 0 ? `${d.text}, never played: woosh starts at order 1` : d.text;
     td.tabIndex = here ? 0 : -1;
     td.setAttribute("aria-selected", String(here));
     td.setAttribute("aria-label", `Row ${cell.row + 1}, column ${cell.col + 1}: ${text}`);
@@ -842,6 +843,9 @@ class Designer {
     // The letter is the cell's text and the extras a CSS label; the content is touched only when it changes, as that is what costs a layout.
     const tags = d.tags.map((t) => t.slice(1).replace("#", "")).join(" ");
     if (td.dataset.tags !== tags) td.dataset.tags = tags;
+    // Where the corner badge shows the step, the label leaves out the :W tag it would repeat.
+    const bare = d.tags.filter((t) => !t.startsWith(":W")).map((t) => t.slice(1).replace("#", "")).join(" ");
+    if (td.dataset.tagsBare !== bare) td.dataset.tagsBare = bare;
     if (td.textContent !== d.kind) td.textContent = d.kind;
   }
 
