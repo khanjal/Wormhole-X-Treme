@@ -8,7 +8,7 @@ are in [BSTATS.md](BSTATS.md).
 
 ## Building and testing
 
-JDK 17 and Maven 3.6.3 or newer (the floor of the plugins in `pom.xml`).
+JDK 17 or newer and Maven 3.6.3 or newer (the floor of the plugins in `pom.xml`).
 
 ```bash
 mvn test                    # JUnit 5 + Mockito; no live server needed
@@ -1260,11 +1260,12 @@ grep -rn '@SuppressWarnings' src --include=*.java | grep -v '{@code' | cut -d/ -
 The supported range is 1.20 through 26.3. The floor is `Material.CALIBRATED_SCULK_SENSOR`, which
 gate detection switches on and 1.19.4 lacks; the top is the newest stable release.
 
-The plugin compiles against the **oldest** API it supports, not the newest. A plugin built
+The plugin compiles against an **old** API, 1.20.4, not the newest. A plugin built
 against an old API runs on newer servers; one built against a new API can call something an
 older server has never heard of, and nothing catches that until a player reports a crash.
-Compiling against the floor makes the compiler enforce it. That says nothing about a newer server
-*removing* something, so CI also builds and tests against every newer supported version.
+Compiling against an old API makes the compiler hold that line, and CI builds the 1.20 floor itself.
+That says nothing about a newer server *removing* something, so CI also builds and tests against a
+chosen set of newer supported versions.
 
 | Where | Example | What it means |
 |---|---|---|
@@ -1281,18 +1282,24 @@ out the listener that cannot compile; the shipped jar uses neither.
 
 To add a new Minecraft version:
 
-1. Build against it: `mvn verify -Dspigot.api.version=<version>-R0.1-SNAPSHOT`.
-2. If it passes, add it to the `server-api` matrix in `.github/workflows/ci.yml`, as a
-   `- minecraft:` entry. Keep that matrix in ascending order: `release.yml` takes the release
-   title's range from its first and last `- minecraft:` lines.
+1. Build against it: `mvn verify -Pmodern-api -Dspigot.api.version=<api>`, where `<api>` is the
+   Spigot API version, usually `<version>-R0.1-SNAPSHOT` (1.21.11 is `R0.2`). Without `-Pmodern-api`
+   any version from 1.20.6 fails on `LegacyGateDismountListener`, which is a profile matter and not
+   a removed API; 1.20 and 1.20.1 take `-Plegacy-api` and 1.20.4 neither.
+2. If it passes, add it to the `server-api` matrix in `.github/workflows/ci.yml`, as an entry with
+   `minecraft:`, `api:` and `profile:`. Keep that matrix in ascending order: `release.yml` takes the
+   release title's range from its first and last `- minecraft:` lines.
 3. Add it to the other version matrices in the same file: `paper-api` (the same versions as
-   `server-api`, under the key `paper:`) and `boot-test` (under `version:`, with its Java version).
-   Neither uses `minecraft:`, or `release.yml` would read it as a second range. `boot-integrations`,
+   `server-api`, with `paper:`, `api:` a Paper build string such as `26.3.build.19-alpha`,
+   `profile:` and `java:`) and `boot-test` (`version:` and `java:`). Neither uses `minecraft:`, or
+   `release.yml` would read it as a second range. `boot-integrations`,
    `boot-migration` and `boot-travel` in `ci.yml`, and the matrix in `integrations-latest.yml`, list
    chosen versions only; add the new one if it should be covered there.
-4. Update the range printed in the README (badge, tagline and Compatibility table),
-   `docs/API.md`, the table in [guide/SERVER.md](guide/SERVER.md#compatibility) and the listings
-   under `docs/listings/`.
+4. Update every place that carries the range, the version list or the count of versions: the
+   README (badge, tagline and Compatibility table, which says how many versions), `docs/index.md`,
+   `docs/start.md`, `docs/API.md`, `docs/BEAMS.md`, the top of this section, the table in
+   [guide/SERVER.md](guide/SERVER.md#compatibility), `.github/copilot-instructions.md` and the
+   listings under `docs/listings/`.
 5. Leave `spigot.api.version` and `api-version` alone unless you are dropping old versions.
 
 If it fails, the compiler names what was removed. Both boundaries found so far were a single

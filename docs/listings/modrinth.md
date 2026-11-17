@@ -309,7 +309,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 ## For the people running the server
 
 - **Everything travels** — minecarts and boats with their passengers, ridden horses, camels, pigs, donkeys, llamas and striders with their riders, arrows and tridents and ender pearls in mid-flight, and mobs, items and XP orbs that wander into an open gate. Tamed wolves, cats and parrots follow their owner through any of the four.
-- **Configured in game.** `/wormhole config <setting> <value>` changes any setting on the spot — no reload, no restart. `/wormhole config sign` searches them.
+- **Configured in game.** `/wormhole config <setting> <value>` changes nearly any setting on the spot, with no reload; a few, such as turning `worldguard-enabled` on, wait for a restart. `/wormhole config sign` searches them.
 - **Every sound is a setting**, resource pack sounds included, with a volume per subsystem and `none` to silence any one of them. A gate even sounds its size: deeper and louder on a big gate, lighter on a small one.
 - **Works with or without a permissions plugin.** Vault with a permissions provider such as LuckPerms (LuckPerms alone is not enough), a built-in fallback if you do not.
 - **Plain YAML storage**, one file per gate. No database.
@@ -354,7 +354,7 @@ CI builds and tests each version and boots the built jar on a real server: Paper
 
 - **Tested.** A test suite covering gate detection, dial sequencing, ring geometry, beam timing, mirror captures, config parsing and the command layer. Coverage is on the badge above and is measured on every push, not quoted from memory.
 - **Every push builds and tests the whole matrix.** Java 17 and Java 25; every supported Minecraft version on the Spigot API; Paper at every one of them; and Purpur's newest. A Minecraft version is only claimed as supported if it is in that matrix.
-- **Compiled against the oldest supported API on purpose.** A plugin built against an old API runs on newer servers; one built against a new API can call something an old server has never heard of, and nothing catches that until a player reports a crash. Building against the floor makes the compiler enforce the floor — and the newest-version legs of the matrix catch the opposite case, an API that has been removed.
+- **Compiled against an old API (1.20.4) on purpose.** A plugin built against an old API runs on newer servers; one built against a new API can call something an old server has never heard of, and nothing catches that until a player reports a crash. Building against an old API makes the compiler hold that line, CI also builds the 1.20 floor itself — and the newest-version legs of the matrix catch the opposite case, an API that has been removed.
 - **Static analysis on every pull request.** SpotBugs runs on each build, and SonarCloud fails a pull request that carries *any* open finding, not merely a coverage gate. A 2026-09 refactoring campaign cleared the open backlog and closed every "method too complex" finding on the way.
 - **Nothing third-party in the jar but bStats.** Every other dependency is provided or test scope, and bStats is relocated so it never meets another plugin's copy. No database: gates are one YAML file each.
 - **GPL-3.0, and the issue tracker is open.** Bug reports get answered and pull requests are welcome.

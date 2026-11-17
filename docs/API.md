@@ -7,7 +7,7 @@ and [MIRRORS.md](MIRRORS.md).
 
 The plugin needs **Java 17** and runs on Minecraft **1.20 through 26.3**. It is built against
 the 1.20.4 API, and CI also builds and tests it against a chosen set of versions across that
-range (listed in the README), so everything here is meant to work across that whole range. Beaming and mirrors
+range (listed in the [compatibility table](guide/SERVER.md#compatibility)), so everything here is meant to work across that whole range. Beaming and mirrors
 raise no events yet.
 
 ## Depending on the plugin
@@ -106,12 +106,13 @@ the wormhole.
 
 ### Gate travel
 
-`StargatePlayerTravelEvent` fires once every check this plugin makes has passed — permission,
-iris code, cooldown, one-way, same-world — and before anything has moved. `getStargate()` is the
-gate being entered, `getDestination()` is where it leads, and `getArrival()` is the exact spot
-the player would land. For a player on foot that is a safe spot searched near the far gate; for a
-rider it is the far gate's own player arrival point, not a searched one. A vehicle itself lands at
-the far gate's minecart landing spot when it has one, which this event does not report.
+`StargatePlayerTravelEvent` fires once the checks this plugin makes have passed — permission,
+iris code, cooldown, one-way, same-world — and before anything has moved. For a vehicle those
+checks are made for its first passenger only, and the event then fires for each rider. `getStargate()` is the
+gate being entered, `getDestination()` is where it leads, and `getArrival()` is where
+a player on foot would land, a safe spot searched near the far gate. For a rider it is the far gate's
+own player arrival point, but the vehicle, with the rider aboard, lands at the far gate's minecart
+landing spot when it has one, which this event does not report.
 
 ```java
 @EventHandler
