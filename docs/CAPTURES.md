@@ -36,9 +36,8 @@ and keep GIF in reserve only if something downstream refuses WebP.
 
 ## Weight budget
 
-This repository's entire history is about **5.6 MiB packed**. One careless five-megabyte GIF
-roughly doubles that, permanently -- git keeps every blob it has ever seen, and everyone who
-clones pays for it forever.
+Git keeps every blob it has ever seen, so a heavy capture is paid for permanently: everyone who
+clones pays for it, forever, even after the file is deleted.
 
 So: **nothing committed here should exceed about 800 KB**, which in WebP is comfortable for a
 three-to-four-second clip at 720px and 20fps. If a capture will not fit, it is too long, too
@@ -66,7 +65,7 @@ be too heavy and too slow to read.
 | Shot | Length | Where the number comes from |
 |---|---|---|
 | A built gate | still | -- |
-| Dial and kawoosh | shape-dependent | `WOOSH_TICKS = 3`, `LIGHT_TICKS = 2` per step in the `.shape` file |
+| Dial and kawoosh | shape-dependent | `WOOSH_TICKS = 3` and `LIGHT_TICKS` (6 to 15, by shape) per step in the `.shape` file |
 | Ring countdown and deploy | 5s countdown, then ~1.5s | A 100-tick countdown, then a frame every 2 ticks |
 | Flash, hold and retract | ~3.5s | A 3-tick flash x 4 rings, a 20-tick hold, the pad lit 20 ticks more |
 | A whole beam cycle | 2.6s | 52 ticks — the phases overlap, see below |
@@ -79,7 +78,9 @@ ticks, so the whole thing fits one short loop with nothing cut. Record it in thi
 or the traveller, who is the subject, is not in frame. Adding the four phase durations gives 58,
 but the descend column starts at the *teleport* tick, 12 ticks into an 18-tick rise, so six ticks
 run at both ends at once. The strip in [BEAMS.md](BEAMS.md#the-phases-overlap) shows it, and
-`BeamGalleryTest` holds this document's 2.6s against `BeamFrame` itself.
+`BeamGalleryTest` holds this document's 2.6s against `BeamFrame` itself. The committed
+`beams/beam-up.webp` is longer than that, 3.5 seconds, so the `-t 2.6` below is the cut for the
+cycle alone, not a description of the shipped file.
 
 **The ring cycle is the awkward one.** End to end it is over ten seconds, most of it a
 countdown where very little moves. Cut it in two and trim most of the countdown: keep just

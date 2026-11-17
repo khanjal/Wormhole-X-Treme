@@ -134,8 +134,8 @@ Pairs:
     Created: 1756771200000
     Access: PRIVATE
     Allowed: [11111111-2222-3333-4444-555555555555]
-    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: SMOOTH_STONE_SLAB, Built: SMOOTH_STONE_SLAB, Light: GLOWSTONE, Style: CONCURRENT, Name: Base}
-    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: EVEN, Ring: DEEPSLATE_TILE_SLAB, Light: SEA_LANTERN, Style: SEQUENTIAL, Name: Tower}
+    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: SMOOTH_STONE_SLAB, Built: SMOOTH_STONE_SLAB, Light: GLOWSTONE, Flash: GLOWSTONE, Style: CONCURRENT, Name: Base}
+    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: EVEN, Ring: DEEPSLATE_TILE_SLAB, Built: DEEPSLATE_TILE_SLAB, Light: SEA_LANTERN, Flash: GLOWSTONE, Style: SEQUENTIAL, Name: Tower}
 ```
 
 Storing the pair rather than two rings removes three problems at once: no dangling partner
@@ -400,7 +400,7 @@ ring, the bottom for a ceiling one. Not symmetry for its own sake: if a ceiling 
 stopped highest, every ring after it would descend through where it had already settled.
 
 The drop is measured when a cycle engages, not when the ring is built, because floors change. Two
-limits come with it: **at least four blocks** from ceiling to floor, derived rather than chosen,
+limits come with it: **at least three blocks** of clear drop below the slabs (four counting their own layer), derived rather than chosen,
 since the plane has to be at least level with the top of the finished stack; and **at most
 `ring-max-ceiling-drop`**, ten by default, past which the ring is over a shaft rather than a
 room.
@@ -438,7 +438,7 @@ pattern that has not been built yet, with a layout guide to its slabs.
 
 **The frames are the real ones.** `RingPreview` steps through `RingAnimator.deployFrame`,
 `settledStack`, `ringAtRest`, `litRing` and `retractFrame` directly, at the server's own
-`ring-deploy-ticks` and `ring-flash-ticks`, so a preview cannot drift from a trip. It does not
+`ConfigManager.getRingDeployTicks` and `ConfigManager.getRingFlashTicks`, so a preview cannot drift from a trip. It does not
 reuse `RingCycle`, which runs a *pair* start to finish and has no state to rest in; what it
 reuses is the `Surroundings` seam, with `PreviewSurroundings` behind it.
 
@@ -459,9 +459,9 @@ no stack, `deploy` with one up) says so.
 
 **`cycle` is those steps run on their own, with the real pauses.** `RingPreview.cycle` raises the
 stack, and a `cycling` flag makes each phase book the next instead of stopping: the settle
-(`ring-settle-ticks`) after the rise, one light sweep (a trip with passengers shows one; the
-second sweep, after the swap, is not drawn, as nobody lands), the hold (`ring-hold-ticks`), the
-collapse, and the lights-linger pause (`ring-lights-linger-ticks`) with the closing sound before it
+(`getRingSettleTicks`) after the rise, one light sweep (a trip with passengers shows one; the
+second sweep, after the swap, is not drawn, as nobody lands), the hold (`getRingHoldTicks`), the
+collapse, and the lights-linger pause (`getRingLightsLingerTicks`) with the closing sound before it
 ends at `LIT`. The flag counts as moving, so `cycle` while one runs is `BUSY`, and `cycle` with a
 stack standing is `CYCLE_STANDING`. Any other step asked of a cycling preview goes through
 `RingPreviews.stopCycle`, which is `-clear`'s own `drop`: the pending task is cancelled before the
@@ -701,7 +701,7 @@ removal on retract so nothing outlives the cycle that requested it.
 **The reach limit is a design choice, not a technical one**, and it is two numbers because the
 two axes are different questions. `ring-max-link-distance` is 256 blocks on the ground —
 comfortably a whole base and nowhere near town to town — which stops rings becoming the answer to
-everything; `0` lifts it. The height limit is fixed at 384, the full height of the world, because
+everything; `0` lifts it. The height limit is the constant `MAX_LINK_HEIGHT`, fixed at 384 blocks, the Overworld's height (in a taller custom world the limit, not the world, is what stops a link), because
 going straight down is exactly what rings are *for*. **Quota** is
 `ring-max-pairs-per-player`, bypassed by `wormhole.ring.unlimited`.
 
@@ -711,7 +711,7 @@ Every ring setting is a flat `ring-` key in `config.yml`, listed with its defaul
 [ring guide](guide/RINGS.md#ring-settings). Two are worth a note here: `ring-animation-speed`
 scales every ring timing, but the countdown is floored at 30 ticks for the reason under
 [the cycle](#the-cycle); and `ring-max-link-distance` limits the ground only, the height being
-fixed at the world's, under [limits](#limits). The fallback slab, smooth stone slab, is never what
+fixed at 384 blocks, under [limits](#limits). The fallback slab, smooth stone slab, is never what
 `reset` goes back to, under [names, removal and reset](#names-removal-and-reset).
 
 ## Commands and permissions
@@ -769,7 +769,7 @@ from the cycle directly, which keeps the cycle free of Bukkit and lets the rule 
 model/ring/RingPattern.java        the two offset tables, generated from row widths
 model/ring/Ring.java               one endpoint: anchor, orientation, pattern, materials
 model/ring/RingOrientation.java    floor or ceiling, and what that flips
-model/ring/RingPair.java           the persisted unit: id, owner, access, style, two ends
+model/ring/RingPair.java           the persisted unit: id, owner, access, allow list, two ends
 model/ring/RingAccess.java         public or private
 model/ring/RingStyle.java          concurrent or sequential deploy
 model/ring/RingPhase.java          where a pair is in its cycle
