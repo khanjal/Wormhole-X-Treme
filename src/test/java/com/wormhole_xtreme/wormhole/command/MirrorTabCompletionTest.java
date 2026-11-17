@@ -170,6 +170,16 @@ class MirrorTabCompletionTest
         assertEquals(List.of("off"), complete("mirror", "set", "museum", "-follow", "of"));
     }
 
+    /** hidden and private take on or off, and group the groups in use and -none (#280). */
+    @Test
+    void groupHiddenAndPrivateCompleteTheirValues()
+    {
+        assertTrue(complete("mirror", "set", "").containsAll(List.of("-group", "-hidden", "-private")));
+        assertEquals(List.of("off"), complete("mirror", "set", "museum", "-hidden", "of"));
+        assertTrue(complete("mirror", "set", "-private", "").contains("on"));
+        assertTrue(complete("mirror", "set", "museum", "-group", "").contains("-none"));
+    }
+
     /**
      * create offers nothing, on purpose.
      *

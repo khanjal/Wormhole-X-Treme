@@ -111,11 +111,12 @@ public final class MapScanner
      */
     private static Map<String, MirrorMark> mirrorMarks(final Collection<QuantumMirror> mirrors)
     {
-        // Mirrors have no owner and nothing private about them, so every one is shown.
+        // A web map is seen by anybody, so a hidden or private mirror is left off it (#280).
         final Map<String, MirrorMark> marks = new HashMap<>();
         for (final QuantumMirror mirror : mirrors)
         {
-            final MirrorMark mark = mirrorMark(mirror);
+            final MirrorMark mark = (mirror.access().hidden() || mirror.access().restricted())
+                ? null : mirrorMark(mirror);
             if (mark != null)
             {
                 marks.put(mark.id(), mark);

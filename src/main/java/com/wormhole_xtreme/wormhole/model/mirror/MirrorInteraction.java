@@ -189,6 +189,12 @@ public final class MirrorInteraction
             hint(player, Messages.get(player, "mirror.interact.reflecting", MirrorText.name(mirror.name())));
             return;
         }
+        // Somebody else may have turned it to a mirror this player's own right-click would not list.
+        if (!MirrorNetwork.reachable(mirror, player))
+        {
+            hint(player, Messages.get(player, "mirror.interact.not-open"));
+            return;
+        }
         final QuantumMirror target = MirrorNetwork.chosen(mirror);
         final Location destination = target.destination().toLocation();
         if (destination == null)
