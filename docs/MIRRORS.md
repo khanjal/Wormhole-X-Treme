@@ -22,6 +22,7 @@ dial — which is why a door in every world is practical in a way a gate in ever
 - [When another plugin refuses the trip](#when-another-plugin-refuses-the-trip)
 - [The far edge of the room](#the-far-edge-of-the-room) · [Built: the fat eye](#built-the-fat-eye) · [Built: streaming](#built-streaming) · [What is left to try](#what-is-left-to-try)
 - [Seeing creatures](#seeing-creatures)
+- [Nether portals](#nether-portals)
 - [What was considered and not done](#what-was-considered-and-not-done)
 
 ## The network
@@ -1153,6 +1154,55 @@ never saved, but anything that reacts to every spawn will react to them. Each vi
 of their own, so ten players at one window onto a busy room is up to two hundred of them. A gate's stand-ins sit
 behind its plane, where a traveller is sent on before reaching them; a mirror's sit behind the
 wall it hangs on.
+
+## Nether portals
+
+`nether-portal-views` (off by default) draws a vanilla nether portal as a window, through the same
+code as a gate's view ([#514](https://github.com/khanjal/Wormhole-X-Treme/issues/514)). This is the
+first slice: one portal pair, both ways once somebody has gone both ways. `PortalViews` holds it.
+
+**Links are learnt, never predicted.** There is no asking a portal where it goes without sending
+something through. `PlayerPortalEvent` (at MONITOR, not cancelled) notes the portal a player
+steps into and their yaw. `PlayerChangedWorldEvent` then finds the portal block they landed in,
+and the turn is how far their yaw moved, in quarter turns. A landing outside a portal (another
+plugin moved them), back in the same world, or at a turn that does not come out square to the far
+portal teaches nothing. A link goes one way: the way back is its own trip. Links are kept in
+memory only, the oldest dropped past 1024.
+
+**A portal is a flood fill** of `NETHER_PORTAL` blocks sharing their `Orientable` axis, in one
+plane. Anything that is not a whole rectangle of up to 21 by 21 is not a portal. A view is only
+drawn for one within the largest gate opening (18), through `GateViews.shapeOf`, with the
+portal's own frame ring as its frame.
+
+**Each face is a window.** Looking into the south face of a portal running along x shows the far
+portal's matching side: looking north, turned by the link's turn. The arrival point is a block out
+of the far portal at the middle of its bottom row, as a gate's is in front of its far gate. Each
+face of each far portal has its own capture, kept with the gates' captures.
+
+**No chunk is loaded.** A gate's first capture loads what it must; a portal's never does.
+`Captures.requestLoaded` starts one only when every chunk of its box is loaded, and reads only
+loaded chunks, giving up if one is let go. It is asked for each sweep for a minute after a trip,
+as chunks load round the traveller, and whenever somebody looks into the near portal. A portal
+window never asks `FarChunkHolds` to hold its far side for creatures. Blocks are read to check a
+portal is still lit only where their chunk is loaded.
+
+**One per viewer.** Each sweep, every player with `wormhole.view.netherportal` picks the linked
+face they are in front of, within `mirror-proximity-distance`, that they look most straight at.
+At most sixteen are offered server-wide. The drawing then keeps, of a viewer's portal windows,
+only the one they look at most straight (`WindowSource.oneAtATime`), so a portal offered for
+somebody else is not drawn for them too. Gates and mirrors beside it are unaffected.
+
+**Walking in.** The opening is left as the client's own portal block, so the purple sheet, the
+swirl and the overlay stay. As for a gate, the drawing ends for a viewer whose eye is no longer
+half a block in front of the plane, and the blocks behind are put back.
+
+**Broken portals.** A portal or its far end found not lit, as far as loaded chunks say, drops every
+link to or from it and takes back both its faces' windows. A world unloading drops its links. A
+window not offered in a sweep drops out, which is how the setting turning off takes every view back.
+
+**Left for later:** a depth of its own (it draws a gate's first step, 32), links kept across a
+restart, a cap or expiry on capture files, `mirror debug` output for portals, and judging the edge
+shimmer on a real server, which the issue names as the go/no-go.
 
 ## What was considered and not done
 

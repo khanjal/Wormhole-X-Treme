@@ -520,6 +520,8 @@ class ConfigAccessorTableTest
         d.put(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 18);
         d.put(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
         d.put(ConfigKeys.MIRROR_SHOW_PLAYERS, true);
+        d.put(ConfigKeys.NETHER_PORTAL_VIEWS, true);
+        d.put(ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, "Nether_World");
         d.put(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 3);
         d.put(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 6);
         d.put(ConfigKeys.MIRROR_APPROACH_MESSAGE, false);
@@ -663,6 +665,8 @@ class ConfigAccessorTableTest
             row("getMirrorProximityDistance", ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 16, 16, 18),
             row("isMirrorShowEntities", ConfigKeys.MIRROR_SHOW_ENTITIES, false, false, true),
             row("isMirrorShowPlayers", ConfigKeys.MIRROR_SHOW_PLAYERS, false, false, true),
+            row("isNetherPortalViews", ConfigKeys.NETHER_PORTAL_VIEWS, false, false, true),
+            row("getNetherPortalViewWorlds", ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, Set.of(), Set.of(), Set.of("nether_world")),
             row("getMirrorEntityLoadRadius", ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 2, 2, 3),
             row("getMirrorPerWorldLimit", ConfigKeys.MIRROR_PER_WORLD_LIMIT, 1, 1, 6),
             row("isMirrorApproachMessage", ConfigKeys.MIRROR_APPROACH_MESSAGE, true, true, false),
@@ -824,6 +828,7 @@ class ConfigAccessorTableTest
         o.add(odd("getGateViewFirstDepth", ConfigKeys.VIEW_DEPTH, 10, 10));
         o.add(odd("getGateViewFirstDepth", ConfigKeys.VIEW_DEPTH, 0, 4));
         o.add(odd("getGateView", ConfigKeys.GATE_VIEW, " OPEN ", "open"));
+        o.add(odd("getNetherPortalViewWorlds", ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, " a, ,B ", Set.of("a", "b")));
         o.add(odd("getGateView", ConfigKeys.GATE_VIEW, "bogus", "horizon"));
         o.add(odd("getGateViewFunnelLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 0, 1));
         o.add(odd("getGateViewFunnelLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, -5, 1));

@@ -486,6 +486,35 @@ public final class Captures
     }
 
     /**
+     * Takes a capture seen through the largest gate opening, first or again, only from chunks already
+     * loaded: a nether portal's far side (#514), which never loads a chunk to be drawn.
+     *
+     * @param key
+     *            its {@link #gateKey}
+     * @param what
+     *            what it is for, for the log
+     * @param arrival
+     *            the far side's arrival point, facing the way it is seen
+     * @param depth
+     *            how far ahead it reaches
+     * @param olderThanSeconds
+     *            how old one already held may be before it is taken again
+     * @return true if one was started now
+     */
+    public static boolean requestLoaded(final String key, final String what, final Place arrival, final int depth,
+        final long olderThanSeconds)
+    {
+        final boolean held = LOADED.containsKey(key) || fileOf(key).isFile();
+        if ((held && !stale(key, arrival, depth, olderThanSeconds)) || JOBS.containsKey(key) || loading(key)
+            || !boxLoaded(arrival, depth))
+        {
+            return false;
+        }
+        return request(key, what, arrival, new int[] { GATE_OPENING, GATE_OPENING }, Math.max(4, depth),
+            new Terms(false, true), NO_CELLS);
+    }
+
+    /**
      * Whether every chunk a gate's capture reads is loaded now (#683).
      *
      * <p>A retake reads only what is loaded: a chunk the server has let go of is not loaded again

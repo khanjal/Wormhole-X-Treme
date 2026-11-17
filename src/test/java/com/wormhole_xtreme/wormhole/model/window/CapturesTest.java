@@ -1241,6 +1241,51 @@ class CapturesTest
     }
 
     /**
+     * A nether portal's first capture, unlike a gate's, waits for its chunks rather than loading them (#514).
+     *
+     * <p>A portal's far side is whatever the traveller came out at; loading it to draw a view would load
+     * chunks for every portal anybody walks past.
+     */
+    @Test
+    void aPortalsFirstCaptureWaitsForItsChunksToBeLoaded()
+    {
+        chunksLoaded = false;
+
+        withServer(() -> assertFalse(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L),
+            "none of its chunks is loaded"));
+
+        assertEquals(0, Captures.taking(), "and no job is left reading");
+        chunksLoaded = true;
+        withServer(() ->
+        {
+            assertTrue(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L));
+            Captures.step(100);
+        });
+        assertNotNull(Captures.get(gateKey()), "taken once they are");
+        withServer(() -> assertFalse(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L),
+            "and not again while fresh"));
+    }
+
+    /**
+     * A portal's first capture that meets a chunk let go of mid-way gives up rather than load it (#514).
+     *
+     * <p>A gate's first capture loads what it must; a portal's must not, even with nothing yet to draw.
+     */
+    @Test
+    void aPortalsFirstCaptureGivesUpWhenAChunkIsLetGoMeanwhile()
+    {
+        withServer(() ->
+        {
+            assertTrue(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L));
+            chunksLoaded = false;
+            Captures.step(1000);
+        });
+
+        assertEquals(0, Captures.taking(), "the job is over");
+        assertNull(Captures.get(gateKey()), "and nothing was taken by loading the chunk");
+    }
+
+    /**
      * Two gates whose names are made file-safe alike keep captures of their own.
      *
      * <p>Every character that is not a plain letter or digit became an underscore, so "a b" and

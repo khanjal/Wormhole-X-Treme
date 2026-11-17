@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -63,5 +64,23 @@ public interface WindowSource
     default Set<Spot> structure()
     {
         return Set.of();
+    }
+
+    /** @return whether this player may be drawn it: all of them, but a nether portal's asks a permission (#514) */
+    default boolean shownTo(final Player player)
+    {
+        return true;
+    }
+
+    /** @return true if a viewer is drawn only the one of these they look most straight at (#514) */
+    default boolean oneAtATime()
+    {
+        return false;
+    }
+
+    /** @return whether its far side may be held loaded for its creatures: not a nether portal's, which never loads a chunk (#514) */
+    default boolean holdsFarChunks()
+    {
+        return true;
     }
 }

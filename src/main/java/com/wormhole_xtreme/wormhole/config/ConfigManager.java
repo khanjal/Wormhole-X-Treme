@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -257,6 +259,12 @@ public class ConfigManager
          * show on the first look (#296). 0 holds nothing; read up to {@link ConfigManager#MOST_ENTITY_LOAD_RADIUS}.
          */
         MIRROR_ENTITY_LOAD_RADIUS,
+
+        /** Whether a vanilla nether portal shows where it went last, drawn like a gate's view (#514). Off by default. */
+        NETHER_PORTAL_VIEWS,
+
+        /** The worlds whose nether portals may show a view, comma-separated; empty for every world (#514). */
+        NETHER_PORTAL_VIEW_WORLDS,
 
         MIRROR_APPROACH_MESSAGE
     }
@@ -958,6 +966,51 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DESTINATION_SHUTDOWN);
         return (s != null) && s.getBooleanValue();
     }
+
+    /**
+     * Whether vanilla nether portals show where they went (#514).
+     *
+     * @return false unless the setting turns it on
+     */
+    public static boolean isNetherPortalViews()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.NETHER_PORTAL_VIEWS);
+        return (s != null) && s.getBooleanValue();
+    }
+
+    /**
+     * The worlds whose nether portals may show a view (#514).
+     *
+     * @return their names in lower case; empty for every world
+     */
+    public static Set<String> getNetherPortalViewWorlds()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.NETHER_PORTAL_VIEW_WORLDS);
+        final Object value = (s == null) ? null : s.getValue();
+        if (value == null)
+        {
+            return Set.of();
+        }
+        final String raw = String.valueOf(value);
+        // Asked for each player every sweep, so split once per value rather than each time.
+        final ParsedWorlds parsed = NETHER_PORTAL_VIEW_WORLDS_SPLIT.get();
+        if ((parsed != null) && parsed.raw().equals(raw))
+        {
+            return parsed.worlds();
+        }
+        final Set<String> worlds = Arrays.stream(raw.split(",")).map(name -> name.trim().toLowerCase(Locale.ROOT))
+            .filter(name -> !name.isEmpty()).collect(Collectors.toUnmodifiableSet());
+        NETHER_PORTAL_VIEW_WORLDS_SPLIT.set(new ParsedWorlds(raw, worlds));
+        return worlds;
+    }
+
+    /** {@code nether-portal-view-worlds} as last read, and the names it split into. */
+    private record ParsedWorlds(String raw, Set<String> worlds)
+    {
+    }
+
+    /** The last {@code nether-portal-view-worlds} split, or null before the first. */
+    private static final AtomicReference<ParsedWorlds> NETHER_PORTAL_VIEW_WORLDS_SPLIT = new AtomicReference<>();
 
     /** See {@link SignSettings#isSignDialMatchMaterial()}. */
     public static boolean isSignDialMatchMaterial()
