@@ -78,6 +78,7 @@ Ignored, stronger the later its step (in up to five bands on a long woosh), with
 the **Woosh cells** switch in the bar above the 3D view (on by default) shows or hides them there as crossed wireframe blocks, and **Open** plays them in order.
 A `:W#0` cell is never played, and the checks say so.
 The legend sits beside each 3D view, or behind its **Legend** button on a narrow screen. It lists every entry in full, so the page scrolls rather than the legend.
+Hover an entry for the whole explanation: a **woosh cell** is striped in the grid and a crossed wireframe block in the 3D view; an **underlined letter** marks a cell with extras; a **double border** is an error (a thick one with a corner mark on small cells) and a **dashed border** a warning; and the **dashed line** with Symmetry on is the axis painting mirrors across.
 
 ## Drawing in one half
 

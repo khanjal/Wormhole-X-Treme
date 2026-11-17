@@ -124,15 +124,19 @@ class DesignerView extends GateViewer {
     this.requestRender();
   }
 
-  /** The shape's legend, plus the grid's cue for a cell with extras, so the key is always in view beside the picture. */
+  /**
+   * The shape's legend, plus the grid's cues, so the key is always in view beside the picture. The labels are
+   * short so the list stays compact; the full explanation of an entry is its title (and the Designer page).
+   */
   renderLegend() {
-    this.wooshLabel = "Woosh cell: a striped cell in the grid and a crossed wireframe block in the 3D view, stronger in up to five bands as its step goes up, with the step number in the corner of bigger cells";
+    this.wooshLabel = "Woosh cell";
     super.renderLegend();
-    this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "S"), " Underlined letter in the grid: the cell has extras"));
-    this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "■"),
-      " Double border in the grid (a thick one with a corner mark on small cells): an error. Dashed border: a warning"));
-    this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "\u254E"),
-      " Dashed line in the grid, with Symmetry on: painting mirrors the kind across it and the order boxes mirror the number; Mirror now copies the dotted area, kinds only unless told"));
+    this.legend.children[4]?.setAttribute("title", "A striped cell in the grid and a crossed wireframe block in the 3D view, stronger in up to five bands as its step goes up, with the step number in the corner of bigger cells");
+    const cue = (glyph, label, title) => this.legend.append(el("li", { title },
+      el("span", { class: "wxt-cue", "aria-hidden": "true" }, glyph), ` ${label}`));
+    cue("S", "Underlined letter: extras", "Underlined letter in the grid: the cell has extras");
+    cue("\u25A0", "Double border: error; dashed: warning", "Double border in the grid (a thick one with a corner mark on small cells): an error. Dashed border: a warning");
+    cue("\u254E", "Dashed line: symmetry axis", "Dashed line in the grid, with Symmetry on: painting mirrors the kind across it and the order boxes mirror the number; Mirror now copies the dotted area, kinds only unless told");
   }
 
   applyPalette() {

@@ -571,7 +571,7 @@ button.wxt-issue {
   z-index: 2;
   display: none;
   box-sizing: border-box;
-  width: min(16rem, calc(100% - 1rem));
+  width: min(30rem, calc(100% - 1rem));
   padding: 0.4rem 0.75rem;
   overflow: auto;
   font-size: 0.8rem;
@@ -592,9 +592,9 @@ button.wxt-issue {
 }
 
 .wxt-legend-panel .wxt-legend {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 0.3rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.3rem 0.75rem;
   list-style: none;
 }
 
@@ -638,6 +638,10 @@ button.wxt-issue {
 
   .wxt-legend-panel .wxt-legend-toggle {
     display: none;
+  }
+
+  .wxt-legend-panel .wxt-legend {
+    grid-template-columns: 1fr;
   }
 
   .wxt-legend-body {
