@@ -113,12 +113,12 @@ public final class StargateIrisAnimator
     {
         final List<List<Location>> rings =
             IrisSweepDriver.rings(gate.getGatePortalBlocks(), gate.getEffectiveIrisAnimation(), true, gate.getGateFacing());
-        StargateBlockSetup.startHorizonSweep(gate, true);
+        ViewerIrisSweep.startHorizonSweep(gate, true);
         // Everything is hidden first, so the client sees the opening as it was a moment ago
         // rather than the finished iris the server has just told it about.
         for (final List<Location> ring : rings)
         {
-            StargateBlockSetup.sendUncovered(gate, ring, under);
+            ViewerIrisSweep.sendUncovered(gate, ring, under);
         }
         // Then each ring is let through to the truth, which is the iris already standing there.
         // The far layer arrives with the ring that covers it, so a see-through iris has the
@@ -155,7 +155,7 @@ public final class StargateIrisAnimator
         // Drawn as the bare opening rather than as the truth: the iris blocks are still there
         // and stay there until the sweep ends, so sending what is really in the cell would
         // paint the iris back over itself and the open would not be seen to happen at all.
-        StargateBlockSetup.startHorizonSweep(gate, false);
+        ViewerIrisSweep.startHorizonSweep(gate, false);
         new IrisSweepDriver<>(IrisSweepDriver.rings(gate.getGatePortalBlocks(), gate.getEffectiveIrisAnimation(), false,
             gate.getGateFacing()),
             new GateCanvas(gate, under, false, afterwards)).start();
@@ -185,7 +185,7 @@ public final class StargateIrisAnimator
         @Override
         public void drawRing(final List<Location> ring)
         {
-            StargateBlockSetup.sweepRing(gate, ring, draw, covering);
+            ViewerIrisSweep.sweepRing(gate, ring, draw, covering);
         }
 
         @Override
@@ -219,7 +219,7 @@ public final class StargateIrisAnimator
         {
             running.remove(key(gate));
             // Ended, not called off: a call-off keeps what it drew for the sweep that replaces it.
-            StargateBlockSetup.forgetSwept(gate.getGateName());
+            ViewerIrisSweep.forgetSwept(gate.getGateName());
         }
 
         @Override
@@ -263,7 +263,7 @@ public final class StargateIrisAnimator
             if (sweep != null)
             {
                 // Finished as the last step would, so the next sweep starts from what each viewer was drawn.
-                StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), irisAsItStands(gate),
+                ViewerIrisSweep.sweepRing(gate, gate.getGatePortalBlocks(), irisAsItStands(gate),
                     gate.isGateIrisActive());
             }
             else if (!StargateBlockSetup.isLayered(gate))

@@ -856,7 +856,7 @@ class IrisLayeringTest
         standAt(Z - 4);
 
         // Covering, the iris is drawn as the gate's own: what is passed to draw is only read as a ring uncovers.
-        StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), Material.YELLOW_STAINED_GLASS, true);
+        ViewerIrisSweep.sweepRing(gate, gate.getGatePortalBlocks(), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
         verify(viewer).sendBlockChange(at(Z), eq(iris));
@@ -880,14 +880,14 @@ class IrisLayeringTest
         glassIris(ice, packed);
         standAt(Z + 4);
 
-        StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), Material.YELLOW_STAINED_GLASS, true);
+        ViewerIrisSweep.sweepRing(gate, gate.getGatePortalBlocks(), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(at(Z - 1), eq(iris));
         verify(viewer, never()).sendBlockChange(at(Z), any(BlockData.class));
         verify(viewer, never()).sendBlockChange(at(Z + 1), any(BlockData.class));
 
         clearInvocations(viewer);
-        StargateBlockSetup.sweepRing(gate, gate.getGatePortalBlocks(), Material.WATER, false);
+        ViewerIrisSweep.sweepRing(gate, gate.getGatePortalBlocks(), Material.WATER, false);
 
         verify(viewer).sendBlockChange(at(Z - 1), eq(truthAhead));
         verify(viewer, never()).sendBlockChange(at(Z), any(BlockData.class));
@@ -918,7 +918,7 @@ class IrisLayeringTest
         gate.getGateStructureBlocks().add(new Location(world, X + 2, Y, Z));
         standAt(Z - 4);
 
-        StargateBlockSetup.sweepRing(gate, List.of(new Location(world, X, Y, Z)), Material.YELLOW_STAINED_GLASS, true);
+        ViewerIrisSweep.sweepRing(gate, List.of(new Location(world, X, Y, Z)), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(at(Z + 1), argThat(d -> (d == ice) || (d == packed)));
         verify(viewer, never()).sendBlockChange(
@@ -926,7 +926,7 @@ class IrisLayeringTest
 
         // And the same going the other way, as a ring uncovers.
         clearInvocations(viewer);
-        StargateBlockSetup.sweepRing(gate, List.of(new Location(world, X, Y, Z)), Material.WATER, false);
+        ViewerIrisSweep.sweepRing(gate, List.of(new Location(world, X, Y, Z)), Material.WATER, false);
 
         verify(viewer).sendBlockChange(at(Z), eq(horizon));
         verify(viewer).sendBlockChange(at(Z + 1), eq(truthBehind));

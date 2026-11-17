@@ -802,7 +802,7 @@ class IrisSweepCrossingTest
     /** The private record of what the sweeps have drawn whom. */
     private static Map<UUID, Map<String, Map<Integer, IrisLayering.Placement>>> swept() throws ReflectiveOperationException
     {
-        return PrivateStatics.of(StargateBlockSetup.class, "SWEPT");
+        return PrivateStatics.of(ViewerIrisSweep.class, "SWEPT");
     }
 
     /** Whether a viewer has a sweep record for the fixture's gate. */
@@ -982,7 +982,7 @@ class IrisSweepCrossingTest
             "past the reach from the gate's first cell, or this proves nothing");
         assertTrue(new Location(world, 2, 66, 63.9).distance(corner) <= 64, "and within it from the ring's");
 
-        StargateBlockSetup.sweepRing(gate, List.of(corner), Material.YELLOW_STAINED_GLASS, true);
+        ViewerIrisSweep.sweepRing(gate, List.of(corner), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(argThat(at -> (at.getBlockX() == 2) && (at.getBlockY() == 66)
             && (at.getBlockZ() == -1)), argThat(d -> (d == ice) || (d == packed)));
@@ -1309,7 +1309,7 @@ class IrisSweepCrossingTest
     {
         final Player viewer = midClose();
 
-        StargateBlockSetup.startHorizonSweep(gate, true);
+        ViewerIrisSweep.startHorizonSweep(gate, true);
 
         assertFalse(recorded(viewer), "the closing starts from nothing covered");
     }
@@ -1337,7 +1337,7 @@ class IrisSweepCrossingTest
             }
         }
 
-        StargateBlockSetup.sweepRing(gate, first, Material.WATER, false);
+        ViewerIrisSweep.sweepRing(gate, first, Material.WATER, false);
 
         assertEquals(cellsOf(rings.get(0)), new FarPlane(viewer).showingAt(0, water), "the ring opened, as the wormhole");
     }
