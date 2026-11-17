@@ -67,6 +67,18 @@ room at its next pass after such a player comes near, so a newcomer may glimpse 
 a second. The per-world limit still counts every mirror in a
 world, whatever its group.
 
+**A sign to choose with (#280).** A sign touching a banner, written `[mirror]` on its front's first
+line, shows the previous, current and next mirror the way a gate's dial sign does, and a right-click
+on it moves the mirror on. It sits beside right-click scrolling rather than replacing it, so no
+mirror changes how it is used because somebody hung a sign. One sign is read by everybody, and the
+list a right-click walks depends on who clicks, so the sign walks the public list — what
+`order(mirror, null)` gives, its start and its group's listed mirrors — for whoever clicks it;
+per-viewer sign text would mean sending each player their own sign by packet, for a convenience.
+A private room chosen at the banner leaves the sign's middle line blank. Once drawn, the first line
+is the mirror's `-name-`, which is how the sign is known again. The sign is written when its mirror
+changes, at a click or when the sweep turns the mirror back, never every sweep, and a sign in an
+unloaded chunk is left as it was.
+
 **A punch goes through**, which is why a mirror cannot be broken: the banner and the wall round its
 opening ignore a punch and survive an explosion, and `mirror remove` is how one comes down.
 
