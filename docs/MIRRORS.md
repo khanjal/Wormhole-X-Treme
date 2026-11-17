@@ -1013,8 +1013,15 @@ that one viewer (`HiddenEntities`).
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
   has lost track of is removed at the next sweep.
-- **Not yet in a reflection.** A mirror showing its own room shows no creatures: drawing the room
-  in front of it is a later step, with the rule that a viewer never sees themselves.
+- **In a reflection.** A mirror showing its own room shows the mobs, and with `mirror-show-players`
+  the other players, standing in front of it, flipped across the wall as its blocks are: one a step
+  to the viewer's left in front shows a step to their left behind the wall, and one looking into the
+  mirror looks back out of it (#296, step 3). Never the viewer themselves, by the same
+  `FarPlayers.showsTheViewer` rule as any mirror, so two players at one mirror each see the other
+  and not themselves. It is the same path as any window's, through `WindowShape.hereOf`, so every
+  rule above holds, the cap of twenty included; the room is the viewer's own and in front of them,
+  so it is loaded already and nothing is held for it. Their real selves stand in front of the wall,
+  where the veil never reaches, so each shows once in the room and once in the reflection.
 
 **What it costs.** A watched window holds 15 chunks at the default radius (45 at 4), and with the
 ring the server keeps round each, about 63 chunks loaded (about 135 at 4), some 35 of them ticking
@@ -1045,9 +1052,9 @@ wall banners.
 the other, and the second banner's name was one nobody chose. The network replaced it: one room per
 mirror, and the choice of where to open made at the mirror.
 
-**Seeing yourself in a reflection.** A reflection shows an empty room. Drawing the players in front
-of it, flipped, needs the stand-ins of [Seeing creatures](#seeing-creatures) for players, and is
-a later step of #296, with the rule that the viewer never sees themselves.
+**Seeing yourself in a reflection.** A reflection shows the others in front of it
+([Seeing creatures](#seeing-creatures)), but never the viewer, the rule set for mirrors in #296:
+the step first planned had the viewer seeing themselves, flipped, and was replaced by this one.
 
 **Groups, hidden mirrors and a sign to choose with** — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280).
 **Mirrors on other servers** — [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257).
