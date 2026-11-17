@@ -558,7 +558,9 @@ class PlayerFiguresTest
     void theViewersOwnFigureHasNoNameTag()
     {
         final Player viewer = player("Sam");
+        when(viewer.getScoreboard()).thenReturn(mock(Scoreboard.class));
         assertFalse(PlayerFigures.nameTagShown(viewer, viewer));
+        assertTrue(PlayerFigures.nameTagShown(viewer, player("Alex")), "another player, with no team, is named");
         assertTrue(PlayerFigures.nameTagShown(null, viewer));
     }
 
