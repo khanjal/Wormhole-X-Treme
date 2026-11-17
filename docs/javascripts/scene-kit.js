@@ -56,7 +56,12 @@ export function stageWithLegend(stage, legend) {
   const narrow = () => toggle.getClientRects().length > 0;
   // The overlay shows every entry; only a window too short for them makes it scroll.
   const limitOverlay = () => {
-    body.style.maxHeight = narrow() && panel.classList.contains("wxt-open") ? `${overlayMaxHeight(window.innerHeight)}px` : "";
+    if (!narrow() || !panel.classList.contains("wxt-open")) {
+      body.style.maxHeight = "";
+      return;
+    }
+    const r = row.getBoundingClientRect();
+    body.style.maxHeight = `${overlayMaxHeight(r.top + body.offsetTop, Math.min(r.bottom, window.innerHeight))}px`;
   };
   const setOpen = (open) => {
     panel.classList.toggle("wxt-open", open);
@@ -76,14 +81,27 @@ export function stageWithLegend(stage, legend) {
   };
   toggle.addEventListener("click", () => setOpen(!panel.classList.contains("wxt-open")));
   if (typeof ResizeObserver === "function") {
+    // Applied a frame later: the change can resize what is watched, and a loop would be reported as an error.
+    let frame = 0;
     const watch = new ResizeObserver(() => {
-      if (!narrow()) setOpen(false);
-      limitOverlay();
-      reserve();
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (!narrow()) setOpen(false);
+        limitOverlay();
+        reserve();
+      });
     });
     watch.observe(box);
     watch.observe(legend);
   }
+  // A click or the focus going elsewhere closes the overlay, as Escape does.
+  document.addEventListener("pointerdown", (e) => {
+    if (panel.classList.contains("wxt-open") && narrow() && !panel.contains(e.target)) setOpen(false);
+  });
+  panel.addEventListener("focusout", (e) => {
+    if (panel.classList.contains("wxt-open") && narrow() && e.relatedTarget && !panel.contains(e.relatedTarget)) setOpen(false);
+  });
   box.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !panel.classList.contains("wxt-open") || !narrow()) return;
     e.stopPropagation();

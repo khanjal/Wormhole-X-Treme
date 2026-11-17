@@ -19,8 +19,8 @@ test("a hidden legend measures zero and leaves the reserve alone", () => {
   assert.equal(reserveHeight(250, -5), 250);
 });
 
-test("the overlay may use the window less its margin, and never less than a short list needs to be usable", () => {
-  assert.equal(overlayMaxHeight(844), 748);
-  assert.equal(overlayMaxHeight(200), 160);
-  assert.equal(overlayMaxHeight(undefined), 160);
+test("the overlay may use the room between where it starts and the lowest line it may reach, and never less than a short list needs to be usable", () => {
+  assert.equal(overlayMaxHeight(52, 450), 390);
+  assert.equal(overlayMaxHeight(52, 100), 160);
+  assert.equal(overlayMaxHeight(undefined, undefined), 160);
 });

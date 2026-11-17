@@ -131,9 +131,23 @@ class DesignerView extends GateViewer {
   renderLegend() {
     this.wooshLabel = "Woosh cell";
     super.renderLegend();
-    this.legend.children[4]?.setAttribute("title", "A striped cell in the grid and a crossed wireframe block in the 3D view, stronger in up to five bands as its step goes up, with the step number in the corner of bigger cells");
-    const cue = (glyph, label, title) => this.legend.append(el("li", { title },
-      el("span", { class: "wxt-cue", "aria-hidden": "true" }, glyph), ` ${label}`));
+    const explain = (li, text) => {
+      const id = `wxt-legend-note-${++legendNotes}`;
+      const note = el("span", { class: "wxt-legend-note", id, hidden: "" }, text);
+      const more = el("button", { type: "button", class: "wxt-legend-more", "aria-expanded": "false", "aria-controls": id, "aria-label": `Details: ${li.textContent.trim()}` }, "?");
+      more.addEventListener("click", () => {
+        note.hidden = !note.hidden;
+        more.setAttribute("aria-expanded", String(!note.hidden));
+      });
+      li.setAttribute("title", text);
+      li.append(" ", more, note);
+    };
+    explain(this.legend.children[4], "A striped cell in the grid and a crossed wireframe block in the 3D view, stronger in up to five bands as its step goes up, with the step number in the corner of bigger cells");
+    const cue = (glyph, label, text) => {
+      const li = el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, glyph), ` ${label}`);
+      explain(li, text);
+      this.legend.append(li);
+    };
     cue("S", "Underlined letter: extras", "Underlined letter in the grid: the cell has extras");
     cue("\u25A0", "Double border: error; dashed: warning", "Double border in the grid (a thick one with a corner mark on small cells): an error. Dashed border: a warning");
     cue("\u254E", "Dashed line: symmetry axis", "Dashed line in the grid, with Symmetry on: painting mirrors the kind across it and the order boxes mirror the number; Mirror now copies the dotted area, kinds only unless told");
@@ -144,6 +158,8 @@ class DesignerView extends GateViewer {
     if (this.outline) this.outline.material.color.set(palette().fresh);
   }
 }
+
+let legendNotes = 0;
 
 class Designer {
   constructor(root, view) {
