@@ -54,11 +54,12 @@ destinations, then click the button to dial the one shown.
 ## Who may do what
 
 Building a gate takes `wormhole.config` for the `gate` commands and `wormhole.build` (or
-`wormhole.build.<shape>`) for the build itself. Removing one takes `wormhole.config` and
-`wormhole.remove.own` or `wormhole.remove.all`. Operators have all of these.
+`wormhole.build.<shape>`) for the build itself. The `remove` commands take `wormhole.config`;
+`wormhole.remove.all` decides who may break another player's gate, and an owner may always break
+their own. Operators have all of these.
 `wormhole.build.preview` lets other players call up the ghost with `gate build`, for their eyes
-only. With a permissions plugin, players need `wormhole.use.dialer` to dial and
-`wormhole.use.sign` to use dial signs; without one, anyone can dial. A server can limit how many
+only. With Vault and a permissions plugin, players need `wormhole.use.dialer` to dial and
+`wormhole.use.sign` to use dial signs; without a Vault permission provider, anyone can dial. A server can limit how many
 gates a player owns and how close two gates may stand.
 
 ## Go deeper
