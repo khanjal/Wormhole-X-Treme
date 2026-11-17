@@ -45,7 +45,7 @@ public final class ShapePermissions
     private static final Set<String> TAKEN = Set.of("preview", "mindistance");
 
     /** As {@link #TAKEN}, after {@code wormhole.use.}. */
-    private static final Set<String> TAKEN_USE = Set.of("sign", "dialer", "compass");
+    private static final Set<String> TAKEN_USE = Set.of("sign", "dialer", "compass", "ping");
 
     /** Static helpers only. */
     private ShapePermissions()

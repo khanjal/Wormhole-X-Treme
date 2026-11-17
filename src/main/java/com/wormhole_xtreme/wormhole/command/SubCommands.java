@@ -280,6 +280,9 @@ public final class SubCommands
                 ? combine(gateNames(sender, args[1]), travelBeamNames(sender, args[1])) : none());
         register("compass", aliases(), "/wormhole compass [reset]", new Compass(), true,
             (sender, args) -> args.length == 2 ? prefixed(args[1], "reset") : none());
+        // Experimental and off by default, so hidden below rather than advertised as a ninth noun (#16).
+        register("ping", aliases(), "/wormhole ping <gate>", new Ping(), true,
+            (sender, args) -> args.length == 2 ? gateNames(Ping.gatesToComplete(sender), args[1]) : none());
         register("force", aliases(), "/wormhole force <gate|-all>", new Force(), true, GATE_NAMES);
         // Another player's name is offered only to whoever may look them up.
         register("stats", aliases(), "/wormhole stats [player]", new StatsCommand(), false, (sender, args) ->
@@ -446,10 +449,10 @@ public final class SubCommands
         hide("list", BUILD, COMPLETE, REMOVE, REGEN, "refresh", "go", "force",
             OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
-            "cooldown", "restrict", EXPORT, FREYA);
+            "cooldown", "restrict", EXPORT, FREYA, "ping");
 
         // idc admits the gate's owner as well as wormhole.config, and checks both itself.
-        selfPermissioned("beam", "ring", "go", "list", "compass", "stats", "idc", EXPORT, FREYA);
+        selfPermissioned("beam", "ring", "go", "list", "compass", "ping", "stats", "idc", EXPORT, FREYA);
         // gate stays admin-only, except build and preview for whoever may preview -- Build checks
         // the node itself -- and edit <gate> idc, for the same reason idc is self-permissioned.
         BY_NAME.get("gate").admitsWithoutConfig = (sender, args) -> Build.admitsWithoutConfig(sender, args)

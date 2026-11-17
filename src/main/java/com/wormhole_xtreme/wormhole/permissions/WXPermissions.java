@@ -53,7 +53,10 @@ public class WXPermissions
         GO,
 
         /** The COMPASS permission. */
-        COMPASS;
+        COMPASS,
+
+        /** Showing a gate on the locator bar with {@code /wormhole ping}. */
+        PING;
     }
     /** The network a gate is on when it names none of its own, and the one open to all. */
     private static final String PUBLIC_NETWORK = "Public";
@@ -147,7 +150,7 @@ public class WXPermissions
     {
         switch (permissiontype)
         {
-            case SIGN, DIALER, USE, LIST, COMPASS:
+            case SIGN, DIALER, USE, LIST, COMPASS, PING:
                 return true;
             default:
                 return false;
@@ -160,7 +163,7 @@ public class WXPermissions
         switch (permissiontype)
         {
             case DAMAGE, REMOVE, CONFIG, GO, SIGN,
-                 DIALER, USE, LIST, COMPASS, BUILD:
+                 DIALER, USE, LIST, COMPASS, PING, BUILD:
                 return true;
             default:
                 return false;
@@ -246,6 +249,9 @@ public class WXPermissions
                 return ComplexPermission.GO.checkPermission(player) && mayUseNetwork(player, networkName);
             case COMPASS:
                 return ComplexPermission.USE_COMPASS.checkPermission(player);
+            case PING:
+                // As GO: a gate on a network the player is not admitted to is not theirs to locate.
+                return ComplexPermission.USE_PING.checkPermission(player) && mayUseNetwork(player, networkName);
             case DAMAGE, REMOVE:
                 return ComplexPermission.CONFIG.checkPermission(player)
                     || ComplexPermission.REMOVE_ALL.checkPermission(player)
