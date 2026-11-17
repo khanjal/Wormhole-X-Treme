@@ -460,6 +460,7 @@ class WindowCreaturesTest
         final UUID self = UUID.randomUUID();
         when(viewer.getUniqueId()).thenReturn(self);
         final Player viewerThere = playerInFront(self);
+        when(viewer.canSee(viewerThere)).thenReturn(true);
         mirror.creatures = List.of(viewerThere, other);
         final ViewerDrawing view = new ViewerDrawing(here);
 

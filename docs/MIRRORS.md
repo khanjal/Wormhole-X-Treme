@@ -1019,10 +1019,13 @@ that one viewer (`HiddenEntities`).
   mirror looks back out of it (#296, step 3). Never the viewer themselves, by the same
   `FarPlayers.showsTheViewer` rule as any mirror, so two players at one mirror each see the other
   and not themselves. It is the same path as any window's, through `WindowShape.hereOf`, so every
-  rule above holds, the cap of twenty included; the room is the viewer's own and in front of them,
-  so nothing is held loaded for it and it is read only where the server already has it. The
-  viewer's own mount or pet is reflected too (the mount without its rider). Their real selves stand in front of the wall,
-  where the veil never reaches, so each shows once in the room and once in the reflection.
+  rule above holds, the cap of twenty included, and so does one stand-in a creature a viewer: in a
+  room with two mirrors, or a mirror beside a gate dialled onto it, it shows in one of them. The
+  room is the viewer's own and in front of them, so nothing is held loaded for it and it is read
+  only where the server already has it. The viewer's own mount or pet is reflected too (the mount
+  without its rider). Every reflected creature's real self stands in front of the wall, where the
+  veil never reaches, so each shows once in the room and once in the reflection. Only position and
+  facing are flipped: what a player holds stays in the same hand.
 
 **What it costs.** A watched window holds 15 chunks at the default radius (45 at 4), and with the
 ring the server keeps round each, about 63 chunks loaded (about 135 at 4), some 35 of them ticking
