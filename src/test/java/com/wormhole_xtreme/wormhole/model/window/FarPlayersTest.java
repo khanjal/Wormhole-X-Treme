@@ -130,7 +130,7 @@ class FarPlayersTest
 
     /**
      * Through a gate the viewer is shown themselves, as the far gate's box holds them only when the
-     * two gates face each other close by (#296, step 4); the other refusals still apply to them.
+     * the far room is close by and covers them (#296, step 4); the other refusals still apply to them.
      */
     @Test
     void theViewerIsShownThemselvesThroughAGateUnlessSomethingElseHidesThem()

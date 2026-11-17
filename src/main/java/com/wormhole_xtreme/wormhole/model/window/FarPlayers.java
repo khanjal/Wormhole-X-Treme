@@ -20,7 +20,7 @@ final class FarPlayers
 {
     /**
      * The kinds of window a viewer is shown themselves through: a gate's, whose far side is whatever stands
-     * in front of the gate dialled, the viewer included when the two gates face each other close by.
+     * in front of the gate dialled, the viewer included when the far room is close by and covers them, as for two gates facing each other.
      */
     private static final Set<Class<? extends WindowSource>> SHOWN_TO_THEMSELVES = Set.of(GateSource.class);
 
@@ -31,7 +31,7 @@ final class FarPlayers
 
     /**
      * Whether a viewer is shown their own stand-in through this window: through a gate, whose far box
-     * holds the viewer only when the gates face each other close by (#296, step 4), and never through a mirror.
+     * holds the viewer only when the far room is close by and covers them (#296, step 4), and never through a mirror.
      *
      * @return true if the viewer may see themselves through it
      */
@@ -68,7 +68,7 @@ final class FarPlayers
      * @param window
      *            the window they would show through
      * @return {@link CreatureTally.Skip#PLAYER_UNSHOWN} for one {@link #copied} no longer lets through,
-     *         {@link CreatureTally.Skip#YOU} for the viewer themselves, {@link CreatureTally.Skip#PLAYER_HIDDEN}
+     *         {@link CreatureTally.Skip#YOU} for the viewer themselves through a window that does not show them, {@link CreatureTally.Skip#PLAYER_HIDDEN}
      *         for one hidden from the viewer, as a vanish plugin hides one; null otherwise
      */
     static CreatureTally.Skip whyNot(final Player viewer, final Player other, final WindowState window)
