@@ -3,8 +3,9 @@ package com.wormhole_xtreme.wormhole.model.ping;
 import java.util.function.Function;
 
 import org.bukkit.Location;
-import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.LivingEntity;
 
 /** Lets a test in another package stand in for the locator bar and the marker spawn. */
 public final class PingTestSupport
@@ -16,12 +17,14 @@ public final class PingTestSupport
     /**
      * Gives the server a locator bar, or takes it away.
      *
-     * @param transmit
-     *            the transmit range attribute, or null for a server before 1.21.6
+     * @param hasBar
+     *            whether it has one, as from 1.21.6
+     * @param attributeOf
+     *            each entity's transmit range attribute
      */
-    public static void locatorBar(final Attribute transmit)
+    public static void locatorBar(final boolean hasBar, final Function<LivingEntity, AttributeInstance> attributeOf)
     {
-        Waypoints.lookupWith(key -> Waypoints.TRANSMIT_KEY.equals(key) ? transmit : null);
+        Waypoints.standIn(() -> hasBar, attributeOf);
     }
 
     /**
@@ -35,10 +38,10 @@ public final class PingTestSupport
         PingMarkers.spawnWith(spawn::apply);
     }
 
-    /** Forgets every ping and cooldown, and puts the real registry lookup and spawner back. */
+    /** Forgets every ping and cooldown, and puts the real locator bar and spawner back. */
     public static void reset()
     {
         PingMarkers.reset();
-        Waypoints.lookupWith(null);
+        Waypoints.standIn(null, null);
     }
 }

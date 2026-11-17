@@ -13,7 +13,6 @@ import org.bukkit.Chunk;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
@@ -112,8 +111,7 @@ public final class PingMarkers
      */
     public static Outcome place(final Player owner, final Location at)
     {
-        final Attribute transmit = Waypoints.transmitRange();
-        if (transmit == null)
+        if (!Waypoints.isSupported())
         {
             return Outcome.UNSUPPORTED;
         }
@@ -133,7 +131,7 @@ public final class PingMarkers
             ChunkTickets.release(chunk);
             return Outcome.FAILED;
         }
-        if (!transmits(stand, transmit))
+        if (!transmits(stand))
         {
             PluginLog.log(Level.WARNING, "A locator bar ping would not take its waypoint transmit range; removed it");
             discard(new Marker(stand, chunk, -1));
@@ -189,15 +187,13 @@ public final class PingMarkers
      *
      * @param stand
      *            the marker
-     * @param transmit
-     *            the transmit range attribute
      * @return true if the entity has the attribute and now transmits
      */
-    private static boolean transmits(final ArmorStand stand, final Attribute transmit)
+    private static boolean transmits(final ArmorStand stand)
     {
         try
         {
-            final AttributeInstance instance = stand.getAttribute(transmit);
+            final AttributeInstance instance = Waypoints.transmitterOf(stand);
             if (instance == null)
             {
                 return false;

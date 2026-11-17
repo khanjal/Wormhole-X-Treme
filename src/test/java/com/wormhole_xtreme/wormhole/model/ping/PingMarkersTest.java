@@ -12,8 +12,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -21,7 +23,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
@@ -56,7 +57,8 @@ class PingMarkersTest
 
     private WormholeXTreme plugin;
 
-    private Attribute transmit;
+    /** Each stand's transmit range attribute, as the server would hand it back; Attribute itself cannot load without a server. */
+    private final Map<ArmorStand, AttributeInstance> ranges = new HashMap<>();
 
     private World world;
 
@@ -68,8 +70,7 @@ class PingMarkersTest
         plugin = PluginTestSupport.install();
         held.install();
         ConfigTestSupport.loadDefaults();
-        transmit = mock(Attribute.class);
-        Waypoints.lookupWith(key -> Waypoints.TRANSMIT_KEY.equals(key) ? transmit : null);
+        Waypoints.standIn(() -> true, ranges::get);
         PingMarkers.clockWith(now::get);
         PingMarkers.spawnWith(at -> stand(true));
         world = mock(World.class);
@@ -81,7 +82,7 @@ class PingMarkersTest
     void tearDown() throws Exception
     {
         PingMarkers.reset();
-        Waypoints.lookupWith(null);
+        Waypoints.standIn(null, null);
         ChunkTickets.clear();
         ConfigTestSupport.clear();
         held.remove();
@@ -120,7 +121,7 @@ class PingMarkersTest
             }).when(instance).setBaseValue(anyDouble());
             when(instance.getValue()).thenAnswer(call -> Double.valueOf(base[0]));
             when(instance.getBaseValue()).thenAnswer(call -> Double.valueOf(base[0]));
-            when(stand.getAttribute(transmit)).thenReturn(instance);
+            ranges.put(stand, instance);
         }
         spawned.add(stand);
         return stand;
@@ -282,7 +283,7 @@ class PingMarkersTest
     @Test
     void withNoLocatorBarNothingIsSpawned()
     {
-        Waypoints.lookupWith(key -> null);
+        Waypoints.standIn(() -> false, ranges::get);
 
         assertEquals(PingMarkers.Outcome.UNSUPPORTED, PingMarkers.place(player(UUID.randomUUID()), gate()));
 
@@ -312,8 +313,7 @@ class PingMarkersTest
         PingMarkers.spawnWith(at ->
         {
             final ArmorStand stand = stand(false);
-            final AttributeInstance stuck = mock(AttributeInstance.class);
-            when(stand.getAttribute(transmit)).thenReturn(stuck);
+            ranges.put(stand, mock(AttributeInstance.class));
             return stand;
         });
 
@@ -345,7 +345,7 @@ class PingMarkersTest
         verify(stand).setVisibleByDefault(false);
         verify(owner).showEntity(plugin, stand);
         assertTrue(stand.getScoreboardTags().contains(PingMarkers.TAG));
-        assertEquals(Waypoints.TRANSMIT_RANGE, stand.getAttribute(transmit).getBaseValue());
+        assertEquals(Waypoints.TRANSMIT_RANGE, ranges.get(stand).getBaseValue());
     }
 
     /** At startup a tagged stand the registry does not hold is removed; its own and others are left. */

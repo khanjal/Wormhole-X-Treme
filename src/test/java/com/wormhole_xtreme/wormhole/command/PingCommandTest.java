@@ -13,13 +13,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.ArmorStand;
@@ -57,6 +58,8 @@ class PingCommandTest
 
     private final List<ArmorStand> spawned = new ArrayList<>();
 
+    private final Map<ArmorStand, AttributeInstance> ranges = new HashMap<>();
+
     private World here;
 
     private World elsewhere;
@@ -70,9 +73,8 @@ class PingCommandTest
         clearGates();
         here = world();
         elsewhere = world();
-        final Attribute transmit = mock(Attribute.class);
-        PingTestSupport.locatorBar(transmit);
-        PingTestSupport.spawnWith(at -> stand(transmit));
+        PingTestSupport.locatorBar(true, ranges::get);
+        PingTestSupport.spawnWith(at -> stand());
     }
 
     @AfterEach
@@ -105,7 +107,7 @@ class PingCommandTest
         return world;
     }
 
-    private ArmorStand stand(final Attribute transmit)
+    private ArmorStand stand()
     {
         final ArmorStand stand = mock(ArmorStand.class);
         final AttributeInstance instance = mock(AttributeInstance.class);
@@ -116,7 +118,7 @@ class PingCommandTest
             return null;
         }).when(instance).setBaseValue(anyDouble());
         when(instance.getValue()).thenAnswer(call -> Double.valueOf(base[0]));
-        when(stand.getAttribute(transmit)).thenReturn(instance);
+        ranges.put(stand, instance);
         spawned.add(stand);
         return stand;
     }
@@ -188,7 +190,7 @@ class PingCommandTest
     void withNoLocatorBarThePlayerIsPointedAtTheCompass()
     {
         ConfigTestSupport.set(ConfigKeys.PING_ENABLED, true);
-        PingTestSupport.locatorBar(null);
+        PingTestSupport.locatorBar(false, ranges::get);
         gate("Abydos", BOB, here, null);
         final Player alice = pinger();
 

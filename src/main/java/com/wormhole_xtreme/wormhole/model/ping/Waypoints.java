@@ -1,12 +1,14 @@
 package com.wormhole_xtreme.wormhole.model.ping;
 
 import java.lang.reflect.Method;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
 import org.bukkit.Color;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
 
 /**
@@ -31,8 +33,13 @@ public final class Waypoints
     /** {@code LivingEntity.setWaypointColor(Color)}, on Spigot and Paper from 1.21.6; null before. */
     private static final Method SET_COLOUR = find("setWaypointColor", Color.class);
 
-    /** How an attribute is found by id; a seam, since the registry needs a running server from 1.20.6. */
-    private static Function<String, Attribute> lookup = Waypoints::fromRegistry;
+    /*
+     * Seams for a test with no server: the registry cannot initialise without one from 1.20.6, and
+     * from 1.21.3 neither can Attribute itself, so a test never touches either.
+     */
+    private static BooleanSupplier supported = () -> transmitRange() != null;
+
+    private static Function<LivingEntity, AttributeInstance> transmitter = Waypoints::fromEntity;
 
     /** Static helpers only. */
     private Waypoints()
@@ -46,7 +53,7 @@ public final class Waypoints
      */
     public static Attribute transmitRange()
     {
-        return lookup.apply(TRANSMIT_KEY);
+        return fromRegistry(TRANSMIT_KEY);
     }
 
     /**
@@ -56,7 +63,19 @@ public final class Waypoints
      */
     public static boolean isSupported()
     {
-        return transmitRange() != null;
+        return supported.getAsBoolean();
+    }
+
+    /**
+     * An entity's transmit range attribute.
+     *
+     * @param entity
+     *            the entity
+     * @return its instance, or null where the server or the entity has none
+     */
+    static AttributeInstance transmitterOf(final LivingEntity entity)
+    {
+        return transmitter.apply(entity);
     }
 
     /**
@@ -96,14 +115,24 @@ public final class Waypoints
     }
 
     /**
-     * Replaces how attributes are found, for a test with no server.
+     * Stands in for the server's locator bar, for a test with no server.
      *
-     * @param stand
-     *            the lookup to use, or null for the registry again
+     * @param hasBar
+     *            whether the server has one, or null for the registry again
+     * @param attributeOf
+     *            each entity's transmit range attribute, or null for the registry again
      */
-    static void lookupWith(final Function<String, Attribute> stand)
+    static void standIn(final BooleanSupplier hasBar, final Function<LivingEntity, AttributeInstance> attributeOf)
     {
-        lookup = (stand == null) ? Waypoints::fromRegistry : stand;
+        supported = (hasBar == null) ? (() -> transmitRange() != null) : hasBar;
+        transmitter = (attributeOf == null) ? Waypoints::fromEntity : attributeOf;
+    }
+
+    /** @return the entity's transmit range attribute, or null */
+    private static AttributeInstance fromEntity(final LivingEntity entity)
+    {
+        final Attribute range = transmitRange();
+        return (range == null) ? null : entity.getAttribute(range);
     }
 
     /**
