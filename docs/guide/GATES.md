@@ -706,9 +706,13 @@ default 8), then takes itself down. It is off unless `ping-enabled` is true, nee
 - **One at a time.** A new ping replaces your last; `ping-cooldown-seconds` (default 20) spaces
   them out. A ping comes down when its time is up, when you leave, when its world unloads, when
   `ping-enabled` is turned off and when the plugin stops.
+- **Only you get it, on Paper.** The marker is hidden from everyone else before it transmits, and
+  Paper sends a waypoint only to a player who can see its source, so nobody else is sent your
+  ping. That is read from Paper's server code, not seen in game. On plain Spigot it is not
+  verified: vanilla's own check has no such test, so other players in range may get it too.
 - **Not verified on a client yet.** The server side is checked: the marker stands, takes the
-  attribute and goes on time. Whether the locator bar draws it, and whether other players see it
-  too, is for a player to confirm in game ([#16](https://github.com/khanjal/Wormhole-X-Treme/issues/16)).
+  attribute and goes on time. Whether the locator bar draws it is for a player to confirm in game
+  ([#16](https://github.com/khanjal/Wormhole-X-Treme/issues/16)).
   On 1.21.11 the server's own `/waypoint list` did list the invisible marker; if the bar still
   does not draw it, leaving the marker visible is the fallback to try.
 
