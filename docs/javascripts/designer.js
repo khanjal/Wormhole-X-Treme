@@ -17,6 +17,7 @@ const DRAFT_KEY = "wxt-gate-designer-draft";
 const VIEW_KEY = "wxt-gate-designer-view";
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 const STACK_PX = 640;
+const SHORT_PX = 640; // a window shorter than this folds the symmetry bar into a popover and starts expanded with the tools hidden (and the stylesheet's max-height query says the same)
 const NARROW_PX = { main: 160, dock: 140 }; // smallest sizes when the dock sits below the grid
 const WIDE_PX = { main: 220, dock: 240 }; // and when it sits beside it
 const BRUSHES = [["select", "Select only"], ["I", "I  Ignored"], ["S", "S  Stargate material"], ["P", "P  Portal"], ["C", "C  Chevron material"]];
@@ -31,6 +32,9 @@ const MATERIALS = [
 const SUMMARY_GAP_MS = 1500;
 const SAVE_DELAY_MS = 400;
 const SLOW_DELAY_MS = 250;
+
+/** "1 cell", "2 cells". */
+const count = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** Browser storage, where every touch may throw (private windows, blocked site data). */
 const store = {
@@ -127,6 +131,8 @@ class DesignerView extends GateViewer {
     this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "S"), " Underlined letter in the grid: the cell has extras"));
     this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "■"),
       " Double border in the grid (a thick one with a corner mark on small cells): an error. Dashed border: a warning"));
+    this.legend.append(el("li", {}, el("span", { class: "wxt-cue", "aria-hidden": "true" }, "\u254E"),
+      " Dashed line in the grid, with Symmetry on: painting mirrors the kind across it and the order boxes mirror the number; Mirror now copies the dotted area, kinds only unless told"));
   }
 
   applyPalette() {
@@ -242,11 +248,13 @@ class Designer {
       "Ctrl+Z undoes. Plus and minus make the cells bigger or smaller, as does Ctrl and scroll over the grid; Fit to window picks the biggest size that shows the whole layer. " +
       "Small cells show just their letter, and an underlined letter marks a cell with extras. Expand fills the window, and Escape leaves it. Layer 1 is the far side; the highest layer faces the activation switch. Row 1 is the top, column 1 the left of the file. " +
       "A cell with a double border, or a thick one and a corner mark on small cells, has an error and one with a dashed border a warning; the problems button above the grid lists them. " +
-      "Symmetry mirrors the kind you paint and the light and woosh order numbers onto the cells across the dashed line, inside one layer (an [S:C] cell's either-material flag is not mirrored). " +
+      "With Symmetry on, painting (I, S, P, C and clearing) mirrors the kind only, onto the cells across the dashed line in the same layer, and a cell turned Ignored loses its light number; " +
+      "the light and woosh order boxes in the cell panel mirror the order number. Mirror now copies the kinds of the dotted half or quarter, including a cell's [S:C] either-material flag (painting does not copy that), and the orders only if Copy light and woosh orders is ticked. " +
       "A cell holding a one-per-gate extra is never changed by a mirror, whichever way it is made. " +
       "The one-per-gate extras (:N, :EP, :EM, :A, :D, :IA, [RD], [RS] and [RA]) are never mirrored: a new one goes on the cell you click only, and Mirror now leaves them where they are.");
     this.gridBar = this.buildGridBar(button);
     this.symBar = this.buildSymBar(button);
+    this.gridWrap.prepend(this.symBar); // a bar above the grid; in a short window a popover over it
     this.applyZoom();
 
     this.cellBox = this.buildCellPanel();
@@ -254,7 +262,7 @@ class Designer {
     // The one live region for the editor sits beside the grid, where no panel can be hidden from under it.
     // The checks' summary is read out through a second region that is never visible, so hiding the side panel cannot silence it.
     this.liveEl = el("p", { class: "wxt-sr", role: "status", "aria-live": "polite" });
-    this.editEl = el("div", { class: "wxt-edit" }, this.controls, this.gridBar, this.symBar, this.status, this.liveEl, this.gridWrap, this.gridHelp, this.cellBox);
+    this.editEl = el("div", { class: "wxt-edit" }, this.controls, this.gridBar, this.status, this.liveEl, this.gridWrap, this.gridHelp, this.cellBox);
     this.side = el("div", { class: "wxt-side", id: "wxt-side" }, this.view ? this.view.el : el("p", { class: "wxt-note" }, "The 3D view is not available, but the editor works."));
     this.handle = this.buildHandle();
     this.splitEl = el("div", { class: "wxt-split" }, this.editEl, this.handle, this.side);
@@ -293,14 +301,15 @@ class Designer {
       type: "button", class: "md-button wxt-chip", "aria-expanded": "false", "aria-controls": "wxt-flyout",
       title: "Show the problems found in this shape",
     }, "Checking\u2026");
-    this.chip.addEventListener("click", () => this.toggleFlyout());
+    this.chip.addEventListener("click", (e) => this.toggleFlyout(e.detail === 0)); // a click with no pointer is Enter or Space
+    this.symToggle = button("Symmetry", () => this.toggleSym(), { class: "md-button wxt-symtoggle", "aria-expanded": "false", "aria-controls": "wxt-symbar", title: "Show or hide the symmetry controls" });
     return el("div", { class: "wxt-bar wxt-gridbar", role: "group", "aria-label": "Problems, cell size and window size" },
       this.chip,
       button("\u2212", () => this.zoomBy(-1), { "aria-label": "Smaller cells", title: "Smaller cells" }),
       this.zoomLabel,
       button("+", () => this.zoomBy(1), { "aria-label": "Bigger cells", title: "Bigger cells" }),
       button("Fit to window", () => this.fit(), { title: "The biggest cells that show the whole layer" }),
-      el("span", { class: "wxt-spacer" }), this.toolsButton, this.dockButton, this.expandButton);
+      this.symToggle, el("span", { class: "wxt-spacer" }), this.toolsButton, this.dockButton, this.expandButton);
   }
 
   /** The symmetry choice and its Mirror now buttons, in the toolbar over the grid. */
@@ -316,20 +325,41 @@ class Designer {
     this.orderBox = el("input", { type: "checkbox", id: "wxt-mirror-orders" });
     this.symNote = el("span", { class: "wxt-sr", id: "wxt-commands-sym" }, "One-per-gate extras are never mirrored.");
     this.syncSymmetry();
-    return el("div", { class: "wxt-bar wxt-gridbar wxt-symbar", role: "group", "aria-label": "Symmetry" },
+    this.symOpen = false;
+    document.addEventListener("pointerdown", (e) => {
+      if (this.symOpen && !this.symBar.contains(e.target) && !this.symToggle.contains(e.target)) this.toggleSym(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !this.symOpen || e.defaultPrevented) return;
+      const active = document.activeElement;
+      if (!this.symBar.contains(active) && active !== this.symToggle) return;
+      if (this.flyout.contains(active)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.toggleSym(false);
+      this.symToggle.focus();
+    }, true);
+    return el("div", { class: "wxt-bar wxt-gridbar wxt-symbar", id: "wxt-symbar", role: "group", "aria-label": "Symmetry" },
       el("label", { for: "wxt-symmetry" }, "Symmetry "), this.symSelect, this.mirrorLayerButton, this.mirrorAllButton,
       el("label", { class: "wxt-toggle", for: "wxt-mirror-orders", title: "Off: only the kinds are copied, and each cell keeps its own light and woosh numbers." }, this.orderBox, " Copy light and woosh orders"),
       this.symNote);
   }
 
-  /** The problems flyout: a list over the top of the grid, so opening it moves nothing. */
+  /** In a short window the symmetry controls fold into a popover over the grid, opened by the Symmetry button. */
+  toggleSym(open = !this.symOpen) {
+    this.symOpen = open;
+    this.symBar.classList.toggle("wxt-sym-open", open);
+    this.symToggle.setAttribute("aria-expanded", String(open));
+  }
+
+  /** The problems flyout: a list over the foot of the grid (a sheet at the foot of the window when that is short), so opening it moves nothing. */
   buildFlyout() {
     this.flyoutList = el("ul", { class: "wxt-issues", "aria-label": "Problems found" });
     const close = el("button", { type: "button", class: "md-button wxt-flyout-close", "aria-label": "Close the problems list" }, "Close");
-    close.addEventListener("click", () => { this.closeFlyout(); this.chip.focus(); });
+    close.addEventListener("click", () => { this.closeFlyout(); this.chip.focus({ preventScroll: true }); });
     const flyout = el("div", { class: "wxt-flyout", id: "wxt-flyout", role: "region", "aria-label": "Problems", hidden: "" },
       el("div", { class: "wxt-flyout-head" }, el("strong", {}, "Problems"), close), this.flyoutList,
-      el("p", { class: "wxt-help" }, "Press an entry, or Up and Down, to select its cell; the list keeps the focus so you can step on. Escape closes it and puts you on the selected cell."));
+      el("p", { class: "wxt-help" }, "Press an entry, or Up and Down, to select its cell; the list keeps the focus so you can step on. Escape closes it: a list opened with the keyboard hands the focus back to its button, one opened with the pointer puts you on the selected cell."));
     flyout.addEventListener("keydown", (e) => this.flyoutKey(e));
     this.flyoutOpen = false;
     // Escape and a click elsewhere close it; the Escape is taken first, so it does not also leave the expanded window.
@@ -337,12 +367,14 @@ class Designer {
       if (e.key !== "Escape" || !this.flyoutOpen || e.defaultPrevented) return;
       // One overlay a press: the narrow Legend, when the focus is in it, answers first.
       if (document.activeElement?.closest?.(".wxt-legend-panel.wxt-open")) return;
+      if (this.symOpen && (this.symBar.contains(document.activeElement) || document.activeElement === this.symToggle)) return;
       e.preventDefault();
       e.stopPropagation();
       const inList = flyout.contains(document.activeElement);
       const onChip = document.activeElement === this.chip;
       this.closeFlyout();
-      if (onChip) this.chip.focus(); else if (inList) this.cellEl(this.row, this.col)?.focus();
+      if (onChip || (inList && this.flyoutByKey)) this.chip.focus({ preventScroll: true });
+      else if (inList) this.cellEl(this.row, this.col)?.focus();
     }, true);
     document.addEventListener("pointerdown", (e) => {
       if (this.flyoutOpen && !flyout.contains(e.target) && !this.chip.contains(e.target)) this.closeFlyout();
@@ -350,16 +382,19 @@ class Designer {
     return flyout;
   }
 
-  toggleFlyout() {
-    if (this.flyoutOpen) this.closeFlyout(); else this.openFlyout();
+  toggleFlyout(byKey = false) {
+    if (this.flyoutOpen) this.closeFlyout(); else this.openFlyout(byKey);
   }
 
-  openFlyout() {
+  /** `byKey`: opened from the keyboard, so the focus goes into the list (and comes back to the button on close). */
+  openFlyout(byKey = false) {
     this.flyoutOpen = true;
+    this.flyoutByKey = byKey;
     this.flyout.hidden = false;
     this.chip.setAttribute("aria-expanded", "true");
     this.renderFlyout();
     this.padScroller();
+    if (byKey) (this.flyoutList.querySelector("button.wxt-issue") ?? this.flyout.querySelector(".wxt-flyout-close")).focus({ preventScroll: true });
   }
 
   closeFlyout() {
@@ -369,9 +404,20 @@ class Designer {
     this.padScroller();
   }
 
-  /** The flyout sits over the foot of the grid, so the grid gets room to scroll its last rows above it. */
+  /**
+   * The flyout sits over the foot of the grid, so the grid gets room to scroll its last rows above it. The grid keeps the height it had,
+   * so opening the list never moves the page: the room is scrolling room only.
+   */
   padScroller() {
-    this.scrollPad.style.height = this.flyoutOpen ? `${this.flyout.offsetHeight}px` : "0";
+    const s = this.scroller;
+    if (!this.flyoutOpen) {
+      this.scrollPad.style.height = "0";
+      s.style.height = "";
+      return;
+    }
+    if (!this.expanded) s.style.height = `${s.offsetHeight}px`;
+    const over = s.getBoundingClientRect().bottom - this.flyout.getBoundingClientRect().top;
+    this.scrollPad.style.height = `${Math.max(0, Math.ceil(over))}px`;
   }
 
   /** Scrolls the cell into the part of the grid the headers and the flyout leave clear. */
@@ -382,7 +428,7 @@ class Designer {
     const head = this.table.rows[0];
     const top = box.top + head.offsetHeight;
     const left = box.left + head.cells[0].offsetWidth;
-    const bottom = box.bottom - (this.flyoutOpen ? this.flyout.offsetHeight : 0) - 2;
+    const bottom = Math.min(box.bottom, this.flyoutOpen ? this.flyout.getBoundingClientRect().top : Infinity) - 2;
     if (t.top < top) s.scrollTop -= top - t.top;
     else if (t.bottom > bottom) s.scrollTop += t.bottom - bottom;
     if (t.left < left) s.scrollLeft -= left - t.left;
@@ -398,7 +444,7 @@ class Designer {
     if (!items.length) return;
     e.preventDefault();
     const next = items[Math.min(Math.max(at + move, 0), items.length - 1)];
-    next.focus();
+    next.focus({ preventScroll: true });
     next.click(); // stepping selects the cell as well; the focus stays in the list
   }
 
@@ -421,7 +467,7 @@ class Designer {
 
   /** Watches for what changes the layout: the window's shape, and keys that leave or trap focus. */
   watchLayout() {
-    if (typeof ResizeObserver === "function") new ResizeObserver(() => { if (this.expanded) this.layoutSplit(); }).observe(this.splitEl);
+    if (typeof ResizeObserver === "function") new ResizeObserver(() => { if (this.expanded) { this.syncPanes(); this.layoutSplit(); } }).observe(this.splitEl);
     document.addEventListener("keydown", (e) => this.fullKey(e));
   }
 
@@ -516,7 +562,22 @@ class Designer {
     }
   }
 
+  isShort() {
+    return typeof matchMedia === "function" && matchMedia(`(max-height: ${SHORT_PX}px)`).matches;
+  }
+
+  /** The file, layer and row tools: in a short window they start hidden and are not remembered, so the grid has the room. */
+  toolsShown() {
+    return this.isShort() ? Boolean(this.shortTools) : this.prefs.toolsOpen;
+  }
+
   togglePane(key) {
+    if (key === "toolsOpen" && this.isShort()) {
+      this.shortTools = !this.shortTools;
+      this.syncPanes();
+      this.layoutSplit();
+      return;
+    }
     this.prefs[key] = !this.prefs[key];
     this.savePrefs();
     this.syncPanes();
@@ -524,9 +585,9 @@ class Designer {
   }
 
   syncPanes() {
-    this.toolsButton.setAttribute("aria-expanded", String(this.prefs.toolsOpen));
+    this.toolsButton.setAttribute("aria-expanded", String(this.toolsShown()));
     this.dockButton.setAttribute("aria-expanded", String(this.prefs.dockOpen));
-    this.controls.hidden = this.expanded && !this.prefs.toolsOpen;
+    this.controls.hidden = this.expanded && !this.toolsShown();
   }
 
   /** Sizes the grid pane from the remembered share, kept inside the smallest sizes; the dock takes the rest. */
@@ -673,11 +734,9 @@ class Designer {
       const check = el("input", { type: "checkbox", id: `wxt-o-${which}` });
       const number = el("input", { type: "number", min: "0", max: String(LIMITS.order), step: "1", class: "wxt-number", id: `wxt-n-${which}`, "aria-label": `${label} number` });
       // Mirrored cells take the same number, so they light together; the extras above are one per gate and never mirrored.
-      check.addEventListener("change", () => {
-        const order = check.checked ? (which === "light" ? E.nextLightOrder(this.shape) : E.currentWooshOrder(this.shape)) : null;
-        this.editCell((c) => E.setOrder(c, which, order), { mirror: true });
-      });
-      number.addEventListener("change", () => this.editCell((c) => E.setOrder(c, which, number.value === "" ? null : Number(number.value)), { mirror: true }));
+      check.addEventListener("change", () => this.setOrder(which,
+        check.checked ? (which === "light" ? E.nextLightOrder(this.shape) : E.currentWooshOrder(this.shape)) : null));
+      number.addEventListener("change", () => this.setOrder(which, number.value === "" ? null : Number(number.value)));
       this.orderBoxes[which] = { check, number };
       box.append(el("span", { class: "wxt-radio" }, check, el("label", { for: `wxt-o-${which}` }, ` :${key} ${label}, number `), number));
     }
@@ -858,7 +917,7 @@ class Designer {
     const copyOrders = this.orderBox.checked;
     const result = Sym.mirrorLayers(this.shape, layers, this.symmetry, { copyOrders });
     if (!result.changed) { this.say(`Nothing to mirror: the rest already matches the source${this.skippedNote(result.skipped).replace(", and", ";")}.`); return; }
-    const what = all ? `${layers.length} layers` : `layer ${this.layer}`;
+    const what = all ? count(layers.length, "layer") : `layer ${this.layer}`;
     const held = result.overwritten ? `, ${result.overwritten} of them replacing something already drawn` + (copyOrders ? " or numbered" : "") : "";
     // Copying orders can leave a gap in the light order, which makes reload refuse the file: say so, and show it.
     let warn = "";
@@ -866,13 +925,35 @@ class Designer {
     if (copyOrders) {
       const known = (this.shapes ?? []).map((s) => s.name);
       fresh = Sym.newIssues(checkShape(this.shape, { shipped: known }), checkShape(result.shape, { shipped: known }));
-      if (fresh.length) warn = ` That made ${fresh.length} new ${fresh.length === 1 ? "problem" : "problems"}; the list shows them.`;
+      if (fresh.length) warn = ` That made ${count(fresh.length, "new problem")}; the list shows them.`;
     }
-    this.edit(() => result.shape, `Mirrored ${what}: ${result.changed} ${result.changed === 1 ? "cell" : "cells"} changed${held}${this.skippedNote(result.skipped)}. ${copyOrders ? "" : "Light and woosh numbers were not copied. "}Undo puts it back.${warn}`);
+    const dropped = result.dropped ? `, taking the light number off ${count(result.dropped, "cell")} that became Ignored` : "";
+    this.edit(() => result.shape, `Mirrored ${what}: ${count(result.changed, "cell")} changed${held}${dropped}${this.skippedNote(result.skipped)}. ${copyOrders ? "" : "Light and woosh numbers were not copied. "}Undo puts it back.${warn}`);
     if (fresh.length) {
       this.renderIssues();
       this.openFlyout();
     }
+  }
+
+  /** Sets or clears a light or woosh order on the selected cell and, with symmetry on, on its mirror cells, and says what that did. */
+  setOrder(which, order) {
+    const before = this.shape;
+    const { places, skipped } = this.mirrored();
+    const replaced = places.slice(1).filter(([r, c]) => {
+      const had = E.cellAt(before, this.layer, r, c)[which];
+      return had !== null && had !== order;
+    }).length;
+    if (!this.editCell((c) => E.setOrder(c, which, order), { mirror: true })) return;
+    const also = places.length - 1;
+    if (!also && !skipped.length) return;
+    const tag = which === "light" ? ":L" : ":W";
+    let text = `${order === null ? `Cleared ${tag}` : `Set ${tag}#${order}`} on this cell${also ? ` and ${count(also, "mirrored cell")}` : ""}`;
+    if (replaced) text += `, ${replaced === 1 ? "one" : replaced} of them replacing a number of its own`;
+    text += `${this.skippedNote(skipped).replace(", and", also ? "; and" : ",")}.`;
+    const known = (this.shapes ?? []).map((s) => s.name);
+    const fresh = Sym.newIssues(checkShape(before, { shipped: known }), checkShape(this.shape, { shipped: known }));
+    if (fresh.length) text += ` That made ${count(fresh.length, "new problem")}; the problems button lists them.`;
+    this.say(text);
   }
 
   editCell(fn, { mirror = false } = {}) {
@@ -1104,10 +1185,22 @@ class Designer {
 
   paintBrush(kind) {
     if (kind === "select") return;
-    if (this.editCell((c) => E.setKind(c, kind), { mirror: true })) {
-      const { places, skipped } = this.mirrored();
+    const { places, skipped } = this.mirrored();
+    // A mirrored cell turned Ignored loses its light number, which the plugin would otherwise record as a light position.
+    const lost = kind === "I" ? places.slice(1).filter(([r, c]) => {
+      const was = E.cellAt(this.shape, this.layer, r, c);
+      return was.light !== null && E.kindOf(was) !== "I";
+    }).length : 0;
+    const fn = (c) => {
+      const mirroredCopy = c.row !== this.row || c.col !== this.col;
+      const wasIgnored = E.kindOf(c) === "I";
+      E.setKind(c, kind);
+      if (kind === "I" && mirroredCopy && !wasIgnored) c.light = null;
+    };
+    if (this.editCell(fn, { mirror: true })) {
       const also = places.length - 1;
-      this.sayLater(`Row ${this.row + 1}, column ${this.col + 1} is now ${E.KIND_NAMES[kind]}${also ? `, and ${also} mirrored ${also === 1 ? "cell" : "cells"}` : ""}${this.skippedNote(skipped)}.`);
+      const dropped = lost ? `, ${count(lost, "light number")} dropped from Ignored cells` : "";
+      this.sayLater(`Row ${this.row + 1}, column ${this.col + 1} is now ${E.KIND_NAMES[kind]}${also ? `, and ${count(also, "mirrored cell")}` : ""}${dropped}${this.skippedNote(skipped)}.`);
     }
   }
 
@@ -1164,7 +1257,7 @@ class Designer {
   resizeGrid() {
     const [w, h, l] = ["width", "height", "layers"].map((k) => Number(this.sizeInputs[k].value));
     if (![w, h, l].every((n) => Number.isInteger(n) && n >= 1)) { this.say("Columns, rows and layers are each a whole number, 1 or more."); return; }
-    this.edit((s) => E.resize(s, w, h, l), `Resized to ${w} columns by ${h} rows in ${l} layers; cells cut off at the right, bottom and top layer are gone, and Undo brings them back.`, { reframe: true });
+    this.edit((s) => E.resize(s, w, h, l), `Resized to ${count(w, "column")} by ${count(h, "row")} in ${count(l, "layer")}; cells cut off at the right, bottom and top layer are gone, and Undo brings them back.`, { reframe: true });
   }
 
   // --- settings -----------------------------------------------------------------------------

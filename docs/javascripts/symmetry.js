@@ -50,6 +50,7 @@ export const mirrorableMarkers = (markers) => markers.filter((m) => !SINGLES.has
 
 const LOOK = (c) => JSON.stringify([c.block, c.lenientChevron, c.portal, c.light, c.woosh]);
 const isEmpty = (c) => c.block === "none" && !c.portal && c.light === null && c.woosh === null;
+const isIgnored = (c) => c.block === "none" && !c.portal;
 
 /** A cell that holds a one-per-gate marker: a mirrored change never touches it, as it is the gate's only one and may sit across the axis on purpose. */
 export const holdsSingle = (cell) => cell.markers.some((m) => SINGLES.has(m));
@@ -92,14 +93,16 @@ export function newIssues(before, after) {
 /**
  * Copies the source half or quadrant of each given layer over the rest. A cell holding a one-per-gate marker is skipped.
  * Orders are copied only with `copyOrders`: a gate's light numbers often run round the ring, so copying them leaves gaps.
- * @returns {{shape: object, changed: number, overwritten: number, skipped: object[]}} how many cells differ now, how many of those held something, and the cells left alone
+ * A cell that becomes Ignored loses its light number, as the plugin would record an [I:L#n] as a light position (a woosh number is fine there).
+ * @returns {{shape: object, changed: number, overwritten: number, skipped: object[], dropped: number}} how many cells differ now, how many of those held something, the cells left alone, and the light numbers dropped
  */
 export function mirrorLayers(shape, layers, mode, { copyOrders = false } = {}) {
-  if (!isMode(mode) || mode === "none") return { shape, changed: 0, overwritten: 0, skipped: [] };
+  if (!isMode(mode) || mode === "none") return { shape, changed: 0, overwritten: 0, skipped: [], dropped: 0 };
   const cells = shape.cells.slice();
   const skipped = [];
   let changed = 0;
   let overwritten = 0;
+  let dropped = 0;
   for (const layer of layers) {
     for (let r = 0; r < shape.height; r++) {
       for (let c = 0; c < shape.width; c++) {
@@ -108,13 +111,16 @@ export function mirrorLayers(shape, layers, mode, { copyOrders = false } = {}) {
         const to = cellAt(shape, layer, r, c);
         const next = { ...to, markers: [...to.markers] };
         copyLook(cellAt(shape, layer, sr, sc), next, copyOrders);
+        const lost = isIgnored(next) && !isIgnored(to) && next.light !== null;
+        if (lost) next.light = null;
         if (LOOK(next) === LOOK(to)) continue;
         if (holdsSingle(to)) { skipped.push(to); continue; }
+        if (lost) dropped++;
         changed++;
         if (!isEmpty(to)) overwritten++;
         cells[((layer - 1) * shape.height + r) * shape.width + c] = next;
       }
     }
   }
-  return { shape: changed ? settle({ ...shape, cells }) : shape, changed, overwritten, skipped };
+  return { shape: changed ? settle({ ...shape, cells }) : shape, changed, overwritten, skipped, dropped };
 }

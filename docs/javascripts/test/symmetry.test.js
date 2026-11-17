@@ -228,3 +228,29 @@ test("the shipped shapes that are not symmetric are left out, so the check above
   assert.equal(symmetricLayers(shipped("Standard"), "lr").includes(4), false, "Standard's switch layer sits to one side");
   assert.equal(readdirSync(SHAPES).filter((f) => f.endsWith(".shape")).length >= 9, true);
 });
+
+test("Mirror now turning a lit cell into Ignored takes its light number off, and counts it; a woosh number stays", () => {
+  let s = blank(7, 5);
+  s = paint(s, 1, 2, 5, "S");
+  s = editCells(s, 1, [[2, 5]], (c) => { setOrder(c, "light", 4); setOrder(c, "woosh", 2); });
+  const r = mirrorLayers(s, [1], "lr");
+  const gone = cellAt(r.shape, 1, 2, 5);
+  assert.equal(kindOf(gone), "I");
+  assert.equal(gone.light, null);
+  assert.equal(gone.woosh, 2);
+  assert.equal(r.dropped, 1);
+  assert.deepEqual(checkShape(r.shape).filter((i) => i.message.includes("Ignored cell")), []);
+});
+
+for (const file of ["Horizontal", "HorizontalSignDial", "Standard", "Grand"]) {
+  test(`Mirror now on ${file}, in every mode, leaves no light number on an Ignored cell`, () => {
+    const real = shipped(file);
+    const layers = Array.from({ length: real.layers }, (_, i) => i + 1);
+    for (const mode of ["lr", "tb", "both"]) {
+      for (const copyOrders of [false, true]) {
+        const out = mirrorLayers(real, layers, mode, { copyOrders }).shape;
+        assert.deepEqual(out.cells.filter((c) => kindOf(c) === "I" && c.light !== null), [], `${mode} ${copyOrders}`);
+      }
+    }
+  });
+}

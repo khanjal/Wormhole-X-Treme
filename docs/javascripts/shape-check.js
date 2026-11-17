@@ -2,7 +2,7 @@
 // (ShapeFileValidator) refuse or report, plus the rules in the shipped files' header comment.
 // The in-game command is the authority; this is the same list while you edit.
 import { LIMITS } from "./shape-parser.js";
-import { cellAt, fileNameFor } from "./shape-edit.js";
+import { cellAt, fileNameFor, kindOf } from "./shape-edit.js";
 
 const ONE_EACH = ["N", "EP", "EM", "A", "D", "IA"];
 const REDSTONE = ["RD", "RS", "RA"];
@@ -55,6 +55,8 @@ export function checkShape(shape, { shipped = [] } = {}) {
     const clash = SWITCHES.filter((k) => has(c, k));
     if (clash.length > 1) rule(`${clash.map((k) => `:${k}`).join(" and ")} are on the same block at ${where(c)}; they each need their own.`, c);
     if (c.woosh !== null && clash.length) rule(`:${clash[0]} is on a woosh (:W) block at ${where(c)}; none of :IA, :D, :N or :A can be.`, c);
+    // The plugin records an [I:L#n] as a light position all the same, which is rarely meant (a :W on an Ignored cell is fine).
+    if (c.light !== null && kindOf(c) === "I") warn(`:L#${c.light} is on an Ignored cell at ${where(c)}; the plugin still records it as a light position. Paint the cell S, C or P, or take the :L off.`, c);
     checkFront(shape, c, has, error, rule);
     checkRedstoneCell(shape, c, error, rule);
   }
