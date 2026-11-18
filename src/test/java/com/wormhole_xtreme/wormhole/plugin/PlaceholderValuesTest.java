@@ -187,7 +187,9 @@ class PlaceholderValuesTest
     void eachStatsPlaceholderAnswersItsOwnCount()
     {
         count(Counter.TRIPS, 3);
-        count(Counter.GATES_BUILT, 2);
+        gate("alpha", ALICE_ID, 0);
+        gate("bravo", ALICE_ID, 10);
+        gate("charlie", "99999999-8888-7777-6666-555555555555", 20);
         count(Counter.RINGS, 4);
         count(Counter.BEAMS, 5);
 

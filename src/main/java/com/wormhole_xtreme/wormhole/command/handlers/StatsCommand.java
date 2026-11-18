@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
+import com.wormhole_xtreme.wormhole.plugin.PlaceholderValues;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 
@@ -80,7 +81,7 @@ public class StatsCommand implements SubCommand
     }
 
     /**
-     * Sends one player's four counts.
+     * Sends one player's counts: three kept, and the gates they own now.
      *
      * @param sender
      *            who reads them
@@ -94,7 +95,8 @@ public class StatsCommand implements SubCommand
         final PlayerStats.Counts counts = PlayerStats.of(playerId);
         sender.sendMessage(ChatText.info(Messages.get(sender, "stats.header", ChatText.name(name))));
         sender.sendMessage(ChatText.info(Messages.get(sender, "stats.trips", count(counts.trips()))));
-        sender.sendMessage(ChatText.info(Messages.get(sender, "stats.gates-built", count(counts.gatesBuilt()))));
+        final int owned = PlaceholderValues.gatesOwnedBy((playerId == null) ? null : playerId.toString(), name);
+        sender.sendMessage(ChatText.info(Messages.get(sender, "stats.gates-built", count(owned))));
         sender.sendMessage(ChatText.info(Messages.get(sender, "stats.rings", count(counts.rings()))));
         sender.sendMessage(ChatText.info(Messages.get(sender, "stats.beams", count(counts.beams()))));
     }
