@@ -46,6 +46,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
+import com.wormhole_xtreme.wormhole.plugin.PlaceholderValues;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
 
 import net.kyori.adventure.text.Component;
@@ -163,7 +164,7 @@ class JourneysOnMockServerTest
         final MockServerSupport.Player p = new MockServerSupport.Player(server, "Dialler");
         final Stargate alpha = buildGate(p, world, 0.5, "Alpha");
         final Stargate beta = buildGate(p, world, 40.5, "Beta");
-        assertEquals(2, PlayerStats.of(p.getUniqueId()).gatesBuilt(), "both gates count as built (#237)");
+        assertEquals(2, PlaceholderValues.gatesOwnedBy(p.getUniqueId().toString(), p.getName()), "both gates count as built (#237)");
         p.teleport(new Location(world, 0.5, 64, 0.5, 0f, 0f));
         p.messages();
         final Set<Integer> before = settledTasks();
