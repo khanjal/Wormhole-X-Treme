@@ -160,6 +160,7 @@ class StatsCommandTest
 
         verify(alice).sendMessage(infoBody("Wormhole travels of Bob:"));
         verify(alice).sendMessage(infoBody("Trips through gates: 2"));
+        verify(alice).sendMessage(infoBody("Gates built: 1"));
         verify(alice).sendMessage(infoBody("Beams taken: 3"));
     }
 

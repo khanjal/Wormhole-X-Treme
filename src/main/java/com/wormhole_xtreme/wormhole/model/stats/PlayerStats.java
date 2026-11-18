@@ -25,7 +25,7 @@ import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 import com.wormhole_xtreme.wormhole.utils.YamlStore;
 
 /**
- * Each player's lifetime counts: trips through gates, gates built, ring trips and beams (#237).
+ * Each player's lifetime counts: trips through gates, ring trips and beams (#237).
  *
  * <p>Keyed by UUID, so a count survives a name change, and held in memory: an increment is a map
  * update on the main thread, and the file is written only when something changed, by the periodic

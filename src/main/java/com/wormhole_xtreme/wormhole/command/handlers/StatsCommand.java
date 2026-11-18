@@ -14,7 +14,7 @@ import com.wormhole_xtreme.wormhole.utils.ChatText;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
- * {@code /wormhole stats [player]}: a player's lifetime trips, gates built, ring trips and beams (#237).
+ * {@code /wormhole stats [player]}: a player's lifetime trips, ring trips and beams, and the gates they own now (#237).
  *
  * <p>Your own with {@link #PERMISSION}, anybody's with {@link #OTHERS}. The console has no stats of
  * its own, so it names a player.

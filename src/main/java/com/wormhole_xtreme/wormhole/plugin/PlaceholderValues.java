@@ -65,7 +65,7 @@ public final class PlaceholderValues
             case "stats_trips":
                 return stat(ownerId, Counter.TRIPS);
             case "stats_gates_built":
-                return Integer.toString(gatesOwnedBy(ownerId, ownerName));
+                return (ownerId == null) ? UNAVAILABLE : Integer.toString(gatesOwnedBy(ownerId, ownerName));
             case "stats_rings":
                 return stat(ownerId, Counter.RINGS);
             case "stats_beams":

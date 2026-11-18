@@ -33,7 +33,7 @@ import java.util.logging.Level;
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
  * │   ├── beam.yml               every destination and place, in one file
  * │   ├── mirror.yml             every quantum mirror, in one file
- * │   ├── stats.yml              every player's lifetime counts: trips, gates built, rings, beams
+ * │   ├── stats.yml              every player's lifetime counts: trips, rings, beams
  * │   └── freya.yml              who keeps a companion; absent when nobody does
  * └── WormholeXTremeDB/
  *     └── WormholeXTreme.sqlite  another fork's database, read by the importer

@@ -216,5 +216,6 @@ class PlaceholderValuesTest
 
         assertEquals("", PlaceholderValues.resolve("stats_trips", null, null, null));
         assertEquals("", PlaceholderValues.resolve("stats_trips", "not-a-uuid", "alice", null));
+        assertEquals("", PlaceholderValues.resolve("stats_gates_built", null, null, null));
     }
 }
