@@ -71,6 +71,7 @@ class GateHorizonIrisTest
         PluginTestSupport.install(plugin);
         PluginTestSupport.forgetAllGates();
         GateViews.clear();
+        GateViews.clearGrace = 0;
 
         materials = mockStatic(MaterialUtils.class);
         materials.when(() -> MaterialUtils.drawnAcross(any(Material.class), any()))

@@ -80,6 +80,8 @@ somebody else's release notes, and the record of where this fork came from.
 
 ### For server admins
 
+- **A gate's horizon stays until its view has arrived.** At `gate-view: open` the water (or portal material) went as soon as a viewer was counted as seeing the view, before the room was built or its blocks were sent, so it showed nothing for a moment. It now waits until the room exists and is sent, and then a further second and a half.
+
 **Added**
 
 - **`gate import` keeps each gate's shape.** The `GateShape` column was never read, so every imported gate came in as `Standard`; it now takes the name the database holds, and a name with no shape file here is kept as it is, as a gate file's is. A database without that column, or a row with it empty, still imports as `Standard`.

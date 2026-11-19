@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -71,6 +72,18 @@ public final class GateViews
     /** Gates that could show a view last sweep, so the first sweep after opening is known. */
     private static final Set<String> OPEN = new HashSet<>();
 
+    /** How long a viewer must have been drawn a gate's view before its horizon is cleared, so the view has reached their client. */
+    static final long CLEAR_GRACE_MILLIS = 1500L;
+
+    /** When each viewer was first drawn each gate's view without its horizon cleared yet, by gate name. */
+    private static final Map<UUID, Map<String, Long>> DRAWN_SINCE = new HashMap<>();
+
+    /** The grace in force, which a test can set to 0. */
+    static long clearGrace = CLEAR_GRACE_MILLIS;
+
+    /** The clock the grace is measured on, which a test can set. */
+    static LongSupplier clock = System::currentTimeMillis;
+
     /** How old a gate's capture may be before somebody standing at that gate has it taken again. */
     static final long REFRESH_SECONDS = 600L;
 
@@ -93,6 +106,9 @@ public final class GateViews
         CLEARED.clear();
         SEES_THROUGH.clear();
         OWED.clear();
+        DRAWN_SINCE.clear();
+        clearGrace = CLEAR_GRACE_MILLIS;
+        clock = System::currentTimeMillis;
         OPEN.clear();
         LOOKED.clear();
         WARNED.clear();
@@ -161,7 +177,7 @@ public final class GateViews
         {
             return;
         }
-        final Set<String> now = clearedAmong(windows);
+        final Set<String> now = ripe(viewer, clearedAmong(windows), was);
         if (now.equals(was) && owed.isEmpty())
         {
             return;
@@ -240,6 +256,31 @@ public final class GateViews
         }
     }
 
+    /**
+     * The gates among those drawn whose horizon may be cleared now: those already cleared for the viewer,
+     * and those they have been drawn for {@link #CLEAR_GRACE_MILLIS}, so the water stays until the view has
+     * had a moment to arrive rather than going before it.
+     */
+    private static Set<String> ripe(final UUID viewer, final Set<String> seen, final Set<String> was)
+    {
+        final Map<String, Long> since = DRAWN_SINCE.computeIfAbsent(viewer, id -> new HashMap<>());
+        since.keySet().retainAll(seen);
+        final long at = clock.getAsLong();
+        final Set<String> ripe = new HashSet<>();
+        for (final String name : seen)
+        {
+            if (was.contains(name) || ((at - since.computeIfAbsent(name, key -> at)) >= clearGrace))
+            {
+                ripe.add(name);
+            }
+        }
+        if (since.isEmpty())
+        {
+            DRAWN_SINCE.remove(viewer);
+        }
+        return ripe;
+    }
+
     /** The cleared gates among some windows' names, by gate name. */
     private static Set<String> clearedAmong(final Set<String> windows)
     {
@@ -285,6 +326,7 @@ public final class GateViews
     {
         SEES_THROUGH.remove(viewer);
         OWED.remove(viewer);
+        DRAWN_SINCE.remove(viewer);
     }
 
     /**
