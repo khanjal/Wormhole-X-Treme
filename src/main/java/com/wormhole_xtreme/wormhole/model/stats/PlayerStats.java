@@ -25,7 +25,7 @@ import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 import com.wormhole_xtreme.wormhole.utils.YamlStore;
 
 /**
- * Each player's lifetime counts: trips through gates, gates built, ring trips and beams (#237).
+ * Each player's lifetime counts: trips through gates, ring trips and beams (#237).
  *
  * <p>Keyed by UUID, so a count survives a name change, and held in memory: an increment is a map
  * update on the main thread, and the file is written only when something changed, by the periodic
@@ -47,8 +47,6 @@ public final class PlayerStats
     {
         /** A trip through a gate. */
         TRIPS("trips"),
-        /** A gate built and named. */
-        GATES_BUILT("gates-built"),
         /** A trip by transport rings. */
         RINGS("rings"),
         /** A beam to a destination or place. */
@@ -73,17 +71,15 @@ public final class PlayerStats
      *
      * @param trips
      *            trips through gates
-     * @param gatesBuilt
-     *            gates built
      * @param rings
      *            ring trips
      * @param beams
      *            beams taken
      */
-    public record Counts(int trips, int gatesBuilt, int rings, int beams)
+    public record Counts(int trips, int rings, int beams)
     {
         /** A player with no record. */
-        public static final Counts NONE = new Counts(0, 0, 0, 0);
+        public static final Counts NONE = new Counts(0, 0, 0);
 
         /**
          * @param counter
@@ -95,7 +91,6 @@ public final class PlayerStats
             return switch (counter)
             {
                 case TRIPS -> trips;
-                case GATES_BUILT -> gatesBuilt;
                 case RINGS -> rings;
                 case BEAMS -> beams;
             };
@@ -110,10 +105,9 @@ public final class PlayerStats
         {
             return switch (counter)
             {
-                case TRIPS -> new Counts(trips + 1, gatesBuilt, rings, beams);
-                case GATES_BUILT -> new Counts(trips, gatesBuilt + 1, rings, beams);
-                case RINGS -> new Counts(trips, gatesBuilt, rings + 1, beams);
-                case BEAMS -> new Counts(trips, gatesBuilt, rings, beams + 1);
+                case TRIPS -> new Counts(trips + 1, rings, beams);
+                case RINGS -> new Counts(trips, rings + 1, beams);
+                case BEAMS -> new Counts(trips, rings, beams + 1);
             };
         }
     }
@@ -333,8 +327,8 @@ public final class PlayerStats
 
     private static Counts readCounts(final Map<String, Object> map)
     {
-        return new Counts(number(map.get(Counter.TRIPS.key())), number(map.get(Counter.GATES_BUILT.key())),
-            number(map.get(Counter.RINGS.key())), number(map.get(Counter.BEAMS.key())));
+        return new Counts(number(map.get(Counter.TRIPS.key())), number(map.get(Counter.RINGS.key())),
+            number(map.get(Counter.BEAMS.key())));
     }
 
     /** @return a count from the file; anything that is not a number reads as none */

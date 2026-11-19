@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -24,7 +26,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.SubCommands;
+import com.wormhole_xtreme.wormhole.model.Stargate;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats.Counter;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -46,12 +52,16 @@ class StatsCommandTest
     private MockedStatic<Bukkit> bukkit;
 
     @BeforeEach
-    void setUp()
+    void setUp() throws Exception
     {
+        PluginTestSupport.install(mock(WormholeXTreme.class));
+        PluginTestSupport.forgetAllGates();
         PlayerStats.clear();
         bukkit = mockStatic(Bukkit.class);
         count(ALICE_ID, Counter.TRIPS, 3);
-        count(ALICE_ID, Counter.GATES_BUILT, 2);
+        gate("alpha", ALICE_ID.toString(), 0);
+        gate("bravo", ALICE_ID.toString(), 10);
+        gate("charlie", BOB_ID.toString(), 20);
         count(ALICE_ID, Counter.RINGS, 4);
         count(ALICE_ID, Counter.BEAMS, 5);
         count(BOB_ID, Counter.TRIPS, 2);
@@ -59,10 +69,26 @@ class StatsCommandTest
     }
 
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         bukkit.close();
+        PluginTestSupport.forgetAllGates();
+        PluginTestSupport.remove();
         PlayerStats.clear();
+    }
+
+    /** A registered gate, owned as the gate list stores it. */
+    private static void gate(final String name, final String owner, final int x)
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+        final Stargate gate = new Stargate();
+        gate.setGateName(name);
+        gate.setGateWorld(world);
+        gate.setGateOwner(owner);
+        gate.setGatePlayerTeleportLocation(new Location(world, x, 64, 0));
+        gate.getGatePortalBlocks().add(new Location(world, x, 64, 0));
+        StargateManager.registerStargate(gate);
     }
 
     private static void count(final UUID player, final Counter counter, final int times)
@@ -100,7 +126,7 @@ class StatsCommandTest
     }
 
     @Test
-    void aPlayerSeesTheirOwnFourCounts()
+    void aPlayerSeesTheirOwnCountsAndTheGatesTheyOwn()
     {
         final Player alice = alice(StatsCommand.PERMISSION);
 
@@ -134,6 +160,7 @@ class StatsCommandTest
 
         verify(alice).sendMessage(infoBody("Wormhole travels of Bob:"));
         verify(alice).sendMessage(infoBody("Trips through gates: 2"));
+        verify(alice).sendMessage(infoBody("Gates built: 1"));
         verify(alice).sendMessage(infoBody("Beams taken: 3"));
     }
 

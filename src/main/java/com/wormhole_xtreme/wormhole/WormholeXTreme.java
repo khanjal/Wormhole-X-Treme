@@ -44,7 +44,6 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaListener;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
-import com.wormhole_xtreme.wormhole.model.stats.PlayerStatsListener;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.window.FarChunkHolds;
@@ -172,7 +171,6 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(itemTracker, tp);
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
-        pm.registerEvents(new PlayerStatsListener(), tp);
         pm.registerEvents(new RingPreviewListener(), tp);
         StandInListener.register(pm, tp);
         // A view is built again when the world behind its wall changes (#609).

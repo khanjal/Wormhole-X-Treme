@@ -103,7 +103,7 @@ permissions:
     description: Allow /wormhole go <gate>. gate go needs wormhole.config.
     default: false
   wormhole.stats:
-    description: Allow seeing your own lifetime trips, gates built, ring trips and beams with /wormhole stats.
+    description: Allow seeing your own lifetime trips, ring trips and beams, and the gates you own with /wormhole stats.
     default: true
   wormhole.stats.others:
     description: Allow seeing another player's stats with /wormhole stats <player>.

@@ -26,7 +26,7 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
  * <li>{@code %wormhole_gates_owned%}</li>
  * <li>{@code %wormhole_nearest_gate%}</li>
  * <li>{@code %wormhole_stats_trips%}: trips through gates, lifetime</li>
- * <li>{@code %wormhole_stats_gates_built%}: gates built, lifetime</li>
+ * <li>{@code %wormhole_stats_gates_built%}: gates they own now</li>
  * <li>{@code %wormhole_stats_rings%}: ring trips, lifetime</li>
  * <li>{@code %wormhole_stats_beams%}: beams taken, lifetime</li>
  * </ul>

@@ -325,7 +325,7 @@ a dashed word is always the option and a bare word is always a name.
 | `compass` | Points your compass at the nearest gate; `compass reset` points it back at spawn |
 | `export sqlite` | Writes your gates to a database the older plugins read, in a folder of its own; see [coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme). Needs `wormhole.export` |
 | `list [network\|mine\|owner <player>\|top]` | The gates on the network, or on none with `Public`; `mine` your own with `wormhole.list.mine`; `owner <player>` that player's, online or not, with `wormhole.list.owner`; `top` up to ten gates with the most trips, those with at least one, each with its count. `mine`, `owner` and `top` win over a network of the same name. Holding `wormhole.list` allows all of them, and completing `/dial` and `/wormhole go` offers every gate to a player with it, only their own to one with just `wormhole.list.mine`, and none to the rest |
-| `stats [player]` | Lifetime trips through gates, gates built, ring trips and beams: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
+| `stats [player]` | Lifetime trips through gates, ring trips and beams, and the gates they own now: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
 
 `compass` works without a compass in hand — the heading is stored against you. It says so when
 nothing you carry will show it: a lodestone compass points at its lodestone, a recovery compass
@@ -517,7 +517,7 @@ from this one.
 | `%wormhole_gates_owned%` | How many the player looking at it owns. |
 | `%wormhole_nearest_gate%` | The name of the gate nearest them. |
 | `%wormhole_stats_trips%` | How many trips they have taken through gates, ever. |
-| `%wormhole_stats_gates_built%` | How many gates they have built. |
+| `%wormhole_stats_gates_built%` | How many gates they own now, the same number as `gates_owned`. |
 | `%wormhole_stats_rings%` | How many trips they have taken by rings. |
 | `%wormhole_stats_beams%` | How many times they have beamed. |
 
@@ -527,7 +527,7 @@ from this one.
   so gates built before this plugin stored owners as UUIDs still count as theirs.
 - **`nearest_gate` is empty for a player who is not online**, because there is nowhere
   to measure from. The counts still answer.
-- **The four `stats_` counts read `0` for a player with none yet**, and are kept as
+- **The `stats_` counts read `0` for a player with none yet**, and are kept as
   [`/wormhole stats`](#commands) shows them.
 - **A placeholder that is not one of these is left exactly as you typed it**, which
   is how you spot a typo rather than finding a blank line.

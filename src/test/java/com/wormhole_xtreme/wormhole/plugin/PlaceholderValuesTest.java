@@ -187,7 +187,9 @@ class PlaceholderValuesTest
     void eachStatsPlaceholderAnswersItsOwnCount()
     {
         count(Counter.TRIPS, 3);
-        count(Counter.GATES_BUILT, 2);
+        gate("alpha", ALICE_ID, 0);
+        gate("bravo", ALICE_ID, 10);
+        gate("charlie", "99999999-8888-7777-6666-555555555555", 20);
         count(Counter.RINGS, 4);
         count(Counter.BEAMS, 5);
 
@@ -214,5 +216,6 @@ class PlaceholderValuesTest
 
         assertEquals("", PlaceholderValues.resolve("stats_trips", null, null, null));
         assertEquals("", PlaceholderValues.resolve("stats_trips", "not-a-uuid", "alice", null));
+        assertEquals("", PlaceholderValues.resolve("stats_gates_built", null, null, null));
     }
 }
