@@ -75,6 +75,7 @@ class GateHorizonPerViewerTest
         PluginTestSupport.install();
         ConfigTestSupport.clear();
         GateViews.clear();
+        GateViews.clearGrace = 0;
 
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
@@ -556,6 +557,7 @@ class GateHorizonPerViewerTest
         drawsTheView(front, true);
 
         GateViews.clear();
+        GateViews.clearGrace = 0;
 
         assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front));
         // Started again: nothing is remembered as sent, so the first clearing sends the viewer the opening.
@@ -594,5 +596,99 @@ class GateHorizonPerViewerTest
         clearedForTheView();
         drawsTheView(front, true);
         sentTheOpeningAs(front, air, 1, "the same viewer at open is sent the cleared opening");
+    }
+
+    /** The water stays until the view has been drawn for the grace, then goes: it must not go before the view arrives. */
+    @Test
+    void theHorizonStaysUntilTheViewHasBeenDrawnForTheGrace()
+    {
+        GateViews.clearGrace = GateViews.CLEAR_GRACE_MILLIS;
+        final long[] now = { 10_000L };
+        GateViews.clock = () -> now[0];
+        clearedForTheView();
+
+        drawsTheView(front, true);
+        now[0] += GateViews.CLEAR_GRACE_MILLIS - 1;
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), eq(air));
+        assertEquals(Material.WATER, GateViews.horizonFor(gate, Material.WATER, front), "still the water");
+
+        now[0] += 1;
+        drawsTheView(front, true);
+
+        sentTheOpeningAs(front, air, 1, "once drawn for the grace, the opening is cleared");
+    }
+
+    /** A viewer who stops being drawn the view before the grace is over starts the wait again. */
+    @Test
+    void lookingAwayBeforeTheGraceStartsItAgain()
+    {
+        GateViews.clearGrace = GateViews.CLEAR_GRACE_MILLIS;
+        final long[] now = { 10_000L };
+        GateViews.clock = () -> now[0];
+        clearedForTheView();
+
+        drawsTheView(front, true);
+        now[0] += GateViews.CLEAR_GRACE_MILLIS - 100;
+        drawsTheView(front, false);
+        now[0] += 200;
+        drawsTheView(front, true);
+        now[0] += GateViews.CLEAR_GRACE_MILLIS - 1;
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), eq(air));
+    }
+
+    /** A gate dialled again waits its grace afresh, not from the last time it was drawn. */
+    @Test
+    void aGateDialledAgainWaitsItsGraceAfresh()
+    {
+        GateViews.clearGrace = GateViews.CLEAR_GRACE_MILLIS;
+        final long[] now = { 10_000L };
+        GateViews.clock = () -> now[0];
+        clearedForTheView();
+        drawsTheView(front, true);
+        GateViews.closed(gate);
+
+        now[0] += 600_000L;
+        clearedForTheView();
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), eq(air));
+    }
+
+    /** A view still streaming clears nothing new and loses no wait, so a moving viewer's grace still ripens. */
+    @Test
+    void aStreamingViewClearsNothingNewAndKeepsTheWait()
+    {
+        GateViews.clearGrace = GateViews.CLEAR_GRACE_MILLIS;
+        final long[] now = { 10_000L };
+        GateViews.clock = () -> now[0];
+        clearedForTheView();
+
+        drawsTheView(front, true);
+        now[0] += GateViews.CLEAR_GRACE_MILLIS - 100;
+        GateViews.drawnWhileStreaming(front.getUniqueId(), front, Set.of(WINDOW));
+        now[0] += 100;
+        drawsTheView(front, true);
+
+        sentTheOpeningAs(front, air, 1, "the wait was kept through the streaming tell, so it is over");
+    }
+
+    /** A gate already cleared stays cleared through a streaming tell, and is put back at once if no longer drawn. */
+    @Test
+    void aClearedGateIsKeptWhileStreamingAndPutBackWhenLost()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 1, "cleared");
+
+        GateViews.drawnWhileStreaming(front.getUniqueId(), front, Set.of(WINDOW));
+        sentTheOpeningAs(front, air, 1, "kept: not sent again");
+        verify(front, never().description("kept cleared: no horizon sent yet")).sendBlockChange(any(Location.class), eq(water));
+
+        GateViews.drawnWhileStreaming(front.getUniqueId(), front, Set.of());
+        sentTheOpeningAs(front, water, 1, "no longer drawn: the horizon is put back at once");
     }
 }

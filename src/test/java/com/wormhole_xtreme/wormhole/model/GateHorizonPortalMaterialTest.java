@@ -62,6 +62,7 @@ class GateHorizonPortalMaterialTest
     {
         PluginTestSupport.install();
         GateViews.clear();
+        GateViews.clearGrace = 0;
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
         // The gate faces east, its opening in the plane x = 20: in front is x > 20.

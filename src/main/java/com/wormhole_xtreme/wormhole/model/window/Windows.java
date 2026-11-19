@@ -40,6 +40,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.GateViews;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -481,6 +482,47 @@ public final class Windows
         } : listener;
     }
 
+    /**
+     * Tells the listener what a viewer is drawn once it is all sent: a window with no room yet is drawn
+     * nothing, and a view still streaming has not arrived, so a gate's horizon is not cleared under either.
+     * While it streams only the gates already cleared are told, so none is newly cleared and a lost one is put back.
+     */
+    private static void tellSettled(final UUID viewer, final Player player, final ViewerDrawing view)
+    {
+        if (view.pending.isEmpty())
+        {
+            tellDrawn(viewer, player, view.settled);
+            return;
+        }
+        // Still streaming: no gate is newly cleared, but one the viewer has stopped being drawn is put back at once.
+        try
+        {
+            GateViews.drawnWhileStreaming(viewer, player, view.settled);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not follow a viewer's windows", e);
+            }
+        }
+    }
+
+    /** The windows among those seen that have a room to draw. */
+    private static Set<String> settledNames(final List<WindowState> seeing, final WindowCompose.Wholes wholes)
+    {
+        final Set<String> names = new HashSet<>();
+        for (final WindowState window : seeing)
+        {
+            if (wholes.of(window) != null)
+            {
+                names.add(window.name());
+            }
+        }
+        return names;
+    }
+
     /** Tells the listener what a viewer is drawn, without letting its failure stop the drawing. */
     static void tellDrawn(final UUID viewer, final Player player, final Set<String> windows)
     {
@@ -738,7 +780,7 @@ public final class Windows
             // Kept as drawn, so judged against what is drawn: a creature moves, or walks in, while the viewer stands still.
             WindowCreatures.showStandIns(player, view, eye, seeing, wholes, now);
             // Still told: a gate's horizon may have cleared under a view that has not changed.
-            tellDrawn(id, player, view.mirrors);
+            tellSettled(id, player, view);
             return;
         }
         if (fromSweep && !crossed && !view.stamp.isEmpty() && !view.stamp.equals(stamp) && WindowPacing.roomShareSpent(wholes))
@@ -746,7 +788,7 @@ public final class Windows
             // Rooms enough were redrawn this sweep -- a rebuilt room swapped in under many viewers at
             // once -- so this viewer keeps what they see until the next (#609).
             WindowCreatures.followStandIns(view);
-            tellDrawn(id, player, view.mirrors);
+            tellSettled(id, player, view);
             return;
         }
         if (!mayWork)
@@ -772,13 +814,14 @@ public final class Windows
         view.rest = WindowPacing.restAfter(took, WindowPacing.smallestOpen(seeing));
         view.stamp = stamp;
         view.mirrors = names(seeing);
+        view.settled = settledNames(seeing, wholes);
         view.fixedNames = names(new ArrayList<>(wholes.whole().keySet()));
         view.eye = eyeKey(eye);
         view.chunk = chunk;
         view.generation = Captures.generation();
         // From when the redraw finished, not when it began, so a slow one still leaves a gap.
         view.composedAt = now();
-        tellDrawn(id, player, view.mirrors);
+        tellSettled(id, player, view);
         if (wanted.isEmpty() && view.pending.isEmpty())
         {
             endView(id, player);
