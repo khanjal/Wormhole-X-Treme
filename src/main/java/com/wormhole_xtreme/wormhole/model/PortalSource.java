@@ -12,7 +12,7 @@ import com.wormhole_xtreme.wormhole.model.window.WindowSource;
 
 /**
  * One face of a nether portal as the window drawing sees it (#514): walked through like a gate's,
- * its purple sheet left as it is, drawn one at a time per viewer, and never holding a chunk loaded.
+ * its purple sheet left as it is, drawn one at a time per viewer; its far chunks are held for creatures only (mirror-show-entities).
  *
  * @param name
  *            what the sweep knows it by
@@ -49,11 +49,5 @@ public record PortalSource(String name, Block anchor, WindowShape shape, List<Sp
     public boolean oneAtATime()
     {
         return true;
-    }
-
-    @Override
-    public boolean holdsFarChunks()
-    {
-        return false;
     }
 }

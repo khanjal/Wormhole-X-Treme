@@ -295,8 +295,12 @@ nothing in the world changes, and vanilla still decides where a portal goes and 
   the portal they came out of, turned the way vanilla turned them. The way back is learnt by
   going back. Links are kept until the plugin stops, and forgotten when either portal is broken.
 - **Captured from what is loaded.** The far side is captured as the traveller arrives, or while
-  somebody stands at the far portal. No chunk is ever loaded to draw a view, so a portal whose far
-  side nobody has been near since a restart shows nothing.
+  somebody stands at the far portal. No chunk is loaded to draw the blocks, so a portal whose far
+  side nobody has been near since a restart shows nothing, unless creatures are shown and chunks
+  are held for them.
+- **Creatures too.** With `mirror-show-entities: true` the mobs in the far room show, and the players
+  with `mirror-show-players: true`, as through a gate; the chunks in front of the far portal are
+  then held while somebody looks, as for a gate (`mirror-entity-load-radius`).
 - **One at a time.** You are drawn only the portal you look at, from the side you stand on, within
   `mirror-proximity-distance`. Step into the portal and the drawing ends, so you walk in as usual.
 - **Up to 18 blocks wide or tall.** Bigger portals stay plain.

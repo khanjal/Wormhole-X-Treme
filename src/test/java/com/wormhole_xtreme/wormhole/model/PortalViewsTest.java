@@ -182,7 +182,6 @@ class PortalViewsTest
         assertEquals(180.0f, far.yaw(), "looking north out of the far portal");
         assertTrue(source.walkThrough(), "walked into, never barred");
         assertTrue(source.oneAtATime());
-        assertFalse(source.holdsFarChunks(), "a portal never loads a chunk");
     }
 
     /** From the other face the view is the far portal's other side. */

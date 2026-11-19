@@ -1191,11 +1191,11 @@ portal's matching side: looking north, turned by the link's turn. The arrival po
 of the far portal at the middle of its bottom row, as a gate's is in front of its far gate. Each
 face of each far portal has its own capture, kept with the gates' captures.
 
-**No chunk is loaded.** A gate's first capture loads what it must; a portal's never does.
+**No chunk is loaded for the blocks** (with creatures shown, the chunks held for them count as loaded). A gate's first capture loads what it must; a portal's never does.
 `Captures.requestLoaded` starts one only when every chunk of its box is loaded, and reads only
 loaded chunks, giving up if one is let go. It is asked for each sweep for a minute after a trip,
 as chunks load round the traveller, and whenever somebody looks into the near portal. A portal
-window never asks `FarChunkHolds` to hold its far side for creatures. Blocks are read to check a
+window asks `FarChunkHolds` to hold its far side only for creatures, with `mirror-show-entities` on, as a gate's does; the mobs, and the players with `mirror-show-players`, then show through it as through a gate. Blocks are read to check a
 portal is still lit only where their chunk is loaded.
 
 **One per viewer.** Each sweep, every player with `wormhole.view.netherportal` picks the linked

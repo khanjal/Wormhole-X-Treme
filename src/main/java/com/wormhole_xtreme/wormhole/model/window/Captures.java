@@ -487,7 +487,7 @@ public final class Captures
 
     /**
      * Takes a capture seen through the largest gate opening, first or again, only from chunks already
-     * loaded: a nether portal's far side (#514), which never loads a chunk to be drawn.
+     * loaded: a nether portal's far side (#514), which loads a chunk for no block, only held ones for creatures.
      *
      * @param key
      *            its {@link #gateKey}
