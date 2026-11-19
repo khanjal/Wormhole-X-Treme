@@ -78,7 +78,7 @@ public interface WindowSource
         return false;
     }
 
-    /** @return whether its far side may be held loaded for its creatures: not a nether portal's, which never loads a chunk (#514) */
+    /** @return whether its far side may be held loaded for its creatures, with {@code mirror-show-entities} on */
     default boolean holdsFarChunks()
     {
         return true;
