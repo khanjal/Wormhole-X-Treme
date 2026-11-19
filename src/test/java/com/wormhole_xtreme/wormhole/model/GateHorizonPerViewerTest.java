@@ -657,4 +657,38 @@ class GateHorizonPerViewerTest
 
         verify(front, never()).sendBlockChange(any(Location.class), eq(air));
     }
+
+    /** A view still streaming clears nothing new and loses no wait, so a moving viewer's grace still ripens. */
+    @Test
+    void aStreamingViewClearsNothingNewAndKeepsTheWait()
+    {
+        GateViews.clearGrace = GateViews.CLEAR_GRACE_MILLIS;
+        final long[] now = { 10_000L };
+        GateViews.clock = () -> now[0];
+        clearedForTheView();
+
+        drawsTheView(front, true);
+        now[0] += GateViews.CLEAR_GRACE_MILLIS - 100;
+        GateViews.drawnWhileStreaming(front.getUniqueId(), front, Set.of(WINDOW));
+        now[0] += 100;
+        drawsTheView(front, true);
+
+        sentTheOpeningAs(front, air, 1, "the wait was kept through the streaming tell, so it is over");
+    }
+
+    /** A gate already cleared stays cleared through a streaming tell, and is put back at once if no longer drawn. */
+    @Test
+    void aClearedGateIsKeptWhileStreamingAndPutBackWhenLost()
+    {
+        clearedForTheView();
+        drawsTheView(front, true);
+        sentTheOpeningAs(front, air, 1, "cleared");
+
+        GateViews.drawnWhileStreaming(front.getUniqueId(), front, Set.of(WINDOW));
+        sentTheOpeningAs(front, air, 1, "kept: not sent again");
+        verify(front, never().description("kept cleared: no horizon sent yet")).sendBlockChange(any(Location.class), eq(water));
+
+        GateViews.drawnWhileStreaming(front.getUniqueId(), front, Set.of());
+        sentTheOpeningAs(front, water, 1, "no longer drawn: the horizon is put back at once");
+    }
 }

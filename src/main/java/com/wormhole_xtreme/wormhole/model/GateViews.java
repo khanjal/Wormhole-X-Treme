@@ -165,6 +165,27 @@ public final class GateViews
      */
     public static void drawn(final UUID viewer, final Player player, final Set<String> windows)
     {
+        follow(viewer, player, windows, false);
+    }
+
+    /**
+     * As {@link #drawn} while the viewer's view is still streaming to their client: no gate is newly
+     * cleared and no wait is started or lost, but a gate already cleared that they are no longer drawn is put back.
+     *
+     * @param viewer
+     *            whose drawing it is
+     * @param player
+     *            that player, or null when their drawing went with them
+     * @param windows
+     *            the windows they are drawn now
+     */
+    public static void drawnWhileStreaming(final UUID viewer, final Player player, final Set<String> windows)
+    {
+        follow(viewer, player, windows, true);
+    }
+
+    private static void follow(final UUID viewer, final Player player, final Set<String> windows, final boolean streaming)
+    {
         if (player == null)
         {
             forgetViewer(viewer);
@@ -177,7 +198,7 @@ public final class GateViews
         {
             return;
         }
-        final Set<String> now = ripe(viewer, clearedAmong(windows), was);
+        final Set<String> now = streaming ? kept(clearedAmong(windows), was) : ripe(viewer, clearedAmong(windows), was);
         if (now.equals(was) && owed.isEmpty())
         {
             return;
@@ -254,6 +275,14 @@ public final class GateViews
         {
             map.put(viewer, gates);
         }
+    }
+
+    /** The gates already cleared for the viewer that they are still drawn, which a streaming view leaves as they are. */
+    private static Set<String> kept(final Set<String> seen, final Set<String> was)
+    {
+        final Set<String> kept = new HashSet<>(seen);
+        kept.retainAll(was);
+        return kept;
     }
 
     /**
@@ -358,20 +387,6 @@ public final class GateViews
         SEES_THROUGH.values().removeIf(through -> through.remove(name) && through.isEmpty());
         // Dialled again, it waits its grace afresh rather than counting from the last time it was drawn.
         DRAWN_SINCE.values().removeIf(since -> (since.remove(name) != null) && since.isEmpty());
-    }
-
-    /**
-     * @param viewer
-     *            whose drawing it is
-     * @param name
-     *            a gate
-     * @return whether that viewer has been sent the gate's opening as nothing, which a view still
-     *         streaming leaves as it is
-     */
-    public static boolean seesThrough(final UUID viewer, final String name)
-    {
-        final Set<String> through = SEES_THROUGH.get(viewer);
-        return (through != null) && through.contains(name);
     }
 
     /**

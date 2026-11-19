@@ -29,7 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.LongSupplier;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -496,8 +495,18 @@ public final class Windows
             return;
         }
         // Still streaming: no gate is newly cleared, but one the viewer has stopped being drawn is put back at once.
-        tellDrawn(viewer, player, view.settled.stream().filter(name -> GateViews.seesThrough(viewer, name))
-            .collect(Collectors.toSet()));
+        try
+        {
+            GateViews.drawnWhileStreaming(viewer, player, view.settled);
+        }
+        catch (final Exception | LinkageError e)
+        {
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not follow a viewer's windows", e);
+            }
+        }
     }
 
     /** The windows among those seen that have a room to draw. */
