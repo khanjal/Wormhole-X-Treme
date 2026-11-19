@@ -511,6 +511,9 @@ class ConfigAccessorTableTest
         d.put(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, false);
         d.put(ConfigKeys.GATE_PREVIEW_MINUTES, 14);
         d.put(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5001);
+        d.put(ConfigKeys.PING_ENABLED, true);
+        d.put(ConfigKeys.PING_SECONDS, 37);
+        d.put(ConfigKeys.PING_COOLDOWN_SECONDS, 43);
         // Gate views and mirrors
         d.put(ConfigKeys.VIEW_DEPTH, 20);
         d.put(ConfigKeys.GATE_VIEW, "behind");
@@ -649,6 +652,9 @@ class ConfigAccessorTableTest
             row("isGateMaterialGroupsAutodiscover", ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, true, false),
             row("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, 10, 10, 14),
             row("getGatePreviewMaxBlocks", ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, 5000, 5001),
+            row("isPingEnabled", ConfigKeys.PING_ENABLED, false, false, true),
+            row("getPingSeconds", ConfigKeys.PING_SECONDS, 8, 8, 37),
+            row("getPingCooldownSeconds", ConfigKeys.PING_COOLDOWN_SECONDS, 20, 20, 43),
 
             // Gate views and mirrors
             row("getViewDepth", ConfigKeys.VIEW_DEPTH, 160, 160, 20),
@@ -819,6 +825,9 @@ class ConfigAccessorTableTest
         o.add(odd("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, 0, 1));
         o.add(odd("getGatePreviewMinutes", ConfigKeys.GATE_PREVIEW_MINUTES, -5, 1));
         o.add(odd("getGatePreviewMaxBlocks", ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, -5, 0));
+        o.add(odd("getPingSeconds", ConfigKeys.PING_SECONDS, 0, 1));
+        o.add(odd("getPingSeconds", ConfigKeys.PING_SECONDS, 600, 60));
+        o.add(odd("getPingCooldownSeconds", ConfigKeys.PING_COOLDOWN_SECONDS, -5, 0));
 
         // Gate views and mirrors
         o.add(odd("getViewDepth", ConfigKeys.VIEW_DEPTH, 0, 4));

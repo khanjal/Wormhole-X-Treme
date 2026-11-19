@@ -33,6 +33,9 @@ permissions:
   wormhole.use.compass:
     description: Allow /wormhole compass.
     default: false
+  wormhole.use.ping:
+    description: Allow /wormhole ping <gate>, which shows a gate you may see on your locator bar for a few seconds, where ping-enabled is true.
+    default: false
   wormhole.remove.own:
     description: Does nothing extra; a gate's owner may always take it apart by breaking it.
     default: false

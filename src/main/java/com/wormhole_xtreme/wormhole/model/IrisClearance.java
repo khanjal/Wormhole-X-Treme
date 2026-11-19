@@ -17,6 +17,7 @@ import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.RiddenTeleport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.ping.PingMarkers;
 import com.wormhole_xtreme.wormhole.model.window.StandIns;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
@@ -92,7 +93,7 @@ final class IrisClearance
             {
                 // Only a living thing can suffocate, and only one standing where the iris
                 // is about to be is in the way.
-                if (!(entity instanceof LivingEntity) || StandIns.isStandIn(entity)
+                if (!(entity instanceof LivingEntity) || StandIns.isStandIn(entity) || PingMarkers.isMarker(entity)
                     || !isInIrisPath(gate, entity.getLocation()))
                 {
                     continue;

@@ -22,6 +22,7 @@ import com.wormhole_xtreme.wormhole.model.HorizonRipple;
 import com.wormhole_xtreme.wormhole.model.IrisSweep;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.model.ping.PingMarkers;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
@@ -148,6 +149,12 @@ public class ConfigManager
         MIN_GATE_DISTANCE,
         /** Most gates one player may own; 0 for no limit (#633). */
         MAX_GATES_PER_PLAYER,
+        /** Whether /wormhole ping may put a gate on a player's locator bar (#16). */
+        PING_ENABLED,
+        /** How long a ping stays on the locator bar. */
+        PING_SECONDS,
+        /** How long a player waits between pings. */
+        PING_COOLDOWN_SECONDS,
         RING_SOUNDS_ENABLED,
         RING_SOUND_VOLUME,
         RING_SOUND_OPEN,
@@ -813,6 +820,40 @@ public class ConfigManager
         return Math.max(0, intSetting(ConfigKeys.MAX_GATES_PER_PLAYER, 0));
     }
 
+    /** Longest a ping may stay up; a marker is a real entity, so not for long. */
+    static final int LONGEST_PING_SECONDS = 60;
+
+    /**
+     * Whether {@code /wormhole ping} is turned on.
+     *
+     * @return true if it is; off when the setting is missing, as it ships
+     */
+    public static boolean isPingEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.PING_ENABLED);
+        return (s != null) && s.getBooleanValue();
+    }
+
+    /**
+     * How long a ping stays on the locator bar.
+     *
+     * @return seconds, 1 to 60
+     */
+    public static int getPingSeconds()
+    {
+        return Math.min(LONGEST_PING_SECONDS, Math.max(1, intSetting(ConfigKeys.PING_SECONDS, 8)));
+    }
+
+    /**
+     * How long a player waits after a ping before the next.
+     *
+     * @return seconds, 0 for none
+     */
+    public static int getPingCooldownSeconds()
+    {
+        return Math.max(0, intSetting(ConfigKeys.PING_COOLDOWN_SECONDS, 20));
+    }
+
     /** See {@link RingSettings#isRingSoundsEnabled()}. */
     public static boolean isRingSoundsEnabled()
     {
@@ -1458,10 +1499,20 @@ public class ConfigManager
             case RING_REACH, RING_MAX_CEILING_DROP -> RingManager.reindex(getRingReach());
             case GATE_MATERIAL_GROUPS_AUTODISCOVER -> StargateShapeRegistry.followAutodiscover();
             case GATE_RIPPLE -> followRipple();
+            case PING_ENABLED -> followPing();
             case PERMISSIONS_SUPPORT_DISABLE -> PermissionsSupport.detectProvider();
             case DYNMAP_ENABLED, BLUEMAP_ENABLED, SQUAREMAP_ENABLED, PL3XMAP_ENABLED, MAP_SHOW_GATES,
                 MAP_SHOW_RINGS, MAP_SHOW_BEAMS, MAP_SHOW_MIRRORS, MAP_SHOW_IRIS_GATES -> MapMarkers.followConfig();
             default -> RepeatingSweeps.follow(key);
+        }
+    }
+
+    /** Turned off, every ping still showing is taken down at once. */
+    private static void followPing()
+    {
+        if (!isPingEnabled())
+        {
+            PingMarkers.removeAll();
         }
     }
 
