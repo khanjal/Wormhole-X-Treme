@@ -64,8 +64,8 @@ final class WindowCreatures
         for (final String name : order)
         {
             final Place destination = ACTIVE.get(name).source.destination();
-            // A far world not loaded has nothing to hold, and nothing is asked of it; nor of a source that never loads one.
-            if (ACTIVE.get(name).source.holdsFarChunks() && (Bukkit.getWorld(destination.worldName()) != null))
+            // A far world not loaded has nothing to hold, and nothing is asked of it.
+            if (Bukkit.getWorld(destination.worldName()) != null)
             {
                 watched.put(name, FarChunkHolds.ahead(destination, radius));
             }
