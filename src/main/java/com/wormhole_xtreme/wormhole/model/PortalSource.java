@@ -12,8 +12,7 @@ import com.wormhole_xtreme.wormhole.model.window.WindowSource;
 
 /**
  * One face of a nether portal as the window drawing sees it (#514): walked through like a gate's,
- * its purple sheet left as it is, drawn one at a time per viewer; its far side's chunks are held for its creatures, like a gate's,
- * only while {@code mirror-show-entities} is on.
+ * its purple sheet left as it is, drawn one at a time per viewer; its far chunks are held for creatures only (mirror-show-entities).
  *
  * @param name
  *            what the sweep knows it by
