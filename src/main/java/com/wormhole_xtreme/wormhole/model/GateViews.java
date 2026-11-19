@@ -356,6 +356,22 @@ public final class GateViews
             HorizonRipple.cancel(name);
         }
         SEES_THROUGH.values().removeIf(through -> through.remove(name) && through.isEmpty());
+        // Dialled again, it waits its grace afresh rather than counting from the last time it was drawn.
+        DRAWN_SINCE.values().removeIf(since -> (since.remove(name) != null) && since.isEmpty());
+    }
+
+    /**
+     * @param viewer
+     *            whose drawing it is
+     * @param name
+     *            a gate
+     * @return whether that viewer has been sent the gate's opening as nothing, which a view still
+     *         streaming leaves as it is
+     */
+    public static boolean seesThrough(final UUID viewer, final String name)
+    {
+        final Set<String> through = SEES_THROUGH.get(viewer);
+        return (through != null) && through.contains(name);
     }
 
     /**

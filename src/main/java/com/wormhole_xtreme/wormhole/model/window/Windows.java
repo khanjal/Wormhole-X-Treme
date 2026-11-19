@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.LongSupplier;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -40,6 +41,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.GateViews;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -484,14 +486,18 @@ public final class Windows
     /**
      * Tells the listener what a viewer is drawn once it is all sent: a window with no room yet is drawn
      * nothing, and a view still streaming has not arrived, so a gate's horizon is not cleared under either.
-     * While it streams nothing is told, which leaves each gate as it was.
+     * While it streams only the gates already cleared are told, so none is newly cleared and a lost one is put back.
      */
     private static void tellSettled(final UUID viewer, final Player player, final ViewerDrawing view)
     {
         if (view.pending.isEmpty())
         {
             tellDrawn(viewer, player, view.settled);
+            return;
         }
+        // Still streaming: no gate is newly cleared, but one the viewer has stopped being drawn is put back at once.
+        tellDrawn(viewer, player, view.settled.stream().filter(name -> GateViews.seesThrough(viewer, name))
+            .collect(Collectors.toSet()));
     }
 
     /** The windows among those seen that have a room to draw. */

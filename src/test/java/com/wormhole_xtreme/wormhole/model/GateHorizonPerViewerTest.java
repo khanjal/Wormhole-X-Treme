@@ -639,4 +639,22 @@ class GateHorizonPerViewerTest
 
         verify(front, never()).sendBlockChange(any(Location.class), eq(air));
     }
+
+    /** A gate dialled again waits its grace afresh, not from the last time it was drawn. */
+    @Test
+    void aGateDialledAgainWaitsItsGraceAfresh()
+    {
+        GateViews.clearGrace = GateViews.CLEAR_GRACE_MILLIS;
+        final long[] now = { 10_000L };
+        GateViews.clock = () -> now[0];
+        clearedForTheView();
+        drawsTheView(front, true);
+        GateViews.closed(gate);
+
+        now[0] += 600_000L;
+        clearedForTheView();
+        drawsTheView(front, true);
+
+        verify(front, never()).sendBlockChange(any(Location.class), eq(air));
+    }
 }
