@@ -23,7 +23,10 @@ case "$kind" in
   purpur)
     meta="$(get "https://api.purpurmc.org/v2/purpur/$version/latest")"
     sum="$(printf '%s' "$meta" | "$py" -c 'import json,sys; print(json.load(sys.stdin)["md5"])')"
-    get -o "$out" "https://api.purpurmc.org/v2/purpur/$version/latest/download"
+    # By build number, not the "latest" alias: on 2026-11-18 the alias served a different jar from the build
+    # "latest" reported, so the checksum never matched.
+    build="$(printf '%s' "$meta" | "$py" -c 'import json,sys; print(json.load(sys.stdin)["build"])')"
+    get -o "$out" "https://api.purpurmc.org/v2/purpur/$version/$build/download"
     echo "$sum  $out" | md5sum -c --quiet
     ;;
   spigot|craftbukkit)
