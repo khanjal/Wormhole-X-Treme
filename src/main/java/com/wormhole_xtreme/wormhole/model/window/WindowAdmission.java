@@ -70,7 +70,11 @@ final class WindowAdmission
         final Map<UUID, Long> viewers = ADMITTED.computeIfAbsent(name, key -> new ConcurrentHashMap<>());
         synchronized (viewers)
         {
-            if (viewers.containsKey(id) || (viewers.size() < cap))
+            if (viewers.computeIfPresent(id, (key, seenAt) -> now) != null)
+            {
+                return true;
+            }
+            if (viewers.size() < cap)
             {
                 viewers.put(id, now);
                 return true;
