@@ -67,6 +67,11 @@ final class WindowViewers
             }
         }
         keepOneAtATime(seeing, eye);
+        final int cap = ConfigManager.getMirrorMaxViewers();
+        if (cap > 0)
+        {
+            WindowAdmission.limit(player.getUniqueId(), seeing, cap, fullName);
+        }
         seeing.sort(Comparator.comparing(WindowState::name));
         return seeing;
     }

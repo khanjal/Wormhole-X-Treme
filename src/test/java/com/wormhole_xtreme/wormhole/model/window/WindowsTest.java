@@ -2416,6 +2416,26 @@ class WindowsTest
         assertSame(behind, lastTold(told, behind).player(), "told as still here, so the horizon is sent them");
     }
 
+    /**
+     * With {@code mirror-max-viewers} at 1, only one of two players looking at a gate is drawn it, the other nothing and told
+     * so (#613); with no cap, as above, both are drawn it. The sweep's order decides which.
+     */
+    @Test
+    void aGateIsDrawnOnlyForAsManyViewersAsTheCapAllows()
+    {
+        final Player first = playerAt(10.5, 7.5);
+        final Player second = playerAt(11.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(first, second));
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_MAX_VIEWERS, 1);
+        final List<Told> capped = withAGate(() -> withServer(WindowSweep::tick));
+
+        final Set<String> one = lastTold(capped, first).windows();
+        final Set<String> other = lastTold(capped, second).windows();
+        assertEquals(1, one.size() + other.size(), "exactly one of the two is drawn the view; the other is told none");
+        assertEquals(Set.of("gate:Abydos"), one.isEmpty() ? other : one);
+    }
+
     /** A sweep that changes nothing still says what the viewer is drawn: a horizon may have cleared under it. */
     @Test
     void aSweepThatChangesNothingStillSaysWhatTheViewerIsDrawn()
