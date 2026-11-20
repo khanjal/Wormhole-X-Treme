@@ -55,15 +55,15 @@ class WindowAdmissionTest
         final List<WindowState> two = seeing("a");
         final List<WindowState> late = seeing("a");
 
-        WindowAdmission.limit(first, one, 2, null);
-        WindowAdmission.limit(second, two, 2, null);
-        WindowAdmission.limit(third, late, 2, null);
+        WindowAdmission.limit(first, one, 2, null, 0L);
+        WindowAdmission.limit(second, two, 2, null, 0L);
+        WindowAdmission.limit(third, late, 2, null, 0L);
 
         assertEquals(List.of("a"), names(one));
         assertEquals(List.of("a"), names(two));
         assertEquals(List.of(), names(late), "the third is over the cap");
         final List<WindowState> again = seeing("a");
-        WindowAdmission.limit(first, again, 2, null);
+        WindowAdmission.limit(first, again, 2, null, 0L);
         assertEquals(List.of("a"), names(again), "one admitted stays admitted, and does not take a second place");
         assertEquals(2, WindowAdmission.count("a"));
     }
@@ -71,14 +71,14 @@ class WindowAdmissionTest
     @Test
     void lookingAwayLetsTheNextViewerIn()
     {
-        WindowAdmission.limit(first, seeing("a"), 1, null);
+        WindowAdmission.limit(first, seeing("a"), 1, null, 0L);
         final List<WindowState> waiting = seeing("a");
-        WindowAdmission.limit(second, waiting, 1, null);
+        WindowAdmission.limit(second, waiting, 1, null, 0L);
         assertEquals(List.of(), names(waiting));
 
-        WindowAdmission.limit(first, seeing(), 1, null);
+        WindowAdmission.limit(first, seeing(), 1, null, 0L);
         final List<WindowState> next = seeing("a");
-        WindowAdmission.limit(second, next, 1, null);
+        WindowAdmission.limit(second, next, 1, null, 0L);
 
         assertEquals(List.of("a"), names(next), "the one looking away gave it up");
     }
@@ -86,22 +86,22 @@ class WindowAdmissionTest
     @Test
     void aViewerWhoLeavesGivesTheirPlaceUp()
     {
-        WindowAdmission.limit(first, seeing("a"), 1, null);
+        WindowAdmission.limit(first, seeing("a"), 1, null, 0L);
 
         WindowAdmission.forget(first);
 
         final List<WindowState> next = seeing("a");
-        WindowAdmission.limit(second, next, 1, null);
+        WindowAdmission.limit(second, next, 1, null, 0L);
         assertEquals(List.of("a"), names(next));
     }
 
     @Test
     void eachWindowHasItsOwnPlacesAndTheExemptOneTakesNone()
     {
-        WindowAdmission.limit(first, seeing("a", "b"), 1, null);
+        WindowAdmission.limit(first, seeing("a", "b"), 1, null, 0L);
 
         final List<WindowState> other = seeing("a", "b", "c");
-        WindowAdmission.limit(second, other, 1, "a");
+        WindowAdmission.limit(second, other, 1, "a", 0L);
 
         assertEquals(List.of("a", "c"), names(other), "a is theirs by exemption, b is full, c is free");
         assertEquals(1, WindowAdmission.count("a"), "the exempt window did not count them");
@@ -110,9 +110,9 @@ class WindowAdmissionTest
     @Test
     void aWindowDrawnWholeForAnAdminTakesNoPlaceOfTheirs()
     {
-        WindowAdmission.limit(first, seeing("a"), 1, null);
+        WindowAdmission.limit(first, seeing("a"), 1, null, 0L);
 
-        WindowAdmission.limit(first, seeing("a"), 1, "a");
+        WindowAdmission.limit(first, seeing("a"), 1, "a", 0L);
 
         assertEquals(0, WindowAdmission.count("a"), "their place went back to the others");
     }
@@ -121,7 +121,7 @@ class WindowAdmissionTest
     void aViewerWhoseRedrawEndedKeepsTheirPlaceAndOneWhoIsGoneDoesNot()
     {
         final org.bukkit.entity.Player here = mock(org.bukkit.entity.Player.class);
-        WindowAdmission.limit(first, seeing("a"), 1, null);
+        WindowAdmission.limit(first, seeing("a"), 1, null, 0L);
 
         Windows.endView(first, here);
         assertEquals(1, WindowAdmission.count("a"), "still looking: the redraw finishing is not leaving");
@@ -130,10 +130,26 @@ class WindowAdmissionTest
         assertEquals(0, WindowAdmission.count("a"), "gone");
     }
 
+    /** Logging out mid-stream, going blind or changing world ends the asking, not the place: time does. */
+    @Test
+    void aHolderStillBeingSeenKeepsTheirPlaceWhileOneNotSeenLosesIt()
+    {
+        WindowAdmission.limit(first, seeing("a"), 1, null, 0L);
+        WindowAdmission.limit(first, seeing("a"), 1, null, 8_000L);
+
+        final List<WindowState> waiting = seeing("a");
+        WindowAdmission.limit(second, waiting, 1, null, 12_000L);
+        assertEquals(List.of(), names(waiting), "confirmed at 8 s, so still theirs at 12 s");
+
+        final List<WindowState> later = seeing("a");
+        WindowAdmission.limit(second, later, 1, null, 8_000L + WindowAdmission.STALE_MILLIS + 1L);
+        assertEquals(List.of("a"), names(later), "not confirmed for over 10 s: given up, as a logged-out viewer's is");
+    }
+
     @Test
     void aWindowTakenBackStartsFresh()
     {
-        WindowAdmission.limit(first, seeing("a"), 1, null);
+        WindowAdmission.limit(first, seeing("a"), 1, null, 0L);
 
         WindowAdmission.forget("a");
 

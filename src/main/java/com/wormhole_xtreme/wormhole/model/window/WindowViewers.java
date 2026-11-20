@@ -70,7 +70,7 @@ final class WindowViewers
         final int cap = ConfigManager.getMirrorMaxViewers();
         if (cap > 0)
         {
-            WindowAdmission.limit(player.getUniqueId(), seeing, cap, fullName);
+            WindowAdmission.limit(player.getUniqueId(), seeing, cap, fullName, now);
         }
         seeing.sort(Comparator.comparing(WindowState::name));
         return seeing;
