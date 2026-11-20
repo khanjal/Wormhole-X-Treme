@@ -334,6 +334,7 @@ and `gate-view-full-depth`, written to the file as `view-depth`.
 
 | Setting | Default | What it does |
 |---|---|---|
+| `mirror-max-viewers` | 0 | How many players one mirror, gate view or portal view is drawn the room for at once. The first to look keep it while they look; the rest see the banner (or the plain gate) until somebody leaves. `0` for no limit. |
 | `mirror-proximity-distance` | 16 | How close a player must be for the banner to give way to the room, and how near they must stay. It is checked once a second; mirrors whose world or chunk is not loaded are skipped. |
 
 ### Creatures and players in a view

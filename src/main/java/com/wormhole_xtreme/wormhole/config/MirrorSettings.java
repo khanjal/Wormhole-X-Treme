@@ -48,6 +48,17 @@ final class MirrorSettings
     }
 
     /**
+     * How many viewers one window is drawn the room for at once; the others see its banner.
+     *
+     * @return the most, or 0 for no limit, also when the setting is missing
+     */
+    static int getMirrorMaxViewers()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_MAX_VIEWERS);
+        return (s == null) ? 0 : Math.max(0, wholeNumberOr(s, 0));
+    }
+
+    /**
      * How many mirrors one world may hold.
      *
      * @return the most, or 0 for no limit

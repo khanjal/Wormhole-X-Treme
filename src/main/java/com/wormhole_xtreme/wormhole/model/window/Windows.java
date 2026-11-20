@@ -370,6 +370,7 @@ public final class Windows
     {
         StandIns.removeEverything();
         FarChunkHolds.releaseAll();
+        WindowAdmission.clear();
         ACTIVE.clear();
         OFFERED.clear();
         VIEWS.clear();
@@ -654,6 +655,7 @@ public final class Windows
     {
         OFFERED.remove(name);
         FixedBuilds.cancel(name);
+        WindowAdmission.forget(name);
         if (ACTIVE.remove(name) == null)
         {
             return;
@@ -885,6 +887,11 @@ public final class Windows
      */
     static void endView(final UUID id, final Player player)
     {
+        // Only for one who is gone: a viewer whose redraw has simply finished still looks, and keeps their place.
+        if (player == null)
+        {
+            WindowAdmission.forget(id);
+        }
         final ViewerDrawing view = VIEWS.remove(id);
         if (view != null)
         {

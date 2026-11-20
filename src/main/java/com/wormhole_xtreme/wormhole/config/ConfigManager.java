@@ -234,6 +234,12 @@ public class ConfigManager
         MIRROR_PROXIMITY_DISTANCE,
 
         /**
+         * Most viewers one window is drawn the room for at once (#613); the others see its banner.
+         * 0 for no limit, the default.
+         */
+        MIRROR_MAX_VIEWERS,
+
+        /**
          * How far past an opening a mirror's room or an open gate's far side is drawn, in blocks (#589).
          *
          * <p>Its render distance: past it nothing is drawn. 160 by default, ten chunks, so the room
@@ -1179,6 +1185,12 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.USE_COOLDOWN_ENABLED);
         return (s != null) && s.getBooleanValue();
+    }
+
+    /** See {@link MirrorSettings#getMirrorMaxViewers()}. */
+    public static int getMirrorMaxViewers()
+    {
+        return MirrorSettings.getMirrorMaxViewers();
     }
 
     /** See {@link MirrorSettings#getMirrorPerWorldLimit()}. */
