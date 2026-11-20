@@ -887,7 +887,11 @@ public final class Windows
      */
     static void endView(final UUID id, final Player player)
     {
-        WindowAdmission.forget(id);
+        // Only for one who is gone: a viewer whose redraw has simply finished still looks, and keeps their place.
+        if (player == null)
+        {
+            WindowAdmission.forget(id);
+        }
         final ViewerDrawing view = VIEWS.remove(id);
         if (view != null)
         {

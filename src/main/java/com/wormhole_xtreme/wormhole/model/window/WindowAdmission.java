@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model.window;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +37,11 @@ final class WindowAdmission
      */
     static void limit(final UUID id, final List<WindowState> seeing, final int cap, final String exempt)
     {
+        // Drawn whole for them whatever the cap, so it needs no place of theirs.
+        if (exempt != null)
+        {
+            Optional.ofNullable(ADMITTED.get(exempt)).ifPresent(viewers -> viewers.remove(id));
+        }
         final Set<String> seen = new HashSet<>();
         seeing.forEach(window -> seen.add(window.name()));
         ADMITTED.forEach((name, viewers) ->

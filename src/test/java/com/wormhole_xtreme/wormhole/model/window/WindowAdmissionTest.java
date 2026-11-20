@@ -108,6 +108,29 @@ class WindowAdmissionTest
     }
 
     @Test
+    void aWindowDrawnWholeForAnAdminTakesNoPlaceOfTheirs()
+    {
+        WindowAdmission.limit(first, seeing("a"), 1, null);
+
+        WindowAdmission.limit(first, seeing("a"), 1, "a");
+
+        assertEquals(0, WindowAdmission.count("a"), "their place went back to the others");
+    }
+
+    @Test
+    void aViewerWhoseRedrawEndedKeepsTheirPlaceAndOneWhoIsGoneDoesNot()
+    {
+        final org.bukkit.entity.Player here = mock(org.bukkit.entity.Player.class);
+        WindowAdmission.limit(first, seeing("a"), 1, null);
+
+        Windows.endView(first, here);
+        assertEquals(1, WindowAdmission.count("a"), "still looking: the redraw finishing is not leaving");
+
+        Windows.endView(first, null);
+        assertEquals(0, WindowAdmission.count("a"), "gone");
+    }
+
+    @Test
     void aWindowTakenBackStartsFresh()
     {
         WindowAdmission.limit(first, seeing("a"), 1, null);
