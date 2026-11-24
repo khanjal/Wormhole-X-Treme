@@ -376,7 +376,6 @@ plugins/WormholeXTreme/
 ├── shapes/mirror/*.mirror
 └── data/
     ├── gates/<name>.yml
-    ├── captures/gates/*.view      (what stands in front of a gate; retaken if lost)
     ├── captures/mirrors/*.view    (the far side of a mirror; retaken if lost)
     ├── rings/<world>.yml
     ├── beam.yml

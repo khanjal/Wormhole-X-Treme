@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.config;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -487,6 +488,7 @@ class ConfigLoadTest
 
         assertEquals("1", ConfigManager.getSignColorGateName());
         assertEquals("false", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION).getValue());
+        assertDoesNotThrow(() -> ConfigManager.getGateIrisAnimation(null, null), "the getter reads the stored text without throwing");
         assertEquals(DialSpinPattern.NONE, ConfigManager.getGateDialSpinPattern());
         assertEquals("5", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.RING_DEFAULT_STYLE).getValue());
 
@@ -495,6 +497,7 @@ class ConfigLoadTest
 
         assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern(), "true was the old spinning dial");
         assertEquals("spiral", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION).getValue(), "an animation as written is read as it was");
+        assertEquals("spiral", ConfigManager.getGateIrisAnimation(null, null));
     }
 
     /**

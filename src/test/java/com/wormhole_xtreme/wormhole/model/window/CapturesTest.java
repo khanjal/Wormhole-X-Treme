@@ -192,6 +192,34 @@ class CapturesTest
     }
 
     /**
+     * The first capture of a mirror's room is said at INFO, once; a retake of one already in memory is only FINE.
+     *
+     * <p>A retake said the same two INFO lines to the console each time it ran.
+     */
+    @Test
+    void aRetakeOfACaptureInMemoryIsNotSaidAtInfo()
+    {
+        MirrorManager.add(mirror);
+        withServer(() ->
+        {
+            assertTrue(Captures.request(mirror));
+            Captures.step(4000);
+        });
+        verify(plugin).prettyLog(eq(Level.INFO), contains("Capturing the far side of"));
+        verify(plugin).prettyLog(eq(Level.INFO), contains("Captured world "));
+
+        withServer(() ->
+        {
+            assertTrue(Captures.retake(mirror), "taken again");
+            Captures.step(4000);
+        });
+
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Capturing the far side of"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Captured world "));
+        verify(plugin, times(1)).prettyLog(eq(Level.INFO), contains("Captured world "));
+    }
+
+    /**
      * A capture file whose place is no mirror's room is swept, and one a mirror uses is kept.
      *
      * <p>"Do we clean up any abandoned views (on startup or something)?" Only as each mirror went:

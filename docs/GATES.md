@@ -699,7 +699,7 @@ opening that is a circle or a diamond rings the same way with the cells it has. 
 one cell and ripples in three steps, Large from two by two in four, Massive from three by three in
 eight, and Grand, eighteen by seventeen, from four by three in nine.
 
-**What a ring is made of** depends on the gate, and on who is looking:
+**What a ring is made of** depends on the gate:
 
 - **A gate with its frame in front of its horizon**, its own blocks on all four sides of the opening
   in the plane a block in front of it, is drawn its own portal material in that plane, whatever the

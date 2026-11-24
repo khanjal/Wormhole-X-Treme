@@ -755,10 +755,6 @@ s1 every setting	:: GATE_SOUND_IRIS_OPEN = block.iron_door.open
 s1 every setting	:: GATE_SOUND_KAWOOSH = entity.player.splash.high_speed
 s1 every setting	:: GATE_SOUND_LOCK = block.beacon.power_select
 s1 every setting	:: GATE_SOUND_VOLUME = N
-s1 every setting	:: GATE_VIEW = horizon
-s1 every setting	:: GATE_VIEW_FUNNEL = true
-s1 every setting	:: GATE_VIEW_FUNNEL_LENGTH = N
-s1 every setting	:: GATE_VIEW_FUNNEL_MIN_LENGTH = N
 s1 every setting	:: How a dialling gate's inner ring light moves before each chevron locks: TOP, CHEVRON, LAP, FILL, PEGASUS, CHASE, UNIVERSE, OVERSHOOT or NONE. Each is described in the gate guide. TOP rests half a second on the top chevron after each lock, and UNIVERSE turns at its own pace, so both dial a little slower.
 s1 every setting	:: How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).
 s1 every setting	:: How an iris crosses its opening: sweep (rings, from the rim in), spiral (one arm, clockwise from the rim in), rows (top and bottom in), columns (both sides in), or instant. Only the picture moves; the blocks are placed in one go whichever it is.
@@ -865,7 +861,6 @@ s1 every setting	:: The iris closing over a gate, pitched down a little since it
 s1 every setting	:: The iris opening.
 s1 every setting	:: The language of messages sent to the console and command blocks, such as de or pt_br (and, later, the log and text the server puts in the world); players see their own client's language. A message it lacks is in English. Only some messages are translatable so far; sign text stays English.
 s1 every setting	:: The longest that tunnel may be, N to N blocks. It is a block longer for each block narrower the far gate is, and one more for the layer behind the opening that is its own size: four from Large to Standard, thirteen from Massive to Standard, sixteen from Grand to Minimal.
-s1 every setting	:: The shortest that tunnel is, up to gate-view-funnel-length; none while gate-view-funnel is false. Above N, a gate the same size or bigger is seen down a straight tunnel too, and every tunnel runs straight for this or three fifths of this gate's opening, the longer, before it narrows. N for none.
 s1 every setting	:: The soft running water an open wormhole makes while it stands there.
 s1 every setting	:: Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.
 s1 every setting	:: UPDATE_CHECK = true
@@ -878,7 +873,6 @@ s1 every setting	:: What a newly built ring pair starts as: PUBLIC or PRIVATE.
 s1 every setting	:: What a ring turns to as the transport light passes through it. Set it apart from the pad light to make the transport its own moment.
 s1 every setting	:: What an open gate shows once its kawoosh settles: horizon (the event horizon, as always), behind (where it goes, seen through the horizon), or open (where it goes, with no horizon). Upright gates with a frame round their opening, so not Minimal. An experiment, see #N.
 s1 every setting	:: What the ring pad lights up as while it is working.
-s1 every setting	:: When a gate dials a smaller one, gate-view shows the far side at the end of a tunnel the small gate's size, walled in this gate's portal material, so the view does not show past the small gate's walls and ceiling. False shows the whole view, as a gate the same size would.
 s1 every setting	:: When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.
 s1 every setting	:: Whether a command the plugin names in chat can be clicked to run it, with hover text saying what it does. False sends plain text, as servers without Paper or Spigot do anyway.
 s1 every setting	:: Whether a mirror names itself and the world it opens onto above the hotbar, while a player looks at it from within about six blocks. Only mirrors that go somewhere say anything.

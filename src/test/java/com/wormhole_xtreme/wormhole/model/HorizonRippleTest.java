@@ -430,6 +430,46 @@ class HorizonRippleTest
         assertFalse(HorizonRipple.isRippling(gate));
     }
 
+    /**
+     * An iris that shuts mid ripple paints its own opening: a ring of ice in the opening is not put back over it
+     * as the horizon, and the ripple is over.
+     */
+    @Test
+    void anIrisShutMidRippleIsNotPaintedOverWithTheHorizon()
+    {
+        assertTrue(HorizonRipple.start(gate));
+        assertEquals(rings("ice", 0), sentTo(front));
+        when(gate.isGateIrisActive()).thenReturn(true);
+
+        step();
+
+        assertTrue(sentTo(front).isEmpty(), "the opening is the iris's to draw now");
+        assertTrue(pending.isEmpty(), "and the ripple is over");
+    }
+
+    /**
+     * Three waves back to back over a flat water gate's two rings: each step puts back the ring no wave is on
+     * and draws the one a wave has reached, and the last wave leaves nothing drawn.
+     */
+    @Test
+    void threeWavesOverTwoRingsPutBackOnlyTheRingNoWaveIsOn()
+    {
+        opening(gate, 3, 3, false);
+        assertEquals(2, HorizonRipple.ringsOf(gate).size());
+        final Set<String> inner = union(rings("water", 1), rings("ice", 0));
+        final Set<String> outer = union(rings("water", 0), rings("ice", 1));
+
+        assertTrue(HorizonRipple.start(gate, 3));
+        assertEquals(rings("ice", 0), sentTo(front));
+        for (int i = 0; i < 5; i++)
+        {
+            step();
+            assertEquals((i % 2 == 0) ? outer : inner, sentTo(front), "step " + (i + 1));
+        }
+        step();
+        assertEquals(rings("water", 1), sentTo(front), "over: the last ring put back");
+    }
+
     /** A gate that stops showing between two steps puts back what it drew rather than leaving it. */
     @Test
     void aRippleWhoseGateStopsShowingPutsItsRingBackAndStops()

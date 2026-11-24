@@ -6,16 +6,14 @@
 # measuring plugin (perf-tick/, compiled here against the server's own API, installed in every run).
 # A run without Wormhole goes beside each run with it, so the difference is the plugin's.
 #
-# Scenarios (SCENARIO, space-separated, default "viewers wanderers gateview"):
+# Scenarios (SCENARIO, space-separated, default "viewers wanderers"):
 #   idle       N gate pairs dialled open and N mirrors hung, no players: the tickers alone
 #   viewers    N bots in front of MIRRORS (4) mirrors, turning their heads and stepping aside
 #   wanderers  N bots walking at random by spawn, GATES (4) open gates and MIRRORS mirrors far off
-#   gateview   N bots in front of GATES (4) open gates, for each GATE_VIEW (behind open) and
-#              FUNNEL_MIN (0 3), gate-view-funnel-min-length
 # BOTS steps N ("1 10"); DURATION is the measured seconds (120; before #609 a view was built again once
-# a minute, so give gateview 180 or more to compare with such a jar), WARMUP the seconds before it (45), after which a viewer run
+# a minute, so give viewers 180 or more to compare with such a jar), WARMUP the seconds before it (45), after which a viewer run
 # also waits up to VIEW_WAIT (300) for every bot to be drawn a window. A viewer run whose bots were
-# not all drawn, a run whose gates were not open and loaded throughout (idle, wanderers and gateview
+# not all drawn, a run whose gates were not open and loaded throughout (idle and wanderers
 # keep every site force-loaded, watched or not; KEEP_LOADED=0 lets them go), or one whose boot test
 # failed, is marked INVALID. A plugin viewer run warms up longer than its control while it waits for
 # the views, which can only understate the plugin's cost.
@@ -42,12 +40,10 @@ here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/.." && pwd)"
 mc="${MC:-1.21.11}"
 perf="${PERF_DIR:-$repo/.perf}"
-scenarios="${SCENARIO:-viewers wanderers gateview}"
+scenarios="${SCENARIO:-viewers wanderers}"
 steps="${BOTS:-1 10}"
 # An array, so a repository path with a space in it survives; JARS itself is split on spaces.
 if [[ -n "${JARS:-}" ]]; then read -r -a jars <<< "$JARS"; else jars=(none "$repo/target/WormholeXTreme.jar"); fi
-views="${GATE_VIEW:-behind open}"
-funnels="${FUNNEL_MIN:-0 3}"
 port="${BOOT_PORT:-25611}"
 mkdir -p "$perf"
 perf="$(cd "$perf" && pwd)"
@@ -126,9 +122,9 @@ run_dir="$perf/runs/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$run_dir"
 echo "perf runs in $run_dir"
 
-# One run: scenario, N, gate-view, funnel, jar entry.
+# One run: scenario, N, jar entry.
 run_one() {
-  local scenario="$1" n="$2" view="$3" funnel="$4" entry="$5"
+  local scenario="$1" n="$2" entry="$3"
   local jar_label jar_path plugin=yes
   if [[ "$entry" == "none" ]]; then
     jar_label=none; jar_path=-; plugin=no
@@ -138,7 +134,6 @@ run_one() {
     jar_label="$(basename "$entry" .jar)"; jar_path="$entry"
   fi
   local tag="$scenario-n$n"
-  [[ "$scenario" == gateview ]] && tag="$tag-$view-f$funnel"
   tag="$tag-$jar_label"
   local dir="$run_dir/$tag"
   mkdir -p "$dir"
@@ -155,7 +150,7 @@ run_one() {
     EXTRA_PLUGINS="$tick_dir/plugin" \
     BOOT_TEST_ALLOW="${BOOT_TEST_ALLOW:-No Vault/LuckPerms provider detected|Shapes framed in OBSIDIAN disagree}" \
     SCENARIO="$scenario" BOTS="$n" PLUGIN="$plugin" JAR_LABEL="$jar_label" LABEL="$tag" \
-    GATE_VIEW="$view" FUNNEL_MIN="$funnel" PERF_RESULT="$run_dir/$tag.json" \
+    PERF_RESULT="$run_dir/$tag.json" \
     BOOT_CLIENT="$(printf 'node %q %q' "$client/load.js" "$mc")" \
     bash "$here/boot-test.sh" "$server_jar" "$jar_path" > "$dir/run.log" 2>&1 &
   child=$!
@@ -174,19 +169,7 @@ run_one() {
 
 for scenario in $scenarios; do
   for n in $steps; do
-    if [[ "$scenario" == gateview ]]; then
-      for view in $views; do
-        for funnel in $funnels; do
-          for entry in "${jars[@]}"; do
-            # The control has no gate view to vary: once is enough.
-            if [[ "$entry" == none && ( "$view" != "${views%% *}" || "$funnel" != "${funnels%% *}" ) ]]; then continue; fi
-            run_one "$scenario" "$n" "$view" "$funnel" "$entry"
-          done
-        done
-      done
-    else
-      for entry in "${jars[@]}"; do run_one "$scenario" "$n" horizon 0 "$entry"; done
-    fi
+    for entry in "${jars[@]}"; do run_one "$scenario" "$n" "$entry"; done
   done
 done
 

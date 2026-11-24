@@ -2314,6 +2314,37 @@ class WindowsTest
     }
 
     /**
+     * With {@code mirror-max-viewers} at 1, only one of two players looking at a mirror is drawn its room (#613);
+     * the other is drawn nothing. The sweep's order decides which.
+     */
+    @Test
+    void aMirrorIsDrawnOnlyForAsManyViewersAsTheCapAllows()
+    {
+        final Player first = playerAt(10.5, 7.5);
+        final Player second = playerAt(11.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(first, second));
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_MAX_VIEWERS, 1);
+        withServer(WindowSweep::tick);
+        assertEquals(1, drawnMuseum(first, second), "capped at one: exactly one is drawn the room");
+    }
+
+    /** How many of these players have the museum's room drawn for them. */
+    private static int drawnMuseum(final Player... players)
+    {
+        int drawn = 0;
+        for (final Player player : players)
+        {
+            final ViewerDrawing view = WindowStore.VIEWS.get(player.getUniqueId());
+            if ((view != null) && view.mirrors.contains("museum"))
+            {
+                drawn++;
+            }
+        }
+        return drawn;
+    }
+
+    /**
      * A banner on a post is no window, however it is pointed.
      *
      * <p>It used to open in the air behind where it stood, and its room showed past its edges

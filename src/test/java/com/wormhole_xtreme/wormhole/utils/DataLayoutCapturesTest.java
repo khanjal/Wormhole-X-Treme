@@ -108,6 +108,47 @@ class DataLayoutCapturesTest
         assertEquals("an admin's backup", read(new File(data, "mirror")));
     }
 
+    /** A file already in the new folder is never overwritten, and the old one stays to be seen. */
+    @Test
+    void aFileAlreadyAtTheDestinationWins() throws IOException
+    {
+        final File dir = new File(new File(data, "captures"), "mirrors");
+        assertTrue(dir.mkdirs());
+        write(new File(dir, "alpha.view"), "new");
+        final File earlier = new File(data, "mirror-captures");
+        assertTrue(earlier.mkdirs());
+        write(new File(earlier, "alpha.view"), "old");
+        write(new File(earlier, "beta.view"), "other");
+
+        DataLayout.mirrorCaptureDir();
+
+        assertEquals("new", read(new File(dir, "alpha.view")), "not overwritten");
+        assertEquals("other", read(new File(dir, "beta.view")), "the rest came across");
+        assertEquals("old", read(new File(earlier, "alpha.view")), "and the clash is left, nothing deleted");
+    }
+
+    /**
+     * A clash left in the old folder is looked at once a run, not on every capture lookup.
+     *
+     * <p>The accessors are asked for every lookup, often on the main thread, so a folder that can
+     * never be emptied (a file in both places) must not be walked and failed on each time.
+     */
+    @Test
+    void aFolderThatCouldNotBeEmptiedIsNotRetried() throws IOException
+    {
+        final File dir = new File(new File(data, "captures"), "mirrors");
+        write(new File(dir, "alpha.view"), "new");
+        final File earlier = new File(data, "mirror-captures");
+        write(new File(earlier, "alpha.view"), "old");
+        DataLayout.mirrorCaptureDir();
+        write(new File(earlier, "beta.view"), "later");
+
+        DataLayout.mirrorCaptureDir();
+
+        assertTrue(new File(earlier, "beta.view").isFile(), "not walked a second time");
+        assertFalse(new File(dir, "beta.view").exists());
+    }
+
     private static void write(final File file, final String text) throws IOException
     {
         Files.createDirectories(file.getParentFile().toPath());
