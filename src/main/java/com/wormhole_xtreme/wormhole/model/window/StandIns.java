@@ -286,7 +286,7 @@ public final class StandIns
             return null;
         }
         if ((standIn.original instanceof Player player)
-            && ((standIn.viewer == null) || !FarPlayers.stillShown(standIn.viewer, player, standIn.window)))
+            && ((standIn.viewer == null) || !FarPlayers.stillShown(standIn.viewer, player)))
         {
             return null;
         }

@@ -111,11 +111,6 @@ class FixedViewTest
         return capture;
     }
 
-    private static long key(final Spot at)
-    {
-        return Cells.key(at.x(), at.y(), at.z());
-    }
-
     /** Holds a finished view on a window, built at a time. */
     private static void held(final WindowState window, final long at)
     {

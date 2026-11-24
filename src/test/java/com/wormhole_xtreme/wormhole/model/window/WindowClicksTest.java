@@ -368,7 +368,6 @@ class WindowClicksTest
     {
         final QuantumMirror nearTarget = mock(QuantumMirror.class);
         final QuantumMirror farTarget = mock(QuantumMirror.class);
-        final QuantumMirror gateTarget = mock(QuantumMirror.class);
         final QuantumMirror otherWorldTarget = mock(QuantumMirror.class);
         // Along each axis in turn: the nearer window is the one the block is nearer on that axis alone.
         window("x-near", world, 40, 0, 0, nearTarget);

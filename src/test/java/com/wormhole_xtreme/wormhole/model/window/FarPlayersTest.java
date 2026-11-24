@@ -120,8 +120,8 @@ class FarPlayersTest
         final Player other = farPlayer();
         when(viewer.canSee(any(Player.class))).thenReturn(true);
 
-        assertEquals(CreatureTally.Skip.YOU, FarPlayers.whyNot(viewer, viewer, mirror));
-        assertNull(FarPlayers.whyNot(viewer, other, mirror), "another player shows through a mirror");
+        assertEquals(CreatureTally.Skip.YOU, FarPlayers.whyNot(viewer, viewer));
+        assertNull(FarPlayers.whyNot(viewer, other), "another player shows through a mirror");
     }
 
     /** A player the viewer cannot see, as a vanish plugin's hidePlayer leaves them, is not shown. */
@@ -134,10 +134,10 @@ class FarPlayersTest
         final Player seen = farPlayer();
         when(viewer.canSee(seen)).thenReturn(true);
 
-        assertEquals(CreatureTally.Skip.PLAYER_HIDDEN, FarPlayers.whyNot(viewer, vanished, mirror));
-        assertNull(FarPlayers.whyNot(viewer, seen, mirror));
-        assertFalse(FarPlayers.stillShown(viewer, vanished, mirror));
-        assertTrue(FarPlayers.stillShown(viewer, seen, mirror));
+        assertEquals(CreatureTally.Skip.PLAYER_HIDDEN, FarPlayers.whyNot(viewer, vanished));
+        assertNull(FarPlayers.whyNot(viewer, seen));
+        assertFalse(FarPlayers.stillShown(viewer, vanished));
+        assertTrue(FarPlayers.stillShown(viewer, seen));
     }
 
     /**

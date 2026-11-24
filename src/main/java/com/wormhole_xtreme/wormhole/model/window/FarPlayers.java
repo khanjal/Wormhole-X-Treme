@@ -47,13 +47,11 @@ final class FarPlayers
      *            who looks
      * @param other
      *            a player in the far room
-     * @param window
-     *            the window they would show through
      * @return {@link CreatureTally.Skip#PLAYER_UNSHOWN} for one {@link #copied} no longer lets through,
      *         {@link CreatureTally.Skip#YOU} for the viewer themselves, {@link CreatureTally.Skip#PLAYER_HIDDEN}
      *         for one hidden from the viewer, as a vanish plugin hides one; null otherwise
      */
-    static CreatureTally.Skip whyNot(final Player viewer, final Player other, final WindowState window)
+    static CreatureTally.Skip whyNot(final Player viewer, final Player other)
     {
         if (!copied(other))
         {
@@ -74,12 +72,10 @@ final class FarPlayers
      *            who is shown the stand-in
      * @param other
      *            the player it stands in for
-     * @param window
-     *            the window it shows through
      * @return true if it may stay
      */
-    static boolean stillShown(final Player viewer, final Player other, final WindowState window)
+    static boolean stillShown(final Player viewer, final Player other)
     {
-        return whyNot(viewer, other, window) == null;
+        return whyNot(viewer, other) == null;
     }
 }

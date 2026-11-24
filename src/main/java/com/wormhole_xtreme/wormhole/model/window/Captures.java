@@ -821,7 +821,7 @@ public final class Captures
     }
 
     /** @return how a key's capture is sifted: the test's own if one is set, else the usual */
-    static Sifter siftFor(final String key)
+    static Sifter siftFor()
     {
         if (sifter != null)
         {
@@ -1063,7 +1063,7 @@ public final class Captures
             // Under two million rays through a mirror's hole, repeated for a cut to fit: seconds, and over
             // open sky half a minute or more. Off the main thread, since the box is noted and nothing here
             // reads the world again.
-            work = () -> reachKept = siftFor(key).sift(builder, arrival, depth, floor);
+            work = () -> reachKept = siftFor().sift(builder, arrival, depth, floor);
             launch();
         }
 

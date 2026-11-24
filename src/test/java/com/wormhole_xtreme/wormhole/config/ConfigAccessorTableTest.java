@@ -236,16 +236,6 @@ class ConfigAccessorTableTest
         return new Odd(call, writes, expected);
     }
 
-    /** @return two settings written together, for an accessor that reads both */
-    private static Odd odd(final String name, final ConfigKeys first, final Object firstValue, final ConfigKeys second,
-        final Object secondValue, final Object expected)
-    {
-        final Map<ConfigKeys, Object> writes = new LinkedHashMap<>();
-        writes.put(first, firstValue);
-        writes.put(second, secondValue);
-        return new Odd(call(name), writes, expected);
-    }
-
     /** Writes one setting as a config file would have, typed by its value. */
     private static void write(final ConfigKeys key, final Object value)
     {
