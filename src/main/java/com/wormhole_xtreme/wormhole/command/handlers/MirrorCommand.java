@@ -1524,7 +1524,7 @@ public class MirrorCommand implements SubCommand
             blind(sender, "-off".equals(last));
             return;
         }
-        // Every window you are drawn, gates' too: a gate's window is no mirror to be named or looked at.
+        // Every window you are drawn: no mirror need be named or looked at.
         if ("-views".equals(last))
         {
             final Player player = asPlayer(sender);

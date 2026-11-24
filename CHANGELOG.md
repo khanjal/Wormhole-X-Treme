@@ -112,7 +112,7 @@ somebody else's release notes, and the record of where this fork came from.
 
 **Removed**
 
-- **An open gate and a nether portal no longer draw the far room; only mirrors do.** A server with many open views lagged, and mirrors have two fixed sizes. Gates and portals work as before. `gate-view`, `gate-view-funnel`, `gate-view-funnel-length`, `gate-view-funnel-min-length`, `nether-portal-views` and `nether-portal-view-worlds` are ignored and named once at startup; `/wormhole gate edit <gate> view` and `/wormhole mirror debug <gate>` are gone, an old `View` line in a gate file is dropped on its next save, and `wormhole.view.netherportal` is gone. `captures/gates/` under the plugin's data folder can be deleted.
+- **An open gate and a nether portal no longer draw the far room; only mirrors do.** A server with many open views lagged, and mirrors have two fixed sizes. Gates and portals work as before. `gate-view`, `gate-view-funnel`, `gate-view-funnel-length`, `gate-view-funnel-min-length`, `nether-portal-views` and `nether-portal-view-worlds` are ignored and named in the log at each start; `/wormhole gate edit <gate> view` and `/wormhole mirror debug <gate>` are gone, an old `View` line in a gate file is dropped on its next save, and `wormhole.view.netherportal` is gone. `captures/gates/` under the plugin's data folder can be deleted.
 
 ### Internals
 

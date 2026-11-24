@@ -45,8 +45,8 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  * <li>any other gate is drawn nothing.</li>
  * </ul>
  *
- * <p>A ring is drawn for one step and put back as the next is drawn: in the opening, to what
- * the horizon; in front, to the real block. Never on a cell
+ * <p>A ring is drawn for one step and put back as the next is drawn: in the opening, to the
+ * horizon; in front, to the real block. Never on a cell
  * an entity is in, only on an upright gate whose wormhole is showing, and only to players within
  * the horizon's reach.
  */

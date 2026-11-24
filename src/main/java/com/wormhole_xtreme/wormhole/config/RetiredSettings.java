@@ -43,6 +43,11 @@ final class RetiredSettings
         "gate-view", "gate-view-funnel", "gate-view-funnel-length", "gate-view-funnel-min-length",
         "nether-portal-views", "nether-portal-view-worlds");
 
+    /** What each of {@link #KEYS_1_14} defaulted to, so a file still holding one at its default counts as untouched. */
+    static final Map<String, Object> DEFAULTS_1_14 = Map.of(
+        "gate-view", "horizon", "gate-view-funnel", true, "gate-view-funnel-length", 16,
+        "gate-view-funnel-min-length", 0, "nether-portal-views", false, "nether-portal-view-worlds", "");
+
     /**
      * The view depth carried over from the old settings, and which of them it came from.
      *

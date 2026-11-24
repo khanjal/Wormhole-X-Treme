@@ -338,7 +338,7 @@ public class ConfigurationYAML
      * <p>Text from anything because every text getter casts to String: {@code sign-color-gate-name: 1}
      * threw. YAML reads a bare off, on, yes or no as true or false, and those come back as
      * {@code "false"} or {@code "true"}, not the word written: {@code gate-iris-animation: off} is then no
-     * animation and reads as the default, and {@code gate-dial-spin: false}
+     * animation, which sweeps as the default does, and {@code gate-dial-spin: false}
      * still reads as no spin.
      *
      * @param kind

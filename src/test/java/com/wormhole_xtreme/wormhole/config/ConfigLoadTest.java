@@ -1,6 +1,5 @@
 package com.wormhole_xtreme.wormhole.config;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -488,7 +487,7 @@ class ConfigLoadTest
 
         assertEquals("1", ConfigManager.getSignColorGateName());
         assertEquals("false", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION).getValue());
-        assertDoesNotThrow(() -> ConfigManager.getGateIrisAnimation(null, null), "the getter reads the stored text without throwing");
+        assertTrue(ConfigManager.isIrisAnimated(ConfigManager.getGateIrisAnimation(null, null)), "off sweeps, as the default does");
         assertEquals(DialSpinPattern.NONE, ConfigManager.getGateDialSpinPattern());
         assertEquals("5", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.RING_DEFAULT_STYLE).getValue());
 

@@ -312,7 +312,7 @@ class WormholeXTremePlayerListener implements Listener
     @EventHandler
     public void onPlayerChangedWorld(final PlayerChangedWorldEvent event)
     {
-        // Their client has the new world's chunks, so no gate's opening is cleared for them any more.
+        // Their client has the new world's chunks, so what was swept for them in the old one no longer applies.
         StargateManager.forgetSweptLayers(event.getPlayer().getUniqueId());
         PortalPresence.refreshPortalVisualsFor(event.getPlayer());
         GatePreviews.forget(event.getPlayer().getUniqueId());

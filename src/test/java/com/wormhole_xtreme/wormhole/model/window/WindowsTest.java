@@ -2329,6 +2329,19 @@ class WindowsTest
         assertEquals(1, drawnMuseum(first, second), "capped at one: exactly one is drawn the room");
     }
 
+    /** The control for the cap: with {@code mirror-max-viewers} at 0, both players looking at a mirror are drawn its room. */
+    @Test
+    void aMirrorIsDrawnForEveryViewerWithNoCap()
+    {
+        final Player first = playerAt(10.5, 7.5);
+        final Player second = playerAt(11.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(first, second));
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_MAX_VIEWERS, 0);
+        withServer(WindowSweep::tick);
+        assertEquals(2, drawnMuseum(first, second), "no cap: both are drawn the room");
+    }
+
     /** How many of these players have the museum's room drawn for them. */
     private static int drawnMuseum(final Player... players)
     {
