@@ -22,6 +22,7 @@ dial — which is why a door in every world is practical in a way a gate in ever
 - [When another plugin refuses the trip](#when-another-plugin-refuses-the-trip)
 - [The far edge of the room](#the-far-edge-of-the-room) · [Built: the fat eye](#built-the-fat-eye) · [Built: streaming](#built-streaming) · [What is left to try](#what-is-left-to-try)
 - [Seeing creatures](#seeing-creatures)
+- [Nether portals](#nether-portals)
 - [What was considered and not done](#what-was-considered-and-not-done)
 
 ## The network
@@ -48,6 +49,35 @@ list as fast as they like; with somebody else at it, a choice holds three second
 change, so nobody is swapped out from under a trip they were about to take. Only the main hand's
 half of a click counts, or one press would skip a mirror, and the view is redrawn at once rather
 than on the next sweep. When nobody is near a mirror any more it is off again, showing its own room.
+
+**Groups, hidden and private (#280).** "Every other mirror" is the ones listed for whoever
+clicks. A mirror in a named group lists only that group's, and one with no group only the others
+with none, so a server that never sets a group sees no change; a group per mirror, set by a
+command, rather than one per world, since a wing of a museum can span worlds. A hidden mirror is in
+nobody's list and a private one only for holders of `wormhole.mirror.private`: both are flags on
+the mirror rather than a node per mirror, because a node per mirror is one more thing to set up in
+a permissions plugin for every mirror made. Mirrors record no owner, so private is the node alone.
+A mirror's start is first whatever its group or flags — whoever set it chose it — which is how a
+hidden return is reached. The choice at a mirror is shared, so a punch asks again whether the
+puncher's own list would reach where it opens; without that, anybody standing by could follow a
+staff member's right-click into a private world. The view is shared the same way, and drawing it
+per viewer would mean one capture and one drawn room per viewer, so instead a right-click skips a
+private mirror while anybody in range lacks the node, and the sweep turns a mirror back to its own
+room at its next pass after such a player comes near, so a newcomer may glimpse the room for about
+a second. The per-world limit still counts every mirror in a
+world, whatever its group.
+
+**A sign to choose with (#280).** A sign touching a banner, written `[mirror]` on its front's first
+line, shows the previous, current and next mirror the way a gate's dial sign does, and a right-click
+on it moves the mirror on. It sits beside right-click scrolling rather than replacing it, so no
+mirror changes how it is used because somebody hung a sign. One sign is read by everybody, and the
+list a right-click walks depends on who clicks, so the sign walks the public list — what
+`order(mirror, null)` gives, its start and its group's listed mirrors — for whoever clicks it;
+per-viewer sign text would mean sending each player their own sign by packet, for a convenience.
+A private room chosen at the banner leaves the sign's middle line blank. Once drawn, the first line
+is the mirror's `-name-`, which is how the sign is known again. The sign is written when its mirror
+changes, at a click or when the sweep turns the mirror back, never every sweep, and a sign in an
+unloaded chunk is left as it was.
 
 **A punch goes through**, which is why a mirror cannot be broken: the banner and the wall round its
 opening ignore a punch and survive an explosion, and `mirror remove` is how one comes down.
@@ -142,6 +172,25 @@ used to retake the capture as a side effect, so a command about the banner chang
 A **dynamic** mode that re-read the far side on approach and repainted the banner was tried and
 dropped: "we shouldn't update the banner automatically. It should be an understood command." A
 `Mode` line in an older `mirror.yml` is read and ignored, and dropped on the next save.
+
+**Following is opt-in for that reason** (#613). `mirror set -follow on` lets a banner be stamped
+again from where its mirror opens first, so it can stand in for the room from far off. It is an
+understood command, a mirror's own setting, off by default and saved as `Follow: true` only when
+on, so an older file reads as off. What re-stamps it is something somebody did: a new `-start`,
+or the followed room being captured again. A right-click does not, since a passing choice would
+otherwise rewrite the world's banner every click.
+
+It reads the room's stored capture, not the live world, so it loads no far chunk; the same box
+`-stamp` samples, with a block the capture kept but nobody at the opening could see counted as
+solid with no colour. A capture keeps no biome, and adding one would change the file format for a
+frame, so the biome is read only where the room's chunk is loaded, and otherwise taken from the
+world's kind: the Nether's wastes, the End, or the generic frame. With no capture yet the banner
+is left untouched; one still being read off the disk stamps it when it lands, and that read stamps
+only a banner that asked for it, since every capture is read again after a restart. The first
+capture of a room, taken when somebody first walks up to its mirror, is a take like any other and
+stamps every banner following that room. Nor is the banner's own chunk loaded for it: a banner
+whose chunk is not loaded has its look written down and put on, both banners of a pair, the tick
+after that chunk next loads, until a restart: the wait is kept in memory only.
 
 ### How a capture is kept
 
@@ -852,6 +901,38 @@ What the jars say, read with `javap` from the API jars this plugin builds agains
 - `World.refreshChunk(int, int)`: every Spigot jar from 1.20 on. `getPlayersSeeingChunk(int,
   int)`: from 1.20.6, and absent on 1.20 through 1.20.4.
 
+### Researched, not built: scenery past the send distance (#526)
+
+What the API and the code settle before anything is judged in a world. Sources are the Spigot and
+Paper API jars for 1.20.4, 1.21.11 and 26.2 and the server's tracking code; Purpur and the
+version-by-version default ranges were not checked.
+
+- **A display is never sent past the player's send distance.** `showEntity` on a hidden-by-default
+  display still goes through the tracker, which caps the range at the smaller of
+  `entity-tracking-range.display` (128 by default) and the player's view distance times 16. Raising
+  the config cannot beat the view-distance cap, so no display can be anchored past the edge of
+  the chunks the client holds (a translation or scale reaching outward from an anchor in range
+  was not tested). Scaled `BlockDisplay` impostors can therefore stand in for the far
+  part of a view, not for what is beyond it. They also need `view_range` raised, or the client
+  culls them at about 64 blocks.
+- **A capture does not reach past 160 either.** The box stops at `Captures.MOST_REACH` and reads
+  loaded chunks only. Scenery beyond it needs a separate far base: surface height and top block per
+  column from `ChunkSnapshot.getHighestBlockYAt` and `getBlockType` (both there in the 1.20.4, 1.21.11 and 26.2 jars;
+  the `HeightMap` variants are `World` calls on the main thread). A 320 by 320 ring is 400 chunks,
+  102,400 columns, 307 KB raw, and only exists where the chunks are held (`FarChunkHolds` holds 400).
+- **A wall is a block per cell of the frustum's cross-section.** Through a 3 by 2 opening seen from
+  a block back that is about 25,000 blocks at 64, 56,000 at 96 and 100,000 at 128, in the range of
+  the non-air blocks a view already draws (not counted per depth), so a wall sheds the volume of air-and-terrain between it
+  and 160 but is no cheaper than the terrain surface it replaces. Its sky cells have to be blocks too,
+  or this world's real blocks show through the gaps, which is the fake sky already ruled out.
+- **Parallax error of a wall at *d* for scenery at 160**, per block the eye steps sideways: 0.53° at
+  64, 0.23° at 96, 0.09° at 128. Its resolution is a block per 0.88°, 0.59° and 0.44°.
+- **The painting is cheap to make.** Projecting the stored blocks beyond *d* onto the wall is a loop
+  over `Capture.forEachKept` off the main thread, estimated at 20 to 30 ns a block from a micro-benchmark: 20 to 30 ms for a million.
+
+The look is the open question, and `WX_FAR_SCENERY=1` builds a chamber to judge it (see the
+Facility section of the development guide).
+
 ### What is left to try
 
 Each of these is a real lever, and none is free. The first is the one to build next.
@@ -879,7 +960,7 @@ and each drew the eye to the very edge it was there to hide.
 
 `mirror-show-entities`, off by default, and it governs gate views as much as mirrors
 ([#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)). With it on, the mobs standing in
-a window's far room show through it. Bukkit has no call for a fake entity, so each is a
+a window's far room show through it, and so do its boats and minecarts. Bukkit has no call for a fake entity, so each is a
 **stand-in**: a real entity of the same type, spawned in the viewer's world where the far side's
 blocks for that spot are drawn, turned or flipped as they are, hidden from everybody and shown to
 that one viewer (`HiddenEntities`).
@@ -915,7 +996,7 @@ that one viewer (`HiddenEntities`).
   (`Chunk.isEntitiesLoaded`, since 1.17 a separate step); the reading never loads one itself. So a
   held chunk's creatures show at the next sweep once its entities are in. The tests are
   `creaturesAreReadOnlyFromChunksAlreadyLoadedWithTheirEntities` and `FarChunkHoldsTest`.
-- **What is copied.** Mobs, and players only with `mirror-show-players` (below); not armour stands,
+- **What is copied.** Mobs, boats and minecarts (below), and players only with `mirror-show-players` (below); not armour stands,
   displays, interactions, the companion, invisible mobs, anything hidden by default or hidden from
   this viewer by anything but this view's own veil, the dragon or the wither (a boss bar, and the
   dragon's parts), a snow golem or a shulker (with no AI at all, one still lays snow and the other
@@ -1010,11 +1091,67 @@ that one viewer (`HiddenEntities`).
   kind, one of it, with only an enchantment glint, an armour trim, a leather colour and a head's
   skin carried over. Custom model data is not carried (its API changed shape inside the supported
   range), so a resource pack's custom model shows as the plain item.
+- **Boats and minecarts** (#296, step 1b). Boats, chest boats and every minecart in the far room
+  are chosen by the mobs' rules (loaded chunks only, in the room, in view, on drawn floor unless
+  in water or without gravity) and share their twenty, nearest first, so a rail yard can crowd out
+  mobs no further away than its carts but no more. Not item frames, paintings, dropped items,
+  armour stands or displays: a gate preview's own figures are armour stands and displays. Every
+  minecart, chest, hopper, furnace, TNT, spawner and command cart alike, is shown as a plain empty
+  cart, so a copy can never explode, pick up or move items, spawn, smoke or run a command; a chest
+  boat as the plain boat of its wood; nothing inside one is copied. The wood is the boat's entity
+  type from 1.21.3 (the chest boat's type without `CHEST_`), and up to 1.21.1 it is copied through
+  `getBoatType`/`setBoatType`, looked up by name; a boat with no plain boat by its name is not
+  shown. Inert as a mob's stand-in, tagged, never saved and in the one registry, so every cleanup
+  below covers them: no gravity, silent, invulnerable, a cart's top speed nothing and its velocity
+  multipliers zero. Bukkit has no `setCollidable` for anything but a living entity, so a vehicle
+  stand-in keeps its solid box, and as a real entity at its spot a cart can power a detector rail
+  there (no event to refuse; the window's wall makes it rare), though plates and tripwires are
+  refused as for any stand-in. Not yet seen on a server: whether the 1.21.2 minecart behaviour
+  (the `minecart_improvements` experiment, if a server turns it on) honours a top speed of nothing,
+  as its speed may come from a game rule; the follow task puts a cart that rolls back within two
+  ticks. A vehicle a player rides is copied empty, so a viewer between facing gates or in a
+  reflection may see their own boat riderless. The listener refuses getting in or out (whichever side is a
+  stand-in, since a real boat bumping a mob's stand-in would pick it up), vehicle damage and
+  breaking (at the lowest priority and again at the highest), and vehicle bumps both ways. A cart
+  or boat that moves anyway, a boat lifted by water behind the wall, is put back by the follow
+  task within two ticks, which teleports any stand-in found away from where its vehicle shows, and
+  the vehicle listener never sends a stand-in through a gate. A mob riding a far vehicle is shown
+  standing where it sits, not seated; a player riding one is still not shown, and the vehicle shows
+  empty. Facing is mapped through the window like a mob's. Not yet seen on a server: whether a
+  cart stand-in on a real rail keeps still between follows on every version, and a boat's on water.
+- **Boats and minecarts across versions** (a `javap` survey of the Spigot API jars for 1.20,
+  1.20.4, 1.20.6, 1.21, 1.21.1, 1.21.3, 1.21.4, 1.21.10, 26.1.2, 26.2 and 26.3, for #296 step 1b).
+  `Boat`, `ChestBoat`, `Minecart` and the seven `org.bukkit.entity.minecart` interfaces
+  (`RideableMinecart`, `StorageMinecart`, `HopperMinecart`, `PoweredMinecart`, `ExplosiveMinecart`,
+  `SpawnerMinecart`, `CommandMinecart`) exist throughout. Up to 1.21.1 a boat is one entity type,
+  `BOAT` or `CHEST_BOAT`, its wood a `Boat.Type` read and set by `getBoatType`/`setBoatType`
+  (nine woods, bamboo raft included). From 1.21.3 each wood is its own entity type and interface
+  (`OAK_BOAT`/`OakBoat`, `OAK_CHEST_BOAT`/`OakChestBoat`, `BAMBOO_RAFT`, ..., `PALE_OAK_BOAT`), the
+  plain `BOAT` and `CHEST_BOAT` are gone, and `getBoatType`/`setBoatType` are deprecated; `Boat.Type`
+  never gains pale oak, so the wood is the entity type. The minecart types are renamed in 1.20.6
+  (`MINECART_CHEST` becomes `CHEST_MINECART`, `MINECART_TNT` `TNT_MINECART` and so on; plain
+  `MINECART` keeps its name), and `Minecart.setMaxSpeed` is there, undeprecated, throughout, while
+  `Boat.setMaxSpeed` has been deprecated since 1.20. `EntityType` is an enum throughout. The vehicle
+  events (`VehicleEnterEvent`, `VehicleExitEvent`, `VehicleDamageEvent`, `VehicleDestroyEvent`,
+  `VehicleEntityCollisionEvent`) are cancellable throughout; `VehicleMoveEvent` and
+  `VehicleBlockCollisionEvent` are not. `Entity` has no `isInvisible` or `setCollidable`; those are
+  `LivingEntity`'s.
 - **When they go.** When the view ends, the viewer changes world, quits, dies or respawns, and
   all of them as the plugin stops. Never saved, so a crash leaves none; a stand-in the drawing
   has lost track of is removed at the next sweep.
-- **Not yet in a reflection.** A mirror showing its own room shows no creatures: drawing the room
-  in front of it is a later step, with the rule that a viewer never sees themselves.
+- **In a reflection.** A mirror showing its own room shows the mobs, and with `mirror-show-players`
+  the other players, standing in front of it, flipped across the wall as its blocks are: one a step
+  to the viewer's left in front shows a step to their left behind the wall, and one looking into the
+  mirror looks back out of it (#296, step 3). Never the viewer themselves, by the same
+  `FarPlayers.showsTheViewer` rule as any mirror, so two players at one mirror each see the other
+  and not themselves. It is the same path as any window's, through `WindowShape.hereOf`, so every
+  rule above holds, the cap of twenty included, and so does one stand-in a creature a viewer: in a
+  room with two mirrors, or a mirror beside a gate dialled onto it, it shows in one of them. The
+  room is the viewer's own and in front of them, so nothing is held loaded for it and it is read
+  only where the server already has it. The viewer's own mount or pet is reflected too (the mount
+  without its rider). Every reflected creature's real self stands in front of the wall, where the
+  veil never reaches, so each shows once in the room and once in the reflection. Only position and
+  facing are flipped: what a player holds stays in the same hand.
 
 **What it costs.** A watched window holds 15 chunks at the default radius (45 at 4), and with the
 ring the server keeps round each, about 63 chunks loaded (about 135 at 4), some 35 of them ticking
@@ -1029,6 +1166,55 @@ never saved, but anything that reacts to every spawn will react to them. Each vi
 of their own, so ten players at one window onto a busy room is up to two hundred of them. A gate's stand-ins sit
 behind its plane, where a traveller is sent on before reaching them; a mirror's sit behind the
 wall it hangs on.
+
+## Nether portals
+
+`nether-portal-views` (off by default) draws a vanilla nether portal as a window, through the same
+code as a gate's view ([#514](https://github.com/khanjal/Wormhole-X-Treme/issues/514)). This is the
+first slice: one portal pair, both ways once somebody has gone both ways. `PortalViews` holds it.
+
+**Links are learnt, never predicted.** There is no asking a portal where it goes without sending
+something through. `PlayerPortalEvent` (at MONITOR, not cancelled) notes the portal a player
+steps into and their yaw. `PlayerChangedWorldEvent` then finds the portal block they landed in,
+and the turn is how far their yaw moved, in quarter turns. A landing outside a portal (another
+plugin moved them), back in the same world, or at a turn that does not come out square to the far
+portal teaches nothing. A link goes one way: the way back is its own trip. Links are kept in
+memory only, the oldest dropped past 1024.
+
+**A portal is a flood fill** of `NETHER_PORTAL` blocks sharing their `Orientable` axis, in one
+plane. Anything that is not a whole rectangle of up to 21 by 21 is not a portal. A view is only
+drawn for one within the largest gate opening (18), through `GateViews.shapeOf`, with the
+portal's own frame ring as its frame.
+
+**Each face is a window.** Looking into the south face of a portal running along x shows the far
+portal's matching side: looking north, turned by the link's turn. The arrival point is a block out
+of the far portal at the middle of its bottom row, as a gate's is in front of its far gate. Each
+face of each far portal has its own capture, kept with the gates' captures.
+
+**No chunk is loaded for the blocks** (with creatures shown, the chunks held for them count as loaded). A gate's first capture loads what it must; a portal's never does.
+`Captures.requestLoaded` starts one only when every chunk of its box is loaded, and reads only
+loaded chunks, giving up if one is let go. It is asked for each sweep for a minute after a trip,
+as chunks load round the traveller, and whenever somebody looks into the near portal. A portal
+window asks `FarChunkHolds` to hold its far side only for creatures, with `mirror-show-entities` on, as a gate's does; the mobs, and the players with `mirror-show-players`, then show through it as through a gate. Blocks are read to check a
+portal is still lit only where their chunk is loaded.
+
+**One per viewer.** Each sweep, every player with `wormhole.view.netherportal` picks the linked
+face they are in front of, within `mirror-proximity-distance`, that they look most straight at.
+At most sixteen are offered server-wide. The drawing then keeps, of a viewer's portal windows,
+only the one they look at most straight (`WindowSource.oneAtATime`), so a portal offered for
+somebody else is not drawn for them too. Gates and mirrors beside it are unaffected.
+
+**Walking in.** The opening is left as the client's own portal block, so the purple sheet, the
+swirl and the overlay stay. As for a gate, the drawing ends for a viewer whose eye is no longer
+half a block in front of the plane, and the blocks behind are put back.
+
+**Broken portals.** A portal or its far end found not lit, as far as loaded chunks say, drops every
+link to or from it and takes back both its faces' windows. A world unloading drops its links. A
+window not offered in a sweep drops out, which is how the setting turning off takes every view back.
+
+**Left for later:** a depth of its own (it draws a gate's first step, 32), links kept across a
+restart, a cap or expiry on capture files, `mirror debug` output for portals, and judging the edge
+shimmer on a real server, which the issue names as the go/no-go.
 
 ## What was considered and not done
 
@@ -1045,11 +1231,14 @@ wall banners.
 the other, and the second banner's name was one nobody chose. The network replaced it: one room per
 mirror, and the choice of where to open made at the mirror.
 
-**Seeing yourself in a reflection.** A reflection shows an empty room. Drawing the players in front
-of it, flipped, needs the stand-ins of [Seeing creatures](#seeing-creatures) for players, and is
-a later step of #296, with the rule that the viewer never sees themselves.
+**Seeing yourself in a reflection.** A reflection shows the others in front of it
+([Seeing creatures](#seeing-creatures)), but never the viewer, the rule set for mirrors in #296:
+the step first planned had the viewer seeing themselves, flipped, and was replaced by this one.
 
-**Groups, hidden mirrors and a sign to choose with** — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280).
+**A sign to choose with**, showing the previous, current and next mirror beside the banner the
+way a gate's dial sign does — [#280](https://github.com/khanjal/Wormhole-X-Treme/issues/280). Not
+built with the groups: a sign is seen by everybody, and the list it would show depends on who is
+looking once a mirror can be private.
 **Mirrors on other servers** — [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257).
 
 **Colour-averaging a banner into a gradient.** Two colours blended are muddier than two colours

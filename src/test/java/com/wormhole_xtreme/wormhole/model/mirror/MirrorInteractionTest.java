@@ -313,6 +313,32 @@ class MirrorInteractionTest
     }
 
     /**
+     * A mirror somebody else turned to a private one does not take a player without the node
+     * there (#280).
+     *
+     * <p>Where a mirror opens is the mirror's, not the clicker's, so without asking again on the
+     * punch, anybody standing by could follow a staff member's choice into a staff world.
+     */
+    @Test
+    void aMirrorTurnedToAPrivateOneDoesNotTakeAPlayerWithoutTheNode()
+    {
+        final Block here = block(Material.WHITE_WALL_BANNER, 5);
+        final Block there = block(Material.WHITE_WALL_BANNER, 9);
+        final QuantumMirror museum = reflecting("Museum", here);
+        MirrorManager.add(reflecting("Staff", there).withAccess(new MirrorAccess(null, false, true)));
+        final Player staff = mock(Player.class);
+        when(staff.hasPermission(MirrorNetwork.SEE_PRIVATE)).thenReturn(true);
+        MirrorNetwork.scroll(museum, false, staff);
+        assertEquals("Staff", MirrorNetwork.chosen(museum).name(), "the staff member's right-click lists it");
+        when(player.teleport(any(Location.class))).thenReturn(true);
+
+        travelTo(here, "world");
+
+        verify(player, never()).teleport(any(Location.class));
+        assertEquals(1, hinted("somewhere you may not go"), "said above the hotbar: " + hints());
+    }
+
+    /**
      * A right-click arrives once for each hand, and only the first moves the mirror.
      *
      * <p>Otherwise one press would skip a mirror every time, and with two mirrors it would land

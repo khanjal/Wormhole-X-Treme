@@ -15,10 +15,13 @@ dropped — is in the design notes, [docs/MIRRORS.md](../MIRRORS.md).
 ## Contents
 
 - [Setting one up](#setting-one-up)
+- [Groups, hidden and private mirrors](#groups-hidden-and-private-mirrors)
+- [A sign to choose with](#a-sign-to-choose-with)
 - [Commands](#commands)
 - [What you see in one](#what-you-see-in-one)
 - [Its look](#its-look)
 - [Saying what it is](#saying-what-it-is)
+- [Nether portals](#nether-portals)
 - [Settings](#settings)
 
 ## Setting one up
@@ -58,6 +61,68 @@ traveller lands between them. The wall must then be solid four across and four t
 either side of the banners, and from one above them to one below the opening. A mirror already
 made one wide stays one wide: `remove` it, hang the second banner, and `create` again.
 
+## Groups, hidden and private mirrors
+
+Every mirror starts on the public network, and a right-click on one lists every other mirror on
+it. Three settings narrow that list, and all three are off until you set them.
+
+- **A group.** `mirror set lobby -group museum` puts `lobby` in a group called `museum`. A
+  right-click on a mirror in a group lists only the other mirrors in that group, and a mirror with
+  no group lists only the others with none, so a museum wing's mirrors list the museum and the
+  survival hub's list the hub. Case does not matter. `-group -none` puts it back on the public
+  network.
+- **Hidden.** `mirror set return -hidden on` leaves `return` out of every right-click list,
+  whoever is clicking. It is still reachable as another mirror's start: give the mirror that
+  should lead to it `-start return`. `-hidden off` lists it again.
+- **Private.** `mirror set staff -private on` lists `staff` only for players with
+  `wormhole.mirror.private`, which operators have by default. Mirrors have no owner, so the
+  permission is the only way in, apart from a start. `-private off` lists it for everybody again.
+
+**A start is always reachable.** A mirror's start is first in its list whatever group the start
+is in, and whether or not it is hidden or private: whoever set the start chose it.
+
+**A punch asks again.** What a mirror shows is shared by everybody at it, so a player without the
+permission could otherwise follow a staff member's choice into a private mirror. A punch goes
+through only if the puncher's own right-click would reach that mirror; otherwise it says so, and
+a right-click turns the mirror to one they may use. The line above the hotbar does not name a
+mirror the player could not reach either; it asks them to choose another.
+
+**A private room is not left showing.** The view in a mirror is the same for everybody at it, so
+a right-click skips a private mirror while somebody without the permission is in range, and a
+mirror already turned to one goes back to its own room at the next sweep after such a player comes
+near: they may glimpse it for about a second. A start is the exception, as above.
+
+**Web maps** leave hidden and private mirrors off; a mirror in a group is marked as before.
+
+`mirror-per-world-limit` still counts every mirror in a world, whatever its group.
+
+## A sign to choose with
+
+For anybody who would rather see the list than click through it blind, put a sign touching a
+mirror's banner (beside it, under it or above it) and write `[mirror]` on the first line of its
+front. Right-click the sign and the mirror moves on, as a right-click on the banner does, and the
+sign shows the mirror's name, then the previous, current and next mirror:
+
+```
+-library-
+tower
+»garden«
+nether
+```
+
+Before anybody chooses, the middle line says `Its own room` and the last the mirror the first
+click opens onto. The banner still answers a right-click; the sign sits beside it. A punch on the
+sign does nothing to the mirror, so the sign can be broken like any other.
+
+**One list for everybody.** A sign is read by everybody who walks past, so it walks the public
+list only: the mirror's start (named even if hidden, as on the banner), then its group's listed
+mirrors, never another hidden or private one, even for a player with `wormhole.mirror.private`. If somebody allowed a private mirror turns the banner to
+one, the sign's middle line is left blank rather than naming it. The sign is redrawn whenever the
+mirror moves on, and when it goes back to its own room. A right-click on it never opens the sign
+for editing; to rewrite it, or after the mirror is created again under another name, break it and
+put up a fresh `[mirror]` sign. Its colours and glow are the dial sign's
+(`sign-color-gate-name`, `sign-color-selected`, `sign-color-neighbour`, `sign-glowing-text`).
+
 ## Commands
 
 | Command | What it does |
@@ -67,6 +132,10 @@ made one wide stays one wide: `remove` it, hang the second banner, and `create` 
 | `mirror set [name] -start <mirror\|-none>` | The mirror a right-click opens onto first; `-none` takes it away |
 | `mirror set [name] -stamp [look]` | Makes the banner look like where it goes. See [Its look](#its-look) |
 | `mirror set [name] -capture` | Takes the room's capture again |
+| `mirror set [name] -follow <on\|off>` | Makes the banner follow where it opens first. See [Its look](#its-look) |
+| `mirror set [name] -group <group\|-none>` | Lists only the mirrors in a named group; `-none` puts it back on the public network. See [Groups](#groups-hidden-and-private-mirrors) |
+| `mirror set [name] -hidden <on\|off>` | Leaves it out of every right-click list; still reachable as a start |
+| `mirror set [name] -private <on\|off>` | Lists it only for players with `wormhole.mirror.private` |
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
 | `mirror debug [name] [-all\|-full\|-on\|-off]` | Why a mirror draws what it draws. See [below](#what-you-see-in-one) |
@@ -78,7 +147,8 @@ All of them need `wormhole.config`: a mirror moves players between worlds.
 **Using** a mirror, with right-click or punch, needs `wormhole.use.sign` or `wormhole.use.dialer`,
 the same as dialling a gate. In simple mode, which is when no Vault permission provider is
 installed or `permissions-support-disable` is on, everyone has them; otherwise grant one to
-whoever should travel by mirror. Operators always may.
+whoever should travel by mirror. Operators always may. A private mirror also needs
+`wormhole.mirror.private`, unless it is the start of the mirror clicked.
 
 **Leave the name out** to mean the banner you are looking at: `mirror set -start hub`,
 `mirror set -stamp cavern`, `mirror remove`. What `set` changes always starts with a dash, and
@@ -132,9 +202,12 @@ the far edge of the view. The setting that pulled your fog in to the room's dept
 1.11.0.
 
 **Blocks, and creatures if the server turns them on.** With `mirror-show-entities` on, the mobs
-standing in the room show through the mirror (or an open gate) as copies only you see; it is off by
+standing in the room show through the mirror (or an open gate) as copies only you see, and so do its
+boats and minecarts, every cart as a plain empty one and a chest boat as a plain boat; it is off by
 default. With `mirror-show-players` on as well, so do the players there, by name: a mannequin in
-their skin from Minecraft 1.21.9, an armour stand wearing their head before. Never yourself through a mirror (through a gate whose far room is close by and covers you, such as one facing it, you do see yourself), nor
+their skin from Minecraft 1.21.9, an armour stand wearing their head before. A mirror showing its
+own room shows the others in front of it, flipped, as a mirror does. Never yourself through a mirror
+(through a gate whose far room is close by and covers you, such as one facing it, you do), nor
 anyone invisible, spectating or riding something, nor anyone a vanish plugin hides from you with
 `hidePlayer`; a plugin that hides players by rewriting packets is not seen by this check, and its
 players do show. The skin is the player's real one, not a disguise plugin's, so a server that
@@ -177,13 +250,28 @@ Indoors, the room's own blocks decide instead, so a library comes back the brown
 
 Ninety looks ship: one for every biome in the game, and the rest say something about the mirror
 instead — `mirror`, `hub`, `exit`, `market`, `warning`, `private`, `plain` and more. None change
-what a mirror does: `private` is paint, not a permission. They are `.mirror` text files in
+what a mirror does: the `private` look is paint, and `-private` is the
+[setting](#groups-hidden-and-private-mirrors) that keeps a mirror out of a list. They are `.mirror` text files in
 `shapes/mirror/`; edit one and it stays edited, delete one and it comes back, add your own and
 `-stamp` offers it. Every look is drawn, with its recipe, in
 [the library](../MIRRORS.md#the-library-at-a-glance).
 
 A look never changes on its own: stamp it again when the room has changed. `-stamp` is about the
 banner and leaves the capture alone; `-capture` is the reverse.
+
+**Or let it follow.** `mirror set museum -follow on` stamps the banner from the room it opens onto
+first, its start's or its own without one, read from that room's capture the way `-stamp` reads a
+room. It is stamped again when you change the start and when that room is captured again, never
+on a right-click, so the banner says where the mirror goes rather than wherever somebody last
+clicked it. Until the room has a capture the banner is left as it is, and a banner far off in an
+unloaded chunk takes its look when that chunk next loads, if that is before a restart. It is off by default, since
+a look you chose by hand should stay; `-follow off` keeps whatever the banner shows then, and a
+`-stamp` on a following mirror lasts until its next re-stamp. `mirror list` marks the mirrors that
+follow.
+
+A capture keeps the blocks but not the biome, so a following banner reads the biome only where the
+room's chunk happens to be loaded. Otherwise the Nether gets the Nether's frame, the End the End's,
+and anywhere else the generic one, with the room's own colours in it as usual.
 
 ## Saying what it is
 
@@ -196,6 +284,30 @@ Look at a mirror from about six blocks and it says what a click will do, above t
 
 It stays while you keep looking, and only the mirror under your crosshair speaks.
 `mirror-approach-message: false` turns it off.
+
+## Nether portals
+
+With `nether-portal-views: true`, a vanilla nether portal shows the other side behind its purple
+sheet, the way an open gate does with `gate-view: behind`. It is a picture drawn for each viewer;
+nothing in the world changes, and vanilla still decides where a portal goes and takes you there.
+
+- **Only after a trip.** A portal shows nothing until somebody has gone through it. It then shows
+  the portal they came out of, turned the way vanilla turned them. The way back is learnt by
+  going back. Links are kept until the plugin stops, and forgotten when either portal is broken.
+- **Captured from what is loaded.** The far side is captured as the traveller arrives, or while
+  somebody stands at the far portal. No chunk is loaded to draw the blocks, so a portal whose far
+  side nobody has been near since a restart shows nothing, unless creatures are shown and chunks
+  are held for them.
+- **Creatures too.** With `mirror-show-entities: true` the mobs in the far room show, and the players
+  with `mirror-show-players: true`, as through a gate; the chunks in front of the far portal are
+  then held while somebody looks, as for a gate (`mirror-entity-load-radius`).
+- **One at a time.** You are drawn only the portal you look at, from the side you stand on, within
+  `mirror-proximity-distance`. Step into the portal and the drawing ends, so you walk in as usual.
+- **Up to 18 blocks wide or tall.** Bigger portals stay plain.
+- Being drawn one needs `wormhole.view.netherportal`, which everyone holds.
+
+It is an experiment ([#514](https://github.com/khanjal/Wormhole-X-Treme/issues/514)). How it is
+built is in the [design notes](../MIRRORS.md#nether-portals).
 
 ## Settings
 
@@ -211,17 +323,25 @@ The mirror settings follow in three runs, each under its own `# -- ... --` sub-h
 An upgraded `config.yml` without `view-depth` gets the shallower of its old `mirror-view-depth`
 and `gate-view-full-depth`, written to the file as `view-depth`.
 
+### Nether portal views
+
+| Setting | Default | What it does |
+|---|---|---|
+| `nether-portal-views` | `false` | Whether nether portals show the far side once somebody has travelled through them. |
+| `nether-portal-view-worlds` | (empty) | The worlds whose portals may show one, comma-separated, such as `world, world_nether`. Both ends of a trip must be listed. Empty for every world. |
+
 ### Mirror views
 
 | Setting | Default | What it does |
 |---|---|---|
+| `mirror-max-viewers` | 0 | How many players one mirror, gate view or portal view is drawn the room for at once. The first to look keep it while they look; the rest see the banner (or the plain gate) until somebody leaves. `0` for no limit. |
 | `mirror-proximity-distance` | 16 | How close a player must be for the banner to give way to the room, and how near they must stay. It is checked once a second; mirrors whose world or chunk is not loaded are skipped. |
 
 ### Creatures and players in a view
 
 | Setting | Default | What it does |
 |---|---|---|
-| `mirror-show-entities` | `false` | Show the mobs standing in a mirror's or an open gate's far room, as copies only the viewer sees. |
+| `mirror-show-entities` | `false` | Show the mobs, boats and minecarts in a mirror's or an open gate's far room, as copies only the viewer sees. |
 | `mirror-show-players` | `false` | With `mirror-show-entities` on too, show the players there as well. It tells a viewer who is at the destination. |
 | `mirror-entity-load-radius` | 2 | With creatures shown, how many chunks in front of a watched far side are held, as `/forceload` holds them: 15 at 2, each with a two-chunk ring kept loaded round it, about 63 chunks loaded in all. 0 for none, at most 4. The ring can generate terrain at the edge of explored land. |
 

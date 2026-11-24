@@ -32,6 +32,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorFollow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -485,6 +486,35 @@ public final class Captures
     }
 
     /**
+     * Takes a capture seen through the largest gate opening, first or again, only from chunks already
+     * loaded: a nether portal's far side (#514), which loads a chunk for no block, only held ones for creatures.
+     *
+     * @param key
+     *            its {@link #gateKey}
+     * @param what
+     *            what it is for, for the log
+     * @param arrival
+     *            the far side's arrival point, facing the way it is seen
+     * @param depth
+     *            how far ahead it reaches
+     * @param olderThanSeconds
+     *            how old one already held may be before it is taken again
+     * @return true if one was started now
+     */
+    public static boolean requestLoaded(final String key, final String what, final Place arrival, final int depth,
+        final long olderThanSeconds)
+    {
+        final boolean held = LOADED.containsKey(key) || fileOf(key).isFile();
+        if ((held && !stale(key, arrival, depth, olderThanSeconds)) || JOBS.containsKey(key) || loading(key)
+            || !boxLoaded(arrival, depth))
+        {
+            return false;
+        }
+        return request(key, what, arrival, new int[] { GATE_OPENING, GATE_OPENING }, Math.max(4, depth),
+            new Terms(false, true), NO_CELLS);
+    }
+
+    /**
      * Whether every chunk a gate's capture reads is loaded now (#683).
      *
      * <p>A retake reads only what is loaded: a chunk the server has let go of is not loaded again
@@ -807,6 +837,8 @@ public final class Captures
                 plugin.prettyLog(Level.FINE, "Read capture " + file.getName() + " in " + millis + " ms: "
                     + capture.filled() + " blocks");
             }
+            // A banner that asked for this room while it was being read takes its look now (#613).
+            followersOf(key, false);
             return;
         }
         if (failure != null)
@@ -1107,6 +1139,27 @@ public final class Captures
     static int generation()
     {
         return generation;
+    }
+
+    /**
+     * Re-stamps the banners following a room whose capture just arrived (#613).
+     *
+     * <p>A banner that cannot be stamped must not cost the capture, which is already kept.
+     */
+    private static void followersOf(final String key, final boolean taken)
+    {
+        try
+        {
+            MirrorFollow.captured(key, taken);
+        }
+        catch (final Exception | LinkageError failed)
+        {
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not stamp the banners following " + key, failed);
+            }
+        }
     }
 
     /** Notes that a capture arrived or changed, so every view knows to look again. */
@@ -1657,6 +1710,8 @@ public final class Captures
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
                     + " blocks ahead to keep under " + most + " blocks") : ""));
             save(capture, fileOf(key));
+            // Every banner following this room takes its new look (#613).
+            followersOf(key, true);
         }
 
         /** Gives up a retake that met a chunk no longer loaded: the old capture stays, and the next sweep tries again. */

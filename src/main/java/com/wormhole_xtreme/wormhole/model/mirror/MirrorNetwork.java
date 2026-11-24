@@ -32,6 +32,10 @@ import com.wormhole_xtreme.wormhole.utils.Messages;
  * in that round: it is what the mirror shows when nobody has turned it on, and what it goes back
  * to when nobody is near it any more.
  *
+ * <p>"Every other mirror" is the ones {@link #listed} for whoever clicks: the same named group, or
+ * with no group the public network; never a hidden one; a private one only for a holder of
+ * {@link #SEE_PRIVATE}. A mirror's start is always first, whatever its group or flags (#280).
+ *
  * <p>The choice is kept in memory only. A restart, like walking away, leaves every mirror
  * reflecting.
  */
@@ -48,6 +52,9 @@ public final class MirrorNetwork
 
     /** When each mirror's choice last changed, by lower-cased name. */
     private static final Map<String, Long> CHOSEN_AT = new HashMap<>();
+
+    /** The node that lists a private mirror for whoever holds it; operators by default (#280). */
+    public static final String SEE_PRIVATE = "wormhole.mirror.private";
 
     /** The time, so a test can move it. */
     static LongSupplier clock = System::currentTimeMillis;
@@ -149,21 +156,37 @@ public final class MirrorNetwork
     }
 
     /**
+     * {@link #order(QuantumMirror, Player)} for nobody in particular, who sees no private mirror.
+     *
+     * @param mirror
+     *            the mirror being clicked
+     * @return what a right-click on it walks through
+     */
+    static List<QuantumMirror> order(final QuantumMirror mirror)
+    {
+        return order(mirror, null);
+    }
+
+    /**
      * Every mirror a right-click walks through, in order.
      *
      * @param mirror
      *            the mirror being clicked
-     * @return its start if it has one, then every other mirror with somewhere to go, by name;
-     *         never the mirror itself
+     * @param viewer
+     *            whoever clicked, for the private mirrors; null sees none
+     * @return its start if it has one, whatever its group or flags; then every other mirror with
+     *         somewhere to go that is {@link #listed listed} for the viewer, by name; never the
+     *         mirror itself
      */
-    static List<QuantumMirror> order(final QuantumMirror mirror)
+    static List<QuantumMirror> order(final QuantumMirror mirror, final Player viewer)
     {
+        final String start = mirror.start();
         final List<QuantumMirror> order = MirrorManager.all().stream()
             .filter(other -> !other.name().equalsIgnoreCase(mirror.name()) && (other.destination() != null))
+            .filter(other -> other.name().equalsIgnoreCase(start) || listed(mirror, other, viewer))
             .sorted(Comparator.comparing(other -> other.name().toLowerCase(Locale.ROOT)))
             .collect(Collectors.toCollection(ArrayList::new));
         // Its start first, so the first right-click opens onto it.
-        final String start = mirror.start();
         for (int i = 0; (start != null) && (i < order.size()); i++)
         {
             if (order.get(i).name().equalsIgnoreCase(start))
@@ -173,6 +196,50 @@ public final class MirrorNetwork
             }
         }
         return order;
+    }
+
+    /**
+     * Whether a right-click on one mirror lists another for this viewer (#280).
+     *
+     * <p>Only the same group's, or with no group only the others with none; never a hidden one;
+     * and a private one only for a holder of {@link #SEE_PRIVATE}.
+     *
+     * @param mirror
+     *            the mirror being clicked
+     * @param other
+     *            the mirror that might be listed
+     * @param viewer
+     *            whoever clicked, or null for nobody in particular
+     * @return true if it is listed
+     */
+    static boolean listed(final QuantumMirror mirror, final QuantumMirror other, final Player viewer)
+    {
+        final MirrorAccess access = other.access();
+        return mirror.access().sameGroup(access) && !access.hidden()
+            && (!access.restricted() || ((viewer != null) && viewer.hasPermission(SEE_PRIVATE)));
+    }
+
+    /**
+     * Whether a player may go through a mirror to where it opens now.
+     *
+     * <p>The choice is the mirror's, not the player's: somebody allowed a private mirror may have
+     * turned it there, or its group changed since. So a punch asks again what this player's own
+     * right-click would reach -- its start, or a mirror listed for them.
+     *
+     * @param mirror
+     *            the mirror punched
+     * @param player
+     *            whoever punched it
+     * @return true if where it opens is its own room, its start, or listed for the player
+     */
+    public static boolean reachable(final QuantumMirror mirror, final Player player)
+    {
+        final QuantumMirror target = chosen(mirror);
+        if (target.name().equalsIgnoreCase(mirror.name()))
+        {
+            return true;
+        }
+        return order(mirror, player).stream().anyMatch(other -> other.name().equalsIgnoreCase(target.name()));
     }
 
     /**
@@ -192,7 +259,51 @@ public final class MirrorNetwork
      */
     public static String scroll(final QuantumMirror mirror, final boolean othersNear, final Player reader)
     {
-        final List<QuantumMirror> order = order(mirror);
+        return scroll(mirror, othersNear, reader, List.of(), order(mirror, reader));
+    }
+
+    /**
+     * {@link #scroll(QuantumMirror, boolean, Player)}, skipping any mirror one of the others at it
+     * could not reach.
+     *
+     * <p>What a mirror shows is drawn for everybody at it, so a private room chosen by a holder of
+     * the node would show to whoever stands beside them (#280).
+     *
+     * @param mirror
+     *            the mirror right-clicked
+     * @param others
+     *            everybody else within reach of it
+     * @param reader
+     *            whoever clicked
+     * @return what to tell whoever clicked, or null for a repeat of the same press
+     */
+    public static String scroll(final QuantumMirror mirror, final List<Player> others, final Player reader)
+    {
+        return scroll(mirror, !others.isEmpty(), reader, others, order(mirror, reader));
+    }
+
+    /**
+     * {@link #scroll(QuantumMirror, List, Player)} through the public list only, for a choosing sign,
+     * which shows the same list to everybody (#280).
+     *
+     * @param mirror
+     *            the mirror whose sign was right-clicked
+     * @param others
+     *            everybody else within reach of it
+     * @param reader
+     *            whoever clicked
+     * @return what to tell whoever clicked, or null for a repeat of the same press
+     */
+    public static String scrollPublic(final QuantumMirror mirror, final List<Player> others, final Player reader)
+    {
+        return scroll(mirror, !others.isEmpty(), reader, others, order(mirror));
+    }
+
+    private static String scroll(final QuantumMirror mirror, final boolean othersNear, final Player reader,
+        final List<Player> others, final List<QuantumMirror> order)
+    {
+        order.removeIf(other -> !other.name().equalsIgnoreCase(mirror.start())
+            && others.stream().anyMatch(viewer -> !listed(mirror, other, viewer)));
         if (order.isEmpty())
         {
             return Messages.get(reader, "mirror.interact.no-others");
@@ -246,14 +357,67 @@ public final class MirrorNetwork
      *
      * @param anybodyNear
      *            whether anybody is within reach of it
+     * @return true if a choice was dropped
      */
-    public static void settle(final QuantumMirror mirror, final boolean anybodyNear)
+    public static boolean settle(final QuantumMirror mirror, final boolean anybodyNear)
     {
-        if (!anybodyNear)
+        if (anybodyNear)
         {
-            CHOSEN.remove(key(mirror.name()));
-            CHOSEN_AT.remove(key(mirror.name()));
+            return false;
         }
+        CHOSEN_AT.remove(key(mirror.name()));
+        return CHOSEN.remove(key(mirror.name())) != null;
+    }
+
+    /**
+     * Turns a mirror back to its own room if somebody within reach could not go where it opens.
+     *
+     * <p>The view is shared: a holder of the private node who turned a mirror to a private room
+     * would otherwise show that room to anybody who walked up afterwards (#280). Called by the
+     * sweep before a mirror's view is drawn.
+     *
+     * @param world
+     *            the banner's world
+     * @return true if the choice was dropped
+     */
+    public static boolean keepToWhatAllMaySee(final QuantumMirror mirror, final World world)
+    {
+        if ((world == null) || (chosen(mirror) == mirror))
+        {
+            return false;
+        }
+        for (final Player viewer : playersNear(world, mirror.banner(), null))
+        {
+            if (!reachable(mirror, viewer))
+            {
+                forget(mirror.name());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Everybody, other than one player, within the proximity distance of a banner.
+     *
+     * @param world
+     *            the banner's world
+     * @param except
+     *            a player not to count, or null
+     * @return those players, possibly none
+     */
+    public static List<Player> playersNear(final World world, final BlockPlace banner, final Player except)
+    {
+        final double reach = ConfigManager.getMirrorProximityDistance();
+        final List<Player> near = new ArrayList<>();
+        for (final Player player : world.getPlayers())
+        {
+            if (!player.equals(except) && within(player.getLocation(), banner, reach))
+            {
+                near.add(player);
+            }
+        }
+        return near;
     }
 
     /**
@@ -278,16 +442,21 @@ public final class MirrorNetwork
         return false;
     }
 
-    /** Whether a place is within a distance of a banner; never for no place. */
+    /**
+     * Whether a place is within a distance of a banner; never for no place.
+     *
+     * <p>Measured from the block's corner, as the windows measure who is drawn a view, so anybody
+     * drawn a mirror's view is counted as at it (#280).
+     */
     private static boolean within(final Location at, final BlockPlace banner, final double reach)
     {
         if (at == null)
         {
             return false;
         }
-        final double dx = at.getX() - (banner.x() + 0.5);
+        final double dx = at.getX() - banner.x();
         final double dy = at.getY() - banner.y();
-        final double dz = at.getZ() - (banner.z() + 0.5);
+        final double dz = at.getZ() - banner.z();
         return ((dx * dx) + (dy * dy) + (dz * dz)) <= (reach * reach);
     }
 

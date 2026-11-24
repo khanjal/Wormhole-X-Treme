@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -417,19 +418,70 @@ class WindowCreaturesTest
         assertSame(nearer, wanted.get(0).window(), "the room it was shown through no longer holds it, so this one takes over");
     }
 
+    /**
+     * A reflection shows the creatures in front of it, flipped across the wall and facing out of it as
+     * they face into it, and is tallied like any other window (#296, step 3).
+     *
+     * <p>Before this step a reflection skipped its creatures altogether and showed an empty room.
+     */
     @Test
-    void aReflectionOffersNoCreaturesAndLeavesNoTally()
+    void aReflectionOffersTheCreatureInFrontOfItFlippedAndTalliesIt()
     {
-        final WindowState mirror = window("gate:Abydos", 0, 0, 0, REFLECTION, ARRIVAL);
-        mirror.creatures = List.of(creature());
+        final WindowState mirror = window("mirror:hall", 0, 0, 0, REFLECTION, ARRIVAL);
+        final Entity facingTheMirror = creature();
+        // Three blocks out from the mirror, looking north into it.
+        when(facingTheMirror.getLocation()).thenReturn(new Location(far, 100.5, 70.0, -17.5, 180.0f, 0.0f));
+        mirror.creatures = List.of(facingTheMirror);
         final ViewerDrawing view = new ViewerDrawing(here);
         view.tallies.put("gone", new CreatureTally());
 
         final List<FarCreatures.Wanted> wanted = shown(view, List.of(mirror), drawnWhole(mirror));
 
-        assertTrue(wanted.isEmpty(), "its room is the viewer's own");
-        assertFalse(view.tallies.containsKey("gate:Abydos"), "and it is not counted");
+        assertEquals(List.of(facingTheMirror), wanted.stream().map(FarCreatures.Wanted::original).toList(),
+            "the creature in front of the mirror is offered");
+        final Location at = wanted.get(0).here();
+        assertEquals(10.5, at.getX(), 1.0e-9, "on its own side of the room");
+        assertEquals(17.5, at.getZ(), 1.0e-9, "three blocks into the wall, as it stands three out of it");
+        assertEquals(0.0f, at.getYaw(), 1.0e-3f, "facing south, out of the mirror, as it faces into it");
+        assertEquals(1, view.tallies.get("mirror:hall").shown, "and counted as shown through the reflection");
         assertFalse(view.tallies.containsKey("gone"), "the last redraw's tallies are not kept");
+    }
+
+    /**
+     * A reflection shows another player in front of it, but never the viewer themselves, who stands there
+     * too (#296): a mirror's rule, unlike a gate facing the gate it dials.
+     */
+    @Test
+    void aReflectionShowsAnotherPlayerButNeverTheViewer()
+    {
+        final WindowState mirror = window("mirror:hall", 0, 0, 0, REFLECTION, ARRIVAL);
+        final Player other = playerInFront(UUID.randomUUID());
+        when(viewer.canSee(other)).thenReturn(true);
+        final UUID self = UUID.randomUUID();
+        when(viewer.getUniqueId()).thenReturn(self);
+        final Player viewerThere = playerInFront(self);
+        when(viewer.canSee(viewerThere)).thenReturn(true);
+        mirror.creatures = List.of(viewerThere, other);
+        final ViewerDrawing view = new ViewerDrawing(here);
+
+        final List<FarCreatures.Wanted> wanted = shown(view, List.of(mirror), drawnWhole(mirror));
+
+        assertEquals(List.of(other), wanted.stream().map(FarCreatures.Wanted::original).toList(),
+            "the other player, and not the viewer");
+        assertEquals(1, view.tallies.get("mirror:hall").skipped.get(CreatureTally.Skip.YOU), "the viewer is skipped as themselves");
+    }
+
+    /** A player any viewer may be shown, standing in front of {@link #REFLECTION}. */
+    private Player playerInFront(final UUID id)
+    {
+        final Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(id);
+        when(player.isValid()).thenReturn(true);
+        when(player.isOnline()).thenReturn(true);
+        when(player.isVisibleByDefault()).thenReturn(true);
+        when(player.getGameMode()).thenReturn(GameMode.SURVIVAL);
+        when(player.getLocation()).thenReturn(new Location(far, 100.5, 70.0, -17.5));
+        return player;
     }
 
     @Test

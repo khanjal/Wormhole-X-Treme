@@ -683,7 +683,7 @@ public final class HorizonRipple
                 .map(at -> new Location(world, (double) at.getBlockX() + facing.getModX(), at.getBlockY(),
                     (double) at.getBlockZ() + facing.getModZ()))
                 .filter(front -> world.isChunkLoaded(front.getBlockX() >> 4, front.getBlockZ() >> 4)
-                    && !taken.contains(spotOf(front)) && StargateBlockSetup.backdropIsFree(front))
+                    && !taken.contains(spotOf(front)) && PortalBackdrop.backdropIsFree(front))
                 .toList();
         }
 

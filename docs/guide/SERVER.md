@@ -225,8 +225,8 @@ Vault is installed with a permission provider such as LuckPerms. Without one, th
 ([below](#permission-backend-and-fallback)) and their nodes are ignored. Nodes the plugin checks
 directly with Bukkit keep working: `wormhole.build.preview*`, `wormhole.list.mine`,
 `wormhole.list.owner`, `wormhole.stats*`, `wormhole.export`, `wormhole.freya`, `wormhole.ring.*`,
-`wormhole.beam.*`, `wormhole.gates.*`, `wormhole.build.mindistance.bypass` and
-`wormhole.update.notify`.
+`wormhole.beam.*`, `wormhole.gates.*`, `wormhole.build.mindistance.bypass`,
+`wormhole.mirror.private`, `wormhole.view.netherportal` and `wormhole.update.notify`.
 
 **An operator may do anything with a gate**, with or without a permissions plugin, and that
 outranks a negated node. The exceptions are nodes checked directly with Bukkit, which an operator
@@ -257,6 +257,7 @@ can lose by negation: `wormhole.gates.unlimited`, `wormhole.build.mindistance.by
 | `wormhole.remove.own` | false | Nothing extra: a gate's owner may always take it apart by breaking it |
 | `wormhole.remove.all` | op | Breaking any gate's blocks, which takes it apart, and building in its opening. The `remove` commands themselves need `wormhole.config` |
 | `wormhole.config` | op | Settings, including `config -reload` and `lang export`, and managing any gate: `edit`, `regen`, `validate`, `import`, ownership. Also every `mirror` command. An owner may set their own gate's iris code without it. |
+| `wormhole.mirror.private` | op | Seeing [private mirrors](MIRRORS.md#groups-hidden-and-private-mirrors) in a mirror's right-click list, and going through one to them |
 | `wormhole.network.use.<network>` | false | Using gates on that network |
 | `wormhole.network.build.<network>` | false | Building gates on that network |
 
@@ -289,6 +290,7 @@ or delete it.
 | `wormhole.stats` | true | `/wormhole stats`, your own counts |
 | `wormhole.stats.others` | op | `/wormhole stats <player>`, anybody's |
 | `wormhole.export` | op | `/wormhole export sqlite`; the console may always run it |
+| `wormhole.view.netherportal` | true | Being drawn the far side through a nether portal, with `nether-portal-views` on ([Nether portals](MIRRORS.md#nether-portals)) |
 
 Worth knowing:
 
@@ -333,7 +335,7 @@ a dashed word is always the option and a bare word is always a name.
 | `ping <gate>` | Experimental, and off unless `ping-enabled`: shows a gate on your locator bar for a few seconds, on Minecraft 1.21.6 or later. Not listed in `/wormhole`; see [Locator bar ping](GATES.md#locator-bar-ping-experimental) |
 | `export sqlite` | Writes your gates to a database the older plugins read, in a folder of its own; see [coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme). Needs `wormhole.export` |
 | `list [network\|mine\|owner <player>\|top]` | The gates on the network, or on none with `Public`; `mine` your own with `wormhole.list.mine`; `owner <player>` that player's, online or not, with `wormhole.list.owner`; `top` up to ten gates with the most trips, those with at least one, each with its count. `mine`, `owner` and `top` win over a network of the same name. Holding `wormhole.list` allows all of them, and completing `/dial` and `/wormhole go` offers every gate to a player with it, only their own to one with just `wormhole.list.mine`, and none to the rest |
-| `stats [player]` | Lifetime trips through gates, gates built, ring trips and beams: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
+| `stats [player]` | Lifetime trips through gates, ring trips and beams, and the gates they own now: yours, or a named player's, online or not, with `wormhole.stats.others`. The console names a player |
 
 `compass` works without a compass in hand — the heading is stored against you. It says so when
 nothing you carry will show it: a lodestone compass points at its lodestone, a recovery compass
@@ -525,7 +527,7 @@ from this one.
 | `%wormhole_gates_owned%` | How many the player looking at it owns. |
 | `%wormhole_nearest_gate%` | The name of the gate nearest them. |
 | `%wormhole_stats_trips%` | How many trips they have taken through gates, ever. |
-| `%wormhole_stats_gates_built%` | How many gates they have built. |
+| `%wormhole_stats_gates_built%` | How many gates they own now, the same number as `gates_owned`. |
 | `%wormhole_stats_rings%` | How many trips they have taken by rings. |
 | `%wormhole_stats_beams%` | How many times they have beamed. |
 
@@ -535,7 +537,7 @@ from this one.
   so gates built before this plugin stored owners as UUIDs still count as theirs.
 - **`nearest_gate` is empty for a player who is not online**, because there is nowhere
   to measure from. The counts still answer.
-- **The four `stats_` counts read `0` for a player with none yet**, and are kept as
+- **The `stats_` counts read `0` for a player with none yet**, and are kept as
   [`/wormhole stats`](#commands) shows them.
 - **A placeholder that is not one of these is left exactly as you typed it**, which
   is how you spot a typo rather than finding a blank line.

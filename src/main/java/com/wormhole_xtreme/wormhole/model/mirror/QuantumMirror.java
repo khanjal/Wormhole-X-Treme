@@ -29,10 +29,60 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape;
  *            the mirror a right-click opens onto first, or null for none
  * @param width
  *            how many banners wide it is, one or two
+ * @param follows
+ *            whether its banner is stamped again from where it opens first, off by default (#613)
+ * @param access
+ *            its group, and whether it is hidden or private (#280); the public network by default
  */
 public record QuantumMirror(String name, BlockPlace banner, Place destination,
-    MirrorLook look, String start, int width)
+    MirrorLook look, String start, int width, boolean follows, MirrorAccess access)
 {
+    /**
+     * A mirror on the public network, listed for everybody.
+     *
+     * @param name
+     *            what it is called
+     * @param banner
+     *            the block a player clicks
+     * @param destination
+     *            its room
+     * @param look
+     *            what it looks like, or null
+     * @param start
+     *            the mirror a right-click opens onto first, or null
+     * @param width
+     *            one banner or two
+     * @param follows
+     *            whether its banner follows where it opens first
+     */
+    public QuantumMirror(final String name, final BlockPlace banner, final Place destination,
+        final MirrorLook look, final String start, final int width, final boolean follows)
+    {
+        this(name, banner, destination, look, start, width, follows, MirrorAccess.OPEN);
+    }
+
+    /**
+     * A mirror whose banner keeps the look it was given.
+     *
+     * @param name
+     *            what it is called
+     * @param banner
+     *            the block a player clicks
+     * @param destination
+     *            its room
+     * @param look
+     *            what it looks like, or null
+     * @param start
+     *            the mirror a right-click opens onto first, or null
+     * @param width
+     *            one banner or two
+     */
+    public QuantumMirror(final String name, final BlockPlace banner, final Place destination,
+        final MirrorLook look, final String start, final int width)
+    {
+        this(name, banner, destination, look, start, width, false);
+    }
+
     /**
      * A mirror with nothing chosen about how it looks.
      *
@@ -90,12 +140,13 @@ public record QuantumMirror(String name, BlockPlace banner, Place destination,
     /**
      * Defaults the settings, so a mirror read from an older file is not half-built.
      *
-     * <p>A blank start is no start, and a width is one or two.
+     * <p>A blank start is no start, a width is one or two, and no access is the public network.
      */
     public QuantumMirror
     {
         start = ((start == null) || start.isBlank()) ? null : start;
         width = (width >= 2) ? 2 : 1;
+        access = (access == null) ? MirrorAccess.OPEN : access;
     }
 
     /**
@@ -127,7 +178,7 @@ public record QuantumMirror(String name, BlockPlace banner, Place destination,
      */
     public QuantumMirror withDestination(final Place newDestination)
     {
-        return new QuantumMirror(name, banner, newDestination, look, start, width);
+        return new QuantumMirror(name, banner, newDestination, look, start, width, follows, access);
     }
 
     /**
@@ -143,7 +194,7 @@ public record QuantumMirror(String name, BlockPlace banner, Place destination,
      */
     public QuantumMirror withName(final String newName)
     {
-        return new QuantumMirror(newName, banner, destination, look, start, width);
+        return new QuantumMirror(newName, banner, destination, look, start, width, follows, access);
     }
 
     /**
@@ -155,7 +206,7 @@ public record QuantumMirror(String name, BlockPlace banner, Place destination,
      */
     public QuantumMirror withBanner(final BlockPlace newBanner)
     {
-        return new QuantumMirror(name, newBanner, destination, look, start, width);
+        return new QuantumMirror(name, newBanner, destination, look, start, width, follows, access);
     }
 
     /**
@@ -167,7 +218,7 @@ public record QuantumMirror(String name, BlockPlace banner, Place destination,
      */
     public QuantumMirror withLook(final MirrorLook newLook)
     {
-        return new QuantumMirror(name, banner, destination, newLook, start, width);
+        return new QuantumMirror(name, banner, destination, newLook, start, width, follows, access);
     }
 
     /**
@@ -179,7 +230,7 @@ public record QuantumMirror(String name, BlockPlace banner, Place destination,
      */
     public QuantumMirror withStart(final String newStart)
     {
-        return new QuantumMirror(name, banner, destination, look, newStart, width);
+        return new QuantumMirror(name, banner, destination, look, newStart, width, follows, access);
     }
 
     /**
@@ -191,7 +242,31 @@ public record QuantumMirror(String name, BlockPlace banner, Place destination,
      */
     public QuantumMirror withWidth(final int newWidth)
     {
-        return new QuantumMirror(name, banner, destination, look, start, newWidth);
+        return new QuantumMirror(name, banner, destination, look, start, newWidth, follows, access);
+    }
+
+    /**
+     * The same mirror, its banner following where it opens first or keeping its look.
+     *
+     * @param newFollows
+     *            true to follow
+     * @return a new instance; this one is unchanged
+     */
+    public QuantumMirror withFollows(final boolean newFollows)
+    {
+        return new QuantumMirror(name, banner, destination, look, start, width, newFollows, access);
+    }
+
+    /**
+     * The same mirror in another group, or hidden or private or not.
+     *
+     * @param newAccess
+     *            who sees it in a list now
+     * @return a new instance; this one is unchanged
+     */
+    public QuantumMirror withAccess(final MirrorAccess newAccess)
+    {
+        return new QuantumMirror(name, banner, destination, look, start, width, follows, newAccess);
     }
 
     /**

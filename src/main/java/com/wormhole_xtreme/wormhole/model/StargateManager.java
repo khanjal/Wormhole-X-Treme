@@ -865,7 +865,7 @@ public class StargateManager
      */
     public static void forgetSweptLayers(final UUID uuid)
     {
-        StargateBlockSetup.forgetSwept(uuid);
+        ViewerIrisSweep.forgetSwept(uuid);
         HorizonRipple.forgetViewer(uuid);
     }
 
@@ -1432,7 +1432,7 @@ public class StargateManager
         // A sweep still running would go on drawing over a gate that has gone, or over the one a
         // refresh registers in its place, and finish by filling it with what it started with (#434).
         StargateIrisAnimator.cancel(s);
-        StargateBlockSetup.forgetSwept(s.getGateName());
+        ViewerIrisSweep.forgetSwept(s.getGateName());
         StargateDBManager.removeStargate(s);
         detachFromNetwork(s);
         unindexGateBlocks(s);

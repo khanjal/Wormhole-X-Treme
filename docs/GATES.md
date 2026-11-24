@@ -566,7 +566,7 @@ for the length of its animation; drawn after it, every ring of a see-through iri
 the landscape behind it and the wormhole appears in one jump at the end. Opening has the same
 two ways of being wrong, in reverse. `IrisSweepDriver.Canvas.moveHorizon` is the per-ring hook
 for it, so both sweeps say which cells they have just reached; for a gate,
-`StargateBlockSetup.sweepRing` moves the far layer of those cells.
+`ViewerIrisSweep.sweepRing` moves the far layer of those cells.
 
 It follows the viewer as well (#447). What each viewer has been drawn is kept per cell, and every
 step checks, beside the cells it has just reached, every cell the sweep has covered for them
@@ -1259,6 +1259,8 @@ model/StrandedLiquid.java          real water and lava left in a closed gate's o
 model/StargateRedstone.java        dial and sign wires, the output lever, the dial lever's state
 model/GateFittings.java            the name sign, the dial sign's material, the iris lever
 model/IrisClearance.java           moving whoever stands in the opening clear of a closing iris
+model/PortalBackdrop.java          where the horizon is drawn behind a shut iris, and who sees the front
+model/ViewerIrisSweep.java         what each viewer is drawn while an iris sweeps over a wormhole
 model/GateSounds.java              what a gate sounds like
 model/GateSerializer.java          GateData, save versions 3 to 9
 model/StargateYamlManager.java     one file per gate

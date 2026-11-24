@@ -128,7 +128,7 @@ class StargateAnimator
             gate.setGatePortalOpen(gate.isGateActive());
             if (!StargateBlockSetup.irisIsDrawn(gate))
             {
-                StargateBlockSetup.sendPortalBackdrop(gate, true);
+                PortalBackdrop.sendPortalBackdrop(gate, true);
             }
             else if (!StargateIrisAnimator.isSweeping(gate))
             {

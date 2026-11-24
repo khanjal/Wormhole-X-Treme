@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -89,6 +90,20 @@ public final class MirrorInteraction
             return false;
         }
         final Player player = event.getPlayer();
+        // A punch on a choosing sign is left alone, so it can still be broken.
+        final QuantumMirror signed = MirrorChoosingSign.mirrorFor(block);
+        if (signed != null)
+        {
+            if (action != Action.RIGHT_CLICK_BLOCK)
+            {
+                return false;
+            }
+            if (event.getHand() != EquipmentSlot.OFF_HAND)
+            {
+                choose(player, block.getWorld(), signed, true);
+            }
+            return true;
+        }
         final QuantumMirror mirror = mirrorAt(player, block);
         if (mirror == null)
         {
@@ -101,7 +116,7 @@ public final class MirrorInteraction
         }
         if (action == Action.RIGHT_CLICK_BLOCK)
         {
-            choose(player, block, mirror);
+            choose(player, block.getWorld(), mirror, false);
         }
         else
         {
@@ -127,8 +142,14 @@ public final class MirrorInteraction
         return (drawn == null) ? null : MirrorManager.byName(drawn.name());
     }
 
-    /** Moves the mirror on to the next one, and says where it opens onto now. */
-    private static void choose(final Player player, final Block block, final QuantumMirror mirror)
+    /**
+     * Moves the mirror on to the next one, and says where it opens onto now.
+     *
+     * @param fromSign
+     *            whether its choosing sign was clicked, which walks the public list only
+     */
+    private static void choose(final Player player, final World world, final QuantumMirror mirror,
+        final boolean fromSign)
     {
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
         {
@@ -136,18 +157,31 @@ public final class MirrorInteraction
             return;
         }
         final String before = MirrorNetwork.chosen(mirror).name();
-        final String said = MirrorNetwork.scroll(mirror,
-            MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), player), player);
+        final List<Player> others = MirrorNetwork.playersNear(world, mirror.banner(), player);
+        final String said = fromSign ? MirrorNetwork.scrollPublic(mirror, others, player)
+            : MirrorNetwork.scroll(mirror, others, player);
         if (said != null)
         {
             hint(player, said);
         }
         // Shown at once, rather than when the sweep next comes round.
-        if (!MirrorNetwork.chosen(mirror).name().equals(before))
+        final boolean changed = !MirrorNetwork.chosen(mirror).name().equals(before);
+        if (changed)
         {
             final BlockPlace at = mirror.banner();
-            Windows.redraw(mirror, block.getWorld().getBlockAt(at.x(), at.y(), at.z()));
+            Windows.redraw(mirror, world.getBlockAt(at.x(), at.y(), at.z()));
         }
+        // A sign just written [mirror] is drawn by its first click, whatever that click did.
+        if (changed || fromSign)
+        {
+            MirrorChoosingSign.redraw(mirror, world);
+        }
+    }
+
+    /** Whether a block type is a banner, wall or standing, any colour. */
+    static boolean isBanner(final Material type)
+    {
+        return BANNERS.contains(type);
     }
 
     /**
@@ -187,6 +221,12 @@ public final class MirrorInteraction
         if (MirrorNetwork.reflects(mirror))
         {
             hint(player, Messages.get(player, "mirror.interact.reflecting", MirrorText.name(mirror.name())));
+            return;
+        }
+        // Somebody else may have turned it to a mirror this player's own right-click would not list.
+        if (!MirrorNetwork.reachable(mirror, player))
+        {
+            hint(player, Messages.get(player, "mirror.interact.not-open"));
             return;
         }
         final QuantumMirror target = MirrorNetwork.chosen(mirror);

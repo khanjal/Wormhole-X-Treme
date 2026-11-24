@@ -49,6 +49,18 @@ public final class MirrorYamlManager
     /** How many banners wide it is, written only when more than one. */
     private static final String WIDTH = "Width";
 
+    /** Whether its banner follows where it opens first, written only when it does (#613). */
+    private static final String FOLLOW = "Follow";
+
+    /** The named group it lists and is listed in, written only when it has one (#280). */
+    private static final String GROUP = "Group";
+
+    /** Whether it is left out of every right-click list, written only when it is (#280). */
+    private static final String HIDDEN = "Hidden";
+
+    /** Whether it is listed only for holders of the private node, written only when it is (#280). */
+    private static final String PRIVATE = "Private";
+
     /** Inside {@link #LOOK}: the preset an operator named, if they named one. */
     private static final String PRESET = "Preset";
 
@@ -148,7 +160,10 @@ public final class MirrorYamlManager
             // legible, and every one of these settings has a sensible "as it always was".
             return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
                 readLook(map.get(LOOK)), text(map.get(START)),
-                (map.get(WIDTH) instanceof Number wide) ? wide.intValue() : 1);
+                (map.get(WIDTH) instanceof Number wide) ? wide.intValue() : 1,
+                Boolean.TRUE.equals(map.get(FOLLOW)),
+                new MirrorAccess(text(map.get(GROUP)), Boolean.TRUE.equals(map.get(HIDDEN)),
+                    Boolean.TRUE.equals(map.get(PRIVATE))));
         }
         catch (final RuntimeException e)
         {
@@ -328,8 +343,30 @@ public final class MirrorYamlManager
         {
             map.put(WIDTH, mirror.width());
         }
+        if (mirror.follows())
+        {
+            map.put(FOLLOW, true);
+        }
+        writeAccess(map, mirror.access());
         writeLook(map, mirror.look());
         return map;
+    }
+
+    /** Adds the group and the hidden and private flags, each only when it is not the default. */
+    private static void writeAccess(final Map<String, Object> map, final MirrorAccess access)
+    {
+        if (access.group() != null)
+        {
+            map.put(GROUP, access.group());
+        }
+        if (access.hidden())
+        {
+            map.put(HIDDEN, true);
+        }
+        if (access.restricted())
+        {
+            map.put(PRIVATE, true);
+        }
     }
 
     /** Adds the Look section, when there is one. */

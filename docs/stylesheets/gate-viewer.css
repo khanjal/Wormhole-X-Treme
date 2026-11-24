@@ -30,7 +30,9 @@
 }
 
 .wxt-stage {
-  height: clamp(300px, 60vh, 560px);
+  --wxt-stage-h: clamp(300px, 60vh, 560px);
+
+  height: var(--wxt-stage-h);
   background: var(--md-code-bg-color);
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.2rem;
@@ -210,7 +212,7 @@
 }
 
 .wxt-side .wxt-stage {
-  height: clamp(260px, 50vh, 460px);
+  --wxt-stage-h: clamp(260px, 50vh, 460px);
 }
 
 @media (min-width: 60em) {
@@ -549,7 +551,7 @@ button.wxt-issue {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
-  z-index: 2;
+  z-index: 3;
   padding: 0.1em 0.8em;
   margin: 0;
   font-size: 0.75rem;
@@ -569,8 +571,7 @@ button.wxt-issue {
   z-index: 2;
   display: none;
   box-sizing: border-box;
-  width: min(16rem, calc(100% - 1rem));
-  max-height: calc(100% - 3.1rem);
+  width: min(30rem, calc(100% - 1rem));
   padding: 0.4rem 0.75rem;
   overflow: auto;
   font-size: 0.8rem;
@@ -590,16 +591,51 @@ button.wxt-issue {
   outline-offset: 2px;
 }
 
-.wxt-legend-panel .wxt-legend {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 0.3rem;
+/* Material sets `display: flow-root` on a list in the text, so this has to outrank it. */
+.md-typeset .wxt-legend-panel ul.wxt-legend:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.3rem 0.75rem;
   list-style: none;
 }
 
 .wxt-legend-panel .wxt-legend li {
   margin: 0;
   list-style: none;
+}
+
+.wxt-legend-more {
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 0.4em;
+  margin-left: 0.2em;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  color: var(--md-default-fg-color);
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 50%;
+}
+
+.wxt-legend-more:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: 2px;
+}
+
+.wxt-legend-more[aria-expanded="true"] {
+  border-color: var(--md-accent-fg-color);
+}
+
+.wxt-legend-note {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.wxt-legend-note[hidden] {
+  display: none;
 }
 
 .wxt-legend-title {
@@ -609,19 +645,34 @@ button.wxt-issue {
 }
 
 @container (min-width: 34rem) {
+  /* The legend is as tall as its entries and the stage stretches to meet it: no scroll bar in the legend. */
   .wxt-stage-row {
     display: flex;
     gap: 0.75rem;
     align-items: stretch;
+    min-height: var(--wxt-legend-reserve, 0);
+  }
+
+  /* The expanded designer sizes the view by its dock, not by the legend. */
+  .wxt-full .wxt-stage-row {
+    min-height: 0;
   }
 
   .wxt-stage-row .wxt-stage {
+    position: relative;
     flex: 1 1 auto;
+    height: auto;
+    min-height: var(--wxt-stage-h);
     min-width: 0;
   }
 
+  .wxt-stage-row .wxt-stage canvas {
+    position: absolute;
+    inset: 0;
+  }
+
   .wxt-legend-panel {
-    position: relative;
+    display: flex;
     flex: 0 0 13rem;
   }
 
@@ -629,11 +680,16 @@ button.wxt-issue {
     display: none;
   }
 
+  .md-typeset .wxt-legend-panel ul.wxt-legend:not([hidden]) {
+    grid-template-columns: 1fr;
+  }
+
   .wxt-legend-body {
-    inset: 0;
+    position: static;
     display: block;
+    flex: 1 1 auto;
     width: auto;
-    max-height: none;
+    overflow: visible;
     box-shadow: none;
   }
 
@@ -785,7 +841,7 @@ html.wxt-no-scroll body {
 }
 
 .wxt-full .wxt-side .wxt-stage {
-  height: clamp(180px, 38vh, 420px);
+  --wxt-stage-h: clamp(180px, 38vh, 420px);
 }
 
 .wxt-full .wxt-dock-panels {
@@ -811,7 +867,7 @@ html.wxt-no-scroll body {
 }
 
 .wxt-full .wxt-split.wxt-bottom .wxt-side .wxt-stage {
-  height: max(120px, calc(var(--wxt-dock, 220px) - 7rem));
+  --wxt-stage-h: max(120px, calc(var(--wxt-dock, 220px) - 7rem));
 }
 
 .wxt-full .wxt-split.wxt-bottom .wxt-handle {
@@ -848,7 +904,7 @@ html.wxt-no-scroll body {
 }
 
 .wxt-full .wxt-split.wxt-bottom.wxt-stacked .wxt-side .wxt-stage {
-  height: clamp(150px, 30vh, 260px);
+  --wxt-stage-h: clamp(150px, 30vh, 260px);
 }
 
 /*

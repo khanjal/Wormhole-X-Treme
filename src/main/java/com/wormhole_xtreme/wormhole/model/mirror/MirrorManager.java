@@ -122,6 +122,8 @@ public final class MirrorManager
             // clearing the index unconditionally then unhooks the survivor: it keeps its name
             // and its entry, shows up in "mirror list", and does nothing when clicked.
             removed.banners().forEach(block -> BY_BLOCK.remove(block, removed));
+            // Removed or renamed, nothing is waiting under that name any more.
+            MirrorFollow.forget(removed.name());
         }
         return removed;
     }
@@ -143,5 +145,6 @@ public final class MirrorManager
     {
         BY_NAME.clear();
         BY_BLOCK.clear();
+        MirrorFollow.forgetAll();
     }
 }

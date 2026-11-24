@@ -28,6 +28,8 @@ import com.wormhole_xtreme.wormhole.integration.RegionFlags;
 import com.wormhole_xtreme.wormhole.logic.BuiltIrisUpgrade;
 import com.wormhole_xtreme.wormhole.logic.LightOrderUpgrade;
 import com.wormhole_xtreme.wormhole.model.GateViews;
+import com.wormhole_xtreme.wormhole.model.PortalViewListener;
+import com.wormhole_xtreme.wormhole.model.PortalViews;
 import com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration;
 import com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter;
 import com.wormhole_xtreme.wormhole.model.HorizonRipple;
@@ -44,7 +46,6 @@ import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
 import com.wormhole_xtreme.wormhole.model.ping.PingListener;
 import com.wormhole_xtreme.wormhole.model.ping.PingMarkers;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
-import com.wormhole_xtreme.wormhole.model.stats.PlayerStatsListener;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.window.FarChunkHolds;
@@ -173,12 +174,13 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
         pm.registerEvents(new PingListener(), tp);
-        pm.registerEvents(new PlayerStatsListener(), tp);
         pm.registerEvents(new RingPreviewListener(), tp);
         StandInListener.register(pm, tp);
         // A view is built again when the world behind its wall changes (#609).
         pm.registerEvents(new ViewChangeListener(), tp);
         pm.registerEvents(new GateChunkLoadListener(), tp);
+        // Nether portal trips, to learn where each portal goes (#514).
+        pm.registerEvents(new PortalViewListener(), tp);
         registerDismountListener(pm, tp);
     }
 
@@ -330,6 +332,7 @@ public class WormholeXTreme extends JavaPlugin
             {
                 WindowSweep.restoreAll();
                 GateViews.clear();
+                PortalViews.clear();
             }
             catch (final Exception | LinkageError e)
             {
@@ -860,7 +863,12 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ItemGateTracker.createTicker(), 20L, 1L);
         // Open gates join the mirror sweep when gate-view asks them to (#516).
-        WindowSweep.alsoOffer(GateViews::offerAll);
+        WindowSweep.alsoOffer(() ->
+        {
+            GateViews.offerAll();
+            // And the nether portals somebody looks into, with nether-portal-views on (#514).
+            PortalViews.offerAll();
+        });
         // And a cleared horizon is cleared only for whoever is drawn the view.
         Windows.onDrawn(GateViews::drawn);
         // Build previews time out, and get back displays a chunk unload took. Every five seconds is plenty for both.

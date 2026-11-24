@@ -1,6 +1,7 @@
 // What the User manual's 3D viewers share: the three.js loader, the theme, the scene and camera,
 // and the shape loader. The pages' own scripts (gate, iris, dialling) build on it.
 import { parseShape } from "./shape-parser.js";
+import { reserveHeight, collapsedHeight, overlayPlacement } from "./legend-size.js";
 
 // Bound by loadLibs(); a viewer that imports them reads them live once it has run.
 export let THREE;
@@ -39,23 +40,75 @@ let legendCount = 0;
 
 /**
  * The 3D stage with its legend: beside the stage when there is room for it, otherwise a Legend
- * button over a corner of the stage that opens the list (Escape closes it again).
+ * button over a corner of the stage that opens the list (Escape closes it again). The legend is as tall
+ * as its entries and scrolls only in a window shorter than they are; the stage stretches to match it, and keeps the tallest legend it has
+ * had, so changing shape does not move the page.
  */
 export function stageWithLegend(stage, legend) {
   const id = `wxt-legend-${++legendCount}`;
   const toggle = el("button", { type: "button", class: "md-button wxt-legend-toggle", "aria-expanded": "false", "aria-controls": id }, "Legend");
-  const body = el("div", { class: "wxt-legend-body", id, tabindex: "0", role: "region", "aria-label": "Legend panel" },
-    el("h3", { class: "wxt-legend-title" }, "Legend"), legend);
+  const title = el("h3", { class: "wxt-legend-title" }, "Legend");
+  const body = el("div", { class: "wxt-legend-body", id, tabindex: "0", role: "region", "aria-label": "Legend panel" }, title, legend);
   const panel = el("div", { class: "wxt-legend-panel" }, toggle, body);
-  const box = el("div", { class: "wxt-stage-box" }, el("div", { class: "wxt-stage-row" }, stage, panel));
+  const row = el("div", { class: "wxt-stage-row" }, stage, panel);
+  const box = el("div", { class: "wxt-stage-box" }, row);
+  // The button is only there in the narrow layout; when the layout turns wide an open legend is just the panel, so forget it.
+  const narrow = () => toggle.getClientRects().length > 0;
+  // The overlay shows every entry, below the button or above it, never over it; only a window shorter than the list makes it scroll.
+  const limitOverlay = () => {
+    body.style.maxHeight = "";
+    body.style.top = "";
+    if (!narrow() || !panel.classList.contains("wxt-open")) return;
+    const r = row.getBoundingClientRect();
+    const t = toggle.getBoundingClientRect();
+    const place = overlayPlacement({
+      toggleTop: t.top, toggleBottom: t.bottom, natural: body.offsetHeight, viewport: window.innerHeight,
+      minTop: document.querySelector(".md-header")?.getBoundingClientRect().bottom ?? 0,
+    });
+    body.style.top = `${place.top - r.top}px`;
+    if (place.maxHeight !== null) body.style.maxHeight = `${place.maxHeight}px`;
+  };
   const setOpen = (open) => {
     panel.classList.toggle("wxt-open", open);
     toggle.setAttribute("aria-expanded", String(open));
+    limitOverlay();
   };
-  // The button is only there in the narrow layout; when the layout turns wide an open legend is just the panel, so forget it.
-  const narrow = () => toggle.getClientRects().length > 0;
+  let reserved = 0;
+  const reserve = () => {
+    if (narrow()) return;
+    // Un-stretched for a moment, the panel is as tall as its entries need, margins and all.
+    body.style.alignSelf = "flex-start";
+    const open = [...legend.querySelectorAll(".wxt-legend-note:not([hidden])")]
+      .map((n) => n.offsetHeight + (Number.parseFloat(getComputedStyle(n).marginTop) || 0));
+    const next = reserveHeight(reserved, collapsedHeight(body.offsetHeight, open));
+    body.style.alignSelf = "";
+    if (next === reserved) return;
+    reserved = next;
+    row.style.setProperty("--wxt-legend-reserve", `${reserved}px`);
+  };
   toggle.addEventListener("click", () => setOpen(!panel.classList.contains("wxt-open")));
-  if (typeof ResizeObserver === "function") new ResizeObserver(() => { if (!narrow()) setOpen(false); }).observe(box);
+  if (typeof ResizeObserver === "function") {
+    // Applied a frame later: the change can resize what is watched, and a loop would be reported as an error.
+    let frame = 0;
+    const watch = new ResizeObserver(() => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (!narrow()) setOpen(false);
+        limitOverlay();
+        reserve();
+      });
+    });
+    watch.observe(box);
+    watch.observe(legend);
+  }
+  // A click or the focus going elsewhere closes the overlay, as Escape does.
+  document.addEventListener("pointerdown", (e) => {
+    if (panel.classList.contains("wxt-open") && narrow() && !panel.contains(e.target)) setOpen(false);
+  });
+  panel.addEventListener("focusout", (e) => {
+    if (panel.classList.contains("wxt-open") && narrow() && e.relatedTarget && !panel.contains(e.relatedTarget)) setOpen(false);
+  });
   box.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !panel.classList.contains("wxt-open") || !narrow()) return;
     e.stopPropagation();

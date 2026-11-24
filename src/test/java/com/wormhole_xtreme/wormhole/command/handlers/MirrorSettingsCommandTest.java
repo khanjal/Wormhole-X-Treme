@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static com.wormhole_xtreme.wormhole.utils.ChatMatchers.plainContains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,6 +26,9 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.window.Captures;
+import com.wormhole_xtreme.wormhole.model.window.Place;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorAccess;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.utils.ChatText;
@@ -64,6 +68,7 @@ class MirrorSettingsCommandTest
     void tearDown() throws Exception
     {
         MirrorManager.clear();
+        Captures.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -146,6 +151,163 @@ class MirrorSettingsCommandTest
 
         assertEquals("hub", MirrorManager.byName("museum").start(),
             "a named mirror's setting does not depend on where anybody is standing");
+    }
+
+    /**
+     * {@code -follow on} is saved and survives a restart, and with no capture of the room yet the
+     * banner is left alone and the reply says why (#613).
+     */
+    @Test
+    void followIsSavedAndLeavesTheBannerAloneWithoutACapture()
+    {
+        pointMuseum();
+        run("mirror", "set", "museum", "-follow", "on");
+
+        verify(sender, atLeastOnce()).sendMessage(plainContains("'museum's banner follows its own room now"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("There is no capture of its own room to read yet"));
+        MirrorManager.clear();
+        MirrorYamlManager.loadAll();
+        assertTrue(MirrorManager.byName("museum").follows());
+
+        run("mirror", "set", "museum", "-follow", "off");
+        assertFalse(MirrorManager.byName("museum").follows());
+    }
+
+    /** A follow with no on or off is a usage line, not a guess. */
+    @Test
+    void followWithoutOnOrOffChangesNothing()
+    {
+        run("mirror", "set", "museum", "-follow");
+        run("mirror", "set", "museum", "-follow", "maybe");
+
+        assertFalse(MirrorManager.byName("museum").follows());
+        verify(sender, atLeastOnce()).sendMessage(plainContains("-follow <on|off>"));
+    }
+
+    /**
+     * A new start re-stamps a following banner, and leaves an ordinary one alone.
+     *
+     * <p>The waiting reply is the sign a re-stamp was tried: the start's room has no capture here.
+     */
+    @Test
+    void aNewStartReStampsOnlyAFollowingBanner()
+    {
+        pointMuseum();
+        MirrorManager.add(new QuantumMirror("hub", new BlockPlace("world", 5, 64, 5),
+            new Place("world", 5.5, 62, 6.5, 0f, 0f)));
+        run("mirror", "set", "museum", "-start", "hub");
+        verify(sender, never()).sendMessage(plainContains("There is no capture"));
+
+        MirrorManager.add(MirrorManager.byName("museum").withFollows(true));
+        run("mirror", "set", "museum", "-start", "hub");
+        verify(sender, atLeastOnce()).sendMessage(plainContains("There is no capture of 'hub's room to read yet"));
+    }
+
+    /** The list says which banners follow. */
+    @Test
+    void listsAFollowingBanner()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withFollows(true));
+        run("mirror", "list");
+
+        verify(sender, atLeastOnce()).sendMessage(contains("(banner follows)"));
+    }
+
+    /**
+     * {@code -group}, {@code -hidden} and {@code -private} are saved and survive a restart (#280).
+     *
+     * <p>Through the real file: a mirror that forgot its group on a restart would quietly start
+     * listing every public mirror again, which is the museum wing showing the survival hub.
+     */
+    @Test
+    void groupHiddenAndPrivateSurviveARestart()
+    {
+        run("mirror", "set", "museum", "-group", "Wing");
+        run("mirror", "set", "museum", "-hidden", "on");
+        run("mirror", "set", "museum", "-private", "on");
+
+        MirrorManager.clear();
+        MirrorYamlManager.loadAll();
+
+        final QuantumMirror museum = MirrorManager.byName("museum");
+        assertEquals("Wing", museum.access().group());
+        assertTrue(museum.access().hidden(), "hidden should be read back");
+        assertTrue(museum.access().restricted(), "private should be read back");
+        verify(sender, atLeastOnce()).sendMessage(plainContains("'museum' is in the group 'Wing' now"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("listed only for players with wormhole.mirror.private"));
+    }
+
+    /** {@code -none} takes a mirror out of its group, and off turns each flag back off. */
+    @Test
+    void noneAndOffPutAMirrorBackOnThePublicNetwork()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withAccess(new MirrorAccess("wing", true, true)));
+
+        run("mirror", "set", "museum", "-group", "-none");
+        run("mirror", "set", "museum", "-hidden", "off");
+        run("mirror", "set", "museum", "-private", "off");
+
+        assertEquals(MirrorAccess.OPEN, MirrorManager.byName("museum").access());
+    }
+
+    /**
+     * A group named with a dash is refused, since a dash marks an option.
+     *
+     * <p>Otherwise {@code -group -hidden} would put the mirror in a group called "-hidden".
+     */
+    @Test
+    void aGroupStartingWithADashIsRefused()
+    {
+        run("mirror", "set", "museum", "-group", "-hidden");
+
+        assertEquals(MirrorAccess.OPEN, MirrorManager.byName("museum").access());
+        verify(sender, atLeastOnce()).sendMessage(plainContains("A group's name cannot start with -"));
+    }
+
+    /** A flag with no on or off, or a group with no name, is a usage line, not a guess. */
+    @Test
+    void aFlagWithoutOnOrOffChangesNothing()
+    {
+        run("mirror", "set", "museum", "-hidden");
+        run("mirror", "set", "museum", "-private", "maybe");
+        run("mirror", "set", "museum", "-group");
+
+        assertEquals(MirrorAccess.OPEN, MirrorManager.byName("museum").access());
+        verify(sender, atLeastOnce()).sendMessage(plainContains("-hidden <on|off>"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("-private <on|off>"));
+        verify(sender, atLeastOnce()).sendMessage(plainContains("-group <group|-none>"));
+    }
+
+    /**
+     * A name with no value after it is the name, not the value (#280).
+     *
+     * <p>{@code set museum -group} would otherwise shift to {@code -group museum}: the banner
+     * being looked at put in a group called "museum". Here nothing is looked at, so that reading
+     * asks the player to look at a banner instead of saying the form.
+     */
+    @Test
+    void aNameAloneBeforeAValuedPropertyIsNotTakenAsItsValue()
+    {
+        run("mirror", "set", "museum", "-group");
+
+        verify(sender, atLeastOnce()).sendMessage(plainContains("set [<name>] -group <group|-none>"));
+        verify(sender, never()).sendMessage(plainContains("Look at the banner you want to use"));
+    }
+
+    /** The list says which group a mirror is in, and which are hidden or private. */
+    @Test
+    void listsTheGroupAndTheFlags()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withAccess(new MirrorAccess("wing", true, true)));
+        run("mirror", "list");
+
+        verify(sender, atLeastOnce()).sendMessage(contains("(group wing) (hidden) (private)"));
+    }
+
+    /** Gives museum its room, so it has a capture key to wait on. */
+    private static void pointMuseum()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withDestination(new Place("world", 1.5, 62, 2.5, 0f, 0f)));
     }
 
     private boolean run(final String... args)

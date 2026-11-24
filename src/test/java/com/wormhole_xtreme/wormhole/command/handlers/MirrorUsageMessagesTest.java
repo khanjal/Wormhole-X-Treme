@@ -107,7 +107,7 @@ class MirrorUsageMessagesTest
     @Test
     void setWithNoPropertyAnswersWithItsUsage()
     {
-        assertSays(BASE + "set [<name>] <-stamp|-start|-capture> ...", MIRROR, SET);
+        assertSays(BASE + "set [<name>] <-stamp|-start|-capture|-follow|-group|-hidden|-private> ...", MIRROR, SET);
     }
 
     @Test

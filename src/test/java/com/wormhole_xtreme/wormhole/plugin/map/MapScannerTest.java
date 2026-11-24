@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -20,6 +21,7 @@ import com.wormhole_xtreme.wormhole.model.StargateNetwork;
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPoint;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorAccess;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
@@ -425,6 +427,25 @@ class MapScannerTest
         assertEquals(3.5, mark.x(), 1e-9, "the banner block's centre");
         assertEquals(65.5, mark.y(), 1e-9);
         assertEquals(-6.5, mark.z(), 1e-9);
+    }
+
+    /**
+     * A hidden or private mirror is left off the web map, which anybody can open (#280).
+     *
+     * <p>Otherwise the map would show every visitor the staff mirror a right-click hides from them.
+     */
+    @Test
+    void aHiddenOrPrivateMirrorIsNotMarked()
+    {
+        final QuantumMirror hall = new QuantumMirror("Hall", new BlockPlace("world", 3, 65, -7), null);
+        final QuantumMirror staff = hall.withName("Staff").withAccess(new MirrorAccess(null, false, true));
+        final QuantumMirror back = hall.withName("Back").withAccess(new MirrorAccess("wing", true, false));
+        final QuantumMirror wing = hall.withName("Wing").withAccess(new MirrorAccess("wing", false, false));
+
+        final MapSnapshot snapshot = MapScanner.scan(List.of(), List.of(), List.of(),
+            List.of(hall, staff, back, wing), MapLayers.ALL);
+
+        assertEquals(Set.of("hall", "wing"), snapshot.mirrors().keySet(), "a group alone still shows");
     }
 
     /** One of everything, for the layer tests. */

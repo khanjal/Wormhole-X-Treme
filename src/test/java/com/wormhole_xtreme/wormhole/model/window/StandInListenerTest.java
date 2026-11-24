@@ -26,7 +26,9 @@ import java.util.function.Function;
 
 import org.bukkit.Server;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Slime;
+import org.bukkit.entity.Vehicle;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -47,6 +49,11 @@ import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.vehicle.VehicleDamageEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
+import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
+import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
@@ -111,6 +118,74 @@ class StandInListenerTest
             StandInListener::onTargetAgain);
     }
 
+    /**
+     * A boat or minecart stand-in (#296, step 1b) is not hurt, broken, boarded, left or bumped, and a
+     * real vehicle is: a creative player breaks a real boat in one hit, and a stand-in's would drop
+     * one.
+     */
+    @Test
+    void whatWouldActOnAVehicleStandInIsRefusedAndOnARealVehicleIsNot()
+    {
+        final Minecart cartStandIn = cart();
+        final Minecart realCart = cart();
+        StandIns.track(cartStandIn);
+        try
+        {
+            check("damage to a vehicle", VehicleDamageEvent.class, VehicleDamageEvent::getVehicle,
+                StandInListener::onVehicleDamage, cartStandIn, realCart);
+            check("breaking a vehicle", VehicleDestroyEvent.class, VehicleDestroyEvent::getVehicle,
+                StandInListener::onVehicleDestroy, cartStandIn, realCart);
+            check("vehicle damage another plugin uncancelled", VehicleDamageEvent.class, VehicleDamageEvent::getVehicle,
+                StandInListener::onVehicleDamageAgain, cartStandIn, realCart);
+            check("breaking another plugin uncancelled", VehicleDestroyEvent.class, VehicleDestroyEvent::getVehicle,
+                StandInListener::onVehicleDestroyAgain, cartStandIn, realCart);
+            checkEither("boarding", VehicleEnterEvent.class, VehicleEnterEvent::getVehicle, VehicleEnterEvent::getEntered,
+                StandInListener::onVehicleEnter, cartStandIn, realCart);
+            checkEither("leaving", VehicleExitEvent.class, VehicleExitEvent::getVehicle, VehicleExitEvent::getExited,
+                StandInListener::onVehicleExit, cartStandIn, realCart);
+            checkEither("a bump", VehicleEntityCollisionEvent.class, VehicleEntityCollisionEvent::getVehicle,
+                VehicleEntityCollisionEvent::getEntity, StandInListener::onVehicleBump, cartStandIn, realCart);
+        }
+        finally
+        {
+            StandIns.untrack(cartStandIn);
+        }
+    }
+
+    /**
+     * An event about a vehicle and somebody else is refused when either is a stand-in, and left
+     * when neither is: a real boat bumping a mob's stand-in would pick it up.
+     */
+    private <E extends Cancellable, R extends Entity> void checkEither(final String what, final Class<E> type,
+        final Function<E, ? extends Vehicle> vehicle, final Function<E, R> other, final BiConsumer<StandInListener, E> handler,
+        final Vehicle vehicleStandIn, final Vehicle realVehicle)
+    {
+        final E standInVehicle = mock(type);
+        when(vehicle.apply(standInVehicle)).thenAnswer(ignored -> vehicleStandIn);
+        when(other.apply(standInVehicle)).thenAnswer(ignored -> real);
+        final E standInAboard = mock(type);
+        when(vehicle.apply(standInAboard)).thenAnswer(ignored -> realVehicle);
+        when(other.apply(standInAboard)).thenAnswer(ignored -> standIn);
+        final E neither = mock(type);
+        when(vehicle.apply(neither)).thenAnswer(ignored -> realVehicle);
+        when(other.apply(neither)).thenAnswer(ignored -> real);
+
+        handler.accept(listener, standInVehicle);
+        handler.accept(listener, standInAboard);
+        handler.accept(listener, neither);
+
+        verify(standInVehicle, description(what + " of a vehicle stand-in")).setCancelled(true);
+        verify(standInAboard, description(what + " by a mob's stand-in")).setCancelled(true);
+        verify(neither, never().description(what + " between real ones")).setCancelled(anyBoolean());
+    }
+
+    private static Minecart cart()
+    {
+        final Minecart cart = mock(Minecart.class);
+        when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
+        return cart;
+    }
+
     /** A stand-in killed anyway, by a command, drops nothing; a real creature's drops are left. */
     @Test
     void aStandInKilledAnywayDropsNothing()
@@ -168,17 +243,19 @@ class StandInListenerTest
                 }
             }
         }
-        assertEquals(19, handlers, "every handler counted, so a renamed one is not skipped");
-        assertEquals(11, refusals, "the eleven that cancel first");
-        assertEquals(2, again, "the two that cancel again last");
+        assertEquals(26, handlers, "every handler counted, so a renamed one is not skipped");
+        assertEquals(16, refusals, "the sixteen that cancel first");
+        assertEquals(4, again, "the four that cancel again last");
     }
 
     /** The handlers that cancel an event about a stand-in. */
     private static final Set<String> REFUSALS = Set.of("onDamage", "onInteract", "onInteractAt", "onCombust", "onTransform",
-        "onTarget", "onPress", "onPortal", "onDrop", "onChangeBlock", "onForm");
+        "onTarget", "onPress", "onPortal", "onDrop", "onChangeBlock", "onForm", "onVehicleEnter", "onVehicleExit",
+        "onVehicleDamage", "onVehicleDestroy", "onVehicleBump");
 
     /** The handlers that cancel again, last. */
-    private static final Set<String> AGAIN = Set.of("onDamageAgain", "onTargetAgain");
+    private static final Set<String> AGAIN = Set.of("onDamageAgain", "onTargetAgain", "onVehicleDamageAgain",
+        "onVehicleDestroyAgain");
 
     /**
      * No handler is for an event this server deprecates: the server warns about one at startup, and
@@ -198,7 +275,7 @@ class StandInListenerTest
                     method.getName() + " handles a deprecated event, which the server warns about at startup");
             }
         }
-        assertEquals(19, handlers, "every annotated handler looked at");
+        assertEquals(26, handlers, "every annotated handler looked at");
         assertFalse(StandInListener.splitEvent(StandInListenerTest::classNamed).isAnnotationPresent(Deprecated.class),
             "nor the split event registered by hand");
     }

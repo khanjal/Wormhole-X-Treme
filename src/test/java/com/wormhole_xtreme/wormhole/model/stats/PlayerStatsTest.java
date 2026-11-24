@@ -75,12 +75,11 @@ class PlayerStatsTest
     void eachCounterCountsForItsOwnPlayerOnly()
     {
         count(ALICE, Counter.TRIPS, 3);
-        count(ALICE, Counter.GATES_BUILT, 2);
         count(BOB, Counter.RINGS, 2);
         count(BOB, Counter.BEAMS, 3);
 
-        assertEquals(new Counts(3, 2, 0, 0), PlayerStats.of(ALICE));
-        assertEquals(new Counts(0, 0, 2, 3), PlayerStats.of(BOB));
+        assertEquals(new Counts(3, 0, 0), PlayerStats.of(ALICE));
+        assertEquals(new Counts(0, 2, 3), PlayerStats.of(BOB));
     }
 
     @Test
@@ -94,20 +93,20 @@ class PlayerStatsTest
     void savedCountsLoadBackForTheSamePlayers() throws Exception
     {
         count(ALICE, Counter.TRIPS, 3);
-        count(ALICE, Counter.GATES_BUILT, 2);
         count(ALICE, Counter.RINGS, 4);
         count(ALICE, Counter.BEAMS, 5);
         count(BOB, Counter.BEAMS, 2);
         assertTrue(PlayerStats.saveIfChanged(), "something was counted, so the file is written");
 
         final String text = Files.readString(DataLayout.statsFile().toPath(), StandardCharsets.UTF_8);
-        assertTrue(text.contains("gates-built: 2"), "written under the key the docs name: " + text);
+        assertTrue(text.contains("rings: 4"), "written under the key the docs name: " + text);
+        assertFalse(text.contains("gates-built"), "gates built is read off the gates, not stored: " + text);
 
         PlayerStats.clear();
         assertEquals(2, PlayerStats.load(), "both players come back");
 
-        assertEquals(new Counts(3, 2, 4, 5), PlayerStats.of(ALICE));
-        assertEquals(new Counts(0, 0, 0, 2), PlayerStats.of(BOB));
+        assertEquals(new Counts(3, 4, 5), PlayerStats.of(ALICE));
+        assertEquals(new Counts(0, 0, 2), PlayerStats.of(BOB));
     }
 
     @Test

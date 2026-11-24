@@ -20,6 +20,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.window.BlockPlace;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorAccess;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
@@ -159,6 +160,38 @@ class MirrorTabCompletionTest
         assertTrue(complete("mirror", "set", "-start", "").contains("-none"), "looking at the banner, the start is the first word");
         assertTrue(complete("mirror", "set", "museum", "-start", "").contains("lobby"), "then the start");
         assertTrue(complete("mirror", "set", "museum", "-start", "").contains("-none"));
+    }
+
+    /** follow takes on or off, after the optional name (#613). */
+    @Test
+    void followCompletesOnAndOff()
+    {
+        assertTrue(complete("mirror", "set", "").contains("-follow"));
+        assertTrue(complete("mirror", "set", "-follow", "").contains("on"), "looking at the banner, the setting is the first word");
+        assertEquals(List.of("off"), complete("mirror", "set", "museum", "-follow", "of"));
+    }
+
+    /** hidden and private take on or off, and group the groups in use and -none (#280). */
+    @Test
+    void groupHiddenAndPrivateCompleteTheirValues()
+    {
+        assertTrue(complete("mirror", "set", "").containsAll(List.of("-group", "-hidden", "-private")));
+        assertEquals(List.of("off"), complete("mirror", "set", "museum", "-hidden", "of"));
+        assertTrue(complete("mirror", "set", "-private", "").contains("on"));
+        assertTrue(complete("mirror", "set", "museum", "-group", "").contains("-none"));
+    }
+
+    /** A group typed in two cases is one group, so it is offered once. */
+    @Test
+    void aGroupIsOfferedOnceWhateverItsCase()
+    {
+        MirrorManager.add(MirrorManager.byName("museum").withAccess(new MirrorAccess("Wing", false, false)));
+        MirrorManager.add(MirrorManager.byName("lobby").withAccess(new MirrorAccess("wing", false, false)));
+
+        final List<String> offered = complete("mirror", "set", "museum", "-group", "");
+        assertEquals(2, offered.size(), "one spelling of the group, and -none: " + offered);
+        assertTrue(offered.contains("-none"));
+        assertTrue(offered.contains("Wing") || offered.contains("wing"), "the group itself: " + offered);
     }
 
     /**

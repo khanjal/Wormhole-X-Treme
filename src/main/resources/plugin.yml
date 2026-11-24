@@ -63,6 +63,9 @@ permissions:
   wormhole.config:
     description: Allow changing settings, managing any gate and the mirror commands; also lists gates and breaks any gate. An owner may edit their gate's idc without it.
     default: op
+  wormhole.mirror.private:
+    description: Allow seeing private mirrors in a mirror's right-click list, and going through one to them.
+    default: op
   wormhole.update.notify:
     description: Be told when a newer Wormhole X-Treme release is available, on joining.
     default: op
@@ -103,7 +106,7 @@ permissions:
     description: Allow /wormhole go <gate>. gate go needs wormhole.config.
     default: false
   wormhole.stats:
-    description: Allow seeing your own lifetime trips, gates built, ring trips and beams with /wormhole stats.
+    description: Allow seeing your own lifetime trips, ring trips and beams, and the gates you own with /wormhole stats.
     default: true
   wormhole.stats.others:
     description: Allow seeing another player's stats with /wormhole stats <player>.
@@ -111,6 +114,9 @@ permissions:
   wormhole.export:
     description: Allow writing the gates out as a database for the older Wormhole X-Treme plugins with /wormhole export.
     default: op
+  wormhole.view.netherportal:
+    description: Allow being drawn the far side through a nether portal, with nether-portal-views on. Only a picture; travel is not affected.
+    default: true
   wormhole.freya:
     description: Allow the hidden cosmetic commands.
     default: true

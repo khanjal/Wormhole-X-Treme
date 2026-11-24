@@ -41,6 +41,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Boat;
+import org.bukkit.entity.ChestBoat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Ghast;
@@ -49,11 +51,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
 import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Zombie;
+import org.bukkit.entity.minecart.ExplosiveMinecart;
+import org.bukkit.entity.minecart.RideableMinecart;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,6 +89,8 @@ class StandInsTest
     private static final Place ARRIVAL = new Place("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
 
     private final List<Entity> made = new ArrayList<>();
+    /** What each stand-in was asked to be made as. */
+    private final List<Class<?>> kinds = new ArrayList<>();
     private Entity nextCopy;
     private WormholeXTreme plugin;
     private World here;
@@ -135,6 +142,7 @@ class StandInsTest
             public <T extends Entity> T create(final World world, final Location at, final Class<T> type)
             {
                 final Entity copy = nextCopy;
+                kinds.add(type);
                 if (copy != null)
                 {
                     made.add(copy);
@@ -197,6 +205,101 @@ class StandInsTest
         verify(viewer).showEntity(plugin, copy);
         assertTrue(StandIns.isStandIn(copy), "known for a stand-in, so nothing veils or copies it");
         assertSame(copy, view.standIns.get(original.getUniqueId()).copy, "held by the viewer's drawing");
+    }
+
+    /**
+     * A TNT cart's stand-in is a plain, empty cart that stays where it is put, inert and tagged like a
+     * mob's (#296, step 1b): with gravity or a top speed it would roll along whatever rail is behind
+     * the wall, and as a TNT cart it could be lit.
+     */
+    @Test
+    void aMinecartsStandInIsAPlainInertCartThatDoesNotRoll()
+    {
+        final ExplosiveMinecart original = creature(ExplosiveMinecart.class, 100.5, 70.0, -18.5);
+        final RideableMinecart copy = copy(RideableMinecart.class);
+        nextCopy = copy;
+
+        StandIns.show(viewer, view, List.of(wanted(original)), 0L);
+
+        assertEquals(List.of(RideableMinecart.class), kinds, "spawned as a plain cart, never as a TNT cart");
+        verify(copy).setPersistent(false);
+        verify(copy).setVisibleByDefault(false);
+        verify(copy).setSilent(true);
+        verify(copy).setInvulnerable(true);
+        verify(copy).setGravity(false);
+        verify(copy).addScoreboardTag(StandIns.TAG);
+        verify(copy).setMaxSpeed(0.0);
+        verify(copy).setVelocity(new Vector());
+        verify(copy).setFlyingVelocityMod(new Vector());
+        verify(copy).setDerailedVelocityMod(new Vector());
+        verify(viewer).showEntity(plugin, copy);
+        assertTrue(StandIns.isStandIn(copy), "in the one registry, so every cleanup path takes it away");
+    }
+
+    /**
+     * A cart stand-in moved off its place, by a rail or anything else, is put back at the next follow,
+     * though its own cart has not moved: the follow task is what holds it.
+     */
+    @Test
+    void aCartStandInFoundElsewhereIsPutBackAtTheNextFollow()
+    {
+        final RideableMinecart original = creature(RideableMinecart.class, 100.5, 70.0, -18.5);
+        final RideableMinecart copy = copy(RideableMinecart.class);
+        nextCopy = copy;
+        StandIns.show(viewer, view, List.of(wanted(original)), 0L);
+        final Location place = wanted(original).here();
+        when(copy.getLocation()).thenReturn(new Location(here, place.getX() + 0.4, place.getY(), place.getZ()));
+
+        StandIns.follow(view);
+
+        verify(copy).teleport(place);
+    }
+
+    /**
+     * A chest boat's stand-in is the plain boat of its wood with no chest, and up to 1.21.1, where the
+     * wood is a setting rather than the type, the wood is copied. Through the methods by name, as the
+     * plugin calls them: deprecated from 1.21.3.
+     */
+    @Test
+    void aChestBoatsStandInIsAPlainBoatOfItsWood() throws ReflectiveOperationException
+    {
+        final EntityType chestBoat = entityType("CHEST_BOAT", "OAK_CHEST_BOAT");
+        final ChestBoat original = creature(ChestBoat.class, 100.5, 70.0, -18.5);
+        when(original.getType()).thenReturn(chestBoat);
+        final Method getBoatType = Boat.class.getMethod("getBoatType");
+        final Object birch = getBoatType.getReturnType().getEnumConstants()[2];
+        when(getBoatType.invoke(original)).thenReturn(birch);
+        final Class<? extends Entity> plain = EntityType.valueOf(chestBoat.name().replace("CHEST_", "")).getEntityClass();
+        final Boat copy = (Boat) copy(plain);
+        nextCopy = copy;
+
+        StandIns.show(viewer, view, List.of(wanted(original)), 0L);
+
+        assertEquals(List.of(plain), kinds,
+            "the boat without its chest");
+        verify(copy).setGravity(false);
+        verify(copy).setVelocity(new Vector());
+        if ("CHEST_BOAT".equals(chestBoat.name()))
+        {
+            Boat.class.getMethod("setBoatType", getBoatType.getReturnType()).invoke(verify(copy), birch);
+        }
+    }
+
+    /** The first of these entity types this API has. */
+    private static EntityType entityType(final String... names)
+    {
+        for (final String name : names)
+        {
+            try
+            {
+                return EntityType.valueOf(name);
+            }
+            catch (final IllegalArgumentException notHere)
+            {
+                // The next name.
+            }
+        }
+        throw new IllegalStateException("none of these on this API");
     }
 
     /** A sheep's stand-in is the colour of its sheep, not the white a fresh one is. */
@@ -1253,6 +1356,62 @@ class StandInsTest
         when(player.getGameMode()).thenReturn(GameMode.SURVIVAL);
         when(viewer.canSee(player)).thenReturn(true);
         return player;
+    }
+
+    /**
+     * A stand-in in a reflection follows its creature flipped across the wall, in the viewer's own world,
+     * and goes by the same paths as any other: a quit, a death or a change of world, and the plugin stopping
+     * (#296, step 3).
+     *
+     * <p>The creature and its stand-in share a world here, so a follow that judged the far world by
+     * anything but the capture's name would drop it at once.
+     */
+    @Test
+    void aReflectionsStandInFollowsFlippedAndGoesTheWayEveryOtherDoes()
+    {
+        when(here.getName()).thenReturn("world");
+        final Place room = new Place("world", 10.5, 63.0, 10.5, 180.0f, 0.0f);
+        final WindowShape shape = WindowShape.of(new BlockPlace("world", 10, 64, 10), BlockFace.NORTH, room, true);
+        final MirrorSource source = new MirrorSource(new QuantumMirror("hall", new BlockPlace("world", 10, 64, 10), room),
+            mock(Block.class), shape, List.of(new Spot(10, 63, 11), new Spot(10, 64, 11)), 16);
+        final WindowState reflection = new WindowState(source,
+            new Capture.Builder("world", true, new Capture.Box(0, 54, -10, 20, 74, 10), mock(BlockData.class)).build());
+        final Zombie original = creature(Zombie.class, 10.5, 63.0, 7.5);
+        when(original.getLocation()).thenReturn(new Location(here, 10.5, 63.0, 7.5, 0.0f, 0.0f));
+        final Zombie copy = copy(Zombie.class);
+        nextCopy = copy;
+        StandIns.show(viewer, view, List.of(new FarCreatures.Wanted(original,
+            FarCreatures.hereOf(here, shape, original.getLocation()), reflection)), 0L);
+        // Two steps nearer the mirror, still looking south into it.
+        when(original.getLocation()).thenReturn(new Location(here, 10.5, 63.0, 9.5, 0.0f, 0.0f));
+
+        StandIns.follow(view);
+
+        final ArgumentCaptor<Location> to = ArgumentCaptor.forClass(Location.class);
+        verify(copy).teleport(to.capture());
+        assertEquals(13.5, to.getValue().getZ(), 1.0e-9, "two steps nearer the wall from behind it, as it came two nearer in front");
+        assertEquals(180.0f, Math.abs(to.getValue().getYaw()), 1.0e-3f, "facing north, out of the mirror");
+
+        final UUID id = viewer.getUniqueId();
+        WindowStore.VIEWS.put(id, view);
+        try
+        {
+            Windows.dropStandIns(id);
+        }
+        finally
+        {
+            WindowStore.VIEWS.remove(id);
+        }
+        verify(copy).remove();
+        assertTrue(view.standIns.isEmpty(), "a quit, death or change of world takes it");
+
+        final Zombie another = copy(Zombie.class);
+        nextCopy = another;
+        StandIns.show(viewer, view, List.of(new FarCreatures.Wanted(original,
+            FarCreatures.hereOf(here, shape, original.getLocation()), reflection)), 0L);
+        StandIns.removeEverything();
+        verify(another).remove();
+        assertEquals(0, StandIns.count(), "and stopping takes every one");
     }
 
     private FarCreatures.Wanted wanted(final Entity original)

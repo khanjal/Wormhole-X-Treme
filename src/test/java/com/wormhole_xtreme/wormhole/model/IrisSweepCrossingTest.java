@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -801,7 +802,7 @@ class IrisSweepCrossingTest
     /** The private record of what the sweeps have drawn whom. */
     private static Map<UUID, Map<String, Map<Integer, IrisLayering.Placement>>> swept() throws ReflectiveOperationException
     {
-        return PrivateStatics.of(StargateBlockSetup.class, "SWEPT");
+        return PrivateStatics.of(ViewerIrisSweep.class, "SWEPT");
     }
 
     /** Whether a viewer has a sweep record for the fixture's gate. */
@@ -871,6 +872,17 @@ class IrisSweepCrossingTest
         StargateBlockSetup.sendLayeredTo(viewer, gate);
 
         assertFalse(recorded(viewer), "the whole draw says what they hold now");
+    }
+
+    /** A take-back drops the record too: it hands back every layer the record says they hold. */
+    @Test
+    void aTakeBackDropsTheRecord() throws ReflectiveOperationException
+    {
+        final Player viewer = midClose();
+
+        StargateBlockSetup.takeBackLayers(gate);
+
+        assertFalse(recorded(viewer), "nothing is drawn either side of the ring for them now");
     }
 
     /**
@@ -981,7 +993,7 @@ class IrisSweepCrossingTest
             "past the reach from the gate's first cell, or this proves nothing");
         assertTrue(new Location(world, 2, 66, 63.9).distance(corner) <= 64, "and within it from the ring's");
 
-        StargateBlockSetup.sweepRing(gate, List.of(corner), Material.YELLOW_STAINED_GLASS, true);
+        ViewerIrisSweep.sweepRing(gate, List.of(corner), Material.YELLOW_STAINED_GLASS, true);
 
         verify(viewer).sendBlockChange(argThat(at -> (at.getBlockX() == 2) && (at.getBlockY() == 66)
             && (at.getBlockZ() == -1)), argThat(d -> (d == ice) || (d == packed)));
@@ -1217,6 +1229,128 @@ class IrisSweepCrossingTest
         assertEquals(cellsOf(rings.get(0), rings.get(1)), rearPlane.showingAt(0, glass), "and behind, the same two");
         assertEquals(List.of(), rearPlane.showingAt(1, glass), "with no iris drawn beyond the ring behind");
         assertEquals(List.of(), iced(frontPlane), "and no wormhole behind it in front");
+    }
+
+    /**
+     * A viewer out of range while somebody else watches is sent nothing, and their record still loses the cells
+     * that opened meanwhile.
+     *
+     * <p>With nobody near at all a step only forgets; with somebody near it draws for them and forgets for the
+     * rest. A viewer away for that step and back in front for the next must not be drawn the wormhole behind a ring
+     * that opened while they were gone, and must not be drawn anything while they are away.
+     */
+    @Test
+    void aViewerOutOfRangeWhileAnotherWatchesIsSentNothingAndDrawnNoLayerBehindCellsThatOpenedMeanwhile()
+    {
+        final Player anchor = viewerAt(FRONT);
+        final Player viewer = viewerAt(BEHIND);
+        watching(anchor, viewer);
+        final FarPlane plane = new FarPlane(viewer);
+        final List<List<String>> rings = rings(false);
+        startSweep(false);
+        assertEquals(List.of(), iced(plane), "behind, nothing is drawn a block behind the ring");
+        stand(viewer, -200.5);
+        step();
+        verify(viewer, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+
+        stand(viewer, FRONT);
+        step();
+
+        assertEquals(List.of(), iced(plane),
+            "every ring is open, so nothing behind any of them, the one that opened while away too: " + rings.get(1));
+    }
+
+    /**
+     * Walking round to the back mid-close gives the covered ring back to the wormhole, not the iris again.
+     *
+     * <p>Closing, a step draws the ring it covers as the iris; a ring that loses the iris because its viewer walked
+     * round is a different thing, and gets the wormhole. Mixing the two up redrew the iris over a viewer behind.
+     */
+    @Test
+    void walkingRoundToTheBackMidCloseGivesTheCoveredRingBackToTheWormhole()
+    {
+        final Player viewer = viewerAt(FRONT);
+        watching(viewer);
+        final FarPlane plane = new FarPlane(viewer);
+        final List<List<String>> rings = rings(true);
+        gate.toggleIrisActive(false);
+        assertEquals(cellsOf(rings.get(0)), plane.showingAt(0, glass), "in front, the first ring has the iris");
+
+        stand(viewer, BEHIND);
+        step();
+
+        assertEquals(List.of(), plane.showingAt(0, glass), "behind now, no iris left in the ring");
+        assertEquals(cellsOf(rings.get(0), rings.get(1), rings.get(2)), plane.showingAt(0, water),
+            "every cell of the ring is the wormhole, the first ring's given back to it");
+    }
+
+    /**
+     * A gate whose opening shrank mid-sweep goes on sweeping, for whoever is near and whoever is not.
+     *
+     * <p>A viewer's record is indexed by the opening's cells when it was filed. Read against a smaller opening, an
+     * index past its end has no cell to hand back or forget, and asking for one threw out of the sweep's step.
+     */
+    @Test
+    void aGateWhoseOpeningShrankMidSweepGoesOnSweeping()
+    {
+        final Player anchor = viewerAt(FRONT);
+        final Player viewer = viewerAt(FRONT);
+        watching(anchor, viewer);
+        final FarPlane plane = new FarPlane(anchor);
+        startSweep(false);
+        final List<Location> opening = gate.getGatePortalBlocks();
+        opening.subList(opening.size() - 5, opening.size()).clear();
+        stand(viewer, 200.5);
+
+        step();
+        gate.toggleIrisActive(false);
+
+        assertTrue(StargateIrisAnimator.isSweeping(gate), "the closing started");
+        assertFalse(iced(plane).isEmpty(), "and drew the wormhole behind its first ring for the viewer near");
+    }
+
+    /**
+     * A closing sweep starts with nothing covered for anybody, whatever an earlier sweep left on record.
+     *
+     * <p>The record says where each viewer's far layer is. Kept into a closing, cells it has not reached would be
+     * taken for covered, and moved as if they held a layer they were handed back at the start.
+     */
+    @Test
+    void aClosingSweepStartsWithNothingOnRecord() throws ReflectiveOperationException
+    {
+        final Player viewer = midClose();
+
+        ViewerIrisSweep.startHorizonSweep(gate, true);
+
+        assertFalse(recorded(viewer), "the closing starts from nothing covered");
+    }
+
+    /**
+     * An opening step shows a viewer with an empty record the ring as it always was.
+     *
+     * <p>Nothing on record is nothing of theirs to move, whether the record is missing or empty, so they are sent the
+     * ring the step opens and the settle does the rest.
+     */
+    @Test
+    void anOpeningStepShowsAViewerWithAnEmptyRecordTheRingOpen() throws ReflectiveOperationException
+    {
+        final Player viewer = viewerAt(FRONT);
+        watching(viewer);
+        final List<List<String>> rings = rings(false);
+        swept().put(viewer.getUniqueId(), new ConcurrentHashMap<>(
+            Map.of(gate.getGateName(), new ConcurrentHashMap<>())));
+        final List<Location> first = new ArrayList<>();
+        for (final Location cell : gate.getGatePortalBlocks())
+        {
+            if (rings.get(0).contains(cell.getBlockX() + "," + cell.getBlockY()))
+            {
+                first.add(cell);
+            }
+        }
+
+        ViewerIrisSweep.sweepRing(gate, first, Material.WATER, false);
+
+        assertEquals(cellsOf(rings.get(0)), new FarPlane(viewer).showingAt(0, water), "the ring opened, as the wormhole");
     }
 
     /** The cells covered after this step: closing, the rings so far; opening, the rings still to go. */
