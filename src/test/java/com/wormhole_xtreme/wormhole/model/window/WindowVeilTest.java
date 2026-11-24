@@ -34,7 +34,6 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
@@ -106,7 +105,7 @@ class WindowVeilTest
         final World world = mock(World.class, withSettings().stubOnly());
         final Block anchor = mock(Block.class, withSettings().stubOnly());
         when(anchor.getWorld()).thenReturn(world);
-        return new WindowState(new GateSource("gate:a", anchor, SHAPE, OPENING, null, "Chulak", 16), null);
+        return new WindowState(new FakeSource("gate:a", anchor, SHAPE, OPENING, null, 16), null);
     }
 
     private static Location eye()

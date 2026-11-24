@@ -98,7 +98,7 @@ final class MirrorSettings
     }
 
     /**
-     * Whether creatures in a mirror's or a gate's far room are shown through it, as stand-ins.
+     * Whether creatures in a mirror's far room are shown through it, as stand-ins.
      *
      * <p>False when the setting is missing, as on an upgraded server's config.yml: stand-ins are
      * real entities that other plugins see, so they are something an admin turns on.

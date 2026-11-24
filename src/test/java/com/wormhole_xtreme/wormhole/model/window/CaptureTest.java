@@ -119,47 +119,6 @@ class CaptureTest
     }
 
     /**
-     * A capture through the largest gate opening keeps every block of a floor and a wall far off,
-     * straight ahead and off to the side (#516).
-     *
-     * <p>Spread with the hole alone, the rays through a Grand or Massive gate's opening were seven
-     * degrees apart, and each point's directions started half a step in, so the ninety points' rays
-     * fell on the same few lines: a floor 64 blocks off kept under half its blocks, and, not
-     * staggered, even at two and a half degrees a wall at 160 lost a third. What was missed was left
-     * to this world, so the far side's ground came through with holes in it. The spread is bounded
-     * now, and each point's directions are staggered so they fill in between. Checked out to
-     * forty-five degrees either side, which is as far as a viewer standing back from a gate sees
-     * through it; the probe that chose the bounds looked to sixty, all of it kept.
-     */
-    @Test
-    void aCaptureThroughTheLargestGateOpeningMissesNothingFarOff()
-    {
-        final int half = 172;
-        final int wall = 160;
-        final Capture.Builder builder = floorAndWall(half, wall);
-        builder.keepOnlySeen(new Capture.Arrival(half, 1, 0, 0, 1, Captures.GATE_OPENING,
-            Captures.GATE_OPENING), wall + 70);
-
-        final Capture capture = builder.build();
-
-        final List<String> missed = new ArrayList<>();
-        for (int x = 0; x <= (2 * half); x++)
-        {
-            final int off = Math.abs(x - half);
-            for (int z = Math.max(16, off); z < wall; z++)
-            {
-                missedAt(capture, x, 0, z, "floor", missed);
-            }
-            for (int y = 1; (y <= 20) && (off <= wall); y++)
-            {
-                missedAt(capture, x, y, wall, "wall", missed);
-            }
-        }
-        assertTrue(missed.isEmpty(), missed.size() + " blocks a viewer sees were left to this world, e.g. "
-            + missed.subList(0, Math.min(5, missed.size())));
-    }
-
-    /**
      * Through a hole one short of the gates' own, seventeen square, the floor a hundred blocks out is
      * kept whole.
      *
@@ -619,45 +578,6 @@ class CaptureTest
         final Capture capture = tight.build();
         assertSame(glass, capture.at(10, 2, 5), "the room to the depth is still there");
         assertTrue(capture.isBuried(10, 2, 20), "and past the shortened reach it is left to the real world");
-    }
-
-    /**
-     * A gate's capture is cut to a budget of its own, a million blocks, where a mirror's is 500,000.
-     *
-     * <p>The cut keeps a mirror's room to about five megabytes by shortening how far it sees. A gate
-     * is seen through a far wider hole and is meant to be deep, and its view draws at most a million
-     * blocks, so none are kept past that.
-     */
-    @Test
-    void aGateCaptureIsCutToItsOwnBudgetWhereAMirrorsIsCutToAnother()
-    {
-        final int mirrorBefore = Captures.mostKept;
-        final int gateBefore = Captures.mostGateKept;
-        Captures.mostKept = 2000;
-        try
-        {
-            final Capture.Arrival arrival = new Capture.Arrival(10, 2, 0, 0, 1);
-            final Capture.Builder mirror = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
-            mirror.fillBelow(21, glass);
-            assertEquals(8, Captures.siftFor("0,0,0,world").sift(mirror, arrival, 32, 8),
-                "a mirror's capture is cut to the floor to fit its budget");
-
-            final Capture.Builder roomy = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
-            roomy.fillBelow(21, glass);
-            assertEquals(32, Captures.siftFor(Captures.gateKey("far", 18, 18)).sift(roomy, arrival, 32, 8),
-                "a gate's is not cut to a mirror's budget");
-
-            Captures.mostGateKept = 2000;
-            final Capture.Builder tight = new Capture.Builder("far", true, new Capture.Box(0, 0, 0, 21, 21, 41), air);
-            tight.fillBelow(21, glass);
-            assertEquals(8, Captures.siftFor(Captures.gateKey("far", 18, 18)).sift(tight, arrival, 32, 8),
-                "but is cut to its own");
-        }
-        finally
-        {
-            Captures.mostKept = mirrorBefore;
-            Captures.mostGateKept = gateBefore;
-        }
     }
 
     /**

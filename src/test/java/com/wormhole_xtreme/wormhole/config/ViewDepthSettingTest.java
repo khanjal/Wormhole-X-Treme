@@ -22,29 +22,15 @@ class ViewDepthSettingTest
         ConfigTestSupport.clear();
     }
 
-    /** As shipped, and missing, the depths are what the three settings defaulted to. */
+    /** As shipped, and missing, the depth is what the settings defaulted to. */
     @Test
     void theShippedDepthGivesBackTheOldDefaults()
     {
-        assertEquals(160, ConfigManager.getViewDepth(), "missing: a mirror's room and a gate's fill");
-        assertEquals(32, ConfigManager.getGateViewFirstDepth(), "missing: a gate's first step");
+        assertEquals(160, ConfigManager.getViewDepth(), "missing: a mirror's room");
 
         ConfigTestSupport.loadDefaults();
 
         assertEquals(160, ConfigManager.getViewDepth(), "as shipped");
-        assertEquals(32, ConfigManager.getGateViewFirstDepth(), "as shipped");
-    }
-
-    /** A view deeper than the first step leaves the step alone; a shallower one is the step too. */
-    @Test
-    void theFirstStepIsThirtyTwoOrTheViewIfShallower()
-    {
-        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 64);
-        assertEquals(32, ConfigManager.getGateViewFirstDepth());
-
-        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 20);
-        assertEquals(20, ConfigManager.getGateViewFirstDepth(), "never deeper than the view it starts");
-        assertEquals(20, ConfigManager.getViewDepth());
     }
 
     /** Past 160 is read as 160, and under 4 as 4, as each of the three was. */
@@ -56,6 +42,5 @@ class ViewDepthSettingTest
 
         ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 1);
         assertEquals(4, ConfigManager.getViewDepth());
-        assertEquals(4, ConfigManager.getGateViewFirstDepth());
     }
 }

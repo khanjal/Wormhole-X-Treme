@@ -38,7 +38,7 @@ public final class ConfigReload
 {
     /** Text settings whose getters read a bare off, which YAML hands over as false, as their default. */
     private static final Set<ConfigKeys> OFF_MEANS_DEFAULT =
-        EnumSet.of(ConfigKeys.GATE_VIEW, ConfigKeys.GATE_IRIS_ANIMATION);
+        EnumSet.of(ConfigKeys.GATE_IRIS_ANIMATION);
 
     /** Static helpers only. */
     private ConfigReload()

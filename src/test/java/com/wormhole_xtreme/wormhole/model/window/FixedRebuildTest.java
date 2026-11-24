@@ -43,7 +43,6 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
@@ -156,7 +155,7 @@ class FixedRebuildTest
             final int[] step = { 0 };
             return (Capture.KeptWalk) kept ->
             {
-                final Spot here = shape.behind(1 + (step[0] % 10), step[0] / 10, 1);
+                final Spot here = behind(shape, 1 + (step[0] % 10), step[0] / 10, 1);
                 final Spot far = shape.farOf(here.x(), here.y(), here.z());
                 kept.at(far.x(), far.y(), far.z(), air);
                 stepsTaken++;
@@ -179,13 +178,21 @@ class FixedRebuildTest
         return capture;
     }
 
-    private GateSource gate(final String name, final WindowShape shape)
+    /** The block a layer behind a shape's opening, in a column and a row of it. */
+    private static Spot behind(final WindowShape shape, final int layer, final int across, final int up)
+    {
+        final Spot into = shape.into();
+        return new Spot(shape.base().x() + (layer * into.x()) + (across * -into.z()),
+            shape.base().y() + up, shape.base().z() + (layer * into.z()) + (across * into.x()));
+    }
+
+    private FakeSource gate(final String name, final WindowShape shape)
     {
         final Block anchor = mock(Block.class);
         when(anchor.getWorld()).thenReturn(world);
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        return new GateSource(name, anchor, shape, open, ARRIVAL, "Chulak", 16);
+        return new FakeSource(name, anchor, shape, open, ARRIVAL, 16);
     }
 
     /** Offers windows and settles the sweep; @return the windows as held */
@@ -271,12 +278,12 @@ class FixedRebuildTest
         final WindowState chulak = settled.get("gate:Chulak");
         assertTrue(FixedView.fixedIsFresh(abydos, now) && FixedView.fixedIsFresh(chulak, now), "both fresh to begin with");
 
-        final Spot inFront = SHAPE.behind(-2, 2, 1);
+        final Spot inFront = behind(SHAPE, -2, 2, 1);
         Windows.changed(world, inFront.x(), inFront.y(), inFront.z());
         assertTrue(FixedView.fixedIsFresh(abydos, now), "a block in front of the wall is no part of the view");
         final World other = mock(World.class);
         when(other.getName()).thenReturn("world_nether");
-        final Spot behind = SHAPE.behind(6, 2, 1);
+        final Spot behind = behind(SHAPE, 6, 2, 1);
         Windows.changed(other, behind.x(), behind.y(), behind.z());
         assertTrue(FixedView.fixedIsFresh(abydos, now), "nor the same place in another world");
 
@@ -297,7 +304,7 @@ class FixedRebuildTest
         // Indexed by the next sweep, as it now holds a room.
         Windows.offer(gate("gate:Abydos", SHAPE), capture);
         final WindowState window = held().get("gate:Abydos");
-        final Spot behind = SHAPE.behind(3, 2, 1);
+        final Spot behind = behind(SHAPE, 3, 2, 1);
 
         Windows.changed(world, behind.x(), behind.y(), behind.z());
 
@@ -372,13 +379,13 @@ class FixedRebuildTest
 
         FixedRegions.index(window);
 
-        final Spot deepest = shape.behind(16, 2, 1);
-        final Spot wide = shape.behind(1, 2 + 16, 1);
+        final Spot deepest = behind(shape, 16, 2, 1);
+        final Spot wide = behind(shape, 1, 2 + 16, 1);
         assertEquals(1, deepest.z() >> 4, "sixteen deep is in the chunk past eight deep's");
         assertEquals(1, wide.x() >> 4, "sixteen to the side is in the chunk past eight's");
         assertTrue(FixedRegions.at(world, deepest.x(), deepest.z()).contains("gate:Abydos"), "sixteen deep");
         assertTrue(FixedRegions.at(world, wide.x(), wide.z()).contains("gate:Abydos"), "sixteen to the side");
-        final Spot front = shape.behind(-20, 2, 1);
+        final Spot front = behind(shape, -20, 2, 1);
         assertTrue(FixedRegions.at(world, front.x(), front.z()).isEmpty(), "twenty in front: no chunk of it");
         FixedRegions.track(List.of(window), held -> false);
         assertTrue(FixedRegions.at(world, deepest.x(), deepest.z()).isEmpty(), "forgotten once it holds no room");
@@ -483,7 +490,7 @@ class FixedRebuildTest
     private void rebuildWithAChangeDuring(final WindowState window, final long[] time, final long building)
     {
         WindowCompose.heldRoom(window, time[0], true);
-        final Spot behind = SHAPE.behind(4, 2, 1);
+        final Spot behind = behind(SHAPE, 4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
         time[0] += building;
         tick();
@@ -539,7 +546,7 @@ class FixedRebuildTest
         final WindowState window = held().get("gate:Abydos");
         WindowCompose.heldRoom(window, time[0], true);
         tick();
-        final Spot behind = SHAPE.behind(4, 2, 1);
+        final Spot behind = behind(SHAPE, 4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
         final long[] waits = new long[10];
         for (int i = 0; i < waits.length; i++)
@@ -583,7 +590,7 @@ class FixedRebuildTest
         final long now = Windows.now();
         builtAt(window, now - FixedView.REBUILD_GAP_MILLIS - 1L);
         FixedRegions.index(window);
-        final Spot behind = SHAPE.behind(4, 2, 1);
+        final Spot behind = behind(SHAPE, 4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
         Windows.changed(world, behind.x(), behind.y() + 1, behind.z());
 
@@ -612,8 +619,8 @@ class FixedRebuildTest
             builtAt(window, now - FixedView.REBUILD_GAP_MILLIS - 1L);
             FixedRegions.index(window);
             // On the opening's middle column and row: depth 16, and two more.
-            final Spot outside = shape.behind(18, 2, 2);
-            final Spot inside = shape.behind(17, 2, 2);
+            final Spot outside = behind(shape, 18, 2, 2);
+            final Spot inside = behind(shape, 17, 2, 2);
             assertEquals(outside.z() >> 4, inside.z() >> 4, "the same chunk, at " + base);
 
             Windows.changed(world, outside.x(), outside.y(), outside.z());
@@ -634,9 +641,9 @@ class FixedRebuildTest
         FixedRegions.index(window);
         final ViewChangeListener listener = new ViewChangeListener();
 
-        listener.onBreak(breaking(SHAPE.behind(-3, 2, 1)));
+        listener.onBreak(breaking(behind(SHAPE, -3, 2, 1)));
         assertTrue(FixedView.fixedIsFresh(window, now), "a block in front of the wall");
-        listener.onBreak(breaking(SHAPE.behind(5, 2, 1)));
+        listener.onBreak(breaking(behind(SHAPE, 5, 2, 1)));
         assertFalse(FixedView.fixedIsFresh(window, now), "a block behind it");
     }
 
@@ -705,7 +712,7 @@ class FixedRebuildTest
         final WindowState window = held().get("gate:Abydos");
         WindowCompose.heldRoom(window, time[0], true);
         tick();
-        final Spot behind = SHAPE.behind(4, 2, 1);
+        final Spot behind = behind(SHAPE, 4, 2, 1);
         Windows.changed(world, behind.x(), behind.y(), behind.z());
         time[0] += FixedView.REBUILD_GAP_MILLIS;
         WindowCompose.heldRoom(window, time[0], true);
@@ -780,8 +787,8 @@ class FixedRebuildTest
         builtAt(window, now - FixedView.REBUILD_GAP_MILLIS - 1L);
         window.fixedDepth = 8;
         FixedRegions.index(window);
-        final Spot past = SHAPE.behind(12, 2, 2);
-        final Spot within = SHAPE.behind(9, 2, 2);
+        final Spot past = behind(SHAPE, 12, 2, 2);
+        final Spot within = behind(SHAPE, 9, 2, 2);
 
         Windows.changed(world, past.x(), past.y(), past.z());
         assertTrue(FixedView.fixedIsFresh(window, now), "twelve deep, past a cut to eight and two");
@@ -823,7 +830,7 @@ class FixedRebuildTest
         final Block solid = mock(Block.class);
         when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(200);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(solid);
-        final Spot here = SHAPE.behind(3, 2, 1);
+        final Spot here = behind(SHAPE, 3, 2, 1);
         final Spot far = SHAPE.farOf(here.x(), here.y(), here.z());
         final Capture capture = mock(Capture.class);
         when(capture.keptWalk()).thenAnswer(call ->

@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,7 +25,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
@@ -148,13 +146,12 @@ class FixedBuildTest
     }
 
     /** A gate's five-square window at (10, 64, 20) looked into along {@code into}, onto an arrival. */
-    private WindowState window(final Spot into, final Place arrival, final Capture capture, final Funnel funnel)
+    private WindowState window(final Spot into, final Place arrival, final Capture capture)
     {
         final WindowShape plain = WindowShape.through(new Spot(10, 64, 20), into, arrival, 5, 5);
-        final WindowShape shape = (funnel == null) ? plain : plain.deeper(funnel.taper() - 1);
         final List<Spot> open = new ArrayList<>();
         plain.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        return new WindowState(new GateSource("gate:Abydos", anchor, shape, open, arrival, "Chulak", DEPTH, funnel), capture);
+        return new WindowState(new FakeSource("gate:Abydos", anchor, plain, open, arrival, DEPTH), capture);
     }
 
     /** The view built both ways, asserted the same and not trivially so. */
@@ -175,7 +172,7 @@ class FixedBuildTest
     void aViewOverWhatTheCaptureKeptHoldsTheBlocksTheOldWalkDid()
     {
         final Place south = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
-        assertBuiltAsBefore(window(new Spot(0, 0, -1), south, hillside(south, true), null), "looked into northwards");
+        assertBuiltAsBefore(window(new Spot(0, 0, -1), south, hillside(south, true)), "looked into northwards");
     }
 
     /** Through the volume, for a capture with no seen air, in which every missing block is air. */
@@ -183,7 +180,7 @@ class FixedBuildTest
     void aViewThroughTheVolumeHoldsTheBlocksTheOldWalkDid()
     {
         final Place south = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
-        assertBuiltAsBefore(window(new Spot(0, 0, -1), south, hillside(south, false), null), "looked into northwards");
+        assertBuiltAsBefore(window(new Spot(0, 0, -1), south, hillside(south, false)), "looked into northwards");
     }
 
     /** Facing every way, so the far side is turned a quarter, a half, three quarters or not at all. */
@@ -197,32 +194,8 @@ class FixedBuildTest
             for (final float yaw : yaws)
             {
                 final Place arrival = new Place("far", 100.5, 70.0, 200.5, yaw, 0.0f);
-                assertBuiltAsBefore(window(into, arrival, hillside(arrival, true), null), "into " + into + ", far yaw " + yaw);
+                assertBuiltAsBefore(window(into, arrival, hillside(arrival, true)), "into " + into + ", far yaw " + yaw);
             }
-        }
-    }
-
-    /** With a tunnel, over what was kept and through the volume: the far side shifted past it, its wall and its hollow. */
-    @Test
-    void aViewWithATunnelHoldsTheBlocksTheOldWalkDid()
-    {
-        final Place south = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
-        final WindowShape big = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), south, 5, 5);
-        final List<Spot> farCells = new ArrayList<>();
-        for (int x = 100; x <= 101; x++)
-        {
-            for (int y = 70; y <= 72; y++)
-            {
-                farCells.add(new Spot(x, y, 199));
-            }
-        }
-        final Funnel funnel = Funnel.of(big, farCells, 16, Material.WATER);
-        assertNotNull(funnel, "a five-square gate onto a two by three one has a tunnel");
-        for (final boolean seen : new boolean[] { true, false })
-        {
-            final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, seen), funnel);
-            assertBuiltAsBefore(window, "through a tunnel, " + (seen ? "over what was kept" : "through the volume"));
-            assertTrue(FixedView.fixedTo(window, DEPTH, Integer.MAX_VALUE).containsValue(water), "walled in water");
         }
     }
 
@@ -234,7 +207,7 @@ class FixedBuildTest
     void aViewPastItsLimitIsCutToTheSameDepthAndBlocks()
     {
         final Place south = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
-        final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, true), null);
+        final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, true));
         final int full = LegacyFixedView.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE).size();
         final int most = full / 3;
         final int[] depth = new int[1];
@@ -266,7 +239,7 @@ class FixedBuildTest
         final Place south = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
         for (final boolean seen : new boolean[] { true, false })
         {
-            final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, seen), null);
+            final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, seen));
             final FixedBuild build = new FixedBuild(window, DEPTH, Integer.MAX_VALUE, 0L, true);
             int most = 0;
             int steps = 0;
@@ -284,38 +257,4 @@ class FixedBuildTest
         }
     }
 
-    /**
-     * A tunnel that takes a view past its cap, the walk itself under it, is cut as the old walk cut it:
-     * the cap is checked after the tunnel, not only during the walk.
-     */
-    @Test
-    void aTunnelThatTakesTheViewPastItsCapIsCutAsBefore()
-    {
-        final Place south = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
-        final WindowShape big = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), south, 5, 5);
-        final List<Spot> farCells = new ArrayList<>();
-        for (int x = 100; x <= 101; x++)
-        {
-            for (int y = 70; y <= 72; y++)
-            {
-                farCells.add(new Spot(x, y, 199));
-            }
-        }
-        final WindowState window = window(new Spot(0, 0, -1), south, hillside(south, true),
-            Funnel.of(big, farCells, 16, Material.WATER));
-        final int whole = LegacyFixedView.fixedTo(window, DEPTH, 0L, Integer.MAX_VALUE).size();
-        final int[] depth = new int[1];
-        WindowSight.clear();
-        final Map<Long, BlockData> before = LegacyFixedView.cutToFit(window, DEPTH, 0L, whole - 1, depth);
-
-        final FixedBuild build = new FixedBuild(window, DEPTH, whole - 1, 0L, true);
-        while (!build.step())
-        {
-            // to the end
-        }
-
-        assertTrue(depth[0] < DEPTH, "one block under what it holds: cut, to " + depth[0]);
-        assertEquals(depth[0], build.depth(), "to the same depth");
-        assertEquals(before, build.view(), "holding the same blocks");
-    }
 }

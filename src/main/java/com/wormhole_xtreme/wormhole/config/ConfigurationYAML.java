@@ -256,9 +256,7 @@ public class ConfigurationYAML
     /**
      * Builds a setting from whatever type the YAML parser handed back, in the kind its default is.
      *
-     * <p>Stored as found, a value of another kind threw ClassCastException from every read: the
-     * {@code gate-view-funnel: 8} an early tunnel build appended, once the setting became a
-     * switch, took down every gate's view each sweep (#583). A value that cannot be read as its
+     * <p>Stored as found, a value of another kind threw ClassCastException from every read (#583). A value that cannot be read as its
      * setting's kind is the default, said once at startup.
      *
      * @param element
@@ -339,8 +337,8 @@ public class ConfigurationYAML
      *
      * <p>Text from anything because every text getter casts to String: {@code sign-color-gate-name: 1}
      * threw. YAML reads a bare off, on, yes or no as true or false, and those come back as
-     * {@code "false"} or {@code "true"}, not the word written: {@code gate-view: off} is then no level
-     * and reads as the default, horizon, which is what off meant, and {@code gate-dial-spin: false}
+     * {@code "false"} or {@code "true"}, not the word written: {@code gate-iris-animation: off} is then no
+     * animation and reads as the default, and {@code gate-dial-spin: false}
      * still reads as no spin.
      *
      * @param kind

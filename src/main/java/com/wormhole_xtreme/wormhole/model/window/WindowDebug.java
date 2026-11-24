@@ -134,16 +134,6 @@ public final class WindowDebug
         final boolean fixedForViewer = view.fixedNames.contains(name);
         final List<String> lines = new ArrayList<>();
         lines.add(MirrorText.field(name, howDrawn(window, fixedForViewer)));
-        if (window.walkThrough())
-        {
-            // A gate's view comes in steps, and which step it is on is the first question when it looks short.
-            final int box = reachAhead(window);
-            final int kept = window.capture.keptReach();
-            lines.add(MirrorText.field(name + " capture", "reaches " + ((kept > 0) ? Math.min(box, kept) : box) + " ahead"
-                + ((kept > 0) ? MirrorText.bad(", cut from " + box + " to fit") : "") + ", drawn to " + window.depth()
-                + " (full " + window.source.fullDepth()
-                + "), " + window.capture.secondsOld() + "s old"));
-        }
         final CreatureTally tally = view.tallies.get(name);
         if (ConfigManager.isMirrorShowEntities() && (tally != null))
         {
@@ -182,31 +172,12 @@ public final class WindowDebug
             + (FixedBuilds.building(window.name()) ? ", being built again" : "");
     }
 
-    /**
-     * How far past its arrival a window's capture reaches, the way a traveller faces.
-     *
-     * @return blocks, counted to the far edge of the capture's box
-     */
-    static int reachAhead(final WindowState window)
-    {
-        final int[] box = window.capture.bounds();
-        // From where travellers land, not the window's far block, which a tunnel moves deeper.
-        final Place destination = window.source.destination();
-        final Spot far = new Spot((int) Math.floor(destination.x()), 0, (int) Math.floor(destination.z()));
-        final Spot ahead = window.shape.ahead();
-        if (ahead.x() != 0)
-        {
-            return (ahead.x() > 0) ? (box[3] - far.x()) : (far.x() - box[0]);
-        }
-        return (ahead.z() > 0) ? (box[5] - far.z()) : (far.z() - box[2]);
-    }
-
     /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */
     private static String toDepth(final WindowState window)
     {
         if ((window.fixed != null) && (window.fixedDepth < window.fixedFor))
         {
-            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + Windows.mostFixedFor(window)
+            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + Windows.mostFixed
                 + Windows.BLOCKS);
         }
         return "to depth " + window.fixedDepth;

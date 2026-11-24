@@ -81,7 +81,6 @@ public final class MetricsSupport
         started.addCustomChart(new SimplePie("mirrors", () -> range(MirrorManager.all().size())));
         started.addCustomChart(new SimplePie("gate_dial_spin",
             () -> ConfigManager.getGateDialSpinPattern().name().toLowerCase(Locale.ROOT)));
-        started.addCustomChart(new SimplePie("gate_view", () -> ConfigManager.getGateView().toLowerCase(Locale.ROOT)));
         started.addCustomChart(new SimplePie("gate_ripple", () -> onOff(ConfigManager.isGateRipple())));
         started.addCustomChart(new SimplePie("gate_sounds", () -> onOff(ConfigManager.isGateSoundsEnabled())));
         started.addCustomChart(new SimplePie("gate_iris_animation",

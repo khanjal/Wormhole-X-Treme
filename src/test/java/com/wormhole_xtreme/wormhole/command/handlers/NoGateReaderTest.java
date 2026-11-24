@@ -96,12 +96,6 @@ class NoGateReaderTest
     }
 
     @Test
-    void editingTheViewNamesAGateThereIsNotInTheReadersLanguage()
-    {
-        refusedInQq(player -> edit(player, "view", "open"));
-    }
-
-    @Test
     void editingTheDialSpinNamesAGateThereIsNotInTheReadersLanguage()
     {
         refusedInQq(player -> edit(player, "spin", "chase"));

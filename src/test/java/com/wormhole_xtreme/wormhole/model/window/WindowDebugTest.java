@@ -48,19 +48,13 @@ class WindowDebugTest
     private World world;
 
     /** A window source that is only what the debug text asks of one. */
-    private record Source(String name, Block anchor, WindowShape shape, List<Spot> open, Place destination,
-        boolean walkThrough) implements WindowSource
+    private record Source(String name, Block anchor, WindowShape shape, List<Spot> open, Place destination)
+        implements WindowSource
     {
         @Override
         public int depth()
         {
             return 16;
-        }
-
-        @Override
-        public int fullDepth()
-        {
-            return 24;
         }
     }
 
@@ -103,21 +97,21 @@ class WindowDebugTest
         WindowStore.FULL.clear();
     }
 
-    private WindowState window(final String name, final Place destination, final boolean gate, final Capture capture)
+    private WindowState window(final String name, final Place destination, final Capture capture)
     {
         final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), destination, 3, 3);
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
         final Block anchor = mock(Block.class);
         when(anchor.getWorld()).thenReturn(world);
-        final WindowState window = new WindowState(new Source(name, anchor, shape, open, destination, gate), capture);
+        final WindowState window = new WindowState(new Source(name, anchor, shape, open, destination), capture);
         WindowStore.ACTIVE.put(name, window);
         return window;
     }
 
     private WindowState window(final String name)
     {
-        return window(name, ARRIVAL, false, null);
+        return window(name, ARRIVAL, null);
     }
 
     /** The solid face round a window's opening, so that it is walled. */
@@ -343,43 +337,13 @@ class WindowDebugTest
 
         walled.fixed = new HashMap<>();
 
-        assertTrue(line(summarised(), "gate:Abydos").contains("cut to depth 3 of 5 to fit " + Windows.mostFixedFor(walled) + " blocks"),
+        assertTrue(line(summarised(), "gate:Abydos").contains("cut to depth 3 of 5 to fit " + Windows.mostFixed + " blocks"),
             "a room built to 3 of the 5 asked for");
 
         walled.fixedDepth = 5;
 
         assertTrue(line(summarised(), "gate:Abydos").contains("to depth 5"), "built to the depth asked for: not cut");
         assertFalse(line(summarised(), "gate:Abydos").contains("cut to"), "and not said to be");
-    }
-
-    @Test
-    void aGatesViewSaysHowFarItsCaptureReachesAndWhetherItWasCut()
-    {
-        final Capture capture = mock(Capture.class);
-        when(capture.bounds()).thenReturn(new int[] { 0, 0, 0, 100, 100, 100 });
-        when(capture.secondsOld()).thenReturn(7L);
-        final WindowState gate = window("gate:Abydos", ARRIVAL, true, capture);
-        looking("gate:Abydos");
-
-        when(capture.keptReach()).thenReturn(0);
-        assertEquals("gate:Abydos capture: reaches 80 ahead, drawn to 16 (full 24), 7s old",
-            line(described(), "gate:Abydos capture"), "uncut: the box's reach");
-
-        when(capture.keptReach()).thenReturn(30);
-        assertEquals("gate:Abydos capture: reaches 30 ahead, cut from 80 to fit, drawn to 16 (full 24), 7s old",
-            line(described(), "gate:Abydos capture"), "cut: what was kept, and what it was cut from");
-        assertTrue(gate.walkThrough());
-    }
-
-    @Test
-    void aMirrorsViewHasNoCaptureLine()
-    {
-        final Capture capture = mock(Capture.class);
-        when(capture.bounds()).thenReturn(new int[] { 0, 0, 0, 100, 100, 100 });
-        window("gate:Abydos", ARRIVAL, false, capture);
-        looking("gate:Abydos");
-
-        assertFalse(says(described(), "gate:Abydos capture"), "only a gate's view comes in steps");
     }
 
     @Test
@@ -421,21 +385,4 @@ class WindowDebugTest
         assertFalse(says(described(), "gate:Abydos far part"), "a window held whole has no far part");
     }
 
-    // --- How far a capture reaches ahead ---
-
-    private WindowState facing(final float yaw, final double x, final double z)
-    {
-        final Capture capture = mock(Capture.class);
-        when(capture.bounds()).thenReturn(new int[] { -20, 0, -30, 50, 100, 70 });
-        return window("gate:Facing" + yaw, new Place("far", x, 70.0, z, yaw, 0.0f), true, capture);
-    }
-
-    @Test
-    void theReachAheadIsMeasuredToTheFarEdgeOfTheBoxFromWhereTravellersLandFloored()
-    {
-        assertEquals(76, WindowDebug.reachAhead(facing(0.0f, -10.5, -5.5)), "south: to the box's far z from the landing z, floored (-6)");
-        assertEquals(9, WindowDebug.reachAhead(facing(90.0f, -10.5, -5.5)), "west: from the box's near x to the landing x, floored (-11)");
-        assertEquals(24, WindowDebug.reachAhead(facing(180.0f, -10.5, -5.5)), "north: from the landing z, floored, to the box's near z");
-        assertEquals(61, WindowDebug.reachAhead(facing(270.0f, -10.5, -5.5)), "east: to the box's far x from the landing x, floored");
-    }
 }

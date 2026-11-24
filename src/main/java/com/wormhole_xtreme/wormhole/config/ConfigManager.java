@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -121,18 +119,6 @@ public class ConfigManager
         /** Whether an iris sweeps shut a ring at a time, or arrives all at once. */
         GATE_IRIS_ANIMATION,
 
-        /** What an open gate shows: its horizon, the far side behind it, or the far side alone (#516). */
-        GATE_VIEW,
-
-        /** Whether a big gate's view of a smaller far gate is drawn at the end of a tunnel (#583). */
-        GATE_VIEW_FUNNEL,
-
-        /** The longest that tunnel may be. */
-        GATE_VIEW_FUNNEL_LENGTH,
-
-        /** The shortest that tunnel is, a straight one where the far gate is as big (#587); 0 for none. */
-        GATE_VIEW_FUNNEL_MIN_LENGTH,
-
         /** Whether an open gate's horizon ripples (#579). */
         GATE_RIPPLE,
 
@@ -240,16 +226,16 @@ public class ConfigManager
         MIRROR_MAX_VIEWERS,
 
         /**
-         * How far past an opening a mirror's room or an open gate's far side is drawn, in blocks (#589).
+         * How far past an opening a mirror's room is drawn, in blocks (#589).
          *
          * <p>Its render distance: past it nothing is drawn. 160 by default, ten chunks, so the room
          * ends where the client stops showing anything; a room is its surfaces, so depth costs
-         * little. A gate captures a shallower first step and fills in to this behind it.
+         * little.
          */
         VIEW_DEPTH,
 
         /**
-         * Whether the creatures standing in a mirror's or a gate's far room are shown through it
+         * Whether the creatures standing in a mirror's far room are shown through it
          * (#296), as stand-ins only the viewer can see. Off by default: they are real entities.
          */
         MIRROR_SHOW_ENTITIES,
@@ -265,12 +251,6 @@ public class ConfigManager
          * show on the first look (#296). 0 holds nothing; read up to {@link ConfigManager#MOST_ENTITY_LOAD_RADIUS}.
          */
         MIRROR_ENTITY_LOAD_RADIUS,
-
-        /** Whether a vanilla nether portal shows where it went last, drawn like a gate's view (#514). Off by default. */
-        NETHER_PORTAL_VIEWS,
-
-        /** The worlds whose nether portals may show a view, comma-separated; empty for every world (#514). */
-        NETHER_PORTAL_VIEW_WORLDS,
 
         MIRROR_APPROACH_MESSAGE
     }
@@ -600,8 +580,6 @@ public class ConfigManager
                     .map(p -> p.name().toLowerCase(Locale.ROOT)).toList();
             case GATE_IRIS_ANIMATION:
                 return irisAnimations();
-            case GATE_VIEW:
-                return GATE_VIEWS;
             case RING_DEFAULT_ACCESS:
                 return List.of("public", "private");
             case RING_DEFAULT_STYLE:
@@ -724,67 +702,6 @@ public class ConfigManager
         }
         final String name = raw.trim().toLowerCase(Locale.ROOT);
         return irisAnimations().contains(name) ? name : null;
-    }
-
-    /** Every level {@code gate-view} takes, the default first. */
-    public static final List<String> GATE_VIEWS = List.of("horizon", "behind", "open");
-
-    /** See {@link GateSettings#getGateView()}. */
-    public static String getGateView()
-    {
-        return GateSettings.getGateView();
-    }
-
-    /** See {@link GateSettings#getGateView(String)}. */
-    public static String getGateView(final String own)
-    {
-        return GateSettings.getGateView(own);
-    }
-
-    /** How deep a gate's first capture step reaches, at most: the rest is filled in behind it. */
-    static final int GATE_FIRST_STEP_DEPTH = 32;
-
-    /** See {@link GateSettings#getGateViewFirstDepth()}. */
-    public static int getGateViewFirstDepth()
-    {
-        return GateSettings.getGateViewFirstDepth();
-    }
-
-    /** See {@link GateSettings#isGateViewFunnel()}. */
-    public static boolean isGateViewFunnel()
-    {
-        return GateSettings.isGateViewFunnel();
-    }
-
-    /** See {@link GateSettings#getGateViewFunnelLength()}. */
-    public static int getGateViewFunnelLength()
-    {
-        return GateSettings.getGateViewFunnelLength();
-    }
-
-    /** See {@link GateSettings#getGateViewFunnelMinLength()}. */
-    public static int getGateViewFunnelMinLength()
-    {
-        return GateSettings.getGateViewFunnelMinLength();
-    }
-
-    /** See {@link GateSettings#getGateViewFunnelLongest()}. */
-    public static int getGateViewFunnelLongest()
-    {
-        return GateSettings.getGateViewFunnelLongest();
-    }
-
-    /**
-     * Reads a level of {@code gate-view} as typed.
-     *
-     * @param raw
-     *            the value as typed
-     * @return it in lower case, or null if it names none
-     */
-    public static String parseGateView(final String raw)
-    {
-        final String level = (raw == null) ? null : raw.trim().toLowerCase(Locale.ROOT);
-        return GATE_VIEWS.contains(level) ? level : null;
     }
 
     /** See {@link GateSettings#getGatePreviewMinutes()}. */
@@ -972,51 +889,6 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.DESTINATION_SHUTDOWN);
         return (s != null) && s.getBooleanValue();
     }
-
-    /**
-     * Whether vanilla nether portals show where they went (#514).
-     *
-     * @return false unless the setting turns it on
-     */
-    public static boolean isNetherPortalViews()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.NETHER_PORTAL_VIEWS);
-        return (s != null) && s.getBooleanValue();
-    }
-
-    /**
-     * The worlds whose nether portals may show a view (#514).
-     *
-     * @return their names in lower case; empty for every world
-     */
-    public static Set<String> getNetherPortalViewWorlds()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.NETHER_PORTAL_VIEW_WORLDS);
-        final Object value = (s == null) ? null : s.getValue();
-        if (value == null)
-        {
-            return Set.of();
-        }
-        final String raw = String.valueOf(value);
-        // Asked for each player every sweep, so split once per value rather than each time.
-        final ParsedWorlds parsed = NETHER_PORTAL_VIEW_WORLDS_SPLIT.get();
-        if ((parsed != null) && parsed.raw().equals(raw))
-        {
-            return parsed.worlds();
-        }
-        final Set<String> worlds = Arrays.stream(raw.split(",")).map(name -> name.trim().toLowerCase(Locale.ROOT))
-            .filter(name -> !name.isEmpty()).collect(Collectors.toUnmodifiableSet());
-        NETHER_PORTAL_VIEW_WORLDS_SPLIT.set(new ParsedWorlds(raw, worlds));
-        return worlds;
-    }
-
-    /** {@code nether-portal-view-worlds} as last read, and the names it split into. */
-    private record ParsedWorlds(String raw, Set<String> worlds)
-    {
-    }
-
-    /** The last {@code nether-portal-view-worlds} split, or null before the first. */
-    private static final AtomicReference<ParsedWorlds> NETHER_PORTAL_VIEW_WORLDS_SPLIT = new AtomicReference<>();
 
     /** See {@link SignSettings#isSignDialMatchMaterial()}. */
     public static boolean isSignDialMatchMaterial()
@@ -1237,7 +1109,7 @@ public class ConfigManager
     }
 
     /**
-     * How far past an opening a mirror's room, and an open gate's far side once filled in, is drawn.
+     * How far past an opening a mirror's room is drawn.
      *
      * @return blocks, between 4 and 160
      */

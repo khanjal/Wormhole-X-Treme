@@ -59,7 +59,7 @@ class WindowStoreTest
 
         assertEquals(new TreeSet<>(Arrays.asList("ACTIVE", "BLIND", "CHANGED", "FIRST_CHANGED", "FULL", "OFFERED",
             "STATES", "VIEWS", "changes", "sweepRoomBlocks", "sweeps", "workSecond", "workSpent",
-            "trimmedAt", "drawnListener")), held, "reset in clear() and below, or left alone: trimmedAt, drawnListener");
+            "trimmedAt")), held, "reset in clear() and below, or left alone: trimmedAt");
     }
 
     /** Every table and counter in the store is empty or zero again after a clear. */

@@ -16,8 +16,8 @@ import org.bukkit.World;
  * whose view it could change by one lookup (#609).
  *
  * <p>A fixed view reads the live world only to ask whether a real block behind the opening is
- * empty, within its depth of the opening's middle and past the opening's own layer; the tunnel,
- * if it has one, lies inside that too. So a window's region is the box round that half-sphere,
+ * empty, within its depth of the opening's middle and past the opening's own layer.
+ * So a window's region is the box round that half-sphere,
  * as chunks, with a couple of blocks to spare. Block events fire constantly on a busy server, and
  * most land in no region: that answer is one hash lookup.
  */

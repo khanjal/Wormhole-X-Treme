@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Settings a config.yml may still hold that the plugin no longer reads (#589).
@@ -22,6 +23,9 @@ final class RetiredSettings
 
     private static final String GATE_FIRST_DEPTH = "gate-view-depth";
 
+    /** What a gate's first step was, when the file did not say. */
+    private static final int GATE_FIRST_STEP_DEPTH = 32;
+
     /** Every setting removed in 1.11.0, as config.yml spells it. */
     static final List<String> KEYS = List.of(
         "permissions-auto-fallback", "entity-scan-interval-ticks", "mirror-proximity-ticks",
@@ -33,6 +37,11 @@ final class RetiredSettings
         "beam-envelop-ticks", "beam-vanish-at-step", "beam-rise-ticks", "beam-teleport-at-step",
         "beam-descend-ticks", "beam-fade-ticks",
         GATE_FIRST_DEPTH, GATE_FULL_DEPTH, MIRROR_DEPTH);
+
+    /** Every setting removed in 1.14.0 with the open-gate and nether-portal views, as config.yml spells it. */
+    static final List<String> KEYS_1_14 = List.of(
+        "gate-view", "gate-view-funnel", "gate-view-funnel-length", "gate-view-funnel-min-length",
+        "nether-portal-views", "nether-portal-view-worlds");
 
     /**
      * The view depth carried over from the old settings, and which of them it came from.
@@ -56,11 +65,11 @@ final class RetiredSettings
      *
      * @param map
      *            the parsed config file
-     * @return each as config.yml spells it, in the order of {@link #KEYS}
+     * @return each as config.yml spells it, in the order of {@link #KEYS}, then {@link #KEYS_1_14}
      */
     static List<String> presentIn(final Map<String, Object> map)
     {
-        return KEYS.stream().filter(key -> valueOf(map, key) != null).toList();
+        return Stream.concat(KEYS.stream(), KEYS_1_14.stream()).filter(key -> valueOf(map, key) != null).toList();
     }
 
     /**
@@ -104,7 +113,7 @@ final class RetiredSettings
         final Integer first = wholeAt(map, GATE_FIRST_DEPTH);
         if (first == null)
         {
-            return ConfigManager.GATE_FIRST_STEP_DEPTH;
+            return GATE_FIRST_STEP_DEPTH;
         }
         from.add(GATE_FIRST_DEPTH);
         return first;
@@ -141,7 +150,7 @@ final class RetiredSettings
         {
             ignored.removeAll(carried.from());
             lines.add("view-depth was added at " + carried.depth() + ", carried over from "
-                + String.join(" and ", carried.from()) + "; it sets how far mirrors and gate views reach.");
+                + String.join(" and ", carried.from()) + "; it sets how far mirrors reach.");
         }
         if (!ignored.isEmpty())
         {

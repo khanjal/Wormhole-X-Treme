@@ -143,7 +143,7 @@ class ConfigFileShapeTest
             headings.add(group.heading());
         }
 
-        assertEquals(List.of("General", "Stargates", "Gate views and mirrors", "Gate signs",
+        assertEquals(List.of("General", "Stargates", "Mirrors", "Gate signs",
             "Transport rings", "Beaming", "Economy", "Stargate sounds", "Transport ring sounds",
             "Beaming sounds", "Integrations"), headings);
     }

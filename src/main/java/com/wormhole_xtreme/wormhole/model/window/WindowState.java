@@ -57,8 +57,6 @@ final class WindowState
     long fixedUsedAt;
     /** What {@link Windows}' count of changes behind windows stood at when the fixed view's build began. */
     long fixedChanges;
-    /** The tunnel the fixed view was built with, or null for none. */
-    Funnel fixedFunnel;
     /** How long the fixed view's build took, from asked to put in. */
     long fixedTook;
     /** How long after it was put in a change waits before building it again, while changes keep coming; 0 for the gap. */
@@ -115,35 +113,10 @@ final class WindowState
         return source.anchor();
     }
 
-    /** @return true for an opening walked into, which is never barred, punched through or drawn over */
-    boolean walkThrough()
-    {
-        return source.walkThrough();
-    }
-
     /** @return how far past the opening its view is drawn */
     int depth()
     {
         return source.depth();
     }
 
-    /** @return true if the far side may be drawn at a block behind the opening: past its tunnel, if it has one (#583) */
-    boolean showsFar(final int x, final int y, final int z)
-    {
-        return showsFar(x, y, z, 0.0);
-    }
-
-    /**
-     * The same, the edges of the room past the tunnel moved out by some blocks.
-     *
-     * @param slack
-     *            how far out each edge is moved
-     * @return true if the block is inside the widened room, or there is no tunnel
-     */
-    boolean showsFar(final int x, final int y, final int z, final double slack)
-    {
-        final Funnel funnel = source.funnel();
-        return (funnel == null)
-            || funnel.shows(shape.layerOf(x, z), shape.acrossOf(x, z), y - shape.base().y(), slack);
-    }
 }

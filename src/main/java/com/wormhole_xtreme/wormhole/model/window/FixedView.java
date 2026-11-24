@@ -8,21 +8,15 @@ import static com.wormhole_xtreme.wormhole.model.window.WindowStore.changes;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 
-import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
- * A walled window's fixed view: when the one held is still the one to draw, how it is built and put in, the
- * tunnel into it and where a block lies inside it (#430).
+ * A walled window's fixed view: when the one held is still the one to draw, how it is built and put in, and
+ * where a block lies inside it (#430).
  *
  * <p>Moved out of {@link Windows} verbatim, but for {@code fixedView} and {@code TOO_MANY} made
  * package-private.
@@ -60,15 +54,13 @@ final class FixedView
     }
 
     /**
-     * Whether a window's fixed view is the one to draw: there, from its current capture, depth and
-     * tunnel; younger than the backstop ({@link #BACKSTOP_MILLIS}, or {@link #PARTIAL_BACKSTOP_MILLIS}
+     * Whether a window's fixed view is the one to draw: there, from its current capture, depth; younger than the backstop ({@link #BACKSTOP_MILLIS}, or {@link #PARTIAL_BACKSTOP_MILLIS}
      * for one built over a chunk that was not loaded); and either nothing has changed behind its wall
      * since its build began, or it was put in too recently to be built again ({@link #rebuildWait}).
      */
     static boolean fixedIsFresh(final WindowState window, final long now)
     {
-        if ((window.fixed == null) || (window.fixedFrom != window.capture) || (window.fixedFor != window.depth())
-            || !Objects.equals(window.fixedFunnel, window.source.funnel()))
+        if ((window.fixed == null) || (window.fixedFrom != window.capture) || (window.fixedFor != window.depth()))
         {
             return false;
         }
@@ -140,7 +132,7 @@ final class FixedView
      * the whole far side is drawn once, and built again when something behind the wall changes.
      * The cost is that a viewer sees the far side in place of the real world behind that wall
      * from anywhere else they can see it, a doorway round the side, while they are looking in.
-     * A view past {@link Windows#mostFixedFor} blocks is cut shallower until it fits.
+     * A view past {@link Windows#mostFixed} blocks is cut shallower until it fits.
      *
      * <p>Built a few milliseconds a tick (#609): in one go it was a tick of most of a second, once a
      * minute per watched window. The old view, if any, is drawn until the new one is whole.
@@ -153,7 +145,7 @@ final class FixedView
             return;
         }
         FixedRegions.index(window);
-        final FixedBuild build = new FixedBuild(window, window.depth(), Windows.mostFixedFor(window), changes, true);
+        final FixedBuild build = new FixedBuild(window, window.depth(), Windows.mostFixed, changes, true);
         if (FixedBuilds.request(build, FixedView::builtLater))
         {
             install(window, build);
@@ -185,7 +177,6 @@ final class FixedView
         window.fixedFor = build.configured;
         window.fixedDepth = build.depth();
         window.fixedChanges = build.changesSeen;
-        window.fixedFunnel = build.window.source.funnel();
         window.fixedPartialWait = partialWaitAfter(window, build.sawUnloaded());
         window.fixedPartial = build.sawUnloaded();
     }
@@ -222,15 +213,15 @@ final class FixedView
     }
 
     /**
-     * A walled window's view to a depth, or {@link #TOO_MANY} if it would hold more than {@code most};
-     * narrowed to its funnel, if it has one. All of it at once: for an admin's whole view, and tests.
+     * A walled window's view to a depth, or {@link #TOO_MANY} if it would hold more than {@code most}.
+     * All of it at once: for an admin's whole view, and tests.
      */
     static Map<Long, BlockData> fixedTo(final WindowState window, final int depth, final int most)
     {
         final FixedBuild build = new FixedBuild(window, depth, most, changes, false);
         while (!build.step())
         {
-            // Sixteen columns of the capture, a column of the volume, or a layer of the tunnel, a step.
+            // Sixteen columns of the capture, or a column of the volume, a step.
         }
         return build.fits() ? build.view() : TOO_MANY;
     }
@@ -239,85 +230,6 @@ final class FixedView
     static boolean tooMany(final Map<Long, BlockData> view)
     {
         return view == TOO_MANY;
-    }
-
-    /**
-     * Draws a tunnel into a view, short of the depth (#583): hollow inside, and a wall two blocks
-     * thick in its gate's portal material round it, ending in a collar round the far gate's plane.
-     *
-     * <p>Only the wall, not everything outside: every line of sight that leaves the tunnel meets the
-     * wall first, and the far side outside the room past it was never put in the view. Hollow as the
-     * far side's seen air is: air only where the real block is not empty.
-     *
-     * @return the view, or {@link #TOO_MANY} if it now holds more than {@code most}
-     */
-    static Map<Long, BlockData> tunnelled(final WindowState window, final Map<Long, BlockData> view, final int depth,
-        final long now, final int most)
-    {
-        final Funnel funnel = window.source.funnel();
-        if ((funnel == null) || (view == TOO_MANY))
-        {
-            return view;
-        }
-        for (int layer = 1; layer < Math.min(depth, funnel.taper()); layer++)
-        {
-            tunnelLayer(window, view, layer, depth, now);
-        }
-        return (view.size() > most) ? TOO_MANY : view;
-    }
-
-    /**
-     * Draws one layer of a tunnel into a view: its wall, and its hollow where the real block is not
-     * empty. The wall and the hollow never share a cell, so a layer at a time draws what
-     * {@link #tunnelled} draws (#609).
-     *
-     * @param layer
-     *            the layer, from 1
-     */
-    static void tunnelLayer(final WindowState window, final Map<Long, BlockData> view, final int layer, final int depth,
-        final long now)
-    {
-        final Funnel funnel = window.source.funnel();
-        if (funnel == null)
-        {
-            return;
-        }
-        final WindowShape shape = window.shape;
-        final World here = window.anchor().getWorld();
-        final int min = here.getMinHeight();
-        final int max = here.getMaxHeight();
-        final double[] centre = centreOf(shape);
-        final double reach = (double) depth * depth;
-        final BlockData wall = Bukkit.createBlockData(funnel.wall());
-        final BlockData air = Bukkit.createBlockData(Material.AIR);
-        // Never over the gate's own frame, such as a ring a block behind its opening.
-        final Set<Spot> own = window.source.structure();
-        funnel.wallOn(layer, depth, (at, across, up) ->
-        {
-            final Spot cell = shape.behind(at, across, up);
-            if (drawable(cell, min, max, centre, reach) && !own.contains(cell))
-            {
-                view.put(Cells.key(cell.x(), cell.y(), cell.z()), wall);
-            }
-        });
-        funnel.hollowOn(layer, depth, (at, across, up) ->
-        {
-            final Spot cell = shape.behind(at, across, up);
-            if (drawable(cell, min, max, centre, reach) && !WindowSight.reallyEmpty(here, cell.x(), cell.y(), cell.z(), now))
-            {
-                view.put(Cells.key(cell.x(), cell.y(), cell.z()), air);
-            }
-        });
-    }
-
-    /** Whether a block is inside the world's height and within a view's depth of its opening's middle. */
-    private static boolean drawable(final Spot at, final int min, final int max, final double[] centre,
-        final double reach)
-    {
-        final double dx = (at.x() + 0.5) - centre[0];
-        final double dy = (at.y() + 0.5) - centre[1];
-        final double dz = (at.z() + 0.5) - centre[2];
-        return (at.y() >= min) && (at.y() < max) && (((dx * dx) + (dy * dy) + (dz * dz)) < reach);
     }
 
     /**

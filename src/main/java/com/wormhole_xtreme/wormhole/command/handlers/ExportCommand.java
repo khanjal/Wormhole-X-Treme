@@ -105,7 +105,6 @@ public class ExportCommand implements SubCommand
             case USE_COST -> Messages.get(sender, "export.dropped.kind.use-cost");
             case DIAL_SPIN -> Messages.get(sender, "export.dropped.kind.dial-spin");
             case IRIS_ANIMATION -> Messages.get(sender, "export.dropped.kind.iris-animation");
-            case VIEW -> Messages.get(sender, "export.dropped.kind.view");
             case MATERIAL_GROUP -> Messages.get(sender, "export.dropped.kind.material-group");
             case FRAME_MATERIAL -> Messages.get(sender, "export.dropped.kind.frame-material");
             case DIAL_SIGN_TARGET -> Messages.get(sender, "export.dropped.kind.dial-sign-target");

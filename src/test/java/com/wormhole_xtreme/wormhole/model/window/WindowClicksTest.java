@@ -62,7 +62,7 @@ class WindowClicksTest
     private BukkitScheduler scheduler;
 
     /** A window source that is only what a click asks of one. */
-    private record Source(String name, Block anchor, List<Spot> open, boolean walkThrough, QuantumMirror punchTarget)
+    private record Source(String name, Block anchor, List<Spot> open, QuantumMirror punchTarget)
         implements WindowSource
     {
         @Override
@@ -127,9 +127,9 @@ class WindowClicksTest
     }
 
     private WindowState window(final String name, final World in, final int x, final int y, final int z,
-        final boolean gate, final QuantumMirror target, final Spot... open)
+        final QuantumMirror target, final Spot... open)
     {
-        final WindowState window = new WindowState(new Source(name, block(in, x, y, z), List.of(open), gate, target), null);
+        final WindowState window = new WindowState(new Source(name, block(in, x, y, z), List.of(open), target), null);
         WindowStore.ACTIVE.put(name, window);
         return window;
     }
@@ -329,18 +329,15 @@ class WindowClicksTest
     // --- Which mirror a click reaches ---
 
     @Test
-    void aClickThroughTheOpeningOfAMirrorReachesItAndNobodyReachesOneThroughAGateOrAnotherWorld()
+    void aClickThroughTheOpeningOfAMirrorReachesItAndNobodyReachesOneInAnotherWorld()
     {
         final QuantumMirror mirrorTarget = mock(QuantumMirror.class);
-        final QuantumMirror gateTarget = mock(QuantumMirror.class);
         final QuantumMirror otherWorldTarget = mock(QuantumMirror.class);
-        window("mirror", world, 0, 0, 0, false, mirrorTarget, new Spot(10, 64, 20));
-        window("gate", world, 0, 0, 0, true, gateTarget, new Spot(30, 64, 20));
-        window("faraway", elsewhere, 0, 0, 0, false, otherWorldTarget, new Spot(50, 64, 20));
-        viewing("mirror", "gate", "faraway");
+        window("mirror", world, 0, 0, 0, mirrorTarget, new Spot(10, 64, 20));
+        window("faraway", elsewhere, 0, 0, 0, otherWorldTarget, new Spot(50, 64, 20));
+        viewing("mirror", "faraway");
 
         assertSame(mirrorTarget, WindowClicks.clicked(player, block(world, 10, 64, 20)), "the opening of a mirror");
-        assertNull(WindowClicks.clicked(player, block(world, 30, 64, 20)), "a gate is walked through, not punched");
         assertNull(WindowClicks.clicked(player, block(world, 11, 64, 20)), "a block that is not in any opening");
         assertNull(WindowClicks.clicked(player, block(world, 50, 64, 20)), "an opening of a window in another world");
     }
@@ -358,7 +355,7 @@ class WindowClicksTest
     void aClickOnWhatTheViewDrawsInAnotherWorldReachesNothing()
     {
         final QuantumMirror target = mock(QuantumMirror.class);
-        window("mirror", elsewhere, 0, 0, 0, false, target, new Spot(10, 64, 20));
+        window("mirror", elsewhere, 0, 0, 0, target, new Spot(10, 64, 20));
         final ViewerDrawing view = viewing("mirror");
         final Block drawn = block(elsewhere, 1, 2, 3);
         view.drawn.put(key(drawn), mock(BlockData.class));
@@ -374,39 +371,38 @@ class WindowClicksTest
         final QuantumMirror gateTarget = mock(QuantumMirror.class);
         final QuantumMirror otherWorldTarget = mock(QuantumMirror.class);
         // Along each axis in turn: the nearer window is the one the block is nearer on that axis alone.
-        window("x-near", world, 40, 0, 0, false, nearTarget);
-        window("x-far", world, 0, 0, 0, false, farTarget);
+        window("x-near", world, 40, 0, 0, nearTarget);
+        window("x-far", world, 0, 0, 0, farTarget);
         final ViewerDrawing view = viewing("x-far", "x-near");
         final Block alongX = block(world, 30, 0, 0);
         view.drawn.put(key(alongX), mock(BlockData.class));
         assertSame(nearTarget, WindowClicks.clicked(player, alongX), "nearer along x");
 
         WindowStore.ACTIVE.clear();
-        window("y-near", world, 0, 40, 0, false, nearTarget);
-        window("y-far", world, 0, 0, 0, false, farTarget);
+        window("y-near", world, 0, 40, 0, nearTarget);
+        window("y-far", world, 0, 0, 0, farTarget);
         view.mirrors = new LinkedHashSet<>(List.of("y-far", "y-near"));
         final Block alongY = block(world, 0, 30, 0);
         view.drawn.put(key(alongY), mock(BlockData.class));
         assertSame(nearTarget, WindowClicks.clicked(player, alongY), "nearer along y");
 
         WindowStore.ACTIVE.clear();
-        window("z-near", world, 0, 0, 40, false, nearTarget);
-        window("z-far", world, 0, 0, 0, false, farTarget);
+        window("z-near", world, 0, 0, 40, nearTarget);
+        window("z-far", world, 0, 0, 0, farTarget);
         view.mirrors = new LinkedHashSet<>(List.of("z-far", "z-near"));
         final Block alongZ = block(world, 0, 0, 30);
         view.drawn.put(key(alongZ), mock(BlockData.class));
         assertSame(nearTarget, WindowClicks.clicked(player, alongZ), "nearer along z");
 
         WindowStore.ACTIVE.clear();
-        window("gate-nearest", world, 0, 0, 29, true, gateTarget);
-        window("other-world-nearest", elsewhere, 0, 0, 29, false, otherWorldTarget);
-        window("kept", world, 0, 0, 0, false, farTarget);
-        view.mirrors = new LinkedHashSet<>(List.of("gate-nearest", "other-world-nearest", "kept"));
-        assertSame(farTarget, WindowClicks.clicked(player, alongZ), "a gate and a window of another world are not candidates");
+        window("other-world-nearest", elsewhere, 0, 0, 29, otherWorldTarget);
+        window("kept", world, 0, 0, 0, farTarget);
+        view.mirrors = new LinkedHashSet<>(List.of("other-world-nearest", "kept"));
+        assertSame(farTarget, WindowClicks.clicked(player, alongZ), "a window of another world is not a candidate");
 
         WindowStore.ACTIVE.clear();
-        window("first", world, 0, 0, 0, false, nearTarget);
-        window("second", world, 0, 0, 60, false, farTarget);
+        window("first", world, 0, 0, 0, nearTarget);
+        window("second", world, 0, 0, 60, farTarget);
         view.mirrors = new LinkedHashSet<>(List.of("first", "second"));
         assertSame(nearTarget, WindowClicks.clicked(player, alongZ), "equally near: the first");
     }

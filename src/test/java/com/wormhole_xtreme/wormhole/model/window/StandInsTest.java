@@ -66,7 +66,6 @@ import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -580,7 +579,7 @@ class StandInsTest
         final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), arrival, 5, 5);
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        final GateSource gate = new GateSource("gate:Abydos", mock(Block.class), shape, open, arrival, "Chulak", 16);
+        final FakeSource gate = new FakeSource("gate:Abydos", mock(Block.class), shape, open, arrival, 16);
         final Capture capture = new Capture.Builder("far", true, new Capture.Box(80, 60, 199, 41, 20, 34), mock(BlockData.class))
             .build();
         final WindowState gateWindow = new WindowState(gate, capture);
@@ -591,51 +590,6 @@ class StandInsTest
         assertEquals(12.5, at.getX(), 1.0e-9, "the middle of a five-wide opening from 10 to 14");
         assertEquals(64.0, at.getY(), 1.0e-9, "level with the opening's bottom, as the arrival is");
         assertEquals(16.5, at.getZ(), 1.0e-9, "four behind the plane, as it stands three past the arrival");
-    }
-
-    /**
-     * Through a big gate onto a small one, a creature is shown only in the room at the end of the
-     * tunnel: not beside it, behind its wall, beyond the small gate's walls, nor in the tunnel (#583).
-     */
-    @Test
-    void throughAFunnelOnlyACreatureInsideItIsShown()
-    {
-        final Place arrival = new Place("far", 100.5, 70.0, 200.5, 0.0f, 0.0f);
-        final WindowShape shape = WindowShape.through(new Spot(10, 64, 20), new Spot(0, 0, -1), arrival, 11, 11);
-        final List<Spot> open = new ArrayList<>();
-        shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        final List<Spot> small = new ArrayList<>();
-        for (int x = 99; x <= 101; x++)
-        {
-            for (int y = 70; y <= 73; y++)
-            {
-                small.add(new Spot(x, y, 199));
-            }
-        }
-        final Funnel funnel = Funnel.of(shape, small, 8, Material.WATER);
-        final Capture capture = new Capture.Builder("far", true, new Capture.Box(80, 60, 199, 41, 20, 34), mock(BlockData.class))
-            .build();
-        final WindowState narrowed = new WindowState(
-            new GateSource("gate:Abydos", mock(Block.class), shape.deeper(funnel.taper() - 1), open, arrival, "Chulak", 16,
-                funnel), capture);
-        final WindowState whole = new WindowState(
-            new GateSource("gate:Abydos", mock(Block.class), shape, open, arrival, "Chulak", 16), capture);
-        // Ten layers in: the room's middle column, and seven columns left of it, outside what the far opening shows.
-        final Location inside = new Location(here, 15.5, 64.0, 10.5);
-        final Location beside = new Location(here, 8.5, 64.0, 10.5);
-
-        assertTrue(StandIns.inRoom(narrowed, inside), "in front of the small gate: shown");
-        assertFalse(StandIns.inRoom(narrowed, beside), "beside it, where the small gate's walls hide it: not shown");
-        assertFalse(StandIns.inRoom(narrowed, beside, true), "nor kept, once shown");
-        assertTrue(StandIns.inRoom(whole, beside), "with no funnel, shown as before");
-        final Location onTheEdge = new Location(here, 10.5, 64.0, 10.5);
-        assertFalse(StandIns.inRoom(narrowed, onTheEdge), "a column outside: not shown to begin with");
-        assertTrue(StandIns.inRoom(narrowed, onTheEdge, true), "but kept once shown, so one on the edge does not flicker");
-        final Location inTheTunnel = new Location(here, 15.5, 64.0, 16.5);
-        assertFalse(StandIns.inRoom(narrowed, inTheTunnel), "four layers in, in the tunnel: not shown");
-        assertFalse(StandIns.inRoom(narrowed, inTheTunnel, true), "nor kept");
-        assertTrue(StandIns.inRoom(narrowed, new Location(here, 15.5, 64.0, 13.5), true),
-            "kept a layer back, in the far gate's plane, so one stepping into it does not flicker");
     }
 
     /**

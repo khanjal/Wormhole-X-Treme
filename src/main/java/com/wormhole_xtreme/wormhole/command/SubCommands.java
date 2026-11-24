@@ -735,11 +735,6 @@ public final class SubCommands
             return prefixed(typed,
                 GateEditCommand.spinNames().toArray(new String[0]));
         }
-        if ("view".equals(field))
-        {
-            return prefixed(typed,
-                GateEditCommand.viewNames().toArray(new String[0]));
-        }
         if ("cost".equals(field))
         {
             return prefixed(typed, GateEditCommand.costNames().toArray(new String[0]));

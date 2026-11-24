@@ -258,7 +258,7 @@ public final class StargateIrisAnimator
             if ((sweep != null) && !gate.isGateIrisActive() && !StargateBlockSetup.irisIsDrawn(gate))
             {
                 gate.fillGateInterior(gate.isGatePortalOpen()
-                    ? GateViews.horizonOf(gate, gate.getEffectivePortalMaterial()) : Material.AIR);
+                    ? gate.getEffectivePortalMaterial() : Material.AIR);
             }
             if (sweep != null)
             {

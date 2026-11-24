@@ -42,8 +42,6 @@ public class StargateYamlManager
     /** The gate's own iris animation (#427); absent when it follows its group and the server. */
     static final String IRIS_ANIMATION_KEY = "IrisAnimation";
 
-    /** A gate's own view level, written only when it has one (#682). */
-    static final String VIEW_KEY = "View";
     /** The gate a sign-dialled gate's sign points at, by name; absent until the sign has been used (#706). */
     static final String DIAL_SIGN_TARGET_KEY = "DialSignTarget";
     /** What a trip through the gate costs, written only when the gate has a cost of its own (#632). */
@@ -174,7 +172,6 @@ public class StargateYamlManager
         applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
         s.setGateDialSpin(dialSpinFrom(map.get(DIAL_SPIN_KEY), name));
         s.setGateIrisAnimation(irisAnimationFrom(map.get(IRIS_ANIMATION_KEY), name));
-        s.setGateView(viewFrom(map.get(VIEW_KEY), name));
         s.setGateUseCost(useCostFrom(map.get(USE_COST_KEY), name));
         s.setGateDialSignTargetName((map.get(DIAL_SIGN_TARGET_KEY) == null) ? null : String.valueOf(map.get(DIAL_SIGN_TARGET_KEY)));
         s.setGateFrameMaterialHint(frameMaterialFrom(map.get(FRAME_MATERIAL_KEY)));
@@ -273,25 +270,6 @@ public class StargateYamlManager
                 + "\"; it follows its shape and economy-use-cost.");
         }
         return cost;
-    }
-
-    /**
-     * A gate file's own view level, or null to follow {@code gate-view}; a level the setting does not
-     * take is said out loud, as a pattern's is.
-     */
-    private static String viewFrom(final Object raw, final String gateName)
-    {
-        if (raw == null)
-        {
-            return null;
-        }
-        final String level = ConfigManager.parseGateView(String.valueOf(raw));
-        if (level == null)
-        {
-            PluginLog.log(Level.WARNING, GATE_QUOTE + gateName + UNKNOWN_VALUE + VIEW_KEY + " \"" + raw
-                + "\"; it follows gate-view.");
-        }
-        return level;
     }
 
     /**
@@ -561,10 +539,6 @@ public class StargateYamlManager
         if (s.getGateIrisAnimation() != null)
         {
             map.put(IRIS_ANIMATION_KEY, s.getGateIrisAnimation());
-        }
-        if (s.getGateView() != null)
-        {
-            map.put(VIEW_KEY, s.getGateView());
         }
         if (s.getGateUseCost() != null)
         {

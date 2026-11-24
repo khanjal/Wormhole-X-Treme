@@ -14,7 +14,7 @@ import org.bukkit.block.BlockState;
  * <p>Moved out of {@code Windows} so the clusters that come after it can read and write the
  * same state without being nested in a 3,000-line class. Package-private, and used through
  * static imports, so the bodies that use them did not change. {@link Windows#clear()}
- * still resets all of it but {@link #trimmedAt} and {@link #drawnListener}, which it never did.
+ * still resets all of it but {@link #trimmedAt}, which it never did.
  */
 final class WindowStore
 {
@@ -61,9 +61,4 @@ final class WindowStore
 
     /** Players who asked for one mirror drawn whole and unlimited, by the mirror's name. */
     static final Map<UUID, String> FULL = new ConcurrentHashMap<>();
-
-    /** Told after each redraw which windows the viewer is drawn: an open gate's horizon follows it. */
-    static Windows.DrawnListener drawnListener = (viewer, player, windows) ->
-    {
-    };
 }

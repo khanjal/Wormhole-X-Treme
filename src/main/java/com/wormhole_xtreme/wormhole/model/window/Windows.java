@@ -9,7 +9,6 @@ import static com.wormhole_xtreme.wormhole.model.window.WindowStore.OFFERED;
 import static com.wormhole_xtreme.wormhole.model.window.WindowStore.STATES;
 import static com.wormhole_xtreme.wormhole.model.window.WindowStore.VIEWS;
 import static com.wormhole_xtreme.wormhole.model.window.WindowStore.changes;
-import static com.wormhole_xtreme.wormhole.model.window.WindowStore.drawnListener;
 import static com.wormhole_xtreme.wormhole.model.window.WindowStore.sweepRoomBlocks;
 import static com.wormhole_xtreme.wormhole.model.window.WindowStore.sweeps;
 import static com.wormhole_xtreme.wormhole.model.window.WindowStore.trimmedAt;
@@ -24,11 +23,9 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.LongSupplier;
-import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -38,9 +35,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.GateViews;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -146,18 +141,6 @@ public final class Windows
     static int mostFixed = MOST_FIXED;
 
     /**
-     * Most blocks one gate's view may hold (#516): four times a mirror's, some 50 MB while it is drawn.
-     *
-     * <p>A gate view is filled to 160 blocks through an opening up to eighteen square, and at a
-     * mirror's cap open ground past a hundred or so was cut away, leaving this world showing
-     * behind the far side. One view serves everybody looking into the gate.
-     */
-    private static final int MOST_GATE_FIXED = 1_000_000;
-
-    /** The same, settable so a test can make a gate's view not fit. */
-    static int mostGateFixed = MOST_GATE_FIXED;
-
-    /**
      * Most block changes sent to one viewer in a tick; the rest of a redraw follows a tick apart.
      *
      * <p>A room at the render distance is some eighty thousand blocks, and sent as one batch as
@@ -228,23 +211,6 @@ public final class Windows
     /** What the time is; settable so a test can let a minute pass. */
     static LongSupplier clock = System::currentTimeMillis;
 
-    /**
-     * Told which windows a viewer is drawn after a redraw (#516).
-     */
-    @FunctionalInterface
-    public interface DrawnListener
-    {
-        /**
-         * @param viewer
-         *            whose drawing it is
-         * @param player
-         *            that player, or null when their drawing went with them: gone, or into another world
-         * @param windows
-         *            the names of the windows they are drawn now; empty for none
-         */
-        void drawn(UUID viewer, Player player, Set<String> windows);
-    }
-
     /** A window's far side drawn whole: the blocks, and the depth they reach from the opening. */
     record Whole(Map<Long, BlockData> blocks, int depth)
     {
@@ -310,19 +276,6 @@ public final class Windows
     }
 
     /**
-     * How old the capture is of a window the sweep holds.
-     *
-     * @param name
-     *            the window's name
-     * @return whole seconds, or -1 when no window of that name was found by the last sweep
-     */
-    public static long captureSecondsOld(final String name)
-    {
-        final WindowState window = ACTIVE.get(name);
-        return (window == null) ? -1 : window.capture.secondsOld();
-    }
-
-    /**
      * What one redraw projected and drew.
      *
      * <p>Numbers, written out only when {@code mirror debug} asks: a sentence built on every redraw
@@ -348,16 +301,6 @@ public final class Windows
             return MirrorText.field("redraw", projected + " projected, " + near + " drawn"
                 + ((fixed > 0) ? (", " + fixed + " whole") : "") + ", " + tookMillis + " ms");
         }
-    }
-
-    /**
-     * The most blocks a window's view may hold before its depth is cut to fit.
-     *
-     * @return a gate's cap for a gate's window, a mirror's for a mirror's
-     */
-    static int mostFixedFor(final WindowState window)
-    {
-        return window.walkThrough() ? mostGateFixed : mostFixed;
     }
 
     /** Static state only. */
@@ -387,7 +330,6 @@ public final class Windows
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
         mostFixed = MOST_FIXED;
-        mostGateFixed = MOST_GATE_FIXED;
         streamPerTick = STREAM_PER_TICK;
         nearDistance = NEAR_DISTANCE;
         restFactor = REST_FACTOR;
@@ -415,7 +357,6 @@ public final class Windows
         final WindowState previous = ACTIVE.get(name);
         if ((previous != null) && previous.shape.equals(window.shape))
         {
-            final boolean sameFunnel = Objects.equals(previous.source.funnel(), source.funnel());
             window.solid = previous.solid;
             window.border = previous.border;
             window.margin = previous.margin;
@@ -423,7 +364,7 @@ public final class Windows
             window.solidAt = previous.solidAt;
             // Every window in a loaded chunk is offered each sweep, looked at or not: a fixed view
             // nobody has used for a while is let go rather than carried for the life of the chunk.
-            // One from another capture or funnel is still drawn until its rebuild is whole (#609).
+            // One from another capture is still drawn until its rebuild is whole (#609).
             if ((previous.fixed != null) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS))
             {
                 window.fixed = previous.fixed;
@@ -437,9 +378,8 @@ public final class Windows
                 window.fixedDepth = previous.fixedDepth;
                 window.fixedUsedAt = previous.fixedUsedAt;
                 window.fixedChanges = previous.fixedChanges;
-                window.fixedFunnel = previous.fixedFunnel;
             }
-            if (FULL.containsValue(name) && sameFunnel)
+            if (FULL.containsValue(name))
             {
                 window.full = previous.full;
                 window.fullFrom = previous.fullFrom;
@@ -468,77 +408,6 @@ public final class Windows
     public static boolean holdsWindow(final String name)
     {
         return ACTIVE.containsKey(name) || OFFERED.containsKey(name);
-    }
-
-    /**
-     * Sets who is told which windows each viewer is drawn after a redraw.
-     *
-     * @param listener
-     *            told once a redraw has settled, and as a drawing is forgotten; null for nobody
-     */
-    public static void onDrawn(final DrawnListener listener)
-    {
-        drawnListener = (listener == null) ? (viewer, player, windows) ->
-        {
-        } : listener;
-    }
-
-    /**
-     * Tells the listener what a viewer is drawn once it is all sent: a window with no room yet is drawn
-     * nothing, and a view still streaming has not arrived, so a gate's horizon is not cleared under either.
-     * While it streams only the gates already cleared are told, so none is newly cleared and a lost one is put back.
-     */
-    private static void tellSettled(final UUID viewer, final Player player, final ViewerDrawing view)
-    {
-        if (view.pending.isEmpty())
-        {
-            tellDrawn(viewer, player, view.settled);
-            return;
-        }
-        // Still streaming: no gate is newly cleared, but one the viewer has stopped being drawn is put back at once.
-        try
-        {
-            GateViews.drawnWhileStreaming(viewer, player, view.settled);
-        }
-        catch (final Exception | LinkageError e)
-        {
-            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-            if (plugin != null)
-            {
-                plugin.prettyLog(Level.WARNING, "Could not follow a viewer's windows", e);
-            }
-        }
-    }
-
-    /** The windows among those seen that have a room to draw. */
-    private static Set<String> settledNames(final List<WindowState> seeing, final WindowCompose.Wholes wholes)
-    {
-        final Set<String> names = new HashSet<>();
-        for (final WindowState window : seeing)
-        {
-            if (wholes.of(window) != null)
-            {
-                names.add(window.name());
-            }
-        }
-        return names;
-    }
-
-    /** Tells the listener what a viewer is drawn, without letting its failure stop the drawing. */
-    static void tellDrawn(final UUID viewer, final Player player, final Set<String> windows)
-    {
-        try
-        {
-            drawnListener.drawn(viewer, player, windows);
-        }
-        catch (final Exception | LinkageError e)
-        {
-            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-            if (plugin != null)
-            {
-                plugin.prettyLog(Level.WARNING, "Could not follow a viewer's windows", e);
-            }
-        }
     }
 
     /** Ends a sweep: the windows offered become the windows there are, and every view follows. */
@@ -759,7 +628,6 @@ public final class Windows
         {
             if (seeing.isEmpty())
             {
-                tellDrawn(id, player, Set.of());
                 return;
             }
             view = new ViewerDrawing(player.getWorld());
@@ -781,8 +649,6 @@ public final class Windows
             keepAsDrawn(player, view, eye, now, eyeMatters, fromSweep);
             // Kept as drawn, so judged against what is drawn: a creature moves, or walks in, while the viewer stands still.
             WindowCreatures.showStandIns(player, view, eye, seeing, wholes, now);
-            // Still told: a gate's horizon may have cleared under a view that has not changed.
-            tellSettled(id, player, view);
             return;
         }
         if (fromSweep && !crossed && !view.stamp.isEmpty() && !view.stamp.equals(stamp) && WindowPacing.roomShareSpent(wholes))
@@ -790,7 +656,6 @@ public final class Windows
             // Rooms enough were redrawn this sweep -- a rebuilt room swapped in under many viewers at
             // once -- so this viewer keeps what they see until the next (#609).
             WindowCreatures.followStandIns(view);
-            tellSettled(id, player, view);
             return;
         }
         if (!mayWork)
@@ -816,14 +681,12 @@ public final class Windows
         view.rest = WindowPacing.restAfter(took, WindowPacing.smallestOpen(seeing));
         view.stamp = stamp;
         view.mirrors = names(seeing);
-        view.settled = settledNames(seeing, wholes);
         view.fixedNames = names(new ArrayList<>(wholes.whole().keySet()));
         view.eye = eyeKey(eye);
         view.chunk = chunk;
         view.generation = Captures.generation();
         // From when the redraw finished, not when it began, so a slow one still leaves a gap.
         view.composedAt = now();
-        tellSettled(id, player, view);
         if (wanted.isEmpty() && view.pending.isEmpty())
         {
             endView(id, player);
@@ -896,11 +759,6 @@ public final class Windows
         if (view != null)
         {
             StandIns.removeAll(view);
-        }
-        // In the same world the last redraw already said what they are drawn; elsewhere it is all gone.
-        if ((player == null) || ((view != null) && !view.world.equals(player.getWorld())))
-        {
-            tellDrawn(id, null, Set.of());
         }
     }
 
