@@ -65,7 +65,7 @@ class WindowComposeTest
     private MockedStatic<MirrorPackets> packets;
 
     /** A window source that is only what the drawing asks of one. */
-    private record Source(String name, Block anchor, WindowShape shape, List<Spot> open, boolean walkThrough)
+    private record Source(String name, Block anchor, WindowShape shape, List<Spot> open)
         implements WindowSource
     {
         @Override
@@ -130,7 +130,7 @@ class WindowComposeTest
     {
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        return new WindowState(new Source(name, anchorAt(world, ax, ay, az), shape, open, false), capture);
+        return new WindowState(new Source(name, anchorAt(world, ax, ay, az), shape, open), capture);
     }
 
     private Location eye(final double x, final double y, final double z)
@@ -241,20 +241,6 @@ class WindowComposeTest
 
         assertFalse(wanted.containsKey(key(30, 70, 40)), "no banner is aired on plain 1.20");
         assertSame(barrier, wanted.get(key(10, 64, 20)), "the opening is barred all the same");
-    }
-
-    @Test
-    void aWalkThroughWindowIsNeitherBarredNorBannered()
-    {
-        final List<Spot> open = new ArrayList<>();
-        WIDE.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        final WindowState window = new WindowState(new Source("gate:Abydos", anchorAt(world, 30, 70, 40), WIDE, open, true),
-            null);
-
-        final Map<Long, BlockData> wanted = compose(new ViewerDrawing(world), eye(EYE[0], EYE[1], EYE[2]), window,
-            whole(window, room(3)), 1000L, new Windows.Budget());
-
-        assertTrue(wanted.isEmpty(), "its opening is walked into, not drawn: " + wanted.size());
     }
 
     @Test
@@ -529,10 +515,10 @@ class WindowComposeTest
     void theSpanIsTheOpeningAndFramePlusABlockAroundThemAcrossAndUp()
     {
         final List<Spot> open = List.of(new Spot(3, 5, 7));
-        final WindowState south = new WindowState(new Source("a", anchorAt(world, 0, 0, 0), WIDE, open, false), null);
+        final WindowState south = new WindowState(new Source("a", anchorAt(world, 0, 0, 0), WIDE, open), null);
         south.frame = List.of(new Spot(10, 6, 20));
         final WindowShape east = WindowShape.through(new Spot(10, 64, 20), new Spot(1, 0, 0), ARRIVAL, 3, 3);
-        final WindowState along = new WindowState(new Source("b", anchorAt(world, 0, 0, 0), east, open, false), null);
+        final WindowState along = new WindowState(new Source("b", anchorAt(world, 0, 0, 0), east, open), null);
         along.frame = List.of(new Spot(10, 6, 20));
 
         assertEquals(List.of(2.0, 12.0, 4.0, 8.0), toList(WindowCompose.spanOf(south)),
@@ -562,7 +548,7 @@ class WindowComposeTest
     {
         final List<Spot> open = new ArrayList<>();
         WIDE.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        final WindowState window = new WindowState(new Source(name, anchorAt(in, ax, ay, az), WIDE, open, false), capture);
+        final WindowState window = new WindowState(new Source(name, anchorAt(in, ax, ay, az), WIDE, open), capture);
         wallRound(window, WindowFace.wallReach());
         window.fixed = new HashMap<>();
         window.fixedDepth = 7;

@@ -55,9 +55,8 @@ final class WindowCompose
         final Round round = new Round(seeing, allOpen, view.drawn.keySet(), budget);
         for (final WindowState window : seeing)
         {
-            // A gate's opening is walked into, and its horizon is the gate's own to draw. A room still
-            // being built leaves its banner up rather than a hole into the real wall (#609).
-            if (window.walkThrough() || (wholes.of(window) == null))
+            // A room still being built leaves its banner up rather than a hole into the real wall (#609).
+            if (wholes.of(window) == null)
             {
                 continue;
             }

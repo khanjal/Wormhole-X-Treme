@@ -58,12 +58,6 @@ class WindowWallTest
         }
 
         @Override
-        public boolean walkThrough()
-        {
-            return false;
-        }
-
-        @Override
         public int depth()
         {
             return 16;

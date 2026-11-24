@@ -853,7 +853,6 @@ public class StargateManager
     public static void forgetPortalVisuals(final UUID uuid)
     {
         StargateBlockSetup.forgetDrawn(uuid);
-        GateViews.forgetViewer(uuid);
         HorizonRipple.forgetViewer(uuid);
     }
 
@@ -1405,16 +1404,6 @@ public class StargateManager
             GateEvents.fireRemoved(s, remover);
             // Only a real removal: a refresh hands the same gate back, and its trips stay with it (#638).
             PlayerStats.forgetGate(s.getGateName());
-            // A removal, not a refresh handing the gate back: what it shows goes with it (#516).
-            try
-            {
-                GateViews.removed(s);
-            }
-            catch (final Exception | LinkageError e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                    "Could not forget the view of gate '" + s.getGateName() + "'", e);
-            }
         }
         // While the gate still shows its wormhole, so what a ripple drew is put back to it.
         HorizonRipple.forget(s);

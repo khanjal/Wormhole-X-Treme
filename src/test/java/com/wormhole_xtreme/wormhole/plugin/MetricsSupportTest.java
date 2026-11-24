@@ -95,7 +95,7 @@ class MetricsSupportTest
                 }
             }
             assertEquals(List.of("gates", "ring_pairs", "beam_destinations", "mirrors", "gate_dial_spin",
-                "gate_view", "gate_ripple", "gate_sounds", "gate_iris_animation", "gate_shapes",
+                "gate_ripple", "gate_sounds", "gate_iris_animation", "gate_shapes",
                 "portal_material", "gate_material", "integrations"), ids,
                 "the ids the charts on bstats.org were made with");
 

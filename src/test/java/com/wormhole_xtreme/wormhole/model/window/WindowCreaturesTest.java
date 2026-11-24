@@ -70,11 +70,6 @@ class WindowCreaturesTest
     private record Source(String name, Block anchor, WindowShape shape, List<Spot> open, Place destination)
         implements WindowSource
     {
-        @Override
-        public boolean walkThrough()
-        {
-            return false;
-        }
 
         @Override
         public int depth()

@@ -250,7 +250,7 @@ final class WindowCreatures
     {
         if (creature instanceof Player other)
         {
-            final CreatureTally.Skip unseen = FarPlayers.whyNot(player, other, window);
+            final CreatureTally.Skip unseen = FarPlayers.whyNot(player, other);
             if (unseen != null)
             {
                 return unseen;

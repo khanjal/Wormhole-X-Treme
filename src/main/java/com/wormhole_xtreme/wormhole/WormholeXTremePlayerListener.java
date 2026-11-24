@@ -24,7 +24,6 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import com.wormhole_xtreme.wormhole.command.Refresh;
-import com.wormhole_xtreme.wormhole.model.GateViews;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorInteraction;
@@ -313,8 +312,7 @@ class WormholeXTremePlayerListener implements Listener
     @EventHandler
     public void onPlayerChangedWorld(final PlayerChangedWorldEvent event)
     {
-        // Their client has the new world's chunks, so no gate's opening is cleared for them any more.
-        GateViews.forgetViewer(event.getPlayer().getUniqueId());
+        // Their client has the new world's chunks, so what was swept for them in the old one no longer applies.
         StargateManager.forgetSweptLayers(event.getPlayer().getUniqueId());
         PortalPresence.refreshPortalVisualsFor(event.getPlayer());
         GatePreviews.forget(event.getPlayer().getUniqueId());

@@ -52,25 +52,7 @@ class DataLayoutCapturesTest
     @Test
     void bothKindsOfCaptureLiveUnderOneFolder()
     {
-        assertEquals(new File(new File(data, "captures"), "gates"), DataLayout.gateCaptureDir());
         assertEquals(new File(new File(data, "captures"), "mirrors"), DataLayout.mirrorCaptureDir());
-    }
-
-    /** The gate captures move out of gates/, and the gate files beside them are not touched. */
-    @Test
-    void gateCapturesMoveOutOfTheGatesFolderAndTheGatesStayPut() throws IOException
-    {
-        final File earlier = new File(DataLayout.gates(), "captures");
-        assertTrue(earlier.mkdirs());
-        write(new File(earlier, "alpha.view"), "capture");
-        final File gate = new File(DataLayout.gates(), "alpha.yml");
-        write(gate, "the gate");
-
-        final File dir = DataLayout.gateCaptureDir();
-
-        assertEquals("capture", read(new File(dir, "alpha.view")), "the capture came along");
-        assertFalse(earlier.exists(), "and the old folder is gone");
-        assertEquals("the gate", read(gate), "the gate file is where it was, unread by the move");
     }
 
     /** The folder two builds back, and the one a build back, both end in the new place. */
@@ -106,55 +88,13 @@ class DataLayoutCapturesTest
         assertEquals("fresh", read(new File(dir, "same.view")), "not the two-builds-old photograph");
     }
 
-    /** A file already in the new folder is never overwritten, and the old one stays to be seen. */
-    @Test
-    void aFileAlreadyAtTheDestinationWins() throws IOException
-    {
-        final File dir = new File(new File(data, "captures"), "gates");
-        assertTrue(dir.mkdirs());
-        write(new File(dir, "alpha.view"), "new");
-        final File earlier = new File(DataLayout.gates(), "captures");
-        assertTrue(earlier.mkdirs());
-        write(new File(earlier, "alpha.view"), "old");
-        write(new File(earlier, "beta.view"), "other");
-
-        DataLayout.gateCaptureDir();
-
-        assertEquals("new", read(new File(dir, "alpha.view")), "not overwritten");
-        assertEquals("other", read(new File(dir, "beta.view")), "the rest came across");
-        assertEquals("old", read(new File(earlier, "alpha.view")), "and the clash is left, nothing deleted");
-    }
-
     /** A server with no captures is left with nothing created by being asked. */
     @Test
     void askingWithNothingToMoveCreatesNothing()
     {
-        assertFalse(DataLayout.gateCaptureDir().exists());
         assertFalse(DataLayout.mirrorCaptureDir().exists());
         assertFalse(DataLayout.gates().exists());
         assertFalse(new File(data, "captures").exists());
-    }
-
-    /**
-     * A clash left in the old folder is looked at once a run, not on every capture lookup.
-     *
-     * <p>The accessors are asked for every lookup, often on the main thread, so a folder that can
-     * never be emptied (a file in both places) must not be walked and failed on each time.
-     */
-    @Test
-    void aFolderThatCouldNotBeEmptiedIsNotRetried() throws IOException
-    {
-        final File dir = new File(new File(data, "captures"), "gates");
-        write(new File(dir, "alpha.view"), "new");
-        final File earlier = new File(DataLayout.gates(), "captures");
-        write(new File(earlier, "alpha.view"), "old");
-        DataLayout.gateCaptureDir();
-        write(new File(earlier, "beta.view"), "later");
-
-        DataLayout.gateCaptureDir();
-
-        assertTrue(new File(earlier, "beta.view").isFile(), "not walked a second time");
-        assertFalse(new File(dir, "beta.view").exists());
     }
 
     /** The emptied mirror/ folder goes, but a plain file of that name is not ours to delete. */
@@ -166,6 +106,47 @@ class DataLayoutCapturesTest
         DataLayout.mirrorCaptureDir();
 
         assertEquals("an admin's backup", read(new File(data, "mirror")));
+    }
+
+    /** A file already in the new folder is never overwritten, and the old one stays to be seen. */
+    @Test
+    void aFileAlreadyAtTheDestinationWins() throws IOException
+    {
+        final File dir = new File(new File(data, "captures"), "mirrors");
+        assertTrue(dir.mkdirs());
+        write(new File(dir, "alpha.view"), "new");
+        final File earlier = new File(data, "mirror-captures");
+        assertTrue(earlier.mkdirs());
+        write(new File(earlier, "alpha.view"), "old");
+        write(new File(earlier, "beta.view"), "other");
+
+        DataLayout.mirrorCaptureDir();
+
+        assertEquals("new", read(new File(dir, "alpha.view")), "not overwritten");
+        assertEquals("other", read(new File(dir, "beta.view")), "the rest came across");
+        assertEquals("old", read(new File(earlier, "alpha.view")), "and the clash is left, nothing deleted");
+    }
+
+    /**
+     * A clash left in the old folder is looked at once a run, not on every capture lookup.
+     *
+     * <p>The accessors are asked for every lookup, often on the main thread, so a folder that can
+     * never be emptied (a file in both places) must not be walked and failed on each time.
+     */
+    @Test
+    void aFolderThatCouldNotBeEmptiedIsNotRetried() throws IOException
+    {
+        final File dir = new File(new File(data, "captures"), "mirrors");
+        write(new File(dir, "alpha.view"), "new");
+        final File earlier = new File(data, "mirror-captures");
+        write(new File(earlier, "alpha.view"), "old");
+        DataLayout.mirrorCaptureDir();
+        write(new File(earlier, "beta.view"), "later");
+
+        DataLayout.mirrorCaptureDir();
+
+        assertTrue(new File(earlier, "beta.view").isFile(), "not walked a second time");
+        assertFalse(new File(dir, "beta.view").exists());
     }
 
     private static void write(final File file, final String text) throws IOException

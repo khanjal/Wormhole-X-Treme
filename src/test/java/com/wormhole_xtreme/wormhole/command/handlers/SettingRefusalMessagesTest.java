@@ -80,9 +80,6 @@ class SettingRefusalMessagesTest
             refusal(ConfigKeys.GATE_IRIS_ANIMATION, "sideways", ConfigKeys.GATE_IRIS_ANIMATION + " is "
                 + String.join(", ", animations) + ", not \"sideways\".",
                 "QQ GATE_IRIS_ANIMATION one of " + String.join(" | ", animations) + " not \"sideways\"."),
-            refusal(ConfigKeys.GATE_VIEW, "window", ConfigKeys.GATE_VIEW + " is "
-                + String.join(", ", ConfigManager.GATE_VIEWS) + ", not \"window\".",
-                "QQ GATE_VIEW one of horizon | behind | open not \"window\"."),
             refusal(ConfigKeys.SIGN_COLOR_NETWORK, "PINK", ConfigKeys.SIGN_COLOR_NETWORK + " is "
                 + String.join(", ", colours) + ", not \"PINK\".",
                 "QQ SIGN_COLOR_NETWORK one of " + String.join(" | ", colours) + " not \"PINK\"."),

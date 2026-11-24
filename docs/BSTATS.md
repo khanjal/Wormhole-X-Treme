@@ -39,7 +39,6 @@ bStats adds these for every plugin; the plugin sends nothing for them.
 | `beam_destinations` | Beam destinations per server | Simple Pie | a range |
 | `mirrors` | Quantum mirrors per server | Simple Pie | a range |
 | `gate_dial_spin` | Dial spin pattern - Server Default | Simple Pie | `chevron`, `top`, `lap`, `fill`, `pegasus`, `chase`, `universe`, `overshoot`, `none` |
-| `gate_view` | Gate View Setting | Simple Pie | `horizon`, `behind`, `open` |
 | `gate_ripple` | Gate Ripple | Simple Pie | `on`, `off` |
 | `gate_sounds` | Gate Sounds | Simple Pie | `on`, `off` |
 | `gate_iris_animation` | Iris Animation | Simple Pie | `sweep`, `spiral`, `rows`, `columns`, `instant`, `other` |
@@ -78,7 +77,7 @@ The dashboard does not follow the code. Add or edit the chart there when you:
   together;
 - add a shipped gate shape (`ShippedShapes.NAMES`), an iris animation
   (`ConfigManager.irisAnimations()`), a dial
-  spin pattern (`DialSpinPattern`), a gate view (`ConfigManager.GATE_VIEWS`), a portal material
+  spin pattern (`DialSpinPattern`), a portal material
   (`PORTAL_MATERIALS`) or an integration (`INTEGRATIONS`): add the value to the chart's filter, if
   it has one, or the new value is dropped.
 

@@ -31,8 +31,6 @@ final class ViewerDrawing
     boolean streamQueued;
     Set<String> mirrors = Set.of();
     Set<String> fixedNames = Set.of();
-    /** The windows among {@link #mirrors} that have a room drawn: only these have a view to clear a horizon for. */
-    Set<String> settled = Set.of();
     final Map<UUID, Entity> veiled = new HashMap<>();
     /** The stand-ins shown for far creatures, by the creature's id (#296). */
     final Map<UUID, StandIns.StandIn> standIns = new HashMap<>();

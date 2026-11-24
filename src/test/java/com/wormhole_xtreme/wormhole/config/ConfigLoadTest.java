@@ -406,37 +406,35 @@ class ConfigLoadTest
     /**
      * A number left under a setting that is now a switch reads as one, and is written back as one (#583).
      *
-     * <p>An early build of the gate-view tunnel shipped {@code gate-view-funnel} as a length and
-     * appended {@code gate-view-funnel: 8} to the file; the next made it true or false. The 8 was
-     * stored as found, so every read of the switch threw ClassCastException, which took down every
-     * gate's view each sweep, and {@code /wormhole config gate-view-funnel true} was refused as
-     * "a number".
+     * <p>An early build shipped a setting as a length and appended {@code gate-ripple: 8} to the file; the
+     * next made it true or false. The 8 was stored as found, so every read of the switch threw
+     * ClassCastException, and {@code /wormhole config gate-ripple true} was refused as "a number".
      */
     @Test
     void aNumberUnderASwitchIsReadAsOneAndWrittenBack() throws Exception
     {
-        writeConfig("gate-view-funnel: 8\ntimeout-shutdown: 41\n");
+        writeConfig("gate-ripple: 8\ntimeout-shutdown: 41\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
-        assertTrue(ConfigManager.isGateViewFunnel(), "8 was a length, so the tunnel was on");
-        assertTrue(ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_VIEW_FUNNEL).getValue() instanceof Boolean,
+        assertTrue(ConfigManager.isGateRipple(), "8 was a length, so the switch was on");
+        assertTrue(ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_RIPPLE).getValue() instanceof Boolean,
             "stored as a switch, so /wormhole config takes true or false for it");
-        assertTrue(configLines().contains("gate-view-funnel: true"), "and the file says what is read: " + configLines());
+        assertTrue(configLines().contains("gate-ripple: true"), "and the file says what is read: " + configLines());
         assertEquals(41, ConfigManager.getTimeoutShutdown(), "the rest of the file is untouched");
-        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-funnel"));
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-ripple"));
     }
 
     /** A 0 left there reads as off. */
     @Test
     void aZeroUnderASwitchIsOff() throws Exception
     {
-        writeConfig("gate-view-funnel: 0\n");
+        writeConfig("redstone-extend-open-time: 0\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
-        assertFalse(ConfigManager.isGateViewFunnel());
-        assertTrue(configLines().contains("gate-view-funnel: false"), "written back as a switch: " + configLines());
+        assertFalse(ConfigManager.isRedstoneExtendOpenTime());
+        assertTrue(configLines().contains("redstone-extend-open-time: false"), "written back as a switch: " + configLines());
     }
 
     /**
@@ -447,36 +445,16 @@ class ConfigLoadTest
     @Test
     void aValueOfTheWrongKindIsReadAsTheSettingsKindOrItsDefault() throws Exception
     {
-        writeConfig("view-depth: 48.0\ntimeout-shutdown: \"41\"\ngate-ripple: \"true\"\ngate-view-funnel-length: lots\n");
+        writeConfig("view-depth: 48.0\ntimeout-shutdown: \"41\"\ngate-ripple: \"true\"\nring-reach: lots\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
         assertEquals(48, ConfigManager.getViewDepth(), "a whole number written with a point");
         assertEquals(41, ConfigManager.getTimeoutShutdown(), "a number in quotes");
         assertTrue(ConfigManager.isGateRipple(), "a switch in quotes");
-        assertEquals(16, ConfigManager.getGateViewFunnelLength(), "not a number at all: the default");
-        assertTrue(configLines().contains("gate-view-funnel-length: lots"), "and left as written: " + configLines());
-        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-funnel-length"));
-    }
-
-    /**
-     * {@code gate-view-funnel-min-length} written as words is none, the plain view it ships with, said
-     * once and left for the admin; written with a point, it is the whole number (#587).
-     */
-    @Test
-    void aLeastTunnelLengthInWordsIsNoneAndWithAPointIsTheNumber() throws Exception
-    {
-        writeConfig("gate-view-funnel-min-length: three\n");
-        ConfigurationYAML.loadConfiguration(directory);
-
-        assertEquals(0, ConfigManager.getGateViewFunnelMinLength(), "not a number: none");
-        assertTrue(configLines().contains("gate-view-funnel-min-length: three"), "left as written: " + configLines());
-        verify(plugin).prettyLog(eq(Level.WARNING), contains("gate-view-funnel-min-length"));
-
-        writeConfig("gate-view-funnel-min-length: 3.0\n");
-        ConfigurationYAML.loadConfiguration(directory);
-
-        assertEquals(3, ConfigManager.getGateViewFunnelMinLength(), "a whole number written with a point");
+        assertEquals(4, ConfigManager.getRingReach(), "not a number at all: the default");
+        assertTrue(configLines().contains("ring-reach: lots"), "and left as written: " + configLines());
+        verify(plugin).prettyLog(eq(Level.WARNING), contains("ring-reach"));
     }
 
     /**
@@ -486,38 +464,39 @@ class ConfigLoadTest
     @Test
     void aSwitchWrittenBackKeepsItsCommentAndOnlyTheLineItWasReadFrom() throws Exception
     {
-        writeConfig("gate-view-funnel: 8 \t# left from an early build\nGATE_VIEW_FUNNEL: 0\n");
+        writeConfig("gate-ripple: 8 \t# left from an early build\nGATE_RIPPLE: 0\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
-        assertTrue(ConfigManager.isGateViewFunnel(), "the kebab spelling is the one read");
-        assertTrue(configLines().contains("gate-view-funnel: true \t# left from an early build"), "comment kept: " + configLines());
-        assertTrue(configLines().contains("GATE_VIEW_FUNNEL: 0"), "the spelling not read is left alone: " + configLines());
+        assertTrue(ConfigManager.isGateRipple(), "the kebab spelling is the one read");
+        assertTrue(configLines().contains("gate-ripple: true \t# left from an early build"), "comment kept: " + configLines());
+        assertTrue(configLines().contains("GATE_RIPPLE: 0"), "the spelling not read is left alone: " + configLines());
     }
 
     /**
      * A text setting given a number or a bare off is read as text, so no getter that casts to text
-     * throws: a number for a sign colour, and off for gate-view, which YAML reads as false and is then
-     * no level, so the horizon, as off meant. A dial spin written false still means no spin.
+     * throws: a number for a sign colour, and off for gate-iris-animation, which YAML reads as false and is
+     * then no animation, so the default. A dial spin written false still means no spin.
      */
     @Test
     void aTextSettingGivenANumberOrABareOffIsReadAsText() throws Exception
     {
-        writeConfig("sign-color-gate-name: 1\ngate-view: off\ngate-dial-spin: false\nring-default-style: 5\n");
+        writeConfig("sign-color-gate-name: 1\ngate-iris-animation: off\ngate-dial-spin: false\nring-default-style: 5\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
         assertEquals("1", ConfigManager.getSignColorGateName());
-        assertEquals("horizon", ConfigManager.getGateView());
-        assertEquals("false", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_VIEW).getValue());
+        assertEquals("false", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION).getValue());
+        assertTrue(ConfigManager.isIrisAnimated(ConfigManager.getGateIrisAnimation(null, null)), "off sweeps, as the default does");
         assertEquals(DialSpinPattern.NONE, ConfigManager.getGateDialSpinPattern());
         assertEquals("5", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.RING_DEFAULT_STYLE).getValue());
 
-        writeConfig("gate-dial-spin: true\ngate-view: open\n");
+        writeConfig("gate-dial-spin: true\ngate-iris-animation: spiral\n");
         ConfigurationYAML.loadConfiguration(directory);
 
         assertEquals(DialSpinPattern.TOP, ConfigManager.getGateDialSpinPattern(), "true was the old spinning dial");
-        assertEquals("open", ConfigManager.getGateView(), "a level as written is read as it was");
+        assertEquals("spiral", ConfigManager.getConfigurations().get(ConfigManager.ConfigKeys.GATE_IRIS_ANIMATION).getValue(), "an animation as written is read as it was");
+        assertEquals("spiral", ConfigManager.getGateIrisAnimation(null, null));
     }
 
     /**
@@ -600,11 +579,11 @@ class ConfigLoadTest
     @Test
     void aDefaultedSettingIsACopyNotTheSharedDefault() throws Exception
     {
-        writeConfig("gate-view-funnel-length: lots\n");
+        writeConfig("ring-reach: lots\n");
 
         ConfigurationYAML.loadConfiguration(directory);
 
-        for (final ConfigManager.ConfigKeys key : new ConfigManager.ConfigKeys[] { ConfigManager.ConfigKeys.GATE_VIEW_FUNNEL_LENGTH,
+        for (final ConfigManager.ConfigKeys key : new ConfigManager.ConfigKeys[] { ConfigManager.ConfigKeys.RING_REACH,
             ConfigManager.ConfigKeys.GATE_RIPPLE })
         {
             final Setting shipped = Arrays.stream(DefaultSettings.config).filter(s -> s.getName() == key).findFirst()

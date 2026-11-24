@@ -35,20 +35,18 @@ import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
  *
  * <p>A gate ripples when something goes in, when something comes out, and now and then while
  * somebody is near, one ripple at a time and never two within {@link #MIN_GAP_MILLIS}. What a ring
- * is made of depends on the gate and on who is looking:
+ * is made of depends on the gate:
  *
  * <ul>
- * <li>a viewer drawn the gate's view at {@code gate-view: open}, whose opening is clear, is drawn
- * the gate's own portal material in the opening, ring by ring;</li>
- * <li>anybody else at a gate whose frame stands round the plane in front of its horizon ({@link #isDeep},
+ * <li>a gate whose frame stands round the plane in front of its horizon ({@link #isDeep},
  * Grand and Massive of the shipped shapes) is drawn the portal material a block in front of it, in
  * the cells there that are air;</li>
- * <li>anybody else at a flat water gate bigger than two by two is drawn ice in the horizon itself;</li>
- * <li>anybody else at any other gate is drawn nothing.</li>
+ * <li>a flat water gate bigger than two by two is drawn ice in the horizon itself;</li>
+ * <li>any other gate is drawn nothing.</li>
  * </ul>
  *
- * <p>A ring is drawn for one step and put back as the next is drawn: in the opening, to what
- * {@link GateViews#horizonFor} says that viewer sees; in front, to the real block. Never on a cell
+ * <p>A ring is drawn for one step and put back as the next is drawn: in the opening, to the
+ * horizon; in front, to the real block. Never on a cell
  * an entity is in, only on an upright gate whose wormhole is showing, and only to players within
  * the horizon's reach.
  */
@@ -198,8 +196,8 @@ public final class HorizonRipple
         final boolean deep = isDeep(gate);
         final boolean icy = !deep && (gate.getEffectivePortalMaterial() == Material.WATER)
             && (gate.getGatePortalBlocks().size() > FLAT_MORE_THAN);
-        // Nothing to draw for anybody: a flat gate of another material whose horizon is not cleared for a view.
-        if (!deep && !icy && (GateViews.horizonOf(gate, gate.getEffectivePortalMaterial()) != Material.AIR))
+        // Nothing to draw: a flat gate of another material.
+        if (!deep && !icy)
         {
             return false;
         }
@@ -649,12 +647,7 @@ public final class HorizonRipple
             for (final Player player : near)
             {
                 Sent drawing = null;
-                // Drawn the view, their opening is clear: the horizon itself is what crosses it.
-                if ((portal != Material.AIR) && (GateViews.horizonFor(gate, portal, player) == Material.AIR))
-                {
-                    drawing = new Sent(player, inPlane, true, portal);
-                }
-                else if (deep)
+                if (deep)
                 {
                     if (inFront == null)
                     {
@@ -776,7 +769,7 @@ public final class HorizonRipple
                 if (stillShowing)
                 {
                     final BlockData horizon =
-                        MaterialUtils.drawnAcross(GateViews.horizonFor(gate, portal, player), gate.getGateFacing());
+                        MaterialUtils.drawnAcross(portal, gate.getGateFacing());
                     was.cells().forEach(at -> player.sendBlockChange(at, horizon));
                 }
                 return;

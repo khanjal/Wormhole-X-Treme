@@ -3,10 +3,7 @@ package com.wormhole_xtreme.wormhole.model.window;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,28 +13,22 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorFollow;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
-import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * Every {@link Capture} the server has, and the taking of new ones.
@@ -56,12 +47,6 @@ public final class Captures
 {
     /** Chunks read per tick while a capture is being taken. */
     private static final int CHUNKS_PER_TICK = 2;
-
-    /**
-     * Chunks a background capture reads a tick: a gate's fill past its first step, which nobody is
-     * waiting on, and whose chunks are mostly read off the disk on the main thread.
-     */
-    private static final int BACKGROUND_CHUNKS_PER_TICK = 1;
 
     /** How long a capture nobody has looked at stays in memory. */
     private static final long IDLE_MILLIS = 300_000L;
@@ -151,32 +136,6 @@ public final class Captures
         return Math.max(depth, Math.min(MOST_REACH, far.getViewDistance() * 16));
     }
 
-    /**
-     * How far a gate's view is filled in behind its first step (#516): {@code view-depth},
-     * never past what the far world's server sends, and never short of the first step.
-     *
-     * <p>Past the server's send distance a drawn block lands in a chunk the client does not hold,
-     * and is never seen, so a capture deeper than that is disk and memory for nothing. The same rule
-     * a mirror's capture follows ({@link #reach}).
-     *
-     * @param arrival
-     *            where travellers through the gate land, in the far world
-     * @param first
-     *            the first step's depth
-     * @return blocks
-     */
-    public static int gateFillDepth(final Place arrival, final int first)
-    {
-        final int full = ConfigManager.getViewDepth();
-        if (full <= first)
-        {
-            return first;
-        }
-        final World far = Bukkit.getWorld(arrival.worldName());
-        final int sends = (far == null) ? full : (far.getViewDistance() * 16);
-        return Math.max(first, Math.min(full, sends));
-    }
-
     /** Reads one chunk of a world, so a test can hand in chunks without a server. */
     @FunctionalInterface
     interface ChunkReader
@@ -202,27 +161,9 @@ public final class Captures
     /** What a mirror's capture may keep; the field is for a test to lower. */
     static int mostKept = MOST_KEPT;
 
-    /**
-     * What a gate's capture may keep: as many as its view may draw ({@code Windows.mostGateFixed}).
-     * Sections would hold up to four times as many in today's memory (#525), but past this a view onto a
-     * near side of solid ground is cut by its own cap anyway.
-     */
-    static final int MOST_GATE_KEPT = 1_000_000;
-
-    /** What a gate's capture may keep; the field is for a test to lower. */
-    static int mostGateKept = MOST_GATE_KEPT;
-
     private static final Sifter SIFT = (builder, from, reach, floor) ->
     {
         final int kept = builder.keepOnlySeenWithin(from, reach, floor, mostKept);
-        builder.prune();
-        return kept;
-    };
-
-    /** A gate's sift: cut to fit as many blocks as its view may draw, so a capture never holds more than a view can use. */
-    private static final Sifter GATE_SIFT = (builder, from, reach, floor) ->
-    {
-        final int kept = builder.keepOnlySeenWithin(from, reach, floor, mostGateKept);
         builder.prune();
         return kept;
     };
@@ -283,26 +224,6 @@ public final class Captures
     /** Keys whose capture failed and was said so, so one failing every time is said once. */
     private static final Set<String> FAILED = new HashSet<>();
 
-    /** When each gate capture last failed, so a failed one is not tried again every sweep. */
-    private static final Map<String, Long> FAILED_AT = new HashMap<>();
-
-    /** How long a gate capture that failed waits before it is tried again. */
-    static final long GATE_RETRY_MILLIS = 300_000L;
-
-    /**
-     * Gate captures waiting their turn to be sifted, oldest first (#516).
-     *
-     * <p>A gate's sift is some fifteen million rays, and over open sky a minute and a half of one core.
-     * Run as they came, a hub of gates dialled at once was that many cores at once, and on a server of
-     * two or four the main thread starved. They take turns instead: one at a time, since even one is
-     * a core for a minute, and a second would be half the cores of a small server. A mirror's, a
-     * second or so, goes on as it always did and never waits behind a gate's.
-     */
-    private static final Deque<Job> GATE_SIFTS = new ArrayDeque<>();
-
-    /** The gate capture being sifted now, or null. */
-    private static Job gateSifting;
-
     /** Bumped whenever a capture arrives or changes, so every view knows to look again. */
     private static int generation;
 
@@ -347,281 +268,10 @@ public final class Captures
     static final int MIRROR_HOLE_WIDTH = 3;
     static final int MIRROR_HOLE_HEIGHT = 2;
 
-    /** Before the key of a capture kept for a gate, whose file lives with the gates (#516). */
-    static final String GATE_KEY = "gate:";
-
-    /**
-     * The opening every gate's capture is seen through, wide and tall, and the largest a gate view draws:
-     * room for a Grand gate's eighteen by seventeen and a Massive gate's seventeen square.
-     *
-     * <p>One capture per gate serves every gate that dials it. A smaller opening sits inside this one,
-     * centred on the same column and standing on the same row, so every line of sight through it
-     * passes through this too, and what it can see is already here.
-     */
-    public static final int GATE_OPENING = 18;
-
-    /**
-     * The key a gate's capture is kept under: the gate whose front it shows, and the hole it is seen through.
-     *
-     * <p>Named for the gate rather than the place, so it is found again after a restart and can go
-     * when the gate does. The hole is part of it because a capture holds only what its own hole
-     * lets through: a small gate's served to a big one left the big one's view with holes round
-     * its edges, and keyed by place alone a mirror's retake replaced a gate's.
-     *
-     * @param gate
-     *            the gate whose front it shows
-     * @param holeWidth
-     *            the opening it is seen through, wide
-     * @param holeHeight
-     *            and tall
-     * @return a key whose file is in {@link DataLayout#gateCaptureDir()}
-     */
-    public static String gateKey(final String gate, final int holeWidth, final int holeHeight)
-    {
-        return GATE_KEY + gateStem(gate) + '_' + holeWidth + 'x' + holeHeight;
-    }
-
-    /**
-     * A gate's name as its capture files begin: made file-safe, with a hash of the name as typed.
-     *
-     * <p>File-safe alone, every character that is not a plain letter or digit became an underscore,
-     * so "a b" and "a_b", or any two names in another alphabet, shared one file and each drew the
-     * other's far side. Gate names are told apart without case, so the hash is of the lower case.
-     */
-    static String gateStem(final String gate)
-    {
-        final String lower = gate.toLowerCase(Locale.ROOT);
-        return fileSafe(lower) + '-' + Integer.toHexString(lower.hashCode());
-    }
-
     /** A name as a file may be called. */
     static String fileSafe(final String name)
     {
         return name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._-]", "_");
-    }
-
-    /** What follows a gate's name in its capture's key: the hole, as {@code _<width>x<height>}. */
-    private static final Pattern GATE_HOLE = Pattern.compile("_(\\d+)x(\\d+)$");
-
-    /**
-     * Every capture kept for a gate, whatever opening it was seen through: on disk, and in memory.
-     *
-     * @param gate
-     *            the gate whose front they show
-     * @return their keys
-     */
-    static Set<String> gateKeysFor(final String gate)
-    {
-        final String stem = gateStem(gate);
-        final String[] files = DataLayout.gateCaptureDir().list((dir, name) -> name.endsWith(VIEW));
-        final Set<String> keys = Arrays.stream((files == null) ? new String[0] : files)
-            .map(name -> GATE_KEY + name.substring(0, name.length() - VIEW.length()))
-            .collect(Collectors.toCollection(HashSet::new));
-        keys.addAll(LOADED.keySet());
-        // And one still being taken, which has neither yet: a first capture removed mid-way wrote its file anyway.
-        keys.addAll(JOBS.keySet());
-        keys.addAll(LOADING.keySet());
-        keys.removeIf(key -> !key.startsWith(GATE_KEY + stem + '_') || !GATE_HOLE.matcher(key)
-            .region(GATE_KEY.length() + stem.length(), key.length()).matches());
-        return keys;
-    }
-
-    /**
-     * How far a view may be drawn from a capture, up to a depth: the depth, or shorter where a cut to
-     * fit left it.
-     *
-     * <p>A cut keeps the box, so a capture cut short still "reaches" the depth it was asked for and
-     * is not asked for again every sweep; this is what it truly holds.
-     *
-     * @param depth
-     *            how far the view would be drawn
-     * @return blocks
-     */
-    public static int drawableReach(final Capture capture, final int depth)
-    {
-        final int kept = capture.keptReach();
-        return (kept > 0) ? Math.min(depth, kept) : depth;
-    }
-
-    /**
-     * Whether a capture reaches as far ahead of its arrival as a view now draws.
-     *
-     * @param depth
-     *            how far ahead the view draws
-     * @return true if the block that far ahead is inside it
-     */
-    public static boolean reaches(final Capture capture, final Place arrival, final int depth)
-    {
-        final WindowShape.Spot ahead = WindowShape.aheadOf(arrival.yaw());
-        return capture.contains((int) Math.floor(arrival.x()) + (ahead.x() * depth), (int) Math.floor(arrival.y()),
-            (int) Math.floor(arrival.z()) + (ahead.z() * depth));
-    }
-
-    /**
-     * Retakes a gate's captures that are older than a limit or too shallow for the depth, whichever
-     * opening each was seen through, while somebody is at the gate and its chunks are loaded anyway.
-     *
-     * <p>A capture is the base a gate is drawn from until it is taken again; this is the "when
-     * able". The old one is drawn meanwhile.
-     *
-     * @param gate
-     *            the gate whose front they show
-     * @param arrival
-     *            where a traveller through it lands
-     * @param depth
-     *            how far ahead a gate's view draws
-     * @param olderThanSeconds
-     *            how old a capture may be before it is retaken
-     * @return how many were started
-     */
-    public static int refreshGate(final String gate, final Place arrival, final int depth,
-        final long olderThanSeconds)
-    {
-        final String key = gateKey(gate, GATE_OPENING, GATE_OPENING);
-        // Captures seen through a smaller opening, from before one served them all, are only disk now.
-        gateKeysFor(gate).stream().filter(other -> !other.equals(key)).forEach(Captures::forgetKey);
-        return (stale(key, arrival, depth, olderThanSeconds) && !JOBS.containsKey(key)
-            && boxLoaded(arrival, depth)
-            && requestGate(key, gate, arrival, GATE_OPENING, GATE_OPENING, depth, true)) ? 1 : 0;
-    }
-
-    /**
-     * Takes a capture seen through the largest gate opening, first or again, only from chunks already
-     * loaded: a nether portal's far side (#514), which loads a chunk for no block, only held ones for creatures.
-     *
-     * @param key
-     *            its {@link #gateKey}
-     * @param what
-     *            what it is for, for the log
-     * @param arrival
-     *            the far side's arrival point, facing the way it is seen
-     * @param depth
-     *            how far ahead it reaches
-     * @param olderThanSeconds
-     *            how old one already held may be before it is taken again
-     * @return true if one was started now
-     */
-    public static boolean requestLoaded(final String key, final String what, final Place arrival, final int depth,
-        final long olderThanSeconds)
-    {
-        final boolean held = LOADED.containsKey(key) || fileOf(key).isFile();
-        if ((held && !stale(key, arrival, depth, olderThanSeconds)) || JOBS.containsKey(key) || loading(key)
-            || !boxLoaded(arrival, depth))
-        {
-            return false;
-        }
-        return request(key, what, arrival, new int[] { GATE_OPENING, GATE_OPENING }, Math.max(4, depth),
-            new Terms(false, true), NO_CELLS);
-    }
-
-    /**
-     * Whether every chunk a gate's capture reads is loaded now (#683).
-     *
-     * <p>A retake reads only what is loaded: a chunk the server has let go of is not loaded again
-     * (nor generated) to freshen a view, and the old capture is drawn until the chunks are back.
-     * Judged before the job starts, so a gate whose far side is unloaded does not start one every sweep.
-     *
-     * @return true if the far world is not loaded to ask (the request says so), or all of the box is
-     */
-    private static boolean boxLoaded(final Place arrival, final int depth)
-    {
-        final World far = Bukkit.getWorld(arrival.worldName());
-        if (far == null)
-        {
-            return true;
-        }
-        final int[] box = needed(arrival, Math.max(4, depth), far.getMinHeight(), far.getMaxHeight());
-        for (int chunkX = box[0] >> 4; chunkX <= (box[3] >> 4); chunkX++)
-        {
-            for (int chunkZ = box[2] >> 4; chunkZ <= (box[5] >> 4); chunkZ++)
-            {
-                if (!far.isChunkLoaded(chunkX, chunkZ))
-                {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Whether a gate's capture should be taken again: older than the limit, or, if it is in memory,
-     * shallower than the depth.
-     *
-     * <p>One not in memory is judged by its file's age, not loaded to be judged: a watched gate's
-     * captures were read off the disk every minute to learn how old they were, and being asked for
-     * kept them from ever being let go. Its depth is judged when a gate is next drawn from it.
-     */
-    private static boolean stale(final String key, final Place arrival, final int depth, final long olderThanSeconds)
-    {
-        final Held held = LOADED.get(key);
-        if (held != null)
-        {
-            return (held.capture.secondsOld() > olderThanSeconds) || !reaches(held.capture, arrival, depth);
-        }
-        final File file = fileOf(key);
-        return file.isFile() && (((System.currentTimeMillis() - file.lastModified()) / 1000L) > olderThanSeconds);
-    }
-
-    /**
-     * Forgets and deletes every capture of a gate being removed, whatever opening each was seen through.
-     *
-     * <p>At removal rather than in a sweep at startup, which counted a gate missing whenever it had
-     * not loaded -- a gate in a world another plugin loads later -- and deleted what it showed. A
-     * refresh that hands a gate back is not a removal, and keeps them.
-     *
-     * @param gate
-     *            the gate whose front they show
-     * @return how many files were deleted
-     */
-    public static int forgetGate(final String gate)
-    {
-        int deleted = 0;
-        for (final String key : gateKeysFor(gate))
-        {
-            if (forgetKey(key))
-            {
-                deleted++;
-            }
-        }
-        changed();
-        return deleted;
-    }
-
-    /**
-     * Forgets one gate capture and deletes its file: its job called off, and nothing of it kept.
-     *
-     * @return true if a file was deleted
-     */
-    private static boolean forgetKey(final String key)
-    {
-        final Job job = JOBS.remove(key);
-        if (job != null)
-        {
-            job.done = true;
-            job.cancel();
-            // Its sift stops at its next start point; the next gate's need not wait for that.
-            finishedSifting(job);
-        }
-        LOADED.remove(key);
-        // A read still under way lands on nothing.
-        LOADING.remove(key);
-        ABSENT.add(key);
-        // As a mirror's forget does, so a gate built again under the name is warned about afresh.
-        WARNED.remove(key);
-        FAILED.remove(key);
-        FAILED_AT.remove(key);
-        final File file = fileOf(key);
-        try
-        {
-            return Files.deleteIfExists(file.toPath());
-        }
-        catch (final IOException refused)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Could not delete the capture " + file.getName() + " of a removed gate", refused);
-            return false;
-        }
     }
 
     /**
@@ -696,7 +346,7 @@ public final class Captures
     }
 
     /**
-     * The capture kept under a key, if there is one: a mirror's place, or a {@link #gateKey}.
+     * The capture kept under a key, if there is one: a mirror's place.
      *
      * <p>One on disk and not in memory is read off the main thread (#528) and null is answered
      * meanwhile, as for one still being taken; it lands at a later tick and bumps
@@ -899,121 +549,21 @@ public final class Captures
     /** Starts taking a mirror's capture, if the far world is loaded and none is being taken. */
     private static boolean take(final QuantumMirror mirror)
     {
-        return (mirror.destination() != null) && request(keyOf(mirror.destination()), "mirror '" + mirror.name() + "'",
-            mirror.destination(), new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT }, 0, new Terms(false, false), NO_CELLS);
-    }
-
-    /** No blocks left out. */
-    private static final int[][] NO_CELLS = new int[0][];
-
-    /**
-     * The block of a gate's name sign, which a view of its front would otherwise show hanging in the air:
-     * the sign hangs on a frame block the view leaves to the real world. The dial sign stays, since it
-     * hangs on a dialling device that is there to be seen.
-     *
-     * @return each {@code {x, y, z}}, or none for a gate that is not known
-     */
-    private static int[][] signCells(final String gate)
-    {
-        final Stargate found = StargateManager.getStargate(gate);
-        if (found == null)
-        {
-            return NO_CELLS;
-        }
-        final List<int[]> cells = new ArrayList<>();
-        if ((found.getGateNameBlockHolder() != null) && (found.getGateFacing() != null))
-        {
-            final Block name = found.getGateNameBlockHolder().getRelative(found.getGateFacing());
-            if (MaterialUtils.isWallSign(name.getType()))
-            {
-                cells.add(new int[] { name.getX(), name.getY(), name.getZ() });
-            }
-        }
-        return cells.toArray(new int[0][]);
+        return (mirror.destination() != null)
+            && request(keyOf(mirror.destination()), "mirror '" + mirror.name() + "'", mirror.destination());
     }
 
     /**
-     * Starts taking a gate's capture, if the gate's world is loaded and none is being taken (#516).
-     *
-     * @param key
-     *            its {@link #gateKey}
-     * @param gate
-     *            the gate whose front it shows, for the log
-     * @param arrival
-     *            where a traveller through it lands, facing the way they leave
-     * @param holeWidth
-     *            the opening it is seen through, wide
-     * @param holeHeight
-     *            and tall
-     * @param depth
-     *            how far past the opening it reaches: the first step, and anything deeper is the
-     *            background fill to {@code view-depth}, taken at half the pace
-     * @return true if a capture is now being taken, or already was; false while one is read off the
-     *         disk, which a first step taken now would overwrite with a shallower one
-     */
-    public static boolean requestGate(final String key, final String gate, final Place arrival,
-        final int holeWidth, final int holeHeight, final int depth)
-    {
-        return requestGate(key, gate, arrival, holeWidth, holeHeight, depth, false);
-    }
-
-    /**
-     * @param loadedOnly
-     *            true for a retake (#683): the job reads only chunks already loaded, and gives up,
-     *            leaving the old capture, if one is let go meanwhile. The first capture, with
-     *            nothing to draw yet, loads what it must.
-     */
-    private static boolean requestGate(final String key, final String gate, final Place arrival,
-        final int holeWidth, final int holeHeight, final int depth, final boolean loadedOnly)
-    {
-        if (loading(key))
-        {
-            return false;
-        }
-        final boolean fill = depth > ConfigManager.getGateViewFirstDepth();
-        return request(key, "gate '" + gate + "'" + (fill ? " out to " + depth : ""), arrival,
-            new int[] { holeWidth, holeHeight }, Math.max(4, depth), new Terms(fill, loadedOnly), signCells(gate));
-    }
-
-    /**
-     * How a capture is taken.
-     *
-     * @param background
-     *            true for one nobody is waiting on, read at half the pace
-     * @param loadedOnly
-     *            true for a retake (#683): only chunks already loaded are read
-     */
-    private record Terms(boolean background, boolean loadedOnly)
-    {
-    }
-
-    /**
-     * Starts taking a capture, if the far world is loaded and none is being taken under its key.
+     * Starts taking a mirror's capture, if the far world is loaded and none is being taken under its key.
      *
      * @param what
      *            what it is for, for the log
-     * @param hole
-     *            {@code {width, height}} of the opening it is seen through
-     * @param depth
-     *            how far ahead it reaches, or 0 for a mirror's: as far as the far world sends
-     * @param terms
-     *            how it is taken
-     * @param blank
-     *            blocks to leave out of the capture, each {@code {x, y, z}}
      */
-    private static boolean request(final String key, final String what, final Place destination,
-        final int[] hole, final int depth, final Terms terms, final int[][] blank)
+    private static boolean request(final String key, final String what, final Place destination)
     {
         if (JOBS.containsKey(key))
         {
             return true;
-        }
-        // A gate asks every sweep while it is open; a capture that failed, most likely for want of
-        // memory, was started again at once, every second, for as long as anybody stood there.
-        final Long failedAt = FAILED_AT.get(key);
-        if ((failedAt != null) && ((System.currentTimeMillis() - failedAt) < GATE_RETRY_MILLIS))
-        {
-            return false;
         }
         final World far = Bukkit.getWorld(destination.worldName());
         if (far == null)
@@ -1021,24 +571,18 @@ public final class Captures
             if (WARNED.add(key))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Cannot capture the far side"
-                    + " of " + what + ": " + destination.worldName() + " is not loaded. It "
-                    + (key.startsWith(GATE_KEY) ? "keeps its horizon" : "stays a banner")
+                    + " of " + what + ": " + destination.worldName() + " is not loaded. It stays a banner"
                     + " until that world is loaded once.");
             }
             return false;
         }
-        // A retake of a capture already in memory is routine, every few minutes while somebody stands at a gate.
+        // A retake of a capture already in memory is routine.
         final Level said = LOADED.containsKey(key) ? Level.FINE : Level.INFO;
         WormholeXTreme.getThisPlugin().prettyLog(said,
             "Capturing the far side of " + what + " in " + far.getName() + " around " + key);
-        final int reach = (depth > 0) ? depth : reach(far);
-        // A sift is cut to fit its budget as far back as the floor, never short of it: a mirror's view depth, a gate's first step.
-        final int floor = (depth > 0) ? Math.min(depth, ConfigManager.getGateViewFirstDepth()) : ConfigManager.getViewDepth();
-        final Job job = new Job(key, far, destination, hole, new int[] { reach, floor });
-        job.perTick = terms.background() ? BACKGROUND_CHUNKS_PER_TICK : CHUNKS_PER_TICK;
+        final Job job = new Job(key, far, destination, new int[] { MIRROR_HOLE_WIDTH, MIRROR_HOLE_HEIGHT },
+            new int[] { reach(far), ConfigManager.getViewDepth() });
         job.said = said;
-        job.blank = blank;
-        job.loadedOnly = terms.loadedOnly();
         JOBS.put(key, job);
         job.schedule();
         return true;
@@ -1168,41 +712,6 @@ public final class Captures
         generation++;
     }
 
-    /** @return how many gate captures are waiting for their turn to be sifted */
-    static int gateSiftsWaiting()
-    {
-        return GATE_SIFTS.size();
-    }
-
-    /**
-     * Starts the next gate sift waiting, if none is running: the oldest whose capture is still wanted.
-     *
-     * <p>One forgotten while it waited is dropped: every way a gate's job is let go marks it done or
-     * empties the queue.
-     */
-    private static void nextGateSift()
-    {
-        while ((gateSifting == null) && !GATE_SIFTS.isEmpty())
-        {
-            final Job next = GATE_SIFTS.poll();
-            if (!next.done)
-            {
-                gateSifting = next;
-                next.launch();
-            }
-        }
-    }
-
-    /** Lets the next gate sift go, if this job's was the one running. */
-    private static void finishedSifting(final Job job)
-    {
-        if (gateSifting == job)
-        {
-            gateSifting = null;
-            nextGateSift();
-        }
-    }
-
     /** @return how many captures are being taken right now */
     static int taking()
     {
@@ -1214,15 +723,12 @@ public final class Captures
     {
         JOBS.values().forEach(Job::cancel);
         JOBS.clear();
-        GATE_SIFTS.clear();
-        gateSifting = null;
         LOADED.clear();
         // Reads under way land on nothing: after a reload a fresh one is started when wanted.
         LOADING.clear();
         ABSENT.clear();
         WARNED.clear();
         FAILED.clear();
-        FAILED_AT.clear();
         changed();
     }
 
@@ -1314,14 +820,14 @@ public final class Captures
         reader = other;
     }
 
-    /** @return how a key's capture is sifted: the test's own if one is set, else a gate's, else a mirror's */
-    static Sifter siftFor(final String key)
+    /** @return how a key's capture is sifted: the test's own if one is set, else the usual */
+    static Sifter siftFor()
     {
         if (sifter != null)
         {
             return sifter;
         }
-        return key.startsWith(GATE_KEY) ? GATE_SIFT : SIFT;
+        return SIFT;
     }
 
     /** Sifts captures another way, for a test; null for the usual way. */
@@ -1345,7 +851,7 @@ public final class Captures
      * Puts a capture in memory under a key as though it had been taken, for a test.
      *
      * @param key
-     *            a mirror's place or a {@link #gateKey}
+     *            a mirror's place
      */
     static void install(final String key, final Capture capture)
     {
@@ -1356,8 +862,7 @@ public final class Captures
 
     private static File fileOf(final String key)
     {
-        return key.startsWith(GATE_KEY) ? new File(DataLayout.gateCaptureDir(), key.substring(GATE_KEY.length()) + VIEW)
-            : new File(DataLayout.mirrorCaptureDir(), key + VIEW);
+        return new File(DataLayout.mirrorCaptureDir(), key + VIEW);
     }
 
     /**
@@ -1388,10 +893,10 @@ public final class Captures
         private boolean done;
         /** Set once nobody wants this capture, which its sift checks between start points. */
         private volatile boolean cancelled;
-        /** The sift, once the chunks are noted, waiting its turn if it is a gate's. */
+        /** The sift, once the chunks are noted. */
         private Runnable work;
         private BukkitTask task;
-        /** How far the capture was asked to see, and how far it saw once cut to fit {@link #MOST_KEPT}, or {@link #MOST_GATE_KEPT} for a gate. */
+        /** How far the capture was asked to see, and how far it saw once cut to fit {@link #MOST_KEPT}. */
         private int reachAsked;
         private volatile int reachKept;
         /** The hole the capture is seen through. */
@@ -1401,12 +906,6 @@ public final class Captures
         private final int reach;
         /** The level the start was said at, so the end is said at the same one. */
         private Level said = Level.INFO;
-        /** Chunks read a tick. */
-        private int perTick = CHUNKS_PER_TICK;
-        /** Blocks left out of the capture: a gate's name sign, which hangs on a frame the view does not keep. */
-        private int[][] blank = NO_CELLS;
-        /** Reads only chunks that are loaded, and gives up when one is not: a retake (#683). */
-        private boolean loadedOnly;
         private final int floor;
 
         /**
@@ -1462,7 +961,7 @@ public final class Captures
         @Override
         public void run()
         {
-            for (int i = 0; (i < perTick) && !done && !sifting; i++)
+            for (int i = 0; (i < CHUNKS_PER_TICK) && !done && !sifting; i++)
             {
                 step();
             }
@@ -1478,11 +977,6 @@ public final class Captures
             if (next < chunks.size())
             {
                 final int[] chunk = chunks.get(next++);
-                if (loadedOnly && !far.isChunkLoaded(chunk[0], chunk[1]))
-                {
-                    abandon();
-                    return;
-                }
                 try
                 {
                     copy(reader.read(far, chunk[0], chunk[1]), chunk[0] << 4, chunk[1] << 4);
@@ -1559,10 +1053,6 @@ public final class Captures
                     }
                 }
             }
-            for (final int[] cell : blank)
-            {
-                builder.clear(cell[0], cell[1], cell[2]);
-            }
             final WindowShape.Spot ahead = WindowShape.aheadOf(destination.yaw());
             final Capture.Arrival arrival = new Capture.Arrival((int) Math.floor(destination.x()),
                 (int) Math.floor(destination.y()), (int) Math.floor(destination.z()), ahead.x(), ahead.z(),
@@ -1570,19 +1060,11 @@ public final class Captures
             final int depth = reach;
             reachAsked = depth;
             reachKept = depth;
-            // Under two million rays through a mirror's hole and some fifteen million through a
-            // gate's, repeated for a mirror's cut to fit: seconds, and over open sky half a minute or more. Off
-            // the main thread, since the box is noted and nothing here reads the world again.
-            work = () -> reachKept = siftFor(key).sift(builder, arrival, depth, floor);
-            if (key.startsWith(GATE_KEY))
-            {
-                GATE_SIFTS.add(this);
-                nextGateSift();
-            }
-            else
-            {
-                launch();
-            }
+            // Under two million rays through a mirror's hole, repeated for a cut to fit: seconds, and over
+            // open sky half a minute or more. Off the main thread, since the box is noted and nothing here
+            // reads the world again.
+            work = () -> reachKept = siftFor().sift(builder, arrival, depth, floor);
+            launch();
         }
 
         /** Hands the sift to the scheduler's pool, or runs it here where there is none. */
@@ -1658,12 +1140,11 @@ public final class Captures
             }
         }
 
-        /** Reads the chunks again for the blocks the sift kept, and lets the next gate sift go. */
+        /** Reads the chunks again for the blocks the sift kept. */
         private void again()
         {
             next = 0;
             sifting = false;
-            finishedSifting(this);
         }
 
         /** Drops a job whose sift failed, so the next look at the mirror starts a fresh one. */
@@ -1671,15 +1152,10 @@ public final class Captures
         {
             done = true;
             cancel();
-            finishedSifting(this);
             // A job forgotten while it sifted says nothing, or it would hide its successor's failure.
             if (!JOBS.remove(key, this))
             {
                 return;
-            }
-            if (key.startsWith(GATE_KEY))
-            {
-                FAILED_AT.put(key, System.currentTimeMillis());
             }
             if (FAILED.add(key))
             {
@@ -1703,25 +1179,13 @@ public final class Captures
             ABSENT.remove(key);
             WARNED.remove(key);
             FAILED.remove(key);
-            FAILED_AT.remove(key);
             changed();
-            final int most = key.startsWith(GATE_KEY) ? mostGateKept : mostKept;
             WormholeXTreme.getThisPlugin().prettyLog(said, "Captured " + capture.describe()
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
-                    + " blocks ahead to keep under " + most + " blocks") : ""));
+                    + " blocks ahead to keep under " + mostKept + " blocks") : ""));
             save(capture, fileOf(key));
             // Every banner following this room takes its new look (#613).
             followersOf(key, true);
-        }
-
-        /** Gives up a retake that met a chunk no longer loaded: the old capture stays, and the next sweep tries again. */
-        private void abandon()
-        {
-            done = true;
-            cancel();
-            JOBS.remove(key, this);
-            WormholeXTreme.getThisPlugin().prettyLog(said, "Retake of " + key + " given up: chunk "
-                + "no longer loaded in " + far.getName());
         }
 
         void cancel()

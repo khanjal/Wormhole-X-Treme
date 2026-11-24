@@ -23,7 +23,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
@@ -83,7 +82,7 @@ class WindowOcclusionTest
 
     private WindowState window(final WindowShape shape, final List<Spot> open)
     {
-        return new WindowState(new GateSource("gate:Abydos", anchor, shape, open, null, "Chulak", 16), null);
+        return new WindowState(new FakeSource("gate:Abydos", anchor, shape, open, null, 16), null);
     }
 
     private static long face(final int across, final int y)

@@ -57,12 +57,6 @@ public record MirrorSource(QuantumMirror mirror, Block anchor, WindowShape shape
     }
 
     @Override
-    public boolean walkThrough()
-    {
-        return false;
-    }
-
-    @Override
     public QuantumMirror punchTarget()
     {
         return mirror;

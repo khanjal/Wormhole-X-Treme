@@ -200,9 +200,8 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   while the gate is open, for doors and lamps.
 - **Networks, owners and per-gate settings** — shutdown and activate timeouts, cooldown, redstone
   on or off, iris code, owner, and per-gate material overrides.
-- **See where a gate goes, and watch it ripple.** An experiment, and off until you turn it on:
-  `gate-view` draws the far side behind the open gate's horizon, or clears the horizon to show
-  it, and a big gate dialling a small one shows it down a tunnel. `gate-ripple` sends rings
+- **Watch a gate ripple.** An experiment, and off until you turn it on:
+  `gate-ripple` sends rings
   across the horizon as something goes through it and while somebody is near.
 - **Gates work in the Nether and the End**, and a wormhole runs one way: nothing comes back up an
   open gate.
@@ -283,7 +282,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   click will do. `mirror debug` lists every fact about a mirror in green and red — a gap in the
   wall, another mirror too near, a missing capture.
 - **Creatures and players in the room, if you want them.** Mobs in the far room can show through
-  a mirror or an open gate as copies only the viewer sees (`mirror-show-entities`), and with
+  a mirror as copies only the viewer sees (`mirror-show-entities`), and with
   `mirror-show-players` on, who is standing at the other end. Both off by default.
 
 ### For the people running the server
@@ -316,7 +315,7 @@ list, and on Spigot it is also what answers the "posting someone else's plugin" 
   layers kept as worlds load and put back after a map reload. Off until `bluemap-enabled`,
   `squaremap-enabled` or `pl3xmap-enabled` is set.
 - **Anonymous usage counts** go to [bStats](https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269): Minecraft version,
-  server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled, plus the usual bStats server details (player count,
+  server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the ripple, sound and iris settings, and which optional plugins are enabled, plus the usual bStats server details (player count,
   online mode, Java version, operating system). `metrics-enabled: false` turns it off.
 - **Update check**: at startup, looks online for a newer release and says in the console, and to
   operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never

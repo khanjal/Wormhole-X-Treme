@@ -106,8 +106,8 @@ final class PristineConfig
     }
 
     /**
-     * What a key not in the release may hold at a default: a setting's now, and what each listed release
-     * wrote, since a release in between appended it at its own.
+     * What a key not in the release may hold at a default: a setting's now, a retired setting's last, and what
+     * each listed release wrote, since a release in between appended it at its own.
      */
     private static List<Object> laterDefaults(final String key, final List<String> releases)
     {
@@ -116,6 +116,10 @@ final class PristineConfig
         if (current != null)
         {
             values.add(current);
+        }
+        if (RetiredSettings.DEFAULTS_1_14.containsKey(key))
+        {
+            values.add(RetiredSettings.DEFAULTS_1_14.get(key));
         }
         releases.stream().map(release -> shipped(release).get(key)).filter(Objects::nonNull).forEach(values::add);
         return values;

@@ -209,8 +209,7 @@ public final class WindowClicks
         for (final String name : view.mirrors)
         {
             final WindowState window = ACTIVE.get(name);
-            // A gate is walked through under its own rules; a punch at its view goes nowhere.
-            if ((window != null) && !window.walkThrough() && window.open.contains(at)
+            if ((window != null) && window.open.contains(at)
                 && window.anchor().getWorld().equals(block.getWorld()))
             {
                 return window.source.punchTarget();
@@ -249,7 +248,7 @@ public final class WindowClicks
         for (final String name : view.mirrors)
         {
             final WindowState window = ACTIVE.get(name);
-            if ((window == null) || window.walkThrough() || !window.anchor().getWorld().equals(block.getWorld()))
+            if ((window == null) || !window.anchor().getWorld().equals(block.getWorld()))
             {
                 continue;
             }

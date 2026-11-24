@@ -299,13 +299,11 @@ class LegacyDatabaseExporterTest
     {
         final Stargate gate = importedGate("Abydos");
         gate.setGateUseCost(5.0);
-        gate.setGateView("clear");
         gate.setGateOwner(UUID.randomUUID().toString());
 
         final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
 
         assertEquals(1, out.getDropped().get(LegacyDatabaseExporter.Dropped.USE_COST));
-        assertEquals(1, out.getDropped().get(LegacyDatabaseExporter.Dropped.VIEW));
         assertEquals(1, out.getDropped().get(LegacyDatabaseExporter.Dropped.OWNER_UUID));
         assertNull(out.getDropped().get(LegacyDatabaseExporter.Dropped.DIAL_SPIN),
             "a setting no gate has is not listed");

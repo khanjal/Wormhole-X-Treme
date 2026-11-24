@@ -60,7 +60,7 @@ public final class LegacyDatabaseExporter
     /** Per-gate settings of this fork that the format has no place for. */
     public enum Dropped
     {
-        USE_COST, DIAL_SPIN, IRIS_ANIMATION, VIEW, MATERIAL_GROUP, FRAME_MATERIAL, DIAL_SIGN_TARGET,
+        USE_COST, DIAL_SPIN, IRIS_ANIMATION, MATERIAL_GROUP, FRAME_MATERIAL, DIAL_SIGN_TARGET,
         OWNER_UUID, OWNER_UNKNOWN
     }
 
@@ -377,7 +377,6 @@ public final class LegacyDatabaseExporter
         count(dropped, Dropped.USE_COST, gate.getGateUseCost() != null);
         count(dropped, Dropped.DIAL_SPIN, gate.getGateDialSpin() != null);
         count(dropped, Dropped.IRIS_ANIMATION, gate.getGateIrisAnimation() != null);
-        count(dropped, Dropped.VIEW, gate.getGateView() != null);
         count(dropped, Dropped.MATERIAL_GROUP, gate.isGateMaterialGroupChosen());
         count(dropped, Dropped.FRAME_MATERIAL, gate.getGateFrameMaterialHint() != null);
         count(dropped, Dropped.DIAL_SIGN_TARGET, gate.getGateDialSignTargetName() != null);

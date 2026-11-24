@@ -44,8 +44,7 @@ const mirrors = sites('MIRRORS', 4)
 const SCENARIOS = {
   idle: { gates: true, mirrors: true, bots: false },
   viewers: { gates: false, mirrors: true, bots: true },
-  wanderers: { gates: true, mirrors: true, bots: true },
-  gateview: { gates: true, mirrors: false, bots: true }
+  wanderers: { gates: true, mirrors: true, bots: true }
 }
 const plan = SCENARIOS[scenario]
 
@@ -94,7 +93,7 @@ const GATE_FLOOR = -60
 const gateAt = (i) => ({ from: `perfS${i}`, to: `perfT${i}`, x: i * spacing, z: -400, toZ: -700 })
 
 // An open gate holds no chunk ticket, and the tickers skip a gate or mirror whose chunk is not
-// loaded, so idle, wanderers and gateview keep every site force-loaded, both ends of each gate,
+// loaded, so idle and wanderers keep every site force-loaded, both ends of each gate,
 // or they would measure only the sites a bot stands at; siteCheck() says whether they were.
 // KEEP_LOADED=0 or 1 overrides that.
 const keepLoaded = env('KEEP_LOADED', scenario === 'viewers' ? '0' : '1') === '1'
@@ -171,10 +170,7 @@ async function setUpWorld () {
   for (const rule of ['doMobSpawning', 'spawn_mobs', 'doDaylightCycle', 'advance_time', 'doWeatherCycle',
     'advance_weather', 'logAdminCommands', 'log_admin_commands']) send(`gamerule ${rule} false`)
   if (withPlugin) {
-    // The gate-view settings only where there are gates: 1.10.0 has no gate-view-funnel-min-length, and
-    // a viewer run against it would stop on the unknown key.
-    const gateSettings = plan.gates ? [['gate-view', env('GATE_VIEW', 'horizon')], ['gate-view-funnel-min-length', env('FUNNEL_MIN', 0)]] : []
-    for (const [key, value] of [['timeout-shutdown', 0], ['max-open-seconds', 0], ['mirror-per-world-limit', 0], ...gateSettings]) {
+    for (const [key, value] of [['timeout-shutdown', 0], ['max-open-seconds', 0], ['mirror-per-world-limit', 0]]) {
       const at = logSize()
       send(`wx config ${key} ${value}`)
       await needLog(/is now/, 20, at, `wx config ${key} ${value}`)
@@ -255,12 +251,6 @@ function slot (k) {
     const m = mirrorAt(k % mirrors)
     const j = Math.floor(k / mirrors)
     return { x: m.x + 0.5 + ((j % 5) - 2) * 1.5, z: m.z + 3.5 + Math.floor(j / 5) * 2, site: m.name }
-  }
-  if (scenario === 'gateview') {
-    const g = gateAt(k % gates)
-    const j = Math.floor(k / gates)
-    // A Standard gate built facing south at x opens round x - 1.5, 2.5 behind its z.
-    return { x: g.x - 1.0 + ((j % 5) - 2) * 1.5, y: GATE_FLOOR, z: g.z + 2.5 + Math.floor(j / 5) * 2, site: g.from }
   }
   // Wanderers start spread over the box they wander in, by spawn, far from every site.
   return { x: across * 4, z: row * 6 - 24, site: null }
@@ -380,8 +370,7 @@ async function viewsOf (member) {
 
 /** Whether a run is one whose bots must be drawn a window for it to measure anything. */
 function needsViews () {
-  return withPlugin && party.length > 0 && (scenario === 'viewers' ||
-    (scenario === 'gateview' && env('GATE_VIEW', 'horizon') !== 'horizon'))
+  return withPlugin && party.length > 0 && scenario === 'viewers'
 }
 
 /** Waits, up to VIEW_WAIT, for every bot to be drawn a window; returns how many were. */
@@ -490,8 +479,6 @@ async function main () {
     mirrors: plan.mirrors ? mirrors : 0,
     plugin: withPlugin,
     jar: env('JAR_LABEL', withPlugin ? 'wormhole' : 'none'),
-    gateView: env('GATE_VIEW', 'horizon'),
-    funnelMin: Number(env('FUNNEL_MIN', 0)),
     durationS: duration,
     warmupS: Math.round((warmedAt - started) / 1000),
     tick: result,
@@ -545,7 +532,7 @@ function printTable (folder) {
   const rows = fs.readdirSync(folder).filter((f) => f.endsWith('.json'))
     .map((f) => ({ ...JSON.parse(fs.readFileSync(path.join(folder, f), 'utf8')), bootStatus: statusOf(f) }))
     .sort((a, b) => a.scenario.localeCompare(b.scenario) || (a.bots + a.gates + a.mirrors) - (b.bots + b.gates + b.mirrors) ||
-      `${a.gateView}${a.funnelMin}`.localeCompare(`${b.gateView}${b.funnelMin}`) || Number(a.plugin) - Number(b.plugin) ||
+      Number(a.plugin) - Number(b.plugin) ||
       a.jar.localeCompare(b.jar))
   // Gates open/loaded and mirrors loaded, at the end of the run; older results lack it.
   const sites = (r) => {
@@ -561,12 +548,11 @@ function printTable (folder) {
     return why.length ? `INVALID: ${why.join('; ')}` : 'ok'
   }
   const f = (n, d = 2) => (n === null || n === undefined ? '-' : Number(n).toFixed(d))
-  console.log('| scenario | bots | gates | mirrors | gate-view | jar | mean | p95 | p99 | max | >50ms | heap MB: start/end after GC, high-water | bots drawn | blocks drawn/bot | mspt max | sites | valid |')
-  console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+  console.log('| scenario | bots | gates | mirrors | jar | mean | p95 | p99 | max | >50ms | heap MB: start/end after GC, high-water | bots drawn | blocks drawn/bot | mspt max | sites | valid |')
+  console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
   for (const r of rows) {
     const t = r.tick
     const drawn = r.validity.drawnBlocks.length ? Math.round(r.validity.drawnBlocks.reduce((s, x) => s + x, 0) / r.validity.drawnBlocks.length) : '-'
-    const view = r.scenario === 'gateview' ? `${r.gateView}/f${r.funnelMin}` : '-'
-    console.log(`| ${r.scenario} | ${r.bots} | ${r.gates} | ${r.mirrors} | ${view} | ${r.jar} | ${f(t.mean)} | ${f(t.p95)} | ${f(t.p99)} | ${f(t.max, 1)} | ${t.over50} | ${t.heapStartMB}/${t.heapEndMB}/${t.heapPeakMB} | ${r.validity.botsDrawn === null ? '-' : `${r.validity.botsDrawn}/${r.bots}`} | ${drawn} | ${f(r.mspt.maxOfMax, 1)} | ${sites(r)} | ${valid(r)} |`)
+    console.log(`| ${r.scenario} | ${r.bots} | ${r.gates} | ${r.mirrors} | ${r.jar} | ${f(t.mean)} | ${f(t.p95)} | ${f(t.p99)} | ${f(t.max, 1)} | ${t.over50} | ${t.heapStartMB}/${t.heapEndMB}/${t.heapPeakMB} | ${r.validity.botsDrawn === null ? '-' : `${r.validity.botsDrawn}/${r.bots}`} | ${drawn} | ${f(r.mspt.maxOfMax, 1)} | ${sites(r)} | ${valid(r)} |`)
   }
 }

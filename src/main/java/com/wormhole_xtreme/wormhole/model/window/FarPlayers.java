@@ -1,12 +1,10 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
-import java.util.Set;
 
 import org.bukkit.GameMode;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.utils.EntityUtils;
 
 /**
@@ -18,26 +16,10 @@ import com.wormhole_xtreme.wormhole.utils.EntityUtils;
  */
 final class FarPlayers
 {
-    /**
-     * The kinds of window a viewer is shown themselves through: a gate's, whose far side is whatever stands
-     * in front of the gate dialled, the viewer included when the far room is close by and covers them, as for two gates facing each other.
-     */
-    private static final Set<Class<? extends WindowSource>> SHOWN_TO_THEMSELVES = Set.of(GateSource.class);
 
     /** Static methods only. */
     private FarPlayers()
     {
-    }
-
-    /**
-     * Whether a viewer is shown their own stand-in through this window: through a gate, whose far box
-     * holds the viewer only when the far room is close by and covers them (#296, step 4), and never through a mirror.
-     *
-     * @return true if the viewer may see themselves through it
-     */
-    static boolean showsTheViewer(final WindowState window)
-    {
-        return SHOWN_TO_THEMSELVES.contains(window.source.getClass());
     }
 
     /**
@@ -65,19 +47,17 @@ final class FarPlayers
      *            who looks
      * @param other
      *            a player in the far room
-     * @param window
-     *            the window they would show through
      * @return {@link CreatureTally.Skip#PLAYER_UNSHOWN} for one {@link #copied} no longer lets through,
-     *         {@link CreatureTally.Skip#YOU} for the viewer themselves through a window that does not show them, {@link CreatureTally.Skip#PLAYER_HIDDEN}
+     *         {@link CreatureTally.Skip#YOU} for the viewer themselves, {@link CreatureTally.Skip#PLAYER_HIDDEN}
      *         for one hidden from the viewer, as a vanish plugin hides one; null otherwise
      */
-    static CreatureTally.Skip whyNot(final Player viewer, final Player other, final WindowState window)
+    static CreatureTally.Skip whyNot(final Player viewer, final Player other)
     {
         if (!copied(other))
         {
             return CreatureTally.Skip.PLAYER_UNSHOWN;
         }
-        if (other.getUniqueId().equals(viewer.getUniqueId()) && !showsTheViewer(window))
+        if (other.getUniqueId().equals(viewer.getUniqueId()))
         {
             return CreatureTally.Skip.YOU;
         }
@@ -92,12 +72,10 @@ final class FarPlayers
      *            who is shown the stand-in
      * @param other
      *            the player it stands in for
-     * @param window
-     *            the window it shows through
      * @return true if it may stay
      */
-    static boolean stillShown(final Player viewer, final Player other, final WindowState window)
+    static boolean stillShown(final Player viewer, final Player other)
     {
-        return whyNot(viewer, other, window) == null;
+        return whyNot(viewer, other) == null;
     }
 }

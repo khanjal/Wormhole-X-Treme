@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,7 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -85,7 +83,6 @@ import com.wormhole_xtreme.wormhole.PrivateStatics;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPackets;
@@ -2317,196 +2314,47 @@ class WindowsTest
     }
 
     /**
-     * A window walked into, a gate's, is drawn through but not barred, and a click into it is no mirror's.
-     *
-     * <p>Barred, the opening would stop a player stepping into the wormhole the view stands in. Once
-     * a gate stopped being offered as a stand-in mirror, only its source's walk-through answer keeps
-     * the barrier off it.
+     * With {@code mirror-max-viewers} at 1, only one of two players looking at a mirror is drawn its room (#613);
+     * the other is drawn nothing. The sweep's order decides which.
      */
     @Test
-    void aWalkedThroughWindowIsDrawnButNotBarred()
-    {
-        MirrorManager.clear();
-        final WindowShape shape = WindowShape.of(new BlockPlace("world", 10, 64, 10), BlockFace.NORTH, arrival);
-        final List<Spot> open = new ArrayList<>();
-        shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        final GateSource gate = new GateSource("gate:Abydos", banner, shape, open, arrival, "Chulak", 16);
-        final Capture held = Captures.get(Captures.keyOf(arrival));
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-        WindowSweep.alsoOffer(() -> Windows.offer(gate, held));
-        try
-        {
-            withServer(WindowSweep::tick);
-        }
-        finally
-        {
-            WindowSweep.alsoOffer(null);
-        }
-
-        final Collection<BlockState> sent = changesTo(viewer, 1).get(0);
-        assertTrue(drawnAs(sent, farOneBlock) > 0, "the far side is drawn through the gate");
-        final Map<Spot, BlockData> drawn = positions(sent);
-        assertNotSame(barrier, drawn.get(new Spot(10, 64, 11)), "the opening is the gate's to walk into");
-        assertNotSame(barrier, drawn.get(new Spot(10, 63, 11)), "all of it");
-        assertNull(WindowClicks.clicked(viewer, blockAt(10, 63, 11, true)), "and a click into it travels no mirror");
-    }
-
-    /** What the drawing told of each viewer after each redraw: their windows, or null for a drawing gone with them. */
-    private record Told(UUID viewer, Player player, Set<String> windows) {}
-
-    /** Runs some sweeps and moves with a gate's window offered, keeping what the drawing told. */
-    private List<Told> withAGate(final Runnable body)
-    {
-        MirrorManager.clear();
-        final WindowShape shape = WindowShape.of(new BlockPlace("world", 10, 64, 10), BlockFace.NORTH, arrival);
-        final List<Spot> open = new ArrayList<>();
-        shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        final GateSource gate = new GateSource("gate:Abydos", banner, shape, open, arrival, "Chulak", 16);
-        final Capture held = Captures.get(Captures.keyOf(arrival));
-        final List<Told> told = new ArrayList<>();
-        WindowSweep.alsoOffer(() -> Windows.offer(gate, held));
-        Windows.onDrawn((viewer, player, windows) -> told.add(new Told(viewer, player, windows)));
-        try
-        {
-            body.run();
-        }
-        finally
-        {
-            WindowSweep.alsoOffer(null);
-            Windows.onDrawn(null);
-        }
-        return told;
-    }
-
-    /** The last thing told of one viewer. */
-    private static Told lastTold(final List<Told> told, final Player viewer)
-    {
-        Told last = null;
-        for (final Told one : told)
-        {
-            if (one.viewer().equals(viewer.getUniqueId()))
-            {
-                last = one;
-            }
-        }
-        assertNotNull(last, "nothing told of the viewer at all");
-        return last;
-    }
-
-    /**
-     * Whoever is drawn a gate's view is told so after the redraw, and somebody behind the gate is told
-     * they are drawn none (#516).
-     *
-     * <p>An open gate's cleared horizon follows this: cleared for whoever is drawn the view, the horizon
-     * for everybody else. Untold, somebody behind the gate kept an empty ring onto this world.
-     */
-    @Test
-    void aViewerInFrontOfAGateIsToldTheyAreDrawnItAndOneBehindItThatTheyAreNot()
-    {
-        final Player front = playerAt(10.5, 7.5);
-        final Player behind = playerAt(10.5, 12.5);
-        when(world.getPlayers()).thenReturn(List.of(front, behind));
-
-        final List<Told> told = withAGate(() -> withServer(WindowSweep::tick));
-
-        assertEquals(Set.of("gate:Abydos"), lastTold(told, front).windows(), "in front: drawn the gate's view");
-        assertSame(front, lastTold(told, front).player());
-        assertEquals(Set.of(), lastTold(told, behind).windows(), "behind the gate: told, and drawn none");
-        assertSame(behind, lastTold(told, behind).player(), "told as still here, so the horizon is sent them");
-    }
-
-    /**
-     * With {@code mirror-max-viewers} at 1, only one of two players looking at a gate is drawn it, the other nothing and told
-     * so (#613); with no cap, as above, both are drawn it. The sweep's order decides which.
-     */
-    @Test
-    void aGateIsDrawnOnlyForAsManyViewersAsTheCapAllows()
+    void aMirrorIsDrawnOnlyForAsManyViewersAsTheCapAllows()
     {
         final Player first = playerAt(10.5, 7.5);
         final Player second = playerAt(11.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(first, second));
 
         ConfigTestSupport.set(ConfigKeys.MIRROR_MAX_VIEWERS, 1);
-        final List<Told> capped = withAGate(() -> withServer(WindowSweep::tick));
-
-        final Set<String> one = lastTold(capped, first).windows();
-        final Set<String> other = lastTold(capped, second).windows();
-        assertEquals(1, one.size() + other.size(), "exactly one of the two is drawn the view; the other is told none");
-        assertEquals(Set.of("gate:Abydos"), one.isEmpty() ? other : one);
+        withServer(WindowSweep::tick);
+        assertEquals(1, drawnMuseum(first, second), "capped at one: exactly one is drawn the room");
     }
 
-    /** A sweep that changes nothing still says what the viewer is drawn: a horizon may have cleared under it. */
+    /** The control for the cap: with {@code mirror-max-viewers} at 0, both players looking at a mirror are drawn its room. */
     @Test
-    void aSweepThatChangesNothingStillSaysWhatTheViewerIsDrawn()
+    void aMirrorIsDrawnForEveryViewerWithNoCap()
     {
-        final Player front = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(front));
+        final Player first = playerAt(10.5, 7.5);
+        final Player second = playerAt(11.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(first, second));
 
-        final List<Told> told = withAGate(() -> withServer(() ->
-        {
-            WindowSweep.tick();
-            WindowSweep.tick();
-        }));
-
-        assertEquals(2, told.stream().filter(one -> Set.of("gate:Abydos").equals(one.windows())).count(),
-            "told on both sweeps, not only the one that drew: " + told);
+        ConfigTestSupport.set(ConfigKeys.MIRROR_MAX_VIEWERS, 0);
+        withServer(WindowSweep::tick);
+        assertEquals(2, drawnMuseum(first, second), "no cap: both are drawn the room");
     }
 
-    /** Walking behind the gate is told at once, on the move, not at the next sweep. */
-    @Test
-    void walkingBehindAGateIsToldOnTheMove()
+    /** How many of these players have the museum's room drawn for them. */
+    private static int drawnMuseum(final Player... players)
     {
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        final List<Told> told = withAGate(() -> withServer(() ->
+        int drawn = 0;
+        for (final Player player : players)
         {
-            WindowSweep.tick();
-            pause();
-            stand(viewer, 10.5, 12.5);
-            Windows.moved(viewer, viewer.getLocation());
-        }));
-
-        assertEquals(Set.of(), lastTold(told, viewer).windows(), "behind the gate now: drawn none");
-        assertSame(viewer, lastTold(told, viewer).player());
-    }
-
-    /** A viewer who has left the world is told gone, so nothing is sent to where they were. */
-    @Test
-    void aViewerWhoLeftTheWorldIsToldGone()
-    {
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-        final World nether = named(mock(World.class), "nether");
-
-        final List<Told> told = withAGate(() -> withServer(() ->
-        {
-            WindowSweep.tick();
-            when(viewer.getWorld()).thenReturn(nether);
-            WindowSweep.tick();
-        }));
-
-        assertTrue(told.stream().anyMatch(one -> one.viewer().equals(viewer.getUniqueId()) && (one.player() == null)),
-            "in another world: the drawing is gone, and said so: " + told);
-        assertEquals(Set.of(), lastTold(told, viewer).windows(), "and drawn nothing there");
-    }
-
-    /** A viewer who has left the server is told gone too. */
-    @Test
-    void aViewerWhoLeftTheServerIsToldGone()
-    {
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        final List<Told> told = withAGate(() ->
-        {
-            withServer(WindowSweep::tick);
-            when(world.getPlayers()).thenReturn(List.of());
-            withServer(WindowSweep::tick);
-        });
-
-        assertNull(lastTold(told, viewer).player(), "gone: the drawing went with them");
+            final ViewerDrawing view = WindowStore.VIEWS.get(player.getUniqueId());
+            if ((view != null) && view.mirrors.contains("museum"))
+            {
+                drawn++;
+            }
+        }
+        return drawn;
     }
 
     /**

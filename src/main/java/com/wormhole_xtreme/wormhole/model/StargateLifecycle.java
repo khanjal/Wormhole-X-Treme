@@ -100,8 +100,6 @@ class StargateLifecycle
         // shut by default never reaches: an opening sweep left running went on painting the
         // wormhole it started with into the idle gate, and its last step filled it in (#434).
         StargateIrisAnimator.cancel(gate);
-        // Before the interior is filled below, so a cleared horizon is not what a redial settles into.
-        GateViews.closed(gate);
         if (gate.isGateIrisDefaultActive())
         {
             setIrisState(gate, gate.isGateIrisDefaultActive());
@@ -283,7 +281,7 @@ class StargateLifecycle
         // What the opening looks like with no iris over it: the portal if a wormhole is up,
         // otherwise nothing. Both the sweep and the instant path need it.
         final Material uncovered = gate.isGatePortalOpen()
-            ? GateViews.horizonOf(gate, gate.getEffectivePortalMaterial()) : Material.AIR;
+            ? gate.getEffectivePortalMaterial() : Material.AIR;
         final boolean sweep = moved && StargateIrisAnimator.sweeps(gate);
         if (gate.isGateIrisActive())
         {
@@ -375,11 +373,6 @@ class StargateLifecycle
         // A ripple too, before the flag moves: over an open iris its rings go back to the horizon. A
         // shutdown calls its ripple off before it gets here.
         HorizonRipple.cancel(gate);
-        if (!irisActive)
-        {
-            // Before the opening is drawn below, so it is drawn with the horizon for everybody.
-            GateViews.irisOpening(gate);
-        }
         gate.setGateIrisActive(irisActive);
         if (moved)
         {

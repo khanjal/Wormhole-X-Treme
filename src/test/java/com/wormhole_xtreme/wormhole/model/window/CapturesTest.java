@@ -65,9 +65,6 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.GateSource;
-import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -192,6 +189,34 @@ class CapturesTest
         assertNotNull(Captures.get(mirror), "the capture is kept");
         verify(plugin).prettyLog(eq(Level.WARNING), contains("Could not stamp the banners following"),
             any(IllegalStateException.class));
+    }
+
+    /**
+     * The first capture of a mirror's room is said at INFO, once; a retake of one already in memory is only FINE.
+     *
+     * <p>A retake said the same two INFO lines to the console each time it ran.
+     */
+    @Test
+    void aRetakeOfACaptureInMemoryIsNotSaidAtInfo()
+    {
+        MirrorManager.add(mirror);
+        withServer(() ->
+        {
+            assertTrue(Captures.request(mirror));
+            Captures.step(4000);
+        });
+        verify(plugin).prettyLog(eq(Level.INFO), contains("Capturing the far side of"));
+        verify(plugin).prettyLog(eq(Level.INFO), contains("Captured world "));
+
+        withServer(() ->
+        {
+            assertTrue(Captures.retake(mirror), "taken again");
+            Captures.step(4000);
+        });
+
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Capturing the far side of"));
+        verify(plugin).prettyLog(eq(Level.FINE), contains("Captured world "));
+        verify(plugin, times(1)).prettyLog(eq(Level.INFO), contains("Captured world "));
     }
 
     /**
@@ -677,201 +702,14 @@ class CapturesTest
         assertEquals(0, Captures.taking());
     }
 
-    /** Asks for a gate's capture, to depth 8, landing {@code east} blocks east of the museum's room: a few west keeps the same chunks. */
-    private void requestGate(final String gate, final int east)
+    /** Ticks until a number of sifts are held on the pool. */
+    private static void tickUntilSifting(final Pool pool, final int held)
     {
-        assertTrue(Captures.requestGate(Captures.gateKey(gate, Captures.GATE_OPENING, Captures.GATE_OPENING),
-            gate, new Place("far", 100.5 + east, 70.0, -20.5, 0.0f, 0.0f), Captures.GATE_OPENING,
-            Captures.GATE_OPENING, 8));
-    }
-
-    /** Ticks until a number of sifts are held on the pool and a number of gate sifts wait. */
-    private static void tickUntilSifting(final Pool pool, final int held, final int waiting)
-    {
-        for (int i = 0; (i < 200) && ((pool.held.size() < held) || (Captures.gateSiftsWaiting() < waiting)); i++)
+        for (int i = 0; (i < 200) && (pool.held.size() < held); i++)
         {
             pool.tick();
         }
         assertEquals(held, pool.held.size(), "sifts on the pool");
-        assertEquals(waiting, Captures.gateSiftsWaiting(), "gate sifts waiting their turn");
-    }
-
-    /**
-     * Gate sifts take turns, oldest first, one forgotten while it waited is dropped, and a mirror's
-     * does not wait behind them (#516).
-     *
-     * <p>A gate's sift is a core for seconds, over open sky for a minute and a half. Run as they came,
-     * a hub of gates dialled at once was as many cores at once, and on a small server the main thread
-     * starved.
-     */
-    @Test
-    void gateSiftsTakeTurnsAndAMirrorsDoesNotWait() throws Exception
-    {
-        final Pool pool = new Pool();
-        pool.holdAsync = true;
-        final List<Double> sifted = new ArrayList<>();
-        Captures.siftWith((builder, from, reach, floor) ->
-        {
-            sifted.add((double) from.x());
-            return reach;
-        });
-
-        withServer(() ->
-        {
-            requestGate("Abydos", 0);
-            requestGate("Chulak", -1);
-            requestGate("Dakara", -2);
-            requestGate("Edora", -3);
-            assertTrue(Captures.request(mirror));
-            tickUntilSifting(pool, 2, 3);
-
-            Captures.forgetGate("Chulak");
-            pool.runHeld();
-            pool.runMain();
-
-            assertEquals(List.of(100.0, 100.0), sifted, "Abydos's and the museum's sifts ran side by side");
-            assertEquals(1, pool.held.size(), "then the next gate's, alone");
-            assertEquals(1, Captures.gateSiftsWaiting(), "Chulak's dropped, and Edora's still waiting");
-            pool.runHeld();
-            assertEquals(98.0, sifted.get(2), "Dakara's, the oldest still wanted, not Chulak's or Edora's");
-            pool.holdAsync = false;
-            pool.runMain();
-            pool.tickUntilIdle();
-        });
-
-        assertEquals(List.of(100.0, 100.0, 98.0, 97.0), sifted, "Edora's last, and Chulak's never");
-        assertEquals(0, Captures.taking());
-    }
-
-    /**
-     * A gate's name sign is left out of the capture of its front.
-     *
-     * <p>The sign hangs on a frame block that a view of the gate's front does not keep, so it was
-     * drawn hanging in the air before the gate it belongs to.
-     */
-    @Test
-    void aGatesNameSignIsLeftOutOfItsCapture() throws Exception
-    {
-        final Pool pool = new Pool();
-        Captures.siftWith((builder, from, reach, floor) -> reach);
-        final Block holder = mock(Block.class);
-        final Block signBlock = mock(Block.class);
-        when(holder.getRelative(BlockFace.SOUTH)).thenReturn(signBlock);
-        when(signBlock.getX()).thenReturn(100);
-        when(signBlock.getY()).thenReturn(66);
-        when(signBlock.getZ()).thenReturn(-21);
-        when(signBlock.getType()).thenReturn(Material.OAK_WALL_SIGN);
-        final Stargate abydos = mock(Stargate.class);
-        when(abydos.getGateNameBlockHolder()).thenReturn(holder);
-        when(abydos.getGateFacing()).thenReturn(BlockFace.SOUTH);
-
-        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
-        {
-            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(abydos);
-            withServer(() ->
-            {
-                requestGate("Abydos", 0);
-                pool.tickUntilIdle();
-            });
-        }
-
-        final Capture capture = Captures.get(Captures.gateKey("Abydos", Captures.GATE_OPENING,
-            Captures.GATE_OPENING));
-        assertNotNull(capture);
-        assertNotEquals(sand, capture.at(100, 66, -21), "the sign's own block is not drawn");
-        assertEquals(sand, capture.at(100, 66, -22), "though the ground beside it is");
-    }
-
-    /**
-     * Only a sign is blanked: a gate whose name sign is gone keeps whatever stands in its place.
-     *
-     * <p>The holder survives in the gate's record when the sign is removed or built over, and the
-     * blank was taken on trust.
-     */
-    @Test
-    void aBlockThatIsNoLongerTheNameSignIsKept() throws Exception
-    {
-        final Pool pool = new Pool();
-        Captures.siftWith((builder, from, reach, floor) -> reach);
-        final Block holder = mock(Block.class);
-        final Block where = mock(Block.class);
-        when(holder.getRelative(BlockFace.SOUTH)).thenReturn(where);
-        when(where.getX()).thenReturn(100);
-        when(where.getY()).thenReturn(66);
-        when(where.getZ()).thenReturn(-21);
-        when(where.getType()).thenReturn(Material.STONE);
-        final Stargate abydos = mock(Stargate.class);
-        when(abydos.getGateNameBlockHolder()).thenReturn(holder);
-        when(abydos.getGateFacing()).thenReturn(BlockFace.SOUTH);
-
-        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
-        {
-            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(abydos);
-            withServer(() ->
-            {
-                requestGate("Abydos", 0);
-                pool.tickUntilIdle();
-            });
-        }
-
-        assertEquals(sand, Captures.get(Captures.gateKey("Abydos", Captures.GATE_OPENING,
-            Captures.GATE_OPENING)).at(100, 66, -21), "a block that is not a sign is drawn");
-    }
-
-    /** A gate with a name holder and no facing is captured without a sign blanked, not thrown out of the sweep. */
-    @Test
-    void aGateWithNoFacingIsCapturedWithoutBlankingASign() throws Exception
-    {
-        final Pool pool = new Pool();
-        Captures.siftWith((builder, from, reach, floor) -> reach);
-        final Stargate abydos = mock(Stargate.class);
-        final Block holder = mock(Block.class);
-        when(abydos.getGateNameBlockHolder()).thenReturn(holder);
-
-        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
-        {
-            gates.when(() -> StargateManager.getStargate("Abydos")).thenReturn(abydos);
-            withServer(() ->
-            {
-                requestGate("Abydos", 0);
-                pool.tickUntilIdle();
-            });
-        }
-
-        assertNotNull(Captures.get(Captures.gateKey("Abydos", Captures.GATE_OPENING,
-            Captures.GATE_OPENING)));
-    }
-
-    /**
-     * A gate forgotten mid-sift hands nothing back and lets the next gate's sift start at once.
-     *
-     * <p>Its sift stops at its next start point; waiting for that, or for a sift that never notices,
-     * would hold every other gate's back.
-     */
-    @Test
-    void aGateForgottenMidSiftLetsTheNextOneGoAtOnce() throws Exception
-    {
-        final Pool pool = new Pool();
-        pool.holdAsync = true;
-        Captures.siftWith((builder, from, reach, floor) -> reach);
-
-        withServer(() ->
-        {
-            requestGate("Abydos", 0);
-            requestGate("Chulak", -1);
-            tickUntilSifting(pool, 1, 1);
-
-            Captures.forgetGate("Abydos");
-
-            assertEquals(2, pool.held.size(), "Chulak's sift started without waiting for Abydos's to end");
-            pool.runHeld();
-            assertEquals(1, pool.main.size(), "only Chulak's is handed back to the main thread");
-            pool.holdAsync = false;
-            pool.tickUntilIdle();
-        });
-
-        assertNotNull(Captures.get(Captures.gateKey("Chulak", Captures.GATE_OPENING, Captures.GATE_OPENING)));
-        assertEquals(0, Captures.taking());
     }
 
     /**
@@ -889,8 +727,8 @@ class CapturesTest
 
         withServer(() ->
         {
-            requestGate("Abydos", 0);
-            tickUntilSifting(pool, 1, 0);
+            assertTrue(Captures.request(mirror));
+            tickUntilSifting(pool, 1);
             pool.refuseMain = true;
             pool.runHeld();
         });
@@ -918,7 +756,7 @@ class CapturesTest
 
         withServer(() ->
         {
-            requestGate("Abydos", 0);
+            assertTrue(Captures.request(mirror));
             assertThrows(IllegalArgumentException.class, () -> Captures.step(100), "reaches whoever stepped the job");
         });
     }
@@ -1046,465 +884,6 @@ class CapturesTest
         }
     }
 
-    /** The gate whose front the gate captures below show, and where travellers through it land. */
-    private static final String GATE = "Abydos";
-
-    private String gateKey()
-    {
-        return Captures.gateKey(GATE, Captures.GATE_OPENING, Captures.GATE_OPENING);
-    }
-
-    /**
-     * The first capture of a gate is said at INFO, once; a retake of one already in memory is only FINE.
-     *
-     * <p>A gate somebody stands at is retaken every ten minutes or so, and each retake said the same
-     * two INFO lines to the console for as long as they stood there.
-     */
-    @Test
-    void aRetakeOfACaptureInMemoryIsNotSaidAtInfo()
-    {
-        takeGateCapture(8);
-        verify(plugin).prettyLog(eq(Level.INFO), contains("Capturing the far side of"));
-        verify(plugin).prettyLog(eq(Level.INFO), contains("Captured world "));
-
-        withServer(() ->
-        {
-            assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, -1L), "an old one is taken again");
-            Captures.step(100);
-        });
-
-        verify(plugin).prettyLog(eq(Level.FINE), contains("Capturing the far side of"));
-        verify(plugin).prettyLog(eq(Level.FINE), contains("Captured world "));
-        verify(plugin, times(1)).prettyLog(eq(Level.INFO), contains("Captured world "));
-    }
-
-    /** Takes a gate's capture of the beach, through the gate opening, to a depth. */
-    private void takeGateCapture(final int depth)
-    {
-        withServer(() ->
-        {
-            assertTrue(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING, Captures.GATE_OPENING, depth));
-            Captures.step(100);
-        });
-    }
-
-    /**
-     * A gate's capture is kept with the gates, under the gate's name, and outlives a restart (#516).
-     *
-     * <p>Kept where a mirror's are, it was keyed by place and deleted at every startup by the sweep
-     * for captures no mirror uses, so every gate started from nothing after a restart: half a
-     * minute of plain horizon while the far side was read off the disk again.
-     */
-    @Test
-    void aGatesCaptureIsKeptWithTheGatesAndOutlivesARestart()
-    {
-        takeGateCapture(8);
-
-        final File file = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
-        assertTrue(file.isFile(), "under the gates, named for the gate and its opening: " + file);
-        assertEquals(0, Captures.sweepAbandoned(), "the mirrors' sweep does not see it");
-        assertTrue(file.isFile());
-
-        Captures.clear();
-
-        assertNotNull(Captures.get(gateKey()), "read back as the base after a restart");
-    }
-
-    @Test
-    void aGateKeyIsTheGateAndItsOpening()
-    {
-        assertTrue(Captures.gateKey("Abydos", 5, 5).startsWith("gate:abydos-"), Captures.gateKey("Abydos", 5, 5));
-        assertTrue(Captures.gateKey("Abydos", 5, 5).endsWith("_5x5"));
-        assertEquals(Captures.gateKey("Abydos", 5, 5), Captures.gateKey("ABYDOS", 5, 5),
-            "gate names are told apart without case");
-        assertNotEquals(Captures.gateKey("Abydos", 1, 2), Captures.gateKey("Abydos", 5, 5),
-            "a small gate's capture is not a big one's: each holds only what its own opening lets through");
-        assertEquals(Captures.keyOf(mirror.destination()), Captures.keyFor(mirror),
-            "a mirror's is still its place, the name every capture on disk already has");
-    }
-
-    /**
-     * A gate's capture reaches its own depth, not a mirror's.
-     *
-     * <p>Taken to a mirror's reach -- as far as the world sends, 160 blocks -- a capture of somewhere
-     * nobody had loaded was some 230 chunks off the disk before a gate could show anything.
-     */
-    @Test
-    void aGatesCaptureReachesItsOwnDepth()
-    {
-        takeGateCapture(8);
-        final Capture capture = Captures.get(gateKey());
-
-        assertTrue(Captures.reaches(capture, mirror.destination(), 8), "as deep as it was asked");
-        // Past the two blocks a capture keeps beyond its depth, and short of the 16 a mirror's reaches here.
-        assertFalse(Captures.reaches(capture, mirror.destination(), 12), "and no deeper: not a mirror's reach");
-    }
-
-    /**
-     * A gate's captures are taken again while somebody is at the gate, when old or too shallow, and not otherwise.
-     *
-     * <p>The capture is the base; this is how it keeps up with what is built there, without loading
-     * a chunk nobody is in.
-     */
-    @Test
-    void aGatesCapturesAreRefreshedOnlyWhenOldOrTooShallow()
-    {
-        takeGateCapture(8);
-
-        withServer(() ->
-        {
-            assertEquals(0, Captures.refreshGate(GATE, mirror.destination(), 8, 600L), "fresh and deep enough");
-            assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 40, 600L), "too shallow for the depth now");
-            Captures.step(1000);
-            assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 40, -1L), "older than the limit");
-        });
-    }
-
-    /**
-     * A gate's capture is not retaken while a chunk of its box is not loaded (#683).
-     *
-     * <p>The retake read through {@code getChunkAt}, which loads a chunk the server had let go of, and
-     * generates one never visited. Every ten minutes at a gate whose far end nobody stood at, that was
-     * the whole box loaded again to learn nothing a loaded chunk would have changed.
-     */
-    @Test
-    void aGatesCaptureIsNotRetakenWhileItsChunksAreNotLoaded()
-    {
-        takeGateCapture(8);
-        chunksLoaded = false;
-
-        withServer(() -> assertEquals(0, Captures.refreshGate(GATE, mirror.destination(), 8, -1L),
-            "old, but its chunks are not loaded"));
-
-        assertEquals(0, Captures.taking(), "and no job is left reading");
-        chunksLoaded = true;
-        withServer(() -> assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, -1L),
-            "the same capture is retaken once they are loaded: it was the chunks that stopped it"));
-    }
-
-    /**
-     * One chunk of the box not loaded is enough to hold a retake back, wherever in the box it is (#683).
-     *
-     * <p>The beach's box is chunks 5 to 6 across and -2 to -1 deep, so each of the four is a corner: a check
-     * that stopped one chunk short, or looked at the arrival's chunk alone, would pass one of them.
-     */
-    @Test
-    void aGatesCaptureWaitsForEveryChunkOfItsBox()
-    {
-        takeGateCapture(8);
-
-        for (final int[] edge : new int[][] { { 5, -2 }, { 6, -2 }, { 5, -1 }, { 6, -1 } })
-        {
-            chunkLetGo = edge;
-            withServer(() -> assertEquals(0, Captures.refreshGate(GATE, mirror.destination(), 8, -1L),
-                "chunk " + edge[0] + "," + edge[1] + " is not loaded"));
-        }
-        chunkLetGo = null;
-        withServer(() -> assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, -1L),
-            "all of them loaded"));
-    }
-
-    /**
-     * A retake that meets a chunk let go of mid-way gives up and leaves the old capture drawn (#683).
-     *
-     * <p>Carrying on would have loaded the chunk, which is what a retake must not do; finishing
-     * without it would have replaced the capture with one holding a gap.
-     */
-    @Test
-    void aRetakeGivesUpWhenAChunkIsLetGoMeanwhile()
-    {
-        takeGateCapture(8);
-        final Capture before = Captures.get(gateKey());
-        withServer(() ->
-        {
-            assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, -1L));
-            chunksLoaded = false;
-            Captures.step(1000);
-        });
-
-        assertEquals(0, Captures.taking(), "the job is over");
-        assertSame(before, Captures.get(gateKey()), "and the capture drawn is the old one, not a gappy new one");
-    }
-
-    /**
-     * The first capture of a gate still loads what it must (#683).
-     *
-     * <p>Nothing is drawn until it exists, and the owner chose a disk read for it over a gate that stays a horizon.
-     */
-    @Test
-    void theFirstCaptureOfAGateStillLoadsChunks()
-    {
-        chunksLoaded = false;
-        takeGateCapture(8);
-
-        assertNotNull(Captures.get(gateKey()), "taken though none of its chunks was loaded");
-    }
-
-    /**
-     * A nether portal's first capture, unlike a gate's, waits for its chunks rather than loading them (#514).
-     *
-     * <p>A portal's far side is whatever the traveller came out at; loading it to draw a view would load
-     * chunks for every portal anybody walks past.
-     */
-    @Test
-    void aPortalsFirstCaptureWaitsForItsChunksToBeLoaded()
-    {
-        chunksLoaded = false;
-
-        withServer(() -> assertFalse(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L),
-            "none of its chunks is loaded"));
-
-        assertEquals(0, Captures.taking(), "and no job is left reading");
-        chunksLoaded = true;
-        withServer(() ->
-        {
-            assertTrue(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L));
-            Captures.step(100);
-        });
-        assertNotNull(Captures.get(gateKey()), "taken once they are");
-        withServer(() -> assertFalse(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L),
-            "and not again while fresh"));
-    }
-
-    /**
-     * A portal's first capture that meets a chunk let go of mid-way gives up rather than load it (#514).
-     *
-     * <p>A gate's first capture loads what it must; a portal's must not, even with nothing yet to draw.
-     */
-    @Test
-    void aPortalsFirstCaptureGivesUpWhenAChunkIsLetGoMeanwhile()
-    {
-        withServer(() ->
-        {
-            assertTrue(Captures.requestLoaded(gateKey(), "a portal", mirror.destination(), 8, 600L));
-            chunksLoaded = false;
-            Captures.step(1000);
-        });
-
-        assertEquals(0, Captures.taking(), "the job is over");
-        assertNull(Captures.get(gateKey()), "and nothing was taken by loading the chunk");
-    }
-
-    /**
-     * Two gates whose names are made file-safe alike keep captures of their own.
-     *
-     * <p>Every character that is not a plain letter or digit became an underscore, so "a b" and
-     * "a_b", or any two names in another alphabet, shared one file: dialling either retook it at
-     * its own arrival, and the other gate drew the wrong place.
-     */
-    @Test
-    void gatesWhoseNamesSanitiseAlikeKeepCapturesOfTheirOwn()
-    {
-        assertNotEquals(Captures.gateKey("a b", 5, 5), Captures.gateKey("a_b", 5, 5));
-        assertNotEquals(Captures.gateKey("地球", 5, 5), Captures.gateKey("月球", 5, 5));
-    }
-
-    /** An empty capture file on disk, named as a gate's own for that opening would be. */
-    private static File gateFile(final String gate, final int width, final int height) throws Exception
-    {
-        final File dir = DataLayout.gateCaptureDir();
-        assertTrue(dir.isDirectory() || dir.mkdirs(), "the gate captures folder");
-        final File file = new File(dir, Captures.gateKey(gate, width, height).substring("gate:".length()) + ".view");
-        assertTrue(file.createNewFile(), file.getName());
-        return file;
-    }
-
-    /**
-     * Removing a gate deletes what it shows, through every opening, and nobody else's.
-     *
-     * <p>A sweep at startup did this before, and counted a gate gone whenever it had not loaded -- a
-     * gate in a world another plugin loads later -- deleting what it showed. At removal there is no
-     * guessing. A gate whose name only starts like another's keeps its own.
-     */
-    @Test
-    void removingAGateDeletesWhatItShowsAndNothingElse() throws Exception
-    {
-        final File own = gateFile("Abydos", 5, 5);
-        final File ownSmall = gateFile("Abydos", 1, 2);
-        final File other = gateFile("Chulak", 5, 5);
-        final File lookalike = gateFile("Abydos_2", 5, 5);
-
-        assertEquals(2, Captures.forgetGate("Abydos"));
-
-        assertFalse(own.exists(), "Abydos's own");
-        assertFalse(ownSmall.exists(), "seen through another opening, still Abydos's");
-        assertTrue(other.exists(), "another gate's");
-        assertTrue(lookalike.exists(), "Abydos_2's, whose name only starts like it");
-    }
-
-    /**
-     * A gate's capture on disk and not in memory is refreshed by the age of its file, and not read to find out.
-     *
-     * <p>A watched gate's captures were each read off the disk every minute to learn how old they
-     * were, and being asked for kept them from ever being let go.
-     */
-    @Test
-    void aGatesCaptureOnDiskIsRefreshedByItsFileAge()
-    {
-        takeGateCapture(8);
-        Captures.clear();
-        final File file = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
-
-        withServer(() ->
-        {
-            assertEquals(0, Captures.refreshGate(GATE, mirror.destination(), 8, 600L), "a new file");
-            assertTrue(file.setLastModified(System.currentTimeMillis() - 1_200_000L));
-            assertEquals(1, Captures.refreshGate(GATE, mirror.destination(), 8, 600L), "twenty minutes old");
-        });
-    }
-
-    /**
-     * A gate removed while its first capture is still being taken does not have it written afterwards.
-     *
-     * <p>A capture in progress has neither a file nor a place in memory yet, so removing the gate
-     * found nothing to forget, and the capture finished and wrote its file for a gate that was gone:
-     * one built again under the name drew the old place.
-     */
-    @Test
-    void aGateRemovedMidCaptureDoesNotHaveItWritten()
-    {
-        final File file = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
-        withServer(() ->
-        {
-            assertTrue(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING, Captures.GATE_OPENING, 8));
-            Captures.step(1);
-
-            Captures.forgetGate(GATE);
-            Captures.step(100);
-        });
-
-        assertFalse(file.exists(), "no file for a gate that is gone");
-        assertNull(Captures.get(gateKey()), "and nothing in memory");
-    }
-
-    /**
-     * A gate's fill reaches as far as the far world's server sends, and no further.
-     *
-     * <p>Past the send distance a drawn block lands in a chunk the client does not hold and is
-     * never seen, so a capture deeper than that is disk and memory spent on nothing. With the view
-     * depth no deeper than the first step, the view stays at the first step.
-     */
-    @Test
-    void aGatesFillReachesAsFarAsTheFarWorldSends()
-    {
-        final Place arrival = mirror.destination();
-        when(far.getViewDistance()).thenReturn(6);
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
-            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 160);
-
-            assertEquals(96, Captures.gateFillDepth(arrival, 32), "six chunks sent: 96 blocks, not the 160 asked");
-            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 64);
-            assertEquals(64, Captures.gateFillDepth(arrival, 32), "asked for less than is sent");
-            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 32);
-            assertEquals(32, Captures.gateFillDepth(arrival, 32), "a view as deep as the first step: no fill");
-            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 16);
-            assertEquals(32, Captures.gateFillDepth(arrival, 32), "a view shallower than the step asked is no fill");
-            ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 160);
-            when(far.getViewDistance()).thenReturn(1);
-            assertEquals(32, Captures.gateFillDepth(arrival, 32),
-                "a server sending less than the first step still gets the first step, not a shallower fill");
-        }
-    }
-
-    /**
-     * A gate's fill may be cut to fit as far back as its first step, as a mirror's may to its view depth.
-     *
-     * <p>With the floor at the reach, the cut to keep a capture under its cap never ran for a gate,
-     * and a fill onto a jungle or an ocean bed kept millions of blocks the drawing then threw away.
-     */
-    @Test
-    void aGatesFillMayBeCutAsFarBackAsItsFirstStep()
-    {
-        final int[] asked = new int[2];
-        Captures.siftWith((builder, from, reach, floor) ->
-        {
-            asked[0] = reach;
-            asked[1] = floor;
-            return reach;
-        });
-        ConfigTestSupport.set(ConfigKeys.VIEW_DEPTH, 160);
-        withServer(() ->
-        {
-            assertTrue(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING, Captures.GATE_OPENING, 40));
-            Captures.step(1000);
-        });
-
-        assertEquals(40, asked[0], "taken as far as the fill");
-        assertEquals(32, asked[1], "and cut no shallower than the first step");
-    }
-
-    /**
-     * A gate's capture that failed waits before it is tried again; a mirror's is tried again when next wanted.
-     *
-     * <p>A gate asks every sweep while it is open, so a fill that failed -- most likely for want of
-     * memory -- was started again at once, every second, for as long as anybody stood there.
-     */
-    @Test
-    void aGatesFailedCaptureWaitsBeforeItIsTriedAgain()
-    {
-        Captures.siftWith((builder, from, reach, floor) ->
-        {
-            throw new IllegalStateException("a bug in the sift");
-        });
-        withServer(() ->
-        {
-            assertTrue(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING, Captures.GATE_OPENING, 8));
-            Captures.step(1000);
-
-            assertFalse(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING, Captures.GATE_OPENING, 8),
-                "not started again at once");
-            assertTrue(Captures.request(mirror), "a mirror's, tried again when next wanted, as before");
-        });
-    }
-
-    /**
-     * A gate's fill cut to fit records how far it kept, and a view is drawn no further than that.
-     *
-     * <p>The box stays at the depth asked, so the capture is not asked for again every sweep; what it
-     * truly holds ends at the cut, and past that this world would show.
-     */
-    @Test
-    void aGatesFillCutToFitIsDrawnOnlyAsFarAsItKept()
-    {
-        // Shallow on purpose: every block this box's chunks are read for is a recorded mock call, and
-        // at a hundred deep the suite ran out of heap.
-        Captures.siftWith((builder, from, reach, floor) -> 20);
-        withServer(() ->
-        {
-            assertTrue(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING, Captures.GATE_OPENING, 40));
-            Captures.step(4000);
-        });
-        final Capture capture = Captures.get(gateKey());
-
-        assertEquals(20, capture.keptReach(), "cut from 40 to 20");
-        assertEquals(20, Captures.drawableReach(capture, 160), "drawn no further than kept");
-        assertEquals(10, Captures.drawableReach(capture, 10), "nor further than asked");
-        assertTrue(Captures.reaches(capture, mirror.destination(), 40),
-            "and its box still reaches what was asked, so it is not asked for again");
-    }
-
-    /**
-     * A capture seen through a smaller opening, from before one served them all, is deleted as its gate is refreshed.
-     *
-     * <p>It is never drawn from again, so it is only disk; the one capture through the largest opening
-     * is kept.
-     */
-    @Test
-    void anOldSmallerCaptureGoesAsItsGateIsRefreshed() throws Exception
-    {
-        takeGateCapture(8);
-        // Five by five: what every gate was seen through before a Large gate's opening served them all.
-        final File small = gateFile(GATE, 5, 5);
-        final File one = new File(DataLayout.gateCaptureDir(), gateKey().substring("gate:".length()) + ".view");
-
-        withServer(() -> Captures.refreshGate(GATE, mirror.destination(), 8, 600L));
-
-        assertFalse(small.exists(), "the smaller one, gone");
-        assertTrue(one.exists(), "the one that serves them all, kept");
-    }
-
     /** Takes the museum's capture and writes it, with no scheduler, then forgets it as a restart would: on disk only. */
     private void mirrorCaptureOnDiskOnly()
     {
@@ -1588,23 +967,6 @@ class CapturesTest
 
         assertFalse(mirrorFile().exists(), "its file deleted");
         assertNull(Captures.get(mirror), "and nothing in memory for a mirror that is gone");
-    }
-
-    /** The same for a gate removed while its capture is read: the counterpart of {@link #aGateRemovedMidCaptureDoesNotHaveItWritten}. */
-    @Test
-    void aGateRemovedWhileItsCaptureIsReadDoesNotHaveItPutBack() throws Exception
-    {
-        takeGateCapture(8);
-        Captures.clear();
-        final Pool pool = holdingPool();
-        assertNull(Captures.get(gateKey()));
-        pool.runHeld();
-
-        Captures.forgetGate(GATE);
-        pool.runMain();
-
-        assertNull(Captures.get(gateKey()), "nothing in memory for a gate that is gone");
-        assertTrue(pool.held.isEmpty(), "and its file not read again");
     }
 
     /**
@@ -1761,38 +1123,6 @@ class CapturesTest
             assertFalse(Captures.request(mirror), "and nothing taken by asking again");
             assertEquals(0, Captures.taking(), "no fresh capture of the room");
         });
-    }
-
-    /**
-     * A gate whose capture is being read takes no first step over it, from the dial, the sweep or a refresh.
-     *
-     * <p>A gate given null asks for its first step, which would overwrite a capture holding the
-     * fill with a shallower one. The dial's ask starts the read, so the capture is in memory by the
-     * time the kawoosh settles.
-     */
-    @Test
-    void aGateWhoseCaptureIsBeingReadTakesNoFirstStepOverIt() throws Exception
-    {
-        takeGateCapture(8);
-        Captures.clear();
-        final Pool pool = holdingPool();
-        final GateSource gate = new GateSource("gate:Chulak", null, null, List.of(), mirror.destination(), GATE, 8);
-
-        withServer(() ->
-        {
-            GateSource.prepare(gate);
-            assertEquals(1, pool.held.size(), "the dial starts the read");
-            assertFalse(GateSource.offer(gate, true), "the horizon shows while it is read");
-            assertFalse(Captures.requestGate(gateKey(), GATE, mirror.destination(), Captures.GATE_OPENING,
-                Captures.GATE_OPENING, 8), "a first step is refused");
-            assertEquals(0, Captures.refreshGate(GATE, mirror.destination(), 8, -1L), "even an old one waits for its read");
-            assertEquals(0, Captures.taking(), "no fresh capture of the gate's far side");
-            assertEquals(1, pool.held.size(), "and the one read");
-        });
-        pool.runHeld();
-        pool.runMain();
-
-        assertNotNull(Captures.get(gateKey()), "the capture on disk, in memory now");
     }
 
     /**

@@ -28,7 +28,6 @@ import java.util.logging.Level;
  * ├── data/
  * │   ├── gates/&lt;name&gt;.yml       one file per gate
  * │   ├── captures/
- * │   │   ├── gates/*.view       what stands in front of a gate, per opening size seen through
  * │   │   └── mirrors/*.view     one photograph of a far side per destination
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
  * │   ├── beam.yml               every destination and place, in one file
@@ -115,22 +114,6 @@ public final class DataLayout
     public static File gates()
     {
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, DATA, GATES);
-    }
-
-    /**
-     * The folder of gate captures: what stands in front of a gate, as seen through another's opening (#516).
-     *
-     * <p>Named for the gate they show, and apart from the gate files, so the folder an admin backs
-     * up or hand-edits for gates holds gates only (#655). A folder left in {@code gates/captures/}
-     * by an earlier build is moved in the first time this is asked.
-     *
-     * @return the folder, which may not exist yet
-     */
-    public static File gateCaptureDir()
-    {
-        final File dir = new File(captures(), GATES);
-        moveCaptures(new File(gates(), CAPTURES), dir);
-        return dir;
     }
 
     private static File captures()

@@ -1,10 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
@@ -17,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -66,7 +62,6 @@ class WindowSourceTest
         assertEquals("museum", source.name());
         assertSame(banner, source.anchor(), "distances are measured from its banner");
         assertEquals(ROOM, source.destination());
-        assertFalse(source.walkThrough(), "a mirror's opening is barred and punched through");
         assertSame(museum, source.punchTarget(), "a punch travels the mirror itself");
         assertEquals(24, source.depth(), "drawn to view-depth as set, not its default of 160");
     }
@@ -85,18 +80,4 @@ class WindowSourceTest
         assertSame(showing, source.punchTarget(), "a punch travels to what it shows");
     }
 
-    @Test
-    void aGateIsWalkedThroughAndAPunchAtItTravelsNothing()
-    {
-        final Block anchor = mock(Block.class);
-
-        final GateSource gate = new GateSource("gate:Abydos", anchor, shape, open, ROOM, "Chulak", 16);
-
-        assertEquals("gate:Abydos", gate.name(), "under its prefix, which no mirror can be called");
-        assertSame(anchor, gate.anchor());
-        assertSame(open, gate.open());
-        assertTrue(gate.walkThrough(), "a gate's opening is walked into, never barred");
-        assertNull(gate.punchTarget(), "a punch at a gate's view goes nowhere");
-        assertEquals(16, gate.depth(), "drawn to its first step until a deeper capture is in");
-    }
 }

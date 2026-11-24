@@ -37,7 +37,6 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorSource;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
@@ -56,7 +55,6 @@ class FarPlayersTest
 
     private World far;
     private WindowState mirror;
-    private WindowState gate;
 
     @BeforeEach
     void setUp() throws Exception
@@ -71,7 +69,6 @@ class FarPlayersTest
             .build();
         mirror = new WindowState(new MirrorSource(new QuantumMirror("museum", new BlockPlace("world", 10, 64, 10), ARRIVAL),
             mock(Block.class), shape, open, 16), capture);
-        gate = new WindowState(new GateSource("gate:Abydos", mock(Block.class), shape, open, ARRIVAL, "Chulak", 16), capture);
     }
 
     @AfterEach
@@ -123,28 +120,8 @@ class FarPlayersTest
         final Player other = farPlayer();
         when(viewer.canSee(any(Player.class))).thenReturn(true);
 
-        assertEquals(CreatureTally.Skip.YOU, FarPlayers.whyNot(viewer, viewer, mirror));
-        assertNull(FarPlayers.whyNot(viewer, other, mirror), "another player shows through a mirror");
-        assertFalse(FarPlayers.showsTheViewer(mirror));
-    }
-
-    /**
-     * Through a gate the viewer is shown themselves, as the far gate's box holds them only when the
-     * the far room is close by and covers them (#296, step 4); the other refusals still apply to them.
-     */
-    @Test
-    void theViewerIsShownThemselvesThroughAGateUnlessSomethingElseHidesThem()
-    {
-        final Player viewer = farPlayer();
-        when(viewer.canSee(any(Player.class))).thenReturn(true);
-
-        assertTrue(FarPlayers.showsTheViewer(gate));
-        assertNull(FarPlayers.whyNot(viewer, viewer, gate));
-        assertTrue(FarPlayers.stillShown(viewer, viewer, gate));
-
-        when(viewer.getGameMode()).thenReturn(GameMode.SPECTATOR);
-        assertEquals(CreatureTally.Skip.PLAYER_UNSHOWN, FarPlayers.whyNot(viewer, viewer, gate));
-        assertFalse(FarPlayers.stillShown(viewer, viewer, gate));
+        assertEquals(CreatureTally.Skip.YOU, FarPlayers.whyNot(viewer, viewer));
+        assertNull(FarPlayers.whyNot(viewer, other), "another player shows through a mirror");
     }
 
     /** A player the viewer cannot see, as a vanish plugin's hidePlayer leaves them, is not shown. */
@@ -157,10 +134,10 @@ class FarPlayersTest
         final Player seen = farPlayer();
         when(viewer.canSee(seen)).thenReturn(true);
 
-        assertEquals(CreatureTally.Skip.PLAYER_HIDDEN, FarPlayers.whyNot(viewer, vanished, gate));
-        assertNull(FarPlayers.whyNot(viewer, seen, gate));
-        assertFalse(FarPlayers.stillShown(viewer, vanished, gate));
-        assertTrue(FarPlayers.stillShown(viewer, seen, gate));
+        assertEquals(CreatureTally.Skip.PLAYER_HIDDEN, FarPlayers.whyNot(viewer, vanished));
+        assertNull(FarPlayers.whyNot(viewer, seen));
+        assertFalse(FarPlayers.stillShown(viewer, vanished));
+        assertTrue(FarPlayers.stillShown(viewer, seen));
     }
 
     /**
@@ -238,13 +215,13 @@ class FarPlayersTest
         tally.skip(CreatureTally.Skip.YOU);
         tally.skip(CreatureTally.Skip.PLAYER_HIDDEN);
 
-        assertEquals("3 found (2 player(s)), 1 you, 1 player(s) hidden from you; 1 shown", tally.line(gate));
+        assertEquals("3 found (2 player(s)), 1 you, 1 player(s) hidden from you; 1 shown", tally.line(mirror));
     }
 
     private FarCreatures.Wanted wantedAt(final Entity original, final double apart)
     {
         when(original.getUniqueId()).thenReturn(UUID.randomUUID());
-        return new FarCreatures.Wanted(original, new Location(null, apart, 0.0, 0.0), gate);
+        return new FarCreatures.Wanted(original, new Location(null, apart, 0.0, 0.0), mirror);
     }
 
     /** A player standing in the far room, as a server hands one over. */

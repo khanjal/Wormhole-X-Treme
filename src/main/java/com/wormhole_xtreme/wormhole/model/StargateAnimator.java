@@ -199,7 +199,7 @@ class StargateAnimator
             gate.setGatePortalOpen(gate.isGateActive());
             if (gate.isGateLightsActive())
             {
-                gate.fillGateInterior(GateViews.horizonOf(gate, wooshMaterial));
+                gate.fillGateInterior(wooshMaterial);
             }
         }
     }
