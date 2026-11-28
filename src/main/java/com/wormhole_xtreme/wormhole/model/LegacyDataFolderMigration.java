@@ -172,9 +172,10 @@ public final class LegacyDataFolderMigration
     {
         if (destination.exists())
         {
+            final File olderFolder = source.getParentFile();
             PluginLog.log(Level.INFO, "Keeping the copy of " + label
                 + " already in the data folder; the older one is left in "
-                + source.getParentFile().getName() + ".");
+                + ((olderFolder == null) ? "its old folder" : olderFolder.getName()) + ".");
             return;
         }
         final File parent = destination.getParentFile();
