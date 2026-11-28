@@ -276,4 +276,105 @@ class GateSerializerTest
         assertEquals(1, s2.getGateLightBlocks().get(2).size(),
             "and the one real wave is still the third, not the first");
     }
+
+    /**
+     * Bytes after the four materials in a gate with no blocks: three timing ints, then the structure,
+     * portal, light-wave and woosh-wave counts.
+     */
+    private static final int AFTER_MATERIALS = 7 * 4;
+
+    /** The version 8 record with the four materials as ordinals, the original plugin's layout. */
+    private static byte[] originalLayoutVersion8(final byte[] noMaterialRecord, final int... ordinals)
+    {
+        final byte[] data = noMaterialRecord.clone();
+        data[0] = 8;
+        final ByteBuffer b = ByteBuffer.wrap(data);
+        b.position(data.length - AFTER_MATERIALS - 16);
+        for (final int ordinal : ordinals)
+        {
+            b.putInt(ordinal);
+        }
+        return data;
+    }
+
+    /**
+     * Dakto's layout: a version 9 record with the version byte flipped to 8. No real Dakto-saved blob
+     * was to hand; the layout is from issue 800 and the export finding in issue 719 (length-prefixed
+     * UTF-8 names under version 8).
+     */
+    private static byte[] daktoLayoutVersion8(final Stargate s)
+    {
+        final byte[] data = GateSerializer.stargateToBinary(s);
+        data[0] = 8;
+        return data;
+    }
+
+    @Test
+    void anOriginalLayoutVersion8GateReadsItsOrdinals()
+    {
+        final World w = mockWorld();
+        final Stargate s1 = minimalGate(w);
+        s1.setGateCustomWooshTicks(7);
+        final byte[] data = originalLayoutVersion8(GateSerializer.stargateToBinary(s1),
+            Material.LAPIS_BLOCK.ordinal(), -1, Material.SEA_LANTERN.ordinal(), -1);
+
+        final Stargate s2 = GateSerializer.parseVersionedData(data, w, "orig", null);
+
+        assertEquals(Material.LAPIS_BLOCK, s2.getGateCustomStructureMaterial());
+        assertNull(s2.getGateCustomPortalMaterial());
+        assertEquals(Material.SEA_LANTERN, s2.getGateCustomLightMaterial());
+        assertNull(s2.getGateCustomIrisMaterial());
+        assertEquals(7, s2.getGateCustomWooshTicks());
+    }
+
+    @Test
+    void aDaktoLayoutVersion8GateReadsItsNames()
+    {
+        final World w = mockWorld();
+        final Stargate s1 = minimalGate(w);
+        s1.setGateCustom(true);
+        s1.setGateCustomStructureMaterial(Material.LAPIS_BLOCK);
+        s1.setGateCustomPortalMaterial(Material.LAVA);
+        s1.setGateCustomIrisMaterial(Material.YELLOW_STAINED_GLASS);
+        s1.setGateCustomWooshTicks(7);
+
+        final Stargate s2 = GateSerializer.parseVersionedData(daktoLayoutVersion8(s1), w, "dakto", null);
+
+        assertEquals(Material.LAPIS_BLOCK, s2.getGateCustomStructureMaterial());
+        assertEquals(Material.LAVA, s2.getGateCustomPortalMaterial());
+        assertNull(s2.getGateCustomLightMaterial());
+        assertEquals(Material.YELLOW_STAINED_GLASS, s2.getGateCustomIrisMaterial());
+        assertEquals(7, s2.getGateCustomWooshTicks(), "the fields after the names still line up");
+        assertTrue(s2.getGateStructureBlocks().isEmpty(), "and the block lists are not doubled by the retry");
+    }
+
+    @Test
+    void aVersion8GateWithNoCustomMaterialsReadsAsNoneInEitherLayout()
+    {
+        final World w = mockWorld();
+        final byte[] none = GateSerializer.stargateToBinary(minimalGate(w));
+
+        // Dakto writes four zero lengths, which as ordinals would be the first material four times.
+        final Stargate dakto = GateSerializer.parseVersionedData(daktoLayoutVersion8(minimalGate(w)), w, "d", null);
+        final Stargate original = GateSerializer.parseVersionedData(
+            originalLayoutVersion8(none, -1, -1, -1, -1), w, "o", null);
+
+        for (final Stargate s : new Stargate[] {dakto, original})
+        {
+            assertNull(s.getGateCustomStructureMaterial());
+            assertNull(s.getGateCustomPortalMaterial());
+            assertNull(s.getGateCustomLightMaterial());
+            assertNull(s.getGateCustomIrisMaterial());
+        }
+    }
+
+    @Test
+    void aVersion8RecordThatIsNeitherLayoutFailsAsItAlwaysDid()
+    {
+        final World w = mockWorld();
+        final byte[] truncated = new byte[] {8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+        Assertions.assertThrows(java.nio.BufferUnderflowException.class,
+            () -> GateSerializer.parseVersionedData(truncated, w, "garbage", null));
+    }
 }

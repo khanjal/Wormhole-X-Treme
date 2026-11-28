@@ -156,11 +156,78 @@ public final class GateSerializer
         {
             return readVersion7(s, byteBuff, w);
         }
-        else if (s.getLoadedVersion() == 8 || s.getLoadedVersion() == 9)
+        else if (s.getLoadedVersion() == 8)
         {
-            return readVersion8Or9(s, byteBuff, w);
+            return readVersion8(gateData, w, name, network);
+        }
+        else if (s.getLoadedVersion() == 9)
+        {
+            readVersion8Or9(s, byteBuff, w, true);
+            warnIfBytesRemain(byteBuff);
+            return s;
         }
         return null;
+    }
+
+    /**
+     * Reads a save-version 8 gate, whose four custom materials are ordinals in the original plugin's
+     * layout and names in Dakto's.
+     *
+     * <p>Each layout is tried on a gate of its own and the one that uses every byte wins, since the
+     * ordinal layout is fixed-size and the names layout is not; when both do (all four materials
+     * absent) the names read wins, as an ordinal of 0 is not a real custom material. When neither does
+     * the ordinal read is kept, as it always was.
+     *
+     * @param gateData
+     *            the whole saved record, version byte included
+     */
+    private static Stargate readVersion8(final byte[] gateData, final World w, final String name,
+        final StargateNetwork network)
+    {
+        final Stargate byOrdinal = newGate(w, name, network);
+        final ByteBuffer ordinalBuff = ByteBuffer.wrap(gateData, 1, gateData.length - 1);
+        RuntimeException ordinalFailure = null;
+        try
+        {
+            readVersion8Or9(byOrdinal, ordinalBuff, w, false);
+        }
+        catch (final RuntimeException e)
+        {
+            ordinalFailure = e;
+        }
+
+        final Stargate byName = newGate(w, name, network);
+        final ByteBuffer nameBuff = ByteBuffer.wrap(gateData, 1, gateData.length - 1);
+        boolean nameExact = false;
+        try
+        {
+            readVersion8Or9(byName, nameBuff, w, true);
+            nameExact = nameBuff.remaining() == 0;
+        }
+        catch (final RuntimeException e)
+        {
+            // not the names layout either; the ordinal result or failure stands
+        }
+        if (nameExact)
+        {
+            return byName;
+        }
+        if (ordinalFailure != null)
+        {
+            throw ordinalFailure;
+        }
+        warnIfBytesRemain(ordinalBuff);
+        return byOrdinal;
+    }
+
+    private static Stargate newGate(final World w, final String name, final StargateNetwork network)
+    {
+        final Stargate s = new Stargate();
+        s.setGateName(name);
+        s.setGateNetwork(network);
+        s.setLoadedVersion(LEGACY_SAVE_VERSION);
+        s.setGateWorld(w);
+        return s;
     }
 
     /**
@@ -395,9 +462,11 @@ public final class GateSerializer
      *            the buffer, positioned just past the version byte
      * @param w
      *            the world the gate belongs to
-     * @return the gate
+     * @param materialsByName
+     *            whether the custom materials are names (version 9, and Dakto's version 8) or ordinals
      */
-    private static Stargate readVersion8Or9(final Stargate s, final ByteBuffer byteBuff, final World w)
+    private static void readVersion8Or9(final Stargate s, final ByteBuffer byteBuff, final World w,
+        final boolean materialsByName)
     {
         final byte[] blocArray = new byte[12];
 
@@ -406,15 +475,12 @@ public final class GateSerializer
         readFacingAndOrientation(s, byteBuff);
         readIrisAndLights(s, byteBuff);
         readRedstone(s, byteBuff, w, blocArray);
-        readCustom(s, byteBuff, s.getLoadedVersion() >= 9);
+        readCustom(s, byteBuff, materialsByName);
 
         readBlockRun(byteBuff, w, blocArray, s.getGateStructureBlocks());
         readBlockRun(byteBuff, w, blocArray, s.getGatePortalBlocks());
         readWaves(byteBuff, w, blocArray, s.getGateLightBlocks());
         readWaves(byteBuff, w, blocArray, s.getGateWooshBlocks());
-
-        warnIfBytesRemain(byteBuff);
-        return s;
     }
 
     /**
