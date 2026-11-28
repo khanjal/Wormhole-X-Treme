@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -14,16 +15,20 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.bukkit.entity.ArmorStand;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
+import com.wormhole_xtreme.wormhole.HeldScheduler;
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.model.ping.PingTestSupport;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.utils.ChunkTickets;
 import com.wormhole_xtreme.wormhole.utils.Messages;
 
 /**
@@ -446,5 +451,31 @@ class ConfigReloadTest
 
         assertEquals(List.of(), reload("server-language: \"no\"\n").rejections(), "quoted, no is the code for Norwegian");
         assertEquals("no", valueOf(ConfigKeys.SERVER_LANGUAGE));
+    }
+
+    /** ping-enabled turned off in config.yml and reloaded takes the standing pings down, as the command does (#16). */
+    @Test
+    void reloadingPingOffTakesTheStandingPingsDown() throws Exception
+    {
+        final HeldScheduler held = new HeldScheduler();
+        held.install();
+        ConfigTestSupport.loadDefaults();
+        try
+        {
+            reload("ping-enabled: true\n");
+            final ArmorStand marker = PingTestSupport.placeOne();
+            assertEquals(1, PingTestSupport.live());
+
+            reload("ping-enabled: false\n");
+
+            verify(marker).remove();
+            assertEquals(0, PingTestSupport.live(), "a ping must not outlive ping-enabled false");
+        }
+        finally
+        {
+            PingTestSupport.reset();
+            ChunkTickets.clear();
+            held.remove();
+        }
     }
 }

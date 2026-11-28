@@ -22,6 +22,7 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Cat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -35,6 +36,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
+import com.wormhole_xtreme.wormhole.model.ping.PingMarkers;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
@@ -149,6 +151,22 @@ class WindowVeilTest
         when(standIn.getScoreboardTags()).thenReturn(Set.of(StandIns.TAG));
 
         assertFalse(WindowVeil.veilable(standIn));
+    }
+
+    /**
+     * A locator bar ping is hidden from everyone but its owner; a veil's later show would put it on
+     * a stranger's locator bar. An armour stand without the tag is still veiled.
+     */
+    @Test
+    void aLocatorBarPingIsNeverVeiled()
+    {
+        final ArmorStand ping = mock(ArmorStand.class);
+        when(ping.getScoreboardTags()).thenReturn(Set.of(PingMarkers.TAG));
+        final ArmorStand plain = mock(ArmorStand.class);
+        when(plain.getScoreboardTags()).thenReturn(Set.of());
+
+        assertFalse(WindowVeil.veilable(ping));
+        assertTrue(WindowVeil.veilable(plain));
     }
 
     /**

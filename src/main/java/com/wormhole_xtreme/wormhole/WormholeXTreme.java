@@ -40,6 +40,8 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaListener;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaPreferences;
+import com.wormhole_xtreme.wormhole.model.ping.PingListener;
+import com.wormhole_xtreme.wormhole.model.ping.PingMarkers;
 import com.wormhole_xtreme.wormhole.model.stats.PlayerStats;
 import com.wormhole_xtreme.wormhole.model.window.Captures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
@@ -167,6 +169,7 @@ public class WormholeXTreme extends JavaPlugin
         pm.registerEvents(itemTracker, tp);
         pm.registerEvents(beamFreezeListener, tp);
         pm.registerEvents(new FreyaListener(), tp);
+        pm.registerEvents(new PingListener(), tp);
         pm.registerEvents(new RingPreviewListener(), tp);
         StandInListener.register(pm, tp);
         // A view is built again when the world behind its wall changes (#609).
@@ -371,6 +374,15 @@ public class WormholeXTreme extends JavaPlugin
             catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.FINE, "Failed to stop metrics", e);
+            }
+            // A ping holds its chunk loaded and is a real entity until it is taken down.
+            try
+            {
+                PingMarkers.removeAll();
+            }
+            catch (final Exception | LinkageError e)
+            {
+                prettyLog(Level.FINE, "Failed to take locator bar pings down", e);
             }
             // Otherwise a /reload leaves old companions beside the new ones.
             try
@@ -820,6 +832,15 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception e)
         {
             prettyLog(Level.FINE, "Failed to load companions", e);
+        }
+        // Pings are never saved; this finds only one a failed reload left standing.
+        try
+        {
+            PingMarkers.sweepOrphans(getServer().getWorlds());
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.FINE, "Failed to sweep for left-over locator bar pings", e);
         }
         registerEvents();
         registerCommands();

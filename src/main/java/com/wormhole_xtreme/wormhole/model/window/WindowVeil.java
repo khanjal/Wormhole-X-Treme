@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.freya.FreyaCompanion;
+import com.wormhole_xtreme.wormhole.model.ping.PingMarkers;
 
 /**
  * Hiding from a viewer the creatures of their own world that stand inside the view they are shown (#430).
@@ -57,8 +58,8 @@ final class WindowVeil
      * Whether a mirror may hide this entity from a viewer.
      *
      * <p>Not a player, which would drop off the tab list. Not anything else that is already hidden
-     * by default for somebody: a preview's displays and their interactions, and the companion, whom
-     * a hide takes from her owner and the later show hands to a stranger.
+     * by default for somebody: a preview's displays and their interactions, and the companion and a
+     * locator bar ping, which a hide takes from their owner and the later show hands to a stranger.
      *
      * @param entity
      *            an entity near the viewer
@@ -70,6 +71,7 @@ final class WindowVeil
             && !(entity instanceof Display)
             && !(entity instanceof Interaction)
             && !FreyaCompanion.isCompanion(entity)
+            && !PingMarkers.isMarker(entity)
             && !StandIns.isStandIn(entity);
     }
 

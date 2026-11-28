@@ -5,8 +5,10 @@ import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Camel;
@@ -31,6 +33,7 @@ import org.bukkit.entity.Vehicle;
 import org.bukkit.entity.Zombie;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.model.ping.PingMarkers;
 import com.wormhole_xtreme.wormhole.model.window.StandIns;
 
 /**
@@ -155,6 +158,21 @@ class GateMovementOwnershipTest
         {
             untrack.invoke(null, zombie);
         }
+    }
+
+    /** A locator bar ping's marker stands at the gate on purpose (#16); an untagged armour stand is still swept. */
+    @Test
+    void aPingMarkerIsNeverSweptThoughAnArmourStandIs()
+    {
+        final ArmorStand plain = mock(ArmorStand.class);
+        when(plain.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(plain.getScoreboardTags()).thenReturn(Set.of());
+        assertTrue(GateEntityScanner.shouldSendThrough(plain), "an armour stand in an open gate is sent through");
+
+        final ArmorStand marker = mock(ArmorStand.class);
+        when(marker.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(marker.getScoreboardTags()).thenReturn(Set.of(PingMarkers.TAG));
+        assertFalse(GateEntityScanner.shouldSendThrough(marker), "a ping's marker stays at the gate it marks");
     }
 
     @Test

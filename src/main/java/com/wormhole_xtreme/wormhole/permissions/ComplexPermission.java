@@ -24,6 +24,9 @@ enum ComplexPermission
     /** Compass Use */
     USE_COMPASS("wormhole.use.compass"),
 
+    /** Locator bar ping */
+    USE_PING("wormhole.use.ping"),
+
     // Per-group cooldown permission nodes removed; cooldowns handled centrally when enabled.
 
     /** Remove Own */

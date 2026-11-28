@@ -612,6 +612,7 @@ Every setting, and where it is changed and its effect seen:
 | `ring-cooldown-ticks` | R5 |
 | `beam-animation-speed`, `beam-use-cooldown-*` | B1 (timing presets `slow`, `fast`, `past fastest`), B2 |
 | `mirror-per-world-limit`, `mirror-approach-message` | M1, M2 |
+| `ping-enabled`, `ping-seconds`, `ping-cooldown-seconds` | S1 (`ping`, `ping unsupported`, `ping off`; `chambers/s1/ping.js`) |
 
 Not changed by any case, and why:
 

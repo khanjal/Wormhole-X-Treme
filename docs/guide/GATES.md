@@ -14,6 +14,7 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 - [The ripple](#the-ripple)
 - [Redstone](#redstone)
 - [What travels through a gate](#what-travels-through-a-gate)
+- [Locator bar ping (experimental)](#locator-bar-ping-experimental)
 - [Commands](#commands)
 - [Sounds](#sounds)
 
@@ -631,6 +632,36 @@ dialled, by DHD, sign, `/dial` or redstone, and nothing on this list crosses a w
 world that was already open when the setting was turned on. A player is told why, and a cart is
 sent back the way it came. Rings never leave their world, and beams and mirrors are not gates, so
 the setting does not touch them.
+
+## Locator bar ping (experimental)
+
+`/wormhole ping <gate>` shows a named gate on your locator bar for a few seconds (`ping-seconds`,
+default 8), then takes itself down. It is off unless `ping-enabled` is true, needs
+`wormhole.use.ping`, and needs Minecraft 1.21.6 or later; an older server says so and points at
+`/wormhole compass`, which works everywhere.
+
+- **What it is.** An invisible marker armour stand at the gate's arrival point, given the
+  `waypoint_transmit_range` attribute (6.0E7, the most it takes, so your own receive range decides
+  how far off you see it) and coloured aqua on the bar where the server allows. It is shown only
+  to you as an entity, is never saved, and holds its chunk loaded only while it stands.
+- **Which gates.** The gates `/dial` completes for you: every gate with `wormhole.list`, only your
+  own with `wormhole.list.mine` alone (which everyone holds), none otherwise; and of those, only
+  one on a network you may use. Any other name gets the same "no gate called" answer as one that
+  does not exist. Tab completion offers the same gates.
+- **One world.** The locator bar shows your own world only, so a gate elsewhere is named and not
+  pinged.
+- **One at a time.** A new ping replaces your last; `ping-cooldown-seconds` (default 20) spaces
+  them out. A ping comes down when its time is up, when you leave, when its world unloads, when
+  `ping-enabled` is turned off and when the plugin stops.
+- **Only you get it, on Paper.** The marker is hidden from everyone else before it transmits, and
+  Paper sends a waypoint only to a player who can see its source, so nobody else is sent your
+  ping. That is read from Paper's server code, not seen in game. On plain Spigot it is not
+  verified: vanilla's own check has no such test, so other players in range may get it too.
+- **Not verified on a client yet.** The server side is checked: the marker stands, takes the
+  attribute and goes on time. Whether the locator bar draws it is for a player to confirm in game
+  ([#16](https://github.com/khanjal/Wormhole-X-Treme/issues/16)).
+  On 1.21.11 the server's own `/waypoint list` did list the invisible marker; if the bar still
+  does not draw it, leaving the marker visible is the fallback to try.
 
 ## Commands
 

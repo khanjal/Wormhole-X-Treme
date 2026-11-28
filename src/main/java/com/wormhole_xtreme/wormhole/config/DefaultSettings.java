@@ -157,7 +157,11 @@ class DefaultSettings
                 new Setting(ConfigKeys.MAX_GATES_PER_PLAYER, 0, "How many gates one player may own. Building one more is refused, before any fare. A player with wormhole.gates.max.<n> has the highest such n instead, and wormhole.gates.unlimited lifts the limit; operators have that by default. 0 for no limit.", SECTION),
                 new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.", SECTION),
                 new Setting(ConfigKeys.GATE_PREVIEW_MINUTES, 10, "Minutes a gate preview, stood up by /wormhole gate build, stays up after its owner last used a gate build or gate preview command. At least 1.", SECTION),
-                new Setting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, "Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about 1100. 0 turns previews off.", SECTION))),
+                new Setting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, "Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about 1100. 0 turns previews off.", SECTION)),
+            sub("Locator bar ping (experimental)",
+                new Setting(ConfigKeys.PING_ENABLED, false, "Whether /wormhole ping <gate> shows a gate on the player's locator bar for a moment, as an invisible marker at the gate. Needs Minecraft 1.21.6 or later; off while it is new.", SECTION),
+                new Setting(ConfigKeys.PING_SECONDS, 8, "How long a ping stays up, 1 to 60 seconds.", SECTION),
+                new Setting(ConfigKeys.PING_COOLDOWN_SECONDS, 20, "Seconds a player waits after a ping before the next. 0 for none.", SECTION))),
 
         group("Mirrors", "",
             sub("",
