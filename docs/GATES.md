@@ -352,10 +352,11 @@ an old save bug wrote, so it is treated as absent and resolved again, which heal
 Gates whose arrival point still sits inside the ring have it moved clear on load. A legacy SQLite
 database from an older Wormhole X-Treme is noticed at startup and announced;
 `/wormhole gate import` reads it in, and `/wormhole export sqlite` writes one back out for the
-older plugins: save version 8, since version 9 is this fork's own, into `exports/<timestamp>/` and
-never into `WormholeXTremeDB`. Rings, mirrors, gates on shapes those plugins lack and per-gate
-settings with no column are left out, and listed. Version 8 stores custom materials as ordinals,
-which only match on the Minecraft version that wrote them.
+older plugins: save version 8, or version 9 for a gate with a custom material, into
+`exports/<timestamp>/` and never into `WormholeXTremeDB`. Rings, mirrors, gates on shapes those plugins lack and per-gate
+settings with no column are left out, and listed. Dakto's 1.1.8 reads a version 8 ordinal as the
+length of a name and fails to enable, so the names of version 9 are used where a gate has a custom
+material; the 2011 original does not read version 9. Only Dakto 1.1.8 has been tried.
 
 ## Networks
 

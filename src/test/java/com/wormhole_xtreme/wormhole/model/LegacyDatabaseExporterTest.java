@@ -13,6 +13,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
@@ -21,7 +22,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -220,6 +224,97 @@ class LegacyDatabaseExporterTest
     }
 
     /**
+     * A gate with a custom material is written as version 9, with the material's name.
+     *
+     * <p>Dakto's 1.1.8 reads a version 8 ordinal as the length of a name, swallows that many of the
+     * bytes that follow, misreads the rest of the gate and fails to enable, which took every gate on
+     * the server with it when tried against the real jar. It reads version 9 correctly. A gate with
+     * no custom material stays at version 8.
+     */
+    @Test
+    void aGateWithACustomMaterialIsExportedAsVersion9WithTheName() throws Exception
+    {
+        final Stargate gate = importedGate("Abydos");
+
+        assertEquals(8, exportedGateData()[0], "no custom material: still the version both read");
+
+        final List<Consumer<Stargate>> setters = List.of(
+            g -> g.setGateCustomStructureMaterial(Material.OBSIDIAN),
+            g -> g.setGateCustomPortalMaterial(Material.LAVA),
+            g -> g.setGateCustomLightMaterial(Material.GLOWSTONE),
+            g -> g.setGateCustomIrisMaterial(Material.GLASS));
+        final List<Function<Stargate, Material>> getters = List.of(
+            Stargate::getGateCustomStructureMaterial, Stargate::getGateCustomPortalMaterial,
+            Stargate::getGateCustomLightMaterial, Stargate::getGateCustomIrisMaterial);
+        gate.setGateCustom(true);
+        for (int field = 0; field < setters.size(); field++)
+        {
+            setters.get(field).accept(gate);
+            final byte[] data = exportedGateData();
+
+            assertEquals(9, data[0], "an ordinal at version 8 breaks Dakto's reader (field " + field + ")");
+            final Material wanted = getters.get(field).apply(gate);
+            assertTrue(new String(data, StandardCharsets.ISO_8859_1).contains(wanted.name()),
+                "the material is written by name");
+            final Stargate back = GateSerializer.parseVersionedData(data, world, "Abydos", null);
+            for (int other = 0; other < getters.size(); other++)
+            {
+                assertEquals(other == field ? wanted : null, getters.get(other).apply(back),
+                    "field " + other + " after setting only field " + field);
+            }
+            // Leave only this one set, so dropping any one clause of the check is caught.
+            gate.setGateCustomStructureMaterial(null);
+            gate.setGateCustomPortalMaterial(null);
+            gate.setGateCustomLightMaterial(null);
+            gate.setGateCustomIrisMaterial(null);
+        }
+    }
+
+    /** The gates written as version 9 are reported by name, and a gate without a custom material is not among them. */
+    @Test
+    void theResultNamesTheGatesWrittenAsVersion9() throws Exception
+    {
+        final Stargate gate = importedGate("Abydos");
+        assertTrue(LegacyDatabaseExporter.export().getCustomMaterialGates().isEmpty());
+
+        gate.setGateCustom(true);
+        gate.setGateCustomIrisMaterial(Material.GLASS);
+
+        assertEquals(List.of("Abydos"), LegacyDatabaseExporter.export().getCustomMaterialGates());
+    }
+
+    /** A dialled gate with a custom material goes out as version 9 and still idle, with no target. */
+    @Test
+    void anOpenGateWithACustomMaterialIsExportedIdleWithNoTarget() throws Exception
+    {
+        final Stargate open = importedGate("Abydos");
+        open.setGateCustom(true);
+        open.setGateCustomIrisMaterial(Material.GLASS);
+        open.setGateTarget(unregisteredGate("Chulak"));
+        open.setGateActive(true);
+
+        final byte[] data = exportedGateData();
+
+        assertEquals(9, data[0]);
+        final Stargate written = GateSerializer.parseVersionedData(data, world, "Abydos", null);
+        assertFalse(written.isGateActive(), "the file must not claim a connection that is not there");
+        assertEquals(-1, written.getGateTempTargetId());
+        assertTrue(open.isGateActive(), "the live gate is left as it was");
+    }
+
+    private byte[] exportedGateData() throws Exception
+    {
+        final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
+        try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + out.getFile().getAbsolutePath());
+            Statement query = db.createStatement();
+            ResultSet rows = query.executeQuery("SELECT GateData FROM Stargates WHERE Name = 'Abydos'"))
+        {
+            assertTrue(rows.next());
+            return rows.getBytes(1);
+        }
+    }
+
+    /**
      * The export lands in a new folder of its own, and the old database and the live gate files are
      * exactly as they were.
      */
@@ -374,7 +469,7 @@ class LegacyDatabaseExporterTest
         final Stargate two = unregisteredGate("Twin");
         try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class))
         {
-            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(java.util.List.of(one, two));
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(one, two));
 
             final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
 
