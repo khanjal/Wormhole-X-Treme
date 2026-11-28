@@ -1,8 +1,5 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -10,7 +7,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorArrival;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorChoosingSign;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
@@ -32,27 +28,6 @@ public final class WindowSweep
     {
     }
 
-    /** The failures of {@link #alsoOffer} already logged. */
-    private static final Set<String> OFFER_WARNED = ConcurrentHashMap.newKeySet();
-
-    /** Offers whatever else is drawn as a window, before the sweep settles them: open gates (#516). */
-    private static Runnable alsoOffer = () ->
-    {
-    };
-
-    /**
-     * Sets what else each sweep offers as a window, alongside the mirrors.
-     *
-     * @param offer
-     *            run once a sweep, after the mirrors and before the windows are settled; null for nothing
-     */
-    public static void alsoOffer(final Runnable offer)
-    {
-        alsoOffer = (offer == null) ? () ->
-        {
-        } : offer;
-    }
-
     /** @return the sweep, for the scheduler */
     public static Runnable createTicker()
     {
@@ -62,7 +37,6 @@ public final class WindowSweep
     /** Forgets every view, for a test or a reload. */
     public static void clear()
     {
-        OFFER_WARNED.clear();
         Windows.clear();
     }
 
@@ -117,20 +91,6 @@ public final class WindowSweep
                 continue;
             }
             offerWindow(mirror);
-        }
-        try
-        {
-            alsoOffer.run();
-        }
-        catch (final Exception | LinkageError e)
-        {
-            // An experiment's failure must not freeze every mirror's view, which finish() is what moves on.
-            // Once per kind of failure: it is met again every second.
-            final String key = e.getClass().getName() + " " + e.getMessage();
-            if (OFFER_WARNED.add(key))
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Could not offer gate views to the mirror sweep (said once)", e);
-            }
         }
         // Windows share walls, so they are drawn together once every one has been found. A
         // window not offered this sweep -- broken, taken down, re-hung on a post -- drops out.

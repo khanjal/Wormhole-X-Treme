@@ -214,12 +214,6 @@ class ConfigAccessorTableTest
             List.of(String.class, MaterialGroup.class), Arrays.asList(own, group));
     }
 
-    /** @return the call {@code getGateView(own)} */
-    private static Call viewCall(final String label, final String own)
-    {
-        return new Call("getGateView(" + label + ")", "getGateView", List.of(String.class), Arrays.asList(own));
-    }
-
     /** @return a row for {@code isIrisAnimated(animation)}, which reads no setting */
     private static Row irisAnimated(final String animation, final boolean answer)
     {
@@ -240,16 +234,6 @@ class ConfigAccessorTableTest
         final Map<ConfigKeys, Object> writes = new LinkedHashMap<>();
         writes.put(key, written);
         return new Odd(call, writes, expected);
-    }
-
-    /** @return two settings written together, for an accessor that reads both */
-    private static Odd odd(final String name, final ConfigKeys first, final Object firstValue, final ConfigKeys second,
-        final Object secondValue, final Object expected)
-    {
-        final Map<ConfigKeys, Object> writes = new LinkedHashMap<>();
-        writes.put(first, firstValue);
-        writes.put(second, secondValue);
-        return new Odd(call(name), writes, expected);
     }
 
     /** Writes one setting as a config file would have, typed by its value. */
@@ -469,7 +453,6 @@ class ConfigAccessorTableTest
         skip.put("valuesFor(String)", "tab completion's choices, not a setting's value");
         skip.put("irisAnimations()", "the list of animation names, not a setting's value");
         skip.put("parseIrisAnimation(String)", "a parser over text it is given");
-        skip.put("parseGateView(String)", "a parser over text it is given");
         skip.put("parseServerLanguage(String)", "a parser over text it is given");
         skip.put("appendDiscoveredMaterialGroups(List)", "writes config.yml");
         skip.put("setupConfigs(String)", "reads config.yml");
@@ -514,17 +497,11 @@ class ConfigAccessorTableTest
         d.put(ConfigKeys.PING_ENABLED, true);
         d.put(ConfigKeys.PING_SECONDS, 37);
         d.put(ConfigKeys.PING_COOLDOWN_SECONDS, 43);
-        // Gate views and mirrors
+        // Mirror views
         d.put(ConfigKeys.VIEW_DEPTH, 20);
-        d.put(ConfigKeys.GATE_VIEW, "behind");
-        d.put(ConfigKeys.GATE_VIEW_FUNNEL, false);
-        d.put(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 17);
-        d.put(ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 15);
         d.put(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 18);
         d.put(ConfigKeys.MIRROR_SHOW_ENTITIES, true);
         d.put(ConfigKeys.MIRROR_SHOW_PLAYERS, true);
-        d.put(ConfigKeys.NETHER_PORTAL_VIEWS, true);
-        d.put(ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, "Nether_World");
         d.put(ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 3);
         d.put(ConfigKeys.MIRROR_MAX_VIEWERS, 4);
         d.put(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 6);
@@ -657,23 +634,11 @@ class ConfigAccessorTableTest
             row("getPingSeconds", ConfigKeys.PING_SECONDS, 8, 8, 37),
             row("getPingCooldownSeconds", ConfigKeys.PING_COOLDOWN_SECONDS, 20, 20, 43),
 
-            // Gate views and mirrors
+            // Mirror views
             row("getViewDepth", ConfigKeys.VIEW_DEPTH, 160, 160, 20),
-            row("getGateViewFirstDepth", null, 32, 32, 20),
-            row("getGateView", ConfigKeys.GATE_VIEW, "horizon", "horizon", "behind"),
-            // A gate's own level wins either way, so the server's setting changes nothing when it has one.
-            new Row(viewCall("null", null), ConfigKeys.GATE_VIEW, "horizon", "horizon", "behind"),
-            new Row(viewCall("horizon", "horizon"), ConfigKeys.GATE_VIEW, "horizon", "horizon", "horizon"),
-            new Row(viewCall("open", "open"), ConfigKeys.GATE_VIEW, "open", "open", "open"),
-            row("isGateViewFunnel", ConfigKeys.GATE_VIEW_FUNNEL, true, true, false),
-            row("getGateViewFunnelLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 16, 16, 17),
-            row("getGateViewFunnelMinLength", ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 0, 0, 15),
-            row("getGateViewFunnelLongest", null, 16, 16, 0),
             row("getMirrorProximityDistance", ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 16, 16, 18),
             row("isMirrorShowEntities", ConfigKeys.MIRROR_SHOW_ENTITIES, false, false, true),
             row("isMirrorShowPlayers", ConfigKeys.MIRROR_SHOW_PLAYERS, false, false, true),
-            row("isNetherPortalViews", ConfigKeys.NETHER_PORTAL_VIEWS, false, false, true),
-            row("getNetherPortalViewWorlds", ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, Set.of(), Set.of(), Set.of("nether_world")),
             row("getMirrorEntityLoadRadius", ConfigKeys.MIRROR_ENTITY_LOAD_RADIUS, 2, 2, 3),
             row("getMirrorMaxViewers", ConfigKeys.MIRROR_MAX_VIEWERS, 0, 0, 4),
             row("getMirrorPerWorldLimit", ConfigKeys.MIRROR_PER_WORLD_LIMIT, 1, 1, 6),
@@ -831,28 +796,10 @@ class ConfigAccessorTableTest
         o.add(odd("getPingSeconds", ConfigKeys.PING_SECONDS, 600, 60));
         o.add(odd("getPingCooldownSeconds", ConfigKeys.PING_COOLDOWN_SECONDS, -5, 0));
 
-        // Gate views and mirrors
+        // Mirror views
         o.add(odd("getViewDepth", ConfigKeys.VIEW_DEPTH, 0, 4));
         o.add(odd("getViewDepth", ConfigKeys.VIEW_DEPTH, 1000, 160));
         o.add(odd("getViewDepth", ConfigKeys.VIEW_DEPTH, 100, 100));
-        o.add(odd("getGateViewFirstDepth", ConfigKeys.VIEW_DEPTH, 100, 32));
-        o.add(odd("getGateViewFirstDepth", ConfigKeys.VIEW_DEPTH, 10, 10));
-        o.add(odd("getGateViewFirstDepth", ConfigKeys.VIEW_DEPTH, 0, 4));
-        o.add(odd("getGateView", ConfigKeys.GATE_VIEW, " OPEN ", "open"));
-        o.add(odd("getNetherPortalViewWorlds", ConfigKeys.NETHER_PORTAL_VIEW_WORLDS, " a, ,B ", Set.of("a", "b")));
-        o.add(odd("getGateView", ConfigKeys.GATE_VIEW, "bogus", "horizon"));
-        o.add(odd("getGateViewFunnelLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 0, 1));
-        o.add(odd("getGateViewFunnelLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, -5, 1));
-        o.add(odd("getGateViewFunnelLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 100, 64));
-        o.add(odd("getGateViewFunnelMinLength", ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, -5, 0));
-        o.add(odd("getGateViewFunnelMinLength", ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 100, 16));
-        o.add(odd("getGateViewFunnelMinLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 5,
-            ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 10, 5));
-        o.add(odd("getGateViewFunnelMinLength", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 100,
-            ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH, 70, 64));
-        o.add(odd("getGateViewFunnelLongest", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 40, 40));
-        o.add(odd("getGateViewFunnelLongest", ConfigKeys.GATE_VIEW_FUNNEL_LENGTH, 100, 64));
-        o.add(odd("getGateViewFunnelLongest", ConfigKeys.GATE_VIEW_FUNNEL, false, 0));
         o.add(odd("getMirrorProximityDistance", ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 0, 1));
         o.add(odd("getMirrorProximityDistance", ConfigKeys.MIRROR_PROXIMITY_DISTANCE, -5, 1));
         o.add(odd("getMirrorPerWorldLimit", ConfigKeys.MIRROR_PER_WORLD_LIMIT, -5, 0));

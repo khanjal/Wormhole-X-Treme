@@ -114,9 +114,6 @@ permissions:
   wormhole.export:
     description: Allow writing the gates out as a database for the older Wormhole X-Treme plugins with /wormhole export.
     default: op
-  wormhole.view.netherportal:
-    description: Allow being drawn the far side through a nether portal, with nether-portal-views on. Only a picture; travel is not affected.
-    default: true
   wormhole.freya:
     description: Allow the hidden cosmetic commands.
     default: true

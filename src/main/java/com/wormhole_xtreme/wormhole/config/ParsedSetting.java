@@ -159,13 +159,6 @@ final class ParsedSetting
                 ? notOneOf(key, ConfigManager.irisAnimations(), raw)
                 : accepted(animation);
         }
-        if (key == ConfigKeys.GATE_VIEW)
-        {
-            final String level = ConfigManager.parseGateView(raw);
-            return (level == null)
-                ? notOneOf(key, ConfigManager.GATE_VIEWS, raw)
-                : accepted(level);
-        }
         return null;
     }
 

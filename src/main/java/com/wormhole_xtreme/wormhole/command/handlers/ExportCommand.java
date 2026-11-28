@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.command.CommandSender;
@@ -81,8 +82,23 @@ public class ExportCommand implements SubCommand
                     ChatText.value(String.valueOf(kind.getValue())))));
             }
         }
+        final List<String> custom = result.getCustomMaterialGates();
+        if (!custom.isEmpty())
+        {
+            final String names = ChatText.value(String.join(", ", custom));
+            final String count9 = ChatText.value(String.valueOf(custom.size()));
+            final String line;
+            if (custom.size() == 1)
+            {
+                line = Messages.get(sender, "export.version9.one", count9, names);
+            }
+            else
+            {
+                line = Messages.get(sender, "export.version9.other", count9, names);
+            }
+            sender.sendMessage(ChatText.info(line));
+        }
         sender.sendMessage(ChatText.info(Messages.get(sender, "export.not-carried")));
-        sender.sendMessage(ChatText.info(Messages.get(sender, "export.ordinals")));
     }
 
     /** Each key is written out whole, as below. */
@@ -105,7 +121,6 @@ public class ExportCommand implements SubCommand
             case USE_COST -> Messages.get(sender, "export.dropped.kind.use-cost");
             case DIAL_SPIN -> Messages.get(sender, "export.dropped.kind.dial-spin");
             case IRIS_ANIMATION -> Messages.get(sender, "export.dropped.kind.iris-animation");
-            case VIEW -> Messages.get(sender, "export.dropped.kind.view");
             case MATERIAL_GROUP -> Messages.get(sender, "export.dropped.kind.material-group");
             case FRAME_MATERIAL -> Messages.get(sender, "export.dropped.kind.frame-material");
             case DIAL_SIGN_TARGET -> Messages.get(sender, "export.dropped.kind.dial-sign-target");

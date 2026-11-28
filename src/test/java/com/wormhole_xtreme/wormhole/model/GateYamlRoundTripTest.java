@@ -357,22 +357,19 @@ class GateYamlRoundTripTest
         assertNull(StargateManager.getStargate("server").getGateIrisAnimation());
     }
 
-    /** A gate's own view level (#682) survives a restart; one without keeps none, and writes none. */
+    /** A gate file written while gates had a view level of their own still loads. */
     @Test
-    void aGatesViewRoundTripsAndAnUnsetOneStaysUnset() throws Exception
+    void aGateFileWithAnOldViewLevelStillLoads() throws Exception
     {
-        final Stargate own = gate("own");
-        own.setGateView("horizon");
-        StargateYamlManager.saveStargate(own, gatesDir());
-        StargateYamlManager.saveStargate(gate("server"), gatesDir());
-
-        assertEquals(false, new String(Files.readAllBytes(new File(gatesDir(), "server.yml").toPath()),
-            StandardCharsets.UTF_8).contains(StargateYamlManager.VIEW_KEY + ":"), "nothing written for an unset view");
+        StargateYamlManager.saveStargate(gate("own"), gatesDir());
+        final File file = new File(gatesDir(), "own.yml");
+        Files.write(file.toPath(), (new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8) + "View: open\n")
+            .getBytes(StandardCharsets.UTF_8));
 
         StargateYamlManager.loadStargates(server, gatesDir());
 
-        assertEquals("horizon", StargateManager.getStargate("own").getGateView(), "horizon is kept: it is not the same as none");
-        assertNull(StargateManager.getStargate("server").getGateView());
+        final Stargate loaded = StargateManager.getStargate("own");
+        assertNotNull(loaded, "the gate loads; the level it was saved with is ignored");
     }
 
     /** The gate a sign points at (#706) is written by name and read back; a gate whose sign was never used writes none. */

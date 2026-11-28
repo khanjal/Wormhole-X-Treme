@@ -170,7 +170,7 @@ class ConfigWriteTest
         final List<String> keys = new ArrayList<>(Files.readAllLines(cfg.toPath(), StandardCharsets.UTF_8)
             .stream().filter(line -> !line.isEmpty() && !line.startsWith("#")).toList());
         Collections.reverse(keys);
-        final Map<String, String> changed = Map.of("timeout-shutdown", "90", "gate-view", "behind",
+        final Map<String, String> changed = Map.of("timeout-shutdown", "90", "gate-iris-animation", "spiral",
             "ring-max-pairs-per-player", "3");
         final List<String> old = new ArrayList<>(List.of("# --- Integrations ---"));
         for (final String line : keys)
@@ -187,7 +187,7 @@ class ConfigWriteTest
         ConfigurationYAML.writeCurrentConfiguration(cfg);
 
         assertEquals(90, ConfigManager.getConfigurations().get(ConfigKeys.TIMEOUT_SHUTDOWN).getValue());
-        assertEquals("behind", ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW).getValue());
+        assertEquals("spiral", ConfigManager.getConfigurations().get(ConfigKeys.GATE_IRIS_ANIMATION).getValue());
         assertEquals(old, Files.readAllLines(cfg.toPath(), StandardCharsets.UTF_8),
             "the file comes back line for line");
     }

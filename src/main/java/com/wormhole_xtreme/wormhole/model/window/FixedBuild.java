@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.model.window;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.bukkit.Bukkit;
 import org.bukkit.HeightMap;
@@ -17,7 +16,7 @@ import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
  *
  * <p>Built in one go, the walk behind a mirror's opening took 300 to 800 ms of one tick, once a
  * minute per watched window. A step is sixteen columns of the capture at most, or one column of the
- * volume behind the opening for a capture without seen air, or one layer of the tunnel;
+ * volume behind the opening for a capture without seen air;
  * {@link FixedBuilds} runs as many a tick as its budget allows. The blocks are those {@link FixedView#fixedTo} gives: the same cells, read the same way,
  * with the depth cut by a quarter and the walk begun again whenever the view will not fit.
  *
@@ -50,10 +49,8 @@ final class FixedBuild
     private boolean finished;
     private boolean fits = true;
     private final boolean cutToFit;
-    /** True once the walk is done and the tunnel and the limit are next, a step each. */
+    /** True once the walk is done and the limit is next. */
     private boolean walked;
-    /** The tunnel's next layer to draw, once the walk is done. */
-    private int tunnelLayer;
     /** The most blocks a view's map is made room for at the start: past it, it grows. */
     private static final int MOST_PRESIZE = 1_000_000;
     /** Whether a column read was of a chunk not loaded, whose blocks are then drawn as air. */
@@ -167,7 +164,7 @@ final class FixedBuild
     }
 
     /**
-     * Whether this build is still the one a window wants: from the same capture, shape, depth and funnel.
+     * Whether this build is still the one a window wants: from the same capture, shape and depth.
      *
      * @param now
      *            the window as offered now
@@ -176,7 +173,6 @@ final class FixedBuild
     boolean buildsFor(final WindowState now)
     {
         return (now.capture == capture) && now.shape.equals(shape) && (now.depth() == configured)
-            && Objects.equals(now.source.funnel(), window.source.funnel())
             && now.anchor().getWorld().equals(here);
     }
 
@@ -188,7 +184,6 @@ final class FixedBuild
         view = new HashMap<>(capacityFor(expected()));
         over = false;
         walked = false;
-        tunnelLayer = 1;
         sawUnloaded = false;
         forgetColumn();
         if (capture.complete())
@@ -204,7 +199,7 @@ final class FixedBuild
 
     /**
      * Walks one step: up to sixteen columns of the capture, or one column of the volume; or, once the
-     * walk is done, the tunnel and the check against the limit.
+     * walk is done, the check against the limit.
      *
      * @return true once the view is built
      */
@@ -253,19 +248,10 @@ final class FixedBuild
     }
 
     /**
-     * At the end of a walk, a step each: the tunnel drawn in a layer at a time, then the check against
-     * the limit, the depth cut until the view fits. Drawn whole in one step, a big gate's tunnel took
-     * tens of milliseconds.
+     * At the end of a walk: the check against the limit, the depth cut until the view fits.
      */
     private void settle()
     {
-        final Funnel funnel = window.source.funnel();
-        if (!over && (funnel != null) && (tunnelLayer < Math.min(depth, funnel.taper())))
-        {
-            FixedView.tunnelLayer(window, view, tunnelLayer, depth, Windows.now());
-            tunnelLayer++;
-            return;
-        }
         if (!over && (view.size() <= most))
         {
             finished = true;
@@ -299,7 +285,7 @@ final class FixedBuild
             hereLayer = ((hereX - shape.base().x()) * shape.into().x()) + ((hereZ - shape.base().z()) * shape.into().z());
         }
         final int y = shape.base().y() + (fy - shape.far().y());
-        if ((hereLayer < 1) || (y < min) || (y >= max) || !window.showsFar(hereX, y, hereZ) || !within(hereX, y, hereZ))
+        if ((hereLayer < 1) || (y < min) || (y >= max) || !within(hereX, y, hereZ))
         {
             return;
         }
@@ -374,7 +360,7 @@ final class FixedBuild
     private void volumeAt(final int x, final int y, final int z, final int fx, final int fy, final int fz)
     {
         cellsLastStep++;
-        if (!window.showsFar(x, y, z) || !capture.contains(fx, fy, fz))
+        if (!capture.contains(fx, fy, fz))
         {
             return;
         }

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,7 @@ class RetiredSettingsTest
     {
         final List<String> current = Arrays.stream(DefaultSettings.config)
             .map(s -> ConfigurationYAML.kebabKeyName(s.getName().name())).toList();
-        for (final String key : RetiredSettings.KEYS)
+        for (final String key : Stream.concat(RetiredSettings.KEYS.stream(), RetiredSettings.KEYS_1_14.stream()).toList())
         {
             assertFalse(current.contains(key), key + " is retired but still a setting");
         }
@@ -80,6 +81,17 @@ class RetiredSettingsTest
         assertEquals(4, RetiredSettings.carriedViewDepth(Map.of("mirror-view-depth", 1)).depth());
     }
 
+    /** The open-gate and nether-portal view settings, removed in 1.14.0, are named once and ignored, in either spelling. */
+    @Test
+    void theGateAndPortalViewSettingsAreRetired()
+    {
+        final Map<String, Object> file = Map.of("gate-view", "open", "GATE_VIEW_FUNNEL", true, "gate-view-funnel-length", 8,
+            "gate-view-funnel-min-length", 2, "nether-portal-views", true, "nether-portal-view-worlds", "world", "view-depth", 64);
+
+        assertEquals(List.of("gate-view", "gate-view-funnel", "gate-view-funnel-length", "gate-view-funnel-min-length",
+            "nether-portal-views", "nether-portal-view-worlds"), RetiredSettings.presentIn(file));
+    }
+
     /** The notice names what was carried over apart from what is ignored, and says nothing for a clean file. */
     @Test
     void theNoticeSeparatesTheCarriedFromTheIgnored()
@@ -88,7 +100,7 @@ class RetiredSettingsTest
         assertEquals(List.of("These settings no longer exist and are ignored: ring-hold-ticks, beam-fade-ticks"),
             RetiredSettings.notice(List.of("ring-hold-ticks", "beam-fade-ticks"), null));
         assertEquals(List.of("view-depth was added at 64, carried over from mirror-view-depth; it sets how far"
-            + " mirrors and gate views reach.", "These settings no longer exist and are ignored: gate-view-depth"),
+            + " mirrors reach.", "These settings no longer exist and are ignored: gate-view-depth"),
             RetiredSettings.notice(List.of("gate-view-depth", "mirror-view-depth"),
                 new RetiredSettings.Carried(64, List.of("mirror-view-depth"))));
         assertEquals(1, RetiredSettings.notice(List.of("mirror-view-depth"),

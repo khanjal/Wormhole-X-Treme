@@ -3,7 +3,6 @@ package com.wormhole_xtreme.wormhole.model.window;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,14 +37,13 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.model.GateSource;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
  * When a held view is still the one to draw, how a finished build goes in, and the geometry round a view (#430).
  *
  * <p>Written for the move out of {@code Windows}, on the conditions the older
- * rebuild, build and funnel tests left unpinned: each test below fails when the one condition it is
+ * rebuild and build tests left unpinned: each test below fails when the one condition it is
  * named for is taken out of {@link FixedView}.
  */
 class FixedViewTest
@@ -92,16 +90,16 @@ class FixedViewTest
         PluginTestSupport.remove();
     }
 
-    private GateSource gate(final String name, final WindowShape shape, final Funnel funnel)
+    private FakeSource gate(final String name, final WindowShape shape)
     {
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) -> open.add(new Spot(x, y, z)));
-        return new GateSource(name, anchor, shape, open, ARRIVAL, "Chulak", 16, funnel);
+        return new FakeSource(name, anchor, shape, open, ARRIVAL, 16);
     }
 
     private WindowState window(final String name, final Capture capture)
     {
-        return new WindowState(gate(name, BIG, null), capture);
+        return new WindowState(gate(name, BIG), capture);
     }
 
     private static Capture solidEverywhere(final BlockData stone)
@@ -113,24 +111,6 @@ class FixedViewTest
         return capture;
     }
 
-    private static Funnel funnel()
-    {
-        final List<Spot> far = new ArrayList<>();
-        for (int x = 99; x <= 101; x++)
-        {
-            for (int y = 70; y <= 73; y++)
-            {
-                far.add(new Spot(x, y, 199));
-            }
-        }
-        return Funnel.of(BIG, far, 16, Material.WATER);
-    }
-
-    private static long key(final Spot at)
-    {
-        return Cells.key(at.x(), at.y(), at.z());
-    }
-
     /** Holds a finished view on a window, built at a time. */
     private static void held(final WindowState window, final long at)
     {
@@ -138,7 +118,6 @@ class FixedViewTest
         window.fixedFrom = window.capture;
         window.fixedFor = window.depth();
         window.fixedDepth = window.depth();
-        window.fixedFunnel = window.source.funnel();
         window.fixedAt = at;
     }
 
@@ -258,19 +237,6 @@ class FixedViewTest
     }
 
     @Test
-    void thePutInViewKeepsTheFunnelItWasBuiltFor()
-    {
-        final Funnel funnel = funnel();
-        final WindowState window = new WindowState(gate("gate:Abydos", BIG, funnel), solidEverywhere(stone));
-        WindowStore.ACTIVE.put("gate:Abydos", window);
-        assertNull(window.fixedFunnel);
-
-        FixedView.builtLater(buildOf(window, 0L));
-
-        assertSame(funnel, window.fixedFunnel, "so a changed funnel is noticed");
-    }
-
-    @Test
     void aChangeExactlyAWaitAfterTheLastViewWentInDoesNotLengthenTheNextWait()
     {
         final WindowState window = window("gate:Abydos", solidEverywhere(stone));
@@ -324,12 +290,12 @@ class FixedViewTest
         assertFalse(window.fixedPartial);
     }
 
-    // --- A view past its limit, and the tunnel into one ---
+    // --- A view past its limit ---
 
     @Test
     void aViewPastItsLimitIsMarkedAndAViewWithinItIsNot()
     {
-        final WindowState window = new WindowState(gate("gate:Abydos", BIG, null), solidEverywhere(stone));
+        final WindowState window = new WindowState(gate("gate:Abydos", BIG), solidEverywhere(stone));
 
         final Map<Long, BlockData> fits = FixedView.fixedTo(window, 3, Integer.MAX_VALUE);
         final Map<Long, BlockData> past = FixedView.fixedTo(window, 3, 1);
@@ -337,82 +303,6 @@ class FixedViewTest
         assertFalse(FixedView.tooMany(fits), "within its limit");
         assertTrue(FixedView.tooMany(past), "past it");
         assertSame(FixedView.TOO_MANY, past);
-    }
-
-    @Test
-    void aTunnelHasNoLayerPastItsTaper()
-    {
-        final Funnel funnel = funnel();
-        final WindowState window = new WindowState(gate("gate:Abydos", BIG.deeper(funnel.taper() - 1), funnel),
-            solidEverywhere(stone));
-
-        final Map<Long, BlockData> view = FixedView.tunnelled(window, new HashMap<>(), 64, 0L, Integer.MAX_VALUE);
-
-        int deepest = 0;
-        for (final long cell : view.keySet())
-        {
-            final int layer = ((Cells.unpackX(cell) - BIG.base().x()) * BIG.into().x())
-                + ((Cells.unpackZ(cell) - BIG.base().z()) * BIG.into().z());
-            deepest = Math.max(deepest, layer);
-        }
-        assertEquals(funnel.taper() - 1, deepest, "the collar, one layer short of the taper");
-    }
-
-    @Test
-    void aTunnelExactlyAtTheLimitFitsAndOneBlockOverDoesNot()
-    {
-        final Funnel funnel = funnel();
-        final WindowState window = new WindowState(gate("gate:Abydos", BIG.deeper(funnel.taper() - 1), funnel),
-            solidEverywhere(stone));
-        final int size = FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE).size();
-
-        assertNotSame(FixedView.TOO_MANY, FixedView.tunnelled(window, new HashMap<>(), 16, 0L, size), "exactly at the limit");
-        assertSame(FixedView.TOO_MANY, FixedView.tunnelled(window, new HashMap<>(), 16, 0L, size - 1), "one over it");
-    }
-
-    @Test
-    void aTunnelCellAtTheWorldsFloorIsDrawn()
-    {
-        final Funnel funnel = funnel();
-        final WindowState window = new WindowState(gate("gate:Abydos", BIG.deeper(funnel.taper() - 1), funnel),
-            solidEverywhere(stone));
-        final Spot floor = window.shape.behind(5, 5, -1);
-        when(world.getMinHeight()).thenReturn(floor.y());
-
-        final Map<Long, BlockData> view = FixedView.tunnelled(window, new HashMap<>(), 16, 0L, Integer.MAX_VALUE);
-
-        assertSame(water, view.get(key(floor)), "the floor is the lowest block a world has, not below it");
-    }
-
-    @Test
-    void aTunnelCellExactlyAtTheDepthIsLeftOut()
-    {
-        final Funnel funnel = funnel();
-        final WindowState window = new WindowState(gate("gate:Abydos", BIG.deeper(funnel.taper() - 1), funnel),
-            solidEverywhere(stone));
-        final double[] centre = FixedView.centreOf(window.shape);
-        final Map<Long, BlockData> all = FixedView.tunnelled(window, new HashMap<>(), 64, 0L, Integer.MAX_VALUE);
-        Long onTheSphere = null;
-        int depth = 0;
-        for (final long cell : all.keySet())
-        {
-            final double dx = (Cells.unpackX(cell) + 0.5) - centre[0];
-            final double dy = (Cells.unpackY(cell) + 0.5) - centre[1];
-            final double dz = (Cells.unpackZ(cell) + 0.5) - centre[2];
-            final double d2 = (dx * dx) + (dy * dy) + (dz * dz);
-            final int root = (int) Math.round(Math.sqrt(d2));
-            if ((root > 0) && (root * root == d2) && ((dx != 0) || (dy != 0)))
-            {
-                onTheSphere = cell;
-                depth = root;
-                break;
-            }
-        }
-        assertNotNull(onTheSphere, "the test needs a cell a whole number of blocks from the middle");
-
-        final Map<Long, BlockData> view = FixedView.tunnelled(window, new HashMap<>(), depth, 0L, Integer.MAX_VALUE);
-
-        assertFalse(view.containsKey(onTheSphere), "a view is the blocks nearer than its depth");
     }
 
     // --- Where the middle of an opening is, and what is inside a view ---
@@ -458,7 +348,7 @@ class FixedViewTest
     {
         final WindowShape shape = new WindowShape(new Spot(10, 64, 20), new Spot(0, 0, -1), new Spot(100, 70, 200), ahead,
             mirrored, 1, 2);
-        return new WindowState(gate("gate:Abydos", shape, null), null);
+        return new WindowState(gate("gate:Abydos", shape), null);
     }
 
     @Test

@@ -33,9 +33,9 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  *
  * <p>The way back out for an admin who tries this fork and returns to the 2011 original, or runs
  * Dakto's build on a second server: both keep gates in one SQLite table, each gate a binary blob.
- * The blob is written at save version 8, the newest both understand (this fork's version 9 only
- * changes how custom materials are named). Version 8 stores materials by ordinal, so those
- * only match on the same Minecraft version.
+ * The blob is written at save version 8, the newest both understand, except for a gate with a custom
+ * material: that is written as version 9, which names the material, because Dakto's reader takes a
+ * version 8 ordinal for the length of a name and misreads the rest of the gate.
  *
  * <p>It writes a fresh database into a folder of its own under {@code exports/} and nothing
  * else: never into {@code WormholeXTremeDB}, which other forks share, and never to a live gate file.
@@ -60,7 +60,7 @@ public final class LegacyDatabaseExporter
     /** Per-gate settings of this fork that the format has no place for. */
     public enum Dropped
     {
-        USE_COST, DIAL_SPIN, IRIS_ANIMATION, VIEW, MATERIAL_GROUP, FRAME_MATERIAL, DIAL_SIGN_TARGET,
+        USE_COST, DIAL_SPIN, IRIS_ANIMATION, MATERIAL_GROUP, FRAME_MATERIAL, DIAL_SIGN_TARGET,
         OWNER_UUID, OWNER_UNKNOWN
     }
 
@@ -78,6 +78,7 @@ public final class LegacyDatabaseExporter
         private final Object[] problemArgs;
         private int exported;
         private final List<String> skipped = new ArrayList<>();
+        private final List<String> customMaterial = new ArrayList<>();
         private final Map<Dropped, Integer> dropped = new EnumMap<>(Dropped.class);
 
         Result(final File file, final Problem problem, final Object... problemArgs)
@@ -101,6 +102,9 @@ public final class LegacyDatabaseExporter
 
         /** @return the gates left out and why, one line each */
         public List<String> getSkipped() { return skipped; }
+
+        /** @return the gates written as version 9 for their custom material, which the 2011 original cannot read */
+        public List<String> getCustomMaterialGates() { return customMaterial; }
 
         /** @return for each kind of setting lost, how many exported gates had one */
         public Map<Dropped, Integer> getDropped() { return dropped; }
@@ -295,6 +299,10 @@ public final class LegacyDatabaseExporter
         }
         bind(insert, ids.assign(gate.getGateId()), gate, data, shape);
         insert.addBatch();
+        if (GateSerializer.hasCustomMaterial(gate))
+        {
+            result.customMaterial.add(gate.getGateName());
+        }
         return true;
     }
 
@@ -377,7 +385,6 @@ public final class LegacyDatabaseExporter
         count(dropped, Dropped.USE_COST, gate.getGateUseCost() != null);
         count(dropped, Dropped.DIAL_SPIN, gate.getGateDialSpin() != null);
         count(dropped, Dropped.IRIS_ANIMATION, gate.getGateIrisAnimation() != null);
-        count(dropped, Dropped.VIEW, gate.getGateView() != null);
         count(dropped, Dropped.MATERIAL_GROUP, gate.isGateMaterialGroupChosen());
         count(dropped, Dropped.FRAME_MATERIAL, gate.getGateFrameMaterialHint() != null);
         count(dropped, Dropped.DIAL_SIGN_TARGET, gate.getGateDialSignTargetName() != null);

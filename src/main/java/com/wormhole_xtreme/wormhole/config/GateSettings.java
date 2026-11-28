@@ -6,7 +6,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.logic.DialSpinPattern;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 
-/** The gate sound, dial, iris, view, funnel, ripple and preview settings; {@link ConfigManager} delegates here. */
+/** The gate sound, dial, iris, ripple and preview settings; {@link ConfigManager} delegates here. */
 final class GateSettings
 {
     /** Static helpers only. */
@@ -209,93 +209,6 @@ final class GateSettings
             return group.getIrisAnimation();
         }
         return gateIrisAnimation().toLowerCase(Locale.ROOT);
-    }
-
-    /**
-     * What an open gate shows once its kawoosh settles (#516).
-     *
-     * @return horizon, behind or open; horizon for anything else
-     */
-    static String getGateView()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW);
-        final String level = (s == null) ? null : ConfigManager.parseGateView(String.valueOf(s.getStringValue()));
-        return (level == null) ? ConfigManager.GATE_VIEWS.get(0) : level;
-    }
-
-    /**
-     * What one gate shows once open (#682): its own level, which wins over the server's whichever way
-     * it differs, or {@code gate-view}.
-     *
-     * @param own
-     *            the gate's own level, or null to follow the server
-     * @return horizon, behind or open
-     */
-    static String getGateView(final String own)
-    {
-        return (own != null) ? own : getGateView();
-    }
-
-    /**
-     * How far past a gate's opening its view is captured and drawn first (#516): 32, or
-     * {@code view-depth} if that is shallower.
-     *
-     * <p>Shallower than the view because a gate's capture is taken when it is dialled, often of
-     * somewhere nobody has loaded, and at 160 that was a box of some 230 chunks read from disk
-     * before anything showed. The rest, out to {@code view-depth}, is filled in behind it.
-     *
-     * @return blocks, 4 to 32
-     */
-    static int getGateViewFirstDepth()
-    {
-        return Math.min(ConfigManager.GATE_FIRST_STEP_DEPTH, ConfigManager.getViewDepth());
-    }
-
-    /**
-     * Whether a big gate's view of a smaller far gate is drawn at the end of a tunnel (#583); on when
-     * the setting is missing, as it ships.
-     *
-     * @return true for the tunnel, false for the plain view
-     */
-    static boolean isGateViewFunnel()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL);
-        return (s == null) || s.getBooleanValue();
-    }
-
-    /**
-     * The longest a big gate's tunnel to a smaller far gate may be, in blocks (#583).
-     *
-     * @return blocks, 1 to 64
-     */
-    static int getGateViewFunnelLength()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_LENGTH);
-        final int blocks = (s == null) ? 16 : s.getIntValue();
-        return Math.max(1, Math.min(64, blocks));
-    }
-
-    /**
-     * The shortest a gate's tunnel is, in blocks (#587): above 0, a far gate as big or bigger is seen down
-     * a straight tube that long.
-     *
-     * @return blocks, 0 to {@link #getGateViewFunnelLength()}
-     */
-    static int getGateViewFunnelMinLength()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_VIEW_FUNNEL_MIN_LENGTH);
-        final int blocks = (s == null) ? 0 : s.getIntValue();
-        return Math.max(0, Math.min(getGateViewFunnelLength(), blocks));
-    }
-
-    /**
-     * How long a big gate's tunnel may be now: its length, or none with the tunnel off.
-     *
-     * @return blocks; 0 for the plain view
-     */
-    static int getGateViewFunnelLongest()
-    {
-        return isGateViewFunnel() ? getGateViewFunnelLength() : 0;
     }
 
     /**

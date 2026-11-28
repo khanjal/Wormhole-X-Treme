@@ -246,13 +246,11 @@ class ConfigReloadTest
     @Test
     void aBareOffUnderATextSettingIsItsDefault() throws Exception
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "behind");
         ConfigTestSupport.set(ConfigKeys.GATE_IRIS_ANIMATION, "spiral");
 
-        final ConfigReload.Report report = reload("gate-view: off\ngate-iris-animation: off\n");
+        final ConfigReload.Report report = reload("gate-iris-animation: off\n");
 
         assertEquals(List.of(), report.rejections());
-        assertEquals("horizon", valueOf(ConfigKeys.GATE_VIEW));
         assertEquals("sweep", valueOf(ConfigKeys.GATE_IRIS_ANIMATION));
     }
 
@@ -319,9 +317,9 @@ class ConfigReloadTest
     @Test
     void aBareOffTheServerStartedFromIsNoChange() throws Exception
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_VIEW, "false");
+        ConfigTestSupport.set(ConfigKeys.GATE_IRIS_ANIMATION, "false");
 
-        final ConfigReload.Report report = reload("gate-view: off\n");
+        final ConfigReload.Report report = reload("gate-iris-animation: off\n");
 
         assertEquals(new ConfigReload.Report(null, List.of(), List.of()), report);
     }

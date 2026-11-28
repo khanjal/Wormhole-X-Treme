@@ -1,16 +1,14 @@
 package com.wormhole_xtreme.wormhole.model.window;
 
 import java.util.List;
-import java.util.Set;
 
 import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
- * Something drawn as a window onto a far side: a mirror's banner, or an open gate (#522).
+ * Something drawn as a window onto a far side: a mirror's banner (#522).
  *
  * <p>What {@link Windows} needs to know of the thing it draws, and no more. Each sweep offers one
  * afresh, but it is held until the next, and clicks and lookups between sweeps read it, so an
@@ -36,17 +34,8 @@ public interface WindowSource
     /** @return where it goes, facing the way a traveller leaves */
     Place destination();
 
-    /** @return true for an opening walked into, which is never barred, punched through or drawn over */
-    boolean walkThrough();
-
     /** @return how far past the opening its view is drawn */
     int depth();
-
-    /** @return how far its view is filled in once complete: a gate's view comes in steps, so this may pass {@link #depth()} */
-    default int fullDepth()
-    {
-        return depth();
-    }
 
     /** @return the mirror a punch at this window travels through, or null for none */
     default QuantumMirror punchTarget()
@@ -54,27 +43,4 @@ public interface WindowSource
         return null;
     }
 
-    /** @return the funnel its view is narrowed to, or null for the whole view (#583) */
-    default Funnel funnel()
-    {
-        return null;
-    }
-
-    /** @return its own blocks, which a funnel's wall leaves as they are: none for a source with no frame */
-    default Set<Spot> structure()
-    {
-        return Set.of();
-    }
-
-    /** @return whether this player may be drawn it: all of them, but a nether portal's asks a permission (#514) */
-    default boolean shownTo(final Player player)
-    {
-        return true;
-    }
-
-    /** @return true if a viewer is drawn only the one of these they look most straight at (#514) */
-    default boolean oneAtATime()
-    {
-        return false;
-    }
 }

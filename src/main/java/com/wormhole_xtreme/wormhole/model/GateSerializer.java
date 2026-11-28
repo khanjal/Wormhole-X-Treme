@@ -29,8 +29,9 @@ public final class GateSerializer
     private static final byte STARGATE_SAVE_VERSION = 9;
 
     /**
-     * The newest version the older plugins write and read, which is what an export uses. Version 9
-     * is this fork's own: it was added to stop storing material ordinals.
+     * The version an export writes for a gate with no custom material. Version 9 is this fork's own,
+     * added to stop storing material ordinals; an export uses it for a gate that has one, since
+     * Dakto's reader misreads an ordinal there (see {@link #stargateToLegacyBinary}).
      */
     private static final byte LEGACY_SAVE_VERSION = 8;
 
@@ -100,7 +101,8 @@ public final class GateSerializer
     {
         if (!byName)
         {
-            // Version 8: the ordinal, with -1 for none, which readCustomMaterial turns back into null.
+            // Version 8: the ordinal, with -1 for none. An export never gets here with a material: a gate
+            // that has one is written as version 9, so in practice this writes -1.
             dataArr.putInt(material == null ? -1 : material.ordinal());
             return;
         }
@@ -743,14 +745,17 @@ public final class GateSerializer
     @SuppressWarnings("java:S1168")
     public static byte[] stargateToBinary(final Stargate s)
     {
-        return encode(s, STARGATE_SAVE_VERSION);
+        return encode(s, STARGATE_SAVE_VERSION, false);
     }
 
     /**
-     * The gate as the older plugins store it: save version 8, custom materials by ordinal.
+     * The gate as the older plugins store it: save version 8, or version 9 if the gate has a custom
+     * material, so no ordinal is ever written.
      *
-     * <p>Ordinals are only meaningful on the Bukkit version that wrote them, so the result is
-     * right for a server of the same Minecraft version and may name other blocks on another.
+     * <p>A gate with a custom material is written as version 9, with the names. Dakto's
+     * 1.1.8 writes names under version 8 and reads an ordinal there only when it is larger than
+     * the bytes that follow, so a version 8 ordinal swallows the next bytes as a name, the rest
+     * of the gate is misread and the plugin fails to enable. It reads version 9 correctly.
      *
      * @param s
      *            the gate
@@ -760,12 +765,20 @@ public final class GateSerializer
     @SuppressWarnings("java:S1168")
     public static byte[] stargateToLegacyBinary(final Stargate s)
     {
-        return encode(s, LEGACY_SAVE_VERSION);
+        // Always idle, whatever the version: another plugin must not be handed an open gate.
+        return encode(s, hasCustomMaterial(s) ? STARGATE_SAVE_VERSION : LEGACY_SAVE_VERSION, true);
+    }
+
+    /** Whether the gate has any of the four custom materials, which is what makes an export version 9. */
+    public static boolean hasCustomMaterial(final Stargate s)
+    {
+        return s.getGateCustomStructureMaterial() != null || s.getGateCustomPortalMaterial() != null
+            || s.getGateCustomLightMaterial() != null || s.getGateCustomIrisMaterial() != null;
     }
 
     // S1168 as above: null is the caller's signal that the gate was not encoded.
     @SuppressWarnings("java:S1168")
-    private static byte[] encode(final Stargate s, final byte version)
+    private static byte[] encode(final Stargate s, final byte version, final boolean snapshot)
     {
         final boolean byName = version >= 9;
         byte[] utfFaceBytes;
@@ -786,7 +799,7 @@ public final class GateSerializer
         final ByteBuffer dataArr = ByteBuffer.allocate(size);
 
         writeAnchors(dataArr, s, version);
-        writeSignAndTarget(dataArr, s, utfFaceBytes, utfIdcBytes, !byName);
+        writeSignAndTarget(dataArr, s, utfFaceBytes, utfIdcBytes, snapshot);
         writeRedstoneAndCustom(dataArr, s, byName);
         writeBlockLists(dataArr, s);
         if (dataArr.remaining() > 0)

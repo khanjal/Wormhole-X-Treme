@@ -16,14 +16,11 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.model.GateSource;
-import com.wormhole_xtreme.wormhole.model.PortalSource;
 import com.wormhole_xtreme.wormhole.model.window.WindowShape.Spot;
 
 /**
@@ -76,7 +73,7 @@ class WindowViewersTest
     private void offer(final String name)
     {
         WindowStore.ACTIVE.put(name,
-            new WindowState(new GateSource(name, anchor, SHAPE, OPENING, null, "Chulak", 16), null));
+            new WindowState(new FakeSource(name, anchor, SHAPE, OPENING, null, 16), null));
     }
 
     private Player playerAt(final World in, final double x)
@@ -169,59 +166,4 @@ class WindowViewersTest
             "the same coordinates, but over there");
     }
 
-    /** A nether portal's window, its opening at a z of its own and its anchor there. */
-    private void offerPortal(final String name, final int z)
-    {
-        final Block at = mock(Block.class, withSettings().stubOnly());
-        when(at.getWorld()).thenReturn(world);
-        when(at.getX()).thenReturn(10);
-        when(at.getY()).thenReturn(64);
-        when(at.getZ()).thenReturn(z);
-        WindowStore.ACTIVE.put(name, new WindowState(new PortalSource(name, at, SHAPE,
-            List.of(new Spot(10, 64, z), new Spot(10, 65, z)), null, 16), null));
-    }
-
-    /** An eye five blocks west of the wall, looking at one block of it. */
-    private static Location eyeLookingAt(final World in, final int z)
-    {
-        final Location eye = eyeAt(in, 5.0);
-        eye.setDirection(new Vector(10.5 - 5.0, 64.5 - 65.0, (z + 0.5) - 20.5));
-        return eye;
-    }
-
-    /**
-     * Among nether portals, a viewer is drawn only the one they look at; a gate beside them is still drawn (#514).
-     *
-     * <p>A base can have a portal for every player in it; drawing each one near was a capture and a
-     * view each, for portals nobody was looking into.
-     */
-    @Test
-    void aViewerIsDrawnOnlyThePortalTheyLookAt()
-    {
-        offer("gate:a");
-        offerPortal("portal:left", 14);
-        offerPortal("portal:right", 26);
-        final Player player = playerAt(world, 5.0);
-        when(player.hasPermission(PortalSource.PERMISSION)).thenReturn(true);
-
-        final List<String> lookingRight = WindowViewers.seenBy(player, eyeLookingAt(world, 26)).stream()
-            .map(WindowState::name).toList();
-        final List<String> lookingLeft = WindowViewers.seenBy(player, eyeLookingAt(world, 14)).stream()
-            .map(WindowState::name).toList();
-
-        assertEquals(List.of("gate:a", "portal:right"), lookingRight);
-        assertEquals(List.of("gate:a", "portal:left"), lookingLeft);
-    }
-
-    /** Without the permission a viewer is drawn no portal, and still the gate. */
-    @Test
-    void aViewerWithoutThePermissionIsDrawnNoPortal()
-    {
-        offer("gate:a");
-        offerPortal("portal:right", 26);
-        final Player player = playerAt(world, 5.0);
-
-        assertEquals(List.of("gate:a"), WindowViewers.seenBy(player, eyeLookingAt(world, 26)).stream()
-            .map(WindowState::name).toList());
-    }
 }

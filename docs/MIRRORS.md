@@ -22,7 +22,6 @@ dial — which is why a door in every world is practical in a way a gate in ever
 - [When another plugin refuses the trip](#when-another-plugin-refuses-the-trip)
 - [The far edge of the room](#the-far-edge-of-the-room) · [Built: the fat eye](#built-the-fat-eye) · [Built: streaming](#built-streaming) · [What is left to try](#what-is-left-to-try)
 - [Seeing creatures](#seeing-creatures)
-- [Nether portals](#nether-portals)
 - [What was considered and not done](#what-was-considered-and-not-done)
 
 ## The network
@@ -230,8 +229,8 @@ The column tops are a fixed 211 KB in a box 325 across, counted in those. And me
 what the cap bounds. A window walks every cell its
 capture keeps when its room is built ([below](#how-the-room-is-built)), reading this world behind
 each seen air within the depth, and holds what it draws at about fifty bytes a block
-(`Windows.MOST_FIXED`, `MOST_GATE_FIXED`); sections change neither the number of cells walked nor
-the maps. A gate's capture is already cut to what its view may draw.
+(`Windows.MOST_FIXED`); sections change neither the number of cells walked nor
+the maps.
 
 **The walk itself got slower, then less so.** The list's walk cost what was kept. The first
 sectioned walk visited every column of the box and sixteen blocks of every section it met, and
@@ -277,11 +276,10 @@ crowded a few hash buckets.
 
 Now a room is a `FixedBuild`, stepped by `FixedBuilds` at most 4 ms a tick across every window:
 a step is the columns of one x in one stack of sections of the capture, sixteen at most (one
-column of the volume, for an old capture with no seen air); once the walk is done, each layer of
-the tunnel is a step, and so is the check against the cap. Its map is made the size of the room
+column of the volume, for an old capture with no seen air); once the walk is done, the check
+against the cap is a step. Its map is made the size of the room
 it replaces, or of what the capture keeps, up to its cap, rather than grown and rehashed whole
-inside a step; a gate's first build over a big capture holds a table for a million blocks, some
-8 to 16 MB, while it runs. The builds take
+inside a step. The builds take
 turns, across ticks too, and one that throws is dropped and said once, its window keeping its old
 room. The real world is read once per column, its highest block and whether it is loaded, and a
 block only below that; the column is read afresh each step, since a chunk may unload between
@@ -301,15 +299,14 @@ sent, measured 90 to 240 ms together on the desktop below, all in one tick once 
 A scratch benchmark of the steps, on the desktop the load test runs on (busy with other programs,
 so the times varied two-fold), against a stand-in world dearer to ask than a server: a mirror at
 160 over hills (a capture keeping 4.2 million blocks, a room of 223 thousand cut to 67 deep) took
-21,684 steps, 0.3 to 0.5 s in all; a Massive gate over a canopy at the gate cap (4.9 million kept,
-905 thousand drawn) 17,493 steps; with a tunnel onto a Standard gate, 13,497. No step was handed
-more than 1,362 blocks, and the dearest step of a run was 2.5 to 5 ms, the tunnel's layers and the
-final check well under 1 ms each. A few runs had one step of 15 to 110 ms; the work in a step is
+21,684 steps, 0.3 to 0.5 s in all. No step was handed
+more than 1,362 blocks, and the dearest step of a run was 2.5 to 5 ms, the final check well under
+1 ms. A few runs had one step of 15 to 110 ms; the work in a step is
 bounded, so those are most likely the test JVM collecting a heap holding three such captures, not
-checked with a collection log. Before the tunnel was a layer a step, it took 11 to 27 ms in one.
+checked with a collection log.
 
-And it is built again only when something it depends on changes: the capture, the depth, the
-tunnel, or a block behind the wall. `ViewChangeListener` hears blocks placed, broken, poured or
+And it is built again only when something it depends on changes: the capture, the depth,
+or a block behind the wall. `ViewChangeListener` hears blocks placed, broken, poured or
 scooped with a bucket, exploded, pushed or pulled by a piston (both sides of each moved block
 along its line: a retracting piston's direction is the way it faces, not the way its blocks move),
 burnt, lit, flowed into, decayed, formed, faded, spread, changed by a creature, grown into or out
@@ -323,8 +320,7 @@ depth and two of the opening's middle.
 A room is not built again for a change sooner than five seconds after it went in, measured from
 when it went in, not from when its build began; nor sooner than four times as long as its own steps
 took, measured step by step, so windows building at once do not lengthen each other's rest. A
-mirror's steps take well under a second, so for a mirror the five seconds hold; a gate's view at
-the cap takes a second or two of steps, so it waits a few seconds more. While changes keep coming
+mirror's steps take well under a second, so the five seconds hold. While changes keep coming
 -- during a build, or within that wait after a room went in -- the wait doubles each time, up to
 two minutes, and it is back to five seconds once a build sees none. So water flowing or a farm
 behind a watched window costs a build every two minutes, not one running for good; the price is
@@ -958,7 +954,7 @@ and each drew the eye to the very edge it was there to hide.
 
 ## Seeing creatures
 
-`mirror-show-entities`, off by default, and it governs gate views as much as mirrors
+`mirror-show-entities`, off by default
 ([#296](https://github.com/khanjal/Wormhole-X-Treme/issues/296)). With it on, the mobs standing in
 a window's far room show through it, and so do its boats and minecarts. Bukkit has no call for a fake entity, so each is a
 **stand-in**: a real entity of the same type, spawned in the viewer's world where the far side's
@@ -983,7 +979,7 @@ that one viewer (`HiddenEntities`).
   the game leaves round the edge of explored land, which loading then finishes generating, tens to
   hundreds of milliseconds each, on the main thread. A load that fails or does not answer in 30
   seconds is given up on, logged once, and not asked again for a minute. They are let go ten seconds after the window's last viewer stops
-  being drawn it (a view ending, a quit, a death, a world change, the window released, a gate closing,
+  being drawn it (a view ending, a quit, a death, a world change, the window released,
   the setting turned off; a lower radius lets the outer chunks go at once), and at once on a reset,
   on shutdown and when the far world unloads. No more than 400 are held across every window (held:
   the rings round them come on top, so far-apart windows at the cap keep up to about 1,900 chunks
@@ -1042,12 +1038,7 @@ that one viewer (`HiddenEntities`).
   an admin, and anyone the viewer could not see standing beside them is not shown through a window
   either. A far player is chosen by the mobs' rules (read from loaded chunks only, in the room, in
   view, on drawn floor unless flying or swimming) and shares their twenty, nearest first. Never the
-  viewer themselves through a mirror; through a gate they are shown (one condition,
-  `FarPlayers.showsTheViewer`), since the far box holds them only when the far room is close by and
-  covers them, as for two gates facing each other, and the stand-in stands at their real position
-  mapped through the window, so they see themselves walk towards the gate, without a name over it
-  (#296, step 4). A creature has one stand-in a viewer, so between two facing gates they see
-  themselves through one gate, not both; never one the viewer cannot see
+  viewer themselves, and never one the viewer cannot see
   (`canSee`, which is what vanish plugins change with `hidePlayer`; a plugin that hides players by
   rewriting packets, through ProtocolLib or the like, leaves `canSee` true and is not seen by this
   check, so its hidden players do show), nor an invisible player, a
@@ -1109,7 +1100,7 @@ that one viewer (`HiddenEntities`).
   refused as for any stand-in. Not yet seen on a server: whether the 1.21.2 minecart behaviour
   (the `minecart_improvements` experiment, if a server turns it on) honours a top speed of nothing,
   as its speed may come from a game rule; the follow task puts a cart that rolls back within two
-  ticks. A vehicle a player rides is copied empty, so a viewer between facing gates or in a
+  ticks. A vehicle a player rides is copied empty, so a viewer in a
   reflection may see their own boat riderless. The listener refuses getting in or out (whichever side is a
   stand-in, since a real boat bumping a mob's stand-in would pick it up), vehicle damage and
   breaking (at the lowest priority and again at the highest), and vehicle bumps both ways. A cart
@@ -1143,10 +1134,10 @@ that one viewer (`HiddenEntities`).
   the other players, standing in front of it, flipped across the wall as its blocks are: one a step
   to the viewer's left in front shows a step to their left behind the wall, and one looking into the
   mirror looks back out of it (#296, step 3). Never the viewer themselves, by the same
-  `FarPlayers.showsTheViewer` rule as any mirror, so two players at one mirror each see the other
+  rule as any mirror, so two players at one mirror each see the other
   and not themselves. It is the same path as any window's, through `WindowShape.hereOf`, so every
   rule above holds, the cap of twenty included, and so does one stand-in a creature a viewer: in a
-  room with two mirrors, or a mirror beside a gate dialled onto it, it shows in one of them. The
+  room with two mirrors, it shows in one of them. The
   room is the viewer's own and in front of them, so nothing is held loaded for it and it is read
   only where the server already has it. The viewer's own mount or pet is reflected too (the mount
   without its rider). Every reflected creature's real self stands in front of the wall, where the
@@ -1163,58 +1154,8 @@ those. That is the server's own rule; nothing here changes a real mob's. A stand
 an entity counter, one more mob near a mob cap, and a protection plugin that refuses mob spawns
 in a region refuses the stand-in too, which then simply is not shown. They are short-lived and
 never saved, but anything that reacts to every spawn will react to them. Each viewer has copies
-of their own, so ten players at one window onto a busy room is up to two hundred of them. A gate's stand-ins sit
-behind its plane, where a traveller is sent on before reaching them; a mirror's sit behind the
+of their own, so ten players at one window onto a busy room is up to two hundred of them. A mirror's sit behind the
 wall it hangs on.
-
-## Nether portals
-
-`nether-portal-views` (off by default) draws a vanilla nether portal as a window, through the same
-code as a gate's view ([#514](https://github.com/khanjal/Wormhole-X-Treme/issues/514)). This is the
-first slice: one portal pair, both ways once somebody has gone both ways. `PortalViews` holds it.
-
-**Links are learnt, never predicted.** There is no asking a portal where it goes without sending
-something through. `PlayerPortalEvent` (at MONITOR, not cancelled) notes the portal a player
-steps into and their yaw. `PlayerChangedWorldEvent` then finds the portal block they landed in,
-and the turn is how far their yaw moved, in quarter turns. A landing outside a portal (another
-plugin moved them), back in the same world, or at a turn that does not come out square to the far
-portal teaches nothing. A link goes one way: the way back is its own trip. Links are kept in
-memory only, the oldest dropped past 1024.
-
-**A portal is a flood fill** of `NETHER_PORTAL` blocks sharing their `Orientable` axis, in one
-plane. Anything that is not a whole rectangle of up to 21 by 21 is not a portal. A view is only
-drawn for one within the largest gate opening (18), through `GateViews.shapeOf`, with the
-portal's own frame ring as its frame.
-
-**Each face is a window.** Looking into the south face of a portal running along x shows the far
-portal's matching side: looking north, turned by the link's turn. The arrival point is a block out
-of the far portal at the middle of its bottom row, as a gate's is in front of its far gate. Each
-face of each far portal has its own capture, kept with the gates' captures.
-
-**No chunk is loaded for the blocks** (with creatures shown, the chunks held for them count as loaded). A gate's first capture loads what it must; a portal's never does.
-`Captures.requestLoaded` starts one only when every chunk of its box is loaded, and reads only
-loaded chunks, giving up if one is let go. It is asked for each sweep for a minute after a trip,
-as chunks load round the traveller, and whenever somebody looks into the near portal. A portal
-window asks `FarChunkHolds` to hold its far side only for creatures, with `mirror-show-entities` on, as a gate's does; the mobs, and the players with `mirror-show-players`, then show through it as through a gate. Blocks are read to check a
-portal is still lit only where their chunk is loaded.
-
-**One per viewer.** Each sweep, every player with `wormhole.view.netherportal` picks the linked
-face they are in front of, within `mirror-proximity-distance`, that they look most straight at.
-At most sixteen are offered server-wide. The drawing then keeps, of a viewer's portal windows,
-only the one they look at most straight (`WindowSource.oneAtATime`), so a portal offered for
-somebody else is not drawn for them too. Gates and mirrors beside it are unaffected.
-
-**Walking in.** The opening is left as the client's own portal block, so the purple sheet, the
-swirl and the overlay stay. As for a gate, the drawing ends for a viewer whose eye is no longer
-half a block in front of the plane, and the blocks behind are put back.
-
-**Broken portals.** A portal or its far end found not lit, as far as loaded chunks say, drops every
-link to or from it and takes back both its faces' windows. A world unloading drops its links. A
-window not offered in a sweep drops out, which is how the setting turning off takes every view back.
-
-**Left for later:** a depth of its own (it draws a gate's first step, 32), links kept across a
-restart, a cap or expiry on capture files, `mirror debug` output for portals, and judging the edge
-shimmer on a real server, which the issue names as the go/no-go.
 
 ## What was considered and not done
 

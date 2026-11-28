@@ -99,7 +99,7 @@ The groups, in the order the file has them, and where each is explained:
 |---|---|---|
 | General | | [below](#pets) |
 | Stargates | Opening and closing · Travel · Effects · Iris · Building, previews and server load | [below](#keeping-gates-from-staying-open) and [GATES.md](GATES.md) |
-| Gate views and mirrors | Gate views · Mirror views · Creatures and players in a view · Quantum mirrors | [GATES.md](GATES.md) and [MIRRORS.md](MIRRORS.md#settings) |
+| Mirrors | Mirror views · Creatures and players in a view · Quantum mirrors | [MIRRORS.md](MIRRORS.md#settings) |
 | Gate signs | | [GATES.md](GATES.md#signs) |
 | Transport rings | Timing · Refusal outline · Placement and limits · New ring pairs | [RINGS.md](RINGS.md#ring-settings) |
 | Beaming | Animation · Cooldown and cost | [BEAMS.md](BEAMS.md#settings) |
@@ -130,7 +130,7 @@ command would refuse is named and the old one kept; a setting the file leaves ou
 a file that cannot be read changes nothing and says why. A value written the way the command would
 not store it, such as `slow` for a ring style, is reported as changed to the form the command uses.
 YAML reads a bare `off`, `on`, `yes` or `no` as a switch: a bare `off` is `OFF` under `log-level`
-and the default under `gate-view` and `gate-iris-animation`, and under `gate-dial-spin` a bare `off`
+and the default under `gate-iris-animation`, and under `gate-dial-spin` a bare `off`
 is `NONE` and `on` is `TOP`; anywhere else, write such a word in quotes.
 The reload does not write the file itself, apart from what turning
 `gate-material-groups-autodiscover` on does, as with the command; edited material groups still
@@ -226,7 +226,7 @@ Vault is installed with a permission provider such as LuckPerms. Without one, th
 directly with Bukkit keep working: `wormhole.build.preview*`, `wormhole.list.mine`,
 `wormhole.list.owner`, `wormhole.stats*`, `wormhole.export`, `wormhole.freya`, `wormhole.ring.*`,
 `wormhole.beam.*`, `wormhole.gates.*`, `wormhole.build.mindistance.bypass`,
-`wormhole.mirror.private`, `wormhole.view.netherportal` and `wormhole.update.notify`.
+`wormhole.mirror.private` and `wormhole.update.notify`.
 
 **An operator may do anything with a gate**, with or without a permissions plugin, and that
 outranks a negated node. The exceptions are nodes checked directly with Bukkit, which an operator
@@ -290,7 +290,6 @@ or delete it.
 | `wormhole.stats` | true | `/wormhole stats`, your own counts |
 | `wormhole.stats.others` | op | `/wormhole stats <player>`, anybody's |
 | `wormhole.export` | op | `/wormhole export sqlite`; the console may always run it |
-| `wormhole.view.netherportal` | true | Being drawn the far side through a nether portal, with `nether-portal-views` on ([Nether portals](MIRRORS.md#nether-portals)) |
 
 Worth knowing:
 
@@ -387,7 +386,6 @@ plugins/WormholeXTreme/
 ├── shapes/mirror/*.mirror
 └── data/
     ├── gates/<name>.yml
-    ├── captures/gates/*.view      (what stands in front of a gate; retaken if lost)
     ├── captures/mirrors/*.view    (the far side of a mirror; retaken if lost)
     ├── rings/<world>.yml
     ├── beam.yml
@@ -410,8 +408,8 @@ server stopped, to recover the counts.
 
 The HSQLDB and SQLite backends of earlier versions are gone. Files an older build of this fork
 kept in `WormholeXTremeDB/` are moved into `data/` on the first startup after the jar is
-swapped. So are the captures an earlier build kept in `data/gates/captures/` and
-`data/mirror/captures/`, which now live in `data/captures/` from the first time they are needed; a file already at
+swapped. So are the mirror captures an earlier build kept in `data/mirror/captures/` and
+`data/mirror-captures/`, which now live in `data/captures/mirrors/` from the first time they are needed; a file already at
 the new place is never overwritten. The old folders are looked at once each time the server starts, so
 restore a backup of captures into the new folders. A SQLite database from *another* fork is left where it is and read by `gate import`,
 below.
@@ -474,18 +472,23 @@ nothing. If old gates are found on startup and you have none, the log says so on
 Dakto's WormholeXTreme on a second server. It needs `wormhole.export` and writes a new
 `WormholeXTreme.sqlite` into `exports/<yyyyMMdd-HHmmss>/` (with `-2`, `-3` on a clash) under the plugin folder, never into
 `WormholeXTremeDB` and never to your gate files; copy it into the other plugin's `WormholeXTremeDB`
-yourself. Both plugins keep gates in that one table, so the file is written once, as gate version 8,
-the newest they both read. It has not been tried against a real Dakto 1.1.8 data folder.
+yourself. Both plugins keep gates in that one table, so the file is written as gate version 8; a gate with a custom material is written as version 9 instead, with the
+material by name, because Dakto's 1.1.8 misreads a version 8 number there and fails to enable; the
+export lists those gates. The 2011 original does not read version 9, and only Dakto 1.1.8 has been
+tried. Against a real Dakto 1.1.8 on Paper 1.20.4 and 1.21.11 every gate loaded with its name,
+network, shape and location, and Dakto's `updategate -all` re-detected each one from its blocks.
+The light and iris materials and the woosh depth were checked in Dakto; structure and portal
+materials are covered only by this plugin's own round-trip test. A material name the loading server's
+Minecraft version lacks (exported on 1.21.x, loaded on 1.20.x) was not tried.
 
 What does not carry over, and is listed after each export rather than dropped silently:
 
 - Transport rings, mirrors and windows, which the older plugins do not have.
 - A gate on a shape they do not name (they know `Standard`, `Large`, `Small`, `Super`, `Minimal`,
   `Horizontal` and the `SignDial` form of each, `Pegasus` and `Destiny`). It is skipped.
-- Per-gate settings with no field in the format: own use cost, dial spin, iris animation, view level,
+- Per-gate settings with no field in the format: own use cost, dial spin, iris animation,
   chosen material group, frame material, dial sign target, and the owner's account id (they keep the
   name only). Each is counted.
-- Custom materials are stored as numbers in version 8, so they only match on the same Minecraft version.
 
 Importing the export again with `gate import` gives back the gates that came in that way.
 
@@ -764,7 +767,7 @@ What is sent, twice an hour:
   groups are called), counted by gate and read the same way. Every group has its own frame block, so
   a gate whose file does not say and whose chunk has not loaded is `unknown` here even where its
   portal is known;
-- the `gate-dial-spin` pattern, `gate-view`, `gate-iris-animation`, and whether `gate-ripple` and
+- the `gate-dial-spin` pattern, `gate-iris-animation`, and whether `gate-ripple` and
   `gate-sounds-enabled` are on;
 - which of Vault, LuckPerms, PlaceholderAPI, CoreProtect, WorldGuard, dynmap, BlueMap, squaremap
   and Pl3xMap are enabled, or `none`.

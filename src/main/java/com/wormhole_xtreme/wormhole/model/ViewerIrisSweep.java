@@ -112,10 +112,8 @@ final class ViewerIrisSweep
     /**
      * Draws some of a gate's cells as the opening looked before its iris closed, for a closing sweep to uncover.
      *
-     * <p>Shared on a gate with no layers, as it always was. Over a wormhole each viewer is sent the horizon they
-     * are drawn: a horizon cleared for the gate view is nothing only for whoever is drawn that view, and sent as
-     * nothing to everybody it was a hole in the wormhole of a viewer behind for the length of the sweep, which
-     * leaves their ring alone after this.
+     * <p>Shared on a gate with no layers, as it always was. Over a wormhole each viewer is sent the horizon,
+     * which leaves their ring alone after this.
      *
      * @param cells
      *            the cells to draw
@@ -137,7 +135,7 @@ final class ViewerIrisSweep
                 new Location(world, from.getBlockX(), from.getBlockY(), from.getBlockZ())))
         {
             sendRingTo(player, gate, cells,
-                MaterialUtils.drawnAcross(GateViews.horizonFor(gate, portal, player), gate.getGateFacing()));
+                MaterialUtils.drawnAcross(portal, gate.getGateFacing()));
         }
     }
 

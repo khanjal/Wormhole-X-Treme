@@ -96,7 +96,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]An iris, with remote codes.[/B] A closed iris bounces anyone dialling in, and sweeps shut a ring at a time, or as a spiral, rows or columns. Give a gate an IDC and callers can open it from the other end.
 [*][B]Sign dialling and redstone.[/B] A dial sign steps through destinations on right-click, with the selection coloured and wrapped in [ICODE]» «[/ICODE] so it reads for a colourblind player. Wire redstone to the marked cell and a pulse dials whatever the sign shows; a second marked cell drives a lever while the gate is open, for doors and lamps.
 [*][B]Networks, owners and per-gate settings[/B] — shutdown and activate timeouts, cooldown, redstone on or off, iris code, owner, and per-gate material overrides.
-[*][B]See where a gate goes, and watch it ripple.[/B] An experiment, and off until you turn it on: [ICODE]gate-view[/ICODE] draws the far side behind the open gate's horizon, or clears the horizon to show it, and a big gate dialling a small one shows it down a tunnel. [ICODE]gate-ripple[/ICODE] sends rings across the horizon as something goes through it and while somebody is near.
+[*][B]Watch a gate ripple.[/B] An experiment, and off until you turn it on: [ICODE]gate-ripple[/ICODE] sends rings across the horizon as something goes through it and while somebody is near.
 [*][B]Gates work in the Nether and the End[/B], and a wormhole runs one way: nothing comes back up an open gate.
 [/LIST]
 
@@ -149,7 +149,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]The view is a capture[/B], taken once and kept on disk, so a mirror onto an archived world still shows it without loading that world.
 [*][B]Tunable depth.[/B] How far the room is drawn is a setting (about as far as a server sends, by default). A deep redraw rests before the next, so a mirror can never take more than a quarter of the server's time however close you stand.
 [*][B]It says what it is.[/B] Look at one from a few blocks and it tells you above the hotbar what a click will do. [ICODE]mirror debug[/ICODE] lists every fact about a mirror in green and red — a gap in the wall, another mirror too near, a missing capture.
-[*][B]Creatures and players in the room, if you want them.[/B] Mobs in the far room can show through a mirror or an open gate as copies only the viewer sees ([ICODE]mirror-show-entities[/ICODE]), and with [ICODE]mirror-show-players[/ICODE] on, who is standing at the other end. Both off by default.
+[*][B]Creatures and players in the room, if you want them.[/B] Mobs in the far room can show through a mirror as copies only the viewer sees ([ICODE]mirror-show-entities[/ICODE]), and with [ICODE]mirror-show-players[/ICODE] on, who is standing at the other end. Both off by default.
 [/LIST]
 
 
@@ -167,7 +167,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 [*][B]WorldGuard[/B], if you want it: [ICODE]wormhole-build[/ICODE] and [ICODE]wormhole-use[/ICODE] region flags refuse building and using gates in a region. Off until [ICODE]worldguard-enabled[/ICODE] is set.
 [*][B]Dynmap[/B], if you want it: gates, rings, public beam destinations and mirrors on its web map, each as its own layer, with a line between dialled gates. Players' private beam places are never shown. Off until [ICODE]dynmap-enabled[/ICODE] is set; on 1.21.11 use Dynmap 3.8, and there is no Dynmap for 26.x yet.
 [*][B]BlueMap, squaremap and Pl3xMap[/B], if you want one: the same marks on each, with every world's layers kept as worlds load and put back after a map reload. Off until [ICODE]bluemap-enabled[/ICODE], [ICODE]squaremap-enabled[/ICODE] or [ICODE]pl3xmap-enabled[/ICODE] is set.
-[*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the gate view, ripple, sound and iris settings, and which optional plugins are enabled, plus the usual bStats server details (player count, online mode, Java version, operating system). [ICODE]metrics-enabled: false[/ICODE] turns it off.
+[*][B]Anonymous usage counts[/B] go to [URL=https://bstats.org/plugin/bukkit/Wormhole%20X-Treme/34269]bStats[/URL]: Minecraft version, server software, and how many gates, rings, beams and mirrors, in ranges, which gate shapes, portal materials and frame blocks are in use, the ripple, sound and iris settings, and which optional plugins are enabled, plus the usual bStats server details (player count, online mode, Java version, operating system). [ICODE]metrics-enabled: false[/ICODE] turns it off.
 [*][B]Update check[/B]: at startup, looks online for a newer release and says in the console, and to operators as they join, if there is one. Sends only the plugin and Minecraft versions. Never downloads anything. [ICODE]update-check: false[/ICODE] turns it off.
 [*][B]Importer[/B] for gates from older Wormhole X-Treme forks' SQLite databases.
 [/LIST]

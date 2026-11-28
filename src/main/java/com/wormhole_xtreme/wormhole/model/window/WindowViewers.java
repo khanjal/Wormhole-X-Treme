@@ -11,7 +11,6 @@ import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
@@ -60,13 +59,11 @@ final class WindowViewers
             if (!window.open.isEmpty() && window.anchor().getWorld().equals(player.getWorld())
                 && (Windows.fromBanner(window.anchor(), at.getX(), at.getY(), at.getZ()) <= (radius * radius))
                 && window.shape.inFront(eye.getX(), eye.getZ())
-                && window.source.shownTo(player)
                 && canSee(player.getWorld(), eye, window, now))
             {
                 seeing.add(window);
             }
         }
-        keepOneAtATime(seeing, eye);
         final int cap = ConfigManager.getMirrorMaxViewers();
         if (cap > 0)
         {
@@ -74,34 +71,6 @@ final class WindowViewers
         }
         seeing.sort(Comparator.comparing(WindowState::name));
         return seeing;
-    }
-
-    /**
-     * Leaves only the one window, of those drawn one at a time, that an eye looks most straight at:
-     * a viewer among several nether portals is drawn the one they face (#514).
-     */
-    static void keepOneAtATime(final List<WindowState> seeing, final Location eye)
-    {
-        final Vector look = eye.getDirection();
-        WindowState best = null;
-        double bestCosine = Double.NEGATIVE_INFINITY;
-        for (final WindowState window : seeing)
-        {
-            if (window.source.oneAtATime())
-            {
-                final Vector to = new Vector(window.anchor().getX() + 0.5 - eye.getX(),
-                    window.anchor().getY() + 0.5 - eye.getY(), window.anchor().getZ() + 0.5 - eye.getZ());
-                final double length = to.length();
-                final double cosine = (length == 0) ? 1.0 : (to.dot(look) / length);
-                if (cosine > bestCosine)
-                {
-                    best = window;
-                    bestCosine = cosine;
-                }
-            }
-        }
-        final WindowState kept = best;
-        seeing.removeIf(window -> window.source.oneAtATime() && (window != kept));
     }
 
     /**

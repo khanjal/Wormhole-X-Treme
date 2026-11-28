@@ -21,7 +21,7 @@ cannot ask about.
 - [Dialling](#dialling) · [Why no shipped shape carries an `[RS]`](#why-no-shipped-shape-carries-an-rs)
 - [Timers, and what may extend them](#timers-and-what-may-extend-them)
 - [The iris](#the-iris) · [The portal is drawn, not built](#the-portal-is-drawn-not-built)
-- [Seeing through a gate](#seeing-through-a-gate-experimental) · [The ripple](#the-ripple-experimental)
+- [The ripple](#the-ripple-experimental)
 - [Animation](#animation) · [Sound](#sound)
 - [Travelling](#travelling) · [Everything that is not a player](#everything-that-is-not-a-player)
 - [Permissions](#permissions) · [Commands and config](#commands-and-config)
@@ -352,10 +352,11 @@ an old save bug wrote, so it is treated as absent and resolved again, which heal
 Gates whose arrival point still sits inside the ring have it moved clear on load. A legacy SQLite
 database from an older Wormhole X-Treme is noticed at startup and announced;
 `/wormhole gate import` reads it in, and `/wormhole export sqlite` writes one back out for the
-older plugins: save version 8, since version 9 is this fork's own, into `exports/<timestamp>/` and
-never into `WormholeXTremeDB`. Rings, mirrors, gates on shapes those plugins lack and per-gate
-settings with no column are left out, and listed. Version 8 stores custom materials as ordinals,
-which only match on the Minecraft version that wrote them.
+older plugins: save version 8, or version 9 for a gate with a custom material, into
+`exports/<timestamp>/` and never into `WormholeXTremeDB`. Rings, mirrors, gates on shapes those plugins lack and per-gate
+settings with no column are left out, and listed. Dakto's 1.1.8 reads a version 8 ordinal as the
+length of a name and fails to enable, so the names of version 9 are used where a gate has a custom
+material; the 2011 original does not read version 9. Only Dakto 1.1.8 has been tried.
 
 ## Networks
 
@@ -665,338 +666,6 @@ The arrival splash — a moment of water shown to a traveller as they come out �
 mechanism, and deliberately brief. It is the one drawing that makes the client's world *less*
 solid than the real one, so it is only sent where the eye is in open air.
 
-## Seeing through a gate (experimental)
-
-`gate-view` ([#516](https://github.com/khanjal/Wormhole-X-Treme/issues/516)) draws an open gate
-the way a mirror draws its room: the ground in front of the dialled gate, in real blocks sent to
-each viewer, behind the gate's plane. `behind` keeps the horizon in front of it, so a gate whose
-horizon is lava or opaque is offered no view at that level; `open` clears the
-horizon once the far side is ready, for whoever is drawn the view and nobody else. `gate edit <gate> view`
-gives one gate its own level, which wins over `gate-view` either way. It is the mirror
-drawing, not a copy of it: `GateViews` offers each open gate to the mirror sweep as a window, and
-nothing in the world changes.
-
-**At `open` the horizon follows the drawing.** The opening is a drawing either way, the server
-keeping air in it, so each player is sent their own: nothing for whoever the drawing draws the view
-for, which is somebody in front of the opening's face, within `mirror-proximity-distance` of its
-middle and with a clear line into it; for everybody else, the horizon in the gate's own portal
-material (water, lava, a nether portal or whatever its shape or palette names, laid across the
-opening as it always is), as the gate shows it with no view. Behind the gate, too far off, with the lines of sight blocked, before the gate's capture is in,
-standing in the opening's plane or stepping into it, a gate shows its own portal material, not an
-empty ring onto this world. The drawing says after each redraw, on a move or a sweep, which windows a viewer is drawn,
-and the opening is sent again only to somebody whose answer changed, and remembered only once it has
-gone: one that could not be sent, to somebody past the horizon's reach or under an iris crossing, is
-tried again on their next redraw. Somebody who stops being drawn the view while past that reach is
-owed the gate's own portal material rather than remembered as seeing through: a chunk crossing back
-into reach draws it, and their next redraw sends it whether or not they crossed one, since a step
-back over the reach inside one chunk runs no crossing. The horizon reaches 64 blocks, as it always has, so with
-`mirror-proximity-distance` above that a viewer further off is drawn the view with the opening as
-their client last had it. A player who changes world is forgotten.
-
-**A gate is a window that is walked through.** It is never barred, since travellers have to get
-into it, and a punch at its view goes nowhere: the gate's own rules decide who crosses. The
-opening is the gate's to draw, so the view leaves it alone. A traveller is sent on as they
-enter the opening, so they should never reach the drawn room behind; that is still to be
-watched for in a world, at speed and on a mount.
-
-**Which gates show a view.** Standard (and StandardSignDial), Large, Grand and Massive, through
-the whole of their opening, which clears whole at `open`. Not Minimal or MinimalSignDial: its two portal cells stand on one frame block,
-open to the air beside and above, and nothing but the ring hides a view's edges as one walks round
-a freestanding gate, so the far side would hang in the air beside it. The rule reads the gate's own
-blocks, not its shape's name: every portal cell needs opening or frame beside it, above and below,
-in the opening's plane, so a custom shape without a frame keeps its horizon too. An opening wider
-or taller than eighteen keeps its horizon as well (`GateViews.fits`, the one place a size limit
-lives); no shipped shape's is. A view is drawn for whoever is within `mirror-proximity-distance` of
-the middle of the opening, and a capture is started only for somebody that near. Both used to
-measure from elsewhere: the drawing from the opening's first cell, a top-row one, so somebody at
-the foot of a Massive gate was never drawn its view; and the capture from the nearest cell, so
-somebody off to one side of that foot had one taken that nobody was drawn.
-
-**A big gate onto a small one shows the view at the end of a tunnel**
-([#583](https://github.com/khanjal/Wormhole-X-Treme/issues/583)). Drawn whole, a Massive gate's view
-of a Standard gate ran past the small gate's walls and ceiling into whatever lay beside it; clipped to
-a funnel narrowing from one opening to the other, the far room's ceiling and the halls beside it still
-hung in the funnel's wide end, the tunnel and the view sharing the same blocks. Now, where the dialled
-gate's opening is smaller than this one's (`gate-view-funnel`, on by default), the far side is drawn at
-the end of a tunnel. The tunnel starts at this gate's opening and narrows to the far opening's size,
-in this gate's own shape: each layer is the near opening shrunk to the layer's box, a cell in where
-the near opening has the cell the same share of the way across and up it (`Funnel.sample`, in whole
-numbers so a gate the same either side keeps a tunnel the same either side). Every layer holds the
-far opening's cells as well, so the tunnel is never narrower than the far opening it ends on, and no
-far cell sits in a pocket of wall; its last layer is the far opening's own cells exactly. So a round
-Massive gate's tunnel is round, its floor curving up at the sides, and a rectangular gate's is the
-box it always was. A shrunk shape does not only narrow (a cross's arm can be in on one layer and out
-on the next), so the wall takes in every cell the tunnel held on either of the two layers before. It
-is hollow, air sent wherever this world has a block, and walled two blocks thick in this gate's own
-portal material, so it reads as a tunnel of water, lava or whatever the gate's horizon is. Two,
-because water stops an eighth of a block short of its top with nothing over it: one block thick, the
-steps of the narrowing ceiling left a slice of this world showing between them. The wall takes in the
-corners, and a step in of several columns at once is walled across its whole face. Its last
-layer is where the far gate's plane stands (for a far gate whose arrival is one block in front of its portal, which is all but Massive; nothing is drawn behind it either way), and the far room starts on the layer after: every far block is drawn
-that much deeper than the plain view draws it (`WindowShape.deeper`, the one place the shift lives, so
-the blocks, the stand-ins and every mapping between the two sides agree). The wall ends there, in a
-collar round the far opening. The room past it has no wall: it is drawn as far as the near opening can
-see through the far one, a line through both, each a block deep, and nothing outside that. So it widens
-again from the far opening as it goes, showing the ground travellers land on, the far gate's
-surroundings seen through it, and the room beyond as the small gate's own opening would show them; the
-halls and ceilings round the small gate, which only the big opening could have seen, stay out. The lines are judged against the far opening's box, not its cells, so a round far gate's room is
-as wide as its square would show; what lies past its corners is seen only through the wall's water. The
-trade-off: a far side out in the open shows more of itself the further it goes, as through any window,
-and the real world round that room, which only the tunnel's water stands in front of, shows through
-the water from inside the tunnel.
-
-**How long the tunnel is.** The layer behind the opening is the opening's own size, so the tunnel
-does not look a block smaller at once; from it the tunnel narrows a block a layer, a block longer for
-each block the far opening is narrower, by whichever of its width and height narrows more. Counting
-the opening's own layer: Large to Standard four, Standard to Minimal three, Massive to Large ten,
-Grand to Large eleven, Massive to Standard thirteen, Grand to Standard fourteen, Massive to Minimal
-fifteen, Grand to Minimal sixteen, and Grand to Massive, a block narrower, two: the opening, then
-the far plane. `gate-view-funnel-length`, 16 by default, is the longest allowed, set so no shipped
-pair is cut short; at 1 a tunnel is the opening alone and the view is the plain one. The depth is still measured from this
-gate's opening, so the far room shows the view's depth less the tunnel; a depth no longer than the
-tunnel shows the tunnel alone.
-
-**A least length, so every gate keeps the wormhole look**
-([#587](https://github.com/khanjal/Wormhole-X-Treme/issues/587)). `gate-view-funnel-min-length`, 0 by
-default, leaves all of the above as it is. Above 0, a far gate as big or bigger each way is seen down a
-straight tube: every layer this gate's own opening, its last too, walled two thick the same way, with
-the room past it judged by the same lines through both ends. A small gate dialling a big one gets the
-tube at its own size, since its view can be no wider than the gate it is seen through. And every
-tunnel starts with a straight run before it narrows: the least length, or three fifths of this gate's
-opening by its longer side (`Funnel.RUN_TENTHS`), whichever is longer, then a block more for each block
-it narrows, at most `gate-view-funnel-length` (`Funnel.length`). The run comes first, every layer of it
-this gate's own shape, and the narrowing after it, at the same pace as with no least length: Large to
-Standard at 3 is five layers of Large, then the same two layers of narrowing it has at 0. Where the
-longest cuts a tunnel short, the run gives way first, down to the one layer it has at 0, so Massive to
-Standard at 3 runs four layers and narrows twelve. An earlier build spread the narrowing over the whole
-length, run included, so a longer tunnel narrowed in slower, part-block steps; `holds` now starts it
-from the run's last layer (`Funnel.run`), which at 0 is the layer it always started from. The issue first put it as the longest
-of the least, a share of the size, and the narrowing length; with these shapes that cannot work. Large
-to Standard narrows to four, so a Large pair would have to be longer than a Standard pair at 3 and
-still shorter than four. Adding the run to the narrowing keeps every order: at a least of 3 a Standard
-pair is 3, a Large pair 5, Large to Standard 8, Massive to Standard 16. Every shipped pair at a least
-of 3, near gate down the side, far gate across (`FunnelShapeTest` holds the same table):
-
-| near \ far | Minimal | Standard | Large | Massive | Grand |
-|---|---|---|---|---|---|
-| Minimal | 3 | 3 | 3 | 3 | 3 |
-| Standard | 5 | 3 | 3 | 3 | 3 |
-| Large | 10 | 8 | 5 | 5 | 5 |
-| Massive | 16 | 16 | 16 | 10 | 10 |
-| Grand | 16 | 16 | 16 | 12 | 11 |
-
-The cap cuts Massive and Grand onto Large, Standard and Minimal (19 to 26 before it), so those three
-look alike from a Massive or Grand gate. Up to a least of 3 the run of a Standard opening is its own 3,
-so 1 and 2 give the same lengths as 3 for every shipped gate but Minimal. The costs: the far room is
-drawn that many blocks deeper than it stands, so the view's depth shows that much less of it; and every
-watched gate with a view sends the tube's air and wall with it, 154 blocks for a Standard pair and 3357
-for a Massive pair, about what Grand to Standard already costs. A tube of the opening alone, at a
-`gate-view-funnel-length` of 1, is the plain view, and with `gate-view-funnel: false` there is no
-tunnel at all, so the least length does nothing.
-
-Two limits. A shallow `view-depth` (it goes down to 4, and a gate first fills to the lesser of 32 and
-it) shows the tunnel alone for any pair whose tunnel is as long as the depth, which with a least length
-is every pair; that is left to whoever lowers the depth. And the room past a straight tube is judged
-against its end's box, as a narrowing tunnel's is against the far opening's box: past a round or
-cross-shaped gate's tube, the cells beyond its corners are seen only through the collar's water at a
-slant, as round a round far gate today. The tube ends in this gate's own shape, not the far gate's
-cells, which for a pair of one shape are the same.
-
-**The least aperture.** A far opening narrower or lower than three blocks is taken as three
-(`Funnel.LEAST_APERTURE`, not a setting) for the tunnel's end and for the lines the room past it is
-judged by: grown sideways about its middle column, the extra block of an even growth to the right,
-and upwards from its bottom row, so the ground at the end stays level with where travellers land.
-Through a Minimal gate's one by two the lines through both openings were a sliver and the room all
-but invisible; through three by three, Massive's first layer of room is five across and six up. The
-tunnel ends on the whole aperture, not the far gate's own two cells, and its length is reckoned from
-it: Massive to Minimal fifteen, Large to Minimal six, Standard to Minimal three. A far opening already three each way is its
-own cells, as before.
-
-**The gate's own frame.** A Massive or Grand gate's portal stands between two rings of frame, so one
-ring is a block behind the opening, beside the tunnel's first layer. The tunnel's wall is not drawn
-over any block of the gate's own frame (`WindowSource.structure`); the ring is left as built.
-
-**Where it lines up.** The far opening is placed where the far gate's own portal cells show through
-the window (`Funnel.of`): on the column travellers land on and standing on the row they land on, so a
-short far gate's tunnel sits on the floor, not halfway up the big opening. Only narrower, never wider:
-a side where the far gate is as big or bigger keeps this one's, so same-size and small-to-large views
-are as they were (unless `gate-view-funnel-min-length` asks for a straight tube), and a gate lying flat, a far gate turned from its arrival, or a horizon of air
-leaves the view whole, as `gate-view-funnel: false` does, and so does a tunnel of one layer, the
-opening alone, with no far opening in front of the room. Nothing of the far side is drawn in the
-tunnel, in the opening or outside what the far opening shows. Stand-ins for mobs and players in the far room are
-shown only in the room, and one already shown is kept a block past its edges, so it does not
-flicker there, and a layer back into the far gate's plane, but only in its opening: its frame is the
-collar, where nothing stands. The capture, its block budget and the far
-chunks held for it are the same as without a tunnel; the tunnel's air and wall count towards the most
-a view may hold. The tunnel is worked out each sweep from the two gates' blocks; the held room is built
-again when it changes, and nothing is kept per viewer.
-
-**A capture is seen through the largest opening.** A mirror's is taken through a hole three
-wide and two tall, and through a gate that lost everything past the mirror's fan. A gate's is
-taken through eighteen by eighteen, room for Grand's eighteen by seventeen and Massive's seventeen
-square. Its rays come from ninety points across the hole, each in a grid of directions. Spread
-with the hole alone, as they were, the grid was seven degrees wide for a hole that size, and the
-ninety grids, each starting half a step in, fell on the same few lines: a flat floor 64 blocks out
-kept under half its blocks, and even the eight-by-eight hole used before lost 60% of a wall 160
-blocks off. Each point's grid is now shifted by its own fraction of a step, so the grids fill in
-between each other, and never spread past two and a half degrees. A mirror's rays are exactly as
-they were, which a test pins against a fingerprint taken from the code before the change.
-
-What was measured, with the real sifter over made-up ground, every eight blocks from 16 to 160:
-a flat floor and a facing wall through every hole from five square to eighteen square, in a strip
-twenty blocks either side of the middle, and through eighteen square out to sixty degrees either
-side; rows of one-block posts from 40 to 160 blocks out. Nothing was missed. Wider than two and a
-half degrees, some sizes began to lose a few: at four, a twentieth of a wall 160 blocks off
-through Grand's opening. Not measured: walls taller than twenty blocks, so steeply upward
-sight-lines; ground seen through leaves or water; and real terrain, beyond what the facility's
-Grand and Massive gates showed.
-
-**What it costs.** The sift works out what can be seen, off the main thread, and the eighteen-square
-hole sends some fifteen million rays where a mirror's sends under two. Over flat ground it took
-about 2.7 seconds for the first step and 7 for a fill to 160, where a mirror's hole takes 0.3 and
-1.1. Over open sky, where no ray stops until its reach, one pass to 160 took 34 seconds (a gate's
-capture is cut to fit by passes a quarter shorter each time only when it keeps more than a
-million blocks): a mirror's, 4.5 and 13. That is one of the server's background threads, and the fill comes in late; the first step
-does not wait for it. A capture through the bigger hole sees more near ground, so over open
-ground a fill keeps more than an eight-by-eight one's. A gate's capture is cut to fit a million blocks
-(`MOST_GATE_KEPT`, a mirror's is 500,000), the most its view may draw, so none is kept that a view
-could not use; over open ground the fill reaches further than it did at half a million. Kept in
-sections since #525, a million cells take about 0.4 MB in memory, and between about as many and four times as many
-for what the list before took; the cap stayed, since what it now bounds is the view's walk and
-maps, not the capture ([How a capture is kept](MIRRORS.md#how-a-capture-is-kept)).
-
-The view itself is built from the capture a few milliseconds a tick, the old view drawn until the
-new one is whole, and built again only when the capture or the tunnel changes or a block changes
-behind the gate, no sooner than five seconds (or four times its build's own steps, a few seconds
-for a view at the cap) after the last one went in, up to two minutes apart while changes keep
-coming, and at least every ten minutes; until #609 it was
-built in one go on the main thread every minute, a tick of most of a second for a deep view
-([How the room is built](MIRRORS.md#how-the-room-is-built)).
-
-On the main thread, a redraw of a gate's view walks every block the view holds, up to the million
-a gate's view may hold: about 13 ms for half a million and 27 for a million, measured on their
-own, before any block is judged for the eye. A redraw rests three times as long as it took, so a
-viewer at a capped view costs a quarter of the main thread at most, the rule that bounds a
-mirror's view, whose cap is a quarter of a gate's. The views the facility drew held four to eight thousand blocks and
-redrew in 12 to 25 ms. Whether a viewer can see into the opening at all tries at most 64 lines of
-sight, spread over it: all 274 of a Grand gate's, every one blocked by a wall in front, took some
-80 ms a redraw. The price is a narrow gap: through a one-block peephole in a wall before a gate,
-a viewer is drawn the view only if the hole lines up with one of the lines tried, about one in five
-for a Grand gate's opening. At `open` a viewer the lines miss is not drawn the view, and sees the
-horizon. What a view holds does not depend on the gate dialling it: it is the capture
-within the depth, the same capture for every gate.
-
-**A capture is the base, kept, and taken again when that is cheap.** It is written to
-`data/captures/gates/`, one file for each gate whose front it shows, seen through the largest
-opening: every smaller opening sits inside that one, on the same middle column and bottom row, so
-what it can see is already there, and one capture serves every gate that dials this one. A Minimal
-gate can still be dialled and shows nothing itself, but a ring gate dialling it shows its front. The file is named for the gate made file-safe, with a hash of the name,
-since two names can come out alike; one seen through a smaller opening, left by an earlier build,
-is deleted as its gate is next refreshed. So it is there after a restart, and a remote gate shows its view at
-once rather than after its far side has been read off the disk. The capture's own file is read off
-the main thread, the first time it is wanted after a restart or after five minutes nobody drew from
-it ([#528](https://github.com/khanjal/Wormhole-X-Treme/issues/528)): one at a mirror's cap of half a
-million blocks took about 130 ms, a hitch on the main thread, before captures were kept in
-sections (#525), which read faster: about as fast for a city, two to five times for hills and canopy, ten times for the sea. The horizon shows until it is in, and
-the dial starts the read, so it is usually in before the kawoosh settles. Nothing is taken while it
-is read, since a first step taken then would overwrite a capture holding the fill; a gate removed
-meanwhile does not have it put back. A read that has not come back in a minute is counted lost and
-the file read again. A gate whose first sweep after opening meets its read still in flight skips
-that opening's retake of an old capture; the refresh while somebody is at the gate catches it up.
-On Windows a file being read cannot be deleted or replaced, so a gate removed, or a capture saved,
-during the read can leave the old file behind, logged as for any failed delete or write, with
-the save's temporary file deleted; a retake's old file is read back once the new capture is let go,
-until the next retake. Each read landing tells every window to look again, so after a restart a hub
-with several open gates can redraw a viewer once a read, paced by the redraw interval. Reads are not
-queued: each goes to the server's pool at once, so many gates at the cap read together after a
-restart hold a megabyte or so each meanwhile; one read at a time, as gate sifts take turns, is the
-next step if that ever shows. Removing a gate deletes its
-captures; a refresh that hands a gate back keeps them. It is taken again:
-
-- **as a gate is dialled or opens**, or its iris opens, once it is a minute old if it holds only the
-  first step, and ten minutes old if it holds the fill: a fill is a pass to the full depth, over open
-  sky half a minute of a core and more where it is cut to fit, and a gate dialled every two minutes kept one sifting for as
-  long as it was used. The dial is the
-  first ask, before the kawoosh, so a first capture has the kawoosh's length to arrive in. A sign
-  dial opens at once, with no kawoosh to wait through, so its first capture of somewhere cold
-  still shows the horizon until it is read;
-- **while somebody stands at the gate it shows**, once it is ten minutes old. Most of that gate's
-  chunks are loaded then, though a capture reaches its first step past the gate and to either
-  side, which can be further than a player with a short view distance has loaded. Each gate is
-  looked at once a minute, and a capture on disk is judged by its file's age, not read to find out;
-- **whenever it is shallower than the view now draws**, after `view-depth` is raised.
-
-The old one is drawn until the new one arrives. Walking out of range and back is not an opening.
-The dial's ask needs somebody within `mirror-proximity-distance` of the middle of the dialling
-gate's opening, as the view itself does: for a Massive gate that middle is eight blocks up, so a
-dialler more than about fourteen blocks out in front is too far. It is not wider than the drawing's
-reach on purpose: a capture for somebody who will not be drawn it would only hold back the gate
-captures queued behind it. A gate dialled by redstone with nobody about waits for the first sweep
-with somebody there.
-
-**Gate captures take turns.** A gate's sift is a core for seconds, over open sky for a minute and a
-half, so they run one at a time, oldest first: a hub of gates dialled at once was that many cores
-at once, and on a server of two or four the main thread starved. One whose gate is removed while
-it waits is dropped; one removed while it runs stops at its next start point, as every sift does
-when the plugin stops, and lets the next go at once. A mirror's, a second or so, never waits
-behind a gate's.
-
-**A gate's view comes in two steps.** The first reaches 32 blocks, or `view-depth` if that is
-shallower; it is not a setting. At a mirror's 160 the box round a far gate nobody had loaded was
-some 230 chunks, read twice before anything showed, and at 32 it is about fifteen. Once that is
-in, the fill out to `view-depth` is taken behind it: 160 by default, and never past what the far
-world's server sends, since a drawn block in a chunk the client does not hold is never seen. It is taken a chunk a tick rather than two, since
-nobody is waiting on it and most of it comes off the disk. The first step is drawn meanwhile, and
-the view deepens when the fill arrives. A retake as the gate opens is taken to the depth the view
-is drawn to, the old capture drawn until it lands, so an opening never shrinks the view back to
-its first step; a refresh while somebody is at the gate goes straight to the full depth too. A
-fill too big to keep is cut to fit a million blocks, never shallower than the first step, and the
-view is drawn only as far as the cut left it, past which this world shows; a capture that fails is tried again
-five minutes later rather than every sweep. A deeper view costs more to draw as a viewer moves,
-the way a mirror's does at 160, so `view-depth` is the setting to lower if a gate view stutters;
-at 32 or less there is no fill. A drawn gate view may hold a million blocks before its depth is
-cut to fit, four times a mirror's: at a mirror's cap, open ground was cut a hundred or so blocks
-out. `mirror debug` says when a view was cut, and to what. While a view is built again the old
-one is still drawn, so for the length of the build both are held: some 100 to 120 MB more for a
-moment for a gate at the cap, about 14 MB for a mirror at its own. An upgraded `config.yml` without
-`view-depth` takes the shallower of its old `mirror-view-depth` and `gate-view-full-depth` (a
-full depth of 0 counting as the first step, the old `gate-view-depth` or 32), written to the file
-as `view-depth`. "What the server sends" is the world's view distance; on Paper a lower
-`send-view-distance` can make the fill reach a little further than a client is ever sent.
-
-**What it does not do yet**, each a thing to judge in a world before it is built:
-
-- **Nothing hides the view's edges.** A mirror hangs in a wall; a gate stands in the open, so the
-  view is clipped against its ring alone. This is the go/no-go.
-- **At `open`, a few moments still show the empty ring.** A viewer is sent the cleared opening as
-  they are first drawn the view, while its far side streams in a tick's worth at a time, so for a
-  tick or two this world shows through the ring. An iris crossing paints the opening alike for
-  everybody: a closing one paints the rings it has not reached as nothing, behind the gate too,
-  until the iris is shut. An opening iris ends the clearing first, so it opens onto the horizon for
-  everybody and the next sweep clears it again for whoever is drawn the view. And the horizon comes
-  back for everybody when the last player near enough to be drawn it walks away.
-- **A gate's captures show in `mirror debug -views`**, which lists every window a player is
-  drawn and says how far each gate's capture reaches, whether it was cut, how deep it is drawn and
-  how old it is; the capture's box and kept blocks are not listed. `mirror debug <gate>` says
-  whether the gate's view is drawn and, if not, why. A gate renamed leaves its old
-  name's capture behind.
-- **An iris crossing a viewed gate shares a block with the view.** The window is still offered
-  while the iris crosses, and at `behind` and `open` its first slab is the cells a block behind the
-  ring, where the stand-in for a wormhole behind a see-through iris is drawn. The two drawings take
-  turns there: a hand-back as somebody walks round sends the real block over the window's slab, and
-  the window, which only sends what changed since it last drew, does not send it again until it does.
-- **A capture is not checked against where it was taken.** A gate regenerated with a new arrival
-  point draws its old capture until its next retake, at most a minute after it is next dialled.
-- **No horizontal gates.**
-- **A tunnel's wall is see-through if its portal material is.** Two blocks of water still show
-  whatever really stands behind them in this world, tinted, and so the far room past the tunnel's
-  end, which nothing walls; only an opaque material such as lava hides it. The wall costs two rings
-  of blocks a layer, only along the tunnel.
-- **The tunnel is judged block by block for each eye, as the rest of the view is.** A hollow or
-  wall block whose outline lands mostly beside the opening from where a viewer stands is not sent
-  them, so from a steep angle the first layers of the tunnel can show this world's own blocks behind
-  the gate at its edges until they step round. Not yet seen in a world.
-
 ## The ripple (experimental)
 
 `gate-ripple` ([#579](https://github.com/khanjal/Wormhole-X-Treme/issues/579)) ripples an open
@@ -1031,7 +700,7 @@ opening that is a circle or a diamond rings the same way with the cells it has. 
 one cell and ripples in three steps, Large from two by two in four, Massive from three by three in
 eight, and Grand, eighteen by seventeen, from four by three in nine.
 
-**What a ring is made of** depends on the gate, and on who is looking:
+**What a ring is made of** depends on the gate:
 
 - **A gate with its frame in front of its horizon**, its own blocks on all four sides of the opening
   in the plane a block in front of it, is drawn its own portal material in that plane, whatever the
@@ -1045,18 +714,13 @@ eight, and Grand, eighteen by seventeen, from four by three in nine.
   like the water, and a block on every version from 1.20.
 - **A flat gate of any other material**, lava, a nether portal or anything else, does not ripple for
   now, nor does Minimal. A ring material for each needs a look in a world first.
-- **At `gate-view: open`, a viewer drawn the view**, whose opening is clear, is drawn the gate's own
-  portal material in the opening instead, any material, so the horizon crosses the view as a ring
-  and clears. That is per viewer, on the record the cleared horizon keeps of who sees through.
 
-**Nothing is left behind.** A ring is put back as the next is drawn: in the opening, to what
-`GateViews.horizonFor` says that viewer sees there now, the horizon or, drawn the view, nothing; in
+**Nothing is left behind.** A ring is put back as the next is drawn: in the opening, to the horizon; in
 front, to the real block. A ring is not drawn on a block an entity's box reaches into as that ring
 is sent; the check is made once a ring, so somebody who walks into a ring of ice, or of a portal
 material that is solid, after it was sent can be held up by it for that step. A throw while a ring
 is drawn calls the ripple off and puts back what it had sent. A ripple is called off,
-and what it drew put back, as the gate closes, as its iris closes, as its horizon is cleared for a
-view or stops being, as the gate is removed or refreshed, and as the plugin stops; a viewer who
+and what it drew put back, as the gate closes, as its iris closes, as the gate is removed or refreshed, and as the plugin stops; a viewer who
 leaves or changes world is forgotten. It runs only on an upright gate whose wormhole is showing,
 its kawoosh settled and its iris open and not crossing, and whose chunk is loaded; it loads no
 chunk, and is drawn only to players within the horizon's reach.

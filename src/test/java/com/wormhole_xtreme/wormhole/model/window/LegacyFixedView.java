@@ -25,17 +25,10 @@ final class LegacyFixedView
     {
     }
 
-    /** The view to a depth, tunnelled, or {@link #TOO_MANY} if it would hold more than {@code most}. */
+    /** The view to a depth, or {@link #TOO_MANY} if it would hold more than {@code most}. */
     static Map<Long, BlockData> fixedTo(final WindowState window, final int depth, final long now, final int most)
     {
-        final Map<Long, BlockData> view = window.capture.complete() ? byVolume(window, depth, now, most)
-            : byKept(window, depth, now, most);
-        if (view == TOO_MANY)
-        {
-            return TOO_MANY;
-        }
-        final Map<Long, BlockData> tunnelled = FixedView.tunnelled(window, view, depth, now, most);
-        return FixedView.tooMany(tunnelled) ? TOO_MANY : tunnelled;
+        return window.capture.complete() ? byVolume(window, depth, now, most) : byKept(window, depth, now, most);
     }
 
     /** As the old {@code fixedView} cut it: a quarter shallower until it fits, empty past four. */
@@ -76,7 +69,7 @@ final class LegacyFixedView
             final int y = at.y();
             final int z = at.z();
             final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
-            if ((layer < 1) || (y < min) || (y >= max) || !window.showsFar(x, y, z))
+            if ((layer < 1) || (y < min) || (y >= max))
             {
                 return;
             }
@@ -177,7 +170,7 @@ final class LegacyFixedView
         {
             final Capture capture = window.capture;
             final Spot at = window.shape.farOf(x, y, z);
-            if (!window.showsFar(x, y, z) || !capture.contains(at.x(), at.y(), at.z()))
+            if (!capture.contains(at.x(), at.y(), at.z()))
             {
                 return false;
             }

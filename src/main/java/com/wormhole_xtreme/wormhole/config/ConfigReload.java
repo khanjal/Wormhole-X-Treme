@@ -36,9 +36,9 @@ import com.wormhole_xtreme.wormhole.utils.YamlMaps;
  */
 public final class ConfigReload
 {
-    /** Text settings whose getters read a bare off, which YAML hands over as false, as their default. */
+    /** Text settings that behave as their default for a bare off, which YAML hands over as false. */
     private static final Set<ConfigKeys> OFF_MEANS_DEFAULT =
-        EnumSet.of(ConfigKeys.GATE_VIEW, ConfigKeys.GATE_IRIS_ANIMATION);
+        EnumSet.of(ConfigKeys.GATE_IRIS_ANIMATION);
 
     /** Static helpers only. */
     private ConfigReload()

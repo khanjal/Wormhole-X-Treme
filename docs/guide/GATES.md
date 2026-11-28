@@ -12,8 +12,6 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 - [Signs](#signs)
 - [The iris](#the-iris)
 - [The ripple](#the-ripple)
-- [A big gate onto a small one](#a-big-gate-onto-a-small-one)
-- [Choosing what a gate shows](#choosing-what-a-gate-shows)
 - [Redstone](#redstone)
 - [What travels through a gate](#what-travels-through-a-gate)
 - [Locator bar ping (experimental)](#locator-bar-ping-experimental)
@@ -519,63 +517,12 @@ It is off by default while it is new.
 | A flat water gate bigger than two by two, such as Standard or Large | Ice, in the horizon |
 | A flat lava or nether portal gate, Minimal, or a horizontal gate | Nothing, for now |
 
-At `gate-view: open` a player who sees through a gate sees its portal material cross the view as a
-ring. A ring is not drawn where anybody stands as it appears, though somebody who steps into one
+A ring is not drawn where anybody stands as it appears, though somebody who steps into one
 of ice in the moment it shows can be held up by it, and nothing stays once the ripple has passed.
 
 | Setting | Default | What it does |
 |---|---|---|
 | `gate-ripple` | `false` | Whether open gates ripple |
-
-## A big gate onto a small one
-
-With `gate-view` on, a gate that dials a smaller one, a Massive gate dialling a Standard one say,
-shows the far side at the end of a tunnel rather than a Massive-sized slice of it running past the
-small gate's walls and ceiling. The tunnel narrows from this gate's opening to the small gate's size,
-keeping this gate's shape, so a round gate's tunnel is round, floor and all;
-its walls, ceiling and floor are this gate's own portal material, two blocks thick, so it looks like
-a tunnel of water (or lava, or whatever the gate's horizon is). The tunnel stops where the small
-gate's opening is, and through that you see the far side as the small gate would show it: the ground
-in front of it and whatever lies beyond, but not the halls or ceiling round it. The more the far gate is smaller, the
-longer the tunnel: four blocks from Large to Standard, thirteen from Massive to Standard, counting
-the opening and a first layer behind it at the opening's own size. A gate
-smaller than three blocks each way, such as Minimal, is seen through a three-by-three opening at the
-end, so there is something to see. Mobs and
-players on the far side are shown only in the view at the end, not in the tunnel or beside it. Gates of
-the same size, and a small gate dialling a big one, show the whole view as before, unless
-`gate-view-funnel-min-length` is set: then they are seen down a straight tunnel the size of your
-gate, and every tunnel runs straight for a while before it narrows, longer for a bigger gate. At 3, a
-Standard pair has a tunnel of 3, a Large pair 5, Large to Standard 8. It does nothing while
-`gate-view-funnel` is `false`. The far side starts at the tunnel's end, so a low `view-depth` shows
-less of it, and at a depth no longer than the tunnel, the tunnel alone.
-
-Water is see-through, so through the tunnel's walls you can see, faintly, whatever stands behind the
-gate on your side; lava hides it. The far side is still captured whole: the tunnel only changes
-what is drawn.
-
-In `config.yml` these three are under `# --- Gate views and mirrors ---`, `# -- Gate views --`,
-right after `gate-view`. How far a gate's view reaches is `view-depth`, shared with mirrors: see
-[Mirrors](MIRRORS.md#settings).
-
-| Setting | Default | What it does |
-|---|---|---|
-| `gate-view-funnel` | `true` | Whether a gate dialling a smaller one shows the view at the end of a tunnel; `false` shows the whole view |
-| `gate-view-funnel-length` | `16` | The longest that tunnel may be, 1 to 64 blocks |
-| `gate-view-funnel-min-length` | `0` | The shortest it is, up to `gate-view-funnel-length`; above 0, same-size and small-to-large pairs get a straight tunnel too. 3 is the wormhole look for a Standard gate. No effect while `gate-view-funnel` is `false`. [Details](../GATES.md) |
-
-## Choosing what a gate shows
-
-At `gate-view: behind` the view is drawn behind the horizon, so the horizon has to be see-through to
-show it. A gate whose horizon is lava, or an opaque block, keeps its horizon and takes no capture for its view;
-`gate-view: open` clears the horizon, so it shows the view whatever the horizon is made of.
-`mirror debug <gate>` says when this is why a gate shows none.
-
-A gate can have its own level: `/wormhole gate edit <gate> view <horizon|behind|open>`, or `default`
-to follow `gate-view` again. Its own level wins over the server's whichever way they differ, so
-`horizon` on one gate keeps its horizon at a server on `open`, and `open` shows its view at a server
-on `horizon`. It takes effect on an open gate at the next sweep, with no new dial, and only the level of the
-gate that is dialling out counts: the far end keeps its horizon. It is saved with the gate and kept
-when the gate is regenerated.
 
 ## Redstone
 
