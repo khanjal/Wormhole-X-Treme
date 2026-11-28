@@ -220,6 +220,42 @@ class LegacyDatabaseExporterTest
     }
 
     /**
+     * A gate with a custom material is written as version 9, with the material's name.
+     *
+     * <p>Dakto's 1.1.8 reads a version 8 ordinal as the length of a name, swallows that many of the
+     * bytes that follow, misreads the rest of the gate and fails to enable, which took every gate on
+     * the server with it when tried against the real jar. It reads version 9 correctly. A gate with
+     * no custom material stays at version 8.
+     */
+    @Test
+    void aGateWithACustomMaterialIsExportedAsVersion9WithTheName() throws Exception
+    {
+        final Stargate gate = importedGate("Abydos");
+
+        assertEquals(8, exportedGateData().getBytes(1, 1)[0], "no custom material: still the version both read");
+
+        gate.setGateCustom(true);
+        gate.setGateCustomLightMaterial(Material.GLOWSTONE);
+        final byte[] data = exportedGateData().getBytes(1, (int) exportedGateData().length());
+
+        assertEquals(9, data[0], "an ordinal at version 8 breaks Dakto's reader");
+        assertTrue(new String(data, java.nio.charset.StandardCharsets.ISO_8859_1).contains("GLOWSTONE"),
+            "the material is written by name");
+    }
+
+    private java.sql.Blob exportedGateData() throws Exception
+    {
+        final LegacyDatabaseExporter.Result out = LegacyDatabaseExporter.export();
+        try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + out.getFile().getAbsolutePath());
+            Statement query = db.createStatement();
+            ResultSet rows = query.executeQuery("SELECT GateData FROM Stargates"))
+        {
+            assertTrue(rows.next());
+            return new javax.sql.rowset.serial.SerialBlob(rows.getBytes(1));
+        }
+    }
+
+    /**
      * The export lands in a new folder of its own, and the old database and the live gate files are
      * exactly as they were.
      */

@@ -268,7 +268,6 @@ export.dropped.kind.dial-sign-target: "dial sign target name"
 export.dropped.kind.owner-unknown: "owner whose name could not be found (written without one)"
 export.dropped.kind.owner-uuid: "owner's account id (the older format keeps the name only)"
 export.not-carried: "Transport rings, mirrors and windows are not exported; the older plugins have none."
-export.ordinals: "Custom materials are stored by number, so they only match on the same Minecraft version."
 
 gate.complete.name-dash: "A gate name cannot start with {0}; words that do are options, like {1}."
 gate.complete.name-too-long: "Gate name {0} is too long. Use at most {1} characters."

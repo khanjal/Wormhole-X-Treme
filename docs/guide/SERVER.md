@@ -462,8 +462,12 @@ nothing. If old gates are found on startup and you have none, the log says so on
 Dakto's WormholeXTreme on a second server. It needs `wormhole.export` and writes a new
 `WormholeXTreme.sqlite` into `exports/<yyyyMMdd-HHmmss>/` (with `-2`, `-3` on a clash) under the plugin folder, never into
 `WormholeXTremeDB` and never to your gate files; copy it into the other plugin's `WormholeXTremeDB`
-yourself. Both plugins keep gates in that one table, so the file is written once, as gate version 8,
-the newest they both read. It has not been tried against a real Dakto 1.1.8 data folder.
+yourself. Both plugins keep gates in that one table, so the file is written as gate version 8, the newest they
+both read; a gate with a custom material is written as version 9 instead, with the material by name,
+because Dakto's 1.1.8 misreads a version 8 number there and fails to enable. It was tried against a real
+Dakto 1.1.8 on Paper 1.20.4 and 1.21.11: every gate loaded with its name, network, shape and location,
+the custom materials and woosh depth carried over, and Dakto's `updategate -all` re-detected each one
+from its blocks.
 
 What does not carry over, and is listed after each export rather than dropped silently:
 
@@ -473,7 +477,6 @@ What does not carry over, and is listed after each export rather than dropped si
 - Per-gate settings with no field in the format: own use cost, dial spin, iris animation,
   chosen material group, frame material, dial sign target, and the owner's account id (they keep the
   name only). Each is counted.
-- Custom materials are stored as numbers in version 8, so they only match on the same Minecraft version.
 
 Importing the export again with `gate import` gives back the gates that came in that way.
 

@@ -135,7 +135,6 @@ class ExportCommandTest
 
         verify(console).sendMessage(plainContains("Exported 0 gates to "));
         verify(console).sendMessage(infoBody("Transport rings, mirrors and windows are not exported; the older plugins have none."));
-        verify(console).sendMessage(infoBody("Custom materials are stored by number, so they only match on the same Minecraft version."));
         verify(console, never()).sendMessage(infoBody("These per-gate settings have no place in the older format, and were left out:"));
     }
 

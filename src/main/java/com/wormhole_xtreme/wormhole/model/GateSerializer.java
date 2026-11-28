@@ -747,10 +747,16 @@ public final class GateSerializer
     }
 
     /**
-     * The gate as the older plugins store it: save version 8, custom materials by ordinal.
+     * The gate as the older plugins store it: save version 8, custom materials by ordinal, unless
+     * the gate has a custom material.
      *
      * <p>Ordinals are only meaningful on the Bukkit version that wrote them, so the result is
      * right for a server of the same Minecraft version and may name other blocks on another.
+     *
+     * <p>A gate with a custom material is written as version 9 instead, with the names. Dakto's
+     * 1.1.8 writes names under version 8 and reads an ordinal there only when it is larger than
+     * the bytes that follow, so a version 8 ordinal swallows the next bytes as a name, the rest
+     * of the gate is misread and the plugin fails to enable. It reads version 9 correctly.
      *
      * @param s
      *            the gate
@@ -760,7 +766,13 @@ public final class GateSerializer
     @SuppressWarnings("java:S1168")
     public static byte[] stargateToLegacyBinary(final Stargate s)
     {
-        return encode(s, LEGACY_SAVE_VERSION);
+        return encode(s, hasCustomMaterial(s) ? STARGATE_SAVE_VERSION : LEGACY_SAVE_VERSION);
+    }
+
+    private static boolean hasCustomMaterial(final Stargate s)
+    {
+        return s.getGateCustomStructureMaterial() != null || s.getGateCustomPortalMaterial() != null
+            || s.getGateCustomLightMaterial() != null || s.getGateCustomIrisMaterial() != null;
     }
 
     // S1168 as above: null is the caller's signal that the gate was not encoded.

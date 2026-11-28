@@ -33,9 +33,9 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  *
  * <p>The way back out for an admin who tries this fork and returns to the 2011 original, or runs
  * Dakto's build on a second server: both keep gates in one SQLite table, each gate a binary blob.
- * The blob is written at save version 8, the newest both understand (this fork's version 9 only
- * changes how custom materials are named). Version 8 stores materials by ordinal, so those
- * only match on the same Minecraft version.
+ * The blob is written at save version 8, the newest both understand, except for a gate with a custom
+ * material: that is written as version 9, which names the material, because Dakto's reader takes a
+ * version 8 ordinal for the length of a name and misreads the rest of the gate.
  *
  * <p>It writes a fresh database into a folder of its own under {@code exports/} and nothing
  * else: never into {@code WormholeXTremeDB}, which other forks share, and never to a live gate file.

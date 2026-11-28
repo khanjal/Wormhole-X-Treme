@@ -82,7 +82,6 @@ public class ExportCommand implements SubCommand
             }
         }
         sender.sendMessage(ChatText.info(Messages.get(sender, "export.not-carried")));
-        sender.sendMessage(ChatText.info(Messages.get(sender, "export.ordinals")));
     }
 
     /** Each key is written out whole, as below. */
