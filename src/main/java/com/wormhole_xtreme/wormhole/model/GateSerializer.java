@@ -56,10 +56,12 @@ public final class GateSerializer
      *            the gate being read, for the warning message
      * @param field
      *            which material this is, for the warning message
+     * @param quiet
+     *            true for a trial read, which logs nothing
      * @return the material, or null if none was stored or it no longer exists
      */
     private static Material readCustomMaterial(final ByteBuffer byteBuff, final boolean byName,
-        final String gateName, final String field)
+        final String gateName, final String field, final boolean quiet)
     {
         if (!byName)
         {
@@ -78,7 +80,7 @@ public final class GateSerializer
         byteBuff.get(raw);
         final String materialName = new String(raw, StandardCharsets.UTF_8);
         final Material material = Material.matchMaterial(materialName);
-        if (material == null)
+        if (material == null && !quiet)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Gate \"" + gateName + "\" has an unknown custom " + field + " material \"" + materialName
@@ -156,11 +158,62 @@ public final class GateSerializer
         {
             return readVersion7(s, byteBuff, w);
         }
-        else if (s.getLoadedVersion() == 8 || s.getLoadedVersion() == 9)
+        else if (s.getLoadedVersion() == 8)
         {
-            return readVersion8Or9(s, byteBuff, w);
+            return readVersion8(gateData, w, name, network);
+        }
+        else if (s.getLoadedVersion() == 9)
+        {
+            readVersion8Or9(s, byteBuff, w, true, false);
+            warnIfBytesRemain(byteBuff);
+            return s;
         }
         return null;
+    }
+
+    /**
+     * Reads a save-version 8 gate, whose four custom materials are ordinals in the original plugin's
+     * layout and names in Dakto's.
+     *
+     * <p>A quiet trial read decides the layout, then the gate is read once for real. The names layout
+     * wins only if it uses every byte, since the ordinal layout is fixed-size and the names layout is
+     * not; otherwise the ordinal read stands, as it always did, trailing-bytes warning and all. When
+     * both would use every byte (all four materials absent) names win, as an ordinal of 0 is not a
+     * real custom material.
+     *
+     * @param gateData
+     *            the whole saved record, version byte included
+     */
+    private static Stargate readVersion8(final byte[] gateData, final World w, final String name,
+        final StargateNetwork network)
+    {
+        boolean byName;
+        try
+        {
+            final ByteBuffer trial = ByteBuffer.wrap(gateData, 1, gateData.length - 1);
+            readVersion8Or9(newGate(w, name, network), trial, w, true, true);
+            byName = trial.remaining() == 0;
+        }
+        catch (final RuntimeException e)
+        {
+            byName = false; // not the names layout; the ordinal read stands, or fails as it always did
+        }
+
+        final Stargate s = newGate(w, name, network);
+        final ByteBuffer byteBuff = ByteBuffer.wrap(gateData, 1, gateData.length - 1);
+        readVersion8Or9(s, byteBuff, w, byName, false);
+        warnIfBytesRemain(byteBuff);
+        return s;
+    }
+
+    private static Stargate newGate(final World w, final String name, final StargateNetwork network)
+    {
+        final Stargate s = new Stargate();
+        s.setGateName(name);
+        s.setGateNetwork(network);
+        s.setLoadedVersion(LEGACY_SAVE_VERSION);
+        s.setGateWorld(w);
+        return s;
     }
 
     /**
@@ -395,26 +448,27 @@ public final class GateSerializer
      *            the buffer, positioned just past the version byte
      * @param w
      *            the world the gate belongs to
-     * @return the gate
+     * @param materialsByName
+     *            whether the custom materials are names (version 9, and Dakto's version 8) or ordinals
+     * @param quiet
+     *            true for a trial read, which logs nothing and leaves the dial sign alone
      */
-    private static Stargate readVersion8Or9(final Stargate s, final ByteBuffer byteBuff, final World w)
+    private static void readVersion8Or9(final Stargate s, final ByteBuffer byteBuff, final World w,
+        final boolean materialsByName, final boolean quiet)
     {
         final byte[] blocArray = new byte[12];
 
         readAnchors(s, byteBuff, w, blocArray);
-        readSignAndTarget(s, byteBuff, w, blocArray, true);
+        readSignAndTarget(s, byteBuff, w, blocArray, true, quiet);
         readFacingAndOrientation(s, byteBuff);
         readIrisAndLights(s, byteBuff);
         readRedstone(s, byteBuff, w, blocArray);
-        readCustom(s, byteBuff, s.getLoadedVersion() >= 9);
+        readCustom(s, byteBuff, materialsByName, quiet);
 
         readBlockRun(byteBuff, w, blocArray, s.getGateStructureBlocks());
         readBlockRun(byteBuff, w, blocArray, s.getGatePortalBlocks());
         readWaves(byteBuff, w, blocArray, s.getGateLightBlocks());
         readWaves(byteBuff, w, blocArray, s.getGateWooshBlocks());
-
-        warnIfBytesRemain(byteBuff);
-        return s;
     }
 
     /**
@@ -469,6 +523,12 @@ public final class GateSerializer
     private static void readSignAndTarget(final Stargate s, final ByteBuffer byteBuff, final World w,
                                           final byte[] blocArray, final boolean longIds)
     {
+        readSignAndTarget(s, byteBuff, w, blocArray, longIds, false);
+    }
+
+    private static void readSignAndTarget(final Stargate s, final ByteBuffer byteBuff, final World w,
+                                          final byte[] blocArray, final boolean longIds, final boolean quiet)
+    {
         s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
 
         byteBuff.get(blocArray);
@@ -477,7 +537,10 @@ public final class GateSerializer
         if (s.isGateSignPowered())
         {
             s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
-            readDialSignState(s, w);
+            if (!quiet)
+            {
+                readDialSignState(s, w);
+            }
         }
 
         s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
@@ -651,14 +714,17 @@ public final class GateSerializer
      *            the gate being built
      * @param materialsByName
      *            whether materials are stored by name, which is true from version 9
+     * @param quiet
+     *            true for a trial read, which logs nothing
      */
-    private static void readCustom(final Stargate s, final ByteBuffer byteBuff, final boolean materialsByName)
+    private static void readCustom(final Stargate s, final ByteBuffer byteBuff, final boolean materialsByName,
+        final boolean quiet)
     {
         s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
-        s.setGateCustomStructureMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "structure"));
-        s.setGateCustomPortalMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "portal"));
-        s.setGateCustomLightMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "light"));
-        s.setGateCustomIrisMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "iris"));
+        s.setGateCustomStructureMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "structure", quiet));
+        s.setGateCustomPortalMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "portal", quiet));
+        s.setGateCustomLightMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "light", quiet));
+        s.setGateCustomIrisMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "iris", quiet));
         s.setGateCustomWooshTicks(byteBuff.getInt());
         s.setGateCustomLightTicks(byteBuff.getInt());
         s.setGateCustomWooshDepth(byteBuff.getInt());

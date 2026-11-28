@@ -114,6 +114,10 @@ somebody else's release notes, and the record of where this fork came from.
 
 - **An open gate and a nether portal no longer draw the far room; only mirrors do.** A server with many open views lagged, and mirrors have two fixed sizes. Gates and portals work as before. `gate-view`, `gate-view-funnel`, `gate-view-funnel-length`, `gate-view-funnel-min-length`, `nether-portal-views` and `nether-portal-view-worlds` are ignored and named in the log at each start; `/wormhole gate edit <gate> view` and `/wormhole mirror debug <gate>` are gone, an old `View` line in a gate file is dropped on its next save, and `wormhole.view.netherportal` is gone. `captures/gates/` under the plugin's data folder can be deleted.
 
+**Fixed**
+
+- **`gate import` reads a database a Dakto server has run.** Its gates, saved as version 8 with the materials as names, failed to import; they now come in with their materials.
+
 ### Internals
 
 - **The permission descriptions in plugin.yml, which permission plugins show admins, now match what each node does.** `wormhole.remove.own`, `wormhole.build`, `wormhole.config`, `wormhole.list`, `wormhole.go` and the use nodes said the wrong thing; a stale sign comment in config.yml, and the Copilot and CI notes about the compile target, were corrected too.
