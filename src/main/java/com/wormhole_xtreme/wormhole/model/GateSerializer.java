@@ -743,7 +743,7 @@ public final class GateSerializer
     @SuppressWarnings("java:S1168")
     public static byte[] stargateToBinary(final Stargate s)
     {
-        return encode(s, STARGATE_SAVE_VERSION);
+        return encode(s, STARGATE_SAVE_VERSION, false);
     }
 
     /**
@@ -766,7 +766,8 @@ public final class GateSerializer
     @SuppressWarnings("java:S1168")
     public static byte[] stargateToLegacyBinary(final Stargate s)
     {
-        return encode(s, hasCustomMaterial(s) ? STARGATE_SAVE_VERSION : LEGACY_SAVE_VERSION);
+        // Always idle, whatever the version: another plugin must not be handed an open gate.
+        return encode(s, hasCustomMaterial(s) ? STARGATE_SAVE_VERSION : LEGACY_SAVE_VERSION, true);
     }
 
     private static boolean hasCustomMaterial(final Stargate s)
@@ -777,7 +778,7 @@ public final class GateSerializer
 
     // S1168 as above: null is the caller's signal that the gate was not encoded.
     @SuppressWarnings("java:S1168")
-    private static byte[] encode(final Stargate s, final byte version)
+    private static byte[] encode(final Stargate s, final byte version, final boolean snapshot)
     {
         final boolean byName = version >= 9;
         byte[] utfFaceBytes;
@@ -798,7 +799,7 @@ public final class GateSerializer
         final ByteBuffer dataArr = ByteBuffer.allocate(size);
 
         writeAnchors(dataArr, s, version);
-        writeSignAndTarget(dataArr, s, utfFaceBytes, utfIdcBytes, !byName);
+        writeSignAndTarget(dataArr, s, utfFaceBytes, utfIdcBytes, snapshot);
         writeRedstoneAndCustom(dataArr, s, byName);
         writeBlockLists(dataArr, s);
         if (dataArr.remaining() > 0)
