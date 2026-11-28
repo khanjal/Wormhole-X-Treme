@@ -1552,6 +1552,9 @@ function clearMobs () {
 async function main () {
   bot = mineflayer.createBot({ host: '127.0.0.1', port, username: name, auth: 'offline', version })
   bot.on('messagestr', (text) => heard.push(text))
+  // Paper sends the action bar as its own packet, which Mineflayer 4.39 ignores; handed on as the
+  // system chat line it used to be, so a mirror's "opens onto" answer is heard.
+  bot._client.on('action_bar', ({ text }) => bot._client.emit('systemChat', { formattedMessage: text, positionId: 2 }))
   // Mineflayer 4.39 notes a seat taken from a vehicle's passenger list, but not one given up: the
   // list without the bot, as when it is thrown off or gets off, left bot.vehicle set.
   bot._client.on('set_passengers', ({ entityId, passengers }) => {
