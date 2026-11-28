@@ -463,10 +463,13 @@ Dakto's WormholeXTreme on a second server. It needs `wormhole.export` and writes
 `WormholeXTreme.sqlite` into `exports/<yyyyMMdd-HHmmss>/` (with `-2`, `-3` on a clash) under the plugin folder, never into
 `WormholeXTremeDB` and never to your gate files; copy it into the other plugin's `WormholeXTremeDB`
 yourself. Both plugins keep gates in that one table, so the file is written as gate version 8; a gate with a custom material is written as version 9 instead, with the
-material by name, because Dakto's 1.1.8 misreads a version 8 number there and fails to enable. The 2011
-original does not read version 9, and only Dakto 1.1.8 has been tried: against a real Dakto 1.1.8 on Paper 1.20.4 and 1.21.11: every gate loaded with its name, network, shape and location,
-the custom materials and woosh depth carried over, and Dakto's `updategate -all` re-detected each one
-from its blocks.
+material by name, because Dakto's 1.1.8 misreads a version 8 number there and fails to enable; the
+export lists those gates. The 2011 original does not read version 9, and only Dakto 1.1.8 has been
+tried. Against a real Dakto 1.1.8 on Paper 1.20.4 and 1.21.11 every gate loaded with its name,
+network, shape and location, and Dakto's `updategate -all` re-detected each one from its blocks.
+The light and iris materials and the woosh depth were checked in Dakto; structure and portal
+materials are covered only by this plugin's own round-trip test. A material name the loading server's
+Minecraft version lacks (exported on 1.21.x, loaded on 1.20.x) was not tried.
 
 What does not carry over, and is listed after each export rather than dropped silently:
 

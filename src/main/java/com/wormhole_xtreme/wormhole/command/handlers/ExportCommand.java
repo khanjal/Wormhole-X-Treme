@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.command.CommandSender;
@@ -80,6 +81,22 @@ public class ExportCommand implements SubCommand
                 sender.sendMessage(ChatText.info(Messages.get(sender, "export.dropped.line", label,
                     ChatText.value(String.valueOf(kind.getValue())))));
             }
+        }
+        final List<String> custom = result.getCustomMaterialGates();
+        if (!custom.isEmpty())
+        {
+            final String names = ChatText.value(String.join(", ", custom));
+            final String count9 = ChatText.value(String.valueOf(custom.size()));
+            final String line;
+            if (custom.size() == 1)
+            {
+                line = Messages.get(sender, "export.version9.one", count9, names);
+            }
+            else
+            {
+                line = Messages.get(sender, "export.version9.other", count9, names);
+            }
+            sender.sendMessage(ChatText.info(line));
         }
         sender.sendMessage(ChatText.info(Messages.get(sender, "export.not-carried")));
     }

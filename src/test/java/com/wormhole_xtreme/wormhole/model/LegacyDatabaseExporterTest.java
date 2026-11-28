@@ -257,13 +257,30 @@ class LegacyDatabaseExporterTest
             assertTrue(new String(data, StandardCharsets.ISO_8859_1).contains(wanted.name()),
                 "the material is written by name");
             final Stargate back = GateSerializer.parseVersionedData(data, world, "Abydos", null);
-            assertEquals(wanted, getters.get(field).apply(back), "it reads back as the same material");
+            for (int other = 0; other < getters.size(); other++)
+            {
+                assertEquals(other == field ? wanted : null, getters.get(other).apply(back),
+                    "field " + other + " after setting only field " + field);
+            }
             // Leave only this one set, so dropping any one clause of the check is caught.
             gate.setGateCustomStructureMaterial(null);
             gate.setGateCustomPortalMaterial(null);
             gate.setGateCustomLightMaterial(null);
             gate.setGateCustomIrisMaterial(null);
         }
+    }
+
+    /** The gates written as version 9 are reported by name, and a gate without a custom material is not among them. */
+    @Test
+    void theResultNamesTheGatesWrittenAsVersion9() throws Exception
+    {
+        final Stargate gate = importedGate("Abydos");
+        assertTrue(LegacyDatabaseExporter.export().getCustomMaterialGates().isEmpty());
+
+        gate.setGateCustom(true);
+        gate.setGateCustomIrisMaterial(Material.GLASS);
+
+        assertEquals(List.of("Abydos"), LegacyDatabaseExporter.export().getCustomMaterialGates());
     }
 
     /** A dialled gate with a custom material goes out as version 9 and still idle, with no target. */

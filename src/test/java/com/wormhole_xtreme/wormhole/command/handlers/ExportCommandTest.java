@@ -170,5 +170,34 @@ class ExportCommandTest
         verify(console).sendMessage(plainContains("skipped Chulak: its shape \"Grand\" is not one the older plugins know"));
         verify(console).sendMessage(infoBody("These per-gate settings have no place in the older format, and were left out:"));
         verify(console).sendMessage(plainContains("own use cost (gates: 1)"));
+        verify(console, never()).sendMessage(plainContains("written as version 9"));
+    }
+
+    /** A gate written as version 9 for its custom material is named, since the 2011 original cannot read it. */
+    @Test
+    void gatesWrittenAsVersion9AreNamed()
+    {
+        final World world = mock(World.class);
+        when(world.getUID()).thenReturn(UUID.randomUUID());
+        when(world.getName()).thenReturn("gw");
+        when(world.getEnvironment()).thenReturn(World.Environment.NORMAL);
+        final Stargate custom = mock(Stargate.class);
+        when(custom.getGateName()).thenReturn("Abydos");
+        when(custom.getGateShapeName()).thenReturn("Standard");
+        when(custom.getGateWorld()).thenReturn(world);
+        final CommandSender console = console();
+
+        try (MockedStatic<StargateManager> gates = mockStatic(StargateManager.class);
+            MockedStatic<GateSerializer> serializer = mockStatic(GateSerializer.class))
+        {
+            gates.when(StargateManager::getAllGatesUnsorted).thenReturn(List.of(custom));
+            serializer.when(() -> GateSerializer.stargateToLegacyBinary(any())).thenReturn(new byte[] { 9 });
+            serializer.when(() -> GateSerializer.hasCustomMaterial(any())).thenReturn(true);
+
+            assertTrue(command.execute(console, new String[] { "export", "sqlite" }));
+        }
+
+        verify(console).sendMessage(plainContains("1 gate was written as version 9 because of its custom material: Abydos."));
+        verify(console).sendMessage(plainContains("the 2011 original cannot"));
     }
 }

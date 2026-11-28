@@ -78,6 +78,7 @@ public final class LegacyDatabaseExporter
         private final Object[] problemArgs;
         private int exported;
         private final List<String> skipped = new ArrayList<>();
+        private final List<String> customMaterial = new ArrayList<>();
         private final Map<Dropped, Integer> dropped = new EnumMap<>(Dropped.class);
 
         Result(final File file, final Problem problem, final Object... problemArgs)
@@ -101,6 +102,9 @@ public final class LegacyDatabaseExporter
 
         /** @return the gates left out and why, one line each */
         public List<String> getSkipped() { return skipped; }
+
+        /** @return the gates written as version 9 for their custom material, which the 2011 original cannot read */
+        public List<String> getCustomMaterialGates() { return customMaterial; }
 
         /** @return for each kind of setting lost, how many exported gates had one */
         public Map<Dropped, Integer> getDropped() { return dropped; }
@@ -295,6 +299,10 @@ public final class LegacyDatabaseExporter
         }
         bind(insert, ids.assign(gate.getGateId()), gate, data, shape);
         insert.addBatch();
+        if (GateSerializer.hasCustomMaterial(gate))
+        {
+            result.customMaterial.add(gate.getGateName());
+        }
         return true;
     }
 

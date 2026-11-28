@@ -267,6 +267,8 @@ export.dropped.kind.frame-material: "frame material hint"
 export.dropped.kind.dial-sign-target: "dial sign target name"
 export.dropped.kind.owner-unknown: "owner whose name could not be found (written without one)"
 export.dropped.kind.owner-uuid: "owner's account id (the older format keeps the name only)"
+export.version9.one: "{0} gate was written as version 9 because of its custom material: {1}. Dakto's 1.1.8 reads it; the 2011 original cannot."
+export.version9.other: "{0} gates were written as version 9 because of their custom materials: {1}. Dakto's 1.1.8 reads them; the 2011 original cannot."
 export.not-carried: "Transport rings, mirrors and windows are not exported; the older plugins have none."
 
 gate.complete.name-dash: "A gate name cannot start with {0}; words that do are options, like {1}."
